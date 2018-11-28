@@ -97,6 +97,11 @@ namespace Mat3 {
         return out;
     }
 
+    export function hasNaN(m: Mat3) {
+        for (let i = 0; i < 9; i++) if (isNaN(m[i])) return true
+        return false
+    }
+
     /**
      * Creates a new Mat3 initialized with values from an existing matrix
      */

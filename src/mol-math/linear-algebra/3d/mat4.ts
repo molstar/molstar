@@ -102,6 +102,11 @@ namespace Mat4 {
         return areEqual(m, _id, typeof eps === 'undefined' ? EPSILON.Value : eps);
     }
 
+    export function hasNaN(m: Mat4) {
+        for (let i = 0; i < 16; i++) if (isNaN(m[i])) return true
+        return false
+    }
+
     export function areEqual(a: Mat4, b: Mat4, eps: number) {
         for (let i = 0; i < 16; i++) {
             if (Math.abs(a[i] - b[i]) > eps) return false;

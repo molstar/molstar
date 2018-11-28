@@ -53,6 +53,10 @@ namespace Quat {
         out[3] = 1;
     }
 
+    export function hasNaN(q: Quat) {
+        return isNaN(q[0]) || isNaN(q[1]) || isNaN(q[2]) || isNaN(q[3])
+    }
+
     export function create(x: number, y: number, z: number, w: number) {
         const out = identity();
         out[0] = x;

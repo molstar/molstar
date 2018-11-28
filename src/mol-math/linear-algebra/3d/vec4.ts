@@ -48,6 +48,10 @@ namespace Vec4 {
         return out;
     }
 
+    export function hasNaN(a: Vec4) {
+        return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2]) || isNaN(a[3])
+    }
+
     export function toArray(a: Vec4, out: Helpers.NumberArray, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
