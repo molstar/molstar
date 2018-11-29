@@ -26,3 +26,15 @@ export const upperCase = (str: string) => str.toUpperCase()
 export function capitalize(str: string) {
     return str.toLowerCase().replace(/^\w|\s\w/g, upperCase);
 }
+
+export function splitSnakeCase(str: string) {
+    return str.replace(/_/g, ' ')
+}
+
+export function snakeCaseToWords(str: string) {
+    return capitalize(splitSnakeCase(str))
+}
+
+export function stringToWords(str: string) {
+    return capitalize(splitCamelCase(splitSnakeCase(str)))
+}

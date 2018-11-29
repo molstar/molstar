@@ -14,6 +14,7 @@ import { compile } from 'mol-script/runtime/query/compiler';
 import { MolScriptBuilder } from 'mol-script/language/builder';
 import { StateObject } from 'mol-state';
 import { PluginContext } from 'mol-plugin/context';
+import { stringToWords } from 'mol-util/string';
 
 export { TrajectoryFromMmCif }
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
@@ -90,21 +91,21 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params(a) {
         const model = a.data;
-        const ids = model.symmetry.assemblies.map(a => [a.id, a.id] as [string, string]);
-        return { id: PD.makeOptional(PD.Select(ids.length ? ids[0][0] : '', ids, { label: 'Asm Id', description: 'Assembly Id' })) };
+        const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
+        if (!ids.length) ids.push(['deposited', 'Deposited'])
+        return { id: PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' }) };
     }
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Assembly', async ctx => {
-            let id = (params.id || '').trim();
             const model = a.data;
-            if (!id && model.symmetry.assemblies.length) id = model.symmetry.assemblies[0].id;
+            const id = params.id;
             const asm = ModelSymmetry.findAssembly(model, id);
-            if (id && !asm) throw new Error(`Assembly '${id}' not found`);
+            if (id !== 'deposited' && !asm) throw new Error(`Assembly '${id}' not found`);
 
             const base = Structure.ofModel(model);
             if (!asm) {
-                plugin.log.warn(`Model '${a.label}' has no assembly, returning default structure.`);
+                plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
                 const label = { label: a.data.label, description: structureDesc(base) };
                 return new SO.Molecule.Structure(base, label);
             }
