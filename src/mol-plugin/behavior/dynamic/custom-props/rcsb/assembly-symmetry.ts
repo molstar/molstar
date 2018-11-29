@@ -65,7 +65,6 @@ function labelAssemblySymmetryAxes(loci: Loci): string | undefined {
                 labels.push(`Axis of order ${axis.order.value(v)} for ${symmetry.kind} ${symmetry.type.toLowerCase()} symmetry`)
             }
         })
-        // labels.push(`Axis ${i + 1} for ${symmetry.kind} ${symmetry.type.toLowerCase()} symmetry`)
         return labels.length ? labels.join(', ') : undefined
     }
     return undefined

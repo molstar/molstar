@@ -118,6 +118,9 @@ namespace Loci {
         } else if (loci.kind === 'group-loci') {
             // TODO
             return void 0;
+        } else if (loci.kind === 'data-loci') {
+            // TODO maybe add loci.getBoundingSphere()???
+            return void 0;
         }
 
         return Sphere3D.create(Vec3.clone(sphereHelper.center), Math.sqrt(sphereHelper.radiusSq));
