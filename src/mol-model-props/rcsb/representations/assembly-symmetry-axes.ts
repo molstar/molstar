@@ -23,36 +23,45 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { NullLocation } from 'mol-model/location';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { OrderedSet, Interval } from 'mol-data/int';
+import { getSymmetrySelectParam, getAssemblyIds } from '../util';
 
 export const AssemblySymmetryAxesParams = {
     ...ComplexMeshParams,
     sizeFactor: PD.Numeric(0.4, { min: 0, max: 3, step: 0.01 }),
     radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
-    symmetryId: PD.Select<number>(-1, []),
+    symmetryId: getSymmetrySelectParam(),
 }
 export type AssemblySymmetryAxesParams = typeof AssemblySymmetryAxesParams
 export function getAssemblySymmetryAxesParams(ctx: ThemeRegistryContext, structure: Structure) {
     const params = PD.clone(AssemblySymmetryAxesParams)
-
-    if (structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)) {
-        const assemblySymmetry = AssemblySymmetry.get(structure.models[0])!
-        const assemblyName = structure.assemblyName
-        const s = assemblySymmetry.db.rcsb_assembly_symmetry
-        if (s._rowCount) {
-            params.symmetryId.options = []
-            for (let i = 0, il = s._rowCount; i < il; ++i) {
-                if (s.assembly_id.value(i) === assemblyName) {
-                    params.symmetryId.options.push([
-                        s.id.value(i), `${s.symbol.value(i)} ${s.kind.value(i)}`
-                    ])
-                }
-            }
-            params.symmetryId.defaultValue = params.symmetryId.options[0][0]
-        }
-    }
-
+    params.symmetryId = getSymmetrySelectParam(structure)
     return params
+
+    // const params = PD.clone(AssemblySymmetryAxesParams)
+
+    // if (structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)) {
+    //     const assemblySymmetry = AssemblySymmetry.get(structure.models[0])!
+    //     const assemblyName = structure.assemblyName
+    //     const s = assemblySymmetry.db.rcsb_assembly_symmetry
+    //     if (s._rowCount) {
+    //         params.symmetryId.options = []
+    //         for (let i = 0, il = s._rowCount; i < il; ++i) {
+    //             if (s.assembly_id.value(i) === assemblyName) {
+    //                 params.symmetryId.options.push([
+    //                     s.id.value(i), `${s.symbol.value(i)} ${s.kind.value(i)}`
+    //                 ])
+    //             }
+    //         }
+    //         if (options.length) {
+    //             params.symmetryId.options = options
+    //             params.symmetryId.defaultValue = options[0][0]
+    //         }
+    //         params.symmetryId.defaultValue = params.symmetryId.options[0][0]
+    //     }
+    // }
+
+    // return params
 }
 
 export type AssemblySymmetryAxesRepresentation = StructureRepresentation<AssemblySymmetryAxesParams>
@@ -126,13 +135,11 @@ export function createAssemblySymmetryAxesMesh(ctx: VisualContext, structure: St
     const symmetry = Table.pickRow(s, i => s.id.value(i) === symmetryId)
     if (!symmetry) return Mesh.createEmpty(mesh)
 
-    // symmetry.assembly_id not available for structure.assemblyName
-    if (symmetry.assembly_id !== structure.assemblyName) return Mesh.createEmpty(mesh)
+    // check if structure.units operators have symmetry.assembly_id
+    if (!getAssemblyIds(structure.units).includes(symmetry.assembly_id)) return Mesh.createEmpty(mesh)
 
     const axes = assemblySymmetry.db.rcsb_assembly_symmetry_axis
     const vectorSpace = AssemblySymmetry.Schema.rcsb_assembly_symmetry_axis.start.space;
-    // const colors: Color[] = []
-    // const labels: string[] = []
 
     const radius = 1 * sizeFactor
     const cylinderProps = { radiusTop: radius, radiusBottom: radius }
@@ -147,8 +154,6 @@ export function createAssemblySymmetryAxesMesh(ctx: VisualContext, structure: St
         addSphere(builderState, start, radius, 2)
         addSphere(builderState, end, radius, 2)
         addCylinder(builderState, start, end, 1, cylinderProps)
-        // colors.push(Color(0xCCEE11))
-        // labels.push(`Axis ${i + 1} for ${symmetry.kind} ${symmetry.type.toLowerCase()} symmetry`)
     }
     return MeshBuilder.getMesh(builderState)
 }

@@ -49,8 +49,7 @@ class Structure {
         transformHash: number,
         elementCount: number,
         polymerResidueCount: number,
-        assemblyName: string
-    } = { hashCode: -1, transformHash: -1, elementCount: 0, polymerResidueCount: 0, assemblyName: '' };
+    } = { hashCode: -1, transformHash: -1, elementCount: 0, polymerResidueCount: 0 };
 
     subsetBuilder(isSorted: boolean) {
         return new StructureSubsetBuilder(this, isSorted);
@@ -64,11 +63,6 @@ class Structure {
     /** Count of all polymer residues in the structure */
     get polymerResidueCount() {
         return this._props.polymerResidueCount;
-    }
-
-    /** Name of the assembly given by `_pdbx_struct_assembly.id` when applicable */
-    get assemblyName() {
-        return this._props.assemblyName;
     }
 
     /** Coarse structure, defined as Containing less than twice as many elements as polymer residues */
@@ -176,7 +170,7 @@ class Structure {
         return SortedArray.has(this.unitMap.get(e.unit.id).elements, e.element);
     }
 
-    constructor(units: ArrayLike<Unit>, assemblyName: string) {
+    constructor(units: ArrayLike<Unit>) {
         const map = IntMap.Mutable<Unit>();
         let elementCount = 0;
         let polymerResidueCount = 0;
@@ -195,7 +189,6 @@ class Structure {
         this.units = units as ReadonlyArray<Unit>;
         this._props.elementCount = elementCount;
         this._props.polymerResidueCount = polymerResidueCount;
-        this._props.assemblyName = assemblyName
     }
 }
 
@@ -286,7 +279,7 @@ function getUniqueAtomicResidueIndices(structure: Structure): ReadonlyMap<UUID, 
 }
 
 namespace Structure {
-    export const Empty = new Structure([], '');
+    export const Empty = new Structure([]);
 
     /** Represents a single structure */
     export interface Loci {
@@ -305,7 +298,7 @@ namespace Structure {
         return a.structure === b.structure
     }
 
-    export function create(units: ReadonlyArray<Unit>, assemblyName: string): Structure { return new Structure(units, assemblyName); }
+    export function create(units: ReadonlyArray<Unit>): Structure { return new Structure(units); }
 
     /**
      * Construct a Structure from a model.
@@ -346,7 +339,7 @@ namespace Structure {
             }
         }
 
-        return builder.getStructure('deposited');
+        return builder.getStructure();
     }
 
     function isWaterChain(model: Model, chainIndex: ChainIndex, indices: SortedArray) {
@@ -384,11 +377,11 @@ namespace Structure {
         const units: Unit[] = [];
         for (const u of s.units) {
             const old = u.conformation.operator;
-            const op = SymmetryOperator.create(old.name, transform, old.hkl);
+            const op = SymmetryOperator.create(old.name, transform, { id: '', operList: [] }, old.hkl);
             units.push(u.applyOperator(u.id, op));
         }
 
-        return new Structure(units, s.assemblyName);
+        return new Structure(units);
     }
 
     export class StructureBuilder {
@@ -407,8 +400,8 @@ namespace Structure {
             return newUnit;
         }
 
-        getStructure(assemblyName: string): Structure {
-            return create(this.units, assemblyName);
+        getStructure(): Structure {
+            return create(this.units);
         }
 
         get isEmpty() {

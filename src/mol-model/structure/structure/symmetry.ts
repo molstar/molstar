@@ -42,7 +42,7 @@ namespace StructureSymmetry {
                 }
             }
 
-            return assembler.getStructure(asmName);
+            return assembler.getStructure();
         });
     }
 
@@ -118,7 +118,7 @@ function assembleOperators(structure: Structure, operators: ReadonlyArray<Symmet
             assembler.addWithOperator(unit, oper);
         }
     }
-    return assembler.getStructure(structure.assemblyName);
+    return assembler.getStructure();
 }
 
 async function _buildNCS(ctx: RuntimeContext, structure: Structure) {
@@ -173,7 +173,7 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
     }
 
 
-    return assembler.getStructure(structure.assemblyName);
+    return assembler.getStructure();
 }
 
 export default StructureSymmetry;

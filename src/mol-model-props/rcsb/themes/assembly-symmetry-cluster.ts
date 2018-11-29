@@ -13,6 +13,7 @@ import { ColorScale, Color } from 'mol-util/color';
 import { Unit, StructureElement, StructureProperties } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
 import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
+import { getSymmetrySelectParam } from '../util';
 
 const DefaultColor = Color(0xCCCCCC)
 
@@ -26,35 +27,18 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
     }
 }
 
-function clusterMemberKey (asym_id: string, oper_list_ids: string[]) {
-    return `${asym_id}-${oper_list_ids.join('x')}`
+function clusterMemberKey(assemblyId: string, asymId: string, operList: string[]) {
+    return `${assemblyId}-${asymId}-${operList.join('|')}`
 }
 
 export const AssemblySymmetryClusterColorThemeParams = {
     list: PD.Select<ColorListName>('Viridis', ColorListOptions),
-    symmetryId: PD.Select<number>(-1, []),
+    symmetryId: getSymmetrySelectParam(),
 }
 export type AssemblySymmetryClusterColorThemeParams = typeof AssemblySymmetryClusterColorThemeParams
 export function getAssemblySymmetryClusterColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(AssemblySymmetryClusterColorThemeParams)
-
-    if (ctx.structure && ctx.structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)) {
-        const assemblySymmetry = AssemblySymmetry.get(ctx.structure.models[0])!
-        const assemblyName = ctx.structure.assemblyName
-        const s = assemblySymmetry.db.rcsb_assembly_symmetry
-        if (s._rowCount) {
-            params.symmetryId.options = []
-            for (let i = 0, il = s._rowCount; i < il; ++i) {
-                if (s.assembly_id.value(i) === assemblyName) {
-                    params.symmetryId.options.push([
-                        s.id.value(i), `${s.symbol.value(i)} ${s.kind.value(i)}`
-                    ])
-                }
-            }
-            params.symmetryId.defaultValue = params.symmetryId.options[0][0]
-        }
-    }
-
+    params.symmetryId = getSymmetrySelectParam(ctx.structure)
     return params
 }
 
@@ -77,10 +61,10 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
                 for (let i = 0, il = clusters._rowCount; i < il; ++i) {
                     const clusterMembers = assemblySymmetry.getClusterMembers(clusters.id.value(i))
                     for (let j = 0, jl = clusterMembers._rowCount; j < jl; ++j) {
-                        const asym_id = clusterMembers.asym_id.value(j)
-                        const oper_list_ids = clusterMembers.pdbx_struct_oper_list_ids.value(j)
-                        if (oper_list_ids.length === 0) oper_list_ids.push('1') // TODO hack assuming '1' is the id of the identity operator
-                        clusterByMember.set(clusterMemberKey(asym_id, oper_list_ids), i)
+                        const asymId = clusterMembers.asym_id.value(j)
+                        const operList = clusterMembers.pdbx_struct_oper_list_ids.value(j)
+                        if (operList.length === 0) operList.push('1') // TODO hack assuming '1' is the id of the identity operator
+                        clusterByMember.set(clusterMemberKey(symmetry.assembly_id, asymId, operList), i)
                     }
                 }
 
@@ -88,11 +72,12 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
 
                 color = (location: Location): Color => {
                     if (StructureElement.isLocation(location)) {
-                        const asym_id = getAsymId(location.unit)
-                        const ns = location.unit.conformation.operator.name.split('-')
-                        const oper_list_ids = ns.length === 2 ? ns[1].split('x') : []
-                        const cluster = clusterByMember.get(clusterMemberKey(asym_id(location), oper_list_ids))
-                        return cluster !== undefined ? scale.color(cluster) : DefaultColor
+                        const { assembly } = location.unit.conformation.operator
+                        if (assembly && assembly.id === symmetry.assembly_id) {
+                            const asymId = getAsymId(location.unit)(location)
+                            const cluster = clusterByMember.get(clusterMemberKey(assembly.id, asymId, assembly.operList))
+                            return cluster !== undefined ? scale.color(cluster) : DefaultColor
+                        }
                     }
                     return DefaultColor
                 }

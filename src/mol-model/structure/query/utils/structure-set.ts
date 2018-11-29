@@ -80,7 +80,7 @@ export function structureIntersect(sA: Structure, sB: Structure): Structure {
         }
     }
 
-    return Structure.create(units, sA.assemblyName === sB.assemblyName ? sA.assemblyName : '');
+    return Structure.create(units);
 }
 
 export function structureSubtract(a: Structure, b: Structure): Structure {
@@ -100,5 +100,5 @@ export function structureSubtract(a: Structure, b: Structure): Structure {
         }
     }
 
-    return Structure.create(units, a.assemblyName === b.assemblyName ? a.assemblyName : '');
+    return Structure.create(units);
 }

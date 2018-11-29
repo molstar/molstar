@@ -42,6 +42,7 @@ function createDatabaseFromJson(assemblies: ReadonlyArray<AssemblySymmetryGraphQ
     const axisRows: Table.Row<typeof Schema.rcsb_assembly_symmetry_axis>[] = []
 
     let id = 1 // start feature ids at 1
+    let clusterCount = 0
     for (let i = 0, il = assemblies.length; i < il; ++i) {
         const { pdbx_struct_assembly, rcsb_struct_symmetry, rcsb_struct_symmetry_provenance } = assemblies[i]
         if (!pdbx_struct_assembly || !rcsb_struct_symmetry ||!rcsb_struct_symmetry_provenance) continue
@@ -63,20 +64,22 @@ function createDatabaseFromJson(assemblies: ReadonlyArray<AssemblySymmetryGraphQ
             if (clusters) {
                 for (let k = 0, kl = clusters.length; k < kl; ++k) {
                     const c = clusters[k]! // TODO upstream, array members should not be nullable
+                    const cluster_id = clusterCount + k
                     clusterRows.push({
-                        id: k,
+                        id: cluster_id,
                         symmetry_id: id,
                         avg_rmsd: c.avg_rmsd || 0, // TODO upstream, should not be nullable, or???
                     })
                     for (let l = 0, ll = c.members.length; l < ll; ++l) {
                         const m = c.members[l]! // TODO upstream, array members should not be nullable
                         clusterMemberRows.push({
-                            cluster_id: k,
+                            cluster_id: cluster_id,
                             asym_id: m.asym_id,
                             pdbx_struct_oper_list_ids: (m.pdbx_struct_oper_list_ids || []) as string[]
                         })
                     }
                 }
+                clusterCount += clusters.length
             }
 
             const axes = rss.rotation_axes
@@ -156,7 +159,7 @@ const _Descriptor: ModelPropertyDescriptor = {
 export interface AssemblySymmetry {
     '@type': 'rcsb_assembly_symmetry',
     db: AssemblySymmetry.Database
-    getSymmetries(assemblyId: string): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry']>
+    getSymmetries(assemblyIds: string[]): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry']>
     getClusters(symmetryId: number): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry_cluster']>
     getClusterMembers(clusterId: number): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry_cluster_member']>
     getAxes(symmetryId: number): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry_axis']>
@@ -171,10 +174,10 @@ export function AssemblySymmetry(db: AssemblySymmetry.Database): AssemblySymmetr
     return {
         '@type': 'rcsb_assembly_symmetry',
         db,
-        getSymmetries: (assemblyId: string) => Table.pick(f, f._schema, i => f.assembly_id.value(i) === assemblyId),
+        getSymmetries: (assemblyIds: string[]) => Table.pick(f, f._schema, i => assemblyIds.includes(f.assembly_id.value(i))),
         getClusters: (symmetryId: number) => Table.pick(c, c._schema, i => c.symmetry_id.value(i) === symmetryId),
         getClusterMembers: (clusterId: number) => Table.pick(cm, cm._schema, i => cm.cluster_id.value(i) === clusterId),
-        getAxes: (symmetryId: number) => Table.pick(a, a._schema, i => a.symmetry_id.value(i) === symmetryId)
+        getAxes: (symmetryId: number) => Table.pick(a, a._schema, i => a.symmetry_id.value(i) === symmetryId),
     }
 }
 

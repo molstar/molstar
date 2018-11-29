@@ -26,7 +26,7 @@ export function createAssemblies(format: mmCIF_Format): ReadonlyArray<Assembly> 
 }
 
 type Matrices = Map<string, Mat4>
-type Generator = { expression: string, asymIds: string[] }
+type Generator = { assemblyId: string, expression: string, asymIds: string[] }
 
 function createAssembly(format: mmCIF_Format, index: number, matrices: Matrices): Assembly {
     const { pdbx_struct_assembly, pdbx_struct_assembly_gen } = format.data;
@@ -40,6 +40,7 @@ function createAssembly(format: mmCIF_Format, index: number, matrices: Matrices)
     for (let i = 0, _i = pdbx_struct_assembly_gen._rowCount; i < _i; i++) {
         if (assembly_id.value(i) !== id) continue;
         generators[generators.length] = {
+            assemblyId: id,
             expression: oper_expression.value(i),
             asymIds: asym_id_list.value(i)
         };
@@ -57,7 +58,7 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
             const gen = generators[i];
             const operatorList = parseOperatorList(gen.expression);
             const operatorNames = expandOperators(operatorList);
-            const operators = getAssemblyOperators(matrices, operatorNames, operatorOffset);
+            const operators = getAssemblyOperators(matrices, operatorNames, operatorOffset, gen.assemblyId);
             const selector = Q.generators.atoms({ chainTest: Q.pred.and(
                 Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
                 Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), gen.asymIds)
@@ -107,18 +108,17 @@ function expandOperators1(operatorNames: string[][], list: string[][], i: number
     }
 }
 
-function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], startIndex: number) {
+function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], startIndex: number, assemblyId: string) {
     const operators: SymmetryOperator[] = [];
 
+    let index = startIndex;
     for (let op of operatorNames) {
         let m = Mat4.identity();
         for (let i = 0; i < op.length; i++) {
             Mat4.mul(m, m, matrices.get(op[i])!);
         }
-        // TODO currently using the original operator name for the symmetry operator to be able
-        // to link it to the original operator but it might be clearer to introduce an extra field???
-        // Operator names are joined together by 'x' to indicate matrix multiplication.
-        operators[operators.length] = SymmetryOperator.create(`A-${op.join('x')}`, m);
+        index++
+        operators[operators.length] = SymmetryOperator.create(`A-${index}`, m, { id: assemblyId, operList: op });
     }
 
     return operators;

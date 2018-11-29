@@ -8,6 +8,14 @@ import { Vec3, Mat4, Mat3 } from '../linear-algebra/3d'
 
 interface SymmetryOperator {
     readonly name: string,
+
+    readonly assembly: {
+        /** pointer to `pdbx_struct_assembly.id` */
+        readonly id: string
+        /** pointers to `pdbx_struct_oper_list_id` */
+        readonly operList: string[]
+    }
+
     readonly hkl: Vec3,
 
     readonly matrix: Mat4,
@@ -19,15 +27,15 @@ interface SymmetryOperator {
 
 namespace SymmetryOperator {
     export const DefaultName = '1_555'
-    export const Default: SymmetryOperator = create(DefaultName, Mat4.identity());
+    export const Default: SymmetryOperator = create(DefaultName, Mat4.identity(), { id: '', operList: [] });
 
     const RotationEpsilon = 0.0001;
 
-    export function create(name: string, matrix: Mat4, hkl?: Vec3): SymmetryOperator {
+    export function create(name: string, matrix: Mat4, assembly: SymmetryOperator['assembly'], hkl?: Vec3): SymmetryOperator {
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3.zero();
-        if (Mat4.isIdentity(matrix)) return { name, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl };
+        if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl };
         if (!Mat4.isRotationAndTranslation(matrix, RotationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
-        return { name, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl };
+        return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl };
     }
 
     export function checkIfRotationAndTranslation(rot: Mat3, offset: Vec3) {
@@ -49,13 +57,16 @@ namespace SymmetryOperator {
             }
         }
         Mat4.setTranslation(t, offset);
-        return create(name, t);
+        return create(name, t, { id: '', operList: [] });
     }
 
-    /** Apply the 1st and then 2nd operator. ( = second.matrix * first.matrix). */
+    /**
+     * Apply the 1st and then 2nd operator. ( = second.matrix * first.matrix).
+     * Keep `name`, `assembly` and `hkl` properties from second.
+     */
     export function compose(first: SymmetryOperator, second: SymmetryOperator) {
         const matrix = Mat4.mul(Mat4.zero(), second.matrix, first.matrix);
-        return create(second.name, matrix, second.hkl);
+        return create(second.name, matrix, second.assembly, second.hkl);
     }
 
     export interface CoordinateMapper<T extends number> { (index: T, slot: Vec3): Vec3 }

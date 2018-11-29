@@ -85,7 +85,7 @@ export class StructureUniqueSubsetBuilder {
             newUnits[newUnits.length] = child;
         }
 
-        return Structure.create(newUnits, this.parent.assemblyName);
+        return Structure.create(newUnits);
     }
 
     get isEmpty() {

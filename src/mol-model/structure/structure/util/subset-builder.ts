@@ -90,7 +90,7 @@ export class StructureSubsetBuilder {
             newUnits[newUnits.length] = child;
         }
 
-        return Structure.create(newUnits, this.parent.assemblyName);
+        return Structure.create(newUnits);
     }
 
     getStructure() {
