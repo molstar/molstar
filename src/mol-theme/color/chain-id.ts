@@ -95,5 +95,6 @@ export const ChainIdColorThemeProvider: ColorTheme.Provider<ChainIdColorThemePar
     label: 'Chain Id',
     factory: ChainIdColorTheme,
     getParams: getChainIdColorThemeParams,
-    defaultValues: PD.getDefaultValues(ChainIdColorThemeParams)
+    defaultValues: PD.getDefaultValues(ChainIdColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 }

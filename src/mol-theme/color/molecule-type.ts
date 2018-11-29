@@ -73,5 +73,6 @@ export const MoleculeTypeColorThemeProvider: ColorTheme.Provider<MoleculeTypeCol
     label: 'Molecule Type',
     factory: MoleculeTypeColorTheme,
     getParams: getMoleculeTypeColorThemeParams,
-    defaultValues: PD.getDefaultValues(MoleculeTypeColorThemeParams)
+    defaultValues: PD.getDefaultValues(MoleculeTypeColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 }

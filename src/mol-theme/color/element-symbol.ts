@@ -64,5 +64,6 @@ export const ElementSymbolColorThemeProvider: ColorTheme.Provider<ElementSymbolC
     label: 'Element Symbol',
     factory: ElementSymbolColorTheme,
     getParams: getElementSymbolColorThemeParams,
-    defaultValues: PD.getDefaultValues(ElementSymbolColorThemeParams)
+    defaultValues: PD.getDefaultValues(ElementSymbolColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 }

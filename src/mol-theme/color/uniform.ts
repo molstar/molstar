@@ -38,5 +38,6 @@ export const UniformColorThemeProvider: ColorTheme.Provider<UniformColorThemePar
     label: 'Uniform',
     factory: UniformColorTheme,
     getParams: getUniformColorThemeParams,
-    defaultValues: PD.getDefaultValues(UniformColorThemeParams)
+    defaultValues: PD.getDefaultValues(UniformColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => true
 }

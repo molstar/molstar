@@ -11,7 +11,7 @@ import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbo
 import { UniformColorThemeProvider } from './color/uniform';
 import { deepEqual } from 'mol-util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ThemeDataContext } from './theme';
+import { ThemeDataContext, ThemeRegistry, ThemeProvider } from './theme';
 import { ChainIdColorThemeProvider } from './color/chain-id';
 import { CrossLinkColorThemeProvider } from './color/cross-link';
 import { ElementIndexColorThemeProvider } from './color/element-index';
@@ -32,7 +32,7 @@ export type LocationColor = (location: Location, isSecondary: boolean) => Color
 export type ColorThemeProps = { [k: string]: any }
 
 export { ColorTheme }
-interface ColorTheme<P extends PD.Params = {}> {
+interface ColorTheme<P extends PD.Params> {
     readonly factory: ColorTheme.Factory<P>
     readonly granularity: ColorType
     readonly color: LocationColor
@@ -47,56 +47,16 @@ namespace ColorTheme {
     const EmptyColor = Color(0xCCCCCC)
     export const Empty: ColorTheme<{}> = { factory: EmptyFactory, granularity: 'uniform', color: () => EmptyColor, props: {} }
 
-    export function areEqual(themeA: ColorTheme, themeB: ColorTheme) {
+    export function areEqual(themeA: ColorTheme<any>, themeB: ColorTheme<any>) {
         return themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props)
     }
 
-    export interface Provider<P extends PD.Params> {
-        readonly label: string
-        readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
-        readonly getParams: (ctx: ThemeDataContext) => P
-        readonly defaultValues: PD.Values<P>
-    }
-    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {} }
+    export interface Provider<P extends PD.Params> extends ThemeProvider<ColorTheme<P>, P> { }
+    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
 
-    export class Registry {
-        private _list: { name: string, provider: Provider<any> }[] = []
-        private _map = new Map<string, Provider<any>>()
-
-        get default() { return this._list[0]; }
-        get types(): [string, string][] {
-            return this._list.map(e => [e.name, e.provider.label] as [string, string]);
-        }
-
-        constructor() {
-            Object.keys(BuiltInColorThemes).forEach(name => {
-                const p = (BuiltInColorThemes as { [k: string]: Provider<any> })[name]
-                this.add(name, p)
-            })
-        }
-
-        add<P extends PD.Params>(name: string, provider: Provider<P>) {
-            this._list.push({ name, provider })
-            this._map.set(name, provider)
-        }
-
-        remove(name: string) {
-            this._list.splice(this._list.findIndex(e => e.name === name))
-            this._map.delete(name)
-        }
-
-        get<P extends PD.Params>(name: string): Provider<P> {
-            return this._map.get(name) || EmptyProvider as unknown as Provider<P>
-        }
-
-        create(name: string, ctx: ThemeDataContext, props = {}) {
-            const provider = this.get(name)
-            return provider.factory(ctx, { ...PD.getDefaultValues(provider.getParams(ctx)), ...props })
-        }
-
-        get list() {
-            return this._list
-        }
+    export type Registry = ThemeRegistry<ColorTheme<any>>
+    export function createRegistry() {
+        return new ThemeRegistry(BuiltInColorThemes as { [k: string]: Provider<any> }, EmptyProvider)
     }
 }
 

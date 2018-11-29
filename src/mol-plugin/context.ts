@@ -73,7 +73,7 @@ export class PluginContext {
 
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
-        themeCtx: { colorThemeRegistry: new ColorTheme.Registry(), sizeThemeRegistry: new SizeTheme.Registry() } as ThemeRegistryContext
+        themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
     }
 
     readonly customModelProperties = new CustomPropertyRegistry();

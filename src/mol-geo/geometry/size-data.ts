@@ -21,7 +21,7 @@ export type SizeData = {
     dSizeType: ValueCell<string>,
 }
 
-export function createSizes(locationIt: LocationIterator, sizeTheme: SizeTheme, sizeData?: SizeData): SizeData {
+export function createSizes(locationIt: LocationIterator, sizeTheme: SizeTheme<any>, sizeData?: SizeData): SizeData {
     switch (getGranularity(locationIt, sizeTheme.granularity)) {
         case 'uniform': return createUniformSize(locationIt, sizeTheme.size, sizeData)
         case 'group': return createGroupSize(locationIt, sizeTheme.size, sizeData)

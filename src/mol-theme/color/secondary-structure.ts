@@ -96,5 +96,6 @@ export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<Secondary
     label: 'Secondary Structure',
     factory: SecondaryStructureColorTheme,
     getParams: getSecondaryStructureColorThemeParams,
-    defaultValues: PD.getDefaultValues(SecondaryStructureColorThemeParams)
+    defaultValues: PD.getDefaultValues(SecondaryStructureColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 }

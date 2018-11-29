@@ -7,12 +7,12 @@
 import { SizeType, LocationSize } from 'mol-geo/geometry/size-data';
 import { UniformSizeThemeProvider } from './size/uniform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ThemeDataContext } from 'mol-theme/theme';
+import { ThemeDataContext, ThemeRegistry, ThemeProvider } from 'mol-theme/theme';
 import { PhysicalSizeThemeProvider } from './size/physical';
 import { deepEqual } from 'mol-util';
 
 export { SizeTheme }
-interface SizeTheme<P extends PD.Params = {}> {
+interface SizeTheme<P extends PD.Params> {
     readonly factory: SizeTheme.Factory<P>
     readonly granularity: SizeType
     readonly size: LocationSize
@@ -25,56 +25,16 @@ namespace SizeTheme {
     export const EmptyFactory = () => Empty
     export const Empty: SizeTheme<{}> = { factory: EmptyFactory, granularity: 'uniform', size: () => 1, props: {} }
 
-    export function areEqual(themeA: SizeTheme, themeB: SizeTheme) {
+    export function areEqual(themeA: SizeTheme<any>, themeB: SizeTheme<any>) {
         return themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props)
     }
 
-    export interface Provider<P extends PD.Params> {
-        readonly label: string
-        readonly factory: Factory<P>
-        readonly getParams: (ctx: ThemeDataContext) => P
-        readonly defaultValues: PD.Values<P>
-    }
-    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {} }
+    export interface Provider<P extends PD.Params> extends ThemeProvider<SizeTheme<P>, P> { }
+    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
 
-    export class Registry {
-        private _list: { name: string, provider: Provider<any> }[] = []
-        private _map = new Map<string, Provider<any>>()
-
-        get default() { return this._list[0]; }
-        get types(): [string, string][] {
-            return this._list.map(e => [e.name, e.provider.label] as [string, string]);
-        }
-
-        constructor() {
-            Object.keys(BuiltInSizeThemes).forEach(name => {
-                const p = (BuiltInSizeThemes as { [k: string]: Provider<any> })[name]
-                this.add(name, p)
-            })
-        }
-
-        add<P extends PD.Params>(name: string, provider: Provider<P>) {
-            this._list.push({ name, provider })
-            this._map.set(name, provider)
-        }
-
-        remove(name: string) {
-            this._list.splice(this._list.findIndex(e => e.name === name))
-            this._map.delete(name)
-        }
-
-        get<P extends PD.Params>(name: string): Provider<P> {
-            return this._map.get(name) || EmptyProvider as unknown as Provider<P>
-        }
-
-        create(name: string, ctx: ThemeDataContext, props = {}) {
-            const provider = this.get(name)
-            return provider.factory(ctx, { ...PD.getDefaultValues(provider.getParams(ctx)), ...props })
-        }
-
-        get list() {
-            return this._list
-        }
+    export type Registry = ThemeRegistry<SizeTheme<any>>
+    export function createRegistry() {
+        return new ThemeRegistry(BuiltInSizeThemes as { [k: string]: Provider<any> }, EmptyProvider)
     }
 }
 

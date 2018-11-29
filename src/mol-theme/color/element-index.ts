@@ -72,5 +72,6 @@ export const ElementIndexColorThemeProvider: ColorTheme.Provider<ElementIndexCol
     label: 'Element Index',
     factory: ElementIndexColorTheme,
     getParams: getElementIndexColorThemeParams,
-    defaultValues: PD.getDefaultValues(ElementIndexColorThemeParams)
+    defaultValues: PD.getDefaultValues(ElementIndexColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 }

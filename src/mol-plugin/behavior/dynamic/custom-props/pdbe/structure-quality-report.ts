@@ -12,6 +12,7 @@ import { StructureElement } from 'mol-model/structure';
 import { CustomPropertyRegistry } from 'mol-plugin/util/custom-prop-registry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginBehavior } from '../../../behavior';
+import { ThemeDataContext } from 'mol-theme/theme';
 
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'pdbe-structure-quality-report-prop',
@@ -34,13 +35,12 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
             this.ctx.customModelProperties.register(this.provider);
             this.ctx.lociLabels.addProvider(labelPDBeValidation);
 
-            // TODO: support filtering of themes based on the input structure
-            // in this case, it would check structure.models[0].customProperties.has(StructureQualityReport.Descriptor)
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('pdbe-structure-quality-report', {
                 label: 'PDBe Structure Quality Report',
                 factory: StructureQualityReportColorTheme,
                 getParams: () => ({}),
-                defaultValues: {}
+                defaultValues: {},
+                isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models[0].customProperties.has(StructureQualityReport.Descriptor)
             })
         }
 

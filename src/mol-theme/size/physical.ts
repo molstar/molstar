@@ -60,5 +60,6 @@ export const PhysicalSizeThemeProvider: SizeTheme.Provider<PhysicalSizeThemePara
     label: 'Physical',
     factory: PhysicalSizeTheme,
     getParams: getPhysicalSizeThemeParams,
-    defaultValues: PD.getDefaultValues(PhysicalSizeThemeParams)
+    defaultValues: PD.getDefaultValues(PhysicalSizeThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 }

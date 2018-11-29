@@ -22,7 +22,7 @@ export type ColorData = {
     dColorType: ValueCell<string>,
 }
 
-export function createColors(locationIt: LocationIterator, colorTheme: ColorTheme, colorData?: ColorData): ColorData {
+export function createColors(locationIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
     switch (getGranularity(locationIt, colorTheme.granularity)) {
         case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData)
         case 'group': return createGroupColor(locationIt, colorTheme.color, colorData)

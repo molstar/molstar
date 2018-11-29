@@ -39,5 +39,6 @@ export const ShapeGroupColorThemeProvider: ColorTheme.Provider<ShapeGroupColorTh
     label: 'Shape Group',
     factory: ShapeGroupColorTheme,
     getParams: getShapeGroupColorThemeParams,
-    defaultValues: PD.getDefaultValues(ShapeGroupColorThemeParams)
+    defaultValues: PD.getDefaultValues(ShapeGroupColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.shape
 }

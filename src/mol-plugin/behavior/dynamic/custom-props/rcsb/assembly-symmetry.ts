@@ -31,9 +31,6 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         register(): void {
             this.ctx.customModelProperties.register(this.provider);
             this.ctx.lociLabels.addProvider(labelAssemblySymmetryAxes);
-
-            // TODO: support filtering of themes and representations based on the input structure
-            // in this case, it would check structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('rcsb-assembly-symmetry-cluster', AssemblySymmetryClusterColorThemeProvider)
             this.ctx.structureRepresentation.registry.add('rcsb-assembly-symmetry-axes', AssemblySymmetryAxesRepresentationProvider)
         }

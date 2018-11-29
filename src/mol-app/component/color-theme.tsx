@@ -9,7 +9,7 @@ import { ColorTheme } from 'mol-theme/color';
 import { Color } from 'mol-util/color';
 
 export interface ColorThemeComponentProps {
-    colorTheme: ColorTheme
+    colorTheme: ColorTheme<any>
 }
 
 export interface ColorThemeComponentState {

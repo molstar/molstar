@@ -113,5 +113,6 @@ export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<Asse
     label: 'RCSB Assembly Symmetry Cluster',
     factory: AssemblySymmetryClusterColorTheme,
     getParams: getAssemblySymmetryClusterColorThemeParams,
-    defaultValues: PD.getDefaultValues(AssemblySymmetryClusterColorThemeParams)
+    defaultValues: PD.getDefaultValues(AssemblySymmetryClusterColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)
 }

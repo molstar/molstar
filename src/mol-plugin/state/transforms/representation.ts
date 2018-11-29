@@ -50,21 +50,23 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Representation3D,
     params: (a, ctx: PluginContext) => {
-        const type = ctx.structureRepresentation.registry.get(ctx.structureRepresentation.registry.default.name);
+        const { registry, themeCtx } = ctx.structureRepresentation
+        const type = registry.get(registry.default.name);
+        const dataCtx = { structure: a.data }
         return ({
             type: PD.Mapped<any>(
-                ctx.structureRepresentation.registry.default.name,
-                ctx.structureRepresentation.registry.types,
-                name => PD.Group<any>(ctx.structureRepresentation.registry.get(name).getParams(ctx.structureRepresentation.themeCtx, a.data))),
+                registry.default.name,
+                registry.types,
+                name => PD.Group<any>(registry.get(name).getParams(themeCtx, a.data))),
             colorTheme: PD.Mapped<any>(
                 type.defaultColorTheme,
-                ctx.structureRepresentation.themeCtx.colorThemeRegistry.types,
-                name => PD.Group<any>(ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(name).getParams({ structure: a.data }))
+                themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
+                name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx))
             ),
             sizeTheme: PD.Mapped<any>(
                 type.defaultSizeTheme,
-                ctx.structureRepresentation.themeCtx.sizeThemeRegistry.types,
-                name => PD.Group<any>(ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(name).getParams({ structure: a.data }))
+                themeCtx.sizeThemeRegistry.types,
+                name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx))
             )
         })
     }

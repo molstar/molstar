@@ -61,5 +61,6 @@ export const UnitIndexColorThemeProvider: ColorTheme.Provider<UnitIndexColorThem
     label: 'Unit Index',
     factory: UnitIndexColorTheme,
     getParams: getUnitIndexColorThemeParams,
-    defaultValues: PD.getDefaultValues(UnitIndexColorThemeParams)
+    defaultValues: PD.getDefaultValues(UnitIndexColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 }
