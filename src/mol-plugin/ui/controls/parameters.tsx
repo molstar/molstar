@@ -260,9 +260,9 @@ export class ColorControl extends SimpleParam<PD.Color> {
 export class ColorScaleControl extends SimpleParam<PD.ColorScale<any>> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => { this.update(e.target.value); }
     renderControl() {
-        return <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled}>
+        return <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled} style={{background: `linear-gradient(to right, ${getColorListFromName(this.props.value).map(c => Color.toStyle(c)).join(', ')})`}}>
             {this.props.param.options.map(([value, label]) => 
-                <option key={value} value={value} style={{background: `linear-gradient(to right, ${getColorListFromName(value).map(c => Color.toStyle(c)).join(', ')})`}}>
+                <option key={value} value={value}>
                     {label}
                 </option>)}
         </select>;
