@@ -124,7 +124,10 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
 
         return <div className='msp-viewport'>
             <div className='msp-viewport-host3d' ref={elm => this.container = elm}>
-                <canvas ref={elm => this.canvas = elm}></canvas>
+                <canvas ref={elm => {
+                    if (!!this.canvas && this.canvas !== elm) console.warn('changed viewport canvas')
+                    this.canvas = elm
+                }} />
             </div>
         </div>;
     }
