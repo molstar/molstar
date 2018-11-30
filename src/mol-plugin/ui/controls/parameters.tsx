@@ -203,7 +203,7 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
     }
     renderControl() {
         return <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled}>
-            {!this.props.param.options.some(e => e[0] === this.props.value) ? <option key={this.props.value} value={this.props.value}>{`Invalid Option '${this.props.value}'`}</option> : ''}
+            {!this.props.param.options.some(e => e[0] === this.props.value) && <option key={this.props.value} value={this.props.value}>{`[Invalid] ${this.props.value}`}</option>}
             {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>;
     }
