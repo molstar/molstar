@@ -79,16 +79,21 @@ let SentWebglSyncObjectNotSupportedInWebglMessage = false
 function waitForGpuCommandsComplete(gl: GLRenderingContext): Promise<void> {
     return new Promise(resolve => {
         if (isWebGL2(gl)) {
+            // TODO seems quite slow
             fence(gl, resolve)
         } else {
             if (!SentWebglSyncObjectNotSupportedInWebglMessage) {
                 console.info('Sync object not supported in WebGL')
                 SentWebglSyncObjectNotSupportedInWebglMessage = true
             }
-            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
+            waitForGpuCommandsCompleteSync(gl)
             resolve()
         }
     })
+}
+
+function waitForGpuCommandsCompleteSync(gl: GLRenderingContext): void {
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
 }
 
 export function createImageData(buffer: ArrayLike<number>, width: number, height: number) {
@@ -147,6 +152,7 @@ export interface WebGLContext {
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     waitForGpuCommandsComplete: () => Promise<void>
+    waitForGpuCommandsCompleteSync: () => void
     destroy: () => void
 }
 
@@ -279,6 +285,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         },
         readPixelsAsync,
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
+        waitForGpuCommandsCompleteSync: () => waitForGpuCommandsCompleteSync(gl),
 
         destroy: () => {
             unbindResources(gl)

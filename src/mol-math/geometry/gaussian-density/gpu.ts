@@ -110,7 +110,7 @@ async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext
     render(texture)
 
     if (ctx.shouldUpdate) await ctx.update({ message: 'gpu gaussian density calculation' })
-    await webgl.waitForGpuCommandsComplete()
+    await webgl.waitForGpuCommandsCompleteSync()
 
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
@@ -157,7 +157,7 @@ async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLContext
     render(texture)
 
     await ctx.update({ message: 'gpu gaussian density calculation' });
-    await webgl.waitForGpuCommandsComplete()
+    await webgl.waitForGpuCommandsCompleteSync()
 
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
