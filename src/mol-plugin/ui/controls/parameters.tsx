@@ -15,6 +15,7 @@ import { Vec2 } from 'mol-math/linear-algebra';
 import LineGraphComponent from './line-graph/line-graph-component';
 
 import { Slider, Slider2 } from './slider';
+import { getColorListFromName } from 'mol-util/color/scale';
 
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
@@ -50,6 +51,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'converted': return ConvertedControl;
         case 'multi-select': return MultiSelectControl;
         case 'color': return ColorControl;
+        case 'color-scale': return ColorScaleControl;
         case 'vec3': return Vec3Control;
         case 'file': return FileControl;
         case 'select': return SelectControl;
@@ -254,6 +256,18 @@ export class ColorControl extends SimpleParam<PD.Color> {
         return <select value={this.props.value} onChange={this.onChange} style={{background: `linear-gradient(90deg, ${Color.toStyle(this.props.value)}, ${secondArg})`}}>
             {ColorValueOption(this.props.value)}
             {ColorOptions()}
+        </select>;
+    }
+}
+
+export class ColorScaleControl extends SimpleParam<PD.ColorScale<any>> {
+    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => { this.update(e.target.value); }
+    renderControl() {
+        return <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled}>
+            {this.props.param.options.map(([value, label]) => 
+                <option key={value} value={value} style={{background: `linear-gradient(to right, ${getColorListFromName(value).map(c => Color.toStyle(c)).join(', ')})`}}>
+                    {label}
+                </option>)}
         </select>;
     }
 }
