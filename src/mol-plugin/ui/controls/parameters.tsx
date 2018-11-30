@@ -250,10 +250,7 @@ export class ColorControl extends SimpleParam<PD.Color> {
     }
 
     renderControl() {
-        let rgb: any[] = Color.toStyle(this.props.value).replace('rgb(', '').split(', ');
-        rgb = rgb.map(c => parseInt(c)); 
-        let secondArg = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.0)`;
-        return <select value={this.props.value} onChange={this.onChange} style={{background: `linear-gradient(90deg, ${Color.toStyle(this.props.value)}, ${secondArg})`}}>
+        return <select value={this.props.value} onChange={this.onChange} style={{ borderLeft: `16px solid ${Color.toStyle(this.props.value)}` }}>
             {ColorValueOption(this.props.value)}
             {ColorOptions()}
         </select>;
