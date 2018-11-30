@@ -5,7 +5,7 @@
  */
 
 import { State, Transform } from 'mol-state';
-import { memoizeOne } from 'mol-util/memoize';
+import { memoizeLatest } from 'mol-util/memoize';
 import { StateTransformParameters, TransformContolBase } from './common';
 
 export { UpdateTransformContol };
@@ -45,7 +45,7 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
         return autoUpdate({ a: cell.obj!, b: parentCell.obj!, oldParams: this.getInfo().initialValues, newParams }, this.plugin);
     }
 
-    private _getInfo = memoizeOne((t: Transform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, this.props.transform));
+    private _getInfo = memoizeLatest((t: Transform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, this.props.transform));
 
     state: UpdateTransformContol.ComponentState = { transform: this.props.transform, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false };
 

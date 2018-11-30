@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export function memoizeOne<Args extends any[], T>(f: (...args: Args) => T): (...args: Args) => T {
+export function memoizeLatest<Args extends any[], T>(f: (...args: Args) => T): (...args: Args) => T {
     let lastArgs: any[] | undefined = void 0, value: any = void 0;
     return (...args) => {
         if (!lastArgs || lastArgs.length !== args.length) {
@@ -20,5 +20,15 @@ export function memoizeOne<Args extends any[], T>(f: (...args: Args) => T): (...
             }
         }
         return value;
+    }
+}
+
+export function memoize1<A, T>(f: (a: A) => T): (a: A) => T {
+    const cache = new Map<A, T>();
+    return a => {
+        if (cache.has(a)) return cache.get(a)!;
+        const v = f(a);
+        cache.set(a, v);
+        return v;
     }
 }
