@@ -86,17 +86,12 @@ export namespace DirectVolume {
 
         const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount }
 
-        const vertices = new Float32Array(VolumeBox.vertices)
-        transformPositionArray(gridTransform.ref.value, vertices, 0, vertices.length / 3)
-        const boundingSphere = calculateBoundingSphere(
-            vertices, vertices.length / 3,
-            transform.aTransform.ref.value, transform.instanceCount.ref.value
-        )
+        const boundingSphere = getBoundingSphere(gridDimension.ref.value, gridTransform.ref.value, transform.aTransform.ref.value, transform.instanceCount.ref.value)
 
         const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
         const transferTex = createTransferFunctionTexture(controlPoints)
 
-        const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value)) * 2
+        const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value)) * 2 * 5
 
         return {
             ...color,
@@ -135,12 +130,7 @@ export namespace DirectVolume {
     }
 
     export function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {
-        const vertices = new Float32Array(values.aPosition.ref.value)
-        transformPositionArray(values.uTransform.ref.value, vertices, 0, vertices.length / 3)
-        const boundingSphere = calculateBoundingSphere(
-            vertices, Math.floor(vertices.length / 3),
-            values.aTransform.ref.value, values.instanceCount.ref.value
-        )
+        const boundingSphere = getBoundingSphere(values.uGridDim.ref.value, values.uTransform.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value)
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
@@ -156,4 +146,19 @@ export namespace DirectVolume {
         Geometry.updateRenderableState(state, props)
         state.opaque = false
     }
+}
+
+//
+
+const mTmp = Mat4.identity()
+const mTmp2 = Mat4.identity()
+const vHalfUnit = Vec3.create(0.5, 0.5, 0.5)
+const tmpVertices = new Float32Array(VolumeBox.vertices.length)
+function getBoundingSphere(gridDimension: Vec3, gridTransform: Mat4, transform: Float32Array, transformCount: number) {
+    tmpVertices.set(VolumeBox.vertices)
+    Mat4.fromTranslation(mTmp, vHalfUnit)
+    Mat4.mul(mTmp, Mat4.fromScaling(mTmp2, gridDimension), mTmp)
+    Mat4.mul(mTmp, gridTransform, mTmp)
+    transformPositionArray(mTmp, tmpVertices, 0, tmpVertices.length / 3)
+    return calculateBoundingSphere(tmpVertices, tmpVertices.length / 3, transform, transformCount)
 }

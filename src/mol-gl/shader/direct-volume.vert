@@ -30,4 +30,11 @@ void main() {
     origPos = unitCoord * uBboxSize + uBboxMin;
     instance = aInstance;
     gl_Position = uProjection * mvPosition;
+
+    // clamp z position to clip space
+    if(gl_Position.z > gl_Position.w) {
+        gl_Position.z = gl_Position.w - 0.0001;
+    } else if(gl_Position.z < -gl_Position.w) {
+        gl_Position.z = -gl_Position.w + 0.0001;
+    }
 }

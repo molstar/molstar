@@ -209,7 +209,7 @@ void main () {
 
     vec3 rayDir = normalize(origPos - cameraPos);
     vec3 startLoc = unitCoord;
-    vec3 step = rayDir * (1.0 / uGridDim) * 0.5;
+    vec3 step = rayDir * (1.0 / uGridDim) * 0.1;
 
     gl_FragColor = raymarch(startLoc, step, normalize(cameraPos));
     if (length(gl_FragColor.rgb) < 0.00001) discard;
