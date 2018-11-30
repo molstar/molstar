@@ -26,42 +26,19 @@ import { OrderedSet, Interval } from 'mol-data/int';
 import { getSymmetrySelectParam, getAssemblyIds } from '../util';
 
 export const AssemblySymmetryAxesParams = {
-    ...ComplexMeshParams,
+    symmetryId: getSymmetrySelectParam(),
     sizeFactor: PD.Numeric(0.4, { min: 0, max: 3, step: 0.01 }),
+
+    ...ComplexMeshParams,
     radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
-    symmetryId: getSymmetrySelectParam(),
 }
 export type AssemblySymmetryAxesParams = typeof AssemblySymmetryAxesParams
 export function getAssemblySymmetryAxesParams(ctx: ThemeRegistryContext, structure: Structure) {
     const params = PD.clone(AssemblySymmetryAxesParams)
     params.symmetryId = getSymmetrySelectParam(structure)
+    params.unitKinds.isHidden = true
     return params
-
-    // const params = PD.clone(AssemblySymmetryAxesParams)
-
-    // if (structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)) {
-    //     const assemblySymmetry = AssemblySymmetry.get(structure.models[0])!
-    //     const assemblyName = structure.assemblyName
-    //     const s = assemblySymmetry.db.rcsb_assembly_symmetry
-    //     if (s._rowCount) {
-    //         params.symmetryId.options = []
-    //         for (let i = 0, il = s._rowCount; i < il; ++i) {
-    //             if (s.assembly_id.value(i) === assemblyName) {
-    //                 params.symmetryId.options.push([
-    //                     s.id.value(i), `${s.symbol.value(i)} ${s.kind.value(i)}`
-    //                 ])
-    //             }
-    //         }
-    //         if (options.length) {
-    //             params.symmetryId.options = options
-    //             params.symmetryId.defaultValue = options[0][0]
-    //         }
-    //         params.symmetryId.defaultValue = params.symmetryId.options[0][0]
-    //     }
-    // }
-
-    // return params
 }
 
 export type AssemblySymmetryAxesRepresentation = StructureRepresentation<AssemblySymmetryAxesParams>
