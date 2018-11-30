@@ -21,6 +21,7 @@ import { transformPositionArray } from 'mol-geo/util';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { Theme } from 'mol-theme/theme';
 import { RenderableState } from 'mol-gl/renderable';
+import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]
@@ -73,6 +74,7 @@ export namespace DirectVolume {
         isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
         renderMode: PD.Select('isosurface', RenderModeOptions),
         controlPoints: PD.LineGraph([Vec2.create(0.19, 0.1), Vec2.create(0.2, 0.5), Vec2.create(0.21, 0.1), Vec2.create(0.4, 0.3)]),
+        list: PD.ColorScale<ColorListName>('RdYlBu', ColorListOptions),
     }
     export type Params = typeof Params
 
@@ -89,7 +91,7 @@ export namespace DirectVolume {
         const boundingSphere = getBoundingSphere(gridDimension.ref.value, gridTransform.ref.value, transform.aTransform.ref.value, transform.instanceCount.ref.value)
 
         const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
-        const transferTex = createTransferFunctionTexture(controlPoints)
+        const transferTex = createTransferFunctionTexture(controlPoints, props.list)
 
         const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value)) * 2 * 5
 
@@ -126,7 +128,7 @@ export namespace DirectVolume {
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)
 
         const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
-        createTransferFunctionTexture(controlPoints, values.tTransferTex)
+        createTransferFunctionTexture(controlPoints, props.list, values.tTransferTex)
     }
 
     export function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {
