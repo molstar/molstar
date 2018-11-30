@@ -116,21 +116,21 @@ function createDatabaseFromCif(model: Model): AssemblySymmetry.Database {
     if (model.sourceData.frame.categoryNames.includes('rcsb_assembly_symmetry_cluster')) {
         rcsb_assembly_symmetry_cluster = toTable(Schema.rcsb_assembly_symmetry_cluster, model.sourceData.frame.categories.rcsb_assembly_symmetry_cluster)
     } else {
-        rcsb_assembly_symmetry_cluster = CifCategory.empty
+        rcsb_assembly_symmetry_cluster = toTable(Schema.rcsb_assembly_symmetry_cluster, CifCategory.empty as any)
     }
 
     let rcsb_assembly_symmetry_cluster_member
     if (model.sourceData.frame.categoryNames.includes('rcsb_assembly_symmetry_cluster_member')) {
         rcsb_assembly_symmetry_cluster_member = toTable(Schema.rcsb_assembly_symmetry_cluster_member, model.sourceData.frame.categories.rcsb_assembly_symmetry_cluster_member)
     } else {
-        rcsb_assembly_symmetry_cluster_member = CifCategory.empty
+        rcsb_assembly_symmetry_cluster_member = toTable(Schema.rcsb_assembly_symmetry_cluster_member, CifCategory.empty as any)
     }
 
     let rcsb_assembly_symmetry_axis
     if (model.sourceData.frame.categoryNames.includes('rcsb_assembly_symmetry_axis')) {
         rcsb_assembly_symmetry_axis = toTable(Schema.rcsb_assembly_symmetry_axis, model.sourceData.frame.categories.rcsb_assembly_symmetry_axis)
     } else {
-        rcsb_assembly_symmetry_axis = CifCategory.empty
+        rcsb_assembly_symmetry_axis = toTable(Schema.rcsb_assembly_symmetry_axis, CifCategory.empty as any)
     }
 
     return _Database.ofTables('rcsb_assembly_symmetry', Schema, {

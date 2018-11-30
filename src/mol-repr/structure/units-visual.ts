@@ -49,9 +49,9 @@ interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
 interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
     createRenderObject(group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): UnitsRenderObject
-    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, newProps: Partial<PD.Values<P>>): void
     updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
-    updateRenderableState(state: RenderableState, props: PD.Values<P>): void
+    updateRenderableState(state: RenderableState, props: Partial<PD.Values<P>>): void
 }
 
 export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryBuilder<P, Geometry>): UnitsVisual<P> {
@@ -256,7 +256,7 @@ export type UnitsMeshParams = typeof UnitsMeshParams
 export interface UnitsMeshVisualBuilder<P extends UnitsMeshParams> extends UnitsVisualBuilder<P, Mesh> { }
 
 export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVisualBuilder<P>): UnitsVisual<P> {
-    return UnitsVisual({
+    return UnitsVisual<StructureMeshParams & UnitsParams>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
@@ -280,7 +280,7 @@ export type UnitsPointsParams = typeof UnitsPointsParams
 export interface UnitsPointVisualBuilder<P extends UnitsPointsParams> extends UnitsVisualBuilder<P, Points> { }
 
 export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPointVisualBuilder<P>): UnitsVisual<P> {
-    return UnitsVisual({
+    return UnitsVisual<StructurePointsParams & UnitsParams>({
         ...builder,
         createEmptyGeometry: Points.createEmpty,
         createRenderObject: createUnitsPointsRenderObject,
@@ -304,7 +304,7 @@ export type UnitsLinesParams = typeof UnitsLinesParams
 export interface UnitsLinesVisualBuilder<P extends UnitsLinesParams> extends UnitsVisualBuilder<P, Lines> { }
 
 export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLinesVisualBuilder<P>): UnitsVisual<P> {
-    return UnitsVisual({
+    return UnitsVisual<StructureLinesParams & UnitsParams>({
         ...builder,
         createEmptyGeometry: Lines.createEmpty,
         createRenderObject: createUnitsLinesRenderObject,
@@ -328,7 +328,7 @@ export type UnitsDirectVolumeParams = typeof UnitsDirectVolumeParams
 export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeParams> extends UnitsVisualBuilder<P, DirectVolume> { }
 
 export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(builder: UnitsDirectVolumeVisualBuilder<P>): UnitsVisual<P> {
-    return UnitsVisual({
+    return UnitsVisual<StructureDirectVolumeParams & UnitsParams>({
         ...builder,
         createEmptyGeometry: DirectVolume.createEmpty,
         createRenderObject: createUnitsDirectVolumeRenderObject,
