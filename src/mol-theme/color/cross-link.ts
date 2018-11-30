@@ -19,7 +19,7 @@ const Description = 'Colors cross-links by the deviation of the observed distanc
 
 export const CrossLinkColorThemeParams = {
     domain: PD.Interval([-10, 10]),
-    list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
+    list: PD.ColorScale<ColorListName>('RdYlBu', ColorListOptions),
 }
 export type CrossLinkColorThemeParams = typeof CrossLinkColorThemeParams
 export function getCrossLinkColorThemeParams(ctx: ThemeDataContext) {
