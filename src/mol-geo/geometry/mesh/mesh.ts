@@ -343,7 +343,7 @@ export namespace Mesh {
 
     export const Params = {
         ...Geometry.Params,
-        doubleSided: PD.Boolean(true),
+        doubleSided: PD.Boolean(false),
         flipSided: PD.Boolean(false),
         flatShaded: PD.Boolean(false),
     }

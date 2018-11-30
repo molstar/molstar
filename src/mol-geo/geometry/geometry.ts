@@ -99,7 +99,7 @@ export namespace Geometry {
             opaque: props.alpha === 1
         }
     }
-    
+
     export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
         state.opaque = props.alpha === 1
     }
