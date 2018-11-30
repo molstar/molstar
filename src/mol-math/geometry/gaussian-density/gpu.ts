@@ -281,9 +281,9 @@ function getTexture2dSize(maxTexSize: number, gridDim: Vec3) {
     let texDimX = 0
     let texDimY = gridDim[1]
     let texRows = 1
-    let texCols = gridDim[0]
+    let texCols = gridDim[2]
     if (maxTexSize < gridDim[0] * gridDim[2]) {
-        texCols =  Math.floor(maxTexSize / gridDim[0])
+        texCols = Math.floor(maxTexSize / gridDim[0])
         texRows = Math.ceil(gridDim[2] / texCols)
         texDimX = texCols * gridDim[0]
         texDimY *= texRows
@@ -311,7 +311,11 @@ async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3
     const framebuffer = framebufferCache.get(ctx, FramebufferName).value
     framebuffer.bind()
     texture.attachFramebuffer(framebuffer, 0)
-    await ctx.readPixelsAsync(0, 0, width, height, image)
+    // TODO too slow, why? Too many checks if gpu ready???
+    // await ctx.readPixelsAsync(0, 0, width, height, image)
+    ctx.readPixels(0, 0, width, height, image)
+
+    // debugTexture(createImageData(image, width, height), 1/3)
 
     let j = 0
     let tmpCol = 0

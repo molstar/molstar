@@ -38,7 +38,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const delta = getDelta(Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad)), resolution)
     const dim = Vec3.zero()
     Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
-    // console.log('grid dim', dim)
+    // console.log('grid dim cpu', dim)
 
     const space = Tensor.Space(dim, [0, 1, 2], Float32Array)
     const data = space.create()
