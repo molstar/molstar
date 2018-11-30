@@ -246,11 +246,25 @@ export class ColorControl extends SimpleParam<PD.Color> {
         this.update(Color(parseInt(e.target.value)));
     }
 
+    stripStyle(): React.CSSProperties {
+        return {
+            background: Color.toStyle(this.props.value),
+            position: 'absolute',
+            bottom: '0',
+            height: '4px',
+            right: '0',
+            left: '0'
+        };
+    }
+
     renderControl() {
-        return <select value={this.props.value} onChange={this.onChange} style={{ borderLeft: `16px solid ${Color.toStyle(this.props.value)}` }}>
-            {ColorValueOption(this.props.value)}
-            {ColorOptions()}
-        </select>;
+        return <div style={{ position: 'relative' }}>
+            <select value={this.props.value} onChange={this.onChange}>
+                {ColorValueOption(this.props.value)}
+                {ColorOptions()}
+            </select>
+            <div style={this.stripStyle()} />
+        </div>;
     }
 }
 
@@ -273,10 +287,7 @@ export class ColorScaleControl extends SimpleParam<PD.ColorScale<any>> {
     renderControl() {
         return <div style={{ position: 'relative' }}>
             <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled}>
-                {this.props.param.options.map(([value, label]) =>
-                    <option key={value} value={value}>
-                        {label}
-                    </option>)}
+                {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
             <div style={this.stripStyle()} />
         </div>;
