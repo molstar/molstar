@@ -16,7 +16,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
 
 export const PolymerIndexColorThemeParams = {
-    list: PD.ColorScale<ColorListName>('RdYlBu', ColorListOptions),
+    list: PD.ColorScale<ColorListName>('RedYellowBlue', ColorListOptions),
 }
 export type PolymerIndexColorThemeParams = typeof PolymerIndexColorThemeParams
 export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {

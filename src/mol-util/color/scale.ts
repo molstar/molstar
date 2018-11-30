@@ -25,7 +25,7 @@ export function getColorListFromName(name: ColorListName) {
         return ColorOther[name as keyof typeof ColorOther]
     }
     console.warn(`unknown color list named '${name}'`)
-    return ColorBrewer.RdYlBu
+    return ColorBrewer.RedYellowBlue
 }
 
 //
@@ -56,7 +56,7 @@ export interface ColorScale {
 export const DefaultColorScaleProps = {
     domain: [0, 1],
     reverse: false,
-    listOrName: ColorBrewer.RdYlBu as Color[] | ColorListName,
+    listOrName: ColorBrewer.RedYellowBlue as Color[] | ColorListName,
     minLabel: '' as string | undefined,
     maxLabel: '' as string | undefined,
 }

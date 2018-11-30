@@ -15,7 +15,7 @@ import { Vec2 } from 'mol-math/linear-algebra';
 import LineGraphComponent from './line-graph/line-graph-component';
 
 import { Slider, Slider2 } from './slider';
-import { getColorListFromName } from 'mol-util/color/scale';
+import { getColorListFromName, ColorListNames } from 'mol-util/color/scale';
 
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
@@ -257,14 +257,18 @@ export class ColorControl extends SimpleParam<PD.Color> {
     }
 }
 
+let _colorScales: React.ReactFragment | undefined = void 0;
+function ColorScaleOptions() {
+    if (_colorScales) return _colorScales;
+    _colorScales = <>{ColorListNames.map(name => <option key={name} value={name}>{camelCaseToWords(name)}</option>)}</>;
+    return _colorScales;
+}
+
 export class ColorScaleControl extends SimpleParam<PD.ColorScale<any>> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => { this.update(e.target.value); }
     renderControl() {
         return <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled} style={{background: `linear-gradient(to right, ${getColorListFromName(this.props.value).map(c => Color.toStyle(c)).join(', ')})`}}>
-            {this.props.param.options.map(([value, label]) => 
-                <option key={value} value={value}>
-                    {label}
-                </option>)}
+            {ColorScaleOptions()}
         </select>;
     }
 }

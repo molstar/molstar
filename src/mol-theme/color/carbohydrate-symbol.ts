@@ -17,16 +17,7 @@ import { TableLegend } from 'mol-util/color/tables';
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Assigns colors according to the Symbol Nomenclature for Glycans (SNFG).'
 
-// name: ColorThemeName
-// domain?: [number, number]
-// value?: Color
-// list?: Color[]
-// map?: ColorMap<any>
-
-export const CarbohydrateSymbolColorThemeParams = {
-    // domain: PD.Interval('Color Domain', '', [0, 1]),
-    // value: PD.Color('Color Value', '', DefaultColor),
-}
+export const CarbohydrateSymbolColorThemeParams = { }
 export type CarbohydrateSymbolColorThemeParams = typeof CarbohydrateSymbolColorThemeParams
 export function getCarbohydrateSymbolColorThemeParams(ctx: ThemeDataContext) {
     return CarbohydrateSymbolColorThemeParams // TODO return copy

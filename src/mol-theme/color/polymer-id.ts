@@ -19,7 +19,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer chain a color based on its `asym_id` value.'
 
 export const PolymerIdColorThemeParams = {
-    list: PD.ColorScale<ColorListName>('RdYlBu', ColorListOptions),
+    list: PD.ColorScale<ColorListName>('RedYellowBlue', ColorListOptions),
 }
 export type PolymerIdColorThemeParams = typeof PolymerIdColorThemeParams
 export function getPolymerIdColorThemeParams(ctx: ThemeDataContext) {
