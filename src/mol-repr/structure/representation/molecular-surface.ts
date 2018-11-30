@@ -8,7 +8,6 @@ import { GaussianSurfaceVisual, GaussianSurfaceParams } from '../visual/gaussian
 import { UnitsRepresentation } from '../units-representation';
 import { GaussianWireframeVisual, GaussianWireframeParams } from '../visual/gaussian-surface-wireframe';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { GaussianDensityVolumeParams, GaussianDensityVolumeVisual } from '../visual/gaussian-density-volume';
 import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
@@ -17,7 +16,6 @@ import { Structure } from 'mol-model/structure';
 const MolecularSurfaceVisuals = {
     'gaussian-surface': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceParams>) => UnitsRepresentation('Gaussian surface', ctx, getParams, GaussianSurfaceVisual),
     'gaussian-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianWireframeParams>) => UnitsRepresentation('Gaussian wireframe', ctx, getParams, GaussianWireframeVisual),
-    'gaussian-volume': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianDensityVolumeParams>) => UnitsRepresentation('Gaussian volume', ctx, getParams, GaussianDensityVolumeVisual)
 }
 type MolecularSurfaceVisualName = keyof typeof MolecularSurfaceVisuals
 const MolecularSurfaceVisualOptions = Object.keys(MolecularSurfaceVisuals).map(name => [name, name] as [MolecularSurfaceVisualName, string])
@@ -25,7 +23,6 @@ const MolecularSurfaceVisualOptions = Object.keys(MolecularSurfaceVisuals).map(n
 export const MolecularSurfaceParams = {
     ...GaussianSurfaceParams,
     ...GaussianWireframeParams,
-    ...GaussianDensityVolumeParams,
     visuals: PD.MultiSelect<MolecularSurfaceVisualName>(['gaussian-surface'], MolecularSurfaceVisualOptions),
 }
 export type MolecularSurfaceParams = typeof MolecularSurfaceParams

@@ -9,6 +9,7 @@ import { RepresentationProvider, RepresentationRegistry } from '../representatio
 import { CartoonRepresentationProvider } from './representation/cartoon';
 import { BallAndStickRepresentationProvider } from './representation/ball-and-stick';
 import { MolecularSurfaceRepresentationProvider } from './representation/molecular-surface';
+import { MolecularVolumeRepresentationProvider } from './representation/molecular-volume';
 import { CarbohydrateRepresentationProvider } from './representation/carbohydrate';
 import { SpacefillRepresentationProvider } from './representation/spacefill';
 import { DistanceRestraintRepresentationProvider } from './representation/distance-restraint';
@@ -29,6 +30,7 @@ export const BuiltInStructureRepresentations = {
     'carbohydrate': CarbohydrateRepresentationProvider,
     'distance-restraint': DistanceRestraintRepresentationProvider,
     'molecular-surface': MolecularSurfaceRepresentationProvider,
+    'molecular-volume': MolecularVolumeRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,
 }
 export type BuiltInStructureRepresentationsName = keyof typeof BuiltInStructureRepresentations

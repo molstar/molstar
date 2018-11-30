@@ -103,6 +103,13 @@ export function createUnitsLinesRenderObject(group: Unit.SymmetryGroup, lines: L
 
 // direct-volume
 
+export function createComplexDirectVolumeRenderObject(structure: Structure, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureDirectVolumeParams>) {
+    const transform = createIdentityTransform()
+    const values = DirectVolume.createValues(directVolume, transform, locationIt, theme, props)
+    const state = DirectVolume.createRenderableState(props)
+    return createDirectVolumeRenderObject(values, state)
+}
+
 export function createUnitsDirectVolumeRenderObject(group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureDirectVolumeParams>) {
     const transform = createUnitsTransform(group)
     const values = DirectVolume.createValues(directVolume, transform, locationIt, theme, props)

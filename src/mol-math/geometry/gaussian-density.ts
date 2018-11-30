@@ -16,10 +16,15 @@ const GaussianDensityGPU = typeof document !== 'undefined'
     ? (require('./gaussian-density/gpu') as typeof import('./gaussian-density/gpu')).GaussianDensityGPU
     : void 0;
 
-export const DefaultGaussianDensityProps = {
+export const DefaultGaussianDensityGPUProps = {
     resolution: 1,
     radiusOffset: 0,
     smoothness: 1.5,
+}
+export type GaussianDensityGPUProps = typeof DefaultGaussianDensityGPUProps
+
+export const DefaultGaussianDensityProps = {
+    ...DefaultGaussianDensityGPUProps,
     useGpu: true,
 }
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps

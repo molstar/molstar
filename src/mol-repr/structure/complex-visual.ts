@@ -7,8 +7,8 @@
 import { Structure } from 'mol-model/structure';
 import { Visual, VisualContext } from '../representation';
 import { MeshRenderObject, LinesRenderObject, PointsRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
-import { createComplexMeshRenderObject, UnitKind, UnitKindOptions } from './visual/util/common';
-import { StructureMeshParams, StructureParams } from './representation';
+import { createComplexMeshRenderObject, UnitKind, UnitKindOptions, createComplexDirectVolumeRenderObject } from './visual/util/common';
+import { StructureMeshParams, StructureParams, StructureDirectVolumeParams } from './representation';
 import { deepEqual, ValueCell } from 'mol-util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { Interval } from 'mol-data/int';
@@ -27,6 +27,7 @@ import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { RenderableState } from 'mol-gl/renderable';
 import { UnitsParams } from './units-representation';
+import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -226,5 +227,30 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
         updateValues: Mesh.updateValues,
         updateBoundingSphere: Mesh.updateBoundingSphere,
         updateRenderableState: Geometry.updateRenderableState
+    })
+}
+
+// direct-volume
+
+export const ComplexDirectVolumeParams = {
+    ...StructureDirectVolumeParams,
+    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres', 'gaussians'], UnitKindOptions),
+}
+export type ComplexDirectVolumeParams = typeof ComplexDirectVolumeParams
+
+export interface ComplexDirectVolumeVisualBuilder<P extends ComplexDirectVolumeParams> extends ComplexVisualBuilder<P, DirectVolume> { }
+
+export function ComplexDirectVolumeVisual<P extends ComplexDirectVolumeParams>(builder: ComplexDirectVolumeVisualBuilder<P>): ComplexVisual<P> {
+    return ComplexVisual<StructureDirectVolumeParams & UnitsParams>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
+        },
+        createEmptyGeometry: DirectVolume.createEmpty,
+        createRenderObject: createComplexDirectVolumeRenderObject,
+        updateValues: DirectVolume.updateValues,
+        updateBoundingSphere: DirectVolume.updateBoundingSphere,
+        updateRenderableState: DirectVolume.updateRenderableState
     })
 }

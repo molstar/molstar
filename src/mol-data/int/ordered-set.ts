@@ -12,8 +12,10 @@ import SortedArray from './sorted-array';
 namespace OrderedSet {
     export const Empty: OrderedSet = Base.Empty as any;
     export const ofSingleton: <T extends number = number>(value: T) => OrderedSet<T> = Base.ofSingleton as any;
+    /** Create interval from range [min, max] */
     export const ofRange: <T extends number = number>(min: T, max: T) => OrderedSet<T> = Base.ofRange as any;
-    export const ofBounds: <T extends number = number>(min: T, max: T) => OrderedSet<T> = Base.ofBounds as any;
+    /** Create interval from bounds [start, end), i.e. [start, end - 1] */
+    export const ofBounds: <T extends number = number>(start: T, end: T) => OrderedSet<T> = Base.ofBounds as any;
     /** It is the responsibility of the caller to ensure the array is sorted and contains unique values. */
     export const ofSortedArray: <T extends number = number>(xs: ArrayLike<T>) => OrderedSet<T> = Base.ofSortedArray as any;
 

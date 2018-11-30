@@ -72,8 +72,11 @@ export namespace DirectVolume {
     export const Params = {
         ...Geometry.Params,
         isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
-        renderMode: PD.Select('isosurface', RenderModeOptions),
-        controlPoints: PD.LineGraph([Vec2.create(0.19, 0.1), Vec2.create(0.2, 0.5), Vec2.create(0.21, 0.1), Vec2.create(0.4, 0.3)]),
+        renderMode: PD.Select('volume', RenderModeOptions),
+        controlPoints: PD.LineGraph([
+            Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.15), Vec2.create(0.21, 0.0),
+            Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.15), Vec2.create(0.81, 0.0),
+        ]),
         list: PD.ColorScale<ColorListName>('RedYellowBlue', ColorListOptions),
     }
     export type Params = typeof Params
@@ -140,7 +143,7 @@ export namespace DirectVolume {
 
     export function createRenderableState(props: PD.Values<Params>): RenderableState {
         const state = Geometry.createRenderableState(props)
-        updateRenderableState(state, props)
+        state.opaque = false
         return state
     }
 

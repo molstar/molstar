@@ -8,7 +8,7 @@
 import { RuntimeContext } from 'mol-task'
 import { PositionData, DensityData, DensityTextureData } from '../common'
 import { Box3D } from '../../geometry'
-import { GaussianDensityProps, getDelta } from '../gaussian-density'
+import { GaussianDensityGPUProps, getDelta } from '../gaussian-density'
 import { OrderedSet } from 'mol-data/int'
 import { Vec3, Tensor, Mat4 } from '../../linear-algebra'
 import { GaussianDensityValues } from 'mol-gl/renderable/gaussian-density'
@@ -23,7 +23,7 @@ import { decodeIdRGB } from 'mol-geo/geometry/picking';
 /** name for shared framebuffer used for gpu gaussian surface operations */
 const FramebufferName = 'gaussian-density-gpu'
 
-export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, webgl: WebGLContext): Promise<DensityData> {
+export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, webgl: WebGLContext): Promise<DensityData> {
     // always use texture2d when the gaussian density needs to be downloaded from the GPU,
     // it's faster than texture3d
     // console.time('GaussianDensityTexture2d')
@@ -38,7 +38,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     return { field, idField, transform }
 }
 
-export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): Promise<DensityTextureData> {
+export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, oldTexture?: Texture): Promise<DensityTextureData> {
     // console.time(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
     const { texture, scale, bbox, dim } = webgl.isWebGL2 ?
         await GaussianDensityTexture3d(ctx, webgl, position, box, radius, props, oldTexture) :
@@ -54,7 +54,7 @@ export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: WebGLCo
 
 //
 
-async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
+async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture) {
     const { smoothness } = props
 
     const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
@@ -115,7 +115,7 @@ async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
 
-async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
+async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture) {
     const { smoothness } = props
 
     const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
@@ -164,7 +164,7 @@ async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLContext
 
 //
 
-async function prepareGaussianDensityData(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps) {
+async function prepareGaussianDensityData(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps) {
     const { resolution, radiusOffset } = props
 
     const { indices, x, y, z } = position
