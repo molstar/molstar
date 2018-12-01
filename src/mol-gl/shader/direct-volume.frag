@@ -91,7 +91,7 @@ const float gradOffset = 0.5;
 
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
     vec3 scaleVol = vec3(1.0) / uGridDim;
-    vec3 pos = startLoc + scaleVol * 0.5;
+    vec3 pos = startLoc;
     float prevValue = -1.0;
     float value = 0.0;
     vec4 src = vec4(0.0);

@@ -22,8 +22,10 @@ import { GaussianDensityProps, computeUnitGaussianDensityCached } from './unit/g
 import { RuntimeContext } from 'mol-task';
 import { WebGLContext } from 'mol-gl/webgl/context';
 
-// A building block of a structure that corresponds to an atomic or a coarse grained representation
-// 'conveniently grouped together'.
+/**
+ * A building block of a structure that corresponds to an atomic or
+ * a coarse grained representation 'conveniently grouped together'.
+ */
 type Unit = Unit.Atomic | Unit.Spheres | Unit.Gaussians
 
 namespace Unit {
@@ -114,13 +116,15 @@ namespace Unit {
         return (i: number) => 0;
     }
 
-    // A bulding block of a structure that corresponds
-    // to a "natural group of atoms" (most often a "chain")
-    // together with a tranformation (rotation and translation)
-    // that is dynamically applied to the underlying atom set.
-    //
-    // An atom set can be referenced by multiple diffrent units which
-    // makes construction of assemblies and spacegroups very efficient.
+    /**
+     * A bulding block of a structure that corresponds
+     * to a "natural group of atoms" (most often a "chain")
+     * together with a tranformation (rotation and translation)
+     * that is dynamically applied to the underlying atom set.
+     *
+     * An atom set can be referenced by multiple diffrent units which
+     * makes construction of assemblies and spacegroups very efficient.
+     */
     export class Atomic implements Base {
         readonly kind = Kind.Atomic;
 
@@ -130,7 +134,7 @@ namespace Unit {
         readonly model: Model;
         readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
 
-        // Reference some commonly accessed things for faster access.
+        /** Reference some commonly accessed things for faster access. */
         readonly residueIndex: ArrayLike<ResidueIndex>;
         readonly chainIndex: ArrayLike<ChainIndex>;
 
