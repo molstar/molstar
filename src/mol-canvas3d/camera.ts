@@ -71,13 +71,6 @@ class Camera implements Object3D {
             this.updatedViewProjection.next(this);
         }
 
-        if (Mat4.hasNaN(this.projectionView)) console.error('NaNs in projectionView')
-        if (Mat4.hasNaN(this.inverseProjectionView)) console.error('NaNs in inverseProjectionView')
-        if (Mat4.hasNaN(this.view)) console.error('NaNs in view')
-        if (Mat4.hasNaN(this.projection)) console.error('NaNs in projection')
-        if (Vec3.hasNaN(snapshot.position)) console.error('NaNs in position')
-        if (Vec3.hasNaN(snapshot.target)) console.error('NaNs in target')
-
         return changed;
     }
 
