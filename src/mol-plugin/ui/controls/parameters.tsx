@@ -5,18 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as React from 'react'
-
+import { Vec2 } from 'mol-math/linear-algebra';
+import { Color } from 'mol-util/color';
+import { ColorListName, getColorListFromName } from 'mol-util/color/scale';
+import { ColorNames, ColorNamesValueMap } from 'mol-util/color/tables';
+import { memoize1 } from 'mol-util/memoize';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { camelCaseToWords } from 'mol-util/string';
-import { ColorNames, ColorNamesValueMap } from 'mol-util/color/tables';
-import { Color } from 'mol-util/color';
-import { Vec2 } from 'mol-math/linear-algebra';
+import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
-
 import { Slider, Slider2 } from './slider';
-import { getColorListFromName, ColorListNames } from 'mol-util/color/scale';
-
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -57,7 +55,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'select': return SelectControl;
         case 'text': return TextControl;
         case 'interval': return typeof param.min !== 'undefined' && typeof param.max !== 'undefined'
-        ? BoundedIntervalControl : IntervalControl;
+            ? BoundedIntervalControl : IntervalControl;
         case 'group': return GroupControl;
         case 'mapped': return MappedControl;
         case 'line-graph': return LineGraphControl;
@@ -243,33 +241,56 @@ function ColorValueOption(color: Color) {
     </option> : null
 }
 
-
 export class ColorControl extends SimpleParam<PD.Color> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         this.update(Color(parseInt(e.target.value)));
     }
 
+    stripStyle(): React.CSSProperties {
+        return {
+            background: Color.toStyle(this.props.value),
+            position: 'absolute',
+            bottom: '0',
+            height: '4px',
+            right: '0',
+            left: '0'
+        };
+    }
+
     renderControl() {
-        return <select value={this.props.value} onChange={this.onChange} style={{ borderLeft: `16px solid ${Color.toStyle(this.props.value)}` }}>
-            {ColorValueOption(this.props.value)}
-            {ColorOptions()}
-        </select>;
+        return <div style={{ position: 'relative' }}>
+            <select value={this.props.value} onChange={this.onChange}>
+                {ColorValueOption(this.props.value)}
+                {ColorOptions()}
+            </select>
+            <div style={this.stripStyle()} />
+        </div>;
     }
 }
 
-let _colorScales: React.ReactFragment | undefined = void 0;
-function ColorScaleOptions() {
-    if (_colorScales) return _colorScales;
-    _colorScales = <>{ColorListNames.map(name => <option key={name} value={name}>{camelCaseToWords(name)}</option>)}</>;
-    return _colorScales;
-}
+const colorScaleGradient = memoize1((n: ColorListName) => `linear-gradient(to right, ${getColorListFromName(n).map(c => Color.toStyle(c)).join(', ')})`);
 
 export class ColorScaleControl extends SimpleParam<PD.ColorScale<any>> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => { this.update(e.target.value); }
+
+    stripStyle(): React.CSSProperties {
+        return {
+            background: colorScaleGradient(this.props.value),
+            position: 'absolute',
+            bottom: '0',
+            height: '4px',
+            right: '0',
+            left: '0'
+        };
+    }
+
     renderControl() {
-        return <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled} style={{background: `linear-gradient(to right, ${getColorListFromName(this.props.value).map(c => Color.toStyle(c)).join(', ')})`}}>
-            {ColorScaleOptions()}
-        </select>;
+        return <div style={{ position: 'relative' }}>
+            <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled}>
+                {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            <div style={this.stripStyle()} />
+        </div>;
     }
 }
 

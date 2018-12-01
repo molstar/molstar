@@ -248,7 +248,7 @@ namespace Canvas3D {
         }
 
         async function identify(x: number, y: number): Promise<PickingId | undefined> {
-            if (pickDirty || isPicking) return undefined
+            if (pickDirty || isPicking) return;
 
             isPicking = true
 
@@ -265,19 +265,19 @@ namespace Canvas3D {
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
             const objectId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
-            if (objectId === -1) return
+            if (objectId === -1) { isPicking = false; return; }
 
             instancePickTarget.bind()
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
             const instanceId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
-            if (instanceId === -1) return
+            if (instanceId === -1) { isPicking = false; return; }
 
             groupPickTarget.bind()
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
             const groupId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
-            if (groupId === -1) return
+            if (groupId === -1) { isPicking = false; return; }
 
             isPicking = false
 
