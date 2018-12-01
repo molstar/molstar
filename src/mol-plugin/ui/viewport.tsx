@@ -67,8 +67,8 @@ export class ViewportControls extends PluginComponent {
 }
 
 export class Viewport extends PluginComponent<{ }, ViewportState> {
-    private container: HTMLDivElement | null = null;
-    private canvas: HTMLCanvasElement | null = null;
+    private container = React.createRef<HTMLDivElement>();
+    private canvas = React.createRef<HTMLCanvasElement>();
 
     state: ViewportState = {
         noWebGl: false
@@ -79,7 +79,7 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
     }
 
     componentDidMount() {
-        if (!this.canvas || !this.container || !this.plugin.initViewer(this.canvas, this.container)) {
+        if (!this.canvas.current || !this.container.current || !this.plugin.initViewer(this.canvas.current!, this.container.current!)) {
             this.setState({ noWebGl: true });
         }
         this.handleResize();
@@ -123,11 +123,8 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
         if (this.state.noWebGl) return this.renderMissing();
 
         return <div className='msp-viewport'>
-            <div className='msp-viewport-host3d' ref={elm => this.container = elm}>
-                <canvas ref={elm => {
-                    if (!!this.canvas && this.canvas !== elm) console.warn('changed viewport canvas')
-                    this.canvas = elm
-                }} />
+            <div className='msp-viewport-host3d' ref={this.container}>
+                <canvas ref={this.canvas} />
             </div>
         </div>;
     }
