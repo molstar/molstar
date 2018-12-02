@@ -36,6 +36,7 @@ interface Renderer {
     readonly stats: RendererStats
     readonly props: RendererProps
 
+    clear: () => void
     render: (scene: Scene, variant: RenderVariant) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     setClearColor: (color: Color) => void
@@ -162,9 +163,6 @@ namespace Renderer {
 
             currentProgramId = -1
 
-            gl.depthMask(true)
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-
             gl.disable(gl.BLEND)
             gl.enable(gl.DEPTH_TEST)
             scene.eachOpaque((r) => renderObject(r, variant))
@@ -177,6 +175,10 @@ namespace Renderer {
         }
 
         return {
+            clear: () => {
+                gl.depthMask(true)
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+            },
             render,
 
             setClearColor,

@@ -27,7 +27,7 @@ import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
 import { Camera } from './camera';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { BoundingSphereHelper } from './helper/bounding-sphere-helper';
+import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-sphere-helper';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -37,9 +37,7 @@ export const Canvas3DParams = {
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
-    debug: PD.Group({
-        showBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of render objects.' }),
-    })
+    debug: PD.Group(DebugHelperParams)
 }
 export type Canvas3DParams = PD.Values<typeof Canvas3DParams>
 
@@ -47,9 +45,6 @@ export { Canvas3D }
 
 interface Canvas3D {
     readonly webgl: WebGLContext,
-
-    hide: (repr: Representation.Any) => void
-    show: (repr: Representation.Any) => void
 
     add: (repr: Representation.Any) => void
     remove: (repr: Representation.Any) => void
@@ -128,7 +123,7 @@ namespace Canvas3D {
         let drawPending = false
         let lastRenderTime = -1
 
-        const boundingSphereHelper = new BoundingSphereHelper(scene, p.debug.showBoundingSpheres)
+        const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug)
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -192,16 +187,24 @@ namespace Canvas3D {
                 switch (variant) {
                     case 'pick':
                         objectPickTarget.bind();
+                        renderer.clear()
                         renderer.render(scene, 'pickObject');
                         instancePickTarget.bind();
+                        renderer.clear()
                         renderer.render(scene, 'pickInstance');
                         groupPickTarget.bind();
+                        renderer.clear()
                         renderer.render(scene, 'pickGroup');
                         break;
                     case 'draw':
                         webgl.unbindFramebuffer();
                         renderer.setViewport(0, 0, canvas.width, canvas.height);
+                        renderer.clear()
                         renderer.render(scene, variant);
+                        if (debugHelper.isEnabled) {
+                            debugHelper.syncVisibility()
+                            renderer.render(debugHelper.scene, 'draw')
+                        }
                         lastRenderTime = now()
                         pickDirty = true
                         break;
@@ -298,8 +301,8 @@ namespace Canvas3D {
             }
             reprRenderObjects.set(repr, newRO)
             reprCount.next(reprRenderObjects.size)
-            boundingSphereHelper.update()
             scene.update()
+            if (debugHelper.isEnabled) debugHelper.update()
             isUpdating = false
             requestDraw(true)
         }
@@ -308,15 +311,6 @@ namespace Canvas3D {
 
         return {
             webgl,
-
-            hide: (repr: Representation.Any) => {
-                const renderObjectSet = reprRenderObjects.get(repr)
-                if (renderObjectSet) renderObjectSet.forEach(o => o.state.visible = false)
-            },
-            show: (repr: Representation.Any) => {
-                const renderObjectSet = reprRenderObjects.get(repr)
-                if (renderObjectSet) renderObjectSet.forEach(o => o.state.visible = true)
-            },
 
             add: (repr: Representation.Any) => {
                 add(repr)
@@ -335,8 +329,8 @@ namespace Canvas3D {
                     renderObjects.forEach(o => scene.remove(o))
                     reprRenderObjects.delete(repr)
                     reprCount.next(reprRenderObjects.size)
-                    boundingSphereHelper.update()
                     scene.update()
+                    if (debugHelper.isEnabled) debugHelper.update()
                     isUpdating = false
                     requestDraw(true)
                 }
@@ -345,6 +339,7 @@ namespace Canvas3D {
             clear: () => {
                 reprRenderObjects.clear()
                 scene.clear()
+                debugHelper.clear()
             },
 
             // draw,
@@ -387,8 +382,8 @@ namespace Canvas3D {
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== renderer.props.pickingAlphaThreshold) {
                     renderer.setPickingAlphaThreshold(props.pickingAlphaThreshold)
                 }
-                if (props.debug && props.debug.showBoundingSpheres !== undefined) {
-                    boundingSphereHelper.visible = props.debug.showBoundingSpheres
+                if (props.debug) {
+                    debugHelper.setProps(props.debug)
                 }
                 requestDraw(true)
             },
@@ -400,9 +395,7 @@ namespace Canvas3D {
                     clip: p.clip,
                     fog: p.fog,
                     pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,
-                    debug: {
-                        showBoundingSpheres: boundingSphereHelper.visible
-                    }
+                    debug: { ...debugHelper.props }
                 }
             },
             get input() {
@@ -413,6 +406,7 @@ namespace Canvas3D {
             },
             dispose: () => {
                 scene.clear()
+                debugHelper.clear()
                 input.dispose()
                 controls.dispose()
                 renderer.dispose()
