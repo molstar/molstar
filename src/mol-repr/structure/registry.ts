@@ -13,6 +13,7 @@ import { MolecularVolumeRepresentationProvider } from './representation/molecula
 import { CarbohydrateRepresentationProvider } from './representation/carbohydrate';
 import { SpacefillRepresentationProvider } from './representation/spacefill';
 import { DistanceRestraintRepresentationProvider } from './representation/distance-restraint';
+import { PointRepresentationProvider } from './representation/point';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure> {
     constructor() {
@@ -31,6 +32,7 @@ export const BuiltInStructureRepresentations = {
     'distance-restraint': DistanceRestraintRepresentationProvider,
     'molecular-surface': MolecularSurfaceRepresentationProvider,
     'molecular-volume': MolecularVolumeRepresentationProvider,
+    'point': PointRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,
 }
 export type BuiltInStructureRepresentationsName = keyof typeof BuiltInStructureRepresentations

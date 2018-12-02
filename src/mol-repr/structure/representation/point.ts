@@ -1,29 +1,42 @@
-// /**
-//  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
-//  *
-//  * @author Alexander Rose <alexander.rose@weirdbyte.de>
-//  */
+/**
+ * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
 
-// import { ElementPointVisual, ElementPointParams } from '../visual/element-point';
-// import { UnitsRepresentation } from '../units-representation';
-// import { ParamDefinition as PD } from 'mol-util/param-definition';
-// import { StructureRepresentation } from '../representation';
-// import { Representation } from 'mol-repr/representation';
-// import { ThemeRegistryContext } from 'mol-theme/theme';
-// import { Structure } from 'mol-model/structure';
+import { ElementPointVisual, ElementPointParams } from '../visual/element-point';
+import { UnitsRepresentation } from '../units-representation';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
+import { ThemeRegistryContext } from 'mol-theme/theme';
+import { Structure } from 'mol-model/structure';
+import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
-// export const PointParams = {
-//     ...ElementPointParams,
-// }
-// export function getPointParams(ctx: ThemeRegistryContext, structure: Structure) {
-//     return PointParams // TODO return copy
-// }
-// export type PointProps = PD.DefaultValues<typeof PointParams>
+const PointVisuals = {
+    'element-point': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementPointParams>) => UnitsRepresentation('Points', ctx, getParams, ElementPointVisual),
+}
 
-// export type PointRepresentation = StructureRepresentation<PointProps>
+export const PointParams = {
+    ...ElementPointParams,
+    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
+}
+export type PointParams = typeof PointParams
+export function getPointParams(ctx: ThemeRegistryContext, structure: Structure) {
+    return PD.clone(PointParams)
+}
 
-// export function PointRepresentation(defaultProps: PointProps): PointRepresentation {
-//     return Representation.createMulti('Point', defaultProps, [
-//         UnitsRepresentation('Point', defaultProps, ElementPointVisual)
-//     ])
-// }
+export type PointRepresentation = StructureRepresentation<PointParams>
+export function PointRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PointParams>): PointRepresentation {
+    return Representation.createMulti('Point', ctx, getParams, PointVisuals as unknown as Representation.Def<Structure, PointParams>)
+}
+
+export const PointRepresentationProvider: StructureRepresentationProvider<PointParams> = {
+    label: 'Point',
+    description: 'Displays elements (atoms, coarse spheres) as spheres.',
+    factory: PointRepresentation,
+    getParams: getPointParams,
+    defaultValues: PD.getDefaultValues(PointParams),
+    defaultColorTheme: 'element-symbol',
+    defaultSizeTheme: 'physical'
+}

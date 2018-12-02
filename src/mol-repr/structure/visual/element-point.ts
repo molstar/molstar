@@ -18,6 +18,7 @@ import { Theme } from 'mol-theme/theme';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
+    // sizeFactor: PD.Numeric(1.0, { min: 0, max: 10, step: 0.01 }),
     pointSizeAttenuation: PD.Boolean(false),
 }
 export type ElementPointParams = typeof ElementPointParams
@@ -25,6 +26,8 @@ export type ElementPointParams = typeof ElementPointParams
 // TODO size
 
 export function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ElementPointParams>, points: Points) {
+    // const { sizeFactor } = props
+
     const elements = unit.elements
     const n = elements.length
     const builder = PointsBuilder.create(n, n / 10, points)
