@@ -59,9 +59,11 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'group': return GroupControl;
         case 'mapped': return MappedControl;
         case 'line-graph': return LineGraphControl;
+        default:
+            const _: never = param;
+            console.warn(`${_} has no associated UI component`);
+            return void 0;
     }
-    console.warn(`${(param as any).type} has no associated UI component.`);
-    return void 0;
 }
 
 // type ParamWrapperProps = { name: string, value: any, param: PD.Base<any>, onChange: ParamOnChange, control: ValueControl, onEnter?: () => void, isEnabled?: boolean }
