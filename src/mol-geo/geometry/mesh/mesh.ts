@@ -350,6 +350,10 @@ export namespace Mesh {
 
     export function createValues(mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): MeshValues {
         const { instanceCount, groupCount } = locationIt
+        if (instanceCount !== transform.instanceCount.ref.value) {
+            throw new Error('instanceCount values in TransformData and LocationIterator differ')
+        }
+
         const color = createColors(locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
 
@@ -357,7 +361,7 @@ export namespace Mesh {
 
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             mesh.vertexBuffer.ref.value, mesh.vertexCount,
-            transform.aTransform.ref.value, transform.instanceCount.ref.value
+            transform.aTransform.ref.value, instanceCount
         )
 
         return {
@@ -378,17 +382,19 @@ export namespace Mesh {
         }
     }
 
-    export function createValuesSimple(mesh: Mesh, props: Partial<PD.Values<Params>>, colorValue = ColorNames.grey): MeshValues {
+    export function createValuesSimple(mesh: Mesh, props: Partial<PD.Values<Params>>, colorValue = ColorNames.grey, transform?: TransformData): MeshValues {
         const p = { ...PD.getDefaultValues(Params), ...props }
-        const transform = createIdentityTransform()
+        if (!transform) transform = createIdentityTransform()
+        const instanceCount = transform.instanceCount.ref.value
+        const groupCount = 1
         const color = createValueColor(colorValue)
-        const marker = createMarkers(1)
+        const marker = createMarkers(instanceCount * groupCount)
 
-        const counts = { drawCount: mesh.triangleCount * 3, groupCount: 1, instanceCount: 1 }
+        const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
 
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             mesh.vertexBuffer.ref.value, mesh.vertexCount,
-            transform.aTransform.ref.value, transform.instanceCount.ref.value
+            transform.aTransform.ref.value, instanceCount
         )
 
         return {

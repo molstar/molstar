@@ -21,6 +21,7 @@ export interface Renderable<T extends RenderableValues> {
     readonly values: T
     readonly state: RenderableState
     readonly boundingSphere: Sphere3D
+    readonly invariantBoundingSphere: Sphere3D
 
     render: (variant: RenderVariant) => void
     getProgram: (variant: RenderVariant) => Program
@@ -29,7 +30,8 @@ export interface Renderable<T extends RenderableValues> {
 }
 
 export function createRenderable<T extends Values<RenderableSchema>>(renderItem: RenderItem, values: T, state: RenderableState): Renderable<T> {
-    let boundingSphere: Sphere3D = Sphere3D.create(Vec3.zero(), 50)
+    const boundingSphere: Sphere3D = Sphere3D.create(Vec3.zero(), 0)
+    const invariantBoundingSphere: Sphere3D = Sphere3D.create(Vec3.zero(), 0)
 
     return {
         values,
@@ -39,6 +41,12 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
                 Sphere3D.copy(boundingSphere, values.boundingSphere.ref.value)
             }
             return boundingSphere
+        },
+        get invariantBoundingSphere () {
+            if (values.invariantBoundingSphere) {
+                Sphere3D.copy(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)
+            }
+            return invariantBoundingSphere
         },
 
         render: (variant: RenderVariant) => {

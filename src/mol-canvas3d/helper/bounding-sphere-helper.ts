@@ -12,9 +12,9 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import Scene from 'mol-gl/scene';
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { Sphere3D } from 'mol-math/geometry';
-import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Color } from 'mol-util/color';
 import { ColorNames } from 'mol-util/color/tables';
+import { TransformData } from 'mol-geo/geometry/transform-data';
 
 export const DebugHelperParams = {
     sceneBoundingSpheres: PD.Boolean(false, { description: 'Show scene bounding spheres.' }),
@@ -52,7 +52,12 @@ export class BoundingSphereHelper {
 
             if (ro.type === 'mesh' || ro.type === 'lines' || ro.type === 'points') {
                 const instanceData = this.instancesData.get(ro)
-                const newInstanceData = updateBoundingSphereData(this.scene, ro.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, ro.values.aTransform.ref.value, ro.values.instanceCount.ref.value)
+                const newInstanceData = updateBoundingSphereData(this.scene, r.invariantBoundingSphere, instanceData, ColorNames.skyblue, {
+                    aTransform: ro.values.aTransform,
+                    uInstanceCount: ro.values.uInstanceCount,
+                    instanceCount: ro.values.instanceCount,
+                    aInstance: ro.values.aInstance,
+                })
                 if (newInstanceData) this.instancesData.set(ro, newInstanceData)
             }
 
@@ -65,6 +70,8 @@ export class BoundingSphereHelper {
                 this.objectsData.delete(ro)
             }
         })
+
+        this.scene.update()
     }
 
     syncVisibility() {
@@ -98,30 +105,19 @@ export class BoundingSphereHelper {
     }
 }
 
-function updateBoundingSphereData(scene: Scene, boundingSphere: Sphere3D, data: BoundingSphereData | undefined, color: Color, transform?: Float32Array, transformCount?: number) {
+function updateBoundingSphereData(scene: Scene, boundingSphere: Sphere3D, data: BoundingSphereData | undefined, color: Color, transform?: TransformData) {
     if (!data || !Sphere3D.exactEquals(data.boundingSphere, boundingSphere)) {
         if (data) scene.remove(data.renderObject)
-        const renderObject = createBoundingSphereRenderObject(boundingSphere, color, transform, transformCount)
+        const renderObject = createBoundingSphereRenderObject(boundingSphere, color, transform)
         scene.add(renderObject)
-        return { boundingSphere, renderObject }
+        return { boundingSphere: Sphere3D.clone(boundingSphere), renderObject }
     }
 }
 
-const tmpCenter = Vec3.zero()
-const tmpM = Mat4.identity()
-function createBoundingSphereRenderObject(boundingSphere: Sphere3D, color: Color, transform?: Float32Array, transformCount?: number) {
+function createBoundingSphereRenderObject(boundingSphere: Sphere3D, color: Color, transform?: TransformData) {
     const builderState = MeshBuilder.createState(1024, 512)
-    if (transform && transformCount) {
-        // TODO create instanced mesh?
-        for (let i = 0, _i = transformCount; i < _i; ++i) {
-            Mat4.fromArray(tmpM, transform, i * 16)
-            Vec3.transformMat4(tmpCenter, boundingSphere.center, tmpM)
-            if (boundingSphere.radius) addSphere(builderState, tmpCenter, boundingSphere.radius, 1)
-        }
-    } else {
-        if (boundingSphere.radius) addSphere(builderState, boundingSphere.center, boundingSphere.radius, 2)
-    }
+    if (boundingSphere.radius) addSphere(builderState, boundingSphere.center, boundingSphere.radius, 2)
     const mesh = MeshBuilder.getMesh(builderState)
-    const values = Mesh.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color)
+    const values = Mesh.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color, transform)
     return createMeshRenderObject(values, { visible: true, pickable: false, opaque: false })
 }
