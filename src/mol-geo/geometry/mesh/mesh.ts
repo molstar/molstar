@@ -19,8 +19,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { Theme } from 'mol-theme/theme';
 import { MeshValues } from 'mol-gl/renderable/mesh';
-import { ColorTheme } from 'mol-theme/color';
-import { NullLocation } from 'mol-model/location';
+import { ColorNames } from 'mol-util/color/tables';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -379,10 +378,10 @@ export namespace Mesh {
         }
     }
 
-    export function createValuesSimple(mesh: Mesh, props: Partial<PD.Values<Params>>): MeshValues {
+    export function createValuesSimple(mesh: Mesh, props: Partial<PD.Values<Params>>, colorValue = ColorNames.grey): MeshValues {
         const p = { ...PD.getDefaultValues(Params), ...props }
         const transform = createIdentityTransform()
-        const color = createValueColor(ColorTheme.Empty.color(NullLocation, false))
+        const color = createValueColor(colorValue)
         const marker = createMarkers(1)
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount: 1, instanceCount: 1 }
