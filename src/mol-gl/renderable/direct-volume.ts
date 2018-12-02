@@ -29,6 +29,7 @@ export const DirectVolumeSchema = {
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
     boundingSphere: ValueSpec('sphere'),
+    invariantBoundingSphere: ValueSpec('sphere'),
 
     aPosition: AttributeSpec('float32', 3, 0),
     elements: ElementsSpec('uint32'),

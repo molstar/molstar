@@ -58,6 +58,7 @@ function createPoints() {
     Mat4.toArray(m4, aTransform.ref.value, 0)
 
     const boundingSphere = ValueCell.create(Sphere3D.create(Vec3.zero(), 2))
+    const invariantBoundingSphere = ValueCell.create(Sphere3D.create(Vec3.zero(), 2))
 
     const values: PointsValues = {
         aPosition,
@@ -77,6 +78,7 @@ function createPoints() {
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
         boundingSphere,
+        invariantBoundingSphere,
 
         dPointSizeAttenuation: ValueCell.create(true),
         dPointFilledCircle: ValueCell.create(false),

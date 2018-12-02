@@ -71,7 +71,7 @@ export namespace Points {
 
         const counts = { drawCount: points.pointCount, groupCount, instanceCount }
 
-        const boundingSphere = calculateBoundingSphere(
+        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             points.centerBuffer.ref.value, points.pointCount,
             transform.aTransform.ref.value, transform.instanceCount.ref.value
         )
@@ -80,6 +80,7 @@ export namespace Points {
             aPosition: points.centerBuffer,
             aGroup: points.groupBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
+            invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             ...color,
             ...size,
             ...marker,
@@ -100,12 +101,15 @@ export namespace Points {
     }
 
     export function updateBoundingSphere(values: PointsValues, points: Points) {
-        const boundingSphere = calculateBoundingSphere(
+        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, points.pointCount,
             values.aTransform.ref.value, values.instanceCount.ref.value
         )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
+        }
+        if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
+            ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere)
         }
     }
 

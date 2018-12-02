@@ -55,7 +55,7 @@ export function calculateBoundingSphereFromValues(values: PositionValues) {
     return calculateBoundingSphere(position, positionCount, transform, transformCount)
 }
 
-export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number): Sphere3D {
+export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number): { boundingSphere: Sphere3D, invariantBoundingSphere: Sphere3D } {
 
     const m = Mat4.zero()
 
@@ -105,5 +105,5 @@ export function calculateBoundingSphere(position: Float32Array, positionCount: n
         radius = Math.max(radius, Vec3.distance(center, ct) + r)
     }
 
-    return { center, radius };
+    return { boundingSphere: { center, radius }, invariantBoundingSphere: { center: c, radius: r } };
 }

@@ -106,17 +106,9 @@ export namespace Lines {
 
         const counts = { drawCount: lines.lineCount * 2 * 3, groupCount, instanceCount }
 
-        const boundingSphere = Sphere3D.addSphere(
-            calculateBoundingSphere(
-                lines.startBuffer.ref.value, lines.lineCount,
-                transform.aTransform.ref.value, transform.instanceCount.ref.value
-            ),
-            calculateBoundingSphere(
-                lines.startBuffer.ref.value, lines.lineCount,
-                transform.aTransform.ref.value, transform.instanceCount.ref.value
-            )
-        )
-
+        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(lines.startBuffer.ref.value, lines.endBuffer.ref.value, lines.lineCount,
+            transform.aTransform.ref.value, transform.instanceCount.ref.value)
+        
         return {
             aMapping: lines.mappingBuffer,
             aGroup: lines.groupBuffer,
@@ -124,6 +116,7 @@ export namespace Lines {
             aEnd: lines.endBuffer,
             elements: lines.indexBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
+            invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             ...color,
             ...size,
             ...marker,
@@ -142,18 +135,22 @@ export namespace Lines {
     }
 
     export function updateBoundingSphere(values: LinesValues, lines: Lines) {
-        const boundingSphere = Sphere3D.addSphere(
-            calculateBoundingSphere(
-                values.aStart.ref.value, lines.lineCount,
-                values.aTransform.ref.value, values.instanceCount.ref.value
-            ),
-            calculateBoundingSphere(
-                values.aEnd.ref.value, lines.lineCount,
-                values.aTransform.ref.value, values.instanceCount.ref.value
-            ),
-        )
+        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(values.aStart.ref.value, values.aEnd.ref.value, lines.lineCount,
+            values.aTransform.ref.value, values.instanceCount.ref.value)
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
+        if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
+            ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere)
+        }
+    }
+}
+
+function getBoundingSphere(lineStart: Float32Array, lineEnd: Float32Array, lineCount: number, transform: Float32Array, transformCount: number) {
+    const start = calculateBoundingSphere(lineStart, lineCount, transform, transformCount)
+    const end = calculateBoundingSphere(lineEnd, lineCount, transform, transformCount)
+    return {
+        boundingSphere: Sphere3D.addSphere(start.boundingSphere, end.boundingSphere),
+        invariantBoundingSphere: Sphere3D.addSphere(start.invariantBoundingSphere, end.invariantBoundingSphere)
     }
 }

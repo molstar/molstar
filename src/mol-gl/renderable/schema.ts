@@ -199,6 +199,7 @@ export const BaseSchema = {
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
     boundingSphere: ValueSpec('sphere'),
+    invariantBoundingSphere: ValueSpec('sphere'),
 
     dUseFog: DefineSpec('boolean'),
 }

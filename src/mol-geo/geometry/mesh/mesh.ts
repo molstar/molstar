@@ -356,7 +356,7 @@ export namespace Mesh {
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
 
-        const boundingSphere = calculateBoundingSphere(
+        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             mesh.vertexBuffer.ref.value, mesh.vertexCount,
             transform.aTransform.ref.value, transform.instanceCount.ref.value
         )
@@ -367,6 +367,7 @@ export namespace Mesh {
             aGroup: mesh.groupBuffer,
             elements: mesh.indexBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
+            invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             ...color,
             ...marker,
             ...transform,
@@ -386,7 +387,7 @@ export namespace Mesh {
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount: 1, instanceCount: 1 }
 
-        const boundingSphere = calculateBoundingSphere(
+        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             mesh.vertexBuffer.ref.value, mesh.vertexCount,
             transform.aTransform.ref.value, transform.instanceCount.ref.value
         )
@@ -397,6 +398,7 @@ export namespace Mesh {
             aGroup: mesh.groupBuffer,
             elements: mesh.indexBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
+            invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             ...color,
             ...marker,
             ...transform,
@@ -416,12 +418,15 @@ export namespace Mesh {
     }
 
     export function updateBoundingSphere(values: MeshValues, mesh: Mesh) {
-        const boundingSphere = calculateBoundingSphere(
+        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, mesh.vertexCount,
             values.aTransform.ref.value, values.instanceCount.ref.value
         )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
+        }
+        if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
+            ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere)
         }
     }
 }

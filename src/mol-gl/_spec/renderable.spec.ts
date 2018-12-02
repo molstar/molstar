@@ -29,12 +29,12 @@ describe('renderable', () => {
             2, 0, 0, 0
         ])
 
-        const bs = calculateBoundingSphere(
+        const { boundingSphere } = calculateBoundingSphere(
             position, position.length / 3,
             transform, transform.length / 16
         )
 
-        expect(bs.radius).toBe(1.5)
-        expect(bs.center).toEqual([1.5, 0.0, 0.0])
+        expect(boundingSphere.radius).toBe(1.5)
+        expect(boundingSphere.center).toEqual([1.5, 0.0, 0.0])
     })
 })

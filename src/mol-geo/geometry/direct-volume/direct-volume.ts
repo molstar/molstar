@@ -91,7 +91,7 @@ export namespace DirectVolume {
 
         const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount }
 
-        const boundingSphere = getBoundingSphere(gridDimension.ref.value, gridTransform.ref.value, transform.aTransform.ref.value, transform.instanceCount.ref.value)
+        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(gridDimension.ref.value, gridTransform.ref.value, transform.aTransform.ref.value, transform.instanceCount.ref.value)
 
         const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
         const transferTex = createTransferFunctionTexture(controlPoints, props.list)
@@ -107,6 +107,7 @@ export namespace DirectVolume {
             aPosition: ValueCell.create(VolumeBox.vertices as Float32Array),
             elements: ValueCell.create(VolumeBox.indices as Uint32Array),
             boundingSphere: ValueCell.create(boundingSphere),
+            invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
 
             uIsoValue: ValueCell.create(props.isoValue),
             uBboxMin: bboxMin,
@@ -135,9 +136,12 @@ export namespace DirectVolume {
     }
 
     export function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {
-        const boundingSphere = getBoundingSphere(values.uGridDim.ref.value, values.uTransform.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value)
+        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(values.uGridDim.ref.value, values.uTransform.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value)
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
+        }
+        if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
+            ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere)
         }
     }
 
