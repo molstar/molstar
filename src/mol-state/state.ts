@@ -520,7 +520,10 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     const transform = current.transform;
 
     // special case for Root
-    if (current.transform.ref === Transform.RootRef) return { action: 'none' };
+    if (current.transform.ref === Transform.RootRef) {
+        current.version = transform.version;
+        return { action: 'none' };
+    }
 
     const parentCell = StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
     if (!parentCell) {
@@ -560,6 +563,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
                 current.version = transform.version;
                 return { ref: currentRef, action: 'updated', obj: current.obj! };
             default:
+                current.version = transform.version;
                 return { action: 'none' };
         }
     }
