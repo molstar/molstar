@@ -124,5 +124,7 @@ Just open an issue or make a pull request. All contributions are welcome.
 Continually develop this prototype project. As individual modules become stable, make them into standalone libraries.
 
 ## Funding
-Funding sources include but are not limted to:
+Funding sources include but are not limited to:
 * [RCSB PDB](https://www.rcsb.org) funding by a grant [DBI-1338415; PI: SK Burley] from the NSF, the NIH, and the US DoE
+* [PDBe, EMBL-EBI](https://pdbe.org)
+* [CEITEC](https://www.ceitec.eu/)
