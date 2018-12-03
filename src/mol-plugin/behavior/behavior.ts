@@ -5,7 +5,7 @@
  */
 
 import { PluginStateTransform, PluginStateObject } from '../state/objects';
-import { Transformer } from 'mol-state';
+import { Transformer, Transform } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginCommand } from '../command';
@@ -16,7 +16,7 @@ import { shallowEqual } from 'mol-util';
 export { PluginBehavior }
 
 interface PluginBehavior<P = unknown> {
-    register(): void,
+    register(ref: Transform.Ref): void,
     unregister(): void,
 
     /** Update params in place. Optionally return a promise if it depends on an async action. */
