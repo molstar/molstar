@@ -121,6 +121,9 @@ export namespace Points {
 
     export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
         Geometry.updateRenderableState(state, props)
-        state.opaque = state.opaque && !props.pointFilledCircle && props.pointEdgeBleach === 0
+        state.opaque = state.opaque && (
+            !props.pointFilledCircle ||
+            (props.pointFilledCircle && props.pointEdgeBleach === 0)
+        )
     }
 }
