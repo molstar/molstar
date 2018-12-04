@@ -14,38 +14,20 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
 
 const boundaryHelper = new BoundaryHelper();
-function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<RenderableValues & BaseValues>>, boundingSphere: Sphere3D): Sphere3D {
-    // let count = 0
-    // const center = Vec3.set(boundingSphere.center, 0, 0, 0)
-    // renderableMap.forEach(r => {
-    //     if (r.boundingSphere.radius) {
-    //         Vec3.add(center, center, r.boundingSphere.center)
-    //         ++count
-    //     }
-    // })
-    // if (count > 0) {
-    //     Vec3.scale(center, center, 1 / count)
-    // }
-
-    // let radius = 0
-    // renderableMap.forEach(r => {
-    //     if (r.boundingSphere.radius) {
-    //         radius = Math.max(radius, Vec3.distance(center, r.boundingSphere.center) + r.boundingSphere.radius)
-    //     }
-    // })
-    // boundingSphere.radius = radius
-
+function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D): Sphere3D {
     boundaryHelper.reset(0.1);
 
-    renderableMap.forEach(r => {
-        if (!r.boundingSphere.radius) return;
+    for (let i = 0, il = renderables.length; i < il; ++i) {
+        const r = renderables[i]
+        if (!r.boundingSphere.radius) continue;
         boundaryHelper.boundaryStep(r.boundingSphere.center, r.boundingSphere.radius);
-    });
+    }
     boundaryHelper.finishBoundaryStep();
-    renderableMap.forEach(r => {
-        if (!r.boundingSphere.radius) return;
+    for (let i = 0, il = renderables.length; i < il; ++i) {
+        const r = renderables[i]
+        if (!r.boundingSphere.radius) continue;
         boundaryHelper.extendStep(r.boundingSphere.center, r.boundingSphere.radius);
-    });
+    };
 
     Vec3.copy(boundingSphere.center, boundaryHelper.center);
     boundingSphere.radius = boundaryHelper.radius;
@@ -55,6 +37,7 @@ function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<Ren
 
 interface Scene extends Object3D {
     readonly count: number
+    readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
     readonly boundingSphere: Sphere3D
 
     update: (keepBoundingSphere?: boolean) => void
@@ -62,13 +45,12 @@ interface Scene extends Object3D {
     remove: (o: RenderObject) => void
     clear: () => void
     forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
-    eachOpaque: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
-    eachTransparent: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
 }
 
 namespace Scene {
     export function create(ctx: WebGLContext): Scene {
         const renderableMap = new Map<RenderObject, Renderable<RenderableValues & BaseValues>>()
+        const renderables: Renderable<RenderableValues & BaseValues>[] = []
         const boundingSphere = Sphere3D.zero()
         let boundingSphereDirty = true
 
@@ -82,13 +64,17 @@ namespace Scene {
 
             update: (keepBoundingSphere?: boolean) => {
                 Object3D.update(object3d)
-                renderableMap.forEach(r => r.update())
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    renderables[i].update()
+                }
                 if (!keepBoundingSphere) boundingSphereDirty = true
             },
 
             add: (o: RenderObject) => {
                 if (!renderableMap.has(o)) {
-                    renderableMap.set(o, createRenderable(ctx, o))
+                    const renderable = createRenderable(ctx, o)
+                    renderables.push(renderable)
+                    renderableMap.set(o, renderable)
                     boundingSphereDirty = true
                 } else {
                     console.warn(`RenderObject with id '${o.id}' already present`)
@@ -98,29 +84,28 @@ namespace Scene {
                 const renderable = renderableMap.get(o)
                 if (renderable) {
                     renderable.dispose()
+                    renderables.splice(renderables.indexOf(renderable), 1)
                     renderableMap.delete(o)
                     boundingSphereDirty = true
                 }
             },
             clear: () => {
-                renderableMap.forEach(renderable => renderable.dispose())
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    renderables[i].dispose()
+                }
+                renderables.length = 0
                 renderableMap.clear()
                 boundingSphereDirty = true
             },
             forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
                 renderableMap.forEach(callbackFn)
             },
-            eachOpaque: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
-                renderableMap.forEach((r, o) => { if (r.state.opaque) callbackFn(r, o) })
-            },
-            eachTransparent: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
-                renderableMap.forEach((r, o) => { if (!r.state.opaque) callbackFn(r, o) })
-            },
             get count() {
-                return renderableMap.size
+                return renderables.length
             },
+            renderables,
             get boundingSphere() {
-                if (boundingSphereDirty) calculateBoundingSphere(renderableMap, boundingSphere)
+                if (boundingSphereDirty) calculateBoundingSphere(renderables, boundingSphere)
                 boundingSphereDirty = false
                 return boundingSphere
             }

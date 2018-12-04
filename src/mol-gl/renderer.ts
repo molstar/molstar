@@ -107,7 +107,8 @@ namespace Renderer {
         }
 
         let currentProgramId = -1
-        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
+        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant, opaque: boolean) => {
+            if (r.state.opaque !== opaque) return
             const program = r.getProgram(variant)
             if (r.state.visible) {
                 if (currentProgramId !== program.id) {
@@ -161,15 +162,20 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uFogFar, camera.state.fogFar)
             ValueCell.update(globalUniforms.uFogNear, camera.state.fogNear)
 
+            const { renderables } = scene
             currentProgramId = -1
 
             gl.disable(gl.BLEND)
             gl.enable(gl.DEPTH_TEST)
-            scene.eachOpaque((r) => renderObject(r, variant))
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                renderObject(renderables[i], variant, true)
+            }
 
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
             gl.enable(gl.BLEND)
-            scene.eachTransparent((r) => renderObject(r, variant))
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                renderObject(renderables[i], variant, false)
+            }
 
             gl.finish()
         }

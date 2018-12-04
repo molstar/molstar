@@ -79,7 +79,7 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     }
 
     remove(name: string) {
-        this._list.splice(this._list.findIndex(e => e.name === name))
+        this._list.splice(this._list.findIndex(e => e.name === name), 1)
         this._map.delete(name)
         console.log('removed', name, this._list, this._map)
     }

@@ -71,7 +71,7 @@ export class RepresentationRegistry<D> {
     }
 
     remove(name: string) {
-        this._list.splice(this._list.findIndex(e => e.name === name))
+        this._list.splice(this._list.findIndex(e => e.name === name), 1)
         this._map.delete(name)
     }
 
