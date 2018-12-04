@@ -299,11 +299,11 @@ namespace Canvas3D {
                 repr.renderObjects.forEach(o => scene.add(o))
             }
             reprRenderObjects.set(repr, newRO)
-            reprCount.next(reprRenderObjects.size)
             scene.update()
             if (debugHelper.isEnabled) debugHelper.update()
             isUpdating = false
             requestDraw(true)
+            reprCount.next(reprRenderObjects.size)
         }
 
         handleResize()
@@ -327,11 +327,11 @@ namespace Canvas3D {
                     isUpdating = true
                     renderObjects.forEach(o => scene.remove(o))
                     reprRenderObjects.delete(repr)
-                    reprCount.next(reprRenderObjects.size)
                     scene.update()
                     if (debugHelper.isEnabled) debugHelper.update()
                     isUpdating = false
                     requestDraw(true)
+                    reprCount.next(reprRenderObjects.size)
                 }
             },
             update: () => scene.update(),

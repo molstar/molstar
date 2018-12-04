@@ -45,6 +45,8 @@ export class BoundingSphereHelper {
         if (newSceneData) this.sceneData = newSceneData
 
         const oldRO = new Set<RenderObject>()
+        this.objectsData.forEach((_, ro) => oldRO.add(ro))
+        this.instancesData.forEach((_, ro) => oldRO.add(ro))
         this.parent.forEach((r, ro) => {
             const objectData = this.objectsData.get(ro)
             const newObjectData = updateBoundingSphereData(this.scene, r.boundingSphere, objectData, ColorNames.tomato)
@@ -68,6 +70,11 @@ export class BoundingSphereHelper {
             if (objectData) {
                 this.scene.remove(objectData.renderObject)
                 this.objectsData.delete(ro)
+            }
+            const instanceData = this.instancesData.get(ro)
+            if (instanceData) {
+                this.scene.remove(instanceData.renderObject)
+                this.instancesData.delete(ro)
             }
         })
 
