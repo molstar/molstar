@@ -38,12 +38,12 @@ function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<Ren
     boundaryHelper.reset(0.1);
 
     renderableMap.forEach(r => {
-        if (!r.state.visible || !r.boundingSphere.radius) return;
+        if (!r.boundingSphere.radius) return;
         boundaryHelper.boundaryStep(r.boundingSphere.center, r.boundingSphere.radius);
     });
     boundaryHelper.finishBoundaryStep();
     renderableMap.forEach(r => {
-        if (!r.state.visible || !r.boundingSphere.radius) return;
+        if (!r.boundingSphere.radius) return;
         boundaryHelper.extendStep(r.boundingSphere.center, r.boundingSphere.radius);
     });
 

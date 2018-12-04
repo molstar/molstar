@@ -295,7 +295,6 @@ namespace Canvas3D {
             if (oldRO) {
                 SetUtils.difference(newRO, oldRO).forEach(o => scene.add(o))
                 SetUtils.difference(oldRO, newRO).forEach(o => scene.remove(o))
-                scene.update()
             } else {
                 repr.renderObjects.forEach(o => scene.add(o))
             }

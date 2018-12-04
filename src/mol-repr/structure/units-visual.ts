@@ -161,10 +161,13 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
                 // console.log('update geometry')
                 if (newGeometry) {
                     ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
-                    updateBoundingSphere(renderObject.values, newGeometry)
                 } else {
                     throw new Error('expected geometry to be given')
                 }
+            }
+
+            if (updateState.updateTransform || updateState.createGeometry) {
+                updateBoundingSphere(renderObject.values, newGeometry || geometry)
             }
 
             if (updateState.updateSize) {
