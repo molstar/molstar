@@ -106,15 +106,19 @@ namespace Renderer {
             uPickingAlphaThreshold: ValueCell.create(pickingAlphaThreshold),
         }
 
-        let currentProgramId = -1
+        let globalUniformsNeedUpdate = true
         const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant, opaque: boolean) => {
             if (r.state.opaque !== opaque) return
             const program = r.getProgram(variant)
-            if (r.state.visible) {
-                if (currentProgramId !== program.id) {
-                    program.use()
+            if (r.state.visible) {                
+                if (ctx.currentProgramId !== program.id) {
+                    globalUniformsNeedUpdate = true
+                }
+
+                program.use()
+                if (globalUniformsNeedUpdate) {
                     program.setUniforms(globalUniforms)
-                    currentProgramId = program.id
+                    globalUniformsNeedUpdate = false
                 }
 
                 if (r.values.dDoubleSided) {
@@ -162,8 +166,9 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uFogFar, camera.state.fogFar)
             ValueCell.update(globalUniforms.uFogNear, camera.state.fogNear)
 
+            globalUniformsNeedUpdate = true
+
             const { renderables } = scene
-            currentProgramId = -1
 
             gl.disable(gl.BLEND)
             gl.enable(gl.DEPTH_TEST)

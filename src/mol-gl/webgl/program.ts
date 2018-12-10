@@ -6,7 +6,7 @@
 
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
 import { WebGLContext } from './context';
-import { getUniformUpdaters, getTextureUniformUpdaters, UniformValues } from './uniform';
+import { getUniformUpdaters, getTextureUniformUpdaters, UniformValues, UniformUpdater } from './uniform';
 import { AttributeBuffers } from './buffer';
 import { TextureId, Textures } from './texture';
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
@@ -60,6 +60,7 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
     if (program === null) {
         throw new Error('Could not create WebGL program')
     }
+    const programId = getNextProgramId()
 
     const shaderCode = addShaderDefines(ctx, defineValues, _shaderCode)
     const vertShaderRef = shaderCache.get(ctx, { type: 'vert', source: shaderCode.vert })
@@ -76,21 +77,27 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
     const attributeLocations = getAttributeLocations(ctx, program, schema)
     const textureUniformUpdaters = getTextureUniformUpdaters(ctx, program, schema)
 
+    const _uniformUpdaters: [string, UniformUpdater][] = []
+    Object.keys(uniformUpdaters).forEach(k => {
+        _uniformUpdaters.push([k, uniformUpdaters[k]])
+    })
+
     let destroyed = false
 
     return {
-        id: getNextProgramId(),
+        id: programId,
 
         use: () => {
-            Object.keys(uniformUpdaters).forEach(k => uniformUpdaters[k].clear())
-            Object.keys(textureUniformUpdaters).forEach(k => textureUniformUpdaters[k].clear())
+            // console.log('use', programId)
+            ctx.currentProgramId = programId
             gl.useProgram(program)
         },
         setUniforms: (uniformValues: UniformValues) => {
-            Object.keys(uniformValues).forEach(k => {
+            for (let i = 0, il = _uniformUpdaters.length; i < il; ++i) {
+                const [k, uu] = _uniformUpdaters[i]
                 const uv = uniformValues[k]
-                if (uv !== undefined) uniformUpdaters[k].set(uv.ref.value)
-            })
+                if (uv !== undefined) uu.set(uv.ref.value)
+            }
         },
         bindAttributes: (attribueBuffers: AttributeBuffers) => {
             Object.keys(attribueBuffers).forEach(k => {

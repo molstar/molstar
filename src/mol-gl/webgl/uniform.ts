@@ -6,7 +6,7 @@
 
 import { Mat3, Mat4, Vec2, Vec3, Vec4 } from 'mol-math/linear-algebra'
 import { WebGLContext } from './context';
-import { ValueCell } from 'mol-util';
+import { ValueCell, arrayEqual } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
 
 export type UniformKindValue = {
@@ -51,14 +51,12 @@ function createUniformUpdater(ctx: WebGLContext, program: WebGLProgram, name: st
     let _value: UniformType | undefined = undefined
     return {
         set: value => {
-            if (_value !== value) {
+            if (_value !== value || (Array.isArray(_value) && Array.isArray(value) && arrayEqual(_value, value))) {
                 setter(value)
-                _value = value
+                _value = value 
             }
         },
-        clear: () => {
-            _value = undefined
-        }
+        clear: () => { _value = undefined }
     }
 }
 

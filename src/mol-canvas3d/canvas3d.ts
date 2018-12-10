@@ -118,10 +118,9 @@ namespace Canvas3D {
         const groupPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
 
         let pickDirty = true
-        let isPicking = false
+        let isIdentifying = false
         let isUpdating = false
         let drawPending = false
-        let lastRenderTime = -1
 
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug)
 
@@ -148,8 +147,9 @@ namespace Canvas3D {
             })
             if (changed) {
                 scene.update(true)
+                const prevPickDirty = pickDirty
                 draw(true)
-                pickDirty = false // picking buffers should not have changed
+                pickDirty = prevPickDirty // picking buffers should not have changed
             }
         }
 
@@ -175,7 +175,7 @@ namespace Canvas3D {
         }
 
         function render(variant: 'pick' | 'draw', force: boolean) {
-            if (isPicking || isUpdating) return false
+            if (isIdentifying || isUpdating) return false
 
             let didRender = false
             controls.update()
@@ -205,7 +205,6 @@ namespace Canvas3D {
                             debugHelper.syncVisibility()
                             renderer.render(debugHelper.scene, 'draw')
                         }
-                        lastRenderTime = now()
                         pickDirty = true
                         break;
                 }
@@ -235,25 +234,21 @@ namespace Canvas3D {
             const t = now();
             camera.transition.tick(t);
             draw(false)
-            if (t - lastRenderTime > 1000 / 12 /** picking at 12 fps */ && pickDirty) {
-                // TODO would it not be better to call pick in identify?
-                // because currently for example highlighting something
-                // sets pickDirty = true that is not true
-                // there should definitely be a better "dirty" mechanism
-                pick();
-            }
             window.requestAnimationFrame(animate)
         }
 
         function pick() {
-            render('pick', pickDirty)
-            pickDirty = false
+            if (pickDirty) {
+                render('pick', true)
+                pickDirty = false
+            }
         }
 
         async function identify(x: number, y: number): Promise<PickingId | undefined> {
-            if (pickDirty || isPicking) return;
+            if (isIdentifying) return
 
-            isPicking = true
+            pick() // must be called before setting `isIdentifying = true`
+            isIdentifying = true
 
             x *= webgl.pixelRatio
             y *= webgl.pixelRatio
@@ -268,21 +263,21 @@ namespace Canvas3D {
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
             const objectId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
-            if (objectId === -1) { isPicking = false; return; }
+            if (objectId === -1) { isIdentifying = false; return; }
 
             instancePickTarget.bind()
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
             const instanceId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
-            if (instanceId === -1) { isPicking = false; return; }
+            if (instanceId === -1) { isIdentifying = false; return; }
 
             groupPickTarget.bind()
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
             const groupId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
-            if (groupId === -1) { isPicking = false; return; }
+            if (groupId === -1) { isIdentifying = false; return; }
 
-            isPicking = false
+            isIdentifying = false
 
             return { objectId, instanceId, groupId }
         }

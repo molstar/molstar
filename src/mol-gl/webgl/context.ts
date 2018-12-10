@@ -135,6 +135,8 @@ export interface WebGLContext {
     readonly programCache: ProgramCache
     readonly framebufferCache: FramebufferCache
 
+    currentProgramId: number
+
     bufferCount: number
     framebufferCount: number
     renderbufferCount: number
@@ -259,6 +261,8 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         shaderCache,
         programCache,
         framebufferCache,
+
+        currentProgramId: -1,
 
         bufferCount: 0,
         framebufferCount: 0,
