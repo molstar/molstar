@@ -22,6 +22,8 @@ import { ValueCell } from 'mol-util';
 import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 import { RenderableState } from 'mol-gl/renderable';
+import { Mat4 } from 'mol-math/linear-algebra';
+import { setTransform } from 'mol-geo/geometry/transform-data';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
@@ -127,6 +129,9 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
         },
         setPickable(value: boolean) {
             if (renderObject) renderObject.state.pickable = value
+        },
+        setTransform(value: Mat4) {
+            if (renderObject) setTransform(value, renderObject.values)
         },
         destroy() {
             // TODO

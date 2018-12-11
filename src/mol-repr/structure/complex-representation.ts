@@ -55,6 +55,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
     function setState(state: Partial<Representation.State>) {
         if (state.visible !== undefined && visual) visual.setVisibility(state.visible)
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
+        if (state.transform !== undefined && visual) visual.setTransform(state.transform)
 
         Representation.updateState(_state, state)
     }

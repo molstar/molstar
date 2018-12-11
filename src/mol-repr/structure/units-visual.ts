@@ -30,6 +30,8 @@ import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { UnitsParams } from './units-representation';
 import { RenderableState } from 'mol-gl/renderable';
+import { Mat4 } from 'mol-math/linear-algebra';
+import { setTransform } from 'mol-geo/geometry/transform-data';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -241,6 +243,9 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         },
         setPickable(value: boolean) {
             if (renderObject) renderObject.state.pickable = value
+        },
+        setTransform(value: Mat4) {
+            if (renderObject) setTransform(value, renderObject.values)
         },
         destroy() {
             // TODO

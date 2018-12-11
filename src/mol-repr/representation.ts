@@ -106,9 +106,13 @@ interface Representation<D, P extends PD.Params = {}> {
 }
 namespace Representation {
     export interface State {
+        /** Controls if the representation's renderobjects are rendered or not */
         visible: boolean
+        /** Controls if the representation's renderobjects are pickable or not */
         pickable: boolean
+        /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
+        /** A transformation applied to the representation's renderobjects */
         transform: Mat4
     }
     export function createState() {
@@ -255,5 +259,6 @@ export interface Visual<D, P extends PD.Params> {
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (value: boolean) => void
     setPickable: (value: boolean) => void
+    setTransform: (value: Mat4) => void
     destroy: () => void
 }

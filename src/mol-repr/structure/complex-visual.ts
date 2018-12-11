@@ -28,6 +28,8 @@ import { SizeTheme } from 'mol-theme/size';
 import { RenderableState } from 'mol-gl/renderable';
 import { UnitsParams } from './units-representation';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
+import { Mat4 } from 'mol-math/linear-algebra';
+import { setTransform } from 'mol-geo/geometry/transform-data';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -197,6 +199,9 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         },
         setPickable(value: boolean) {
             if (renderObject) renderObject.state.pickable = value
+        },
+        setTransform(value: Mat4) {
+            if (renderObject) setTransform(value, renderObject.values)
         },
         destroy() {
             // TODO
