@@ -446,7 +446,7 @@ namespace Mat4 {
         return out
     }
 
-    export function rotate(out: Mat4, a: Mat4, rad: number, axis: Mat4) {
+    export function rotate(out: Mat4, a: Mat4, rad: number, axis: Vec3) {
         let x = axis[0], y = axis[1], z = axis[2],
             len = Math.sqrt(x * x + y * y + z * z),
             s, c, t,
