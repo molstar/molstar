@@ -15,6 +15,9 @@ import { Sphere3D } from 'mol-math/geometry';
 import { Color } from 'mol-util/color';
 import { ColorNames } from 'mol-util/color/tables';
 import { TransformData } from 'mol-geo/geometry/transform-data';
+import { sphereVertexCount } from 'mol-geo/primitive/sphere';
+import { ValueCell } from 'mol-util';
+import { Geometry } from 'mol-geo/geometry/geometry';
 
 export const DebugHelperParams = {
     sceneBoundingSpheres: PD.Boolean(false, { description: 'Show scene bounding spheres.' }),
@@ -24,10 +27,11 @@ export const DebugHelperParams = {
 export type DebugHelperParams = typeof DebugHelperParams
 export type DebugHelperProps = PD.Values<DebugHelperParams>
 
-type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: RenderObject }
+type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: RenderObject, mesh: Mesh }
 
 export class BoundingSphereHelper {
     readonly scene: Scene
+
     private readonly parent: Scene
     private _props: DebugHelperProps
     private objectsData = new Map<RenderObject, BoundingSphereData>()
@@ -44,9 +48,6 @@ export class BoundingSphereHelper {
         const newSceneData = updateBoundingSphereData(this.scene, this.parent.boundingSphere, this.sceneData, ColorNames.grey)
         if (newSceneData) this.sceneData = newSceneData
 
-        const oldRO = new Set<RenderObject>()
-        this.objectsData.forEach((_, ro) => oldRO.add(ro))
-        this.instancesData.forEach((_, ro) => oldRO.add(ro))
         this.parent.forEach((r, ro) => {
             const objectData = this.objectsData.get(ro)
             const newObjectData = updateBoundingSphereData(this.scene, r.boundingSphere, objectData, ColorNames.tomato)
@@ -63,17 +64,16 @@ export class BoundingSphereHelper {
                 })
                 if (newInstanceData) this.instancesData.set(ro, newInstanceData)
             }
-
-            oldRO.delete(ro)
         })
-        oldRO.forEach(ro => {
-            const objectData = this.objectsData.get(ro)
-            if (objectData) {
+
+        this.objectsData.forEach((objectData, ro) => {
+            if (!this.parent.has(ro)) {
                 this.scene.remove(objectData.renderObject)
                 this.objectsData.delete(ro)
             }
-            const instanceData = this.instancesData.get(ro)
-            if (instanceData) {
+        })
+        this.instancesData.forEach((instanceData, ro) => {
+            if (!this.parent.has(ro)) {
                 this.scene.remove(instanceData.renderObject)
                 this.instancesData.delete(ro)
             }
@@ -83,7 +83,7 @@ export class BoundingSphereHelper {
     }
 
     syncVisibility() {
-        if(this.sceneData) {
+        if (this.sceneData) {
             this.sceneData.renderObject.state.visible = this._props.sceneBoundingSpheres
         }
 
@@ -114,18 +114,27 @@ export class BoundingSphereHelper {
 }
 
 function updateBoundingSphereData(scene: Scene, boundingSphere: Sphere3D, data: BoundingSphereData | undefined, color: Color, transform?: TransformData) {
-    if (!data || !Sphere3D.exactEquals(data.boundingSphere, boundingSphere)) {
-        if (data) scene.remove(data.renderObject)
-        const renderObject = createBoundingSphereRenderObject(boundingSphere, color, transform)
-        scene.add(renderObject)
-        return { boundingSphere: Sphere3D.clone(boundingSphere), renderObject }
+    if (!data || !Sphere3D.equals(data.boundingSphere, boundingSphere)) {
+        const mesh = createBoundingSphereMesh(boundingSphere, data && data.mesh)
+        const renderObject = data ? data.renderObject : createBoundingSphereRenderObject(mesh, color, transform)
+        if (data) {
+            ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(mesh))
+        } else {
+            scene.add(renderObject)
+        }
+        return { boundingSphere: Sphere3D.clone(boundingSphere), renderObject, mesh }
     }
 }
 
-function createBoundingSphereRenderObject(boundingSphere: Sphere3D, color: Color, transform?: TransformData) {
-    const builderState = MeshBuilder.createState(1024, 512)
-    if (boundingSphere.radius) addSphere(builderState, boundingSphere.center, boundingSphere.radius, 2)
-    const mesh = MeshBuilder.getMesh(builderState)
+function createBoundingSphereMesh(boundingSphere: Sphere3D, mesh?: Mesh) {
+    const detail = 2
+    const vertexCount = sphereVertexCount(detail)
+    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh)
+    if (boundingSphere.radius) addSphere(builderState, boundingSphere.center, boundingSphere.radius, detail)
+    return MeshBuilder.getMesh(builderState)
+}
+
+function createBoundingSphereRenderObject(mesh: Mesh, color: Color, transform?: TransformData) {
     const values = Mesh.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color, transform)
     return createMeshRenderObject(values, { visible: true, pickable: false, opaque: false })
 }

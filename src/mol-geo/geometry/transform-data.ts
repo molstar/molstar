@@ -19,6 +19,7 @@ export type TransformData = {
 export function createTransform(transformArray: Float32Array, instanceCount: number, transformData?: TransformData): TransformData {
     if (transformData) {
         ValueCell.update(transformData.aTransform, transformArray)
+        ValueCell.update(transformData.transform, new Float32Array(transformArray))
         ValueCell.update(transformData.uInstanceCount, instanceCount)
         ValueCell.update(transformData.instanceCount, instanceCount)
         const aInstance = transformData.aInstance.ref.value.length >= instanceCount ? transformData.aInstance.ref.value : new Float32Array(instanceCount)
@@ -38,7 +39,7 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
 const identityTransform = new Float32Array(16)
 Mat4.toArray(Mat4.identity(), identityTransform, 0)
 export function createIdentityTransform(transformData?: TransformData): TransformData {
-    return createTransform(identityTransform, 1, transformData)
+    return createTransform(new Float32Array(identityTransform), 1, transformData)
 }
 
 const tmpTransformMat4 = Mat4.identity()
