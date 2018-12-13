@@ -8,7 +8,7 @@ import { Structure, StructureElement } from 'mol-model/structure';
 import { VisualUpdateState } from '../../util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 import { ComplexVisual, ComplexDirectVolumeVisual, ComplexDirectVolumeParams } from '../complex-visual';
 import { EmptyLoci } from 'mol-model/loci';

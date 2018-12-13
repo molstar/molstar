@@ -19,8 +19,9 @@ import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Geometry } from 'mol-geo/geometry/geometry';
 import { VisualUpdateState } from 'mol-repr/util';
-import { VisualContext, RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
+import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
+import { VisualContext } from 'mol-repr/visual';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty()

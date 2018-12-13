@@ -43,7 +43,7 @@ export function createIdentityTransform(transformData?: TransformData): Transfor
 }
 
 const tmpTransformMat4 = Mat4.identity()
-export function setTransform(matrix: Mat4, transformData: TransformData) {
+export function setTransformData(matrix: Mat4, transformData: TransformData) {
     const instanceCount = transformData.instanceCount.ref.value
     const transform = transformData.transform.ref.value
     const aTransform = transformData.aTransform.ref.value

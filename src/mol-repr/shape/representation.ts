@@ -109,6 +109,7 @@ export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationCo
         setState(state: Partial<Representation.State>) {
             if (state.visible !== undefined) renderObjects.forEach(ro => ro.state.visible = state.visible!)
             if (state.pickable !== undefined) renderObjects.forEach(ro => ro.state.pickable = state.pickable!)
+            // TODO state.transform
 
             Representation.updateState(_state, state)
         },

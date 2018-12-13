@@ -13,7 +13,7 @@ import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Points } from 'mol-geo/geometry/points/points';
 import { PointsBuilder } from 'mol-geo/geometry/points/points-builder';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 
 export const ElementPointParams = {

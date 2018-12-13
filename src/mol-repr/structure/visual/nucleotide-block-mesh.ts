@@ -16,7 +16,7 @@ import { Box } from 'mol-geo/primitive/box';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 import { VisualUpdateState } from 'mol-repr/util';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';

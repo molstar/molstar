@@ -16,8 +16,9 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { Geometry } from 'mol-geo/geometry/geometry';
 import { VisualUpdateState } from 'mol-repr/util';
-import { VisualContext, RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
+import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
+import { VisualContext } from 'mol-repr/visual';
 
 interface VolumeIsosurfaceProps {
     isoValue: number

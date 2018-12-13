@@ -13,7 +13,7 @@ import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { computeMarchingCubesLines } from 'mol-geo/util/marching-cubes/algorithm';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {

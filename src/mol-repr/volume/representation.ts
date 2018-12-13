@@ -5,7 +5,8 @@
  */
 
 import { Task } from 'mol-task'
-import { Representation, Visual, RepresentationContext, VisualContext, RepresentationProvider, RepresentationParamsGetter } from '../representation';
+import { Representation, RepresentationContext, RepresentationProvider, RepresentationParamsGetter } from '../representation';
+import { Visual, VisualContext } from '../visual';
 import { VolumeData } from 'mol-model/volume';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { Geometry } from 'mol-geo/geometry/geometry';
@@ -23,7 +24,6 @@ import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 import { RenderableState } from 'mol-gl/renderable';
 import { Mat4 } from 'mol-math/linear-algebra';
-import { setTransform } from 'mol-geo/geometry/transform-data';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
@@ -125,13 +125,13 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
             return changed
         },
         setVisibility(value: boolean) {
-            if (renderObject) renderObject.state.visible = value
+            Visual.setVisibility(renderObject, value)
         },
         setPickable(value: boolean) {
-            if (renderObject) renderObject.state.pickable = value
+            Visual.setPickable(renderObject, value)
         },
         setTransform(value: Mat4) {
-            if (renderObject) setTransform(value, renderObject.values)
+            Visual.setTransform(renderObject, value)
         },
         destroy() {
             // TODO

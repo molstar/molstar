@@ -14,7 +14,7 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 import { StructureGroup } from 'mol-repr/structure/units-visual';
 
