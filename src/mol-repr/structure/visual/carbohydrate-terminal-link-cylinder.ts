@@ -18,7 +18,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualUpdateState } from '../../util';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 
 function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateTerminalLinkParams>, mesh?: Mesh) {

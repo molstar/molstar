@@ -19,6 +19,8 @@ export type ValueKindType = {
     'boolean': string
     'any': any
 
+    'float32': Float32Array
+
     'sphere': Sphere3D
 }
 export type ValueKind = keyof ValueKindType
@@ -198,6 +200,7 @@ export const BaseSchema = {
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
+    transform: ValueSpec('float32'),
     boundingSphere: ValueSpec('sphere'),
     invariantBoundingSphere: ValueSpec('sphere'),
 

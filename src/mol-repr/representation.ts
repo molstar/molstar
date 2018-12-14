@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Task, RuntimeContext } from 'mol-task'
+import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
 import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
@@ -106,9 +106,13 @@ interface Representation<D, P extends PD.Params = {}> {
 }
 namespace Representation {
     export interface State {
+        /** Controls if the representation's renderobjects are rendered or not */
         visible: boolean
+        /** Controls if the representation's renderobjects are pickable or not */
         pickable: boolean
+        /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
+        /** A transformation applied to the representation's renderobjects */
         transform: Mat4
     }
     export function createState() {
@@ -236,24 +240,4 @@ namespace Representation {
             }
         }
     }
-}
-
-//
-
-export interface VisualContext {
-    readonly runtime: RuntimeContext
-    readonly webgl?: WebGLContext
-}
-// export type VisualFactory<D, P extends PD.Params> = (ctx: VisualContext) => Visual<D, P>
-
-export interface Visual<D, P extends PD.Params> {
-    /** Number of addressable groups in all instances of the visual */
-    readonly groupCount: number
-    readonly renderObject: RenderObject | undefined
-    createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.Values<P>>, data?: D) => Promise<void> | void
-    getLoci: (pickingId: PickingId) => Loci
-    mark: (loci: Loci, action: MarkerAction) => boolean
-    setVisibility: (value: boolean) => void
-    setPickable: (value: boolean) => void
-    destroy: () => void
 }

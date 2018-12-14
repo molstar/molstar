@@ -5,7 +5,7 @@
  */
 
 import { Structure } from 'mol-model/structure';
-import { Visual, VisualContext } from '../representation';
+import { Visual, VisualContext } from '../visual';
 import { MeshRenderObject, LinesRenderObject, PointsRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
 import { createComplexMeshRenderObject, UnitKind, UnitKindOptions, createComplexDirectVolumeRenderObject } from './visual/util/common';
 import { StructureMeshParams, StructureParams, StructureDirectVolumeParams } from './representation';
@@ -28,6 +28,7 @@ import { SizeTheme } from 'mol-theme/size';
 import { RenderableState } from 'mol-gl/renderable';
 import { UnitsParams } from './units-representation';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
+import { Mat4 } from 'mol-math/linear-algebra';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -193,10 +194,13 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
             return changed
         },
         setVisibility(value: boolean) {
-            if (renderObject) renderObject.state.visible = value
+            Visual.setVisibility(renderObject, value)
         },
         setPickable(value: boolean) {
-            if (renderObject) renderObject.state.pickable = value
+            Visual.setPickable(renderObject, value)
+        },
+        setTransform(value: Mat4) {
+            Visual.setTransform(renderObject, value)
         },
         destroy() {
             // TODO

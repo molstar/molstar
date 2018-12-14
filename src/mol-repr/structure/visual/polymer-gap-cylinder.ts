@@ -17,7 +17,7 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { addFixedCountDashedCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 
 const segmentCount = 10

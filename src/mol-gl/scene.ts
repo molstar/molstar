@@ -27,7 +27,7 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
         const r = renderables[i]
         if (!r.boundingSphere.radius) continue;
         boundaryHelper.extendStep(r.boundingSphere.center, r.boundingSphere.radius);
-    };
+    }
 
     Vec3.copy(boundingSphere.center, boundaryHelper.center);
     boundingSphere.radius = boundaryHelper.radius;
@@ -43,6 +43,7 @@ interface Scene extends Object3D {
     update: (keepBoundingSphere?: boolean) => void
     add: (o: RenderObject) => void
     remove: (o: RenderObject) => void
+    has: (o: RenderObject) => boolean
     clear: () => void
     forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
 }
@@ -88,6 +89,9 @@ namespace Scene {
                     renderableMap.delete(o)
                     boundingSphereDirty = true
                 }
+            },
+            has: (o: RenderObject) => {
+                return renderableMap.has(o)
             },
             clear: () => {
                 for (let i = 0, il = renderables.length; i < il; ++i) {

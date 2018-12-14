@@ -20,6 +20,7 @@ export interface RenderTarget {
     readonly image: TextureImage<any>
     readonly texture: Texture
 
+    /** binds framebuffer and sets viewport to rendertarget's width and height */
     bind: () => void
     setSize: (width: number, height: number) => void
     readBuffer: (x: number, y: number, width: number, height: number, dst: Uint8Array) => void

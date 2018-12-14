@@ -5,7 +5,8 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { RepresentationProps, Visual, VisualContext } from '../representation';
+import { RepresentationProps } from '../representation';
+import { Visual, VisualContext } from '../visual';
 import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams } from './representation';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
@@ -30,6 +31,7 @@ import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { UnitsParams } from './units-representation';
 import { RenderableState } from 'mol-gl/renderable';
+import { Mat4 } from 'mol-math/linear-algebra';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -167,6 +169,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             }
 
             if (updateState.updateTransform || updateState.createGeometry) {
+                console.log('UnitsVisual.updateBoundingSphere')
                 updateBoundingSphere(renderObject.values, newGeometry || geometry)
             }
 
@@ -237,10 +240,13 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             return changed
         },
         setVisibility(value: boolean) {
-            if (renderObject) renderObject.state.visible = value
+            Visual.setVisibility(renderObject, value)
         },
         setPickable(value: boolean) {
-            if (renderObject) renderObject.state.pickable = value
+            Visual.setPickable(renderObject, value)
+        },
+        setTransform(value: Mat4) {
+            Visual.setTransform(renderObject, value)
         },
         destroy() {
             // TODO

@@ -8,7 +8,8 @@
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { Visual, RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
+import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
+import { Visual } from '../visual';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { StructureGroup } from './units-visual';
 import { StructureRepresentation, StructureParams } from './representation';
@@ -164,6 +165,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     function setState(state: Partial<Representation.State>) {
         if (state.visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(state.visible!))
         if (state.pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(state.pickable!))
+        if (state.transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(state.transform!))
 
         Representation.updateState(_state, state)
     }

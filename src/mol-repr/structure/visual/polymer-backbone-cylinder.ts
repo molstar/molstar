@@ -17,7 +17,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
 import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 
 export const PolymerBackboneCylinderParams = {

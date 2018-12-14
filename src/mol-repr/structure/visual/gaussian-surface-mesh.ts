@@ -13,7 +13,7 @@ import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 
 async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {

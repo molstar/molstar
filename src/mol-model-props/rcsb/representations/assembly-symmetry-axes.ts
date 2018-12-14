@@ -5,7 +5,8 @@
  */
 
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { RepresentationParamsGetter, RepresentationContext, VisualContext } from 'mol-repr/representation';
+import { RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
+import { VisualContext } from 'mol-repr/visual';
 import { ThemeRegistryContext, Theme } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
 import { StructureRepresentationProvider, StructureRepresentation, ComplexRepresentation, ComplexVisual } from 'mol-repr/structure/representation';

@@ -96,8 +96,9 @@ export const ProteinBackboneAtoms = [
 ]
 
 export const NucleicBackboneAtoms = [
-    'P', 'OP1', 'OP2',
+    'P', 'OP1', 'OP2', 'HOP2', 'HOP3',
     'O2\'', 'O3\'', 'O4\'', 'O5\'', 'C1\'', 'C2\'', 'C3\'', 'C4\'', 'C5\'',
+    'H1\'', 'H2\'', 'H2\'\'', 'HO2\'', 'H3\'', 'H4\'', 'H5\'', 'H5\'\'', 'HO3\'', 'HO5\'',
     'O2*', 'O3*', 'O4*', 'O5*', 'C1*', 'C2*', 'C3*', 'C4*', 'C5*'
 ]
 

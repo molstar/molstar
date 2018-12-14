@@ -8,7 +8,6 @@ import { Subject } from 'rxjs';
 
 import { Vec2 } from 'mol-math/linear-algebra';
 
-import toPixels from '../to-pixels'
 import { BitFlags } from 'mol-util';
 
 function getButtons(event: MouseEvent | Touch) {
@@ -151,8 +150,6 @@ interface InputObserver {
 namespace InputObserver {
     export function create (element: Element, props: InputObserverProps = {}): InputObserver {
         let { noScroll, noContextMenu } = { ...DefaultInputObserverProps, ...props }
-
-        const lineHeight = toPixels('ex', element)
 
         let lastTouchDistance = 0
         const pointerDown = Vec2.zero()
@@ -376,23 +373,22 @@ namespace InputObserver {
             dragging = DraggingState.Moving
         }
 
-        function onMouseWheel(ev: MouseWheelEvent) {
+        function onMouseWheel(ev: WheelEvent) {
             if (noScroll) {
                 ev.preventDefault()
             }
-            const mode = ev.deltaMode
-            let dx = ev.deltaX || 0
-            let dy = ev.deltaY || 0
-            let dz = ev.deltaZ || 0
+
             let scale = 1
-            switch (mode) {
-                case 1: scale = lineHeight; break
-                case 2: scale = window.innerHeight; break
+            switch (ev.deltaMode) {
+                case 0: scale = 1; break // pixels
+                case 1: scale = 40; break // lines
+                case 2: scale = 800; break // pages
             }
-            scale *= 0.0001
-            dx *= scale
-            dy *= scale
-            dz *= scale
+
+            const dx = (ev.deltaX || 0) * scale
+            const dy = (ev.deltaY || 0) * scale
+            const dz = (ev.deltaZ || 0) * scale
+
             if (dx || dy || dz) {
                 wheel.next({ dx, dy, dz, buttons, modifiers })
             }
