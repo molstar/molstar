@@ -36,10 +36,11 @@ export default class PointComponent extends React.Component<any, {show: boolean}
                 id={`${this.props.id}`}
                 cx={this.props.x} 
                 cy={this.props.y} 
+                onClick={this.props.onclick}
                 onDoubleClick={this.props.delete(this.props.id)}
                 onMouseEnter={this.handleHover} 
                 onMouseLeave={this.handleHoverOff}
-                onMouseDown={this.props.onMouseDown}
+                onMouseDown={this.props.onmousedown}
                 fill="black"
             />
         ]);
