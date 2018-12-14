@@ -258,7 +258,7 @@ namespace TrackballControls {
         }
 
         function onWheel({ dy }: WheelInput) {
-            _zoomStart[1] -= dy
+            _zoomStart[1] -= dy * 0.0001
         }
 
         function onPinch({ distance, isStart }: PinchInput) {
