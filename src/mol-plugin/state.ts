@@ -11,7 +11,7 @@ import { PluginBehavior } from './behavior';
 import { CameraSnapshotManager } from './state/camera';
 import { PluginStateSnapshotManager } from './state/snapshots';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
-import { Canvas3DParams } from 'mol-canvas3d/canvas3d';
+import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
 import { PluginCommands } from './command';
 export { PluginState }
 
@@ -91,7 +91,7 @@ namespace PluginState {
         cameraSnapshots: CameraSnapshotManager.StateSnapshot,
         canvas3d: {
             camera: Camera.Snapshot,
-            viewport: Canvas3DParams
+            viewport: Canvas3DProps
         }
     }
 }
