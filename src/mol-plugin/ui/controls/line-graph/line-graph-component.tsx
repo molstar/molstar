@@ -10,10 +10,8 @@ import { Vec2 } from 'mol-math/linear-algebra';
 
 interface LineGraphComponentState {
     points: Vec2[],
-    selected?: number,
     copyPoint: any,
-    updatedX: number, 
-    updatedY: number,
+    canSelectMultiple: boolean,
 }
 
 export default class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
@@ -21,7 +19,13 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private height: number;
     private width: number;
     private padding: number;
-    
+    private updatedX: number;
+    private updatedY: number;
+    private selected?: number[];
+    private ghostPoints: SVGElement[];
+    private gElement: SVGElement;
+    private namespace: string;
+
     constructor(props: any) {
         super(props);
         this.myRef = React.createRef();
@@ -30,15 +34,16 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                 Vec2.create(0, 0),
                 Vec2.create(1, 0)
             ],
-            selected: undefined,
             copyPoint: undefined,
-            updatedX: 0,
-            updatedY: 0,
+            canSelectMultiple: false,
         };
         this.height = 400;
         this.width = 600;
         this.padding = 70;
-        
+        this.selected = undefined;
+        this.ghostPoints = [];
+        this.namespace = 'http://www.w3.org/2000/svg';
+    
         for (const point of this.props.data){
             this.state.points.push(point);
         }
@@ -57,15 +62,21 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         });
 
         this.handleDrag = this.handleDrag.bind(this);
+        this.handleMultipleDrag = this.handleMultipleDrag.bind(this);
         this.handleDoubleClick = this.handleDoubleClick.bind(this);
         this.refCallBack = this.refCallBack.bind(this);
         this.handlePointUpdate = this.handlePointUpdate.bind(this);
         this.change = this.change.bind(this);
+        this.handleKeyUp = this.handleKeyUp.bind(this);
+        this.handleLeave = this.handleLeave.bind(this);
+        this.handleEnter = this.handleEnter.bind(this);
+        
     }
 
     public render() {
         const points = this.renderPoints();
-        const ghostPoint = this.state.copyPoint;
+        const lines = this.renderLines();
+        
         return ([
             <div key="LineGraph">                
                 <svg
@@ -74,33 +85,27 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                     viewBox={`0 0 ${this.width+this.padding} ${this.height+this.padding}`}
                     onMouseMove={this.handleDrag} 
                     onMouseUp={this.handlePointUpdate}
+                    onMouseLeave={this.handleLeave}
+                    onMouseEnter={this.handleEnter}
+                    tabIndex={0}
+                    onKeyDown={this.handleKeyDown}
+                    onKeyUp={this.handleKeyUp}
                     onDoubleClick={this.handleDoubleClick}>  
             
                     <g stroke="black" fill="black">
-                        <Poly 
-                            data={this.state.points} 
-                            k={0.5}
-                            height={this.height}
-                            width={this.width}
-                            padding={this.padding}/>
+                        {lines}
                         {points}
-                        {ghostPoint}
                     </g>
-
-                     <defs>
-                        <linearGradient id="Gradient">
-                            <stop offset="0%" stopColor="#d30000"/>
-                            <stop offset="30%" stopColor="#ffff05"/>
-                            <stop offset="50%" stopColor="#05ff05"/>
-                            <stop offset="70%" stopColor="#05ffff"/>
-                            <stop offset="100%" stopColor="#041ae0"/>
-                        </linearGradient>
-                    </defs>
-                    
+                    <g className="ghost-points" stroke="black" fill="black">
+                    </g>
                 </svg>
             </div>,
             <div key="modal" id="modal-root" />
         ]);
+    }
+
+    componentDidMount() {
+        this.gElement = document.getElementsByClassName('ghost-points')[0] as SVGElement;
     }
 
     private change(points: Vec2[]){
@@ -110,70 +115,102 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.props.onChange(copyPoints);    
     }
 
+    private handleKeyDown = (event: any) => {
+        // TODO: set canSelectMultiple = true
+    }
+
+    private handleKeyUp = (event: any) => {
+        // TODO: SET canSelectMultiple = fasle
+    }
+
+    private handleClick = (id:number) => (event:any) => {
+        // TODO: add point to selected array
+    }
+
     private handleMouseDown = (id:number) => (event: any) => {
         if(id === 0 || id === this.state.points.length-1){
             return;
-        } 
-        const copyPoint: Vec2 = this.normalizePoint(Vec2.create(this.state.points[id][0], this.state.points[id][1]));
-        this.setState({
-            selected: id,
-            copyPoint: "ready",
-            updatedX: copyPoint[0],
-            updatedY: copyPoint[1],
-        });
+        }
 
-        event.preventDefault();
+        if (this.state.canSelectMultiple) {
+            return;
+        }
+        
+        const copyPoint: Vec2 = this.normalizePoint(Vec2.create(this.state.points[id][0], this.state.points[id][1]));
+        this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
+        this.ghostPoints[0].setAttribute('r', '10');
+        this.ghostPoints[0].setAttribute('fill', 'orange');
+        this.ghostPoints[0].setAttribute('cx', `${copyPoint[0]}`);
+        this.ghostPoints[0].setAttribute('cy', `${copyPoint[1]}`);
+        this.ghostPoints[0].setAttribute('style', 'display: none');
+        this.gElement.appendChild(this.ghostPoints[0]);
+        this.updatedX = copyPoint[0];
+        this.updatedY = copyPoint[1]; 
+        this.selected = [id];
     }
 
     private handleDrag(event: any) {
-        if(this.state.copyPoint === undefined){
+        if(this.selected === undefined){
             return
         }
+
         const pt = this.myRef.createSVGPoint();
         let updatedCopyPoint;
         const padding = this.padding/2;
         pt.x = event.clientX;
         pt.y = event.clientY;
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
-
-        if( svgP.x < (padding) || 
-            svgP.x > (this.width+(padding)) || 
-            svgP.y > (this.height+(padding)) || 
-            svgP.y < (padding)) {
-            return;
-        }
         updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
-        this.setState({
-            updatedX: updatedCopyPoint[0],
-            updatedY: updatedCopyPoint[1],
-        });
+
+        if ((svgP.x < (padding) || svgP.x > (this.width+(padding))) && (svgP.y > (this.height+(padding)) || svgP.y < (padding))) {
+            updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
+        }
+        else if (svgP.x < padding) {
+            updatedCopyPoint = Vec2.create(padding, svgP.y);
+        }
+        else if( svgP.x > (this.width+(padding))) {
+            updatedCopyPoint = Vec2.create(this.width+padding, svgP.y);
+        }
+        else if (svgP.y > (this.height+(padding))) {
+            updatedCopyPoint = Vec2.create(svgP.x, this.height+padding);
+        }
+        else if (svgP.y < (padding)) {
+            updatedCopyPoint = Vec2.create(svgP.x, padding);
+        } else {
+            updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
+        }
+        
+        this.updatedX = updatedCopyPoint[0];
+        this.updatedY = updatedCopyPoint[1];
         const unNormalizePoint = this.unNormalizePoint(updatedCopyPoint);
-        this.setState({
-            copyPoint: <PointComponent 
-                            selected={false}
-                            key="copy" 
-                            x={updatedCopyPoint[0]} 
-                            y={updatedCopyPoint[1]} 
-                            nX={unNormalizePoint[0]} 
-                            nY={unNormalizePoint[1]}
-                            delete={this.deletePoint}
-                            onmouseover={this.props.onHover}/>
-        });
+        this.ghostPoints[0].setAttribute('style', 'display: visible');
+        this.ghostPoints[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
+        this.ghostPoints[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
+        
+
         this.props.onDrag(unNormalizePoint);
-        event.preventDefault()
+    }
+
+    private handleMultipleDrag() {
+        // TODO
     }
 
     private handlePointUpdate(event: any) {
-        const selected = this.state.selected;
-        if(selected === undefined || selected === 0 || selected === this.state.points.length-1) {
+        const selected = this.selected;
+        if (this.state.canSelectMultiple) { 
+            return; 
+        }
+
+        if(selected === undefined || selected[0] === 0 || selected[0] === this.state.points.length-1) {
             this.setState({
-                selected: undefined,
                 copyPoint: undefined,
             });
-            return
+            return;
         }
-        const updatedPoint = this.unNormalizePoint(Vec2.create(this.state.updatedX, this.state.updatedY));
-        const points = this.state.points.filter((_,i) => i !== this.state.selected);
+        this.selected = undefined;
+        
+        const updatedPoint = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
+        const points = this.state.points.filter((_,i) => i !== selected[0]);
         points.push(updatedPoint);;
         points.sort((a, b) => { 
             if(a[0] === b[0]){
@@ -189,11 +226,12 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         });
         this.setState({
             points,
-            selected: undefined,
-            copyPoint: undefined,
         });
         this.change(points);
-        event.preventDefault();
+        this.gElement.innerHTML = '';
+        this.ghostPoints = [];
+        document.removeEventListener("mousemove", this.handleDrag, true);
+        document.removeEventListener("mouseup", this.handlePointUpdate, true);
     }
 
     private handleDoubleClick(event: any) {
@@ -227,10 +265,10 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         });
         this.setState({points})
         this.change(points);
-        event.preventDefault();
     }
+
     private deletePoint = (i:number) => (event: any) => {
-    if(i===0 || i===this.state.points.length-1){ return};
+    if(i===0 || i===this.state.points.length-1){ return; }
         const points = this.state.points.filter((_,j) => j !== i);
         points.sort((a, b) => { 
             if(a[0] === b[0]){
@@ -247,6 +285,20 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.setState({points});
         this.change(points);
         event.stopPropagation();
+    }
+
+    private handleLeave() {
+        if(this.selected === undefined) {
+            return;
+        }
+
+        document.addEventListener('mousemove', this.handleDrag, true);
+        document.addEventListener('mouseup', this.handlePointUpdate, true);
+    }
+
+    private handleEnter() {
+        document.removeEventListener('mousemove', this.handleDrag, true);
+        document.removeEventListener('mouseup', this.handlePointUpdate, true);
     }
 
     private normalizePoint(point: Vec2) {
@@ -294,61 +346,46 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                         selected={false}
                         delete={this.deletePoint}
                         onmouseover={this.props.onHover}
-                        onMouseDown={this.handleMouseDown(i)}
+                        onmousedown={this.handleMouseDown(i)}
+                        onclick={this.handleClick(i)}
                     />);
             }
         }
         return points;
     }
-}
 
-function Poly(props: any) {
+    private renderLines() {
+        const points: Vec2[] = [];
+        let lines = [];
+        let min:number;
+        let maxX:number;
+        let maxY: number;
+        let normalizedX: number;
+        let normalizedY: number;
+        let reverseY: number;
 
-    const points: Vec2[] = [];
-    let min:number;
-    let maxX:number;
-    let maxY: number;
-    let normalizedX: number;
-    let normalizedY: number;
-    let reverseY: number;
+        for(const point of this.state.points){
+            min = this.padding/2;
+            maxX = this.width+min;
+            maxY = this.height+min; 
+            normalizedX = (point[0]*(maxX-min))+min; 
+            normalizedY = (point[1]*(maxY-min))+min;
+            reverseY = this.height+this.padding-normalizedY;
+            points.push(Vec2.create(normalizedX, reverseY));
+        }
+
+        const data = points;
+        const size = data.length;
+
+        for (let i=0; i<size-1;i++){
+            const x1 = data[i][0];
+            const y1 = data[i][1];
+            const x2 = data[i+1][0];
+            const y2 = data[i+1][1];
     
-    for(const point of props.data){
-        min = parseInt(props.padding, 10)/2;
-        maxX = parseInt(props.width, 10)+min;
-        maxY = parseInt(props.height, 10)+min; 
-        normalizedX = (point[0]*(maxX-min))+min; 
-        normalizedY = (point[1]*(maxY-min))+min;
-        reverseY = (props.height+props.padding)-normalizedY;
-        points.push(Vec2.create(normalizedX, reverseY));
+            lines.push(<line key={`lineOf${i}`} x1={x1} x2={x2} y1={y1} y2={y2} stroke="#cec9ba" strokeWidth="5"/>)
+        }
+        
+        return lines;
     }
-
-    if (props.k == null) {props.k = 0.3};
-    const data = points;
-    const size = data.length;
-    const last = size - 2;
-    let path = "M" + [data[0][0], data[0][1]];
-
-    for (let i=0; i<size-1;i++){
-        const x0 = i ? data[i-1][0] : data[0][0];
-        const y0 = i ? data[i-1][1] : data[0][1];
-
-        const x1 = data[i][0];
-        const y1 = data[i][1];
-
-        const x2 = data[i+1][0];
-        const y2 = data[i+1][1];
-
-        const x3 = i !== last ? data[i+2][0] : x2;
-        const y3 = i !== last ? data[i+2][1] : y2; 
-
-        const cp1x = x1 + (x2 - x0)/6 * props.k;
-        const cp1y = y1 + (y2 -y0)/6 * props.k;
-
-        const cp2x = x2 - (x3 -x1)/6 * props.k;
-        const cp2y = y2 - (y3 - y1)/6 * props.k;
-
-        path += "C" + [cp1x, cp1y, cp2x, cp2y, x2, y2];
-    }
-
-    return <path d={path} strokeWidth="5" stroke="#cec9ba" fill="none"/>
 }
