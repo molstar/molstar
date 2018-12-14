@@ -50,12 +50,12 @@ export class BoundingSphereHelper {
 
         this.parent.forEach((r, ro) => {
             const objectData = this.objectsData.get(ro)
-            const newObjectData = updateBoundingSphereData(this.scene, r.boundingSphere, objectData, ColorNames.tomato)
+            const newObjectData = updateBoundingSphereData(this.scene, r.values.boundingSphere.ref.value, objectData, ColorNames.tomato)
             if (newObjectData) this.objectsData.set(ro, newObjectData)
 
             if (ro.type === 'mesh' || ro.type === 'lines' || ro.type === 'points') {
                 const instanceData = this.instancesData.get(ro)
-                const newInstanceData = updateBoundingSphereData(this.scene, r.invariantBoundingSphere, instanceData, ColorNames.skyblue, {
+                const newInstanceData = updateBoundingSphereData(this.scene, r.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, {
                     aTransform: ro.values.aTransform,
                     transform: ro.values.transform,
                     uInstanceCount: ro.values.uInstanceCount,
