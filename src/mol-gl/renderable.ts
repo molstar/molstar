@@ -10,6 +10,9 @@ import { RenderVariant, RenderItem } from './webgl/render-item';
 import { Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { ValueCell } from 'mol-util';
+import { idFactory } from 'mol-util/id-factory';
+
+const getNextRenderableId = idFactory()
 
 export type RenderableState = {
     visible: boolean
@@ -18,10 +21,12 @@ export type RenderableState = {
 }
 
 export interface Renderable<T extends RenderableValues> {
+    readonly id: number
     readonly values: T
     readonly state: RenderableState
     readonly boundingSphere: Sphere3D
     readonly invariantBoundingSphere: Sphere3D
+    readonly z: number
 
     render: (variant: RenderVariant) => void
     getProgram: (variant: RenderVariant) => Program
@@ -34,6 +39,7 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
     const invariantBoundingSphere: Sphere3D = Sphere3D.create(Vec3.zero(), 0)
 
     return {
+        id: getNextRenderableId(),
         values,
         state,
         get boundingSphere () {
@@ -47,6 +53,9 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
                 Sphere3D.copy(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)
             }
             return invariantBoundingSphere
+        },
+        get z () {
+            return boundingSphere.center[2]
         },
 
         render: (variant: RenderVariant) => {

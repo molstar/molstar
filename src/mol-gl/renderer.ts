@@ -107,10 +107,9 @@ namespace Renderer {
         }
 
         let globalUniformsNeedUpdate = true
-        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant, opaque: boolean) => {
-            if (r.state.opaque !== opaque) return
+        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
             const program = r.getProgram(variant)
-            if (r.state.visible) {                
+            if (r.state.visible) {
                 if (ctx.currentProgramId !== program.id) {
                     globalUniformsNeedUpdate = true
                 }
@@ -146,8 +145,6 @@ namespace Renderer {
                     gl.cullFace(gl.BACK)
                 }
 
-                gl.depthMask(r.state.opaque)
-
                 r.render(variant)
             }
         }
@@ -170,16 +167,30 @@ namespace Renderer {
 
             const { renderables } = scene
 
-            gl.disable(gl.BLEND)
-            gl.enable(gl.DEPTH_TEST)
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                renderObject(renderables[i], variant, true)
-            }
+            if (variant === 'draw') {
+                gl.disable(gl.BLEND)
+                gl.enable(gl.DEPTH_TEST)
+                gl.depthMask(true)
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    const r = renderables[i]
+                    if (r.state.opaque) renderObject(r, variant)
+                }
 
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-            gl.enable(gl.BLEND)
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                renderObject(renderables[i], variant, false)
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+                gl.enable(gl.BLEND)
+                gl.depthMask(false)
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    const r = renderables[i]
+                    if (!r.state.opaque) renderObject(r, variant)
+                }
+            } else {
+                // picking
+                gl.disable(gl.BLEND)
+                gl.enable(gl.DEPTH_TEST)
+                gl.depthMask(true)
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    renderObject(renderables[i], variant)
+                }
             }
 
             gl.finish()

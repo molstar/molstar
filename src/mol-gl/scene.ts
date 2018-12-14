@@ -35,6 +35,21 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
     return boundingSphere;
 }
 
+function renderableSort(a: Renderable<any>, b: Renderable<any>) {
+    const drawProgramIdA = a.getProgram('draw').id
+    const drawProgramIdB = b.getProgram('draw').id
+
+    if (drawProgramIdA !== drawProgramIdB) {
+        return drawProgramIdA - drawProgramIdB; // sort by program id to minimize gl state changes
+    } else if (a.z !== b.z) {
+        return a.state.opaque
+            ? a.z - b.z // when opaque draw closer elements first to minimize overdraw
+            : b.z - a.z // when transparent draw elements last to maximize partial visibility
+    } else {
+        return a.id - b.id;
+    }
+}
+
 interface Scene extends Object3D {
     readonly count: number
     readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
@@ -70,11 +85,11 @@ namespace Scene {
                 }
                 if (!keepBoundingSphere) boundingSphereDirty = true
             },
-
             add: (o: RenderObject) => {
                 if (!renderableMap.has(o)) {
                     const renderable = createRenderable(ctx, o)
                     renderables.push(renderable)
+                    renderables.sort(renderableSort)
                     renderableMap.set(o, renderable)
                     boundingSphereDirty = true
                 } else {
@@ -86,6 +101,7 @@ namespace Scene {
                 if (renderable) {
                     renderable.dispose()
                     renderables.splice(renderables.indexOf(renderable), 1)
+                    renderables.sort(renderableSort)
                     renderableMap.delete(o)
                     boundingSphereDirty = true
                 }
