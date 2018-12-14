@@ -256,7 +256,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
             vertexArrayObject,
             fragDepth
         },
-        pixelRatio: getPixelRatio(),
+        get pixelRatio () { return getPixelRatio() },
 
         shaderCache,
         programCache,

@@ -110,9 +110,9 @@ namespace Canvas3D {
         const controls = TrackballControls.create(input, camera, {})
         const renderer = Renderer.create(webgl, camera, { clearColor: p.backgroundColor })
 
-        const pickScale = 1
-        const pickWidth = Math.round(canvas.width * pickScale)
-        const pickHeight = Math.round(canvas.height * pickScale)
+        let pickScale = 0.25 / webgl.pixelRatio
+        let pickWidth = Math.round(canvas.width * pickScale)
+        let pickHeight = Math.round(canvas.height * pickScale)
         const objectPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
         const instancePickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
         const groupPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
@@ -414,11 +414,14 @@ namespace Canvas3D {
             Viewport.set(camera.viewport, 0, 0, canvas.width, canvas.height)
             Viewport.set(controls.viewport, 0, 0, canvas.width, canvas.height)
 
-            const pickWidth = Math.round(canvas.width * pickScale)
-            const pickHeight = Math.round(canvas.height * pickScale)
+            pickScale = 0.25 / webgl.pixelRatio
+            pickWidth = Math.round(canvas.width * pickScale)
+            pickHeight = Math.round(canvas.height * pickScale)
             objectPickTarget.setSize(pickWidth, pickHeight)
             instancePickTarget.setSize(pickWidth, pickHeight)
             groupPickTarget.setSize(pickWidth, pickHeight)
+
+            requestDraw(true)
         }
     }
 }
