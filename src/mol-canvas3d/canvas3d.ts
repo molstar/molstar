@@ -13,7 +13,7 @@ import * as SetUtils from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
 import { RenderObject } from 'mol-gl/render-object'
 
-import TrackballControls from './controls/trackball'
+import { TrackballControls, TrackballControlsParams } from './controls/trackball'
 import { Viewport } from './camera/util'
 import { resizeCanvas } from './util';
 import { createContext, getGLContext, WebGLContext } from 'mol-gl/webgl/context';
@@ -37,9 +37,10 @@ export const Canvas3DParams = {
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
+    trackball: PD.Group(TrackballControlsParams),
     debug: PD.Group(DebugHelperParams)
 }
-export type Canvas3DParams = PD.Values<typeof Canvas3DParams>
+export type Canvas3DProps = PD.Values<typeof Canvas3DParams>
 
 export { Canvas3D }
 
@@ -67,17 +68,17 @@ interface Canvas3D {
     readonly camera: Camera
     downloadScreenshot: () => void
     getImageData: (variant: RenderVariant) => ImageData
-    setProps: (props: Partial<Canvas3DParams>) => void
+    setProps: (props: Partial<Canvas3DProps>) => void
 
     /** Returns a copy of the current Canvas3D instance props */
-    readonly props: Canvas3DParams
+    readonly props: Canvas3DProps
     readonly input: InputObserver
     readonly stats: RendererStats
     dispose: () => void
 }
 
 namespace Canvas3D {
-    export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DParams> = {}): Canvas3D {
+    export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
         const reprRenderObjects = new Map<Representation.Any, Set<RenderObject>>()
@@ -107,7 +108,7 @@ namespace Canvas3D {
         const webgl = createContext(gl)
 
         const scene = Scene.create(webgl)
-        const controls = TrackballControls.create(input, camera, {})
+        const controls = TrackballControls.create(input, camera, p.trackball)
         const renderer = Renderer.create(webgl, camera, { clearColor: p.backgroundColor })
 
         let pickScale = 0.25 / webgl.pixelRatio
@@ -362,7 +363,7 @@ namespace Canvas3D {
                 }
             },
             didDraw,
-            setProps: (props: Partial<Canvas3DParams>) => {
+            setProps: (props: Partial<Canvas3DProps>) => {
                 if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
                     camera.setState({ mode: props.cameraMode })
                 }
@@ -376,9 +377,8 @@ namespace Canvas3D {
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== renderer.props.pickingAlphaThreshold) {
                     renderer.setPickingAlphaThreshold(props.pickingAlphaThreshold)
                 }
-                if (props.debug) {
-                    debugHelper.setProps(props.debug)
-                }
+                if (props.trackball) controls.setProps(props.trackball)
+                if (props.debug) debugHelper.setProps(props.debug)
                 requestDraw(true)
             },
 
@@ -389,6 +389,7 @@ namespace Canvas3D {
                     clip: p.clip,
                     fog: p.fog,
                     pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,
+                    trackball: { ...controls.props },
                     debug: { ...debugHelper.props }
                 }
             },

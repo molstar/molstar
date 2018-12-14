@@ -3,9 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
- */
-
-/*
+ *
  * This code has been modified from https://github.com/mrdoob/three.js/,
  * copyright (c) 2010-2018 three.js authors. MIT License
  */
@@ -14,45 +12,40 @@ import { Quat, Vec2, Vec3, EPSILON } from 'mol-math/linear-algebra';
 import { cameraLookAt, Viewport } from '../camera/util';
 import InputObserver, { DragInput, WheelInput, ButtonsType, PinchInput } from 'mol-util/input/input-observer';
 import { Object3D } from 'mol-gl/object3d';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
-export const DefaultTrackballControlsProps = {
-    noScroll: true,
+export const TrackballControlsParams = {
+    noScroll: PD.Boolean(true, { isHidden: true }),
 
-    rotateSpeed: 3.0,
-    zoomSpeed: 4.0,
-    panSpeed: 0.8,
+    rotateSpeed: PD.Numeric(5.0, { min: 0.1, max: 10, step: 0.1 }),
+    zoomSpeed: PD.Numeric(6.0, { min: 0.1, max: 10, step: 0.1 }),
+    panSpeed: PD.Numeric(0.8, { min: 0.1, max: 5, step: 0.1 }),
 
-    staticMoving: true,
-    dynamicDampingFactor: 0.2,
+    staticMoving: PD.Boolean(true, { isHidden: true }),
+    dynamicDampingFactor: PD.Numeric(0.2, {}, { isHidden: true }),
 
-    minDistance: 0.01,
-    maxDistance: Infinity
+    minDistance: PD.Numeric(0.01, {}, { isHidden: true }),
+    maxDistance: PD.Numeric(Infinity, {}, { isHidden: true })
 }
-export type TrackballControlsProps = Partial<typeof DefaultTrackballControlsProps>
+export type TrackballControlsProps = PD.Values<typeof TrackballControlsParams>
 
+export { TrackballControls }
 interface TrackballControls {
     viewport: Viewport
 
-    dynamicDampingFactor: number
-    rotateSpeed: number
-    zoomSpeed: number
-    panSpeed: number
+    readonly props: Readonly<TrackballControlsProps>
+    setProps: (props: Partial<TrackballControlsProps>) => void
 
     update: () => void
     reset: () => void
     dispose: () => void
 }
-
 namespace TrackballControls {
-    export function create (input: InputObserver, object: Object3D & { target: Vec3 }, props: TrackballControlsProps = {}): TrackballControls {
-        const p = { ...DefaultTrackballControlsProps, ...props }
+    export function create (input: InputObserver, object: Object3D & { target: Vec3 }, props: Partial<TrackballControlsProps> = {}): TrackballControls {
+        const p = { ...PD.getDefaultValues(TrackballControlsParams), ...props }
 
         const viewport: Viewport = { x: 0, y: 0, width: 0, height: 0 }
         const target: Vec3 = object.target
-
-        let { rotateSpeed, zoomSpeed, panSpeed } = p
-        let { staticMoving, dynamicDampingFactor } = p
-        let { minDistance, maxDistance } = p
 
         let disposed = false
 
@@ -131,7 +124,7 @@ namespace TrackballControls {
 
                 Vec3.normalize(rotAxis, Vec3.cross(rotAxis, rotMoveDir, _eye))
 
-                angle *= rotateSpeed;
+                angle *= p.rotateSpeed;
                 Quat.setAxisAngle(rotQuat, rotAxis, angle )
 
                 Vec3.transformQuat(_eye, _eye, rotQuat)
@@ -139,8 +132,8 @@ namespace TrackballControls {
 
                 Vec3.copy(_lastAxis, rotAxis)
                 _lastAngle = angle;
-            } else if (!staticMoving && _lastAngle) {
-                _lastAngle *= Math.sqrt(1.0 - dynamicDampingFactor);
+            } else if (!p.staticMoving && _lastAngle) {
+                _lastAngle *= Math.sqrt(1.0 - p.dynamicDampingFactor);
                 Vec3.sub(_eye, Vec3.copy(_eye, object.position), target)
                 Quat.setAxisAngle(rotQuat, _lastAxis, _lastAngle)
 
@@ -152,15 +145,15 @@ namespace TrackballControls {
         }
 
         function zoomCamera () {
-            const factor = 1.0 + (_zoomEnd[1] - _zoomStart[1]) * zoomSpeed
+            const factor = 1.0 + (_zoomEnd[1] - _zoomStart[1]) * p.zoomSpeed
             if (factor !== 1.0 && factor > 0.0) {
                 Vec3.scale(_eye, _eye, factor)
             }
 
-            if (staticMoving) {
+            if (p.staticMoving) {
                 Vec2.copy(_zoomStart, _zoomEnd)
             } else {
-                _zoomStart[1] += (_zoomEnd[1] - _zoomStart[1]) * dynamicDampingFactor
+                _zoomStart[1] += (_zoomEnd[1] - _zoomStart[1]) * p.dynamicDampingFactor
             }
         }
 
@@ -172,7 +165,7 @@ namespace TrackballControls {
             Vec2.sub(panMouseChange, Vec2.copy(panMouseChange, _panEnd), _panStart)
 
             if (Vec2.squaredMagnitude(panMouseChange)) {
-                Vec2.scale(panMouseChange, panMouseChange, Vec3.magnitude(_eye) * panSpeed)
+                Vec2.scale(panMouseChange, panMouseChange, Vec3.magnitude(_eye) * p.panSpeed)
 
                 Vec3.cross(panOffset, Vec3.copy(panOffset, _eye), object.up)
                 Vec3.setMagnitude(panOffset, panOffset, panMouseChange[0])
@@ -183,11 +176,11 @@ namespace TrackballControls {
                 Vec3.add(object.position, object.position, panOffset)
                 Vec3.add(target, target, panOffset)
 
-                if (staticMoving) {
+                if (p.staticMoving) {
                     Vec2.copy(_panStart, _panEnd)
                 } else {
                     Vec2.sub(panMouseChange, _panEnd, _panStart)
-                    Vec2.scale(panMouseChange, panMouseChange, dynamicDampingFactor)
+                    Vec2.scale(panMouseChange, panMouseChange, p.dynamicDampingFactor)
                     Vec2.add(_panStart, _panStart, panMouseChange)
                 }
             }
@@ -195,14 +188,14 @@ namespace TrackballControls {
 
         /** Ensure the distance between object and target is within the min/max distance */
         function checkDistances() {
-            if (Vec3.squaredMagnitude(_eye) > maxDistance * maxDistance) {
-                Vec3.setMagnitude(_eye, _eye, maxDistance)
+            if (Vec3.squaredMagnitude(_eye) > p.maxDistance * p.maxDistance) {
+                Vec3.setMagnitude(_eye, _eye, p.maxDistance)
                 Vec3.add(object.position, target, _eye)
                 Vec2.copy(_zoomStart, _zoomEnd)
             }
 
-            if (Vec3.squaredMagnitude(_eye) < minDistance * minDistance) {
-                Vec3.setMagnitude(_eye, _eye, minDistance)
+            if (Vec3.squaredMagnitude(_eye) < p.minDistance * p.minDistance) {
+                Vec3.setMagnitude(_eye, _eye, p.minDistance)
                 Vec3.add(object.position, target, _eye)
                 Vec2.copy(_zoomStart, _zoomEnd)
             }
@@ -274,7 +267,7 @@ namespace TrackballControls {
             }
             _touchZoomDistanceEnd = distance
 
-            const factor = (_touchZoomDistanceStart / _touchZoomDistanceEnd) * zoomSpeed
+            const factor = (_touchZoomDistanceStart / _touchZoomDistanceEnd) * p.zoomSpeed
             _touchZoomDistanceStart = _touchZoomDistanceEnd;
             Vec3.scale(_eye, _eye, factor)
         }
@@ -294,14 +287,8 @@ namespace TrackballControls {
         return {
             viewport,
 
-            get dynamicDampingFactor() { return dynamicDampingFactor },
-            set dynamicDampingFactor(value: number ) { dynamicDampingFactor = value },
-            get rotateSpeed() { return rotateSpeed },
-            set rotateSpeed(value: number ) { rotateSpeed = value },
-            get zoomSpeed() { return zoomSpeed },
-            set zoomSpeed(value: number ) { zoomSpeed = value },
-            get panSpeed() { return panSpeed },
-            set panSpeed(value: number ) { panSpeed = value },
+            get props() { return p as Readonly<TrackballControlsProps> },
+            setProps: (props: Partial<TrackballControlsProps>) => { Object.assign(p, props) },
 
             update,
             reset,
@@ -309,5 +296,3 @@ namespace TrackballControls {
         }
     }
 }
-
-export default TrackballControls
