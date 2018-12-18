@@ -31,13 +31,6 @@
         stroke-width: 3;
     }
 
-    .show {
-        visibility: visible;
-    }
-    .hide {
-        visibility: hidden;
-    }
-
     .delete-button {
         rect {
             fill: #ED4337;
@@ -65,4 +58,164 @@
 
 .msp-canvas:focus {
     outline: none;
+}
+
+.icon {
+    position: relative;
+    display: inline-block;
+    width: 16px;
+    height:16px;
+    margin: 2px 8px;
+}
+    
+.line-graph-control {
+    width: 100%;
+    height: 30%;
+}
+
+.disabled-plus {
+    background-color: gray;
+    border-radius: 8px;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    position: relative;
+    cursor: not-allowed;
+}
+
+.disabled-plus:after {
+    background-color: #f3f2ee;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:7px;
+    left: 4px;
+    content:"";
+}
+
+.disabled-plus:before {
+    background-color: #f3f2ee;
+    width: 2px;
+    height: 8px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:4px;
+    left: 7px;
+    content:"";
+}
+
+.icon-plus {
+    background-color: black;
+    border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-border-radius:8px;
+    width: 16px;
+    height: 16px;
+    position: relative; 
+}
+
+
+.icon-plus:hover {
+    background-color:#006400;
+    cursor: pointer;
+    border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-border-radius:8px;
+    width: 16px;
+    height: 16px;
+    position: relative;
+    top:0;
+    left:0;
+}
+
+.icon-plus:after {
+    background-color: #f3f2ee;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:7px;
+    left: 4px;
+    content:"";
+}
+
+.icon-plus:before {
+    background-color: #f3f2ee;
+    width: 2px;
+    height: 8px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:4px;
+    left: 7px;
+    content:"";
+}
+
+.disabled-minus {
+    background-color: gray;
+    border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-border-radius:8px;
+    width: 16px;
+    height: 16px;
+    position: relative; 
+    cursor: not-allowed;
+}
+
+.disabled-minus:after {
+    background-color: #f3f2ee;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top: 7px;
+    left: 4px;
+    content:"";
+}
+
+.icon-minus {
+    background-color: #000;
+    border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-border-radius:8px;
+    width: 16px;
+    height: 16px;
+    position: relative; 
+}
+
+.icon-minus:after {
+    background-color: #f3f2ee;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:7px;
+    left: 4px;
+    content:"";
+}
+
+.icon-minus:hover {
+    background-color: #8B0000;
+    cursor: pointer;
+    border-radius: 8px; 
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    width: 16px;
+    height: 16px;
+    position: relative;
+}
+
+input[type="number"] {
+    background: #f3f2ee;
 }

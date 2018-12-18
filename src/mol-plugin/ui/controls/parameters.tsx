@@ -110,6 +110,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
 
     onHover = (point?: Vec2) => {
         this.setState({ isOverPoint: !this.state.isOverPoint });
+
         if (point) {
             this.setState({ message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})` });
             return;
