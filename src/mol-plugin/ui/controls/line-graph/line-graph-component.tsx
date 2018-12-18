@@ -14,6 +14,7 @@ interface LineGraphComponentState {[x:string]:any,
     canSelectMultiple: boolean,
     x: string | number,
     y: string | number,
+    selected: number[]
 }
 
 export default class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
@@ -23,7 +24,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private padding: number;
     private updatedX: number;
     private updatedY: number;
-    private selected?: number[];
+    private clicked: number;
     private ghostPoints: SVGElement[];
     private gElement: SVGElement;
     private namespace: string;
@@ -39,6 +40,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                 Vec2.create(1, 0)
             ],
             copyPoint: undefined,
+            selected: [],
             canSelectMultiple: false,
             x: '',
             y: ''
@@ -46,11 +48,12 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.height = 400;
         this.width = 600;
         this.padding = 70;
-        this.selected = undefined;
+
         this.ghostPoints = [];
         this.namespace = 'http://www.w3.org/2000/svg';
         this.userInput['x'] = -1;
         this.userInput['y'] = -1;
+        this.clicked = 0;
     
         for (const point of this.props.data){
             this.state.points.push(point);
@@ -73,7 +76,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.handleMultipleDrag = this.handleMultipleDrag.bind(this);
         this.handleDoubleClick = this.handleDoubleClick.bind(this);
         this.refCallBack = this.refCallBack.bind(this);
-        this.handlePointUpdate = this.handlePointUpdate.bind(this);
         this.change = this.change.bind(this);
         this.handleKeyUp = this.handleKeyUp.bind(this);
         this.handleLeave = this.handleLeave.bind(this);
@@ -81,6 +83,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.handleChange = this.handleChange.bind(this);
         this.addPoint = this.addPoint.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
+        this.handleCanvasClick = this.handleCanvasClick.bind(this); 
     }
 
     public render() {
@@ -94,6 +97,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                     ref={this.refCallBack} 
                     viewBox={`0 0 ${this.width+this.padding} ${this.height+this.padding}`}
                     onMouseMove={this.handleDrag} 
+                    onClick={this.handleCanvasClick}
                     onMouseUp={this.handlePointUpdate}
                     onMouseLeave={this.handleLeave}
                     onMouseEnter={this.handleEnter}
@@ -112,8 +116,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             </div>,
             <div key="line-graph-controls" className="line-graph-controls">
                 <ul style={{ margin: "5px 50px", listStyle: "none"}}>
-                    <li style={{display: "inline"}}><div title="Delete point" className="icon disabled-minus"></div></li>
-                    <li style={{display: "inline"}}><div title="Add point" className="icon disabled-plus"></div></li>
+                    <li style={{display: "inline"}}><div title="Delete point" className="icon disabled-minus" onClick={this.deletePoint(this.state.selected[0])}></div></li>
+                    <li style={{display: "inline"}}><div title="Add point" className="icon disabled-plus" onClick={this.handleSubmit}></div></li>
                     <li style={{marginLeft: "5px", display: "inline-block"}}><input min="0" max="1" step="0.1" type="number" placeholder="x" name="x" value={this.state.x} onChange={this.handleChange} required/></li>
                     <li style={{marginLeft: "5px", display: "inline-block"}}><input min="0" max="1" step="0.1" type="number" placeholder="y" name="y" value={this.state.y} onChange={this.handleChange} required/></li>
                 </ul>
@@ -140,11 +144,40 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         // TODO: SET canSelectMultiple = fasle
     }
 
-    private handleClick = (id:number) => (event:any) => {
-        // TODO: add point to selected array
+    private handleCanvasClick() {
+        this.gElement.innerHTML = '';
+        this.clicked = 0;
+        this.setState({selected: []});
+        const elements = document.getElementsByClassName('icon');
+        elements[0].classList.remove('icon-minus');
+        elements[0].classList.add('disabled-minus');
+        elements[1].classList.remove('icon-plus');
+        elements[1].classList.add('disabled-plus');
+    }
+
+    private handlePointClick = (id:number) => (event:any) => {
+        this.clicked = 1;
+        let selected = [id];
+        this.setState({selected: selected});
+
+        const copyPoint: Vec2 = this.normalizePoint(Vec2.create(this.state.points[id][0], this.state.points[id][1]));
+        this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
+        this.ghostPoints[0].setAttribute('r', '10');
+        this.ghostPoints[0].setAttribute('fill', 'orange');
+        this.ghostPoints[0].setAttribute('cx', `${copyPoint[0]}`);
+        this.ghostPoints[0].setAttribute('cy', `${copyPoint[1]}`);
+        this.gElement.appendChild(this.ghostPoints[0]);
+
+        let elements = document.getElementsByClassName('icon');
+        elements[0].classList.remove('disabled-minus');
+        elements[0].classList.add('icon-minus');
+        
+
+        event.stopPropagation();
     }
 
     private handleMouseDown = (id:number) => (event: any) => {
+        console.log('handleMouseDown()');
         if(id === 0 || id === this.state.points.length-1){
             return;
         }
@@ -153,6 +186,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             return;
         }
         
+        this.clicked = 0;
         const copyPoint: Vec2 = this.normalizePoint(Vec2.create(this.state.points[id][0], this.state.points[id][1]));
         this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
         this.ghostPoints[0].setAttribute('r', '10');
@@ -162,12 +196,14 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.ghostPoints[0].setAttribute('style', 'display: none');
         this.gElement.appendChild(this.ghostPoints[0]);
         this.updatedX = copyPoint[0];
-        this.updatedY = copyPoint[1]; 
-        this.selected = [id];
+        this.updatedY = copyPoint[1];
+
+        
+        this.setState({selected: [id]})
     }
 
     private handleDrag(event: any) {
-        if(this.selected === undefined){
+        if((this.state.selected.length === 0) || this.clicked){
             return
         }
 
@@ -178,7 +214,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         pt.y = event.clientY;
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
         updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
-
         if ((svgP.x < (padding) || svgP.x > (this.width+(padding))) && (svgP.y > (this.height+(padding)) || svgP.y < (padding))) {
             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
         }
@@ -196,15 +231,12 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         } else {
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
         }
-        
         this.updatedX = updatedCopyPoint[0];
         this.updatedY = updatedCopyPoint[1];
         const unNormalizePoint = this.unNormalizePoint(updatedCopyPoint);
         this.ghostPoints[0].setAttribute('style', 'display: visible');
         this.ghostPoints[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
         this.ghostPoints[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
-        
-
         this.props.onDrag(unNormalizePoint);
     }
 
@@ -212,19 +244,19 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         // TODO
     }
 
-    private handlePointUpdate(event: any) {
-        const selected = this.selected;
-        if (this.state.canSelectMultiple) { 
+    private handlePointUpdate = (event: any) => {
+        console.log('handlePointUpdate()');
+        const selected = this.state.selected;
+        if (this.state.canSelectMultiple || this.clicked) { 
             return; 
         }
 
-        if(selected === undefined || selected[0] === 0 || selected[0] === this.state.points.length-1) {
+        if(selected.length === 0 || selected[0] === 0 || selected[0] === this.state.points.length-1) {
             this.setState({
                 copyPoint: undefined,
             });
             return;
         }
-        this.selected = undefined;
         
         const updatedPoint = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
         const points = this.state.points.filter((_,i) => i !== selected[0]);
@@ -241,7 +273,10 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             }
             return a[0] - b[0];
         });
-        this.setState({points});
+        this.setState({
+            points,
+            selected: [],
+        });
         this.change(points);
         this.gElement.innerHTML = '';
         this.ghostPoints = [];
@@ -257,7 +292,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         if(this.userInput['x'] > -1 && this.userInput['y'] > -1) {
             elements[1].classList.remove('disabled-plus');
             elements[1].classList.add('icon-plus');
-            elements[1].addEventListener('click', this.handleSubmit, true);
         } else {
             elements[1].classList.remove('icon-plus');
             elements[1].classList.add('disabled-plus');
@@ -287,6 +321,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         const y = parseFloat(this.state.y as string); 
         const point = Vec2.create(x, y);
         let elements = document.getElementsByClassName('icon');
+        elements[0].classList.remove('icon-minu');
+        elements[0].classList.add('disabled-minus');
         elements[1].classList.remove('icon-plus');
         elements[1].classList.add('disabled-plus');
         this.userInput['x'] = -1;
@@ -319,7 +355,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     private deletePoint = (i:number) => (event: any) => {
-    if(i===0 || i===this.state.points.length-1){ return; }
+        if(i===0 || i===this.state.points.length-1){ return; }
         const points = this.state.points.filter((_,j) => j !== i);
         points.sort((a, b) => { 
             if(a[0] === b[0]){
@@ -333,13 +369,18 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             }
             return a[0] - b[0];
         });
+         const elements = document.getElementsByClassName('icon');
+        elements[0].classList.remove('icon-minus');
+        elements[0].classList.add('disabled-minus');
+        elements[0].setAttribute('onClick', '');
+        this.gElement.innerHTML = '';
         this.setState({points});
         this.change(points);
         event.stopPropagation();
     }
 
     private handleLeave() {
-        if(this.selected === undefined) {
+        if(this.state.selected.length === 0) {
             return;
         }
 
@@ -395,10 +436,9 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                         nX={this.state.points[i][0]}
                         nY={this.state.points[i][1]}
                         selected={false}
-                        delete={this.deletePoint}
                         onmouseover={this.props.onHover}
                         onmousedown={this.handleMouseDown(i)}
-                        onclick={this.handleClick(i)}
+                        onclick={this.handlePointClick(i)}
                     />);
             }
         }

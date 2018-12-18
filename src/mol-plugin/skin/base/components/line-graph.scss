@@ -80,6 +80,7 @@
     -moz-border-radius: 8px;
     position: relative;
     cursor: not-allowed;
+    pointer-events: none;
 }
 
 .disabled-plus:after {
@@ -109,18 +110,19 @@
 }
 
 .icon-plus {
-    background-color: black;
+    background-color:green;
     border-radius:8px;
     -webkit-border-radius:8px;
     -moz-border-radius:8px;
     width: 16px;
     height: 16px;
     position: relative; 
+    pointer-events: auto;
 }
 
 
 .icon-plus:hover {
-    background-color:#006400;
+    background-color: #c0d890;
     cursor: pointer;
     border-radius:8px;
     -webkit-border-radius:8px;
@@ -160,12 +162,11 @@
 
 .disabled-minus {
     background-color: gray;
-    border-radius:8px;
-    -webkit-border-radius:8px;
-    -moz-border-radius:8px;
-    width: 16px;
-    height: 16px;
-    position: relative; 
+    border-radius: 8px;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    position: relative;
+    pointer-events: none;
     cursor: not-allowed;
 }
 
@@ -183,13 +184,15 @@
 }
 
 .icon-minus {
-    background-color: #000;
+    background-color: red;
     border-radius:8px;
     -webkit-border-radius:8px;
     -moz-border-radius:8px;
     width: 16px;
     height: 16px;
-    position: relative; 
+    position: relative;
+    cursor: pointer;
+    pointer-events: auto;
 }
 
 .icon-minus:after {
@@ -206,7 +209,7 @@
 }
 
 .icon-minus:hover {
-    background-color: #8B0000;
+    background-color: #ff6666;
     cursor: pointer;
     border-radius: 8px; 
     -webkit-border-radius: 8px;
