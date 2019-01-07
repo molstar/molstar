@@ -177,7 +177,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     private handleMouseDown = (id:number) => (event: any) => {
-        console.log('handleMouseDown()');
         if(id === 0 || id === this.state.points.length-1){
             return;
         }
@@ -245,7 +244,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     private handlePointUpdate = (event: any) => {
-        console.log('handlePointUpdate()');
         const selected = this.state.selected;
         if (this.state.canSelectMultiple || this.clicked) { 
             return; 
