@@ -31,7 +31,7 @@ export class BoundaryHelper {
         Vec3.set(this.center, 0, 0, 0);
         for (let i = 0; i < 6; i++) {
             const e = i % 2 === 0 ? Number.MAX_VALUE : -Number.MAX_VALUE;
-            this.extremes[i] = Vec3.create(e, e, e);
+            Vec3.set(this.extremes[i], e, e, e);
         }
         this.radius = 0;
         this.count = 0;

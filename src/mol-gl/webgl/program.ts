@@ -6,9 +6,9 @@
 
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
 import { WebGLContext } from './context';
-import { getUniformUpdaters, getTextureUniformUpdaters, UniformValues, UniformUpdater } from './uniform';
+import { UniformValues, getUniformSetters } from './uniform';
 import { AttributeBuffers } from './buffer';
-import { TextureId, Textures } from './texture';
+import { Textures, TextureId } from './texture';
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 import { idFactory } from 'mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
@@ -27,20 +27,21 @@ export interface Program {
     destroy: () => void
 }
 
-type AttributeLocations = { [k: string]: number }
+type Locations = { [k: string]: number }
 
-function getAttributeLocations(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
+function getLocations(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
     const { gl } = ctx
-    const locations: AttributeLocations = {}
-    gl.useProgram(program)
+    const locations: Locations = {}
     Object.keys(schema).forEach(k => {
         const spec = schema[k]
         if (spec.type === 'attribute') {
             const loc = gl.getAttribLocation(program, k)
-            // if (loc === -1) {
-            //     console.info(`Could not get attribute location for '${k}'`)
-            // }
+            // if (loc === -1) console.info(`Could not get attribute location for '${k}'`)
             locations[k] = loc
+        } else if (spec.type === 'uniform' || spec.type === 'texture') {
+            const loc = gl.getUniformLocation(program, k)
+            // if (loc === null) console.info(`Could not get uniform location for '${k}'`)
+            locations[k] = loc as number
         }
     })
     return locations
@@ -69,18 +70,12 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
     vertShaderRef.value.attach(program)
     fragShaderRef.value.attach(program)
     gl.linkProgram(program)
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)){
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         throw new Error(`Could not compile WebGL program. \n\n${gl.getProgramInfoLog(program)}`);
     }
 
-    const uniformUpdaters = getUniformUpdaters(ctx, program, schema)
-    const attributeLocations = getAttributeLocations(ctx, program, schema)
-    const textureUniformUpdaters = getTextureUniformUpdaters(ctx, program, schema)
-
-    const _uniformUpdaters: [string, UniformUpdater][] = []
-    Object.keys(uniformUpdaters).forEach(k => {
-        _uniformUpdaters.push([k, uniformUpdaters[k]])
-    })
+    const locations = getLocations(ctx, program, schema)
+    const uniformSetters = getUniformSetters(schema)
 
     let destroyed = false
 
@@ -93,23 +88,30 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
             gl.useProgram(program)
         },
         setUniforms: (uniformValues: UniformValues) => {
-            for (let i = 0, il = _uniformUpdaters.length; i < il; ++i) {
-                const [k, uu] = _uniformUpdaters[i]
-                const uv = uniformValues[k]
-                if (uv !== undefined) uu.set(uv.ref.value)
+            const uniformKeys = Object.keys(uniformValues)
+            for (let i = 0, il = uniformKeys.length; i < il; ++i) {
+                const k = uniformKeys[i]
+                const l = locations[k]
+                const v = uniformValues[k]
+                if (v) uniformSetters[k](gl, l, v.ref.value)
             }
         },
         bindAttributes: (attribueBuffers: AttributeBuffers) => {
-            Object.keys(attribueBuffers).forEach(k => {
-                const loc = attributeLocations[k]
-                if (loc !== -1) attribueBuffers[k].bind(loc)
-            })
+            const attributeKeys = Object.keys(attribueBuffers)
+            for (let i = 0, il = attributeKeys.length; i < il; ++i) {
+                const k = attributeKeys[i]
+                const l = locations[k]
+                if (l !== -1) attribueBuffers[k].bind(l)
+            }
         },
         bindTextures: (textures: Textures) => {
-            Object.keys(textures).forEach((k, i) => {
+            const textureKeys = Object.keys(textures)
+            for (let i = 0, il = textureKeys.length; i < il; ++i) {
+                const k = textureKeys[i]
+                const l = locations[k]
                 textures[k].bind(i as TextureId)
-                textureUniformUpdaters[k].set(i)
-            })
+                uniformSetters[k](gl, l, i as TextureId)
+            }
         },
 
         destroy: () => {

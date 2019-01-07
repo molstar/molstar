@@ -18,21 +18,38 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
     boundaryHelper.reset(0.1);
 
     for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i]
-        if (!r.boundingSphere.radius) continue;
-        boundaryHelper.boundaryStep(r.boundingSphere.center, r.boundingSphere.radius);
+        const boundingSphere = renderables[i].values.boundingSphere.ref.value
+        if (!boundingSphere.radius) continue;
+        boundaryHelper.boundaryStep(boundingSphere.center, boundingSphere.radius);
     }
     boundaryHelper.finishBoundaryStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i]
-        if (!r.boundingSphere.radius) continue;
-        boundaryHelper.extendStep(r.boundingSphere.center, r.boundingSphere.radius);
+        const boundingSphere = renderables[i].values.boundingSphere.ref.value
+        if (!boundingSphere.radius) continue;
+        boundaryHelper.extendStep(boundingSphere.center, boundingSphere.radius);
     }
 
     Vec3.copy(boundingSphere.center, boundaryHelper.center);
     boundingSphere.radius = boundaryHelper.radius;
 
     return boundingSphere;
+}
+
+function renderableSort(a: Renderable<RenderableValues & BaseValues>, b: Renderable<RenderableValues & BaseValues>) {
+    const drawProgramIdA = a.getProgram('draw').id
+    const drawProgramIdB = b.getProgram('draw').id
+    const zA = a.values.boundingSphere.ref.value.center[2]
+    const zB = a.values.boundingSphere.ref.value.center[2]
+
+    if (drawProgramIdA !== drawProgramIdB) {
+        return drawProgramIdA - drawProgramIdB; // sort by program id to minimize gl state changes
+    } else if (zA !== zB) {
+        return a.state.opaque
+            ? zA - zB // when opaque draw closer elements first to minimize overdraw
+            : zB - zA // when transparent draw elements last to maximize partial visibility
+    } else {
+        return a.id - b.id;
+    }
 }
 
 interface Scene extends Object3D {
@@ -45,7 +62,7 @@ interface Scene extends Object3D {
     remove: (o: RenderObject) => void
     has: (o: RenderObject) => boolean
     clear: () => void
-    forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
+    forEach: (callbackFn: (value: Renderable<RenderableValues & BaseValues>, key: RenderObject) => void) => void
 }
 
 namespace Scene {
@@ -70,11 +87,11 @@ namespace Scene {
                 }
                 if (!keepBoundingSphere) boundingSphereDirty = true
             },
-
             add: (o: RenderObject) => {
                 if (!renderableMap.has(o)) {
                     const renderable = createRenderable(ctx, o)
                     renderables.push(renderable)
+                    renderables.sort(renderableSort)
                     renderableMap.set(o, renderable)
                     boundingSphereDirty = true
                 } else {
@@ -86,6 +103,7 @@ namespace Scene {
                 if (renderable) {
                     renderable.dispose()
                     renderables.splice(renderables.indexOf(renderable), 1)
+                    renderables.sort(renderableSort)
                     renderableMap.delete(o)
                     boundingSphereDirty = true
                 }
