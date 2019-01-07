@@ -367,6 +367,42 @@ namespace Mat4 {
         return out;
     }
 
+    /**
+     * Like `mul` but with offsets into arrays
+     */
+    export function mulOffset(out: Helpers.NumberArray, a: Helpers.NumberArray, b: Helpers.NumberArray, oOut: number, oA: number, oB: number) {
+        const a00 = a[0 + oA], a01 = a[1 + oA], a02 = a[2 + oA], a03 = a[3 + oA],
+            a10 = a[4 + oA], a11 = a[5 + oA], a12 = a[6 + oA], a13 = a[7 + oA],
+            a20 = a[8 + oA], a21 = a[9 + oA], a22 = a[10 + oA], a23 = a[11 + oA],
+            a30 = a[12 + oA], a31 = a[13 + oA], a32 = a[14 + oA], a33 = a[15 + oA];
+
+        // Cache only the current line of the second matrix
+        let b0 = b[0 + oB], b1 = b[1 + oB], b2 = b[2 + oB], b3 = b[3 + oB];
+        out[0 + oOut] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        out[1 + oOut] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        out[2 + oOut] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        out[3 + oOut] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
+        b0 = b[4 + oB]; b1 = b[5 + oB]; b2 = b[6 + oB]; b3 = b[7 + oB];
+        out[4 + oOut] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        out[5 + oOut] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        out[6 + oOut] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        out[7 + oOut] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
+        b0 = b[8 + oB]; b1 = b[9 + oB]; b2 = b[10 + oB]; b3 = b[11 + oB];
+        out[8 + oOut] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        out[9 + oOut] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        out[10 + oOut] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        out[11 + oOut] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+
+        b0 = b[12 + oB]; b1 = b[13 + oB]; b2 = b[14 + oB]; b3 = b[15 + oB];
+        out[12 + oOut] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+        out[13 + oOut] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+        out[14 + oOut] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+        out[15 + oOut] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+        return out;
+    }
+
     export function mul3(out: Mat4, a: Mat4, b: Mat4, c: Mat4) {
         return mul(out, mul(out, a, b), c);
     }

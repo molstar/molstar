@@ -5,6 +5,7 @@
  */
 
 import { Sphere3D } from 'mol-math/geometry'
+
 import { Mat4, Vec3 } from 'mol-math/linear-algebra'
 import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
 
@@ -36,7 +37,9 @@ export function createTextureImage(n: number, itemSize: number): TextureImage<Ui
 
 //
 
+
 const m = Mat4.zero()
+
 const v = Vec3.zero()
 const boundaryHelper = new BoundaryHelper()
 
@@ -59,11 +62,14 @@ export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere
     boundaryHelper.reset(0)
     for (let i = 0, _i = transformCount; i < _i; ++i) {
         Vec3.transformMat4(v, center, Mat4.fromArray(m, transform, i * 16))
+        Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
         boundaryHelper.boundaryStep(v, radius)
     }
     boundaryHelper.finishBoundaryStep()
     for (let i = 0, _i = transformCount; i < _i; ++i) {
         Vec3.transformMat4(v, center, Mat4.fromArray(m, transform, i * 16))
+
+        Vec3.transformMat4Offset(v, center, transform, 0, 0, i * 16)
         boundaryHelper.extendStep(v, radius)
     }
     return boundaryHelper.getSphere()

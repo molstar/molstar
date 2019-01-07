@@ -43,14 +43,18 @@ export function createIdentityTransform(transformData?: TransformData): Transfor
 }
 
 const tmpTransformMat4 = Mat4.identity()
+
 export function setTransformData(matrix: Mat4, transformData: TransformData) {
     const instanceCount = transformData.instanceCount.ref.value
     const transform = transformData.transform.ref.value
     const aTransform = transformData.aTransform.ref.value
     for (let i = 0; i < instanceCount; i++) {
+
         Mat4.fromArray(tmpTransformMat4, transform, i * 16)
         Mat4.mul(tmpTransformMat4, tmpTransformMat4, matrix)
         Mat4.toArray(tmpTransformMat4, aTransform, i * 16)
+
+        Mat4.mulOffset(aTransform, transform, matrix, i * 16, i * 16, 0)
     }
     ValueCell.update(transformData.aTransform, aTransform)
 }
