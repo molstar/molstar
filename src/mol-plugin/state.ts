@@ -52,6 +52,14 @@ class PluginState {
     }
 
     async setSnapshot(snapshot: PluginState.Snapshot) {
+        // TODO
+        // JSON.stringify of Infinity => null ... is this a good place to fix it?
+        if (snapshot.canvas3d && snapshot.canvas3d.viewport && snapshot.canvas3d.viewport.trackball) {
+            if (snapshot.canvas3d.viewport.trackball.maxDistance === null) {
+                snapshot.canvas3d.viewport.trackball.maxDistance = Infinity;
+            }
+        }
+
         await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
         await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: snapshot.canvas3d.viewport || { } });
