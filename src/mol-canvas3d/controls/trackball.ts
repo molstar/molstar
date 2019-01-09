@@ -25,7 +25,7 @@ export const TrackballControlsParams = {
     dynamicDampingFactor: PD.Numeric(0.2, {}, { isHidden: true }),
 
     minDistance: PD.Numeric(0.01, {}, { isHidden: true }),
-    maxDistance: PD.Numeric(Infinity, {}, { isHidden: true })
+    maxDistance: PD.Numeric(1e150, {}, { isHidden: true })
 }
 export type TrackballControlsProps = PD.Values<typeof TrackballControlsParams>
 
