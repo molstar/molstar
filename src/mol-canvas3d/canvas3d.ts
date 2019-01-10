@@ -34,6 +34,7 @@ export const Canvas3DParams = {
     // maxFps: PD.Numeric(30),
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     backgroundColor: PD.Color(Color(0x000000)),
+    cameraClipDistance: PD.Numeric(0, { min: 0.0, max: 50.0, step: 0.1 }, { description: 'The distance between camera and scene at which to clip regardless of near clipping plane.' }),
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
@@ -161,13 +162,24 @@ namespace Canvas3D {
 
             const nearFactor = (50 - p.clip[0]) / 50
             const farFactor = -(50 - p.clip[1]) / 50
-            const near = cDist - (bRadius * nearFactor)
-            const far = cDist + (bRadius * farFactor)
+            let near = cDist - (bRadius * nearFactor)
+            let far = cDist + (bRadius * farFactor)
 
             const fogNearFactor = (50 - p.fog[0]) / 50
             const fogFarFactor = -(50 - p.fog[1]) / 50
-            const fogNear = cDist - (bRadius * fogNearFactor)
-            const fogFar = cDist + (bRadius * fogFarFactor)
+            let fogNear = cDist - (bRadius * fogNearFactor)
+            let fogFar = cDist + (bRadius * fogFarFactor)
+
+            if (camera.state.mode === 'perspective') {
+                near = Math.max(0.1, p.cameraClipDistance, near)
+                far = Math.max(1, far)
+                fogNear = Math.max(0.1, fogNear)
+                fogFar = Math.max(1, fogFar)
+            } else if (camera.state.mode === 'orthographic') {
+                if (p.cameraClipDistance > 0) {
+                    near = Math.max(p.cameraClipDistance, near)
+                }
+            }
 
             if (near !== currentNear || far !== currentFar || fogNear !== currentFogNear || fogFar !== currentFogFar) {
                 camera.setState({ near, far, fogNear, fogFar })
@@ -371,6 +383,7 @@ namespace Canvas3D {
                     renderer.setClearColor(props.backgroundColor)
                 }
 
+                if (props.cameraClipDistance !== undefined) p.cameraClipDistance = props.cameraClipDistance
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
@@ -386,6 +399,7 @@ namespace Canvas3D {
                 return {
                     cameraMode: camera.state.mode,
                     backgroundColor: renderer.props.clearColor,
+                    cameraClipDistance: p.cameraClipDistance,
                     clip: p.clip,
                     fog: p.fog,
                     pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,
