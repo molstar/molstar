@@ -187,7 +187,7 @@ export namespace AssemblySymmetry {
     export function is(x: any): x is AssemblySymmetry {
         return x['@type'] === 'rcsb_assembly_symmetry'
     }
-    export const GraphQLEndpointURL = '//rest-experimental.rcsb.org/graphql'
+    export const GraphQLEndpointURL = '//rest-dev.rcsb.org/graphql'
     export const Schema = {
         rcsb_assembly_symmetry_info: {
             updated_datetime_utc: Column.Schema.str
