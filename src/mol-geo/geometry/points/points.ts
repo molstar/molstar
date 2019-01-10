@@ -25,7 +25,7 @@ export interface Points {
     readonly kind: 'points',
     /** Number of vertices in the point cloud */
     pointCount: number,
-    /** Vertex buffer as array of xyz values wrapped in a value cell */
+    /** Center buffer as array of xyz values wrapped in a value cell */
     readonly centerBuffer: ValueCell<Float32Array>,
     /** Group buffer as array of group ids for each vertex wrapped in a value cell */
     readonly groupBuffer: ValueCell<Float32Array>,

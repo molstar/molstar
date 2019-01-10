@@ -125,7 +125,7 @@ namespace Representation {
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
     }
 
-    export type Any = Representation<any>
+    export type Any = Representation<any, any>
     export const Empty: Any = {
         label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(), state: createState(), theme: createEmptyTheme(),
         createOrUpdate: () => Task.constant('', undefined),
@@ -197,7 +197,7 @@ namespace Representation {
                 Object.assign(currentProps, props, qualityProps)
 
                 const { visuals } = currentProps
-                return Task.create(`Creating '${label}' representation`, async runtime => {
+                return Task.create(`Creating or updating '${label}' representation`, async runtime => {
                     for (let i = 0, il = reprList.length; i < il; ++i) {
                         if (!visuals || visuals.includes(reprMap[i])) {
                             await reprList[i].createOrUpdate(currentProps, currentData).runInContext(runtime)

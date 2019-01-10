@@ -34,6 +34,27 @@ export function createTextureImage(n: number, itemSize: number): TextureImage<Ui
     return { array: new Uint8Array(length), width, height }
 }
 
+export function printImageData(imageData: ImageData, scale = 1) {
+    const canvas = document.createElement('canvas')
+    canvas.width = imageData.width
+    canvas.height = imageData.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not create canvas 2d context')
+    ctx.putImageData(imageData, 0, 0)
+    canvas.toBlob(imgBlob => {
+        const objectURL = window.URL.createObjectURL(imgBlob)
+        const img = document.createElement('img')
+        img.src = objectURL
+        img.style.width = imageData.width * scale + 'px'
+        img.style.height = imageData.height * scale + 'px'
+        img.style.position = 'absolute'
+        img.style.top = '0px'
+        img.style.left = '0px'
+        img.style.border = 'solid grey'
+        document.body.appendChild(img)
+    }, 'image/png')
+}
+
 //
 
 const v = Vec3.zero()

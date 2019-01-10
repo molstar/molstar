@@ -92,11 +92,11 @@ export namespace Geometry {
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)
     }
 
-    export function createRenderableState(props: PD.Values<Params>): RenderableState {
+    export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {
         return {
             visible: true,
             pickable: true,
-            opaque: props.alpha === 1
+            opaque: props.alpha === undefined ? true : props.alpha === 1
         }
     }
 
