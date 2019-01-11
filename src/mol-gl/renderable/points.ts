@@ -30,7 +30,5 @@ export function PointsRenderable(ctx: WebGLContext, id: number, values: PointsVa
     }
     const shaderCode = PointsShaderCode
     const renderItem = createRenderItem(ctx, 'points', shaderCode, schema, { ...values, ...internalValues })
-    const renderable = createRenderable(renderItem, values, state);
-
-    return renderable
+    return createRenderable(renderItem, values, state);
 }

@@ -21,6 +21,7 @@ attribute float aGroup;
 
 void main(){
     #pragma glslify: import('./chunks/assign-color-varying.glsl')
+    #pragma glslify: import('./chunks/assign-marker-varying.glsl')
     #pragma glslify: import('./chunks/assign-position.glsl')
     #pragma glslify: import('./chunks/assign-size.glsl')
 

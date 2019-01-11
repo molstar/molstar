@@ -65,7 +65,5 @@ export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: Di
     }
     const shaderCode = DirectVolumeShaderCode
     const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
-    const renderable = createRenderable(renderItem, values, state);
-
-    return renderable
+    return createRenderable(renderItem, values, state);
 }
