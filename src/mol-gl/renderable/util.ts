@@ -89,8 +89,10 @@ export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere
     return boundaryHelper.getSphere()
 }
 
-export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number): { boundingSphere: Sphere3D, invariantBoundingSphere: Sphere3D } {
+export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number, padding = 0): { boundingSphere: Sphere3D, invariantBoundingSphere: Sphere3D } {
     const invariantBoundingSphere = calculateInvariantBoundingSphere(position, positionCount)
     const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform, transformCount)
+    Sphere3D.expand(boundingSphere, boundingSphere, padding)
+    Sphere3D.expand(invariantBoundingSphere, invariantBoundingSphere, padding)
     return { boundingSphere, invariantBoundingSphere }
 }

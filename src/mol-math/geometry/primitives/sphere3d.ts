@@ -80,6 +80,12 @@ namespace Sphere3D {
         return out
     }
 
+    /** Expand sphere by delta */
+    export function expand(out: Sphere3D, sphere: Sphere3D, delta: number): Sphere3D {
+        out.radius = sphere.radius + delta
+        return out
+    }
+
     /**
      * Returns whether or not the spheres have exactly the same center and radius (when compared with ===)
      */

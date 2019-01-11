@@ -17,6 +17,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { DirectVolume } from './direct-volume/direct-volume';
 import { Color } from 'mol-util/color';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { Spheres } from './spheres/spheres';
 
 //
 
@@ -40,6 +41,7 @@ export const VisualQualityOptions = VisualQualityNames.map(n => [n, n] as [Visua
 export type GeometryKindType = {
     'mesh': Mesh,
     'points': Points,
+    'spheres': Spheres,
     'lines': Lines,
     'direct-volume': DirectVolume,
 }
@@ -51,6 +53,7 @@ export namespace Geometry {
         switch (geometry.kind) {
             case 'mesh': return geometry.triangleCount * 3
             case 'points': return geometry.pointCount
+            case 'spheres': return geometry.sphereCount * 2 * 3
             case 'lines': return geometry.lineCount * 2 * 3
             case 'direct-volume': return 12 * 3
         }
