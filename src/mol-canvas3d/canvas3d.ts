@@ -199,6 +199,7 @@ namespace Canvas3D {
             if (force || cameraChanged) {
                 switch (variant) {
                     case 'pick':
+                        renderer.setViewport(0, 0, pickWidth, pickHeight);
                         objectPickTarget.bind();
                         renderer.clear()
                         renderer.render(scene, 'pickObject');
