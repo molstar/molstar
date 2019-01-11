@@ -7,10 +7,10 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps } from '../representation';
 import { Visual, VisualContext } from '../visual';
-import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams } from './representation';
+import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureSpheresParams } from './representation';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
-import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, includesUnitKind } from './visual/util/common';
+import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject, SpheresRenderObject } from 'mol-gl/render-object';
+import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, includesUnitKind, createUnitsSpheresRenderObject } from './visual/util/common';
 import { deepEqual, ValueCell } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -32,12 +32,13 @@ import { SizeTheme } from 'mol-theme/size';
 import { UnitsParams } from './units-representation';
 import { RenderableState } from 'mol-gl/renderable';
 import { Mat4 } from 'mol-math/linear-algebra';
+import { Spheres } from 'mol-geo/geometry/spheres/spheres';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
-type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
+type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | SpheresRenderObject | DirectVolumeRenderObject
 
 interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
     defaultProps: PD.Values<P>
@@ -257,10 +258,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
 
 // mesh
 
-export const UnitsMeshParams = {
-    ...StructureMeshParams,
-    ...UnitsParams,
-}
+export const UnitsMeshParams = { ...StructureMeshParams, ...UnitsParams }
 export type UnitsMeshParams = typeof UnitsMeshParams
 export interface UnitsMeshVisualBuilder<P extends UnitsMeshParams> extends UnitsVisualBuilder<P, Mesh> { }
 
@@ -279,12 +277,30 @@ export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVis
     })
 }
 
+// spheres
+
+export const UnitsSpheresParams = { ...StructureSpheresParams, ...UnitsParams }
+export type UnitsSpheresParams = typeof UnitsSpheresParams
+export interface UnitsSpheresVisualBuilder<P extends UnitsSpheresParams> extends UnitsVisualBuilder<P, Spheres> { }
+
+export function UnitsSpheresVisual<P extends UnitsSpheresParams>(builder: UnitsSpheresVisualBuilder<P>): UnitsVisual<P> {
+    return UnitsVisual<StructureSpheresParams & UnitsParams>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
+        },
+        createEmptyGeometry: Spheres.createEmpty,
+        createRenderObject: createUnitsSpheresRenderObject,
+        updateValues: Spheres.updateValues,
+        updateBoundingSphere: Spheres.updateBoundingSphere,
+        updateRenderableState: Geometry.updateRenderableState
+    })
+}
+
 // points
 
-export const UnitsPointsParams = {
-    ...StructurePointsParams,
-    ...UnitsParams,
-}
+export const UnitsPointsParams = { ...StructurePointsParams, ...UnitsParams }
 export type UnitsPointsParams = typeof UnitsPointsParams
 export interface UnitsPointVisualBuilder<P extends UnitsPointsParams> extends UnitsVisualBuilder<P, Points> { }
 
@@ -305,10 +321,7 @@ export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPoi
 
 // lines
 
-export const UnitsLinesParams = {
-    ...StructureLinesParams,
-    ...UnitsParams,
-}
+export const UnitsLinesParams = { ...StructureLinesParams, ...UnitsParams }
 export type UnitsLinesParams = typeof UnitsLinesParams
 export interface UnitsLinesVisualBuilder<P extends UnitsLinesParams> extends UnitsVisualBuilder<P, Lines> { }
 
@@ -329,10 +342,7 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLines
 
 // direct-volume
 
-export const UnitsDirectVolumeParams = {
-    ...StructureDirectVolumeParams,
-    ...UnitsParams,
-}
+export const UnitsDirectVolumeParams = { ...StructureDirectVolumeParams, ...UnitsParams }
 export type UnitsDirectVolumeParams = typeof UnitsDirectVolumeParams
 export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeParams> extends UnitsVisualBuilder<P, DirectVolume> { }
 

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
+import { getElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
 import { UnitsRepresentation } from '../units-representation';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
@@ -14,7 +14,7 @@ import { Structure } from 'mol-model/structure';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const SpacefillVisuals = {
-    'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Sphere mesh', ctx, getParams, ElementSphereVisual),
+    'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Sphere mesh', ctx, getParams, getElementSphereVisual(ctx.webgl)),
 }
 
 export const SpacefillParams = {
@@ -33,7 +33,7 @@ export function SpacefillRepresentation(ctx: RepresentationContext, getParams: R
 
 export const SpacefillRepresentationProvider: StructureRepresentationProvider<SpacefillParams> = {
     label: 'Spacefill',
-    description: 'Displays atoms as spheres.',
+    description: 'Displays atomic/coarse elements as spheres.',
     factory: SpacefillRepresentation,
     getParams: getSpacefillParams,
     defaultValues: PD.getDefaultValues(SpacefillParams),

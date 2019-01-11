@@ -5,7 +5,7 @@
  */
 
 import { Task } from 'mol-task'
-import { RenderObject } from 'mol-gl/render-object'
+import { RenderObject, GraphicsRenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
 import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
@@ -17,6 +17,7 @@ import { SizeTheme } from 'mol-theme/size';
 import { Theme, ThemeRegistryContext, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 import { Mat4 } from 'mol-math/linear-algebra';
+import { Geometry } from 'mol-geo/geometry/geometry';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -238,6 +239,53 @@ namespace Representation {
                     reprList[i].destroy()
                 }
             }
+        }
+    }
+
+    export function fromRenderObject(label: string, renderObject: GraphicsRenderObject): Representation<GraphicsRenderObject, Geometry.Params> {
+        let version = 0
+        const updated = new Subject<number>()
+        const currentState = Representation.createState()
+        const currentTheme = createEmptyTheme()
+
+        const currentParams = PD.clone(Geometry.Params)
+        const currentProps = PD.getDefaultValues(Geometry.Params)
+
+        return {
+            label,
+            updated,
+            get groupCount() { return renderObject.values.uGroupCount.ref.value },
+            get renderObjects() { return [renderObject] },
+            get props() { return currentProps },
+            get params() { return currentParams },
+            createOrUpdate: (props: Partial<PD.Values<Geometry.Params>> = {}) => {
+                const qualityProps = getQualityProps(Object.assign({}, currentProps, props))
+                Object.assign(currentProps, props, qualityProps)
+
+                return Task.create(`Updating '${label}' representation`, async runtime => {
+                    // TODO
+                    updated.next(version++)
+                })
+            },
+            get state() { return currentState },
+            get theme() { return currentTheme },
+            getLoci: () => {
+                // TODO
+                return EmptyLoci
+            },
+            mark: (loci: Loci, action: MarkerAction) => {
+                // TODO
+                return false
+            },
+            setState: (state: Partial<State>) => {
+                if (state.visible !== undefined) renderObject.state.visible = state.visible
+                if (state.pickable !== undefined) renderObject.state.pickable = state.pickable
+                // TODO transform
+
+                Representation.updateState(currentState, state)
+            },
+            setTheme: () => { },
+            destroy() { }
         }
     }
 }

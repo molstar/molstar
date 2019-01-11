@@ -5,7 +5,7 @@
  */
 
 import { RuntimeContext } from 'mol-task'
-import { RenderObject, MeshRenderObject, LinesRenderObject, PointsRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object'
+import { RenderObject, GraphicsRenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
@@ -23,8 +23,6 @@ export interface VisualContext {
 }
 // export type VisualFactory<D, P extends PD.Params> = (ctx: VisualContext) => Visual<D, P>
 
-type VisualRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
-
 export { Visual }
 interface Visual<D, P extends PD.Params> {
     /** Number of addressable groups in all instances of the visual */
@@ -39,15 +37,15 @@ interface Visual<D, P extends PD.Params> {
     destroy: () => void
 }
 namespace Visual {
-    export function setVisibility(renderObject: VisualRenderObject | undefined, value: boolean) {
+    export function setVisibility(renderObject: GraphicsRenderObject | undefined, value: boolean) {
         if (renderObject) renderObject.state.visible = value
     }
 
-    export function setPickable(renderObject: VisualRenderObject | undefined, value: boolean) {
+    export function setPickable(renderObject: GraphicsRenderObject | undefined, value: boolean) {
         if (renderObject) renderObject.state.pickable = value
     }
 
-    export function setTransform(renderObject: VisualRenderObject | undefined, value: Mat4) {
+    export function setTransform(renderObject: GraphicsRenderObject | undefined, value: Mat4) {
         if (renderObject) {
             const { values } = renderObject
             setTransformData(value, values)

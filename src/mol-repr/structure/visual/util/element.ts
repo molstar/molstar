@@ -17,6 +17,8 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 import { StructureGroup } from 'mol-repr/structure/units-visual';
+import { Spheres } from 'mol-geo/geometry/spheres/spheres';
+import { SpheresBuilder } from 'mol-geo/geometry/spheres/spheres-builder';
 
 export interface ElementSphereMeshProps {
     detail: number,
@@ -45,6 +47,28 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     }
 
     return MeshBuilder.getMesh(builderState)
+}
+
+export interface ElementSphereImpostorProps { }
+
+export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres) {
+
+    const { elements } = unit;
+    const elementCount = elements.length;
+    const builder = SpheresBuilder.create(elementCount, elementCount / 2)
+
+    const v = Vec3.zero()
+    const pos = unit.conformation.invariantPosition
+    const l = StructureElement.create()
+    l.unit = unit
+
+    for (let i = 0; i < elementCount; i++) {
+        l.element = elements[i]
+        pos(elements[i], v)
+        builder.add(v[0], v[1], v[2], i)
+    }
+
+    return builder.getSpheres()
 }
 
 export function markElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {

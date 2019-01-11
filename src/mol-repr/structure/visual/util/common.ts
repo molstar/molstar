@@ -5,7 +5,7 @@
  */
 
 import { Unit, Structure, ElementIndex, StructureElement } from 'mol-model/structure';
-import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject, createDirectVolumeRenderObject } from 'mol-gl/render-object';
+import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject, createDirectVolumeRenderObject, createSpheresRenderObject } from 'mol-gl/render-object';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { TransformData, createTransform, createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -16,9 +16,10 @@ import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Theme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams } from 'mol-repr/structure/representation';
+import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureSpheresParams } from 'mol-repr/structure/representation';
 import { OrderedSet, SortedArray } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
+import { Spheres } from 'mol-geo/geometry/spheres/spheres';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit, elementIndex: ElementIndex): Loci {
@@ -81,6 +82,15 @@ export function createUnitsMeshRenderObject(group: Unit.SymmetryGroup, mesh: Mes
     const values = Mesh.createValues(mesh, transform, locationIt, theme, props)
     const state = Geometry.createRenderableState(props)
     return createMeshRenderObject(values, state)
+}
+
+// spheres
+
+export function createUnitsSpheresRenderObject(group: Unit.SymmetryGroup, spheres: Spheres, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureSpheresParams>) {
+    const transform = createUnitsTransform(group)
+    const values = Spheres.createValues(spheres, transform, locationIt, theme, props)
+    const state = Geometry.createRenderableState(props)
+    return createSpheresRenderObject(values, state)
 }
 
 // points
