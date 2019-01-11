@@ -21,7 +21,6 @@ attribute float aGroup;
 #endif
 
 #pragma glslify: inverse = require(./utils/inverse.glsl)
-#pragma glslify: transpose = require(./utils/transpose.glsl)
 
 void main(){
     #pragma glslify: import('./chunks/assign-color-varying.glsl')
