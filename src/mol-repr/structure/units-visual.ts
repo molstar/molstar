@@ -170,7 +170,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             }
 
             if (updateState.updateTransform || updateState.createGeometry) {
-                console.log('UnitsVisual.updateBoundingSphere')
+                // console.log('UnitsVisual.updateBoundingSphere')
                 updateBoundingSphere(renderObject.values, newGeometry || geometry)
             }
 

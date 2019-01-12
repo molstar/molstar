@@ -165,6 +165,7 @@ export type InternalSchema = typeof InternalSchema
 export type InternalValues = { [k in keyof InternalSchema]: ValueCell<any> }
 
 export const ColorSchema = {
+    // aColor: AttributeSpec('float32', 3, 0), // TODO
     uColor: UniformSpec('v3'),
     uColorTexDim: UniformSpec('v2'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
@@ -174,6 +175,7 @@ export type ColorSchema = typeof ColorSchema
 export type ColorValues = Values<ColorSchema>
 
 export const SizeSchema = {
+    // aSize: AttributeSpec('float32', 1, 0), // TODO
     uSize: UniformSpec('f'),
     uSizeTexDim: UniformSpec('v2'),
     tSize: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),

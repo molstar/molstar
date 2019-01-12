@@ -108,7 +108,7 @@ export namespace Lines {
 
         const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(lines.startBuffer.ref.value, lines.endBuffer.ref.value, lines.lineCount,
             transform.aTransform.ref.value, transform.instanceCount.ref.value)
-        
+
         return {
             aMapping: lines.mappingBuffer,
             aGroup: lines.groupBuffer,
