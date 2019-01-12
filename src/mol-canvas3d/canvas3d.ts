@@ -21,13 +21,14 @@ import { Representation } from 'mol-repr/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
-import { PickingId, decodeIdRGB } from 'mol-geo/geometry/picking';
+import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
 import { Camera } from './camera';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-sphere-helper';
+import { decodeFloatRGB } from 'mol-util/float-packing';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -276,19 +277,19 @@ namespace Canvas3D {
             // TODO slow in Chrome, ok in FF; doesn't play well with gpu surface calc
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
-            const objectId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
+            const objectId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
             if (objectId === -1) { isIdentifying = false; return; }
 
             instancePickTarget.bind()
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
-            const instanceId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
+            const instanceId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
             if (instanceId === -1) { isIdentifying = false; return; }
 
             groupPickTarget.bind()
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
-            const groupId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
+            const groupId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
             if (groupId === -1) { isIdentifying = false; return; }
 
             isIdentifying = false

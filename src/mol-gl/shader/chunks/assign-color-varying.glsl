@@ -7,9 +7,9 @@
 #elif defined(dColorType_groupInstance)
     vColor.rgb = readFromTexture(tColor, aInstance * float(uGroupCount) + aGroup, uColorTexDim).rgb;
 #elif defined(dColorType_objectPicking)
-    vColor = vec4(encodeIdRGB(float(uObjectId)), 1.0);
+    vColor = vec4(encodeFloatRGB(float(uObjectId)), 1.0);
 #elif defined(dColorType_instancePicking)
-    vColor = vec4(encodeIdRGB(aInstance), 1.0);
+    vColor = vec4(encodeFloatRGB(aInstance), 1.0);
 #elif defined(dColorType_groupPicking)
-    vColor = vec4(encodeIdRGB(aGroup), 1.0);
+    vColor = vec4(encodeFloatRGB(aGroup), 1.0);
 #endif

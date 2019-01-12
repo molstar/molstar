@@ -47,8 +47,8 @@ uniform int uPickable;
 
 #pragma glslify: import('./chunks/common.glsl')
 #pragma glslify: readFromTexture = require(./utils/read-from-texture.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
-#pragma glslify: encodeIdRGB = require(./utils/encode-id-rgb.glsl)
-#pragma glslify: decodeIdRGB = require(./utils/decode-id-rgb.glsl)
+#pragma glslify: encodeFloatRGB = require(./utils/encode-float-rgb.glsl)
+#pragma glslify: decodeFloatRGB = require(./utils/decode-float-rgb.glsl)
 #pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
 #pragma glslify: texture3dFrom2dLinear = require(./utils/texture3d-from-2d-linear.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
 
@@ -135,12 +135,12 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                 #endif
 
                 #if defined(dColorType_objectPicking)
-                    return vec4(encodeIdRGB(float(uObjectId)), 1.0);
+                    return vec4(encodeFloatRGB(float(uObjectId)), 1.0);
                 #elif defined(dColorType_instancePicking)
-                    return vec4(encodeIdRGB(instance), 1.0);
+                    return vec4(encodeFloatRGB(instance), 1.0);
                 #elif defined(dColorType_groupPicking)
-                    float group = floor(decodeIdRGB(textureGroup(isoPos).rgb) + 0.5);
-                    return vec4(encodeIdRGB(group), 1.0);
+                    float group = floor(decodeFloatRGB(textureGroup(isoPos).rgb) + 0.5);
+                    return vec4(encodeFloatRGB(group), 1.0);
                 #else
                     // compute gradient by central differences
                     gradient.x = textureVal(isoPos - dx).a - textureVal(isoPos + dx).a;
@@ -150,7 +150,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                     float d = float(dot(gradient, viewDir) > 0.0);
                     gradient = (2.0 * d - 1.0) * gradient;
 
-                    float group = floor(decodeIdRGB(textureGroup(isoPos).rgb) + 0.5);
+                    float group = floor(decodeFloatRGB(textureGroup(isoPos).rgb) + 0.5);
 
                     #if defined(dColorType_instance)
                         color = readFromTexture(tColor, instance, uColorTexDim).rgb;

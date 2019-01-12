@@ -9,5 +9,5 @@
     uniform sampler2D tColor;
 #elif defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
     varying vec4 vColor;
-    #pragma glslify: encodeIdRGB = require(../utils/encode-id-rgb.glsl)
+    #pragma glslify: encodeFloatRGB = require(../utils/encode-float-rgb.glsl)
 #endif

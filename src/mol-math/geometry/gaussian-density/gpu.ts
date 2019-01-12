@@ -18,7 +18,7 @@ import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/rend
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
-import { decodeIdRGB } from 'mol-geo/geometry/picking';
+import { decodeFloatRGB } from 'mol-util/float-packing';
 
 /** name for shared framebuffer used for gpu gaussian surface operations */
 const FramebufferName = 'gaussian-density-gpu'
@@ -329,7 +329,7 @@ async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3
             for (let ix = 0; ix < dx; ++ix) {
                 const idx = 4 * (tmpCol * dx + (iy + tmpRow) * width + ix)
                 data[j] = image[idx + 3] / 255
-                idData[j] = decodeIdRGB(image[idx], image[idx + 1], image[idx + 2])
+                idData[j] = decodeFloatRGB(image[idx], image[idx + 1], image[idx + 2])
                 j++
             }
         }
