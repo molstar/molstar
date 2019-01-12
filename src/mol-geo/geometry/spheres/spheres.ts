@@ -53,6 +53,7 @@ export namespace Spheres {
 
     export const Params = {
         ...Geometry.Params,
+        sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
         doubleSided: PD.Boolean(false),
     }
     export type Params = typeof Params
@@ -90,6 +91,7 @@ export namespace Spheres {
             padding: ValueCell.create(padding),
 
             ...Geometry.createValues(props, counts),
+            uSizeFactor: ValueCell.create(props.sizeFactor),
             dDoubleSided: ValueCell.create(props.doubleSided),
         }
     }
@@ -125,12 +127,15 @@ export namespace Spheres {
             padding: ValueCell.create(sizeValue),
 
             ...Geometry.createValues(p, counts),
+            uSizeFactor: ValueCell.create(p.sizeFactor),
             dDoubleSided: ValueCell.create(p.doubleSided),
         }
     }
 
     export function updateValues(values: SpheresValues, props: PD.Values<Params>) {
         Geometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor)
+        ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
     }
 
     export function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {

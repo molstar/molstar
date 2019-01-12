@@ -13,3 +13,5 @@
 #if defined(dSizeType_instance) || defined(dSizeType_group) || defined(dSizeType_groupInstance)
     size = decodeFloatLog(size);
 #endif
+
+size *= uSizeFactor;

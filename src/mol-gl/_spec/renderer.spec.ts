@@ -82,6 +82,7 @@ function createPoints() {
         boundingSphere,
         invariantBoundingSphere,
 
+        uSizeFactor: ValueCell.create(1),
         dPointSizeAttenuation: ValueCell.create(true),
         dPointFilledCircle: ValueCell.create(false),
         uPointEdgeBleach: ValueCell.create(0.5),

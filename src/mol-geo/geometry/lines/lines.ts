@@ -94,6 +94,7 @@ export namespace Lines {
 
     export const Params = {
         ...Geometry.Params,
+        sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
         lineSizeAttenuation: PD.Boolean(false),
     }
     export type Params = typeof Params
@@ -123,6 +124,7 @@ export namespace Lines {
             ...transform,
 
             ...Geometry.createValues(props, counts),
+            uSizeFactor: ValueCell.create(props.sizeFactor),
             dLineSizeAttenuation: ValueCell.create(props.lineSizeAttenuation),
             dDoubleSided: ValueCell.create(true),
             dFlipSided: ValueCell.create(false),
@@ -131,6 +133,7 @@ export namespace Lines {
 
     export function updateValues(values: LinesValues, props: PD.Values<Params>) {
         Geometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor)
         ValueCell.updateIfChanged(values.dLineSizeAttenuation, props.lineSizeAttenuation)
     }
 

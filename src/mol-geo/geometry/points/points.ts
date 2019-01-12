@@ -57,6 +57,7 @@ export namespace Points {
 
     export const Params = {
         ...Geometry.Params,
+        sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
         pointSizeAttenuation: PD.Boolean(false),
         pointFilledCircle: PD.Boolean(false),
         pointEdgeBleach: PD.Numeric(0.2, { min: 0, max: 1, step: 0.05 }),
@@ -87,6 +88,7 @@ export namespace Points {
             ...transform,
 
             ...Geometry.createValues(props, counts),
+            uSizeFactor: ValueCell.create(props.sizeFactor),
             dPointSizeAttenuation: ValueCell.create(props.pointSizeAttenuation),
             dPointFilledCircle: ValueCell.create(props.pointFilledCircle),
             uPointEdgeBleach: ValueCell.create(props.pointEdgeBleach),
@@ -95,6 +97,7 @@ export namespace Points {
 
     export function updateValues(values: PointsValues, props: PD.Values<Params>) {
         Geometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor)
         ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation)
         ValueCell.updateIfChanged(values.dPointFilledCircle, props.pointFilledCircle)
         ValueCell.updateIfChanged(values.uPointEdgeBleach, props.pointEdgeBleach)

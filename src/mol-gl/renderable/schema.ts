@@ -180,6 +180,7 @@ export const SizeSchema = {
     uSizeTexDim: UniformSpec('v2'),
     tSize: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
+    uSizeFactor: UniformSpec('f'),
 }
 export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>

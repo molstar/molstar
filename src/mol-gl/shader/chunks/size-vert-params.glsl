@@ -7,3 +7,5 @@
     uniform sampler2D tSize;
     #pragma glslify: decodeFloatLog = require(../utils/decode-float-log.glsl)
 #endif
+
+uniform float uSizeFactor;
