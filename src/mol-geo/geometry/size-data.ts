@@ -11,6 +11,7 @@ import { LocationIterator } from '../util/location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 import { SizeTheme } from 'mol-theme/size';
 import { getGranularity } from './geometry';
+import { encodeFloatLog } from 'mol-util/float-packing';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -83,9 +84,10 @@ export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeTyp
 export function createInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
     const { instanceCount} = locationIt
     const sizes = sizeData && sizeData.tSize.ref.value.array.length >= instanceCount ? sizeData.tSize.ref.value : createTextureImage(instanceCount, 1)
+    locationIt.reset()
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
-        sizes.array[v.instanceIndex] = sizeFn(v.location)
+        sizes.array[v.instanceIndex] = encodeFloatLog(sizeFn(v.location)) * 255
         locationIt.skipInstance()
     }
     return createTextureSize(sizes, 'instance', sizeData)
@@ -95,9 +97,10 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
 export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
     const { groupCount } = locationIt
     const sizes = sizeData && sizeData.tSize.ref.value.array.length >= groupCount ? sizeData.tSize.ref.value : createTextureImage(groupCount, 1)
+    locationIt.reset()
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
-        sizes.array[v.groupIndex] = sizeFn(v.location)
+        sizes.array[v.groupIndex] = encodeFloatLog(sizeFn(v.location)) * 255
     }
     return createTextureSize(sizes, 'group', sizeData)
 }
@@ -107,9 +110,10 @@ export function createGroupInstanceSize(locationIt: LocationIterator, sizeFn: Lo
     const { groupCount, instanceCount } = locationIt
     const count = instanceCount * groupCount
     const sizes = sizeData && sizeData.tSize.ref.value.array.length >= count ? sizeData.tSize.ref.value : createTextureImage(count, 1)
+    locationIt.reset()
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
-        sizes.array[v.index] = sizeFn(v.location)
+        sizes.array[v.index] = encodeFloatLog(sizeFn(v.location)) * 255
     }
     return createTextureSize(sizes, 'groupInstance', sizeData)
 }
