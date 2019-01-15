@@ -24,11 +24,15 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private padding: number;
     private updatedX: number;
     private updatedY: number;
-    private clicked: number;
-    private ghostPoints: SVGElement[];
+    private ghostPoints: {id: number, element: SVGElement}[];
+    // private xValues: number[];
+    // private yValues: number[]
     private gElement: SVGElement;
     private namespace: string;
     private userInput: {[name:string]: number} = {};
+    private mouseStartPoint: Vec2;
+    private mouseDown: boolean;
+    private hasDragged: boolean;
     
 
     constructor(props: any) {
@@ -50,10 +54,13 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.padding = 70;
 
         this.ghostPoints = [];
+        // this.xValues = [];
+        // this.yValues = [];
         this.namespace = 'http://www.w3.org/2000/svg';
         this.userInput['x'] = -1;
         this.userInput['y'] = -1;
-        this.clicked = 0;
+        this.mouseDown = false;
+        this.hasDragged = false;        
     
         for (const point of this.props.data){
             this.state.points.push(point);
@@ -96,7 +103,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                     className="msp-canvas"
                     ref={this.refCallBack} 
                     viewBox={`0 0 ${this.width+this.padding} ${this.height+this.padding}`}
-                    onMouseMove={this.handleDrag} 
+                    onMouseMove={this.state.canSelectMultiple? this.handleMultipleDrag : this.handleDrag} 
                     onClick={this.handleCanvasClick}
                     onMouseUp={this.handlePointUpdate}
                     onMouseLeave={this.handleLeave}
@@ -137,82 +144,125 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     private handleKeyDown = (event: any) => {
-        // TODO: set canSelectMultiple = true
+        if(event.keyCode == 91) {
+            let elements = document.getElementsByClassName('icon');
+            elements[0].classList.remove('icon-minus');
+            elements[0].classList.add('disabled-minus');
+            this.setState({canSelectMultiple: true});
+        }
     }
 
     private handleKeyUp = (event: any) => {
-        // TODO: SET canSelectMultiple = fasle
+        this.ghostPoints = [];
+        this.gElement.innerHTML = '';
+        this.setState({canSelectMultiple: false});
     }
 
     private handleCanvasClick() {
-        this.gElement.innerHTML = '';
-        this.clicked = 0;
-        this.setState({selected: []});
+        console.log(`handleCanvasClick()`);
+        if(this.state.canSelectMultiple) {
+            return;
+        }
+
         const elements = document.getElementsByClassName('icon');
+        this.gElement.innerHTML = '';
+        this.setState({selected: []});
+        this.ghostPoints = [];
         elements[0].classList.remove('icon-minus');
         elements[0].classList.add('disabled-minus');
         elements[1].classList.remove('icon-plus');
         elements[1].classList.add('disabled-plus');
     }
 
-    private handlePointClick = (id:number) => (event:any) => {
-        this.clicked = 1;
-        let selected = [id];
-        this.setState({selected: selected});
+    private handlePointClick = (event:any) => {
+        event.stopPropagation();
 
-        const copyPoint: Vec2 = this.normalizePoint(Vec2.create(this.state.points[id][0], this.state.points[id][1]));
-        this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
-        this.ghostPoints[0].setAttribute('r', '10');
-        this.ghostPoints[0].setAttribute('fill', 'orange');
-        this.ghostPoints[0].setAttribute('cx', `${copyPoint[0]}`);
-        this.ghostPoints[0].setAttribute('cy', `${copyPoint[1]}`);
-        this.gElement.appendChild(this.ghostPoints[0]);
+        let selected;
+        const id = parseInt(event.target.id);
+        const point = Vec2.create(this.state.points[id][0], this.state.points[id][1]);
+        const copyPoint: Vec2 = this.normalizePoint(point);
 
+        if(this.state.canSelectMultiple) {
+            this.ghostPoints.push({id: id, element: document.createElementNS(this.namespace, 'circle') as SVGElement});
+            let size = this.ghostPoints.length;
+            this.ghostPoints[size-1].element.setAttribute('r', '10');
+            this.ghostPoints[size-1].element.setAttribute('fill', 'orange');
+            this.ghostPoints[size-1].element.setAttribute('cx', `${copyPoint[0]}`);
+            this.ghostPoints[size-1].element.setAttribute('cy', `${copyPoint[1]}`);
+            this.ghostPoints[size-1].element.addEventListener('mousedown', this.handleMouseDown); 
+            this.gElement.appendChild(this.ghostPoints[size-1].element);
+            // this.xValues.push(copyPoint[0]);
+            // this.xValues.sort((a,b) =>  {return a-b});
+            // this.yValues.push(copyPoint[1]);
+            // this.yValues.sort((a,b) => {return a-b});
+            selected = this.state.selected;
+            selected.push(id);
+            this.setState({selected: selected});
+            return;
+        } 
+        
         let elements = document.getElementsByClassName('icon');
         elements[0].classList.remove('disabled-minus');
         elements[0].classList.add('icon-minus');
-        
+        this.ghostPoints[0].element.setAttribute('style', 'display: visible');
+        this.ghostPoints[0].element.addEventListener('mousedown', this.handleMouseDown); 
 
-        event.stopPropagation();
     }
 
-    private handleMouseDown = (id:number) => (event: any) => {
+    private handleMouseDown = (event: any) => {
+        const id = parseInt(event.target.id);
+        const x = event.target.cx.animVal.value;
+        const y = event.target.cy.animVal.value;
+
         if(id === 0 || id === this.state.points.length-1){
             return;
         }
 
+        this.mouseDown = true;
+
         if (this.state.canSelectMultiple) {
+            this.mouseStartPoint = Vec2.create(x, y); // getting the last time the user held down the mouse as a tempStarting point
             return;
         }
-        
-        this.clicked = 0;
-        const copyPoint: Vec2 = this.normalizePoint(Vec2.create(this.state.points[id][0], this.state.points[id][1]));
-        this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
-        this.ghostPoints[0].setAttribute('r', '10');
-        this.ghostPoints[0].setAttribute('fill', 'orange');
-        this.ghostPoints[0].setAttribute('cx', `${copyPoint[0]}`);
-        this.ghostPoints[0].setAttribute('cy', `${copyPoint[1]}`);
-        this.ghostPoints[0].setAttribute('style', 'display: none');
-        this.gElement.appendChild(this.ghostPoints[0]);
+        if(isNaN(id)) {
+            return;
+        }
+
+        let elements = document.getElementsByClassName('icon');
+        const copyPoint: Vec2 = Vec2.create(x, y);
+        elements[0].classList.remove('icon-minus');
+        elements[0].classList.add('disabled-minus');
+        this.ghostPoints = [];
+        this.gElement.innerHTML = '';
+        this.ghostPoints.push({id: id, element: document.createElementNS(this.namespace, 'circle') as SVGElement});
+        this.ghostPoints[0].element.setAttribute('r', '10');
+        this.ghostPoints[0].element.setAttribute('fill', 'orange');
+        this.ghostPoints[0].element.setAttribute('cx', `${copyPoint[0]}`);
+        this.ghostPoints[0].element.setAttribute('cy', `${copyPoint[1]}`);
+        this.ghostPoints[0].element.setAttribute('style', 'display: none');
+        this.gElement.appendChild(this.ghostPoints[0].element);
         this.updatedX = copyPoint[0];
         this.updatedY = copyPoint[1];
-
-        
         this.setState({selected: [id]})
     }
 
+
     private handleDrag(event: any) {
-        if((this.state.selected.length === 0) || this.clicked){
+        if(this.state.selected.length === 0 || !this.mouseDown){
             return
         }
 
-        const pt = this.myRef.createSVGPoint();
         let updatedCopyPoint;
+        let svgP;
+        const pt = this.myRef.createSVGPoint();
         const padding = this.padding/2;
+        const elements = document.getElementsByClassName('icon');
+        elements[0].classList.remove('icon-minus');
+        elements[0].classList.add('disabled-minus');
         pt.x = event.clientX;
         pt.y = event.clientY;
-        const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
-        updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
+        svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
+        
         if ((svgP.x < (padding) || svgP.x > (this.width+(padding))) && (svgP.y > (this.height+(padding)) || svgP.y < (padding))) {
             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
         }
@@ -233,38 +283,68 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.updatedX = updatedCopyPoint[0];
         this.updatedY = updatedCopyPoint[1];
         const unNormalizePoint = this.unNormalizePoint(updatedCopyPoint);
-        this.ghostPoints[0].setAttribute('style', 'display: visible');
-        this.ghostPoints[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
-        this.ghostPoints[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
+        this.ghostPoints[0].element.setAttribute('style', 'display: visible');
+        this.ghostPoints[0].element.setAttribute('cx', `${updatedCopyPoint[0]}`);
+        this.ghostPoints[0].element.setAttribute('cy', `${updatedCopyPoint[1]}`);
         this.props.onDrag(unNormalizePoint);
+        this.hasDragged = true;
     }
 
-    private handleMultipleDrag() {
-        // TODO
+    private handleMultipleDrag(event: any) {
+        if(!this.mouseDown) {
+            return;
+        }
+
+        const pt = this.myRef.createSVGPoint(); // create a temp point for the cursor pointer
+        let updatedGhostPoint: Vec2;
+        let ghostPoint: Vec2;
+        // let updatePoints = [];
+        // const padding = this.padding/2;
+        pt.x = event.clientX;   // get x value of pointer
+        pt.y = event.clientY;   // get y value of pointer
+        const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
+        const directionalVector = Vec2.create(svgP.x-this.mouseStartPoint[0], svgP.y-this.mouseStartPoint[1]); 
+
+        for(let i = 0; i < this.ghostPoints.length; i++) {
+            const x = this.ghostPoints[i].element.getAttribute('cx');
+            const y = this.ghostPoints[i].element.getAttribute('cy');
+            ghostPoint = Vec2.create(parseInt(x as string), parseInt(y as string));
+            updatedGhostPoint = Vec2.create(ghostPoint[0]+directionalVector[0], ghostPoint[1]+directionalVector[1]);
+            this.ghostPoints[i].element.setAttribute('cx', `${updatedGhostPoint[0]}`);
+            this.ghostPoints[i].element.setAttribute('cy', `${updatedGhostPoint[1]}`);
+        }
+        this.mouseStartPoint = Vec2.create(svgP.x, svgP.y);
+        this.hasDragged = true;
     }
 
     private handlePointUpdate = (event: any) => {
         const selected = this.state.selected;
-        if (this.state.canSelectMultiple || this.clicked) { 
+        this.mouseDown = false;
+        if ((this.state.canSelectMultiple && !this.hasDragged) || !this.hasDragged) { 
             return; 
         }
-
-        if(selected.length === 0 || selected[0] === 0 || selected[0] === this.state.points.length-1) {
+        if(selected.length === 0 || selected[0] === 0 || selected[selected.length-1] === this.state.points.length-1) {
             this.setState({
                 copyPoint: undefined,
             });
             return;
         }
-        
-        const updatedPoint = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
-        const points = this.state.points.filter((_,i) => i !== selected[0]);
-        points.push(updatedPoint);;
+        let points = this.state.points;
+        for(let i = 0; i < this.ghostPoints.length; i++) {
+            const id = this.ghostPoints[i].id;
+            const element = this.ghostPoints[i].element;
+            const x = parseInt(element.getAttribute('cx') as string);
+            const y = parseInt(element.getAttribute('cy') as string);
+            const updatedPoint = this.unNormalizePoint(Vec2.create(x, y));
+            points[id] = updatedPoint;
+        }
+
+        // const updatedPoint = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
+        // const points = this.state.points.filter((_,i) => i !== selected[0]);
+        // points.push(updatedPoint);;
         points.sort((a, b) => { 
             if(a[0] === b[0]){
-                if(a[0] === 0){
-                    return a[1]-b[1];
-                }
-                if(a[1] === 1){
+                if(a[0] === 1){
                     return b[1]-a[1];
                 }
                 return a[1]-b[1];
@@ -277,7 +357,11 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         });
         this.change(points);
         this.gElement.innerHTML = '';
+        this.ghostPoints.forEach(x => {
+            x.element.removeEventListener('mousedown', this.handleMouseDown);
+        });
         this.ghostPoints = [];
+        this.hasDragged = false;
         document.removeEventListener("mousemove", this.handleDrag, true);
         document.removeEventListener("mouseup", this.handlePointUpdate, true);
     }
@@ -435,8 +519,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                         nY={this.state.points[i][1]}
                         selected={false}
                         onmouseover={this.props.onHover}
-                        onmousedown={this.handleMouseDown(i)}
-                        onclick={this.handlePointClick(i)}
+                        onmousedown={this.handleMouseDown}
+                        onclick={this.handlePointClick}
                     />);
             }
         }
@@ -471,7 +555,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             const y1 = data[i][1];
             const x2 = data[i+1][0];
             const y2 = data[i+1][1];
-    
+            
             lines.push(<line key={`lineOf${i}`} x1={x1} x2={x2} y1={y1} y2={y2} stroke="#cec9ba" strokeWidth="5"/>)
         }
         
