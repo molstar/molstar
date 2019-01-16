@@ -34,6 +34,24 @@ export function createTextureImage(n: number, itemSize: number): TextureImage<Ui
     return { array: new Uint8Array(length), width, height }
 }
 
+export function printTextureImage(textureImage: TextureImage<any>, scale = 1) {
+    const { array, width, height } = textureImage
+    const itemSize = array.length / (width * height)
+    const data = new Uint8ClampedArray(width * height * 4)
+    if (itemSize === 1) {
+        for (let y = 0; y < height; ++y) {
+            for (let x = 0; x < width; ++x) {
+                data[(y * width + x) * 4 + 3] = array[y * width + x]
+            }
+        }
+    } else if (itemSize === 4) {
+        data.set(array)
+    } else {
+        console.warn(`itemSize '${itemSize}' not supported`)
+    }
+    return printImageData(new ImageData(data, width, height), scale)
+}
+
 export function printImageData(imageData: ImageData, scale = 1) {
     const canvas = document.createElement('canvas')
     canvas.width = imageData.width

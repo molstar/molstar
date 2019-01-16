@@ -65,7 +65,7 @@ module.exports = [
     createApp('viewer'),
     createApp('model-server-query'),
 
-    createBrowserTest('text-atlas'),
+    createBrowserTest('font-atlas'),
     createBrowserTest('render-text'),
     createBrowserTest('render-spheres'),
     createBrowserTest('render-mesh')
