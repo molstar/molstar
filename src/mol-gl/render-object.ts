@@ -14,6 +14,7 @@ import { MeshValues, MeshRenderable } from './renderable/mesh';
 import { PointsValues, PointsRenderable } from './renderable/points';
 import { LinesValues, LinesRenderable } from './renderable/lines';
 import { SpheresValues, SpheresRenderable } from './renderable/spheres';
+import { TextValues, TextRenderable } from './renderable/text';
 
 const getNextId = idFactory(0, 0x7FFFFFFF)
 
@@ -21,6 +22,7 @@ export interface BaseRenderObject { id: number, type: string, values: Renderable
 export interface MeshRenderObject extends BaseRenderObject { type: 'mesh', values: MeshValues }
 export interface PointsRenderObject extends BaseRenderObject { type: 'points', values: PointsValues }
 export interface SpheresRenderObject extends BaseRenderObject { type: 'spheres', values: SpheresValues }
+export interface TextRenderObject extends BaseRenderObject { type: 'text', values: TextValues }
 export interface LinesRenderObject extends BaseRenderObject { type: 'lines', values: LinesValues }
 export interface DirectVolumeRenderObject extends BaseRenderObject { type: 'direct-volume', values: DirectVolumeValues }
 
@@ -28,7 +30,7 @@ export interface GaussianDensityRenderObject extends BaseRenderObject { type: 'g
 
 //
 
-export type GraphicsRenderObject = MeshRenderObject | PointsRenderObject | SpheresRenderObject | LinesRenderObject | DirectVolumeRenderObject
+export type GraphicsRenderObject = MeshRenderObject | PointsRenderObject | SpheresRenderObject | TextRenderObject | LinesRenderObject | DirectVolumeRenderObject
 
 export type ComputeRenderObject = GaussianDensityRenderObject
 
@@ -44,6 +46,9 @@ export function createPointsRenderObject(values: PointsValues, state: Renderable
 }
 export function createSpheresRenderObject(values: SpheresValues, state: RenderableState): SpheresRenderObject {
     return { id: getNextId(), type: 'spheres', values, state }
+}
+export function createTextRenderObject(values: TextValues, state: RenderableState): TextRenderObject {
+    return { id: getNextId(), type: 'text', values, state }
 }
 export function createLinesRenderObject(values: LinesValues, state: RenderableState): LinesRenderObject {
     return { id: getNextId(), type: 'lines', values, state }
@@ -61,6 +66,7 @@ export function createRenderable(ctx: WebGLContext, o: RenderObject): Renderable
         case 'mesh': return MeshRenderable(ctx, o.id, o.values, o.state)
         case 'points': return PointsRenderable(ctx, o.id, o.values, o.state)
         case 'spheres': return SpheresRenderable(ctx, o.id, o.values, o.state)
+        case 'text': return TextRenderable(ctx, o.id, o.values, o.state)
         case 'lines': return LinesRenderable(ctx, o.id, o.values, o.state)
         case 'direct-volume': return DirectVolumeRenderable(ctx, o.id, o.values, o.state)
 

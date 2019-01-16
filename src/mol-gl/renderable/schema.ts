@@ -148,6 +148,7 @@ export const GlobalUniformSchema = {
     uViewportHeight: UniformSpec('f'),
     uViewport: UniformSpec('v4'),
 
+    uCameraPosition: UniformSpec('v3'),
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
