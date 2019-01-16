@@ -74,7 +74,7 @@ export namespace Text {
         ...FontAtlasParams,
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
 
-        borderWidth: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
+        borderWidth: PD.Numeric(0, { min: 0, max: 0.5, step: 0.01 }),
         borderColor: PD.Color(ColorNames.grey),
         offsetX: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
         offsetY: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),

@@ -33,8 +33,8 @@ function textRepr() {
         ...PD.getDefaultValues(Text.Params),
         attachment: 'middle-center',
         fontSize: 96,
-        fontWeight: 'bold',
-        background: true
+        fontWeight: 'normal',
+        borderWidth: 0.3
     }
 
     const textBuilder = TextBuilder.create(props, 1, 1)

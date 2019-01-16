@@ -32,17 +32,11 @@ void main(){
     if (vTexCoord.x > 1.0) {
         gl_FragColor = vec4(uBackgroundColor, uBackgroundOpacity);
     } else {
-        // TODO nicer border
-
         // retrieve signed distance
         float sdf = texture2D(tFont, vTexCoord).a + uBorderWidth;
 
         // perform adaptive anti-aliasing of the edges
-        float w = clamp(
-            smoothness * (abs(dFdx(vTexCoord.x)) + abs(dFdy(vTexCoord.y))),
-            0.0,
-            0.5
-        );
+        float w = clamp(smoothness * (abs(dFdx(vTexCoord.x)) + abs(dFdy(vTexCoord.y))), 0.0, 0.5);
         float a = smoothstep(0.5 - w, 0.5 + w, sdf);
 
         // gamma correction for linear attenuation
@@ -51,8 +45,10 @@ void main(){
         if (a < 0.5) discard;
         material.a *= a;
 
-        if (uBorderWidth > 0.0 && sdf < (0.5 + uBorderWidth)) {
-            material.xyz = uBorderColor;
+        // add border
+        float t = 0.5 + uBorderWidth;
+        if (uBorderWidth > 0.0 && sdf < t) {
+            material.xyz = mix(uBorderColor, material.xyz, smoothstep(t - w, t, sdf));
         }
 
         gl_FragColor = material;
