@@ -18,11 +18,11 @@ import { NullLocation } from 'mol-model/location';
 import { UniformColorTheme } from 'mol-theme/color/uniform';
 import { UniformSizeTheme } from 'mol-theme/size/uniform';
 import { Sphere3D } from 'mol-math/geometry';
-import { calculateBoundingSphere } from 'mol-gl/renderable/util';
+import { calculateBoundingSphere, TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { TextValues } from 'mol-gl/renderable/text';
 import { Color } from 'mol-util/color';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { FontAtlas, getFontAtlas, FontAtlasParams } from './font-atlas';
+import { FontAtlasParams } from './font-atlas';
 import { RenderableState } from 'mol-gl/renderable';
 import { clamp } from 'mol-math/interpolate';
 
@@ -35,7 +35,7 @@ export interface Text {
     /** Number of characters in the text */
     readonly charCount: number,
     /** Font Atlas */
-    readonly fontAtlas: FontAtlas,
+    readonly fontTexture: ValueCell<TextureImage<Uint8Array>>,
 
     /** Center buffer as array of xyz values wrapped in a value cell */
     readonly centerBuffer: ValueCell<Float32Array>,
@@ -56,10 +56,11 @@ export namespace Text {
         const ib = text ? text.indexBuffer.ref.value : new Uint32Array(0)
         const gb = text ? text.groupBuffer.ref.value : new Float32Array(0)
         const tb = text ? text.tcoordBuffer.ref.value : new Float32Array(0)
+        const ft = text ? text.fontTexture.ref.value : createTextureImage(0, 1)
         return {
             kind: 'text',
             charCount: 0,
-            fontAtlas: getFontAtlas({}),
+            fontTexture: text ? ValueCell.update(text.fontTexture, ft) : ValueCell.create(ft),
             centerBuffer: text ? ValueCell.update(text.centerBuffer, cb) : ValueCell.create(cb),
             mappingBuffer: text ? ValueCell.update(text.mappingBuffer, mb) : ValueCell.create(mb),
             indexBuffer: text ? ValueCell.update(text.indexBuffer, ib) : ValueCell.create(ib),
@@ -75,13 +76,13 @@ export namespace Text {
 
         borderWidth: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
         borderColor: PD.Color(ColorNames.grey),
-        offsetX: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
-        offsetY: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
-        offsetZ: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
+        offsetX: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
+        offsetY: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
+        offsetZ: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
         background: PD.Boolean(false),
-        backgroundMargin: PD.Numeric(0.2, { min: 0, max: 10, step: 0.1 }),
+        backgroundMargin: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
         backgroundColor: PD.Color(ColorNames.grey),
-        backgroundOpacity: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
+        backgroundOpacity: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
 
         attachment: PD.Select('normal', [['bottom-left', 'bottom-left'], ['bottom-center', 'bottom-center'], ['bottom-right', 'bottom-right'], ['middle-left', 'middle-left'], ['top-left', 'top-left'], ['top-center', 'top-center'], ['top-right', 'top-right']] as [TextAttachment, string][]),
     }
@@ -105,8 +106,6 @@ export namespace Text {
             transform.aTransform.ref.value, instanceCount, padding
         )
 
-        console.log(props.sizeFactor, text.fontAtlas.lineHeight, props.fontSize)
-
         return {
             aPosition: text.centerBuffer,
             aMapping: text.mappingBuffer,
@@ -120,11 +119,11 @@ export namespace Text {
             ...transform,
 
             aTexCoord: text.tcoordBuffer,
-            tFont: ValueCell.create(text.fontAtlas.texture),
+            tFont: text.fontTexture,
             padding: ValueCell.create(padding),
 
             ...Geometry.createValues(props, counts),
-            uSizeFactor: ValueCell.create(props.sizeFactor / text.fontAtlas.lineHeight),
+            uSizeFactor: ValueCell.create(props.sizeFactor),
 
             uBorderWidth: ValueCell.create(clamp(props.borderWidth / 2, 0, 0.5)),
             uBorderColor: ValueCell.create(Color.toArrayNormalized(props.borderColor, Vec3.zero(), 0)),

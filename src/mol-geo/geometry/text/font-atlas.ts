@@ -33,7 +33,10 @@ export const FontAtlasParams = {
 export type FontAtlasParams = typeof FontAtlasParams
 export type FontAtlasProps = PD.Values<FontAtlasParams>
 
-export type FontAtlasMap = { x: number, y: number, w: number, h: number }
+export type FontAtlasMap = {
+    x: number, y: number, w: number, h: number,
+    nw: number, nh: number // normalized to lineheight
+}
 
 export class FontAtlas {
     readonly props: Readonly<FontAtlasProps>
@@ -120,7 +123,8 @@ export class FontAtlas {
 
             this.mapped[char] = {
                 x: this.currentX, y: this.currentY,
-                w: this.scratchW, h: this.scratchH
+                w: this.scratchW, h: this.scratchH,
+                nw: this.scratchW / this.lineHeight, nh: this.scratchH / this.lineHeight
             }
 
             for (let y = 0; y < this.scratchH; ++y) {

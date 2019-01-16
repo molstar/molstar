@@ -34,6 +34,7 @@ function textRepr() {
         attachment: 'middle-center',
         fontSize: 96,
         fontWeight: 'bold',
+        background: true
     }
 
     const textBuilder = TextBuilder.create(props, 1, 1)
@@ -53,12 +54,13 @@ function textRepr() {
 }
 
 function spheresRepr() {
-    const spheresBuilder = SpheresBuilder.create(2, 1)
+    const spheresBuilder = SpheresBuilder.create(1, 1)
+    spheresBuilder.add(0, 0, 0, 0)
     spheresBuilder.add(5, 0, 0, 0)
     spheresBuilder.add(-4, 1, 0, 0)
     const spheres = spheresBuilder.getSpheres()
 
-    const values = Spheres.createValuesSimple(spheres, {}, Color(0xFF0000), 1)
+    const values = Spheres.createValuesSimple(spheres, {}, Color(0xFF0000), 0.2)
     const state = Geometry.createRenderableState()
     const renderObject = createSpheresRenderObject(values, state)
     console.log('spheres', renderObject)

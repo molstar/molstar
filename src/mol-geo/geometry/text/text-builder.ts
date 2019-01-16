@@ -32,11 +32,11 @@ export namespace TextBuilder {
         const { attachment, background, backgroundMargin } = p
 
         const fontAtlas = getFontAtlas(p)
-        const { lineHeight } = fontAtlas
-
-        const margin = (lineHeight * backgroundMargin * 0.1) - 10
-        const outline = fontAtlas.buffer
-        console.log('margin', margin)
+        const margin = (1 / 2.5) * backgroundMargin
+        const outline = fontAtlas.buffer / fontAtlas.lineHeight
+        // console.log('margin', margin)
+        // console.log('attachment', attachment)
+        // console.log('background', background)
 
         return {
             add: (str: string, x: number, y: number, z: number, group: number) => {
@@ -46,15 +46,15 @@ export namespace TextBuilder {
                 // calculate width
                 for (let iChar = 0; iChar < nChar; ++iChar) {
                     const c = fontAtlas.get(str[iChar])
-                    xadvance += c.w - 2 * outline
+                    xadvance += c.nw - 2 * outline
                 }
 
                 // attachment
                 let yShift: number, xShift: number
                 if (attachment.startsWith('top')) {
-                    yShift = lineHeight / 1.25
+                    yShift = 1 / 1.25
                 } else if (attachment.startsWith('middle')) {
-                    yShift = lineHeight / 2.5
+                    yShift = 1 / 2.5
                 } else {
                     yShift = 0  // "bottom"
                 }
@@ -65,19 +65,17 @@ export namespace TextBuilder {
                 } else {
                     xShift = 0  // "left"
                 }
-                xShift += outline
-                yShift += outline
 
                 // background
                 if (background) {
-                    ChunkedArray.add2(mappings, -lineHeight / 6 - xShift - margin, lineHeight - yShift + margin)
-                    ChunkedArray.add2(mappings, -lineHeight / 6 - xShift - margin, 0 - yShift - margin)
-                    ChunkedArray.add2(mappings, xadvance + lineHeight / 6 - xShift + 2 * outline + margin, lineHeight - yShift + margin)
-                    ChunkedArray.add2(mappings, xadvance + lineHeight / 6 - xShift + 2 * outline + margin, 0 - yShift - margin)
+                    ChunkedArray.add2(mappings, -xadvance + xShift - margin - 0.1, yShift + margin) // top left
+                    ChunkedArray.add2(mappings, -xadvance + xShift - margin - 0.1, -yShift - margin) // bottom left
+                    ChunkedArray.add2(mappings, xadvance - xShift + margin + 0.1, yShift + margin) // top right
+                    ChunkedArray.add2(mappings, xadvance - xShift + margin + 0.1, -yShift - margin) // bottom right
 
                     const offset = centers.elementCount
                     for (let i = 0; i < 4; ++i) {
-                        ChunkedArray.add2(tcoords, 0, 10)
+                        ChunkedArray.add2(tcoords, 10, 10)
                         ChunkedArray.add3(centers, x, y, z);
                         ChunkedArray.add(groups, group);
                     }
@@ -85,15 +83,17 @@ export namespace TextBuilder {
                     ChunkedArray.add3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5])
                 }
 
+                xShift += outline
+                yShift += outline
                 xadvance = 0
 
                 for (let iChar = 0; iChar < nChar; ++iChar) {
                     const c = fontAtlas.get(str[iChar])
 
-                    ChunkedArray.add2(mappings, xadvance - xShift, c.h - yShift) // top left
-                    ChunkedArray.add2(mappings, xadvance - xShift, 0 - yShift) // bottom left
-                    ChunkedArray.add2(mappings, xadvance + c.w - xShift, c.h - yShift) // top right
-                    ChunkedArray.add2(mappings, xadvance + c.w - xShift, 0 - yShift) // bottom right
+                    ChunkedArray.add2(mappings, xadvance - xShift, c.nh - yShift) // top left
+                    ChunkedArray.add2(mappings, xadvance - xShift, -yShift) // bottom left
+                    ChunkedArray.add2(mappings, xadvance + c.nw - xShift, c.nh - yShift) // top right
+                    ChunkedArray.add2(mappings, xadvance + c.nw - xShift, -yShift) // bottom right
 
                     const texWidth = fontAtlas.texture.width
                     const texHeight = fontAtlas.texture.height
@@ -103,7 +103,7 @@ export namespace TextBuilder {
                     ChunkedArray.add2(tcoords, (c.x + c.w) / texWidth, c.y / texHeight) // top right
                     ChunkedArray.add2(tcoords, (c.x + c.w) / texWidth, (c.y + c.h) / texHeight) // bottom right
 
-                    xadvance += c.w - 2 * outline
+                    xadvance += c.nw - 2 * outline
 
                     const offset = centers.elementCount
                     for (let i = 0; i < 4; ++i) {
@@ -120,10 +120,11 @@ export namespace TextBuilder {
                 const ib = ChunkedArray.compact(indices, true) as Uint32Array
                 const gb = ChunkedArray.compact(groups, true) as Float32Array
                 const tb = ChunkedArray.compact(tcoords, true) as Float32Array
+                const ft = fontAtlas.texture
                 return {
                     kind: 'text',
                     charCount: centers.elementCount / 4,
-                    fontAtlas,
+                    fontTexture: text ? ValueCell.update(text.fontTexture, ft) : ValueCell.create(ft),
                     centerBuffer: text ? ValueCell.update(text.centerBuffer, cb) : ValueCell.create(cb),
                     mappingBuffer: text ? ValueCell.update(text.centerBuffer, mb) : ValueCell.create(mb),
                     indexBuffer: text ? ValueCell.update(text.indexBuffer, ib) : ValueCell.create(ib),
