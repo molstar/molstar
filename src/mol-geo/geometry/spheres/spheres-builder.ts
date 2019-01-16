@@ -15,7 +15,7 @@ const quadMapping = new Float32Array([
     1.0, -1.0
 ])
 
-const quadMappingIndices = new Uint16Array([
+const quadIndices = new Uint16Array([
     0, 1, 2,
     1, 3, 2
 ])
@@ -42,8 +42,8 @@ export namespace SpheresBuilder {
                     ChunkedArray.add2(mappings, quadMapping[i * 2], quadMapping[i * 2 + 1])
                     ChunkedArray.add(groups, group)
                 }
-                ChunkedArray.add3(indices, offset + quadMappingIndices[0], offset + quadMappingIndices[1], offset + quadMappingIndices[2])
-                ChunkedArray.add3(indices, offset + quadMappingIndices[3], offset + quadMappingIndices[4], offset + quadMappingIndices[5])
+                ChunkedArray.add3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2])
+                ChunkedArray.add3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5])
             },
             getSpheres: () => {
                 const cb = ChunkedArray.compact(centers, true) as Float32Array

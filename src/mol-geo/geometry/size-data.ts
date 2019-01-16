@@ -31,6 +31,24 @@ export function createSizes(locationIt: LocationIterator, sizeTheme: SizeTheme<a
     }
 }
 
+export function getMaxSize(sizeData: SizeData): number {
+    const type = sizeData.dSizeType.ref.value as SizeType
+    switch (type) {
+        case 'uniform':
+            return sizeData.uSize.ref.value
+        case 'instance':
+        case 'group':
+        case 'groupInstance':
+            let maxSize = 0
+            const array = sizeData.tSize.ref.value.array
+            for (let i = 0, il = array.length; i < il; ++i) {
+                const value = array[i]
+                if (maxSize < value) maxSize = value
+            }
+            return maxSize
+    }
+}
+
 export type LocationSize = (location: Location) => number
 
 const emptySizeTexture = { array: new Uint8Array(1), width: 1, height: 1 }

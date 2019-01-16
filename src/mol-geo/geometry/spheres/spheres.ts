@@ -11,12 +11,15 @@ import { TransformData, createIdentityTransform } from '../transform-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { Theme } from 'mol-theme/theme';
 import { SpheresValues } from 'mol-gl/renderable/spheres';
-import { createColors, createValueColor } from '../color-data';
+import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { ColorNames } from 'mol-util/color/tables';
 import { Sphere3D } from 'mol-math/geometry';
-import { createSizes, createValueSize } from '../size-data';
+import { createSizes, getMaxSize } from '../size-data';
+import { NullLocation } from 'mol-model/location';
+import { UniformColorTheme } from 'mol-theme/color/uniform';
+import { UniformSizeTheme } from 'mol-theme/size/uniform';
 
 /** Spheres */
 export interface Spheres {
@@ -70,7 +73,7 @@ export namespace Spheres {
 
         const counts = { drawCount: spheres.sphereCount * 2 * 3, groupCount, instanceCount }
 
-        const padding = 5 // TODO get max sphere size
+        const padding = getMaxSize(size)
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             spheres.centerBuffer.ref.value, spheres.sphereCount * 4,
             transform.aTransform.ref.value, instanceCount, padding
@@ -97,39 +100,16 @@ export namespace Spheres {
     }
 
     export function createValuesSimple(spheres: Spheres, props: Partial<PD.Values<Params>>, colorValue = ColorNames.grey, sizeValue = 1, transform?: TransformData): SpheresValues {
-        const p = { ...PD.getDefaultValues(Params), ...props }
+
         if (!transform) transform = createIdentityTransform()
-        const instanceCount = transform.instanceCount.ref.value
-        const groupCount = 1
-        const color = createValueColor(colorValue)
-        const size = createValueSize(sizeValue)
-        const marker = createMarkers(instanceCount * groupCount)
-
-        const counts = { drawCount: spheres.sphereCount * 2 * 3, groupCount, instanceCount }
-
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            spheres.centerBuffer.ref.value, spheres.sphereCount * 4,
-            transform.aTransform.ref.value, instanceCount, sizeValue
-        )
-
-        return {
-            aPosition: spheres.centerBuffer,
-            aMapping: spheres.mappingBuffer,
-            aGroup: spheres.groupBuffer,
-            elements: spheres.indexBuffer,
-            boundingSphere: ValueCell.create(boundingSphere),
-            invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
-            ...color,
-            ...size,
-            ...marker,
-            ...transform,
-
-            padding: ValueCell.create(sizeValue),
-
-            ...Geometry.createValues(p, counts),
-            uSizeFactor: ValueCell.create(p.sizeFactor),
-            dDoubleSided: ValueCell.create(p.doubleSided),
+        const locationIterator = LocationIterator(1, transform.instanceCount.ref.value, () => NullLocation, false, () => false)
+        const theme: Theme = {
+            color: UniformColorTheme({}, { value: colorValue}),
+            size: UniformSizeTheme({}, { value: sizeValue})
         }
+        const p = { ...PD.getDefaultValues(Params), ...props }
+
+        return createValues(spheres, transform, locationIterator, theme, p)
     }
 
     export function updateValues(values: SpheresValues, props: PD.Values<Params>) {
@@ -139,9 +119,10 @@ export namespace Spheres {
     }
 
     export function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {
+        const padding = getMaxSize(values)
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, spheres.sphereCount * 4,
-            values.aTransform.ref.value, values.instanceCount.ref.value, values.padding.ref.value
+            values.aTransform.ref.value, values.instanceCount.ref.value, padding
         )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
