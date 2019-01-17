@@ -180,9 +180,9 @@ namespace Renderer {
 
                 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
                 gl.enable(gl.BLEND)
-                gl.depthMask(false)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
+                    gl.depthMask(r.values.uAlpha.ref.value === 1.0)
                     if (!r.state.opaque) renderObject(r, variant)
                 }
             } else {

@@ -10,7 +10,7 @@ import { printTextureImage } from 'mol-gl/renderable/util';
 
 function test() {
     console.time('FontAtlas init')
-    const fontAtlas = new FontAtlas({ fontSize: 96 })
+    const fontAtlas = new FontAtlas({ fontQuality: 3 })
     console.timeEnd('FontAtlas init')
 
     console.time('Basic Latin (subset)')
@@ -34,6 +34,7 @@ function test() {
     console.timeEnd('Angstrom Sign')
 
     printTextureImage(fontAtlas.texture, 0.5)
+    console.log(`${Object.keys(fontAtlas.mapped).length} chars prepared`)
 }
 
 test();

@@ -32,7 +32,7 @@ function textRepr() {
     const props: PD.Values<Text.Params> = {
         ...PD.getDefaultValues(Text.Params),
         attachment: 'middle-center',
-        fontSize: 96,
+        fontQuality: 3,
         fontWeight: 'normal',
         borderWidth: 0.3
     }

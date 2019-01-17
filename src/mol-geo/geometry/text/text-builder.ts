@@ -34,9 +34,6 @@ export namespace TextBuilder {
         const fontAtlas = getFontAtlas(p)
         const margin = (1 / 2.5) * backgroundMargin
         const outline = fontAtlas.buffer / fontAtlas.lineHeight
-        // console.log('margin', margin)
-        // console.log('attachment', attachment)
-        // console.log('background', background)
 
         return {
             add: (str: string, x: number, y: number, z: number, group: number) => {

@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { edt } from 'mol-math/geometry/distance-transform';
-import { createTextureImage } from 'mol-gl/renderable/util';
+import { createTextureImage, TextureImage } from 'mol-gl/renderable/util';
 
 const TextAtlasCache: { [k: string]: FontAtlas } = {}
 
@@ -25,7 +25,7 @@ export type FontWeight = 'normal' | 'bold'
 
 export const FontAtlasParams = {
   fontFamily: PD.Select('sans-serif', [['sans-serif', 'Sans Serif'], ['monospace', 'Monospace'], ['serif', 'Serif'], ['cursive', 'Cursive']] as [FontFamily, string][]),
-  fontSize: PD.Numeric(36, { min: 4, max: 96, step: 1 }),
+  fontQuality: PD.Select(3, [[0, 'lower'], [1, 'low'], [2, 'medium'], [3, 'high'], [4, 'higher']]),
   fontStyle: PD.Select('normal', [['normal', 'Normal'], ['italic', 'Italic'], ['oblique', 'Oblique']] as [FontStyle, string][]),
   fontVariant: PD.Select('normal', [['normal', 'Normal'], ['small-caps', 'Small Caps']] as [FontVariant, string][]),
   fontWeight: PD.Select('normal', [['normal', 'Normal'], ['bold', 'Bold']] as [FontWeight, string][]),
@@ -42,7 +42,7 @@ export class FontAtlas {
     readonly props: Readonly<FontAtlasProps>
     readonly mapped: { [k: string]: FontAtlasMap } = {}
     readonly placeholder: FontAtlasMap
-    readonly texture = createTextureImage(4096 * 2048, 1)
+    readonly texture: TextureImage<Uint8Array>
 
     private scratchW = 0
     private scratchH = 0
@@ -73,18 +73,23 @@ export class FontAtlas {
         const p = { ...PD.getDefaultValues(FontAtlasParams), ...props }
         this.props = p
 
-        this.buffer = p.fontSize / 8
-        this.radius = p.fontSize / 3
-        this.lineHeight = Math.round(p.fontSize + 2 * this.buffer + this.radius)
-        this.maxWidth = this.lineHeight * 1.5
+        // create measurements
+        const fontSize = 32 * p.fontQuality
+        this.buffer = fontSize / 8
+        this.radius = fontSize / 3
+        this.lineHeight = Math.round(fontSize + 2 * this.buffer + this.radius)
+        this.maxWidth = Math.round(this.lineHeight * 0.75)
 
-        // Prepare scratch canvas
+        // create texture
+        this.texture = createTextureImage(350 * this.lineHeight * this.maxWidth, 1)
+
+        // prepare scratch canvas
         this.scratchCanvas = document.createElement('canvas')
         this.scratchCanvas.width = this.maxWidth
         this.scratchCanvas.height = this.lineHeight
 
         this.scratchContext = this.scratchCanvas.getContext('2d')!
-        this.scratchContext.font = `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${p.fontSize}px ${p.fontFamily}`
+        this.scratchContext.font = `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${fontSize}px ${p.fontFamily}`
         this.scratchContext.fillStyle = 'black'
         this.scratchContext.textBaseline = 'middle'
 
@@ -101,7 +106,7 @@ export class FontAtlas {
 
         this.middle = Math.ceil(this.lineHeight / 2)
 
-        // Replacement Character
+        // replacement Character
         this.placeholder = this.get(String.fromCharCode(0xFFFD))
     }
 
@@ -144,7 +149,7 @@ export class FontAtlas {
         const ctx = this.scratchContext
         const data = this.scratchData
 
-        // Measure text
+        // measure text
         const m = ctx.measureText(char)
         const w = Math.min(this.maxWidth, Math.ceil(m.width + 2 * this.buffer))
         const n = w * h
