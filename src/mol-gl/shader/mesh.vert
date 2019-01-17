@@ -20,8 +20,6 @@ attribute float aGroup;
     varying vec3 vNormal;
 #endif
 
-#pragma glslify: inverse = require(./utils/inverse.glsl)
-
 void main(){
     #pragma glslify: import('./chunks/assign-color-varying.glsl')
     #pragma glslify: import('./chunks/assign-marker-varying.glsl')
