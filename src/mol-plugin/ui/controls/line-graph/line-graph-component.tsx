@@ -91,6 +91,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.addPoint = this.addPoint.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.handleCanvasClick = this.handleCanvasClick.bind(this); 
+        this.addGhostPoint = this.addGhostPoint.bind(this);
     }
 
     public render() {
@@ -134,6 +135,13 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
     componentDidMount() {
         this.gElement = document.getElementsByClassName('ghost-points')[0] as SVGElement;
+        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener('keyup', this.handleKeyUp);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener('keyup', this.handleKeyUp);
     }
 
     private change(points: Vec2[]){
@@ -177,39 +185,42 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private handlePointClick = (event:any) => {
         event.stopPropagation();
 
-        let selected;
+        // const point = Vec2.create(this.state.points[id][0], this.state.points[id][1]);
+        // const copyPoint: Vec2 = this.normalizePoint(point);
         const id = parseInt(event.target.id);
-        const point = Vec2.create(this.state.points[id][0], this.state.points[id][1]);
-        const copyPoint: Vec2 = this.normalizePoint(point);
+        if(isNaN(id)) {
+            for(let i=0; i<this.ghostPoints.length; i++) {
+                if(this.ghostPoints[i].element == event.target) {
+                    let ghostPointElements = this.gElement.getElementsByClassName('ghostPoint');
+                    this.gElement.removeChild(ghostPointElements[i]);
+                    this.ghostPoints = this.ghostPoints.filter((_, j) => j !== i);
+                    return;
+                }
+            }
+        }
 
         if(this.state.canSelectMultiple) {
-            this.ghostPoints.push({id: id, element: document.createElementNS(this.namespace, 'circle') as SVGElement});
             let size = this.ghostPoints.length;
-            this.ghostPoints[size-1].element.setAttribute('r', '10');
-            this.ghostPoints[size-1].element.setAttribute('fill', 'orange');
-            this.ghostPoints[size-1].element.setAttribute('cx', `${copyPoint[0]}`);
-            this.ghostPoints[size-1].element.setAttribute('cy', `${copyPoint[1]}`);
+            this.ghostPoints[size-1].element.setAttribute('style', 'display: visible');
             this.ghostPoints[size-1].element.addEventListener('mousedown', this.handleMouseDown); 
+            this.ghostPoints[size-1].element.addEventListener('click', this.handlePointClick);
             this.gElement.appendChild(this.ghostPoints[size-1].element);
             // this.xValues.push(copyPoint[0]);
             // this.xValues.sort((a,b) =>  {return a-b});
             // this.yValues.push(copyPoint[1]);
             // this.yValues.sort((a,b) => {return a-b});
-            selected = this.state.selected;
-            selected.push(id);
-            this.setState({selected: selected});
             return;
         } 
         
-        let elements = document.getElementsByClassName('icon');
-        elements[0].classList.remove('disabled-minus');
-        elements[0].classList.add('icon-minus');
         this.ghostPoints[0].element.setAttribute('style', 'display: visible');
-        this.ghostPoints[0].element.addEventListener('mousedown', this.handleMouseDown); 
+        this.ghostPoints[0].element.addEventListener('mousedown', this.handleMouseDown);
+
 
     }
 
     private handleMouseDown = (event: any) => {
+        let selected;
+        let size;
         const id = parseInt(event.target.id);
         const x = event.target.cx.animVal.value;
         const y = event.target.cy.animVal.value;
@@ -219,27 +230,30 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         }
 
         this.mouseDown = true;
+        if(isNaN(id)) {
+            this.mouseStartPoint = Vec2.create(x, y);
+            return;
+        }
 
         if (this.state.canSelectMultiple) {
-            this.mouseStartPoint = Vec2.create(x, y); // getting the last time the user held down the mouse as a tempStarting point
+            this.addGhostPoint(id, x, y);
+            size = this.ghostPoints.length;
+            this.gElement.appendChild(this.ghostPoints[size-1].element);
+            this.mouseStartPoint = Vec2.create(x, y);
+            selected = this.state.selected;
+            selected.push(id);
+            this.setState({selected: selected});
+            // TODO: Keep track of upper, left, right, and bottom most points
             return;
         }
-        if(isNaN(id)) {
-            return;
-        }
-
+        
         let elements = document.getElementsByClassName('icon');
         const copyPoint: Vec2 = Vec2.create(x, y);
-        elements[0].classList.remove('icon-minus');
-        elements[0].classList.add('disabled-minus');
+        elements[0].classList.remove('disabled');
+        elements[0].classList.add('icon-minus');
         this.ghostPoints = [];
         this.gElement.innerHTML = '';
-        this.ghostPoints.push({id: id, element: document.createElementNS(this.namespace, 'circle') as SVGElement});
-        this.ghostPoints[0].element.setAttribute('r', '10');
-        this.ghostPoints[0].element.setAttribute('fill', 'orange');
-        this.ghostPoints[0].element.setAttribute('cx', `${copyPoint[0]}`);
-        this.ghostPoints[0].element.setAttribute('cy', `${copyPoint[1]}`);
-        this.ghostPoints[0].element.setAttribute('style', 'display: none');
+        this.addGhostPoint(id, x, y);
         this.gElement.appendChild(this.ghostPoints[0].element);
         this.updatedX = copyPoint[0];
         this.updatedY = copyPoint[1];
@@ -298,22 +312,26 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         const pt = this.myRef.createSVGPoint(); // create a temp point for the cursor pointer
         let updatedGhostPoint: Vec2;
         let ghostPoint: Vec2;
-        // let updatePoints = [];
-        // const padding = this.padding/2;
+        let selected = 0;
+
         pt.x = event.clientX;   // get x value of pointer
         pt.y = event.clientY;   // get y value of pointer
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
         const directionalVector = Vec2.create(svgP.x-this.mouseStartPoint[0], svgP.y-this.mouseStartPoint[1]); 
 
         for(let i = 0; i < this.ghostPoints.length; i++) {
-            const x = this.ghostPoints[i].element.getAttribute('cx');
-            const y = this.ghostPoints[i].element.getAttribute('cy');
-            ghostPoint = Vec2.create(parseInt(x as string), parseInt(y as string));
+            const tempX = this.ghostPoints[i].element.getAttribute('cx');
+            const tempY = this.ghostPoints[i].element.getAttribute('cy');
+            ghostPoint = Vec2.create(parseInt(tempX as string), parseInt(tempY as string));
+            if(this.mouseStartPoint[0] == ghostPoint[0]) {selected = i;}
             updatedGhostPoint = Vec2.create(ghostPoint[0]+directionalVector[0], ghostPoint[1]+directionalVector[1]);
             this.ghostPoints[i].element.setAttribute('cx', `${updatedGhostPoint[0]}`);
             this.ghostPoints[i].element.setAttribute('cy', `${updatedGhostPoint[1]}`);
+            this.ghostPoints[i].element.setAttribute('style', 'style: visible'); 
         }
-        this.mouseStartPoint = Vec2.create(svgP.x, svgP.y);
+        const x = parseInt(this.ghostPoints[selected].element.getAttribute('cx') as string);
+        const y = parseInt(this.ghostPoints[selected].element.getAttribute('cy') as string);
+        this.mouseStartPoint = Vec2.create(x, y);
         this.hasDragged = true;
     }
 
@@ -473,6 +491,17 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private handleEnter() {
         document.removeEventListener('mousemove', this.handleDrag, true);
         document.removeEventListener('mouseup', this.handlePointUpdate, true);
+    }
+
+    private addGhostPoint(id: number, x: number, y: number) {
+        this.ghostPoints.push({id: id, element: document.createElementNS(this.namespace, 'circle') as SVGElement});
+        const size = this.ghostPoints.length;
+        this.ghostPoints[size-1].element.setAttribute('r', '10');
+        this.ghostPoints[size-1].element.setAttribute('fill', 'orange');
+        this.ghostPoints[size-1].element.setAttribute('cx', `${x}`);
+        this.ghostPoints[size-1].element.setAttribute('cy', `${y}`);
+        this.ghostPoints[size-1].element.setAttribute('style', 'display: none');
+        this.ghostPoints[size-1].element.setAttribute('class', 'ghostPoint');
     }
 
     private normalizePoint(point: Vec2) {
