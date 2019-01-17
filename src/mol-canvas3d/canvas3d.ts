@@ -141,16 +141,16 @@ namespace Canvas3D {
 
         function mark(loci: Loci, action: MarkerAction, repr?: Representation.Any) {
             let changed = false
-            reprRenderObjects.forEach((_, _repr) => {
-                if (!repr || repr === _repr) {
-                    changed = _repr.mark(loci, action) || changed
-                }
-            })
+            if (repr) {
+                changed = repr.mark(loci, action)
+            } else {
+                reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed })
+            }
             if (changed) {
                 scene.update(true)
                 const prevPickDirty = pickDirty
                 draw(true)
-                pickDirty = prevPickDirty // picking buffers should not have changed
+                pickDirty = prevPickDirty // marking does not change picking buffers
             }
         }
 
