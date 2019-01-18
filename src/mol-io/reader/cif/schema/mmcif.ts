@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.300, IHM 0.136, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.303, IHM 0.139, CARB draft.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -3687,12 +3687,11 @@ export const mmCIF_Schema = {
         /**
          * The type of feature.
          */
-        feature_type: Aliased<'atom' | 'residue' | 'residue range'>(str),
+        feature_type: Aliased<'atom' | 'residue' | 'residue range' | 'ligand' | 'pseudo site'>(str),
         /**
          * The type of entity.
-         * This data item is a pointer to _entity.type in the ENTITY category.
          */
-        entity_type: Aliased<'polymer' | 'non-polymer' | 'macrolide' | 'water'>(str),
+        entity_type: Aliased<'polymer' | 'non-polymer' | 'water' | 'other'>(str),
     },
     /**
      * Data items in the IHM_POLY_RESIDUE_FEATURE category provides the defintions

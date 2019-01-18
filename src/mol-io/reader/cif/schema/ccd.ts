@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.300, IHM 0.136, CARB draft.
+ * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.303, IHM 0.139, CARB draft.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -378,7 +378,7 @@ export const CCD_Schema = {
         /**
          * This data item contains the identifier type.
          */
-        type: Aliased<'COMMON NAME' | 'SYSTEMATIC NAME' | 'CAS REGISTRY NUMBER' | 'PUBCHEM Identifier' | 'MDL Identifier' | 'SYNONYM'>(str),
+        type: Aliased<'COMMON NAME' | 'SYSTEMATIC NAME' | 'CAS REGISTRY NUMBER' | 'PUBCHEM Identifier' | 'MDL Identifier' | 'SYNONYM' | 'CONDENSED IUPAC CARB SYMBOL' | 'IUPAC CARB SYMBOL' | 'SNFG CARB SYMBOL'>(str),
         /**
          * This data item contains the name of the program
          * or library used to compute the identifier.

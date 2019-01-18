@@ -97,7 +97,7 @@ const IHM_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/IHM-dictionary/mast
 const CARB_BRANCH_DIC_PATH = `${DIC_DIR}/entity_branch-extension.dic`
 const CARB_BRANCH_DIC_URL = 'https://raw.githubusercontent.com/pdbxmmcifwg/carbohydrate-extension/master/dict/entity_branch-extension.dic'
 const CARB_COMP_DIC_PATH = `${DIC_DIR}/chem_comp-extension.dic`
-const CARB_COMP_DIC_URL = 'https://raw.githubusercontent.com/pdbxmmcifwg/carbohydrate-extension/master/dict/chem_comp-extension.txt'
+const CARB_COMP_DIC_URL = 'https://raw.githubusercontent.com/pdbxmmcifwg/carbohydrate-extension/master/dict/chem_comp-extension.dic'
 
 const parser = new argparse.ArgumentParser({
   addHelp: true,
