@@ -25,8 +25,10 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private updatedX: number;
     private updatedY: number;
     private ghostPoints: {id: number, element: SVGElement}[];
-    // private xValues: number[];
-    // private yValues: number[]
+    private leftMost:  SVGElement;
+    private rightMost: SVGElement;
+    private upperMost: SVGElement;
+    private bottomMost: SVGElement;
     private gElement: SVGElement;
     private namespace: string;
     private userInput: {[name:string]: number} = {};
@@ -54,14 +56,14 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.padding = 70;
 
         this.ghostPoints = [];
-        // this.xValues = [];
-        // this.yValues = [];
         this.namespace = 'http://www.w3.org/2000/svg';
         this.userInput['x'] = -1;
         this.userInput['y'] = -1;
         this.mouseDown = false;
         this.hasDragged = false;        
-    
+        this.leftMost = document.createElementNS(this.namespace, 'circle') as SVGElement;
+        this.leftMost.setAttribute('cx', '0');
+        
         for (const point of this.props.data){
             this.state.points.push(point);
         }
@@ -152,7 +154,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     private handleKeyDown = (event: any) => {
-        if(event.keyCode == 91) {
+        if(event.keyCode == 16) {
             let elements = document.getElementsByClassName('icon');
             elements[0].classList.remove('icon-minus');
             elements[0].classList.add('disabled-minus');
@@ -167,7 +169,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     private handleCanvasClick() {
-        console.log(`handleCanvasClick()`);
         if(this.state.canSelectMultiple) {
             return;
         }
@@ -176,6 +177,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.gElement.innerHTML = '';
         this.setState({selected: []});
         this.ghostPoints = [];
+        this.leftMost.setAttribute('cx', '0');
         elements[0].classList.remove('icon-minus');
         elements[0].classList.add('disabled-minus');
         elements[1].classList.remove('icon-plus');
@@ -185,8 +187,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private handlePointClick = (event:any) => {
         event.stopPropagation();
 
-        // const point = Vec2.create(this.state.points[id][0], this.state.points[id][1]);
-        // const copyPoint: Vec2 = this.normalizePoint(point);
         const id = parseInt(event.target.id);
         if(isNaN(id)) {
             for(let i=0; i<this.ghostPoints.length; i++) {
@@ -205,10 +205,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             this.ghostPoints[size-1].element.addEventListener('mousedown', this.handleMouseDown); 
             this.ghostPoints[size-1].element.addEventListener('click', this.handlePointClick);
             this.gElement.appendChild(this.ghostPoints[size-1].element);
-            // this.xValues.push(copyPoint[0]);
-            // this.xValues.sort((a,b) =>  {return a-b});
-            // this.yValues.push(copyPoint[1]);
-            // this.yValues.sort((a,b) => {return a-b});
             return;
         } 
         
@@ -243,7 +239,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             selected = this.state.selected;
             selected.push(id);
             this.setState({selected: selected});
-            // TODO: Keep track of upper, left, right, and bottom most points
             return;
         }
         
@@ -309,15 +304,35 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             return;
         }
 
+        const padding = this.padding/2;
         const pt = this.myRef.createSVGPoint(); // create a temp point for the cursor pointer
         let updatedGhostPoint: Vec2;
         let ghostPoint: Vec2;
         let selected = 0;
 
-        pt.x = event.clientX;   // get x value of pointer
-        pt.y = event.clientY;   // get y value of pointer
+        pt.x = event.clientX;
+        pt.y = event.clientY;
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
-        const directionalVector = Vec2.create(svgP.x-this.mouseStartPoint[0], svgP.y-this.mouseStartPoint[1]); 
+        const directionalVector = Vec2.create(svgP.x-this.mouseStartPoint[0], svgP.y-this.mouseStartPoint[1]);
+        const leftMostInt = parseInt(this.leftMost.getAttribute('cx') as string);
+        const rightMostInt = parseInt(this.rightMost.getAttribute('cx') as string);
+        const upperMostInt = parseInt(this.upperMost.getAttribute('cy') as string);
+        const bottomMostInt = parseInt(this.bottomMost.getAttribute('cy') as string);
+        if((directionalVector[0]+leftMostInt) <= padding) {
+            directionalVector[0] = padding-leftMostInt;
+        }
+        
+        if((directionalVector[0]+rightMostInt) >= this.width+padding) {
+            directionalVector[0] = (this.width+padding)-rightMostInt;
+        }
+
+        if((directionalVector[1]+upperMostInt) <= padding) {
+            directionalVector[1] = padding-upperMostInt;
+        }
+
+        if((directionalVector[1]+bottomMostInt) >= (this.height+padding)) {
+            directionalVector[1] = (this.height+padding)-bottomMostInt;
+        }
 
         for(let i = 0; i < this.ghostPoints.length; i++) {
             const tempX = this.ghostPoints[i].element.getAttribute('cx');
@@ -328,7 +343,9 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             this.ghostPoints[i].element.setAttribute('cx', `${updatedGhostPoint[0]}`);
             this.ghostPoints[i].element.setAttribute('cy', `${updatedGhostPoint[1]}`);
             this.ghostPoints[i].element.setAttribute('style', 'style: visible'); 
+            this.sortOuterGhostPoints(this.ghostPoints[i].element);
         }
+
         const x = parseInt(this.ghostPoints[selected].element.getAttribute('cx') as string);
         const y = parseInt(this.ghostPoints[selected].element.getAttribute('cy') as string);
         this.mouseStartPoint = Vec2.create(x, y);
@@ -357,9 +374,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             points[id] = updatedPoint;
         }
 
-        // const updatedPoint = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
-        // const points = this.state.points.filter((_,i) => i !== selected[0]);
-        // points.push(updatedPoint);;
         points.sort((a, b) => { 
             if(a[0] === b[0]){
                 if(a[0] === 1){
@@ -380,6 +394,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         });
         this.ghostPoints = [];
         this.hasDragged = false;
+        this.leftMost.setAttribute('cx', '0'); // 'Initialize' the leftMost point
         document.removeEventListener("mousemove", this.handleDrag, true);
         document.removeEventListener("mouseup", this.handlePointUpdate, true);
     }
@@ -484,12 +499,21 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             return;
         }
 
-        document.addEventListener('mousemove', this.handleDrag, true);
+        if(this.state.canSelectMultiple){
+            document.addEventListener('mousemove', this.handleMultipleDrag, true);
+       } else {
+           document.addEventListener('mousemove', this.handleDrag, true);
+       }
+
         document.addEventListener('mouseup', this.handlePointUpdate, true);
     }
 
     private handleEnter() {
-        document.removeEventListener('mousemove', this.handleDrag, true);
+        if(this.state.canSelectMultiple) {
+            document.removeEventListener('mousemove', this.handleMultipleDrag, true);
+        } else {
+            document.removeEventListener('mousemouse', this.handleDrag, true);
+        }
         document.removeEventListener('mouseup', this.handlePointUpdate, true);
     }
 
@@ -502,6 +526,35 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.ghostPoints[size-1].element.setAttribute('cy', `${y}`);
         this.ghostPoints[size-1].element.setAttribute('style', 'display: none');
         this.ghostPoints[size-1].element.setAttribute('class', 'ghostPoint');
+        this.sortOuterGhostPoints(this.ghostPoints[size-1].element);
+    }
+
+    private sortOuterGhostPoints(element: SVGElement) {
+        if(this.leftMost.getAttribute('cx') == '0') {
+            this.leftMost = element;
+            this.rightMost = element;
+            this.upperMost = element;
+            this.bottomMost = element;
+        }
+
+        const x = parseInt(element.getAttribute('cx') as string);
+        const y = parseInt(element.getAttribute('cy') as string);
+
+        if(x < parseInt(this.leftMost.getAttribute('cx') as string)) {
+            this.leftMost = element;
+        }
+        
+        if(x > parseInt(this.rightMost.getAttribute('cx') as string)) {
+            this.rightMost = element;
+        }
+
+        if(y > parseInt(this.rightMost.getAttribute('cy') as string)) {
+            this.bottomMost = element;
+        }
+
+        if(y < parseInt(this.upperMost.getAttribute('cy') as string)) {
+            this.upperMost = element;
+        }
     }
 
     private normalizePoint(point: Vec2) {
