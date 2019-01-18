@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Paul Luna <paulluna0215@gmail.com>
+ */
 
 import * as React from 'react';
 
