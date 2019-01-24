@@ -7,7 +7,7 @@
 import { VolumeData } from 'mol-model/volume'
 import { RuntimeContext } from 'mol-task'
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
-import { createDirectVolumeRenderObject } from 'mol-gl/render-object';
+import { createRenderObject } from 'mol-gl/render-object';
 import { EmptyLoci } from 'mol-model/loci';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -17,7 +17,7 @@ import { createTexture } from 'mol-gl/webgl/texture';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { Geometry } from 'mol-geo/geometry/geometry';
+import { BaseGeometry } from 'mol-geo/geometry/base';
 import { VisualUpdateState } from 'mol-repr/util';
 import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
@@ -157,7 +157,7 @@ export async function createDirectVolume(ctx: VisualContext, volume: VolumeData,
 //
 
 export const DirectVolumeParams = {
-    ...Geometry.Params,
+    ...BaseGeometry.Params,
     ...DirectVolume.Params
 }
 export type DirectVolumeParams = typeof DirectVolumeParams
@@ -175,13 +175,13 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
         },
         createRenderObject: (geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<DirectVolumeParams>) => {
             const transform = createIdentityTransform()
-            const values = DirectVolume.createValues(geometry, transform, locationIt, theme, props)
-            const state = DirectVolume.createRenderableState(props)
-            return createDirectVolumeRenderObject(values, state)
+            const values = DirectVolume.Utils.createValues(geometry, transform, locationIt, theme, props)
+            const state = DirectVolume.Utils.createRenderableState(props)
+            return createRenderObject('direct-volume', values, state)
         },
-        updateValues: DirectVolume.updateValues,
-        updateBoundingSphere: DirectVolume.updateBoundingSphere,
-        updateRenderableState: DirectVolume.updateRenderableState
+        updateValues: DirectVolume.Utils.updateValues,
+        updateBoundingSphere: DirectVolume.Utils.updateBoundingSphere,
+        updateRenderableState: DirectVolume.Utils.updateRenderableState
     })
 }
 

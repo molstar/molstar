@@ -8,7 +8,7 @@
 import { Structure } from 'mol-model/structure';
 import { Representation, RepresentationProps, RepresentationProvider } from '../representation';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Geometry } from 'mol-geo/geometry/geometry';
+import { BaseGeometry } from 'mol-geo/geometry/base';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
@@ -21,7 +21,7 @@ export type StructureRepresentationProvider<P extends PD.Params> = Representatio
 
 //
 
-export const StructureParams = { ...Geometry.Params }
+export const StructureParams = { ...BaseGeometry.Params }
 export type StructureParams = typeof StructureParams
 
 export const StructureMeshParams = { ...Mesh.Params, ...StructureParams }

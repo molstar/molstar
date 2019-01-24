@@ -5,7 +5,7 @@
  */
 
 import { Task } from 'mol-task'
-import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
+import { RenderObject, createRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationContext } from '../representation';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { ValueCell } from 'mol-util';
@@ -14,7 +14,6 @@ import { OrderedSet, Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
-import { Geometry } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
@@ -51,14 +50,13 @@ export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationCo
 
             if (!_shape) return
 
-            const mesh = _shape.mesh
             locationIt = ShapeGroupIterator.fromShape(_shape)
             const transform = createIdentityTransform()
 
-            const values = Mesh.createValues(mesh, transform, locationIt, _theme, currentProps)
-            const state = Geometry.createRenderableState(currentProps)
+            const values = Mesh.Utils.createValues(_shape.mesh, transform, locationIt, _theme, currentProps)
+            const state = Mesh.Utils.createRenderableState(currentProps)
 
-            _renderObject = createMeshRenderObject(values, state)
+            _renderObject = createRenderObject('mesh', values, state)
             renderObjects.push(_renderObject)
             updated.next(version++)
         });

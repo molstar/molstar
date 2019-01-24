@@ -17,7 +17,7 @@ import { SizeTheme } from 'mol-theme/size';
 import { Theme, ThemeRegistryContext, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 import { Mat4 } from 'mol-math/linear-algebra';
-import { Geometry } from 'mol-geo/geometry/geometry';
+import { BaseGeometry } from 'mol-geo/geometry/base';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -242,14 +242,14 @@ namespace Representation {
         }
     }
 
-    export function fromRenderObject(label: string, renderObject: GraphicsRenderObject): Representation<GraphicsRenderObject, Geometry.Params> {
+    export function fromRenderObject(label: string, renderObject: GraphicsRenderObject): Representation<GraphicsRenderObject, BaseGeometry.Params> {
         let version = 0
         const updated = new Subject<number>()
         const currentState = Representation.createState()
         const currentTheme = createEmptyTheme()
 
-        const currentParams = PD.clone(Geometry.Params)
-        const currentProps = PD.getDefaultValues(Geometry.Params)
+        const currentParams = PD.clone(BaseGeometry.Params)
+        const currentProps = PD.getDefaultValues(BaseGeometry.Params)
 
         return {
             label,
@@ -258,7 +258,7 @@ namespace Representation {
             get renderObjects() { return [renderObject] },
             get props() { return currentProps },
             get params() { return currentParams },
-            createOrUpdate: (props: Partial<PD.Values<Geometry.Params>> = {}) => {
+            createOrUpdate: (props: Partial<PD.Values<BaseGeometry.Params>> = {}) => {
                 const qualityProps = getQualityProps(Object.assign({}, currentProps, props))
                 Object.assign(currentProps, props, qualityProps)
 

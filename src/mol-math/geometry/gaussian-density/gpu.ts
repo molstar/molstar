@@ -14,7 +14,7 @@ import { Vec3, Tensor, Mat4 } from '../../linear-algebra'
 import { GaussianDensityValues } from 'mol-gl/renderable/gaussian-density'
 import { ValueCell } from 'mol-util'
 import { RenderableState, Renderable } from 'mol-gl/renderable'
-import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/render-object'
+import { createRenderable, createRenderObject } from 'mol-gl/render-object'
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
@@ -236,7 +236,7 @@ function getGaussianDensityRenderObject(webgl: WebGLContext, drawCount: number, 
         opaque: true
     }
 
-    const renderObject = createGaussianDensityRenderObject(values, state)
+    const renderObject = createRenderObject('gaussian-density', values, state)
 
     return renderObject
 }

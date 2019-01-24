@@ -5,21 +5,19 @@
  */
 
 import { ValueCell } from 'mol-util';
-import { Geometry } from '../geometry';
+import { GeometryUtils } from '../geometry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { TransformData, createIdentityTransform } from '../transform-data';
+import { TransformData } from '../transform-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { Theme } from 'mol-theme/theme';
 import { SpheresValues } from 'mol-gl/renderable/spheres';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
-import { ColorNames } from 'mol-util/color/tables';
 import { Sphere3D } from 'mol-math/geometry';
 import { createSizes, getMaxSize } from '../size-data';
-import { NullLocation } from 'mol-model/location';
-import { UniformColorTheme } from 'mol-theme/color/uniform';
-import { UniformSizeTheme } from 'mol-theme/size/uniform';
+import { Color } from 'mol-util/color';
+import { BaseGeometry } from '../base';
 
 /** Spheres */
 export interface Spheres {
@@ -55,13 +53,24 @@ export namespace Spheres {
     }
 
     export const Params = {
-        ...Geometry.Params,
+        ...BaseGeometry.Params,
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
         doubleSided: PD.Boolean(false),
     }
     export type Params = typeof Params
 
-    export function createValues(spheres: Spheres, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): SpheresValues {
+    export const Utils: GeometryUtils<Spheres, Params> = {
+        Params,
+        createEmpty,
+        createValues,
+        createValuesSimple,
+        updateValues,
+        updateBoundingSphere,
+        createRenderableState: BaseGeometry.createRenderableState,
+        updateRenderableState: BaseGeometry.updateRenderableState
+    }
+
+    function createValues(spheres: Spheres, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): SpheresValues {
         const { instanceCount, groupCount } = locationIt
         if (instanceCount !== transform.instanceCount.ref.value) {
             throw new Error('instanceCount values in TransformData and LocationIterator differ')
@@ -93,32 +102,25 @@ export namespace Spheres {
 
             padding: ValueCell.create(padding),
 
-            ...Geometry.createValues(props, counts),
+            ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor),
             dDoubleSided: ValueCell.create(props.doubleSided),
         }
     }
 
-    export function createValuesSimple(spheres: Spheres, props: Partial<PD.Values<Params>>, colorValue = ColorNames.grey, sizeValue = 1, transform?: TransformData): SpheresValues {
-
-        if (!transform) transform = createIdentityTransform()
-        const locationIterator = LocationIterator(1, transform.instanceCount.ref.value, () => NullLocation, false, () => false)
-        const theme: Theme = {
-            color: UniformColorTheme({}, { value: colorValue}),
-            size: UniformSizeTheme({}, { value: sizeValue})
-        }
-        const p = { ...PD.getDefaultValues(Params), ...props }
-
-        return createValues(spheres, transform, locationIterator, theme, p)
+    function createValuesSimple(spheres: Spheres, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
+        const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
+        const p = { ...PD.getDefaultValues(Params), props }
+        return createValues(spheres, s.transform, s.locationIterator, s.theme, p)
     }
 
-    export function updateValues(values: SpheresValues, props: PD.Values<Params>) {
-        Geometry.updateValues(values, props)
+    function updateValues(values: SpheresValues, props: PD.Values<Params>) {
+        BaseGeometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor)
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
     }
 
-    export function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {
+    function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {
         const padding = getMaxSize(values)
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, spheres.sphereCount * 4,

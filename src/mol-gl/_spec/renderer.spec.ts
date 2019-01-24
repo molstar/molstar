@@ -15,7 +15,7 @@ import { createValueColor } from 'mol-geo/geometry/color-data';
 import { createValueSize } from 'mol-geo/geometry/size-data';
 import { createContext } from '../webgl/context';
 import { RenderableState } from '../renderable';
-import { createPointsRenderObject } from '../render-object';
+import { createRenderObject } from '../render-object';
 import { PointsValues } from '../renderable/points';
 import Scene from '../scene';
 import { createEmptyMarkers } from 'mol-geo/geometry/marker-data';
@@ -94,7 +94,7 @@ function createPoints() {
         opaque: true
     }
 
-    return createPointsRenderObject(values, state)
+    return createRenderObject('points', values, state)
 }
 
 describe('renderer', () => {

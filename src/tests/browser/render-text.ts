@@ -6,14 +6,13 @@
 
 import './index.html'
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { Geometry } from 'mol-geo/geometry/geometry';
 import { TextBuilder } from 'mol-geo/geometry/text/text-builder';
 import { Text } from 'mol-geo/geometry/text/text';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Color } from 'mol-util/color';
-import { createTextRenderObject, createSpheresRenderObject } from 'mol-gl/render-object';
 import { Representation } from 'mol-repr/representation';
 import { SpheresBuilder } from 'mol-geo/geometry/spheres/spheres-builder';
+import { createRenderObject } from 'mol-gl/render-object';
 import { Spheres } from 'mol-geo/geometry/spheres/spheres';
 
 const parent = document.getElementById('app')!
@@ -45,9 +44,9 @@ function textRepr() {
     textBuilder.add('αβγ Å', 0, -2, 0, 0)
     const text = textBuilder.getText()
 
-    const values = Text.createValuesSimple(text, props, Color(0xFFDD00), 1)
-    const state = Text.createRenderableState(props)
-    const renderObject = createTextRenderObject(values, state)
+    const values = Text.Utils.createValuesSimple(text, props, Color(0xFFDD00), 1)
+    const state = Text.Utils.createRenderableState(props)
+    const renderObject = createRenderObject('text', values, state)
     console.log('text', renderObject)
     const repr = Representation.fromRenderObject('text', renderObject)
     return repr
@@ -60,9 +59,9 @@ function spheresRepr() {
     spheresBuilder.add(-4, 1, 0, 0)
     const spheres = spheresBuilder.getSpheres()
 
-    const values = Spheres.createValuesSimple(spheres, {}, Color(0xFF0000), 0.2)
-    const state = Geometry.createRenderableState()
-    const renderObject = createSpheresRenderObject(values, state)
+    const values = Spheres.Utils.createValuesSimple(spheres, {}, Color(0xFF0000), 0.2)
+    const state = Spheres.Utils.createRenderableState({})
+    const renderObject = createRenderObject('spheres', values, state)
     console.log('spheres', renderObject)
     const repr = Representation.fromRenderObject('spheres', renderObject)
     return repr

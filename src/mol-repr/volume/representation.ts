@@ -13,7 +13,7 @@ import { Geometry } from 'mol-geo/geometry/geometry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
-import { DirectVolumeRenderObject, PointsRenderObject, LinesRenderObject, MeshRenderObject } from 'mol-gl/render-object';
+import { GraphicsRenderObject } from 'mol-gl/render-object';
 import { Interval } from 'mol-data/int';
 import { RenderableValues } from 'mol-gl/renderable/schema';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
@@ -24,10 +24,9 @@ import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 import { RenderableState } from 'mol-gl/renderable';
 import { Mat4 } from 'mol-math/linear-algebra';
+import { BaseGeometry } from 'mol-geo/geometry/base';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
-
-type VolumeRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
 
 interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     defaultProps: PD.Values<P>
@@ -38,7 +37,7 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
 }
 
 interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
-    createRenderObject(geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): VolumeRenderObject
+    createRenderObject(geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): GraphicsRenderObject
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
     updateBoundingSphere(values: RenderableValues, geometry: G): void
     updateRenderableState(state: RenderableState, props: PD.Values<P>): void
@@ -50,7 +49,7 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
     const updateState = VisualUpdateState.create()
 
     let currentProps: PD.Values<P>
-    let renderObject: VolumeRenderObject | undefined
+    let renderObject: GraphicsRenderObject | undefined
     let currentVolume: VolumeData
     let geometry: Geometry
     let locationIt: LocationIterator
@@ -147,7 +146,7 @@ export type VolumeRepresentationProvider<P extends VolumeParams> = Representatio
 //
 
 export const VolumeParams = {
-    ...Geometry.Params,
+    ...BaseGeometry.Params,
     isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
 }
 export type VolumeParams = typeof VolumeParams

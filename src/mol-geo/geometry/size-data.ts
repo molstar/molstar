@@ -10,7 +10,7 @@ import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { LocationIterator } from '../util/location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 import { SizeTheme } from 'mol-theme/size';
-import { getGranularity } from './geometry';
+import { Geometry } from './geometry';
 import { encodeFloatLog } from 'mol-util/float-packing';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
@@ -23,7 +23,7 @@ export type SizeData = {
 }
 
 export function createSizes(locationIt: LocationIterator, sizeTheme: SizeTheme<any>, sizeData?: SizeData): SizeData {
-    switch (getGranularity(locationIt, sizeTheme.granularity)) {
+    switch (Geometry.getGranularity(locationIt, sizeTheme.granularity)) {
         case 'uniform': return createUniformSize(locationIt, sizeTheme.size, sizeData)
         case 'group': return createGroupSize(locationIt, sizeTheme.size, sizeData)
         case 'groupInstance': return createGroupInstanceSize(locationIt, sizeTheme.size, sizeData)

@@ -11,7 +11,7 @@ import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
 import { LocationColor, ColorTheme } from 'mol-theme/color';
-import { getGranularity } from './geometry';
+import { Geometry } from './geometry';
 
 export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -23,7 +23,7 @@ export type ColorData = {
 }
 
 export function createColors(locationIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
-    switch (getGranularity(locationIt, colorTheme.granularity)) {
+    switch (Geometry.getGranularity(locationIt, colorTheme.granularity)) {
         case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData)
         case 'group': return createGroupColor(locationIt, colorTheme.color, colorData)
         case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData)

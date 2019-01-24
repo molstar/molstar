@@ -25,7 +25,7 @@ export interface ElementSphereMeshProps {
     sizeFactor: number
 }
 
-export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh) {
+export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh): Mesh {
     const { detail, sizeFactor } = props
 
     const { elements } = unit;
@@ -51,7 +51,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
 
 export interface ElementSphereImpostorProps { }
 
-export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres) {
+export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
 
     const { elements } = unit;
     const elementCount = elements.length;

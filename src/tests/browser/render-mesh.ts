@@ -10,10 +10,9 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { Sphere } from 'mol-geo/primitive/sphere';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { Geometry } from 'mol-geo/geometry/geometry';
-import { createMeshRenderObject } from 'mol-gl/render-object';
 import { Representation } from 'mol-repr/representation';
 import { Color } from 'mol-util/color';
+import { createRenderObject } from 'mol-gl/render-object';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -33,9 +32,9 @@ const sphere = Sphere(2)
 MeshBuilder.addPrimitive(builderState, t, sphere)
 const mesh = MeshBuilder.getMesh(builderState)
 
-const values = Mesh.createValuesSimple(mesh, {}, Color(0xFF0000))
-const state = Geometry.createRenderableState()
-const renderObject = createMeshRenderObject(values, state)
+const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0xFF0000), 1)
+const state = Mesh.Utils.createRenderableState({})
+const renderObject = createRenderObject('mesh', values, state)
 const repr = Representation.fromRenderObject('sphere-mesh', renderObject)
 
 canvas3d.add(repr)

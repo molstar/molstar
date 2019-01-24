@@ -4,36 +4,27 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Color } from 'mol-util/color';
 import { UUID, ValueCell } from 'mol-util';
 import { OrderedSet } from 'mol-data/int';
-import { arrayMax } from 'mol-util/array';
+import { Geometry } from 'mol-geo/geometry/geometry';
 
 export interface Shape {
     readonly id: UUID
     readonly name: string
-    readonly mesh: Mesh
+    readonly geometry: Geometry
     readonly colors: ValueCell<Color[]>
     readonly labels: ValueCell<string[]>
     readonly groupCount: number
 }
 
 export namespace Shape {
-    export function create(name: string, mesh: Mesh, colors: Color[], labels: string[]): Shape {
-        let currentGroupBufferVersion = -1
-        let currentGroupCount = -1
-
+    export function create(name: string, geometry: Geometry, colors: Color[], labels: string[]): Shape {
         return {
             id: UUID.create22(),
             name,
-            mesh,
-            get groupCount() {
-                if (mesh.groupBuffer.ref.version !== currentGroupBufferVersion) {
-                    currentGroupCount = arrayMax(mesh.groupBuffer.ref.value) + 1
-                }
-                return currentGroupCount
-            },
+            geometry,
+            groupCount: Geometry.getGroupCount(geometry),
             colors: ValueCell.create(colors),
             labels: ValueCell.create(labels),
         }

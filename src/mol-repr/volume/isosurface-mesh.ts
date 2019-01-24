@@ -7,14 +7,13 @@
 
 import { VolumeData } from 'mol-model/volume'
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
-import { createMeshRenderObject } from 'mol-gl/render-object';
+import { createRenderObject } from 'mol-gl/render-object';
 import { EmptyLoci } from 'mol-model/loci';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
-import { Geometry } from 'mol-geo/geometry/geometry';
 import { VisualUpdateState } from 'mol-repr/util';
 import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
@@ -60,13 +59,13 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceParams> {
         },
         createRenderObject: (geometry: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<IsosurfaceParams>) => {
             const transform = createIdentityTransform()
-            const values = Mesh.createValues(geometry, transform, locationIt, theme, props)
-            const state = Geometry.createRenderableState(props)
-            return createMeshRenderObject(values, state)
+            const values = Mesh.Utils.createValues(geometry, transform, locationIt, theme, props)
+            const state = Mesh.Utils.createRenderableState(props)
+            return createRenderObject('mesh', values, state)
         },
-        updateValues: Mesh.updateValues,
-        updateBoundingSphere: Mesh.updateBoundingSphere,
-        updateRenderableState: Geometry.updateRenderableState
+        updateValues: Mesh.Utils.updateValues,
+        updateBoundingSphere: Mesh.Utils.updateBoundingSphere,
+        updateRenderableState: Mesh.Utils.updateRenderableState
     })
 }
 

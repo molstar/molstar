@@ -6,16 +6,15 @@
 
 import { Structure } from 'mol-model/structure';
 import { Visual, VisualContext } from '../visual';
-import { MeshRenderObject, LinesRenderObject, PointsRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
-import { createComplexMeshRenderObject, UnitKind, UnitKindOptions, createComplexDirectVolumeRenderObject } from './visual/util/common';
+import { createRenderObject, GraphicsRenderObject } from 'mol-gl/render-object';
+import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { StructureMeshParams, StructureParams, StructureDirectVolumeParams } from './representation';
 import { deepEqual, ValueCell } from 'mol-util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { RenderableValues } from 'mol-gl/renderable/schema';
 import { createSizes } from 'mol-geo/geometry/size-data';
-import { Geometry } from 'mol-geo/geometry/geometry';
+import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { createColors } from 'mol-geo/geometry/color-data';
@@ -25,20 +24,26 @@ import { VisualUpdateState } from 'mol-repr/util';
 import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
-import { RenderableState } from 'mol-gl/renderable';
 import { UnitsParams } from './units-representation';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Mat4 } from 'mol-math/linear-algebra';
+import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
+
+function createComplexRenderObject(structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureParams>) {
+    const { createValues, createRenderableState } = Geometry.getUtils(geometry.kind)
+    const transform = createIdentityTransform()
+    const values = createValues(geometry, transform, locationIt, theme, props as any) // TODO
+    const state = createRenderableState(props)
+    return createRenderObject(geometry.kind, values, state)
+}
 
 const ComplexParams = {
     ...StructureParams,
     unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
 }
 type ComplexParams = typeof ComplexParams
-
-type ComplexRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
 
 interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
     defaultProps: PD.Values<P>
@@ -49,20 +54,16 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
-interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
-    createEmptyGeometry(geometry?: G): G
-    createRenderObject(structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): ComplexRenderObject
-    updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
-    updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
-    updateRenderableState(state: RenderableState, props: PD.Values<P>): void
+interface ComplexVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
+    geometryUtils: GeometryUtils<G>
 }
 
-export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeometryBuilder<P, Geometry>): ComplexVisual<P> {
+export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geometry.Params<G>>(builder: ComplexVisualGeometryBuilder<P, G>): ComplexVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
-    const { createRenderObject, updateValues, updateBoundingSphere, updateRenderableState } = builder
+    const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
-    let renderObject: ComplexRenderObject | undefined
+    let renderObject: GraphicsRenderObject | undefined
 
     let newProps: PD.Values<P>
     let newTheme: Theme
@@ -72,7 +73,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
     let currentTheme: Theme = createEmptyTheme()
     let currentStructure: Structure
 
-    let geometry: Geometry
+    let geometry: G
     let locationIt: LocationIterator
 
     function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, structure: Structure) {
@@ -111,11 +112,11 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         }
     }
 
-    function update(newGeometry?: Geometry) {
+    function update(newGeometry?: G) {
         if (updateState.createNew) {
             locationIt = createLocationIterator(newStructure)
             if (newGeometry) {
-                renderObject = createRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps)
+                renderObject = createComplexRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps)
             } else {
                 throw new Error('expected geometry to be given')
             }
@@ -220,17 +221,13 @@ export type ComplexMeshParams = typeof ComplexMeshParams
 export interface ComplexMeshVisualBuilder<P extends ComplexMeshParams> extends ComplexVisualBuilder<P, Mesh> { }
 
 export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
-    return ComplexVisual<StructureMeshParams & UnitsParams>({
+    return ComplexVisual<Mesh, StructureMeshParams & UnitsParams>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
-        createEmptyGeometry: Mesh.createEmpty,
-        createRenderObject: createComplexMeshRenderObject,
-        updateValues: Mesh.updateValues,
-        updateBoundingSphere: Mesh.updateBoundingSphere,
-        updateRenderableState: Geometry.updateRenderableState
+        geometryUtils: Mesh.Utils
     })
 }
 
@@ -245,16 +242,12 @@ export type ComplexDirectVolumeParams = typeof ComplexDirectVolumeParams
 export interface ComplexDirectVolumeVisualBuilder<P extends ComplexDirectVolumeParams> extends ComplexVisualBuilder<P, DirectVolume> { }
 
 export function ComplexDirectVolumeVisual<P extends ComplexDirectVolumeParams>(builder: ComplexDirectVolumeVisualBuilder<P>): ComplexVisual<P> {
-    return ComplexVisual<StructureDirectVolumeParams & UnitsParams>({
+    return ComplexVisual<DirectVolume, StructureDirectVolumeParams & UnitsParams>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
-        createEmptyGeometry: DirectVolume.createEmpty,
-        createRenderObject: createComplexDirectVolumeRenderObject,
-        updateValues: DirectVolume.updateValues,
-        updateBoundingSphere: DirectVolume.updateBoundingSphere,
-        updateRenderableState: DirectVolume.updateRenderableState
+        geometryUtils: DirectVolume.Utils
     })
 }

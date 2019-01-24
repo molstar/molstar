@@ -6,17 +6,14 @@
 
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ValueCell } from 'mol-util';
-import { Geometry } from '../geometry';
+import { GeometryUtils } from '../geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { TransformData, createIdentityTransform } from '../transform-data';
+import { TransformData } from '../transform-data';
 import { Theme } from 'mol-theme/theme';
 import { createColors } from '../color-data';
 import { createSizes, getMaxSize } from '../size-data';
 import { createMarkers } from '../marker-data';
 import { ColorNames } from 'mol-util/color/tables';
-import { NullLocation } from 'mol-model/location';
-import { UniformColorTheme } from 'mol-theme/color/uniform';
-import { UniformSizeTheme } from 'mol-theme/size/uniform';
 import { Sphere3D } from 'mol-math/geometry';
 import { calculateBoundingSphere, TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { TextValues } from 'mol-gl/renderable/text';
@@ -25,6 +22,8 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { FontAtlasParams } from './font-atlas';
 import { RenderableState } from 'mol-gl/renderable';
 import { clamp } from 'mol-math/interpolate';
+import { createRenderObject as _createRenderObject } from 'mol-gl/render-object';
+import { BaseGeometry } from '../base';
 
 type TextAttachment = 'bottom-left' | 'bottom-center' | 'bottom-right' | 'middle-left' | 'middle-center' | 'middle-right' | 'top-left' | 'top-center' | 'top-right'
 
@@ -70,7 +69,7 @@ export namespace Text {
     }
 
     export const Params = {
-        ...Geometry.Params,
+        ...BaseGeometry.Params,
         ...FontAtlasParams,
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
 
@@ -88,7 +87,19 @@ export namespace Text {
     }
     export type Params = typeof Params
 
-    export function createValues(text: Text, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): TextValues {
+    export const Utils: GeometryUtils<Text, Params> = {
+        Params,
+        createEmpty,
+        createValues,
+        createValuesSimple,
+        updateValues,
+        updateBoundingSphere,
+        createRenderableState,
+        updateRenderableState,
+        // createRenderObject
+    }
+
+    function createValues(text: Text, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): TextValues {
         const { instanceCount, groupCount } = locationIt
         if (instanceCount !== transform.instanceCount.ref.value) {
             throw new Error('instanceCount values in TransformData and LocationIterator differ')
@@ -122,7 +133,7 @@ export namespace Text {
             tFont: text.fontTexture,
             padding: ValueCell.create(padding),
 
-            ...Geometry.createValues(props, counts),
+            ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor),
 
             uBorderWidth: ValueCell.create(clamp(props.borderWidth / 2, 0, 0.5)),
@@ -135,25 +146,18 @@ export namespace Text {
         }
     }
 
-    export function createValuesSimple(text: Text, props: Partial<PD.Values<Params>>, colorValue = ColorNames.grey, sizeValue = 1, transform?: TransformData): TextValues {
-
-        if (!transform) transform = createIdentityTransform()
-        const locationIterator = LocationIterator(1, transform.instanceCount.ref.value, () => NullLocation, false, () => false)
-        const theme: Theme = {
-            color: UniformColorTheme({}, { value: colorValue}),
-            size: UniformSizeTheme({}, { value: sizeValue})
-        }
-        const p = { ...PD.getDefaultValues(Params), ...props }
-
-        return createValues(text, transform, locationIterator, theme, p)
+    function createValuesSimple(text: Text, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
+        const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
+        const p = { ...PD.getDefaultValues(Params), props }
+        return createValues(text, s.transform, s.locationIterator, s.theme, p)
     }
 
-    export function updateValues(values: TextValues, props: PD.Values<Params>) {
-        Geometry.updateValues(values, props)
+    function updateValues(values: TextValues, props: PD.Values<Params>) {
+        BaseGeometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor)
     }
 
-    export function updateBoundingSphere(values: TextValues, text: Text) {
+    function updateBoundingSphere(values: TextValues, text: Text) {
         const padding = getMaxSize(values)
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, text.charCount * 4,
@@ -167,14 +171,18 @@ export namespace Text {
         }
     }
 
-    export function createRenderableState(props: PD.Values<Params>): RenderableState {
-        const state = Geometry.createRenderableState(props)
+    function createRenderableState(props: PD.Values<Params>): RenderableState {
+        const state = BaseGeometry.createRenderableState(props)
         updateRenderableState(state, props)
         return state
     }
 
-    export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
-        Geometry.updateRenderableState(state, props)
+    function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
+        BaseGeometry.updateRenderableState(state, props)
         state.opaque = false
     }
+
+    // function createRenderObject(values: TextValues, state: RenderableState) {
+    //     return _createRenderObject('text', values, state)
+    // }
 }

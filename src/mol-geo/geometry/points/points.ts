@@ -7,7 +7,7 @@
 import { ValueCell } from 'mol-util'
 import { Mat4 } from 'mol-math/linear-algebra'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
-import { Geometry } from '../geometry';
+import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
@@ -19,6 +19,8 @@ import { Sphere3D } from 'mol-math/geometry';
 import { Theme } from 'mol-theme/theme';
 import { PointsValues } from 'mol-gl/renderable/points';
 import { RenderableState } from 'mol-gl/renderable';
+import { Color } from 'mol-util/color';
+import { BaseGeometry } from '../base';
 
 /** Point cloud */
 export interface Points {
@@ -56,7 +58,7 @@ export namespace Points {
     //
 
     export const Params = {
-        ...Geometry.Params,
+        ...BaseGeometry.Params,
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
         pointSizeAttenuation: PD.Boolean(false),
         pointFilledCircle: PD.Boolean(false),
@@ -64,7 +66,18 @@ export namespace Points {
     }
     export type Params = typeof Params
 
-    export function createValues(points: Points, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): PointsValues {
+    export const Utils: GeometryUtils<Points, Params> = {
+        Params,
+        createEmpty,
+        createValues,
+        createValuesSimple,
+        updateValues,
+        updateBoundingSphere,
+        createRenderableState,
+        updateRenderableState
+    }
+
+    function createValues(points: Points, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): PointsValues {
         const { instanceCount, groupCount } = locationIt
         const color = createColors(locationIt, theme.color)
         const size = createSizes(locationIt, theme.size)
@@ -87,7 +100,7 @@ export namespace Points {
             ...marker,
             ...transform,
 
-            ...Geometry.createValues(props, counts),
+            ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor),
             dPointSizeAttenuation: ValueCell.create(props.pointSizeAttenuation),
             dPointFilledCircle: ValueCell.create(props.pointFilledCircle),
@@ -95,15 +108,21 @@ export namespace Points {
         }
     }
 
-    export function updateValues(values: PointsValues, props: PD.Values<Params>) {
-        Geometry.updateValues(values, props)
+    function createValuesSimple(points: Points, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
+        const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
+        const p = { ...PD.getDefaultValues(Params), props }
+        return createValues(points, s.transform, s.locationIterator, s.theme, p)
+    }
+
+    function updateValues(values: PointsValues, props: PD.Values<Params>) {
+        BaseGeometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor)
         ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation)
         ValueCell.updateIfChanged(values.dPointFilledCircle, props.pointFilledCircle)
         ValueCell.updateIfChanged(values.uPointEdgeBleach, props.pointEdgeBleach)
     }
 
-    export function updateBoundingSphere(values: PointsValues, points: Points) {
+    function updateBoundingSphere(values: PointsValues, points: Points) {
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, points.pointCount,
             values.aTransform.ref.value, values.instanceCount.ref.value
@@ -116,14 +135,14 @@ export namespace Points {
         }
     }
 
-    export function createRenderableState(props: PD.Values<Params>): RenderableState {
-        const state = Geometry.createRenderableState(props)
+    function createRenderableState(props: PD.Values<Params>): RenderableState {
+        const state = BaseGeometry.createRenderableState(props)
         updateRenderableState(state, props)
         return state
     }
 
-    export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
-        Geometry.updateRenderableState(state, props)
+    function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
+        BaseGeometry.updateRenderableState(state, props)
         state.opaque = state.opaque && (
             !props.pointFilledCircle ||
             (props.pointFilledCircle && props.pointEdgeBleach === 0)

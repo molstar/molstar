@@ -36,29 +36,32 @@ export type ComputeRenderObject = GaussianDensityRenderObject
 
 export type RenderObject = GraphicsRenderObject | ComputeRenderObject
 
+export type RenderObjectKindType = {
+    'mesh': MeshRenderObject
+    'points': PointsRenderObject
+    'spheres': SpheresRenderObject
+    'text': TextRenderObject
+    'lines': LinesRenderObject
+    'direct-volume': DirectVolumeRenderObject
+
+    'gaussian-density': GaussianDensityRenderObject
+}
+export type RenderObjectValuesType = {
+    'mesh': MeshValues
+    'points': PointsValues
+    'spheres': SpheresValues
+    'text': TextValues
+    'lines': LinesValues
+    'direct-volume': DirectVolumeValues
+
+    'gaussian-density': GaussianDensityValues
+}
+export type RenderObjectType = keyof RenderObjectKindType
+
 //
 
-export function createMeshRenderObject(values: MeshValues, state: RenderableState): MeshRenderObject {
-    return { id: getNextId(), type: 'mesh', values, state }
-}
-export function createPointsRenderObject(values: PointsValues, state: RenderableState): PointsRenderObject {
-    return { id: getNextId(), type: 'points', values, state }
-}
-export function createSpheresRenderObject(values: SpheresValues, state: RenderableState): SpheresRenderObject {
-    return { id: getNextId(), type: 'spheres', values, state }
-}
-export function createTextRenderObject(values: TextValues, state: RenderableState): TextRenderObject {
-    return { id: getNextId(), type: 'text', values, state }
-}
-export function createLinesRenderObject(values: LinesValues, state: RenderableState): LinesRenderObject {
-    return { id: getNextId(), type: 'lines', values, state }
-}
-export function createDirectVolumeRenderObject(values: DirectVolumeValues, state: RenderableState): DirectVolumeRenderObject {
-    return { id: getNextId(), type: 'direct-volume', values, state }
-}
-
-export function createGaussianDensityRenderObject(values: GaussianDensityValues, state: RenderableState): GaussianDensityRenderObject {
-    return { id: getNextId(), type: 'gaussian-density', values, state }
+export function createRenderObject<T extends RenderObjectType>(type: T, values: RenderObjectValuesType[T], state: RenderableState): RenderObjectKindType[T] {
+    return { id: getNextId(), type, values, state } as RenderObjectKindType[T]
 }
 
 export function createRenderable(ctx: WebGLContext, o: RenderObject): Renderable<any> {
