@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Task } from 'mol-task'
+import { Task, RuntimeContext } from 'mol-task'
 import { createRenderObject, GraphicsRenderObject } from 'mol-gl/render-object';
 import { Representation } from '../representation';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
@@ -27,7 +27,9 @@ import { Visual } from 'mol-repr/visual';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>> extends Representation<D, P> { }
 
-export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>(getShape: (data: D, props: PD.Values<P>, shape?: Shape<G>) => Shape<G>, geometryUtils: GeometryUtils<G>): ShapeRepresentation<D, G, P> {
+export type ShapeGetter<D, G extends Geometry, P extends Geometry.Params<G>> = (ctx: RuntimeContext, data: D, props: PD.Values<P>, shape?: Shape<G>) => Shape<G> | Promise<Shape<G>>
+
+export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>(getShape: ShapeGetter<D, G, P>, geometryUtils: GeometryUtils<G>): ShapeRepresentation<D, G, P> {
     let version = 0
     const updated = new Subject<number>()
     const _state = Representation.createState()
@@ -73,10 +75,10 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     }
 
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, data?: D) {
-        const newProps = Object.assign(currentProps, props)
-        const shape = data ? getShape(data, newProps, _shape) : undefined // TODO support async getShape
-
         return Task.create('ShapeRepresentation.create', async runtime => {
+            const newProps = Object.assign(currentProps, props)
+            const shape = data ? await getShape(runtime, data, newProps, _shape) : undefined
+
             prepareUpdate(shape)
 
             if (shape) {
