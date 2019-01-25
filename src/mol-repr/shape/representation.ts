@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,14 +12,18 @@ import { ValueCell } from 'mol-util';
 import { Shape } from 'mol-model/shape';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
+import { createTransform, TransformData } from 'mol-geo/geometry/transform-data';
 import { PickingId } from 'mol-geo/geometry/picking';
-import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
+import { MarkerAction, applyMarkerAction, createMarkers } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createEmptyTheme, Theme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
 import { ShapeGroupColorTheme } from 'mol-theme/color/shape-group';
+import { createColors } from 'mol-geo/geometry/color-data';
+import { VisualUpdateState } from 'mol-repr/util';
+import { Mat4 } from 'mol-math/linear-algebra';
+import { Visual } from 'mol-repr/visual';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>> extends Representation<D, P> { }
 
@@ -35,39 +39,83 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     let currentParams: P
     let locationIt: LocationIterator
 
+    const updateState = VisualUpdateState.create()
+
+    function prepareUpdate(shape?: Shape<G>) {
+        VisualUpdateState.reset(updateState)
+
+        if (!shape && !_shape) {
+            console.error('no shape given')
+            return
+        } else if (shape && !_shape) {
+            console.log('first shape')
+            updateState.createNew = true
+        } else if (shape && _shape && shape.id === _shape.id) {
+            console.log('same shape')
+            // trigger color update when shape has not changed
+            updateState.updateColor = true
+            updateState.updateTransform = true
+        } else if (shape && _shape && shape.id !== _shape.id) {
+            console.log('new shape')
+            // assume that ValueCells in geometry of new shape where re-used from the old one
+            updateState.updateColor = true
+            updateState.updateTransform = true
+        } else if (!shape) {
+            console.log('only props')
+            // nothing to set
+        } else {
+            console.warn('unexpected state')
+        }
+
+        if (updateState.updateTransform) {
+            updateState.updateColor = true
+        }
+    }
+
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, data?: D) {
-        currentProps = Object.assign(currentProps, props)
-        const shape = data ? getShape(data, currentProps, _shape) : undefined
+        const newProps = Object.assign(currentProps, props)
+        const shape = data ? getShape(data, newProps, _shape) : undefined // TODO support async getShape
 
         return Task.create('ShapeRepresentation.create', async runtime => {
-            if (!shape && !_shape) {
-                console.error('no shape given')
-                return
-            } else if (shape && !_shape) {
-                console.log('first shape')
+            prepareUpdate(shape)
 
-            } else if (shape && _shape && shape.id === _shape.id) {
-                console.log('same shape')
-
-            } else if (shape && _shape && shape.id !== _shape.id) {
-                console.log('new shape')
-
-            } else {
-                console.log('only props')
-
+            if (shape) {
+                _shape = shape
+                _theme.color = ShapeGroupColorTheme({ shape: _shape }, {})
             }
 
-            if (shape) _shape = shape
-            renderObjects.length = 0
-            locationIt = ShapeGroupIterator.fromShape(_shape)
-            _theme.color = ShapeGroupColorTheme({ shape: _shape }, {})
+            if (updateState.createNew) {
+                renderObjects.length = 0
+                locationIt = ShapeGroupIterator.fromShape(_shape)
+                const transform = createShapeTransform(_shape.transforms)
+                const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps)
+                const state = geometryUtils.createRenderableState(newProps)
 
-            const transform = createIdentityTransform()
-            const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, currentProps)
-            const state = geometryUtils.createRenderableState(currentProps)
+                _renderObject = createRenderObject(_shape.geometry.kind, values, state)
+                if (_renderObject) renderObjects.push(_renderObject)
+            } else {
+                if (!_renderObject) {
+                    throw new Error('expected renderObject to be available')
+                }
 
-            _renderObject = createRenderObject(_shape.geometry.kind, values, state)
-            if (_renderObject) renderObjects.push(_renderObject)
+                if (updateState.updateTransform) {
+                    // console.log('update transform')
+                    createShapeTransform(_shape.transforms, _renderObject.values)
+                    locationIt = ShapeGroupIterator.fromShape(_shape)
+                    const { instanceCount, groupCount } = locationIt
+                    createMarkers(instanceCount * groupCount, _renderObject.values)
+                }
+
+                if (updateState.updateColor) {
+                    // console.log('update color')
+                    createColors(locationIt, _theme.color, _renderObject.values)
+                }
+
+                geometryUtils.updateValues(_renderObject.values, newProps)
+                geometryUtils.updateRenderableState(_renderObject.state, newProps)
+            }
+
+            currentProps = newProps
             updated.next(version++)
         });
     }
@@ -115,14 +163,16 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             return changed
         },
         setState(state: Partial<Representation.State>) {
-            if (state.visible !== undefined) renderObjects.forEach(ro => ro.state.visible = !!state.visible)
-            if (state.pickable !== undefined) renderObjects.forEach(ro => ro.state.pickable = !!state.pickable)
-            // TODO state.transform
+            if (_renderObject) {
+                if (state.visible !== undefined) Visual.setVisibility(_renderObject, state.visible)
+                if (state.pickable !== undefined) Visual.setPickable(_renderObject, state.pickable)
+                if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform)
+            }
 
             Representation.updateState(_state, state)
         },
         setTheme(theme: Theme) {
-            _theme = theme
+            console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme`. Colors are taken from `Shape.getColor`.')
         },
         destroy() {
             // TODO
@@ -132,9 +182,17 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     }
 }
 
+function createShapeTransform(transforms: Mat4[], transformData?: TransformData) {
+    const transformArray = transformData && transformData.aTransform.ref.value.length >= transforms.length * 16 ? transformData.aTransform.ref.value : new Float32Array(transforms.length * 16)
+    for (let i = 0, il = transforms.length; i < il; ++i) {
+        Mat4.toArray(transforms[i], transformArray, i * 16)
+    }
+    return createTransform(transformArray, transforms.length, transformData)
+}
+
 export namespace ShapeGroupIterator {
     export function fromShape(shape: Shape): LocationIterator {
-        const instanceCount = 1
+        const instanceCount = shape.transforms.length
         const location = Shape.Location(shape)
         const getLocation = (groupIndex: number) => {
             location.group = groupIndex

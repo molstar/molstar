@@ -26,7 +26,7 @@ export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: PD.Values<Sha
         granularity: 'group',
         color: (location: Location): Color => {
             if (Shape.isLocation(location)) {
-                return location.shape.colors.ref.value[location.group]
+                return location.shape.getColor(location.group)
             }
             return DefaultColor
         },

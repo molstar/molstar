@@ -52,10 +52,14 @@ builderState.currentGroup = 0
 MeshBuilder.addPrimitive(builderState, t, sphere)
 const mesh = MeshBuilder.getMesh(builderState)
 
-const myData = { mesh, colors: [ColorNames.aquamarine], labels: ['FooBar'] }
+const myData = { mesh, colors: [ColorNames.aquamarine], labels: ['FooBaz'] }
 type MyData = typeof myData
 function getShape(data: MyData) {
-    return Shape.create('test', data.mesh, data.colors, data.labels)
+    return Shape.create(
+        'test', data.mesh,
+        (groupId: number) => data.colors[groupId],
+        (groupId: number) => data.labels[groupId]
+    )
 }
 
 const repr = ShapeRepresentation(getShape, Mesh.Utils)
@@ -67,3 +71,8 @@ async function add() {
     canvas3d.resetCamera()
 }
 add()
+
+setTimeout(async () => {
+    myData.colors[0] = ColorNames.darkmagenta
+    await repr.createOrUpdate({}, myData).run()
+}, 2000)

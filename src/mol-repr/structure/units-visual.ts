@@ -146,8 +146,6 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
                 throw new Error('expected renderObject to be available')
             }
 
-            locationIt.reset()
-
             if (updateState.updateTransform) {
                 // console.log('update transform')
                 locationIt = createLocationIterator(newStructureGroup.group)

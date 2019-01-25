@@ -5,28 +5,31 @@
  */
 
 import { Color } from 'mol-util/color';
-import { UUID, ValueCell } from 'mol-util';
+import { UUID } from 'mol-util';
 import { OrderedSet } from 'mol-data/int';
 import { Geometry } from 'mol-geo/geometry/geometry';
+import { Mat4 } from 'mol-math/linear-algebra';
 
 export interface Shape<G extends Geometry = Geometry> {
     readonly id: UUID
     readonly name: string
     readonly geometry: G
-    readonly colors: ValueCell<Color[]>
-    readonly labels: ValueCell<string[]>
+    readonly transforms: Mat4[]
     readonly groupCount: number
+    getColor(groupId: number): Color
+    getLabel(groupId: number): string
 }
 
 export namespace Shape {
-    export function create<G extends Geometry>(name: string, geometry: G, colors: Color[], labels: string[]): Shape<G> {
+    export function create<G extends Geometry>(name: string, geometry: G, getColor: Shape['getColor'], getLabel: Shape['getLabel'], transforms?: Mat4[]): Shape<G> {
         return {
             id: UUID.create22(),
             name,
             geometry,
+            transforms: transforms || [Mat4.identity()],
             get groupCount() { return Geometry.getGroupCount(geometry) },
-            colors: ValueCell.create(colors),
-            labels: ValueCell.create(labels),
+            getColor,
+            getLabel
         }
     }
 
