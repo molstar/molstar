@@ -78,14 +78,15 @@ export namespace Geometry {
         }
     }
 
-    export function getUtils<K extends GeometryKind>(kind: K): GeometryUtils<GeometryKindType[K]> {
-        switch (kind) {
-            case 'mesh': return Mesh.Utils
-            case 'points': return Points.Utils
-            case 'spheres': return Spheres.Utils
-            case 'text': return Text.Utils
-            case 'lines': return Lines.Utils
-            case 'direct-volume': return DirectVolume.Utils
+    export function getUtils<G extends Geometry>(geometry: G): GeometryUtils<G> {
+        // TODO avoid casting
+        switch (geometry.kind) {
+            case 'mesh': return Mesh.Utils as any
+            case 'points': return Points.Utils as any
+            case 'spheres': return Spheres.Utils as any
+            case 'text': return Text.Utils as any
+            case 'lines': return Lines.Utils as any
+            case 'direct-volume': return DirectVolume.Utils as any
         }
         throw new Error('unknown geometry kind')
     }

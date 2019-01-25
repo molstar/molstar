@@ -26,16 +26,19 @@ parent.appendChild(canvas)
 const canvas3d = Canvas3D.create(canvas, parent)
 canvas3d.animate()
 
-const builderState = MeshBuilder.createState()
-const t = Mat4.identity()
-const sphere = Sphere(2)
-MeshBuilder.addPrimitive(builderState, t, sphere)
-const mesh = MeshBuilder.getMesh(builderState)
+function meshRepr() {
+    const builderState = MeshBuilder.createState()
+    const t = Mat4.identity()
+    const sphere = Sphere(2)
+    MeshBuilder.addPrimitive(builderState, t, sphere)
+    const mesh = MeshBuilder.getMesh(builderState)
 
-const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0xFF0000), 1)
-const state = Mesh.Utils.createRenderableState({})
-const renderObject = createRenderObject('mesh', values, state)
-const repr = Representation.fromRenderObject('sphere-mesh', renderObject)
+    const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0xFF0000), 1)
+    const state = Mesh.Utils.createRenderableState({})
+    const renderObject = createRenderObject('mesh', values, state)
+    const repr = Representation.fromRenderObject('sphere-mesh', renderObject)
+    return repr
+}
 
-canvas3d.add(repr)
+canvas3d.add(meshRepr())
 canvas3d.resetCamera()

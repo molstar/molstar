@@ -7,7 +7,7 @@
 
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
-import { RenderObject } from 'mol-gl/render-object';
+import { GraphicsRenderObject } from 'mol-gl/render-object';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { Visual } from '../visual';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
@@ -189,7 +189,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
             return groupCount
         },
         get renderObjects() {
-            const renderObjects: RenderObject[] = []
+            const renderObjects: GraphicsRenderObject[] = []
             visuals.forEach(({ visual }) => {
                 if (visual.renderObject) renderObjects.push(visual.renderObject)
             })

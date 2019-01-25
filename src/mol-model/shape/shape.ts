@@ -9,22 +9,22 @@ import { UUID, ValueCell } from 'mol-util';
 import { OrderedSet } from 'mol-data/int';
 import { Geometry } from 'mol-geo/geometry/geometry';
 
-export interface Shape {
+export interface Shape<G extends Geometry = Geometry> {
     readonly id: UUID
     readonly name: string
-    readonly geometry: Geometry
+    readonly geometry: G
     readonly colors: ValueCell<Color[]>
     readonly labels: ValueCell<string[]>
     readonly groupCount: number
 }
 
 export namespace Shape {
-    export function create(name: string, geometry: Geometry, colors: Color[], labels: string[]): Shape {
+    export function create<G extends Geometry>(name: string, geometry: G, colors: Color[], labels: string[]): Shape<G> {
         return {
             id: UUID.create22(),
             name,
             geometry,
-            groupCount: Geometry.getGroupCount(geometry),
+            get groupCount() { return Geometry.getGroupCount(geometry) },
             colors: ValueCell.create(colors),
             labels: ValueCell.create(labels),
         }

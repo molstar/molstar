@@ -67,6 +67,7 @@ module.exports = [
 
     createBrowserTest('font-atlas'),
     createBrowserTest('render-text'),
+    createBrowserTest('render-shape'),
     createBrowserTest('render-spheres'),
     createBrowserTest('render-mesh')
 ]

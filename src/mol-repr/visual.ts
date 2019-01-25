@@ -5,7 +5,7 @@
  */
 
 import { RuntimeContext } from 'mol-task'
-import { RenderObject, GraphicsRenderObject } from 'mol-gl/render-object'
+import { GraphicsRenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
@@ -27,7 +27,7 @@ export { Visual }
 interface Visual<D, P extends PD.Params> {
     /** Number of addressable groups in all instances of the visual */
     readonly groupCount: number
-    readonly renderObject: RenderObject | undefined
+    readonly renderObject: GraphicsRenderObject | undefined
     createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.Values<P>>, data?: D) => Promise<void> | void
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean

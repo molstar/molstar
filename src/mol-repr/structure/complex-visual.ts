@@ -31,10 +31,10 @@ import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
-function createComplexRenderObject(structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureParams>) {
-    const { createValues, createRenderableState } = Geometry.getUtils(geometry.kind)
+function createComplexRenderObject<G extends Geometry>(structure: Structure, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>) {
+    const { createValues, createRenderableState } = Geometry.getUtils(geometry)
     const transform = createIdentityTransform()
-    const values = createValues(geometry, transform, locationIt, theme, props as any) // TODO
+    const values = createValues(geometry, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createRenderObject(geometry.kind, values, state)
 }

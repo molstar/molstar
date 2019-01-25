@@ -37,9 +37,9 @@ export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
 function createUnitsRenderObject<G extends Geometry>(group: Unit.SymmetryGroup, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>) {
-    const { createValues, createRenderableState } = Geometry.getUtils(geometry.kind)
+    const { createValues, createRenderableState } = Geometry.getUtils(geometry)
     const transform = createUnitsTransform(group)
-    const values = createValues(geometry, transform, locationIt, theme, props as any) // TODO
+    const values = createValues(geometry, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createRenderObject(geometry.kind, values, state)
 }

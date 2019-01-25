@@ -5,7 +5,7 @@
  */
 
 import { Task } from 'mol-task'
-import { RenderObject, GraphicsRenderObject } from 'mol-gl/render-object'
+import { GraphicsRenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
 import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
@@ -93,7 +93,7 @@ interface Representation<D, P extends PD.Params = {}> {
     readonly updated: Subject<number>
     /** Number of addressable groups in all visuals of the representation */
     readonly groupCount: number
-    readonly renderObjects: ReadonlyArray<RenderObject>
+    readonly renderObjects: ReadonlyArray<GraphicsRenderObject>
     readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
     readonly state: Readonly<Representation.State>
@@ -171,7 +171,7 @@ namespace Representation {
                 return groupCount
             },
             get renderObjects() {
-                const renderObjects: RenderObject[] = []
+                const renderObjects: GraphicsRenderObject[] = []
                 if (currentProps) {
                     const { visuals } = currentProps
                     for (let i = 0, il = reprList.length; i < il; ++i) {
