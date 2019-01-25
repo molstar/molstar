@@ -8,7 +8,7 @@ import './index.html'
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { Sphere } from 'mol-geo/primitive/sphere';
-import { Mat4 } from 'mol-math/linear-algebra';
+import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 import { Shape } from 'mol-model/shape';
 import { ShapeRepresentation } from 'mol-repr/shape/representation';
 import { ColorNames } from 'mol-util/color/tables';
@@ -52,13 +52,21 @@ builderState.currentGroup = 0
 MeshBuilder.addPrimitive(builderState, t, sphere)
 const mesh = MeshBuilder.getMesh(builderState)
 
-const myData = { mesh, colors: [ColorNames.aquamarine], labels: ['FooBaz'] }
+const myData = {
+    mesh,
+    groupCount: 1,
+    colors: [ColorNames.tomato, ColorNames.springgreen],
+    labels: ['FooBaz0', 'FooBaz1'],
+    transforms: [Mat4.identity(), Mat4.fromTranslation(Mat4.zero(), Vec3.create(3, 0, 0))]
+}
 type MyData = typeof myData
-function getShape(data: MyData) {
-    return Shape.create(
-        'test', data.mesh,
-        (groupId: number) => data.colors[groupId],
-        (groupId: number) => data.labels[groupId]
+function getShape(data: MyData, props: {}, shape?: Shape<Mesh>) {
+    const { mesh, colors, labels, transforms, groupCount } = data
+    return shape || Shape.create(
+        'test', mesh,
+        (groupId: number, instanceId: number) => colors[instanceId * groupCount + groupId],
+        (groupId: number, instanceId: number) => labels[instanceId * groupCount + groupId],
+        transforms
     )
 }
 
@@ -75,4 +83,4 @@ add()
 setTimeout(async () => {
     myData.colors[0] = ColorNames.darkmagenta
     await repr.createOrUpdate({}, myData).run()
-}, 2000)
+}, 1000)

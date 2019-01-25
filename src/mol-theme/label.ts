@@ -36,7 +36,7 @@ export function labelFirst(loci: Loci): string {
         case 'group-loci':
             const g = loci.groups[0]
             if (g) {
-                return loci.shape.getLabel(OrderedSet.getAt(g.ids, 0))
+                return loci.shape.getLabel(OrderedSet.getAt(g.ids, 0), loci.instance)
             } else {
                 return 'Unknown'
             }

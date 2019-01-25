@@ -131,9 +131,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         updated,
         createOrUpdate,
         getLoci(pickingId: PickingId) {
-            const { objectId, groupId } = pickingId
+            const { objectId, groupId, instanceId } = pickingId
             if (_renderObject && _renderObject.id === objectId) {
-                return Shape.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId) }])
+                return Shape.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId) }], instanceId)
             }
             return EmptyLoci
         },
@@ -141,17 +141,19 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             if (!_renderObject) return false
             const { tMarker } = _renderObject.values
             let changed = false
+            const { groupCount, count } = locationIt
             if (isEveryLoci(loci)) {
-                if (applyMarkerAction(tMarker.ref.value.array, 0, _shape.groupCount, action)) changed = true
+                if (applyMarkerAction(tMarker.ref.value.array, 0, count, action)) changed = true
             } else if (Shape.isLoci(loci)) {
-                for (const g of loci.groups) {
+                const { instance, groups } = loci
+                for (const g of groups) {
                     if (Interval.is(g.ids)) {
-                        const start = Interval.start(g.ids)
-                        const end = Interval.end(g.ids)
+                        const start = instance * groupCount + Interval.start(g.ids)
+                        const end = instance * groupCount + Interval.end(g.ids)
                         if (applyMarkerAction(tMarker.ref.value.array, start, end, action)) changed = true
                     } else {
                         for (let i = 0, _i = g.ids.length; i < _i; i++) {
-                            const idx = g.ids[i];
+                            const idx = instance * groupCount + g.ids[i];
                             if (applyMarkerAction(tMarker.ref.value.array, idx, idx + 1, action)) changed = true
                         }
                     }
@@ -194,8 +196,9 @@ export namespace ShapeGroupIterator {
     export function fromShape(shape: Shape): LocationIterator {
         const instanceCount = shape.transforms.length
         const location = Shape.Location(shape)
-        const getLocation = (groupIndex: number) => {
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
             location.group = groupIndex
+            location.instance = instanceIndex
             return location
         }
         return LocationIterator(shape.groupCount, instanceCount, getLocation)
