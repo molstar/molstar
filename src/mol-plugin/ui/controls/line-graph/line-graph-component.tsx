@@ -3,10 +3,10 @@
  *
  * @author Paul Luna <paulluna0215@gmail.com>
  */
-import PointComponent from './point-component';
-
 import * as React from 'react';
+
 import { Vec2 } from 'mol-math/linear-algebra';
+import PointComponent from './point-component';
 
 interface LineGraphComponentState {[x:string]:any,
     points: Vec2[],
@@ -14,7 +14,8 @@ interface LineGraphComponentState {[x:string]:any,
     canSelectMultiple: boolean,
     x: string | number,
     y: string | number,
-    selected: number[]
+    selected: number[],
+    isControlEnabled: {[name: string]: boolean};
 }
 
 export default class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
@@ -35,6 +36,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private mouseStartPoint: Vec2;
     private mouseDown: boolean;
     private hasDragged: boolean;
+    private data: any;
     
 
     constructor(props: any) {
@@ -49,7 +51,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             selected: [],
             canSelectMultiple: false,
             x: '',
-            y: ''
+            y: '',
+            isControlEnabled: {'plus': false, 'minus': false},
         };
         this.height = 400;
         this.width = 600;
@@ -89,11 +92,13 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.handleKeyUp = this.handleKeyUp.bind(this);
         this.handleLeave = this.handleLeave.bind(this);
         this.handleEnter = this.handleEnter.bind(this);
+        this.handleSubmit = this.handleSubmit.bind(this);
         this.handleChange = this.handleChange.bind(this);
         this.addPoint = this.addPoint.bind(this);
-        this.handleSubmit = this.handleSubmit.bind(this);
+        this.deletePoint = this.deletePoint.bind(this);
         this.handleCanvasClick = this.handleCanvasClick.bind(this); 
         this.addGhostPoint = this.addGhostPoint.bind(this);
+        this.setControls = this.setControls.bind(this);
     }
 
     public render() {
@@ -123,15 +128,15 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                     <g className="ghost-points" stroke="black" fill="black">
                     </g>
                 </svg>
-            </div>,
-            <div key="line-graph-controls" className="line-graph-controls">
-                <ul style={{ margin: "5px 50px", listStyle: "none"}}>
-                    <li style={{display: "inline"}}><div title="Delete point" className="icon disabled-minus" onClick={this.deletePoint(this.state.selected[0])}></div></li>
-                    <li style={{display: "inline"}}><div title="Add point" className="icon disabled-plus" onClick={this.handleSubmit}></div></li>
-                    <li style={{marginLeft: "5px", display: "inline-block"}}><input min="0" max="1" step="0.1" type="number" placeholder="x" name="x" value={this.state.x} onChange={this.handleChange} required/></li>
-                    <li style={{marginLeft: "5px", display: "inline-block"}}><input min="0" max="1" step="0.1" type="number" placeholder="y" name="y" value={this.state.y} onChange={this.handleChange} required/></li>
+                <div key="line-graph-controls" className="line-graph-control">
+                <ul style={{margin: "5px 50px", listStyle: "none"}}>
+                    <li style={{display: "inline"}}><div style={{margin: "-2px 5px"}} title="Delete point" className={this.state.isControlEnabled['minus'] ? "control control-minus" : "control disabled-minus"} onClick={this.deletePoint}></div></li>
+                    <li style={{display: "inline"}}><div style={{margin: "-2px 5px"}} title="Add point" className={this.state.isControlEnabled['plus'] ? "control control-plus" : "control disabled-plus"} onClick={this.handleSubmit}></div></li>
+                    <li style={{display: "inline-block", margin: "auto 2px"}}><input min="0" max="1" step="0.1" type="number" placeholder="x" name="x" value={this.state.x} onChange={this.handleChange} required/></li>
+                    <li style={{display: "inline-block", margin: "auto 2px"}}><input min="0" max="1" step="0.1" type="number" placeholder="y" name="y" value={this.state.y} onChange={this.handleChange} required/></li>
                 </ul>
             </div>
+            </div>,
         ]);
     }
 
@@ -155,14 +160,15 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
     private handleKeyDown = (event: any) => {
         if(event.keyCode == 16) {
-            let elements = document.getElementsByClassName('icon');
-            elements[0].classList.remove('icon-minus');
-            elements[0].classList.add('disabled-minus');
-            this.setState({canSelectMultiple: true});
+            this.setControls(false, false);
+            this.setState({
+                canSelectMultiple: true, 
+            });
         }
     }
 
     private handleKeyUp = (event: any) => {
+        if(event.keyCode != 16) { return; }
         this.ghostPoints = [];
         this.gElement.innerHTML = '';
         this.setState({canSelectMultiple: false});
@@ -172,21 +178,19 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         if(this.state.canSelectMultiple) {
             return;
         }
-
-        const elements = document.getElementsByClassName('icon');
+        this.setControls(false, false);
         this.gElement.innerHTML = '';
-        this.setState({selected: []});
         this.ghostPoints = [];
         this.leftMost.setAttribute('cx', '0');
-        elements[0].classList.remove('icon-minus');
-        elements[0].classList.add('disabled-minus');
-        elements[1].classList.remove('icon-plus');
-        elements[1].classList.add('disabled-plus');
+        this.setState({
+            selected: [],
+            x: '',
+            y: ''
+        });
     }
 
     private handlePointClick = (event:any) => {
         event.stopPropagation();
-
         const id = parseInt(event.target.id);
         if(isNaN(id)) {
             for(let i=0; i<this.ghostPoints.length; i++) {
@@ -208,9 +212,13 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             return;
         } 
         
+        this.setControls(true, true)
         this.ghostPoints[0].element.setAttribute('style', 'display: visible');
         this.ghostPoints[0].element.addEventListener('mousedown', this.handleMouseDown);
-
+        this.setState({
+            x: this.state.points[this.state.selected[0]][0],
+            y: this.state.points[this.state.selected[0]][1]
+        });
 
     }
 
@@ -242,19 +250,16 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             return;
         }
         
-        let elements = document.getElementsByClassName('icon');
         const copyPoint: Vec2 = Vec2.create(x, y);
-        elements[0].classList.remove('disabled');
-        elements[0].classList.add('icon-minus');
         this.ghostPoints = [];
         this.gElement.innerHTML = '';
         this.addGhostPoint(id, x, y);
         this.gElement.appendChild(this.ghostPoints[0].element);
         this.updatedX = copyPoint[0];
         this.updatedY = copyPoint[1];
-        this.setState({selected: [id]})
-    }
+        this.setState({selected: [id]});
 
+    }
 
     private handleDrag(event: any) {
         if(this.state.selected.length === 0 || !this.mouseDown){
@@ -265,9 +270,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         let svgP;
         const pt = this.myRef.createSVGPoint();
         const padding = this.padding/2;
-        const elements = document.getElementsByClassName('icon');
-        elements[0].classList.remove('icon-minus');
-        elements[0].classList.add('disabled-minus');
+        this.setControls(false, false);
         pt.x = event.clientX;
         pt.y = event.clientY;
         svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
@@ -297,6 +300,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.ghostPoints[0].element.setAttribute('cy', `${updatedCopyPoint[1]}`);
         this.props.onDrag(unNormalizePoint);
         this.hasDragged = true;
+        this.setState({x: '', y: ''});
     }
 
     private handleMultipleDrag(event: any) {
@@ -394,24 +398,9 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         });
         this.ghostPoints = [];
         this.hasDragged = false;
-        this.leftMost.setAttribute('cx', '0'); // 'Initialize' the leftMost point
+        this.leftMost.setAttribute('cx', '0');
         document.removeEventListener("mousemove", this.handleDrag, true);
         document.removeEventListener("mouseup", this.handlePointUpdate, true);
-    }
-
-    private handleChange(event: any) {
-        this.setState({[event.target.name]: event.target.value});
-        this.userInput[event.target.name] = event.target.value;
-        if(event.target.value === '') { this.userInput[event.target.name] =-1; }
-        let elements = document.getElementsByClassName('icon');
-        if(this.userInput['x'] > -1 && this.userInput['y'] > -1) {
-            elements[1].classList.remove('disabled-plus');
-            elements[1].classList.add('icon-plus');
-        } else {
-            elements[1].classList.remove('icon-plus');
-            elements[1].classList.add('disabled-plus');
-            elements[1].removeEventListener('click', this.handleSubmit, true);
-        }
     }
 
     private handleDoubleClick(event: any) {
@@ -422,34 +411,55 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
         const padding = this.padding/2; 
         if( svgP.x < (padding) || 
-            svgP.x > (this.width+(padding)) || 
+            svgP.x > (this.width+(padding)) ||
             svgP.y > (this.height+(padding)) || 
             svgP.y < (this.padding/2)) {
             return;
         }
         newPoint = this.unNormalizePoint(Vec2.create(svgP.x, svgP.y));
-        this.addPoint(newPoint);
+        this.data = newPoint
+        this.addPoint();
     }
 
-    private handleSubmit() {
+    private handleSubmit(event: any) {
         const x = parseFloat(this.state.x as string);
-        const y = parseFloat(this.state.y as string); 
+        const y = parseFloat(this.state.y as string);
         const point = Vec2.create(x, y);
-        let elements = document.getElementsByClassName('icon');
-        elements[0].classList.remove('icon-minu');
-        elements[0].classList.add('disabled-minus');
-        elements[1].classList.remove('icon-plus');
-        elements[1].classList.add('disabled-plus');
         this.userInput['x'] = -1;
         this.userInput['y'] = -1;
         this.setState({
             x: '',
             y: '',
-        })
-        this.addPoint(point);
+        });
+
+        this.data = point;
+        if(this.state.selected.length != 0) {
+            const originalX = this.state.points[this.state.selected[0]][0];
+            const originalY = this.state.points[this.state.selected[0]][1];
+            if(x < originalX || y < originalY) {
+                this.deletePoint(event, this.addPoint);
+            } else {
+                this.addPoint(this.deletePoint);
+            }
+        } else {
+            this.addPoint();
+        }
+        this.setControls(false, false);
     }
 
-    private addPoint(point: Vec2) {
+    private handleChange(event: any){
+        this.userInput[event.target.name] = event.target.value;
+        if(event.target.value === '') { this.userInput[event.target.name] = -1; }
+        if(this.userInput['x'] > -1 && this.userInput['y'] > -1) {
+            this.setControls(true, this.state.isControlEnabled['minus']);
+            this.setState({[event.target.name]: event.target.value});
+        } else {
+            this.setState({[event.target.name]: event.target.value});
+        }
+    }
+
+    private addPoint(callBack?: any) {
+        const point = this.data;
         const points = this.state.points;
         points.push(point);
         points.sort((a, b) => { 
@@ -464,14 +474,16 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             }
             return a[0] - b[0];
         });
-
+        
         this.change(points);
-        this.setState({points});
+        this.setState({points}, callBack);
     }
 
-    private deletePoint = (i:number) => (event: any) => {
+    private deletePoint(event?: any, callBack?: any) {
+        let points;
+        const i = this.state.selected[0];
         if(i===0 || i===this.state.points.length-1){ return; }
-        const points = this.state.points.filter((_,j) => j !== i);
+        points = this.state.points.filter((_,j) => j !== i);
         points.sort((a, b) => { 
             if(a[0] === b[0]){
                 if(a[0] === 0){
@@ -484,14 +496,19 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             }
             return a[0] - b[0];
         });
-         const elements = document.getElementsByClassName('icon');
-        elements[0].classList.remove('icon-minus');
-        elements[0].classList.add('disabled-minus');
-        elements[0].setAttribute('onClick', '');
         this.gElement.innerHTML = '';
-        this.setState({points});
+        this.setControls(false, false);
         this.change(points);
-        event.stopPropagation();
+
+        this.setState({
+            points,
+            selected: [],
+            x: '',
+            y: ''
+        }, callBack);
+
+        if(event)
+            event.stopPropagation();
     }
 
     private handleLeave() {
@@ -527,6 +544,13 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.ghostPoints[size-1].element.setAttribute('style', 'display: none');
         this.ghostPoints[size-1].element.setAttribute('class', 'ghostPoint');
         this.sortOuterGhostPoints(this.ghostPoints[size-1].element);
+    }
+
+    private setControls(plus: boolean, minus: boolean) {
+        let isControlEnabled = {...this.state.isControlEnabled};
+        isControlEnabled['plus'] = plus;
+        isControlEnabled['minus'] = minus;
+        this.setState({isControlEnabled});
     }
 
     private sortOuterGhostPoints(element: SVGElement) {

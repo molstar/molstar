@@ -60,7 +60,7 @@
     outline: none;
 }
 
-.icon {
+.control {
     position: relative;
     display: inline-block;
     width: 16px;
@@ -68,11 +68,6 @@
     margin: 2px 8px;
 }
     
-.line-graph-control {
-    width: 100%;
-    height: 30%;
-}
-
 .disabled-plus {
     background-color: gray;
     border-radius: 8px;
@@ -81,6 +76,7 @@
     position: relative;
     cursor: not-allowed;
     pointer-events: none;
+    visibility: hidden;
 }
 
 .disabled-plus:after {
@@ -109,7 +105,7 @@
     content:"";
 }
 
-.icon-plus {
+.control-plus {
     background-color:green;
     border-radius:8px;
     -webkit-border-radius:8px;
@@ -118,10 +114,11 @@
     height: 16px;
     position: relative; 
     pointer-events: auto;
+    visibility: visible;
 }
 
 
-.icon-plus:hover {
+.control-plus:hover {
     background-color: #c0d890;
     cursor: pointer;
     border-radius:8px;
@@ -134,7 +131,7 @@
     left:0;
 }
 
-.icon-plus:after {
+.control-plus:after {
     background-color: #f3f2ee;
     width: 8px;
     height: 2px;
@@ -147,7 +144,7 @@
     content:"";
 }
 
-.icon-plus:before {
+.control-plus:before {
     background-color: #f3f2ee;
     width: 2px;
     height: 8px;
@@ -168,6 +165,7 @@
     position: relative;
     pointer-events: none;
     cursor: not-allowed;
+    visibility: hidden;
 }
 
 .disabled-minus:after {
@@ -183,7 +181,7 @@
     content:"";
 }
 
-.icon-minus {
+.control-minus {
     background-color: red;
     border-radius:8px;
     -webkit-border-radius:8px;
@@ -193,9 +191,10 @@
     position: relative;
     cursor: pointer;
     pointer-events: auto;
+    visibility: visible;
 }
 
-.icon-minus:after {
+.control-minus:after {
     background-color: #f3f2ee;
     width: 8px;
     height: 2px;
@@ -208,7 +207,7 @@
     content:"";
 }
 
-.icon-minus:hover {
+.control-minus:hover {
     background-color: #ff6666;
     cursor: pointer;
     border-radius: 8px; 
