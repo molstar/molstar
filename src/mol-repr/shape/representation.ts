@@ -24,6 +24,8 @@ import { createColors } from 'mol-geo/geometry/color-data';
 import { VisualUpdateState } from 'mol-repr/util';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { Visual } from 'mol-repr/visual';
+import { createSizes } from 'mol-geo/geometry/size-data';
+import { ShapeGroupSizeTheme } from 'mol-theme/size/shape-group';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>> extends Representation<D, P> { }
 
@@ -43,7 +45,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
     const updateState = VisualUpdateState.create()
 
-    function prepareUpdate(shape?: Shape<G>) {
+    function prepareUpdate(props: Partial<PD.Values<P>> = {}, shape?: Shape<G>) {
         VisualUpdateState.reset(updateState)
 
         if (!shape && !_shape) {
@@ -59,9 +61,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             updateState.updateTransform = true
         } else if (shape && _shape && shape.id !== _shape.id) {
             console.log('new shape')
-            // assume that ValueCells in geometry of new shape where re-used from the old one
-            updateState.updateColor = true
             updateState.updateTransform = true
+            updateState.createGeometry = true
         } else if (!shape) {
             console.log('only props')
             // nothing to set
@@ -72,6 +73,10 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         if (updateState.updateTransform) {
             updateState.updateColor = true
         }
+
+        if (updateState.createGeometry) {
+            updateState.updateColor = true
+        }
     }
 
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, data?: D) {
@@ -79,11 +84,12 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             const newProps = Object.assign(currentProps, props)
             const shape = data ? await getShape(runtime, data, newProps, _shape) : undefined
 
-            prepareUpdate(shape)
+            prepareUpdate(props, shape)
 
             if (shape) {
                 _shape = shape
                 _theme.color = ShapeGroupColorTheme({ shape: _shape }, {})
+                _theme.size = ShapeGroupSizeTheme({ shape: _shape }, {})
             }
 
             if (updateState.createNew) {
@@ -108,9 +114,27 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     createMarkers(instanceCount * groupCount, _renderObject.values)
                 }
 
+                if (updateState.createGeometry) {
+                    // console.log('update geometry')
+                    ValueCell.update(_renderObject.values.drawCount, Geometry.getDrawCount(_shape.geometry))
+                }
+
+                if (updateState.updateTransform || updateState.createGeometry) {
+                    // console.log('updateBoundingSphere')
+                    geometryUtils.updateBoundingSphere(_renderObject.values, _shape.geometry)
+                }
+
                 if (updateState.updateColor) {
                     // console.log('update color')
                     createColors(locationIt, _theme.color, _renderObject.values)
+                }
+
+                if (updateState.updateSize) {
+                    // not all geometries have size data, so check here
+                    if ('uSize' in _renderObject.values) {
+                        console.log('update size')
+                        createSizes(locationIt, _theme.size, _renderObject.values)
+                    }
                 }
 
                 geometryUtils.updateValues(_renderObject.values, newProps)
@@ -176,7 +200,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             Representation.updateState(_state, state)
         },
         setTheme(theme: Theme) {
-            console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme`. Colors are taken from `Shape.getColor`.')
+            console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`')
         },
         destroy() {
             // TODO

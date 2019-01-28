@@ -86,8 +86,9 @@ async function getShape(ctx: RuntimeContext, data: MyData, props: {}, shape?: Sh
     const groupCount = centers.length / 3
     return shape || Shape.create(
         'test', mesh,
-        (groupId: number) => colors[groupId], // per group, same for instances
-        (groupId: number, instanceId: number) => labels[instanceId * groupCount + groupId], // per group and instance
+        (groupId: number) => colors[groupId], // color: per group, same for instances
+        () => 1, // size: constant
+        (groupId: number, instanceId: number) => labels[instanceId * groupCount + groupId], // label: per group and instance
         transforms
     )
 }

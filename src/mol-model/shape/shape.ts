@@ -23,12 +23,14 @@ export interface Shape<G extends Geometry = Geometry> {
     readonly groupCount: number
     /** Get color for a given group */
     getColor(groupId: number, instanceId: number): Color
-    /** Get color for a given group */
+    /** Get size for a given group */
+    getSize(groupId: number, instanceId: number): number
+    /** Get label for a given group */
     getLabel(groupId: number, instanceId: number): string
 }
 
 export namespace Shape {
-    export function create<G extends Geometry>(name: string, geometry: G, getColor: Shape['getColor'], getLabel: Shape['getLabel'], transforms?: Mat4[]): Shape<G> {
+    export function create<G extends Geometry>(name: string, geometry: G, getColor: Shape['getColor'], getSize: Shape['getSize'], getLabel: Shape['getLabel'], transforms?: Mat4[]): Shape<G> {
         return {
             id: UUID.create22(),
             name,
@@ -36,6 +38,7 @@ export namespace Shape {
             transforms: transforms || [Mat4.identity()],
             get groupCount() { return Geometry.getGroupCount(geometry) },
             getColor,
+            getSize,
             getLabel
         }
     }
