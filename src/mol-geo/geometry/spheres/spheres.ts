@@ -110,7 +110,7 @@ export namespace Spheres {
 
     function createValuesSimple(spheres: Spheres, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
         const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
-        const p = { ...PD.getDefaultValues(Params), props }
+        const p = { ...PD.getDefaultValues(Params), ...props }
         return createValues(spheres, s.transform, s.locationIterator, s.theme, p)
     }
 

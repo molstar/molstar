@@ -140,7 +140,7 @@ export namespace DirectVolume {
 
     function createValuesSimple(directVolume: DirectVolume, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
         const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
-        const p = { ...PD.getDefaultValues(Params), props }
+        const p = { ...PD.getDefaultValues(Params), ...props }
         return createValues(directVolume, s.transform, s.locationIterator, s.theme, p)
     }
 

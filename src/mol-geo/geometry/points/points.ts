@@ -110,7 +110,7 @@ export namespace Points {
 
     function createValuesSimple(points: Points, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
         const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
-        const p = { ...PD.getDefaultValues(Params), props }
+        const p = { ...PD.getDefaultValues(Params), ...props }
         return createValues(points, s.transform, s.locationIterator, s.theme, p)
     }
 

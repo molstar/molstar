@@ -123,7 +123,7 @@ export namespace TextBuilder {
                     charCount: centers.elementCount / 4,
                     fontTexture: text ? ValueCell.update(text.fontTexture, ft) : ValueCell.create(ft),
                     centerBuffer: text ? ValueCell.update(text.centerBuffer, cb) : ValueCell.create(cb),
-                    mappingBuffer: text ? ValueCell.update(text.centerBuffer, mb) : ValueCell.create(mb),
+                    mappingBuffer: text ? ValueCell.update(text.mappingBuffer, mb) : ValueCell.create(mb),
                     indexBuffer: text ? ValueCell.update(text.indexBuffer, ib) : ValueCell.create(ib),
                     groupBuffer: text ? ValueCell.update(text.groupBuffer, gb) : ValueCell.create(gb),
                     tcoordBuffer: text ? ValueCell.update(text.tcoordBuffer, tb) : ValueCell.create(tb),

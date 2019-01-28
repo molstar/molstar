@@ -396,7 +396,7 @@ export namespace Mesh {
 
     function createValuesSimple(mesh: Mesh, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
         const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
-        const p = { ...PD.getDefaultValues(Params), props }
+        const p = { ...PD.getDefaultValues(Params), ...props }
         return createValues(mesh, s.transform, s.locationIterator, s.theme, p)
     }
 
