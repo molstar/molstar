@@ -22,6 +22,8 @@ export interface TextBuilder {
 
 export namespace TextBuilder {
     export function create(props: Partial<PD.Values<Text.Params>> = {}, initialCount = 2048, chunkSize = 1024, text?: Text): TextBuilder {
+        initialCount *= 2
+        chunkSize *= 2
         const centers = ChunkedArray.create(Float32Array, 3, chunkSize, text ? text.centerBuffer.ref.value : initialCount);
         const mappings = ChunkedArray.create(Float32Array, 2, chunkSize, text ? text.mappingBuffer.ref.value : initialCount);
         const indices = ChunkedArray.create(Uint32Array, 3, chunkSize, text ? text.indexBuffer.ref.value : initialCount);
@@ -120,7 +122,7 @@ export namespace TextBuilder {
                 const ft = fontAtlas.texture
                 return {
                     kind: 'text',
-                    charCount: centers.elementCount / 4,
+                    charCount: indices.elementCount / 2,
                     fontTexture: text ? ValueCell.update(text.fontTexture, ft) : ValueCell.create(ft),
                     centerBuffer: text ? ValueCell.update(text.centerBuffer, cb) : ValueCell.create(cb),
                     mappingBuffer: text ? ValueCell.update(text.mappingBuffer, mb) : ValueCell.create(mb),

@@ -132,5 +132,6 @@ export namespace Spheres {
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere)
         }
+        ValueCell.update(values.padding, padding)
     }
 }

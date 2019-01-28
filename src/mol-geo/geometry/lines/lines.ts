@@ -157,8 +157,10 @@ export namespace Lines {
     }
 
     function updateBoundingSphere(values: LinesValues, lines: Lines) {
-        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(values.aStart.ref.value, values.aEnd.ref.value, lines.lineCount,
-            values.aTransform.ref.value, values.instanceCount.ref.value)
+        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(
+            values.aStart.ref.value, values.aEnd.ref.value, lines.lineCount,
+            values.aTransform.ref.value, values.instanceCount.ref.value
+        )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }

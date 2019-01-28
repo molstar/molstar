@@ -11,7 +11,7 @@ import { LocationIterator } from '../util/location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 import { SizeTheme } from 'mol-theme/size';
 import { Geometry } from './geometry';
-import { encodeFloatLog } from 'mol-util/float-packing';
+import { encodeFloatLog, decodeFloatLog } from 'mol-util/float-packing';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -42,7 +42,7 @@ export function getMaxSize(sizeData: SizeData): number {
             let maxSize = 0
             const array = sizeData.tSize.ref.value.array
             for (let i = 0, il = array.length; i < il; ++i) {
-                const value = array[i]
+                const value = decodeFloatLog(array[i] / 255)
                 if (maxSize < value) maxSize = value
             }
             return maxSize

@@ -25,7 +25,11 @@ import { clamp } from 'mol-math/interpolate';
 import { createRenderObject as _createRenderObject } from 'mol-gl/render-object';
 import { BaseGeometry } from '../base';
 
-type TextAttachment = 'bottom-left' | 'bottom-center' | 'bottom-right' | 'middle-left' | 'middle-center' | 'middle-right' | 'top-left' | 'top-center' | 'top-right'
+type TextAttachment = (
+    'bottom-left' | 'bottom-center' | 'bottom-right' |
+    'middle-left' | 'middle-center' | 'middle-right' |
+    'top-left' | 'top-center' | 'top-right'
+)
 
 /** Text */
 export interface Text {
@@ -83,7 +87,11 @@ export namespace Text {
         backgroundColor: PD.Color(ColorNames.grey),
         backgroundOpacity: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
 
-        attachment: PD.Select('normal', [['bottom-left', 'bottom-left'], ['bottom-center', 'bottom-center'], ['bottom-right', 'bottom-right'], ['middle-left', 'middle-left'], ['top-left', 'top-left'], ['top-center', 'top-center'], ['top-right', 'top-right']] as [TextAttachment, string][]),
+        attachment: PD.Select('middle-center', [
+            ['bottom-left', 'bottom-left'], ['bottom-center', 'bottom-center'], ['bottom-right', 'bottom-right'],
+            ['middle-left', 'middle-left'], ['middle-center', 'middle-center'], ['middle-right', 'middle-right'],
+            ['top-left', 'top-left'], ['top-center', 'top-center'], ['top-right', 'top-right'],
+        ] as [TextAttachment, string][]),
     }
     export type Params = typeof Params
 
@@ -96,7 +104,6 @@ export namespace Text {
         updateBoundingSphere,
         createRenderableState,
         updateRenderableState,
-        // createRenderObject
     }
 
     function createValues(text: Text, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): TextValues {
@@ -111,7 +118,7 @@ export namespace Text {
 
         const counts = { drawCount: text.charCount * 2 * 3, groupCount, instanceCount }
 
-        const padding = getMaxSize(size)
+        const padding = getPadding(text.mappingBuffer.ref.value, text.charCount, getMaxSize(size))
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             text.centerBuffer.ref.value, text.charCount * 4,
             transform.aTransform.ref.value, instanceCount, padding
@@ -158,7 +165,7 @@ export namespace Text {
     }
 
     function updateBoundingSphere(values: TextValues, text: Text) {
-        const padding = getMaxSize(values)
+        const padding = getPadding(values.aMapping.ref.value, text.charCount, getMaxSize(values))
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, text.charCount * 4,
             values.aTransform.ref.value, values.instanceCount.ref.value, padding
@@ -169,6 +176,7 @@ export namespace Text {
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere)
         }
+        ValueCell.update(values.padding, padding)
     }
 
     function createRenderableState(props: PD.Values<Params>): RenderableState {
@@ -181,8 +189,15 @@ export namespace Text {
         BaseGeometry.updateRenderableState(state, props)
         state.opaque = false
     }
+}
 
-    // function createRenderObject(values: TextValues, state: RenderableState) {
-    //     return _createRenderObject('text', values, state)
-    // }
+function getPadding(mapping: Float32Array, charCount: number, maxSize: number) {
+    let maxOffset = 0
+    for (let i = 0, il = charCount * 4; i < il; ++i) {
+        const ox = Math.abs(mapping[i])
+        if (ox > maxOffset) maxOffset = ox
+        const oy = Math.abs(mapping[i + 1])
+        if (oy > maxOffset) maxOffset = oy
+    }
+    return maxSize + maxSize * maxOffset
 }
