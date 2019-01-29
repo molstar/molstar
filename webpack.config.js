@@ -9,18 +9,18 @@ const sharedConfig = {
             {
                 loader: 'raw-loader',
                 test: /\.(glsl|frag|vert)$/,
-                include: [ path.resolve(__dirname, 'build/node_modules/') ],
+                include: [ path.resolve(__dirname, 'build/src/') ],
             },
             {
                 loader: 'glslify-loader',
                 test: /\.(glsl|frag|vert)$/,
-                include: [ path.resolve(__dirname, 'build/node_modules/') ]
+                include: [ path.resolve(__dirname, 'build/src/') ]
             },
 
             {
                 loader: 'file-loader',
                 test: /\.(woff2?|ttf|otf|eot|svg|html)$/,
-                include: [ path.resolve(__dirname, 'build/node_modules/') ],
+                include: [ path.resolve(__dirname, 'build/src/') ],
                 options: {
                     name: '[name].[ext]'
                 }
@@ -33,26 +33,32 @@ const sharedConfig = {
     },
     plugins: [
         // new CircularDependencyPlugin({
-        //     include: [ path.resolve(__dirname, 'build/node_modules/') ],
+        //     include: [ path.resolve(__dirname, 'build/src/') ],
         //     failOnError: false,
         //     cwd: process.cwd(),
         // }),
         new ExtraWatchWebpackPlugin({
             files: [
-                './build/node_modules/**/*.vert',
-                './build/node_modules/**/*.frag',
-                './build/node_modules/**/*.glsl',
-                './build/node_modules/**/*.scss',
-                './build/node_modules/**/*.html'
+                './build/src/**/*.vert',
+                './build/src/**/*.frag',
+                './build/src/**/*.glsl',
+                './build/src/**/*.scss',
+                './build/src/**/*.html'
             ],
         }),
-        new MiniCssExtractPlugin({ filename: "app.css" })
-    ]
+        new MiniCssExtractPlugin({ filename: 'app.css' })
+    ],
+    resolve: {
+        modules: [
+            'node_modules',
+            path.resolve(__dirname, 'build/src/')
+        ],
+    }
 }
 
 function createEntryPoint(name, dir, out) {
     return {
-        entry: path.resolve(__dirname, `build/node_modules/${dir}/${name}.js`),
+        entry: path.resolve(__dirname, `build/src/${dir}/${name}.js`),
         output: { filename: `${name}.js`, path: path.resolve(__dirname, `build/${out}`) },
         ...sharedConfig
     }

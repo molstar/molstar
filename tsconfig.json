@@ -12,7 +12,7 @@
         // "downlevelIteration": true,
         "jsx": "react",
         "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
-        "outDir": "build/node_modules",
+        "outDir": "build",
         "baseUrl": "src",
         "paths": {
             "mol-app": ["./mol-app"],
@@ -34,5 +34,5 @@
             "mol-canvas3d": ["./mol-view"]
         }
     },
-    "include": [ "**/*" ],
+    "include": [ "src/**/*" ],
 }

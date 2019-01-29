@@ -12,20 +12,16 @@
   },
   "scripts": {
     "lint": "tslint src/**/*.ts",
-    "build": "cpx \"src/**/*.{vert,frag,glsl,scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" build/node_modules/ && tsc",
+    "test": "jest",
+    "build": "cpx \"src/**/*.{vert,frag,glsl,scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" build/src/ && tsc -b",
+    "postinstall": "npm run build",
     "watch": "concurrently --kill-others \"npm:watch-ts\" \"npm:watch-extra\" \"npm:watch-webpack\"",
     "watch-ts": "tsc -watch",
-    "watch-extra": "cpx \"src/**/*.{vert,frag,glsl,scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" build/node_modules/ --watch",
-    "watch-all-win": "start cmd /K npm run watch-ts & start cmd /K npm run watch-extra & start cmd /K npm run watch-viewer & start http-server -p 1338",
-    "test": "jest",
+    "watch-extra": "cpx \"src/**/*.{vert,frag,glsl,scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" build/src/ --watch",
     "build-webpack": "webpack --mode development",
     "watch-webpack": "webpack -w --mode development",
-    "build-viewer": "webpack build/node_modules/apps/viewer/index.js --mode development -o build/viewer/index.js",
-    "watch-viewer": "webpack build/node_modules/apps/viewer/index.js -w --mode development -o build/viewer/index.js",
-    "build-ms-query": "webpack build/node_modules/apps/model-server-query/index.js --mode development -o build/model-server-query/index.js",
-    "watch-ms-query": "webpack build/node_modules/apps/model-server-query/index.js -w --mode development -o build/model-server-query/index.js",
-    "model-server": "node build/node_modules/servers/model/server.js",
-    "model-server-watch": "nodemon --watch build/node_modules build/node_modules/servers/model/server.js"
+    "model-server": "node build/src/servers/model/server.js",
+    "model-server-watch": "nodemon --watch build/src build/src/servers/model/server.js"
   },
   "nodemonConfig": {
     "ignoreRoot": [
@@ -46,7 +42,7 @@
     },
     "moduleDirectories": [
       "node_modules",
-      "build/node_modules"
+      "build/src"
     ],
     "testURL": "http://localhost/",
     "moduleNameMapper": {
