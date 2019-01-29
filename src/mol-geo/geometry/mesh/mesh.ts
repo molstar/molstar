@@ -64,6 +64,19 @@ export namespace Mesh {
         }
     }
 
+    export function fromArrays(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, triangleCount: number, normalsComputed: boolean): Mesh {
+        return {
+            kind: 'mesh',
+            vertexCount,
+            triangleCount,
+            vertexBuffer: ValueCell.create(vertices),
+            indexBuffer: ValueCell.create(indices),
+            normalBuffer: ValueCell.create(normals),
+            groupBuffer: ValueCell.create(groups),
+            normalsComputed,
+        }
+    }
+
     export function computeNormalsImmediate(mesh: Mesh) {
         if (mesh.normalsComputed) return;
 
