@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "composite": true,
         "target": "es5",
         "alwaysStrict": true,
         "noImplicitAny": true,
