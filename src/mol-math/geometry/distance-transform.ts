@@ -4,10 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { NumberArray } from 'mol-util/type-helpers';
+
 /**
  * 2D Euclidean distance transform by Felzenszwalb & Huttenlocher https://cs.brown.edu/~pff/papers/dt-final.pdf
  */
-export function edt(data: Helpers.NumberArray, width: number, height: number, f: Helpers.NumberArray, d: Helpers.NumberArray, v: Helpers.NumberArray, z: Helpers.NumberArray) {
+export function edt(data: NumberArray, width: number, height: number, f: NumberArray, d: NumberArray, v: NumberArray, z: NumberArray) {
     for (let x = 0; x < width; x++) {
         for (let y = 0; y < height; y++) {
             f[y] = data[y * width + x]
@@ -31,7 +33,7 @@ export function edt(data: Helpers.NumberArray, width: number, height: number, f:
 /**
  * 1D squared distance transform
  */
-function edt1d(f: Helpers.NumberArray, d: Helpers.NumberArray, v: Helpers.NumberArray, z: Helpers.NumberArray, n: number) {
+function edt1d(f: NumberArray, d: NumberArray, v: NumberArray, z: NumberArray, n: number) {
     v[0] = 0
     z[0] = Number.MIN_SAFE_INTEGER
     z[1] = Number.MAX_SAFE_INTEGER

@@ -20,6 +20,7 @@ import { arrayMax } from 'mol-util/array';
 import { TransformData } from './transform-data';
 import { Theme } from 'mol-theme/theme';
 import { RenderObjectValuesType } from 'mol-gl/render-object';
+import { ValueOf } from 'mol-util/type-helpers';
 
 export type GeometryKindType = {
     'mesh': Mesh,
@@ -38,7 +39,7 @@ export type GeometryKindParams = {
     'direct-volume': DirectVolume.Params,
 }
 export type GeometryKind = keyof GeometryKindType
-export type Geometry = Helpers.ValueOf<GeometryKindType>
+export type Geometry = ValueOf<GeometryKindType>
 
 export interface GeometryUtils<G extends Geometry, P extends PD.Params = GeometryKindParams[G['kind']], V = RenderObjectValuesType[G['kind']]> {
     Params: P

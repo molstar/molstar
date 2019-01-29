@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { NumberArray } from 'mol-util/type-helpers';
+
 /** RGB color triplet expressed as a single number */
 export type Color = { readonly '@type': 'color' } & number
 
@@ -38,16 +40,16 @@ export namespace Color {
         return (((r * 255) << 16) | ((g * 255) << 8) | (b * 255)) as Color
     }
 
-    export function fromArray(array: Helpers.NumberArray, offset: number): Color {
+    export function fromArray(array: NumberArray, offset: number): Color {
         return fromRgb(array[offset], array[offset + 1], array[offset + 2])
     }
 
-    export function fromNormalizedArray(array: Helpers.NumberArray, offset: number): Color {
+    export function fromNormalizedArray(array: NumberArray, offset: number): Color {
         return fromNormalizedRgb(array[offset], array[offset + 1], array[offset + 2])
     }
 
     /** Copies hex color to rgb array */
-    export function toArray(hexColor: Color, array: Helpers.NumberArray, offset: number) {
+    export function toArray(hexColor: Color, array: NumberArray, offset: number) {
         array[ offset ] = (hexColor >> 16 & 255)
         array[ offset + 1 ] = (hexColor >> 8 & 255)
         array[ offset + 2 ] = (hexColor & 255)
@@ -55,7 +57,7 @@ export namespace Color {
     }
 
     /** Copies normalized (0 to 1) hex color to rgb array */
-    export function toArrayNormalized<T extends Helpers.NumberArray>(hexColor: Color, array: T, offset: number) {
+    export function toArrayNormalized<T extends NumberArray>(hexColor: Color, array: T, offset: number) {
         array[ offset ] = (hexColor >> 16 & 255) / 255
         array[ offset + 1 ] = (hexColor >> 8 & 255) / 255
         array[ offset + 2 ] = (hexColor & 255) / 255

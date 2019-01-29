@@ -5,6 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ArrayCtor } from 'mol-util/type-helpers';
+
 export function arrayFind<T>(array: ArrayLike<T>, f: (v: T) => boolean): T | undefined {
     for (let i = 0, _i = array.length; i < _i; i++) {
         if (f(array[i])) return array[i];
@@ -25,7 +27,7 @@ export function iterableToArray<T>(it: IterableIterator<T>): T[] {
 }
 
 /** Fills the array so that array[0] = start and array[array.length - 1] = end */
-export function createRangeArray(start: number, end: number, ctor?: Helpers.ArrayCtor<number>) {
+export function createRangeArray(start: number, end: number, ctor?: ArrayCtor<number>) {
     const len = end - start + 1;
     const array = ctor ? new ctor(len) : new Int32Array(len);
     for (let i = 0; i < len; i++) {
@@ -42,7 +44,7 @@ export function arrayPickIndices<T>(array: ArrayLike<T>, indices: ArrayLike<numb
     return ret;
 }
 
-export function arrayGetCtor<T>(data: ArrayLike<T>): Helpers.ArrayCtor<T> {
+export function arrayGetCtor<T>(data: ArrayLike<T>): ArrayCtor<T> {
     const ret = (data as any).constructor;
     if (!ret) throw new Error('data does not define a constructor and it should');
     return ret;
