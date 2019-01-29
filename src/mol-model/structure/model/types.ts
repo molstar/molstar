@@ -56,10 +56,7 @@ export const enum MoleculeType {
     saccharide
 }
 
-const AtomRole = {
-    trace: '', direction: '', backboneStart: '', backboneEnd: ''
-}
-export type AtomRole = keyof typeof AtomRole
+export type AtomRole = 'trace' | 'direction' | 'backboneStart' | 'backboneEnd'
 
 export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: string } } = {
     [MoleculeType.protein]: {
