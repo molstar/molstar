@@ -9,7 +9,7 @@ import * as util from 'util'
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 import { formatMolScript } from 'mol-script/language/expression-formatter';
 import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-report';
-import fetch from 'node-fetch'; 
+import fetch from 'node-fetch';
 
 // import Examples from 'mol-script/script/mol-script/examples'
 // import { parseMolScript } from 'mol-script/script/mol-script/parser'
@@ -26,14 +26,14 @@ import fetch from 'node-fetch';
 //     ;; this is a comment
 //     ((hi) (ho))`);
 
-//;; :residue-test (= atom.label_comp_id REA)
+// ;; :residue-test (= atom.label_comp_id REA)
 const exprs = parseMolScript(`(sel.atom.atom-groups
     :residue-test (> pdbe.structure-quality.issue-count 0)
     :atom-test (= atom.el _C))`);
 
 const tsp = transpileMolScript(exprs[0]);
 
-//console.log(util.inspect(exprs, true, 10, true));
+// console.log(util.inspect(exprs, true, 10, true));
 
 console.log(util.inspect(tsp, true, 10, true));
 
@@ -53,7 +53,7 @@ const CustomProp = ModelPropertyDescriptor({
     symbols: {
         residueIndex: QuerySymbolRuntime.Dynamic(CustomPropSymbol('custom.test-prop', 'residue-index', Type.Num), ctx => {
             const e = ctx.element;
-            //console.log(e.element, e.unit.model.atomicHierarchy.residueAtomSegments.index[e.element])
+            // console.log(e.element, e.unit.model.atomicHierarchy.residueAtomSegments.index[e.element])
             return e.unit.model.atomicHierarchy.residueAtomSegments.index[e.element];
         })
     }

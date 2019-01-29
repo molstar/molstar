@@ -59,8 +59,8 @@ export function shallowMerge<T>(source: T, ...rest: (Partial<T> | undefined)[]):
 
 /** Simple deep clone for number, boolean, string, null, undefined, object, array */
 export function deepClone<T>(source: T): T {
-    if (null === source || "object" !== typeof source) return source;
-  
+    if (null === source || 'object' !== typeof source) return source;
+
     if (source instanceof Array) {
       const copy: any[] = [];
       for (let i = 0, len = source.length; i < len; i++) {
@@ -68,7 +68,7 @@ export function deepClone<T>(source: T): T {
       }
       return copy as any as T;
     }
-  
+
     if (source instanceof Object) {
         const copy: { [k: string]: any } = {};
         for (let k in source) {
@@ -76,6 +76,6 @@ export function deepClone<T>(source: T): T {
         }
         return copy as any as T;
     }
-  
+
     throw new Error(`Can't clone, type "${typeof source}" unsupported`);
-  }
+}

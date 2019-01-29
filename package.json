@@ -12,7 +12,7 @@
   },
   "scripts": {
     "lint": "tslint src/**/*.ts",
-    "test": "jest",
+    "test": "npm run lint && jest",
     "build": "cpx \"src/**/*.{vert,frag,glsl,scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" build/src/ && tsc -b",
     "postinstall": "npm run build",
     "watch": "concurrently --kill-others \"npm:watch-ts\" \"npm:watch-extra\" \"npm:watch-webpack\"",
