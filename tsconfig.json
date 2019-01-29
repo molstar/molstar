@@ -8,7 +8,7 @@
         "noUnusedLocals": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
-        //"downlevelIteration": true,
+        // "downlevelIteration": true,
         "jsx": "react",
         "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
         "outDir": "build/node_modules",
@@ -34,7 +34,4 @@
         }
     },
     "include": [ "**/*" ],
-    "files": [
-        "./node_modules/@types/webgl2/index.d.ts"
-    ],
 }
