@@ -162,6 +162,20 @@ export namespace Text {
     function updateValues(values: TextValues, props: PD.Values<Params>) {
         BaseGeometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor)
+
+        ValueCell.updateIfChanged(values.uBorderWidth, props.borderWidth)
+        if (Color.fromNormalizedArray(values.uBorderColor.ref.value, 0) !== props.borderColor) {
+            Color.toArrayNormalized(props.borderColor, values.uBorderColor.ref.value, 0)
+            ValueCell.update(values.uBorderColor, values.uBorderColor.ref.value)
+        }
+        ValueCell.updateIfChanged(values.uOffsetX, props.offsetX)
+        ValueCell.updateIfChanged(values.uOffsetY, props.offsetY)
+        ValueCell.updateIfChanged(values.uOffsetZ, props.offsetZ)
+        if (Color.fromNormalizedArray(values.uBackgroundColor.ref.value, 0) !== props.backgroundColor) {
+            Color.toArrayNormalized(props.backgroundColor, values.uBackgroundColor.ref.value, 0)
+            ValueCell.update(values.uBackgroundColor, values.uBackgroundColor.ref.value)
+        }
+        ValueCell.updateIfChanged(values.uBackgroundOpacity, props.backgroundOpacity)
     }
 
     function updateBoundingSphere(values: TextValues, text: Text) {

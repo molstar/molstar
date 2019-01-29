@@ -125,11 +125,13 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
 
         if (updateState.updateTransform) {
             updateState.updateColor = true
+            updateState.updateSize = true
             updateState.updateMatrix = true
         }
 
         if (updateState.createGeometry) {
             updateState.updateColor = true
+            updateState.updateSize = true
         }
     }
 

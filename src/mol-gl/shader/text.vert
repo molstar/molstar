@@ -45,7 +45,7 @@ void main(void){
     float offsetY = uOffsetY * scale;
     float offsetZ = uOffsetZ * scale;
     if (vTexCoord.x == 10.0) {
-        offsetZ -= 0.001;
+        offsetZ -= 0.01;
     }
 
     vec4 mvPosition = uModelView * aTransform * vec4(aPosition, 1.0);

@@ -80,7 +80,7 @@ export class FontAtlas {
         this.lineHeight = Math.round(fontSize + 2 * this.buffer + this.radius)
         this.maxWidth = Math.round(this.lineHeight * 0.75)
 
-        // create texture
+        // create texture (for ~350 characters)
         this.texture = createTextureImage(350 * this.lineHeight * this.maxWidth, 1)
 
         // prepare scratch canvas

@@ -49,22 +49,22 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         VisualUpdateState.reset(updateState)
 
         if (!shape && !_shape) {
-            console.error('no shape given')
+            // console.error('no shape given')
             return
         } else if (shape && !_shape) {
-            console.log('first shape')
+            // console.log('first shape')
             updateState.createNew = true
         } else if (shape && _shape && shape.id === _shape.id) {
-            console.log('same shape')
+            // console.log('same shape')
             // trigger color update when shape has not changed
             updateState.updateColor = true
             updateState.updateTransform = true
         } else if (shape && _shape && shape.id !== _shape.id) {
-            console.log('new shape')
+            // console.log('new shape')
             updateState.updateTransform = true
             updateState.createGeometry = true
         } else if (!shape) {
-            console.log('only props')
+            // console.log('only props')
             // nothing to set
         } else {
             console.warn('unexpected state')
@@ -72,10 +72,12 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
         if (updateState.updateTransform) {
             updateState.updateColor = true
+            updateState.updateSize = true
         }
 
         if (updateState.createGeometry) {
             updateState.updateColor = true
+            updateState.updateSize = true
         }
     }
 
@@ -132,7 +134,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                 if (updateState.updateSize) {
                     // not all geometries have size data, so check here
                     if ('uSize' in _renderObject.values) {
-                        console.log('update size')
+                        // console.log('update size')
                         createSizes(locationIt, _theme.size, _renderObject.values)
                     }
                 }

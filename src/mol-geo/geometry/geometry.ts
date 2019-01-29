@@ -72,7 +72,7 @@ export namespace Geometry {
             case 'spheres':
             case 'text':
             case 'lines':
-                return arrayMax(geometry.groupBuffer.ref.value) + 1
+                return getDrawCount(geometry) === 0 ? 0 : (arrayMax(geometry.groupBuffer.ref.value) + 1)
             case 'direct-volume':
                 return 1
         }
