@@ -15,6 +15,7 @@ uniform mat4 uModelView;
 
 attribute vec3 aPosition;
 attribute vec2 aMapping;
+attribute float aDepth;
 attribute vec2 aTexCoord;
 attribute mat4 aTransform;
 attribute float aInstance;
@@ -43,7 +44,7 @@ void main(void){
 
     float offsetX = uOffsetX * scale;
     float offsetY = uOffsetY * scale;
-    float offsetZ = uOffsetZ * scale;
+    float offsetZ = (uOffsetZ + aDepth * 0.95) * scale;
     if (vTexCoord.x == 10.0) {
         offsetZ -= 0.01;
     }

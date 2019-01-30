@@ -44,6 +44,8 @@ export interface Text {
     readonly centerBuffer: ValueCell<Float32Array>,
     /** Mapping buffer as array of xy values wrapped in a value cell */
     readonly mappingBuffer: ValueCell<Float32Array>,
+    /** Depth buffer as array of z values wrapped in a value cell */
+    readonly depthBuffer: ValueCell<Float32Array>,
     /** Index buffer as array of center index triplets wrapped in a value cell */
     readonly indexBuffer: ValueCell<Uint32Array>,
     /** Group buffer as array of group ids for each vertex wrapped in a value cell */
@@ -54,18 +56,20 @@ export interface Text {
 
 export namespace Text {
     export function createEmpty(text?: Text): Text {
+        const ft = text ? text.fontTexture.ref.value : createTextureImage(0, 1)
         const cb = text ? text.centerBuffer.ref.value : new Float32Array(0)
         const mb = text ? text.mappingBuffer.ref.value : new Float32Array(0)
+        const db = text ? text.depthBuffer.ref.value : new Float32Array(0)
         const ib = text ? text.indexBuffer.ref.value : new Uint32Array(0)
         const gb = text ? text.groupBuffer.ref.value : new Float32Array(0)
         const tb = text ? text.tcoordBuffer.ref.value : new Float32Array(0)
-        const ft = text ? text.fontTexture.ref.value : createTextureImage(0, 1)
         return {
             kind: 'text',
             charCount: 0,
             fontTexture: text ? ValueCell.update(text.fontTexture, ft) : ValueCell.create(ft),
             centerBuffer: text ? ValueCell.update(text.centerBuffer, cb) : ValueCell.create(cb),
             mappingBuffer: text ? ValueCell.update(text.mappingBuffer, mb) : ValueCell.create(mb),
+            depthBuffer: text ? ValueCell.update(text.depthBuffer, db) : ValueCell.create(db),
             indexBuffer: text ? ValueCell.update(text.indexBuffer, ib) : ValueCell.create(ib),
             groupBuffer: text ? ValueCell.update(text.groupBuffer, gb) : ValueCell.create(gb),
             tcoordBuffer: text ? ValueCell.update(text.tcoordBuffer, tb) : ValueCell.create(tb)
@@ -118,7 +122,7 @@ export namespace Text {
 
         const counts = { drawCount: text.charCount * 2 * 3, groupCount, instanceCount }
 
-        const padding = getPadding(text.mappingBuffer.ref.value, text.charCount, getMaxSize(size))
+        const padding = getPadding(text.mappingBuffer.ref.value, text.depthBuffer.ref.value, text.charCount, getMaxSize(size))
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             text.centerBuffer.ref.value, text.charCount * 4,
             transform.aTransform.ref.value, instanceCount, padding
@@ -127,6 +131,7 @@ export namespace Text {
         return {
             aPosition: text.centerBuffer,
             aMapping: text.mappingBuffer,
+            aDepth: text.depthBuffer,
             aGroup: text.groupBuffer,
             elements: text.indexBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
@@ -179,7 +184,7 @@ export namespace Text {
     }
 
     function updateBoundingSphere(values: TextValues, text: Text) {
-        const padding = getPadding(values.aMapping.ref.value, text.charCount, getMaxSize(values))
+        const padding = getPadding(values.aMapping.ref.value, values.aDepth.ref.value, text.charCount, getMaxSize(values))
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, text.charCount * 4,
             values.aTransform.ref.value, values.instanceCount.ref.value, padding
@@ -205,13 +210,19 @@ export namespace Text {
     }
 }
 
-function getPadding(mapping: Float32Array, charCount: number, maxSize: number) {
+function getPadding(mappings: Float32Array, depths: Float32Array, charCount: number, maxSize: number) {
     let maxOffset = 0
+    let maxDepth = 0
     for (let i = 0, il = charCount * 4; i < il; ++i) {
-        const ox = Math.abs(mapping[i])
+        const i2 = 2 * i
+        const ox = Math.abs(mappings[i2])
         if (ox > maxOffset) maxOffset = ox
-        const oy = Math.abs(mapping[i + 1])
+        const oy = Math.abs(mappings[i2 + 1])
         if (oy > maxOffset) maxOffset = oy
+        const d = Math.abs(depths[i])
+        if (d > maxDepth) maxDepth = d
     }
-    return maxSize + maxSize * maxOffset
+    // console.log(maxDepth + maxSize, maxDepth, maxSize, maxSize + maxSize * maxOffset, depths)
+    return Math.max(maxDepth, maxSize + maxSize * maxOffset)
+    // return maxSize + maxSize * maxOffset + maxDepth
 }

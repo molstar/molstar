@@ -16,7 +16,7 @@ const quadIndices = new Uint16Array([
 ])
 
 export interface TextBuilder {
-    add(str: string, x: number, y: number, z: number, group: number): void
+    add(str: string, x: number, y: number, z: number, depth: number, group: number): void
     getText(): Text
 }
 
@@ -26,6 +26,7 @@ export namespace TextBuilder {
         chunkSize *= 2
         const centers = ChunkedArray.create(Float32Array, 3, chunkSize, text ? text.centerBuffer.ref.value : initialCount);
         const mappings = ChunkedArray.create(Float32Array, 2, chunkSize, text ? text.mappingBuffer.ref.value : initialCount);
+        const depths = ChunkedArray.create(Float32Array, 1, chunkSize, text ? text.depthBuffer.ref.value : initialCount);
         const indices = ChunkedArray.create(Uint32Array, 3, chunkSize, text ? text.indexBuffer.ref.value : initialCount);
         const groups = ChunkedArray.create(Float32Array, 1, chunkSize, text ? text.groupBuffer.ref.value : initialCount);
         const tcoords = ChunkedArray.create(Float32Array, 2, chunkSize, text ? text.tcoordBuffer.ref.value : initialCount);
@@ -38,7 +39,7 @@ export namespace TextBuilder {
         const outline = fontAtlas.buffer / fontAtlas.lineHeight
 
         return {
-            add: (str: string, x: number, y: number, z: number, group: number) => {
+            add: (str: string, x: number, y: number, z: number, depth: number, group: number) => {
                 let xadvance = 0
                 const nChar = str.length
 
@@ -76,6 +77,7 @@ export namespace TextBuilder {
                     for (let i = 0; i < 4; ++i) {
                         ChunkedArray.add2(tcoords, 10, 10)
                         ChunkedArray.add3(centers, x, y, z);
+                        ChunkedArray.add(depths, depth);
                         ChunkedArray.add(groups, group);
                     }
                     ChunkedArray.add3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2])
@@ -107,6 +109,7 @@ export namespace TextBuilder {
                     const offset = centers.elementCount
                     for (let i = 0; i < 4; ++i) {
                         ChunkedArray.add3(centers, x, y, z);
+                        ChunkedArray.add(depths, depth);
                         ChunkedArray.add(groups, group);
                     }
                     ChunkedArray.add3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2])
@@ -114,18 +117,20 @@ export namespace TextBuilder {
                 }
             },
             getText: () => {
+                const ft = fontAtlas.texture
                 const cb = ChunkedArray.compact(centers, true) as Float32Array
                 const mb = ChunkedArray.compact(mappings, true) as Float32Array
+                const db = ChunkedArray.compact(depths, true) as Float32Array
                 const ib = ChunkedArray.compact(indices, true) as Uint32Array
                 const gb = ChunkedArray.compact(groups, true) as Float32Array
                 const tb = ChunkedArray.compact(tcoords, true) as Float32Array
-                const ft = fontAtlas.texture
                 return {
                     kind: 'text',
                     charCount: indices.elementCount / 2,
                     fontTexture: text ? ValueCell.update(text.fontTexture, ft) : ValueCell.create(ft),
                     centerBuffer: text ? ValueCell.update(text.centerBuffer, cb) : ValueCell.create(cb),
                     mappingBuffer: text ? ValueCell.update(text.mappingBuffer, mb) : ValueCell.create(mb),
+                    depthBuffer: text ? ValueCell.update(text.depthBuffer, db) : ValueCell.create(db),
                     indexBuffer: text ? ValueCell.update(text.indexBuffer, ib) : ValueCell.create(ib),
                     groupBuffer: text ? ValueCell.update(text.groupBuffer, gb) : ValueCell.create(gb),
                     tcoordBuffer: text ? ValueCell.update(text.tcoordBuffer, tb) : ValueCell.create(tb),
