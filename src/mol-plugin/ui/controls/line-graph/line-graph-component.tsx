@@ -88,6 +88,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.handleMultipleDrag = this.handleMultipleDrag.bind(this);
         this.handleDoubleClick = this.handleDoubleClick.bind(this);
         this.refCallBack = this.refCallBack.bind(this);
+        this.sortPoints = this.sortPoints.bind(this);
         this.change = this.change.bind(this);
         this.handleKeyUp = this.handleKeyUp.bind(this);
         this.handleLeave = this.handleLeave.bind(this);
@@ -205,7 +206,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                 }
             }
         }
-
         if(this.state.canSelectMultiple) {
             let size = this.ghostPoints.length;
             this.ghostPoints[size-1].element.setAttribute('style', 'display: visible');
@@ -361,10 +361,11 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
     private handleMouseUp = (event: any) => {
         this.mouseDown = false;
+        
         if ((this.state.canSelectMultiple && !this.hasDragged) || !this.hasDragged) { 
             return; 
         }
-        
+
         let points = this.state.points;
         for(let i = 0; i < this.ghostPoints.length; i++) {
             const id = this.ghostPoints[i].id;
@@ -374,16 +375,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             const updatedPoint = this.unNormalizePoint(Vec2.create(x, y));
             points[id] = updatedPoint;
         }
-
-        points.sort((a, b) => { 
-            if(a[0] === b[0]){
-                if(a[0] === 1){
-                    return b[1]-a[1];
-                }
-                return a[1]-b[1];
-            }
-            return a[0] - b[0];
-        });
+        points = this.sortPoints(points);
         this.change(points);
         this.gElement.innerHTML = '';
         this.ghostPoints.forEach(x => {
@@ -469,21 +461,9 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
     private addPoint(callBack?: any) {
         const point = this.data;
-        const points = this.state.points;
+        let points = this.state.points;
         points.push(point);
-        points.sort((a, b) => { 
-            if(a[0] === b[0]){
-                if(a[0] === 0){
-                    return a[1]-b[1];
-                }
-                if(a[1] === 1){
-                    return b[1]-a[1];
-                }
-                return a[1]-b[1];
-            }
-            return a[0] - b[0];
-        });
-        
+        points = this.sortPoints(points);
         this.change(points);
         this.setState({points}, callBack);
     }
@@ -503,18 +483,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
         let points = this.state.points.filter((_, j) => j != id);
         points.push(unNormalizePoint);
-        points.sort(function(a, b) { 
-            if(a[0] === b[0]){
-                if(a[0] === 0){
-                    return a[1]-b[1];
-                }
-                if(a[1] === 1){
-                    return b[1]-a[1];
-                }
-                return a[1]-b[1];
-            }
-            return a[0] - b[0];
-        });
+        points = this.sortPoints(points);
         for(let i = 0; i < points.length; i++) {
             if(points[i][0] == unNormalizePoint[0] && points[i][1] == unNormalizePoint[1]) {
                 id = i;
@@ -600,6 +569,23 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         isControlEnabled['plus'] = plus;
         isControlEnabled['minus'] = minus;
         this.setState({isControlEnabled});
+    }
+
+    private sortPoints(points: Vec2[]) {
+        points.sort(function(a, b) { 
+            if(a[0] === b[0]){
+                if(a[0] === 0){
+                    return a[1]-b[1];
+                }
+                if(a[0] === 1){
+                    return 1;
+                }
+                return a[1]-b[1];
+            }
+            return a[0] - b[0];
+        });
+        
+        return points;
     }
 
     private sortOuterGhostPoints(element: SVGElement) {
