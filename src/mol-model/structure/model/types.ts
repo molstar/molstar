@@ -148,6 +148,11 @@ export const SaccharideComponentTypeNames = [
     'D-SACCHARIDE', 'SACCHARIDE',
 ]
 
+/** Chemical component type names for other */
+export const OtherComponentTypeNames = [
+    'NON-POLYMER', 'OTHER'
+]
+
 /** Common names for water molecules */
 export const WaterNames = [
     'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC'
@@ -185,6 +190,8 @@ export function getMoleculeType(compType: string, compId: string) {
         return MoleculeType.water
     } else if (IonNames.includes(compId)) {
         return MoleculeType.ion
+    } else if (OtherComponentTypeNames.includes(compType)) {
+        return MoleculeType.other
     } else {
         return MoleculeType.unknown
     }
