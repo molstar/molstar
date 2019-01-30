@@ -59,11 +59,8 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
 
     const v = Vec3.zero()
     const pos = unit.conformation.invariantPosition
-    const l = StructureElement.create()
-    l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {
-        l.element = elements[i]
         pos(elements[i], v)
         builder.add(v[0], v[1], v[2], i)
     }
