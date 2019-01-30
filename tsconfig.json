@@ -31,7 +31,7 @@
             "mol-task": ["./mol-task", "./mol-task/index.ts"],
             "mol-theme": ["./mol-theme"],
             "mol-util": ["./mol-util", "./mol-util/index.ts"],
-            "mol-canvas3d": ["./mol-view"]
+            "mol-canvas3d": ["./mol-canvas3d"]
         }
     },
     "include": [ "src/**/*" ],
