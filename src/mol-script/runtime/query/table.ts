@@ -8,7 +8,7 @@ import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
 import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './compiler';
 import { Queries, StructureProperties, StructureElement, QueryContext } from 'mol-model/structure';
 import { ElementSymbol } from 'mol-model/structure/model/types';
-import { isSuperset } from 'mol-util/set';
+import { SetUtils } from 'mol-util/set';
 import toUpperCase from 'mol-util/upper-case';
 import { VdwRadius, AtomWeight, AtomNumber } from 'mol-model/structure/model/properties/atomic';
 import { cantorPairing } from 'mol-data/util';
@@ -150,7 +150,7 @@ const symbols = [
 
     // ============= SET ================
     C(MolScript.core.set.has, (ctx, v) => v[0](ctx).has(v[1](ctx))),
-    C(MolScript.core.set.isSubset, (ctx, v) => isSuperset(v[1](ctx) as Set<any>, v[0](ctx) as Set<any>)),
+    C(MolScript.core.set.isSubset, (ctx, v) => SetUtils.isSuperset(v[1](ctx) as Set<any>, v[0](ctx) as Set<any>)),
 
     // ============= FLAGS ================
     C(MolScript.core.flags.hasAny, (ctx, v) => {

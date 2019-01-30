@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { isSuperset } from 'mol-util/set';
+import { SetUtils } from 'mol-util/set';
 import { Unit } from '../../structure';
 import { QueryContext, QueryFn, QueryPredicate } from '../context';
 import { StructureQuery } from '../query';
@@ -82,7 +82,7 @@ export function withSameAtomProperties(query: StructureQuery, propertySource: St
         StructureSelection.forEach(sel, (s, i) => {
             ctx.currentStructure = s;
             const currentProps = getCurrentStructureProperties(ctx, props, new Set());
-            if (isSuperset(currentProps, propSet)) {
+            if (SetUtils.isSuperset(currentProps, propSet)) {
                 ret.add(s);
             }
 

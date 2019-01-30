@@ -5,7 +5,7 @@
  */
 
 import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
-import { unionMany } from 'mol-util/set';
+import { SetUtils } from 'mol-util/set';
 import { Model } from '../../model';
 import { Structure } from '../../structure';
 import { EntityIndex } from '../../model/indexing';
@@ -20,7 +20,7 @@ export function getModelMmCifCategory<K extends keyof mmCIF_Schema>(model: Model
 }
 
 export function getUniqueResidueNamesFromStructures(structures: Structure[]) {
-    return unionMany(structures.map(s => s.uniqueResidueNames));
+    return SetUtils.unionMany(structures.map(s => s.uniqueResidueNames));
 }
 
 export function getUniqueEntityIdsFromStructures(structures: Structure[]): Set<string> {

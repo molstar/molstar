@@ -9,7 +9,7 @@ import { now } from 'mol-util/now';
 
 import { Vec3 } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
-import * as SetUtils from 'mol-util/set'
+import { SetUtils } from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
 import { RenderObject } from 'mol-gl/render-object'
 
