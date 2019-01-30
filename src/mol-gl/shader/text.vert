@@ -45,12 +45,10 @@ void main(void){
     float offsetX = uOffsetX * scale;
     float offsetY = uOffsetY * scale;
     float offsetZ = (uOffsetZ + aDepth * 0.95) * scale;
-    if (vTexCoord.x == 10.0) {
-        offsetZ -= 0.01;
-    }
 
     vec4 mvPosition = uModelView * aTransform * vec4(aPosition, 1.0);
 
+    // TODO
     // #ifdef FIXED_SIZE
     //     if (ortho) {
     //         scale /= pixelRatio * ((uViewportHeight / 2.0) / -uCameraPosition.z) * 0.1;
@@ -60,9 +58,17 @@ void main(void){
     // #endif
 
     vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
+
+    if (vTexCoord.x == 10.0) { // indicates background plane
+        // move a bit to the back, tkaing ditsnace to camera into account to avoid z-fighting
+        offsetZ -= 0.001 * distance(uCameraPosition, (uProjection * mvCorner).xyz);
+    }
+
     mvCorner.xy += aMapping * size * scale;
     mvCorner.x += offsetX;
     mvCorner.y += offsetY;
+
+    // TODO
     // if(ortho){
     //     mvCorner.xyz += normalize(-uCameraPosition) * offsetZ;
     // } else {
