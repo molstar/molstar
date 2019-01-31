@@ -95,7 +95,7 @@ namespace PluginBehavior {
             for (const s of this.subs) s.unsubscribe();
             this.subs = [];
         }
-        update(params: P): boolean {
+        update(params: P): boolean | Promise<boolean> {
             if (shallowEqual(params, this.params)) return false;
             this.params = params;
             return true;
