@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.303, IHM 0.139, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.304, IHM 0.139, CARB draft.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -491,7 +491,7 @@ export const mmCIF_Schema = {
          *
          * Corresponds to the compound name in the PDB format.
          */
-        pdbx_description: str,
+        pdbx_description: List(',', x => x),
         /**
          * A place holder for the number of molecules of the entity in
          * the entry.

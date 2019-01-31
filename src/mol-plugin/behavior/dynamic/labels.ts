@@ -152,7 +152,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
                     l.element = u.elements[0]
 
                     if (p.levels.includes('polymer') && u.polymerElements.length) {
-                        label = `${StructureProperties.entity.pdbx_description(l)} (${getAsymId(u)(l)})`
+                        label = `${StructureProperties.entity.pdbx_description(l).join(', ')} (${getAsymId(u)(l)})`
                     }
 
                     if (p.levels.includes('ligand') && !u.polymerElements.length) {
@@ -160,7 +160,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
                         const chemComp = u.model.properties.chemicalComponentMap.get(compId)
                         const moleculeType = chemComp ? chemComp.moleculeType : MoleculeType.unknown
                         if (moleculeType === MoleculeType.other || moleculeType === MoleculeType.saccharide) {
-                            label = `${StructureProperties.entity.pdbx_description(l)} (${getAsymId(u)(l)})`
+                            label = `${StructureProperties.entity.pdbx_description(l).join(', ')} (${getAsymId(u)(l)})`
                         }
                     }
 
