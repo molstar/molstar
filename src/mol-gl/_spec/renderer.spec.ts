@@ -57,6 +57,7 @@ function createPoints() {
     const m4 = Mat4.identity()
     Mat4.toArray(m4, aTransform.ref.value, 0)
     const transform = ValueCell.create(new Float32Array(aTransform.ref.value))
+    const extraTransform = ValueCell.create(new Float32Array(aTransform.ref.value))
 
     const boundingSphere = ValueCell.create(Sphere3D.create(Vec3.zero(), 2))
     const invariantBoundingSphere = ValueCell.create(Sphere3D.create(Vec3.zero(), 2))
@@ -78,7 +79,9 @@ function createPoints() {
 
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
+        matrix: ValueCell.create(m4),
         transform,
+        extraTransform,
         boundingSphere,
         invariantBoundingSphere,
 

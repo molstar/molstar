@@ -163,9 +163,12 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     }
 
     function setState(state: Partial<Representation.State>) {
-        if (state.visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(state.visible!))
-        if (state.pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(state.pickable!))
-        if (state.transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(state.transform!))
+        const { visible, pickable, transform, instanceTransforms } = state
+        if (visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(visible))
+        if (pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(pickable))
+        if (transform !== undefined || instanceTransforms !== undefined) {
+            visuals.forEach(({ visual }) => visual.setTransform(transform, instanceTransforms))
+        }
 
         Representation.updateState(_state, state)
     }

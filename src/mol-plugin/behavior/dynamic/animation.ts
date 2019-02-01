@@ -134,7 +134,7 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
         register(): void { }
 
         update(p: StructureAnimationProps) {
-            let updated = PD.areEqual(StructureAnimationParams, this.params, p)
+            let updated = !PD.areEqual(StructureAnimationParams, this.params, p)
             if (this.params.rotate !== p.rotate) {
                 this.params.rotate = p.rotate
                 this.animateRotate(this.params.rotate)

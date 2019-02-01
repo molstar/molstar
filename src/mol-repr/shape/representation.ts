@@ -196,7 +196,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             if (_renderObject) {
                 if (state.visible !== undefined) Visual.setVisibility(_renderObject, state.visible)
                 if (state.pickable !== undefined) Visual.setPickable(_renderObject, state.pickable)
-                if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform)
+                if (state.transform !== undefined || state.instanceTransforms !== undefined) {
+                    Visual.setTransform(_renderObject, state.transform, state.instanceTransforms)
+                }
             }
 
             Representation.updateState(_state, state)

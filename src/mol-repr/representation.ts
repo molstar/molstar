@@ -18,6 +18,7 @@ import { Theme, ThemeRegistryContext, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { BaseGeometry } from 'mol-geo/geometry/base';
+import { Visual } from './visual';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -115,15 +116,27 @@ namespace Representation {
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
         transform: Mat4
+        /**
+         * A set of transformations applied to the instances within the representation's renderobjects,
+         * laid out as Mat4's in a Float32Array
+         */
+        instanceTransforms: Float32Array
     }
-    export function createState() {
-        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity() }
+    export function createState(): State {
+        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity(), instanceTransforms: new Float32Array(Mat4.identity()) }
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible
         if (update.pickable !== undefined) state.pickable = update.pickable
         if (update.syncManually !== undefined) state.syncManually = update.syncManually
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
+        if (update.instanceTransforms !== undefined) {
+            if (update.instanceTransforms.length !== state.instanceTransforms.length) {
+                state.instanceTransforms = new Float32Array(update.instanceTransforms)
+            } else {
+                state.instanceTransforms.set(update.instanceTransforms)
+            }
+        }
     }
 
     export type Any = Representation<any, any>
@@ -278,9 +291,11 @@ namespace Representation {
                 return false
             },
             setState: (state: Partial<State>) => {
-                if (state.visible !== undefined) renderObject.state.visible = state.visible
-                if (state.pickable !== undefined) renderObject.state.pickable = state.pickable
-                // TODO transform
+                if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible)
+                if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable)
+                if (state.transform !== undefined || state.instanceTransforms !== undefined) {
+                    Visual.setTransform(renderObject, state.transform, state.instanceTransforms)
+                }
 
                 Representation.updateState(currentState, state)
             },

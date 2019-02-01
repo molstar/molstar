@@ -57,7 +57,9 @@ export class BoundingSphereHelper {
                 const instanceData = this.instancesData.get(ro)
                 const newInstanceData = updateBoundingSphereData(this.scene, r.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, {
                     aTransform: ro.values.aTransform,
+                    matrix: ro.values.matrix,
                     transform: ro.values.transform,
+                    extraTransform: ro.values.extraTransform,
                     uInstanceCount: ro.values.uInstanceCount,
                     instanceCount: ro.values.instanceCount,
                     aInstance: ro.values.aInstance,

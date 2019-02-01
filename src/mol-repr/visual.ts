@@ -13,7 +13,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { Theme } from 'mol-theme/theme';
 import { Mat4 } from 'mol-math/linear-algebra';
-import { setTransformData } from 'mol-geo/geometry/transform-data';
+import { updateTransformData } from 'mol-geo/geometry/transform-data';
 import { calculateTransformBoundingSphere } from 'mol-gl/renderable/util';
 import { ValueCell } from 'mol-util';
 
@@ -31,24 +31,32 @@ interface Visual<D, P extends PD.Params> {
     createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.Values<P>>, data?: D) => Promise<void> | void
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
-    setVisibility: (value: boolean) => void
-    setPickable: (value: boolean) => void
-    setTransform: (value: Mat4) => void
+    setVisibility: (visible: boolean) => void
+    setPickable: (pickable: boolean) => void
+    setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array) => void
     destroy: () => void
 }
 namespace Visual {
-    export function setVisibility(renderObject: GraphicsRenderObject | undefined, value: boolean) {
-        if (renderObject) renderObject.state.visible = value
+    export function setVisibility(renderObject: GraphicsRenderObject | undefined, visible: boolean) {
+        if (renderObject) renderObject.state.visible = visible
     }
 
-    export function setPickable(renderObject: GraphicsRenderObject | undefined, value: boolean) {
-        if (renderObject) renderObject.state.pickable = value
+    export function setPickable(renderObject: GraphicsRenderObject | undefined, pickable: boolean) {
+        if (renderObject) renderObject.state.pickable = pickable
     }
 
-    export function setTransform(renderObject: GraphicsRenderObject | undefined, value: Mat4) {
-        if (renderObject) {
+    export function setTransform(renderObject: GraphicsRenderObject | undefined, transform?: Mat4, instanceTransforms?: Float32Array) {
+        if (renderObject && (transform || instanceTransforms)) {
             const { values } = renderObject
-            setTransformData(value, values)
+            if (transform) {
+                Mat4.copy(values.matrix.ref.value, transform)
+                ValueCell.update(values.matrix, values.matrix.ref.value)
+            }
+            if (instanceTransforms) {
+                values.extraTransform.ref.value.set(instanceTransforms)
+                ValueCell.update(values.extraTransform, values.extraTransform.ref.value)
+            }
+            updateTransformData(values)
             const boundingSphere = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value)
             ValueCell.update(values.boundingSphere, boundingSphere)
         }

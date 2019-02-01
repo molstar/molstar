@@ -14,8 +14,11 @@ import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Spheres } from 'mol-geo/geometry/spheres/spheres';
+// import { Mat4 } from 'mol-math/linear-algebra';
 
-export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
+export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> {
+    // setUnitsTransform(unitTransforms: { [id: number]: Mat4 }): void
+}
 
 export type StructureRepresentationProvider<P extends PD.Params> = RepresentationProvider<Structure, P>
 

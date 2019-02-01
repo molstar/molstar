@@ -240,14 +240,14 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
             }
             return changed
         },
-        setVisibility(value: boolean) {
-            Visual.setVisibility(renderObject, value)
+        setVisibility(visible: boolean) {
+            Visual.setVisibility(renderObject, visible)
         },
-        setPickable(value: boolean) {
-            Visual.setPickable(renderObject, value)
+        setPickable(pickable: boolean) {
+            Visual.setPickable(renderObject, pickable)
         },
-        setTransform(value: Mat4) {
-            Visual.setTransform(renderObject, value)
+        setTransform(matrix?: Mat4, instanceMatrices?: Float32Array) {
+            Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
         destroy() {
             // TODO
