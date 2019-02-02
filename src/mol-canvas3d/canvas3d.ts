@@ -9,9 +9,8 @@ import { now } from 'mol-util/now';
 
 import { Vec3 } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
-import { SetUtils } from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
-import { RenderObject } from 'mol-gl/render-object'
+import { GraphicsRenderObject } from 'mol-gl/render-object'
 
 import { TrackballControls, TrackballControlsParams } from './controls/trackball'
 import { Viewport } from './camera/util'
@@ -29,6 +28,7 @@ import { Camera } from './camera';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-sphere-helper';
 import { decodeFloatRGB } from 'mol-util/float-packing';
+import { SetUtils } from 'mol-util/set';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -83,7 +83,7 @@ namespace Canvas3D {
     export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
-        const reprRenderObjects = new Map<Representation.Any, Set<RenderObject>>()
+        const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>()
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>()
         const reprCount = new BehaviorSubject(0)
 
@@ -300,11 +300,13 @@ namespace Canvas3D {
         function add(repr: Representation.Any) {
             isUpdating = true
             const oldRO = reprRenderObjects.get(repr)
-            const newRO = new Set<RenderObject>()
+            const newRO = new Set<GraphicsRenderObject>()
             repr.renderObjects.forEach(o => newRO.add(o))
             if (oldRO) {
-                SetUtils.difference(newRO, oldRO).forEach(o => scene.add(o))
-                SetUtils.difference(oldRO, newRO).forEach(o => scene.remove(o))
+                if (!SetUtils.areEqual(newRO, oldRO)) {
+                    for (const o of Array.from(newRO)) { if (!oldRO.has(o)) scene.add(o) }
+                    for (const o of Array.from(oldRO)) { if (!newRO.has(o)) scene.remove(o) }
+                }
             } else {
                 repr.renderObjects.forEach(o => scene.add(o))
             }
