@@ -14,13 +14,27 @@ import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Spheres } from 'mol-geo/geometry/spheres/spheres';
-// import { Mat4 } from 'mol-math/linear-algebra';
+import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
 
-export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> {
-    // setUnitsTransform(unitTransforms: { [id: number]: Mat4 }): void
+export interface StructureRepresentationState extends Representation.State {
+    unitTransforms: StructureUnitTransforms | null
+}
+export const StructureRepresentationStateBuilder: Representation.StateBuilder<StructureRepresentationState> = {
+    create: () => {
+        return {
+            ...Representation.createState(),
+            unitTransforms: null
+        }
+    },
+    update: (state: StructureRepresentationState, update: Partial<StructureRepresentationState>) => {
+        Representation.updateState(state, update)
+        if (update.unitTransforms !== undefined) state.unitTransforms = update.unitTransforms
+    }
 }
 
-export type StructureRepresentationProvider<P extends PD.Params> = RepresentationProvider<Structure, P>
+export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P, StructureRepresentationState> { }
+
+export type StructureRepresentationProvider<P extends PD.Params> = RepresentationProvider<Structure, P, StructureRepresentationState>
 
 //
 

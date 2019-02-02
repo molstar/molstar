@@ -32,21 +32,21 @@ export interface RepresentationContext {
 }
 
 export type RepresentationParamsGetter<D, P extends PD.Params> = (ctx: ThemeRegistryContext, data: D) => P
-export type RepresentationFactory<D, P extends PD.Params> = (ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>) => Representation<D, P>
+export type RepresentationFactory<D, P extends PD.Params, S extends Representation.State> = (ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>) => Representation<D, P, S>
 
 //
 
-export interface RepresentationProvider<D, P extends PD.Params> {
+export interface RepresentationProvider<D, P extends PD.Params, S extends Representation.State> {
     readonly label: string
     readonly description: string
-    readonly factory: RepresentationFactory<D, P>
+    readonly factory: RepresentationFactory<D, P, S>
     readonly getParams: RepresentationParamsGetter<D, P>
     readonly defaultValues: PD.Values<P>
     readonly defaultColorTheme: string
     readonly defaultSizeTheme: string
 }
 
-export type AnyRepresentationProvider = RepresentationProvider<any, {}>
+export type AnyRepresentationProvider = RepresentationProvider<any, {}, Representation.State>
 
 export const EmptyRepresentationProvider = {
     label: '',
@@ -56,9 +56,9 @@ export const EmptyRepresentationProvider = {
     defaultValues: {}
 }
 
-export class RepresentationRegistry<D> {
-    private _list: { name: string, provider: RepresentationProvider<D, any> }[] = []
-    private _map = new Map<string, RepresentationProvider<D, any>>()
+export class RepresentationRegistry<D, S extends Representation.State> {
+    private _list: { name: string, provider: RepresentationProvider<D, any, any> }[] = []
+    private _map = new Map<string, RepresentationProvider<D, any, any>>()
 
     get default() { return this._list[0]; }
     get types(): [string, string][] {
@@ -67,7 +67,7 @@ export class RepresentationRegistry<D> {
 
     constructor() {};
 
-    add<P extends PD.Params>(name: string, provider: RepresentationProvider<D, P>) {
+    add<P extends PD.Params>(name: string, provider: RepresentationProvider<D, P, S>) {
         this._list.push({ name, provider })
         this._map.set(name, provider)
     }
@@ -77,8 +77,8 @@ export class RepresentationRegistry<D> {
         this._map.delete(name)
     }
 
-    get<P extends PD.Params>(name: string): RepresentationProvider<D, P> {
-        return this._map.get(name) || EmptyRepresentationProvider as unknown as RepresentationProvider<D, P>
+    get<P extends PD.Params>(name: string): RepresentationProvider<D, P, S> {
+        return this._map.get(name) || EmptyRepresentationProvider as unknown as RepresentationProvider<D, P, S>
     }
 
     get list() {
@@ -89,7 +89,7 @@ export class RepresentationRegistry<D> {
 //
 
 export { Representation }
-interface Representation<D, P extends PD.Params = {}> {
+interface Representation<D, P extends PD.Params = {}, S extends Representation.State = Representation.State> {
     readonly label: string
     readonly updated: Subject<number>
     /** Number of addressable groups in all visuals of the representation */
@@ -97,10 +97,10 @@ interface Representation<D, P extends PD.Params = {}> {
     readonly renderObjects: ReadonlyArray<GraphicsRenderObject>
     readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
-    readonly state: Readonly<Representation.State>
+    readonly state: Readonly<S>
     readonly theme: Readonly<Theme>
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
-    setState: (state: Partial<Representation.State>) => void
+    setState: (state: Partial<S>) => void
     setTheme: (theme: Theme) => void
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
@@ -116,30 +116,22 @@ namespace Representation {
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
         transform: Mat4
-        /**
-         * A set of transformations applied to the instances within the representation's renderobjects,
-         * laid out as Mat4's in a Float32Array
-         */
-        instanceTransforms: Float32Array
     }
     export function createState(): State {
-        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity(), instanceTransforms: new Float32Array(Mat4.identity()) }
+        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity(), /* instanceTransforms: new Float32Array(Mat4.identity()) */ }
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible
         if (update.pickable !== undefined) state.pickable = update.pickable
         if (update.syncManually !== undefined) state.syncManually = update.syncManually
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
-        if (update.instanceTransforms !== undefined) {
-            if (update.instanceTransforms.length !== state.instanceTransforms.length) {
-                state.instanceTransforms = new Float32Array(update.instanceTransforms)
-            } else {
-                state.instanceTransforms.set(update.instanceTransforms)
-            }
-        }
+    }
+    export interface StateBuilder<S extends State> {
+        create(): S
+        update(state: S, update: Partial<S>): void
     }
 
-    export type Any = Representation<any, any>
+    export type Any = Representation<any, any, any>
     export const Empty: Any = {
         label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(), state: createState(), theme: createEmptyTheme(),
         createOrUpdate: () => Task.constant('', undefined),
@@ -150,12 +142,12 @@ namespace Representation {
         destroy: () => {}
     }
 
-    export type Def<D, P extends PD.Params = {}> = { [k: string]: RepresentationFactory<D, P> }
+    export type Def<D, P extends PD.Params = {}, S extends State = State> = { [k: string]: RepresentationFactory<D, P, S> }
 
-    export function createMulti<D, P extends PD.Params = {}>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>, reprDefs: Def<D, P>): Representation<D, P> {
+    export function createMulti<D, P extends PD.Params = {}, S extends State = State>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>, stateBuilder: StateBuilder<S>, reprDefs: Def<D, P>): Representation<D, P, S> {
         let version = 0
         const updated = new Subject<number>()
-        const currentState = Representation.createState()
+        const currentState = stateBuilder.create()
         let currentTheme = createEmptyTheme()
 
         let currentParams: P
@@ -236,11 +228,11 @@ namespace Representation {
                 }
                 return marked
             },
-            setState: (state: Partial<State>) => {
+            setState: (state: Partial<S>) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     reprList[i].setState(state)
                 }
-                Representation.updateState(currentState, state)
+                stateBuilder.update(currentState, state)
             },
             setTheme: (theme: Theme) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
@@ -293,9 +285,7 @@ namespace Representation {
             setState: (state: Partial<State>) => {
                 if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible)
                 if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable)
-                if (state.transform !== undefined || state.instanceTransforms !== undefined) {
-                    Visual.setTransform(renderObject, state.transform, state.instanceTransforms)
-                }
+                if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform)
 
                 Representation.updateState(currentState, state)
             },

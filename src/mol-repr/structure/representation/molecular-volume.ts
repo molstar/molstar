@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { GaussianDensityVolumeParams, GaussianDensityVolumeVisual } from '../visual/gaussian-density-volume';
-import { StructureRepresentation, StructureRepresentationProvider, ComplexRepresentation } from '../representation';
+import { StructureRepresentation, StructureRepresentationProvider, ComplexRepresentation, StructureRepresentationStateBuilder } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
@@ -25,7 +25,7 @@ export function getMolecularVolumeParams(ctx: ThemeRegistryContext, structure: S
 
 export type MolecularVolumeRepresentation = StructureRepresentation<MolecularVolumeParams>
 export function MolecularVolumeRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularVolumeParams>): MolecularVolumeRepresentation {
-    return Representation.createMulti('Molecular Volume', ctx, getParams, MolecularVolumeVisuals as unknown as Representation.Def<Structure, MolecularVolumeParams>)
+    return Representation.createMulti('Molecular Volume', ctx, getParams, StructureRepresentationStateBuilder, MolecularVolumeVisuals as unknown as Representation.Def<Structure, MolecularVolumeParams>)
 }
 
 export const MolecularVolumeRepresentationProvider: StructureRepresentationProvider<MolecularVolumeParams> = {

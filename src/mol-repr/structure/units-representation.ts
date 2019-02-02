@@ -8,11 +8,11 @@
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { GraphicsRenderObject } from 'mol-gl/render-object';
-import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
+import { RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Visual } from '../visual';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { StructureGroup } from './units-visual';
-import { StructureRepresentation, StructureParams } from './representation';
+import { StructureRepresentation, StructureParams, StructureRepresentationState, StructureRepresentationStateBuilder } from './representation';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Theme, createEmptyTheme } from 'mol-theme/theme';
@@ -31,7 +31,7 @@ export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGrou
 export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
-    const _state = Representation.createState()
+    const _state = StructureRepresentationStateBuilder.create()
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _structure: Structure

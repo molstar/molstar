@@ -129,7 +129,7 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
         setPickable(pickable: boolean) {
             Visual.setPickable(renderObject, pickable)
         },
-        setTransform(matrix?: Mat4, instanceMatrices?: Float32Array) {
+        setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
         destroy() {
@@ -141,7 +141,7 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
 
 export interface VolumeRepresentation<P extends VolumeParams> extends Representation<VolumeData, P> { }
 
-export type VolumeRepresentationProvider<P extends VolumeParams> = RepresentationProvider<VolumeData, P>
+export type VolumeRepresentationProvider<P extends VolumeParams> = RepresentationProvider<VolumeData, P, Representation.State>
 
 //
 
