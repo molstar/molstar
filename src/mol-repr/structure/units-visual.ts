@@ -246,7 +246,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
         setPickable(pickable: boolean) {
             Visual.setPickable(renderObject, pickable)
         },
-        setTransform(matrix?: Mat4, instanceMatrices?: Float32Array) {
+        setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
         destroy() {

@@ -85,8 +85,8 @@ export function updateTransformData(transformData: TransformData) {
     const extraTransform = transformData.extraTransform.ref.value
     for (let i = 0; i < instanceCount; i++) {
         const i16 = i * 16
-        Mat4.mulOffset(aTransform, transform, extraTransform, i16, i16, i16)
-        Mat4.mulOffset(aTransform, aTransform, matrix, i16, i16, 0)
+        Mat4.mulOffset(aTransform, extraTransform, transform, i16, i16, i16)
+        Mat4.mulOffset(aTransform, matrix, aTransform, i16, 0, i16)
     }
     ValueCell.update(transformData.aTransform, aTransform)
 }

@@ -200,7 +200,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         setPickable(pickable: boolean) {
             Visual.setPickable(renderObject, pickable)
         },
-        setTransform(matrix?: Mat4, instanceMatrices?: Float32Array) {
+        setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
         destroy() {

@@ -52,12 +52,20 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         return visual ? visual.mark(loci, action) : false
     }
 
-    function setState(state: Partial<Representation.State>) {
-        if (state.visible !== undefined && visual) visual.setVisibility(state.visible)
+    function setState(state: Partial<StructureRepresentationState>) {
+        StructureRepresentationStateBuilder.update(_state, state)
+
+        if (state.visible !== undefined && visual) {
+            // hide visual when _unitTransforms is set
+            visual.setVisibility(state.visible && _state.unitTransforms === null)
+        }
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
         if (state.transform !== undefined && visual) visual.setTransform(state.transform)
-
-        Representation.updateState(_state, state)
+        if (state.unitTransforms !== undefined && visual) {
+            // Since ComplexVisuals always renders geometries between units the application of `unitTransforms`
+            // does not make sense. When given it is ignored here and sets the visual's visibility to `false`.
+            visual.setVisibility(_state.visible && state.unitTransforms === null)
+        }
     }
 
     function setTheme(theme: Theme) {

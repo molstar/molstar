@@ -13,7 +13,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { Theme } from 'mol-theme/theme';
 import { Mat4 } from 'mol-math/linear-algebra';
-import { updateTransformData } from 'mol-geo/geometry/transform-data';
+import { updateTransformData, fillIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { calculateTransformBoundingSphere } from 'mol-gl/renderable/util';
 import { ValueCell } from 'mol-util';
 
@@ -33,7 +33,7 @@ interface Visual<D, P extends PD.Params> {
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (visible: boolean) => void
     setPickable: (pickable: boolean) => void
-    setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array) => void
+    setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
     destroy: () => void
 }
 namespace Visual {
@@ -45,7 +45,7 @@ namespace Visual {
         if (renderObject) renderObject.state.pickable = pickable
     }
 
-    export function setTransform(renderObject: GraphicsRenderObject | undefined, transform?: Mat4, instanceTransforms?: Float32Array) {
+    export function setTransform(renderObject: GraphicsRenderObject | undefined, transform?: Mat4, instanceTransforms?: Float32Array | null) {
         if (renderObject && (transform || instanceTransforms)) {
             const { values } = renderObject
             if (transform) {
@@ -54,6 +54,9 @@ namespace Visual {
             }
             if (instanceTransforms) {
                 values.extraTransform.ref.value.set(instanceTransforms)
+                ValueCell.update(values.extraTransform, values.extraTransform.ref.value)
+            } else if (instanceTransforms === null) {
+                fillIdentityTransform(values.extraTransform.ref.value, values.instanceCount.ref.value)
                 ValueCell.update(values.extraTransform, values.extraTransform.ref.value)
             }
             updateTransformData(values)

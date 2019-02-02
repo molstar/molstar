@@ -162,15 +162,23 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         return changed
     }
 
-    function setState(state: Partial<Representation.State>) {
-        const { visible, pickable, transform, instanceTransforms } = state
+    function setState(state: Partial<StructureRepresentationState>) {
+        const { visible, pickable, transform, unitTransforms } = state
         if (visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(visible))
         if (pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(pickable))
-        if (transform !== undefined || instanceTransforms !== undefined) {
-            visuals.forEach(({ visual }) => visual.setTransform(transform, instanceTransforms))
+        if (transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(transform))
+        if (unitTransforms !== undefined) {
+            visuals.forEach(({ visual, group }) => {
+                if (unitTransforms) {
+                    // console.log(group.hashCode, unitTransforms.getSymmetryGroupTransforms(group))
+                    visual.setTransform(undefined, unitTransforms.getSymmetryGroupTransforms(group))
+                } else {
+                    visual.setTransform(undefined, null)
+                }
+            })
         }
 
-        Representation.updateState(_state, state)
+        StructureRepresentationStateBuilder.update(_state, state)
     }
 
     function setTheme(theme: Theme) {
