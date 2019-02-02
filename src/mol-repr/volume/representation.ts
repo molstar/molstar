@@ -154,6 +154,7 @@ export type VolumeParams = typeof VolumeParams
 export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const renderObjects: GraphicsRenderObject[] = []
     const _state = Representation.createState()
     let visual: VolumeVisual<P>
 
@@ -187,6 +188,10 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
                 await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, volume)
                 busy = false
             }
+            // update list of renderObjects
+            renderObjects.length = 0
+            if (visual && visual.renderObject) renderObjects.push(visual.renderObject)
+            // increment version
             updated.next(version++)
         });
     }
@@ -220,13 +225,11 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         get groupCount() {
             return visual ? visual.groupCount : 0
         },
-        get renderObjects() {
-            return visual && visual.renderObject ? [ visual.renderObject ] : []
-        },
         get props () { return _props },
         get params() { return _params },
         get state() { return _state },
         get theme() { return _theme },
+        renderObjects,
         updated,
         createOrUpdate,
         setState,

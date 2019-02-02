@@ -31,6 +31,7 @@ export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGrou
 export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const renderObjects: GraphicsRenderObject[] = []
     const _state = StructureRepresentationStateBuilder.create()
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
@@ -140,7 +141,14 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: il })
                 }
             }
+            // update list of renderObjects
+            renderObjects.length = 0
+            visuals.forEach(({ visual }) => {
+                if (visual.renderObject) renderObjects.push(visual.renderObject)
+            })
+            // set new structure
             if (structure) _structure = structure
+            // increment version
             updated.next(version++)
         });
     }
@@ -199,17 +207,11 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
             })
             return groupCount
         },
-        get renderObjects() {
-            const renderObjects: GraphicsRenderObject[] = []
-            visuals.forEach(({ visual }) => {
-                if (visual.renderObject) renderObjects.push(visual.renderObject)
-            })
-            return renderObjects
-        },
         get props() { return _props },
         get params() { return _params },
         get state() { return _state },
         get theme() { return _theme },
+        renderObjects,
         updated,
         createOrUpdate,
         setState,

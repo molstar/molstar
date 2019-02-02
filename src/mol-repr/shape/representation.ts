@@ -95,14 +95,14 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             }
 
             if (updateState.createNew) {
-                renderObjects.length = 0
+                renderObjects.length = 0 // clear list o renderObjects
                 locationIt = ShapeGroupIterator.fromShape(_shape)
                 const transform = createShapeTransform(_shape.transforms)
                 const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps)
                 const state = geometryUtils.createRenderableState(newProps)
 
                 _renderObject = createRenderObject(_shape.geometry.kind, values, state)
-                if (_renderObject) renderObjects.push(_renderObject)
+                if (_renderObject) renderObjects.push(_renderObject) // add new renderObject to list
             } else {
                 if (!_renderObject) {
                     throw new Error('expected renderObject to be available')
@@ -144,6 +144,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             }
 
             currentProps = newProps
+            // increment version
             updated.next(version++)
         });
     }
@@ -151,11 +152,11 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     return {
         label: 'Shape geometry',
         get groupCount () { return locationIt ? locationIt.count : 0 },
-        get renderObjects () { return renderObjects },
         get props () { return currentProps },
         get params () { return currentParams },
         get state() { return _state },
         get theme() { return _theme },
+        renderObjects,
         updated,
         createOrUpdate,
         getLoci(pickingId: PickingId) {
