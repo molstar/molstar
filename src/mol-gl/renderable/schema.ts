@@ -5,7 +5,7 @@
  */
 
 import { ValueCell } from 'mol-util';
-import { ArrayKind, BufferItemSize, ElementsKind, AttributeValues } from '../webgl/buffer';
+import { ArrayKind, AttributeItemSize, ElementsKind, AttributeValues } from '../webgl/buffer';
 import { UniformKind, UniformValues } from '../webgl/uniform';
 import { DefineKind, DefineValues } from '../shader-code';
 import { Vec2, Vec3, Vec4, Mat3, Mat4 } from 'mol-math/linear-algebra';
@@ -102,8 +102,8 @@ export function getValueVersions<T extends RenderableValues>(values: T) {
 
 //
 
-export type AttributeSpec<K extends ArrayKind> = { type: 'attribute', kind: K, itemSize: BufferItemSize, divisor: number }
-export function AttributeSpec<K extends ArrayKind>(kind: K, itemSize: BufferItemSize, divisor: number): AttributeSpec<K> {
+export type AttributeSpec<K extends ArrayKind> = { type: 'attribute', kind: K, itemSize: AttributeItemSize, divisor: number }
+export function AttributeSpec<K extends ArrayKind>(kind: K, itemSize: AttributeItemSize, divisor: number): AttributeSpec<K> {
     return { type: 'attribute', kind, itemSize, divisor }
 }
 
