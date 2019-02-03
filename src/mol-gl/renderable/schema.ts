@@ -77,6 +77,20 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
     return { attributeValues, defineValues, textureValues, uniformValues }
 }
 
+export function splitKeys(schema: RenderableSchema) {
+    const attributeKeys: string[] = []
+    const defineKeys: string[] = []
+    const textureKeys: string[] = []
+    const uniformKeys: string[] = []
+    Object.keys(schema).forEach(k => {
+        if (schema[k].type === 'attribute') attributeKeys.push(k)
+        if (schema[k].type === 'define') defineKeys.push(k)
+        if (schema[k].type === 'texture') textureKeys.push(k)
+        if (schema[k].type === 'uniform') uniformKeys.push(k)
+    })
+    return { attributeKeys, defineKeys, textureKeys, uniformKeys }
+}
+
 export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
 export function getValueVersions<T extends RenderableValues>(values: T) {
     const versions: Versions<any> = {}
