@@ -31,6 +31,7 @@ type StructureAnimationProps = PD.Values<typeof StructureAnimationParams>
 export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>({
     name: 'structure-animation',
     display: { name: 'Structure Animation', group: 'Animation' },
+    canAutoUpdate: () => true,
     ctor: class extends PluginBehavior.Handler<StructureAnimationProps> {
         private tmpMat = Mat4.identity()
         private rotMat = Mat4.identity()
@@ -186,16 +187,5 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
 //
 
 function getRootStructure(root: StateObjectCell, state: State) {
-    let parent: StateObjectCell | undefined
-    while (true) {
-        const _parent = StateSelection.findAncestorOfType(state.tree, state.cells, root.transform.ref, [PluginStateObject.Molecule.Structure])
-        if (_parent) {
-            parent = _parent
-            root = _parent
-        } else {
-            break
-        }
-    }
-    return parent ? parent :
-        SO.Molecule.Structure.is(root.obj) ? root : undefined
+    return state.query(StateSelection.Generators.byValue(root).rootOfType([PluginStateObject.Molecule.Structure]))[0];
 }

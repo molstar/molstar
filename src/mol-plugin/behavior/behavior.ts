@@ -32,6 +32,7 @@ namespace PluginBehavior {
     export interface CreateParams<P> {
         name: string,
         ctor: Ctor<P>,
+        canAutoUpdate?: Transformer.Definition<Root, Behavior, P>['canAutoUpdate'],
         label?: (params: P) => { label: string, description?: string },
         display: {
             name: string,
@@ -59,7 +60,8 @@ namespace PluginBehavior {
                     const updated = await b.data.update(newParams);
                     return updated ? Transformer.UpdateResult.Updated : Transformer.UpdateResult.Unchanged;
                 })
-            }
+            },
+            canAutoUpdate: params.canAutoUpdate
         });
     }
 

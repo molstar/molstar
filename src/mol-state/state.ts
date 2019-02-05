@@ -98,6 +98,15 @@ class State {
         return StateSelection.select(selector(StateSelection.Generators), this)
     }
 
+    /**
+     * Select Cells using the provided selector.
+     * @example state.select('test')
+     * @example state.select(q => q.byRef('test').subtree())
+     */
+    query(selector: StateSelection.Selector) {
+        return StateSelection.select(selector, this)
+    }
+
     /** If no ref is specified, apply to root */
     apply<A extends StateAction>(action: A, params: StateAction.Params<A>, ref: Transform.Ref = Transform.RootRef): Task<void> {
         return Task.create('Apply Action', ctx => {
