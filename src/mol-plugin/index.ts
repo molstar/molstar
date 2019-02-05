@@ -14,8 +14,6 @@ import { PluginSpec } from './spec';
 import { DownloadStructure, CreateComplexRepresentation, OpenStructure } from './state/actions/basic';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { SceneLabelsParams } from './behavior/dynamic/labels';
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -40,7 +38,7 @@ const DefaultSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
         PluginSpec.Behavior(PluginBehaviors.Camera.FocusLociOnSelect, { minRadius: 20, extraRadius: 4 }),
         PluginSpec.Behavior(PluginBehaviors.Animation.StructureAnimation, { rotate: false, rotateValue: 0, explode: false, explodeValue: 0 }),
-        PluginSpec.Behavior(PluginBehaviors.Labels.SceneLabels, { ...PD.getDefaultValues(SceneLabelsParams) }), // TODO how to properly call PluginBehaviors.Labels.SceneLabels.definition.params()
+        PluginSpec.Behavior(PluginBehaviors.Labels.SceneLabels),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry, { autoAttach: true }),
     ]

@@ -136,7 +136,7 @@ export class PluginContext {
         const tree = this.state.behaviorState.tree.build();
 
         for (const b of this.spec.behaviors) {
-            tree.toRoot().apply(b.transformer, b.defaultParams || { }, { ref: b.transformer.id });
+            tree.toRoot().apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
         }
 
         await this.runTask(this.state.behaviorState.update(tree));
