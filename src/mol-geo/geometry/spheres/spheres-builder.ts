@@ -54,7 +54,7 @@ export namespace SpheresBuilder {
                     kind: 'spheres',
                     sphereCount: centers.elementCount / 4,
                     centerBuffer: spheres ? ValueCell.update(spheres.centerBuffer, cb) : ValueCell.create(cb),
-                    mappingBuffer: spheres ? ValueCell.update(spheres.centerBuffer, mb) : ValueCell.create(mb),
+                    mappingBuffer: spheres ? ValueCell.update(spheres.mappingBuffer, mb) : ValueCell.create(mb),
                     indexBuffer: spheres ? ValueCell.update(spheres.indexBuffer, ib) : ValueCell.create(ib),
                     groupBuffer: spheres ? ValueCell.update(spheres.groupBuffer, gb) : ValueCell.create(gb),
                 }

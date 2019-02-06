@@ -55,7 +55,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
 
     const { elements } = unit;
     const elementCount = elements.length;
-    const builder = SpheresBuilder.create(elementCount, elementCount / 2)
+    const builder = SpheresBuilder.create(elementCount, elementCount / 2, spheres)
 
     const v = Vec3.zero()
     const pos = unit.conformation.invariantPosition
