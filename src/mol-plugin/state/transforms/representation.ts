@@ -15,6 +15,7 @@ import { createTheme } from 'mol-theme/theme';
 import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
 import { Structure } from 'mol-model/structure';
 import { StructureParams } from 'mol-repr/structure/representation';
+import { ExplodeRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
 
 export namespace StructureRepresentation3DHelpers {
     export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): Transformer.Params<StructureRepresentation3D> {
@@ -93,6 +94,30 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             b.data.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams))
             await b.data.createOrUpdate(props, a.data).runInContext(ctx);
             return Transformer.UpdateResult.Updated;
+        });
+    }
+});
+
+export { ExplodeStructureRepresentation3D }
+type ExplodeStructureRepresentation3D = typeof ExplodeStructureRepresentation3D
+const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'explode-structure-representation-3d',
+    display: 'Explode 3D Representation',
+    from: SO.Molecule.Representation3D,
+    to: ExplodeRepresentation3D.Obj,
+    params: ExplodeRepresentation3D.Params
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ params }, plugin: PluginContext) {
+        return new ExplodeRepresentation3D.Obj(new ExplodeRepresentation3D.Behavior(plugin, params), { label: `Explosion T = ${params.t.toFixed(2)}` });
+    },
+    update({ b, newParams }) {
+        return Task.create('Update Explosion', async () => {
+            const updated = await b.data.update(newParams);
+            b.label = `Explosion T = ${newParams.t.toFixed(2)}`;
+            return updated ? Transformer.UpdateResult.Updated : Transformer.UpdateResult.Unchanged;
         });
     }
 });

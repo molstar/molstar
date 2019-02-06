@@ -30,7 +30,8 @@ const DefaultSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Model.StructureAssemblyFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
         PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
-        PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D)
+        PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D)
     ],
     behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
