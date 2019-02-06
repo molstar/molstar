@@ -270,6 +270,10 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
     const { ihm_model_list } = format.data;
     const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
 
+    if (!format.data.atom_site.ihm_model_id.isDefined) {
+        throw new Error('expected _atom_site.ihm_model_id to be defined')
+    }
+
     // TODO: will IHM require sorting or will we trust it?
     const atom_sites = splitTable(format.data.atom_site, format.data.atom_site.ihm_model_id);
     const sphere_sites = splitTable(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site.model_id);
