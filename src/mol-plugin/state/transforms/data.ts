@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginStateTransform } from '../objects';
@@ -12,6 +13,7 @@ import { PluginContext } from 'mol-plugin/context';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Transformer } from 'mol-state';
 import { readFromFile } from 'mol-util/data-source';
+import * as CCP4 from 'mol-io/reader/ccp4/parser'
 
 export { Download }
 type Download = typeof Download
@@ -88,6 +90,23 @@ const ParseCif = PluginStateTransform.BuiltIn({
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Cif(parsed.result);
+        });
+    }
+});
+
+export { ParseCcp4 }
+type ParseCcp4 = typeof ParseCcp4
+const ParseCcp4 = PluginStateTransform.BuiltIn({
+    name: 'parse-ccp4',
+    display: { name: 'Parse CCP4', description: 'Parse CCP4 from Binary data' },
+    from: [SO.Data.Binary],
+    to: SO.Format.Ccp4
+})({
+    apply({ a }) {
+        return Task.create('Parse CCP4', async ctx => {
+            const parsed = await CCP4.parse(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Ccp4(parsed.result);
         });
     }
 });

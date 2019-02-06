@@ -11,7 +11,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginCommands } from './command';
 import { PluginSpec } from './spec';
-import { DownloadStructure, CreateComplexRepresentation, OpenStructure } from './state/actions/basic';
+import { DownloadStructure, CreateComplexRepresentation, OpenStructure, OpenVolume } from './state/actions/basic';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
 
@@ -24,14 +24,18 @@ const DefaultSpec: PluginSpec = {
     actions: [
         PluginSpec.Action(DownloadStructure),
         PluginSpec.Action(OpenStructure),
+        PluginSpec.Action(OpenVolume),
         PluginSpec.Action(CreateComplexRepresentation),
         PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),
+        PluginSpec.Action(StateTransforms.Data.ParseCcp4),
         PluginSpec.Action(StateTransforms.Model.StructureAssemblyFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
         PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
+        PluginSpec.Action(StateTransforms.Model.VolumeFromCcp4),
         PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D),
-        PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D)
+        PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
     ],
     behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),

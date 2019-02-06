@@ -5,11 +5,11 @@
  */
 
 import { Task, RuntimeContext } from 'mol-task';
-import * as Schema from './schema'
+import { Ccp4File, Ccp4Header } from './schema'
 import Result from '../result'
 import { FileHandle } from '../../common/file-handle';
 
-async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Result<Schema.Ccp4File>> {
+async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Result<Ccp4File>> {
     await ctx.update({ message: 'Parsing CCP4 file...' });
 
     const { buffer } = await file.readBuffer(0, file.length)
@@ -39,7 +39,7 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
         }
     }
 
-    const header: Schema.Ccp4Header = {
+    const header: Ccp4Header = {
         NC: intView[0],
         NR: intView[1],
         NS: intView[2],
@@ -116,12 +116,15 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
         }
     }
 
-    const result: Schema.Ccp4File = { header, values };
+    const result: Ccp4File = { header, values };
     return Result.success(result);
 }
 
-export function parse(file: FileHandle) {
-    return Task.create<Result<Schema.Ccp4File>>('Parse CCP4', ctx => parseInternal(file, ctx));
+export function parseFile(file: FileHandle) {
+    return Task.create<Result<Ccp4File>>('Parse CCP4', ctx => parseInternal(file, ctx));
 }
 
-export default parse;
+export function parse(buffer: Uint8Array) {
+    const file = FileHandle.fromBuffer(buffer)
+    return Task.create<Result<Ccp4File>>('Parse CCP4', ctx => parseInternal(file, ctx));
+}

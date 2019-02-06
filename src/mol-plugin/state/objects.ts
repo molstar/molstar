@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { CifFile } from 'mol-io/reader/cif';
@@ -12,6 +13,7 @@ import { Representation } from 'mol-repr/representation';
 import { StructureRepresentation } from 'mol-repr/structure/representation';
 import { VolumeRepresentation } from 'mol-repr/volume/representation';
 import { StateObject, Transformer } from 'mol-state';
+import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -56,6 +58,7 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
+        export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4 File', typeClass: 'Data' }) { }
     }
 
     export namespace Molecule {

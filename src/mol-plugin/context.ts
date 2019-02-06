@@ -25,6 +25,7 @@ import { Color } from 'mol-util/color';
 import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 import { ajaxGet } from 'mol-util/data-source';
 import { CustomPropertyRegistry } from './util/custom-prop-registry';
+import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
 
 export class PluginContext {
     private disposed = false;
@@ -73,6 +74,11 @@ export class PluginContext {
 
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
+        themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
+    }
+
+    readonly volumeRepresentation = {
+        registry: new VolumeRepresentationRegistry(),
         themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
     }
 

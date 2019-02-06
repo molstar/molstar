@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginContext } from 'mol-plugin/context';
@@ -13,7 +14,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
-import { StructureRepresentation3DHelpers } from '../transforms/representation';
+import { StructureRepresentation3DHelpers, VolumeRepresentation3DHelpers } from '../transforms/representation';
 
 // TODO: "structure parser provider"
 
@@ -156,4 +157,29 @@ export const UpdateTrajectory = StateAction.build({
     }
 
     return state.update(update);
+});
+
+//
+
+function createVolumeTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
+    let root = b
+        .apply(StateTransforms.Data.ParseCcp4)
+        .apply(StateTransforms.Model.VolumeFromCcp4)
+        .apply(StateTransforms.Representation.VolumeRepresentation3D,
+            VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface'));
+
+    return root.getTree();
+}
+
+export const OpenVolume = StateAction.build({
+    display: { name: 'Open Volume', description: 'Load a volume from file and create its default visual' },
+    from: PluginStateObject.Root,
+    params: {
+        file: PD.File({ accept: '.ccp4,.mrc'}),
+        // format: PD.Select('auto', [['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC']]),
+    }
+})(({ params, state }, ctx: PluginContext) => {
+    const b = state.build();
+    const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: true });
+    return state.update(createVolumeTree(ctx, data));
 });

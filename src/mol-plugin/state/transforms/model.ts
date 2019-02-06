@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginStateTransform } from '../objects';
@@ -15,6 +16,8 @@ import { MolScriptBuilder } from 'mol-script/language/builder';
 import { StateObject } from 'mol-state';
 import { PluginContext } from 'mol-plugin/context';
 import { stringToWords } from 'mol-util/string';
+import { volumeFromCcp4 } from 'mol-model/volume/formats/ccp4';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 export { TrajectoryFromMmCif }
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
@@ -38,8 +41,8 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const models = await Model.create(Format.mmCIF(block)).runInContext(ctx);
             if (models.length === 0) throw new Error('No models found.');
-            const label = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
-            return new SO.Molecule.Trajectory(models, label);
+            const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
         });
     }
 });
@@ -58,8 +61,8 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
         const model = a.data[params.modelIndex];
-        const label = { label: `Model ${model.modelNum}` };
-        return new SO.Molecule.Model(model, label);
+        const props = { label: `Model ${model.modelNum}` };
+        return new SO.Molecule.Model(model, props);
     }
 });
 
@@ -73,8 +76,8 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         let s = Structure.ofModel(a.data);
-        const label = { label: a.data.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
-        return new SO.Molecule.Structure(s, label);
+        const props = { label: a.data.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
+        return new SO.Molecule.Structure(s, props);
     }
 });
 
@@ -111,8 +114,8 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
             }
 
             const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
-            const label = { label: `Assembly ${id}`, description: structureDesc(s) };
-            return new SO.Molecule.Structure(s, label);
+            const props = { label: `Assembly ${id}`, description: structureDesc(s) };
+            return new SO.Molecule.Structure(s, props);
         })
     }
 });
@@ -134,8 +137,8 @@ const StructureSelection = PluginStateTransform.BuiltIn({
         const compiled = compile<Sel>(params.query);
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
-        const label = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
-        return new SO.Molecule.Structure(s, label);
+        const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
+        return new SO.Molecule.Structure(s, props);
     }
 });
 
@@ -191,3 +194,27 @@ async function attachProps(model: Model, ctx: PluginContext, taskCtx: RuntimeCon
         await p.attach(model).runInContext(taskCtx);
     }
 }
+
+//
+
+export { VolumeFromCcp4 }
+type VolumeFromCcp4 = typeof VolumeFromCcp4
+const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
+    name: 'volume-from-ccp4',
+    display: { name: 'Volume from CCP4/MRC', description: 'Create Volume from CCP4/MRC data' },
+    from: SO.Format.Ccp4,
+    to: SO.Volume.Data,
+    params(a) {
+        return {
+            voxelSize: PD.Vec3(Vec3.create(1, 1, 1))
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create volume from CCP4/MRC', async ctx => {
+            const volume = await volumeFromCcp4(a.data, params).runInContext(ctx)
+            const props = { label: 'Volume' };
+            return new SO.Volume.Data(volume, props);
+        });
+    }
+});
