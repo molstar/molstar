@@ -139,6 +139,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
             const program = programs[variant].value
             const vertexArray = vertexArrays[variant]
             program.setUniforms(uniformValues)
+            program.bindUniformBuffers()
             if (vertexArrayObject && vertexArray) {
                 vertexArrayObject.bindVertexArray(vertexArray)
                 // need to bind elements buffer explicitly since it is not always recorded in the VAO

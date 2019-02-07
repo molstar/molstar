@@ -76,6 +76,7 @@ export function getBufferType(ctx: WebGLContext, bufferType: BufferType) {
     switch (bufferType) {
         case 'attribute': return gl.ARRAY_BUFFER
         case 'elements': return gl.ELEMENT_ARRAY_BUFFER
+        case 'uniform': return (gl as WebGL2RenderingContext).UNIFORM_BUFFER
     }
 }
 
@@ -212,6 +213,35 @@ export function createElementsBuffer(ctx: WebGLContext, array: ElementsType, usa
         ...buffer,
         bind: () => {
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _buffer);
+        }
+    }
+}
+
+//
+
+export type UniformType = Float32Array
+export type UniformKind = 'float32'
+
+// export type AttributeDefs = {
+//     [k: string]: { kind: ArrayKind, itemSize: BufferItemSize, divisor: number }
+// }
+// export type AttributeValues = { [k: string]: ValueCell<ArrayType> }
+export type UniformBuffers = { [k: string]: UniformBuffer }
+
+export interface UniformBuffer extends Buffer {
+    bind: (location: number) => void
+}
+
+export function createUniformBuffer(ctx: WebGLContext, array: UniformType, usageHint: UsageHint = 'dynamic'): UniformBuffer {
+    const gl = ctx.gl as WebGL2RenderingContext
+    const buffer = createBuffer(ctx, array, usageHint, 'uniform')
+    const { _buffer } = buffer
+
+    return {
+        ...buffer,
+        bind: (location: number) => {
+            gl.bindBuffer(gl.UNIFORM_BUFFER, _buffer)
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, location, _buffer)
         }
     }
 }
