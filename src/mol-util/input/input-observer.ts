@@ -136,6 +136,8 @@ interface InputObserver {
     noContextMenu: boolean
 
     drag: Subject<DragInput>,
+    // Equivalent to mouseUp and touchEnd
+    interactionEnd: Subject<undefined>,
     wheel: Subject<WheelInput>,
     pinch: Subject<PinchInput>,
     click: Subject<ClickInput>,
@@ -169,6 +171,7 @@ namespace InputObserver {
         let buttons = 0
 
         const drag = new Subject<DragInput>()
+        const interactionEnd = new Subject<undefined>();
         const click = new Subject<ClickInput>()
         const move = new Subject<MoveInput>()
         const wheel = new Subject<WheelInput>()
@@ -186,6 +189,7 @@ namespace InputObserver {
             set noContextMenu (value: boolean) { noContextMenu = value },
 
             drag,
+            interactionEnd,
             wheel,
             pinch,
             click,
@@ -297,7 +301,9 @@ namespace InputObserver {
             }
         }
 
-        function onTouchEnd (ev: TouchEvent) {}
+        function onTouchEnd (ev: TouchEvent) {
+            endDrag()
+        }
 
         function onTouchMove (ev: TouchEvent) {
             if (ev.touches.length === 1) {
@@ -331,6 +337,11 @@ namespace InputObserver {
 
         function onMouseUp (ev: MouseEvent) {
             onPointerUp(ev)
+            endDrag()
+        }
+
+        function endDrag() {
+            interactionEnd.next()
         }
 
         function onPointerDown (ev: PointerEvent) {
