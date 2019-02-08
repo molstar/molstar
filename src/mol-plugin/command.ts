@@ -32,7 +32,10 @@ export const PluginCommands = {
             Clear: PluginCommand<{}>({ isImmediate: true }),
 
             Upload: PluginCommand<{ name?: string, description?: string, serverUrl: string }>({ isImmediate: true }),
-            Fetch: PluginCommand<{ url: string }>()
+            Fetch: PluginCommand<{ url: string }>(),
+
+            DownloadToFile: PluginCommand<{ name?: string }>({ isImmediate: true }),
+            OpenFile: PluginCommand<{ file: File }>({ isImmediate: true }),
         }
     },
     Camera: {

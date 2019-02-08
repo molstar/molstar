@@ -61,6 +61,16 @@ class StateSnapshotControls extends PluginComponent<{ serverUrl: string, serverC
         UploadedEvent.next();
     }
 
+    download = () => {
+        PluginCommands.State.Snapshots.DownloadToFile.dispatch(this.plugin, { name: this.state.name });
+    }
+
+    open = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || !e.target.files![0]) return;
+
+        PluginCommands.State.Snapshots.OpenFile.dispatch(this.plugin, { file: e.target.files![0] });
+    }
+
     render() {
         return <div>
             <ParameterControls params={StateSnapshotControls.Params} values={this.state} onEnter={this.add} onChange={p => {
@@ -72,6 +82,12 @@ class StateSnapshotControls extends PluginComponent<{ serverUrl: string, serverC
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}>Add Local</button>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.upload} disabled={this.state.isUploading}>Upload</button>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.clear}>Clear</button>
+            </div>
+            <div className='msp-btn-row-group'>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.download}>Download JSON</button>
+                <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
+                    {'Open JSON'} <input onChange={this.open} type='file' multiple={false} accept='.json' />
+                </div>
             </div>
         </div>;
     }
