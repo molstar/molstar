@@ -121,10 +121,9 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
 }
 
 export function parseFile(file: FileHandle) {
-    return Task.create<Result<Ccp4File>>('Parse CCP4', ctx => parseInternal(file, ctx));
+    return Task.create<Result<Ccp4File>>('Parse CCP4/MRC', ctx => parseInternal(file, ctx));
 }
 
 export function parse(buffer: Uint8Array) {
-    const file = FileHandle.fromBuffer(buffer)
-    return Task.create<Result<Ccp4File>>('Parse CCP4', ctx => parseInternal(file, ctx));
+    return parseFile(FileHandle.fromBuffer(buffer))
 }

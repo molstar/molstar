@@ -12,7 +12,7 @@ import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 import { degToRad } from 'mol-math/misc';
 
 function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3 }): Task<VolumeData> {
-    return Task.create<VolumeData>('Parse Volume Data', async ctx => {
+    return Task.create<VolumeData>('Create Volume Data', async ctx => {
         const { header, values } = source;
         const size = Vec3.create(header.xLength, header.yLength, header.zLength)
         if (params && params.voxelSize) Vec3.mul(size, size, params.voxelSize)
