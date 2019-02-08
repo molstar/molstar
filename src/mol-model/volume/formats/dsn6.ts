@@ -28,7 +28,7 @@ function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3 }): Task<V
         const origin_frac = Vec3.create(gridOrigin[0] / grid[0], gridOrigin[1] / grid[1], gridOrigin[2] / grid[2]);
         const dimensions_frac = Vec3.create(extent[0] / grid[0], extent[1] / grid[1], extent[2] / grid[2]);
 
-        const space = Tensor.Space(extent, [2, 1, 0], Float32Array);
+        const space = Tensor.Space(extent, [0, 1, 2], Float32Array);
         const data = Tensor.create(space, Tensor.Data1(values));
 
         return {

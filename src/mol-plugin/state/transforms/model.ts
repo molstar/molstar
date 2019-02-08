@@ -18,6 +18,7 @@ import { PluginContext } from 'mol-plugin/context';
 import { stringToWords } from 'mol-util/string';
 import { volumeFromCcp4 } from 'mol-model/volume/formats/ccp4';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { volumeFromDsn6 } from 'mol-model/volume/formats/dsn6';
 
 export { TrajectoryFromMmCif }
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
@@ -229,6 +230,28 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Create volume from CCP4/MRC', async ctx => {
             const volume = await volumeFromCcp4(a.data, params).runInContext(ctx)
+            const props = { label: 'Volume' };
+            return new SO.Volume.Data(volume, props);
+        });
+    }
+});
+
+export { VolumeFromDsn6 }
+type VolumeFromDsn6 = typeof VolumeFromDsn6
+const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
+    name: 'volume-from-dsn6',
+    display: { name: 'Volume from DSN6/BRIX', description: 'Create Volume from DSN6/BRIX data' },
+    from: SO.Format.Dsn6,
+    to: SO.Volume.Data,
+    params(a) {
+        return {
+            voxelSize: PD.Vec3(Vec3.create(1, 1, 1))
+        };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create volume from DSN6/BRIX', async ctx => {
+            const volume = await volumeFromDsn6(a.data, params).runInContext(ctx)
             const props = { label: 'Volume' };
             return new SO.Volume.Data(volume, props);
         });

@@ -10,7 +10,7 @@ import Result from '../result'
 import { FileHandle } from '../../common/file-handle';
 
 async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Result<Ccp4File>> {
-    await ctx.update({ message: 'Parsing CCP4 file...' });
+    await ctx.update({ message: 'Parsing CCP4/MRC file...' });
 
     const { buffer } = await file.readBuffer(0, file.length)
     const bin = buffer.buffer

@@ -14,6 +14,7 @@ import { StructureRepresentation } from 'mol-repr/structure/representation';
 import { VolumeRepresentation } from 'mol-repr/volume/representation';
 import { StateObject, Transformer } from 'mol-state';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
+import { Dsn6File } from 'mol-io/reader/dsn6/schema';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -58,7 +59,8 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
-        export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4 File', typeClass: 'Data' }) { }
+        export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC File', typeClass: 'Data' }) { }
+        export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
     }
 
     export namespace Molecule {

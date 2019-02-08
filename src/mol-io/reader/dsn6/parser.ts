@@ -26,9 +26,9 @@ function parseBrixHeader(str: string): Dsn6Header {
         alpha: parseFloat(str.substr(103, 10)),
         beta: parseFloat(str.substr(113, 10)),
         gamma: parseFloat(str.substr(123, 10)),
-        divisor: parseFloat(str.substr(138, 12)) / 100,
+        divisor: parseFloat(str.substr(138, 12)),
         summand: parseInt(str.substr(155, 8)),
-        sigma: parseFloat(str.substr(170, 12)) * 100
+        sigma: parseFloat(str.substr(170, 12))
     }
 }
 
@@ -57,7 +57,7 @@ function parseDsn6Header(int: Int16Array): Dsn6Header {
 }
 
 async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Result<Dsn6File>> {
-    await ctx.update({ message: 'Parsing CCP4 file...' });
+    await ctx.update({ message: 'Parsing DSN6/BRIX file...' });
 
     const { buffer } = await file.readBuffer(0, file.length)
     const bin = buffer.buffer
@@ -67,18 +67,19 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
     const brixStr = String.fromCharCode.apply(null, byteView.subarray(0, 512))
     const isBrix = brixStr.startsWith(':-)')
 
-    const header = isBrix ? parseBrixHeader(brixStr) : parseDsn6Header(intView)
-    const { divisor, summand } = header
-
     if (!isBrix) {
         // for DSN6, swap byte order when big endian
-        if (intView[ 18 ] !== 100) {
+        if (intView[18] !== 100) {
             for (let i = 0, n = intView.length; i < n; ++i) {
-              const val = intView[ i ]
-                intView[ i ] = ((val & 0xff) << 8) | ((val >> 8) & 0xff)
+                const val = intView[i]
+                intView[i] = ((val & 0xff) << 8) | ((val >> 8) & 0xff)
             }
         }
     }
+
+    const header = isBrix ? parseBrixHeader(brixStr) : parseDsn6Header(intView)
+    const { divisor, summand } = header
+
     const values = new Float32Array(header.xExtent * header.yExtent * header.zExtent)
 
     let offset = 512

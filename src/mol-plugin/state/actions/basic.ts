@@ -15,6 +15,7 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers, VolumeRepresentation3DHelpers } from '../transforms/representation';
+import { getFileInfo } from 'mol-util/file-info';
 
 // TODO: "structure parser provider"
 
@@ -161,25 +162,52 @@ export const UpdateTrajectory = StateAction.build({
 
 //
 
-function createVolumeTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
-    let root = b
-        .apply(StateTransforms.Data.ParseCcp4)
-        .apply(StateTransforms.Model.VolumeFromCcp4)
+const VolumeFormats = { 'ccp4': '', 'mrc': '', 'dsn6': '', 'brix': '' }
+type VolumeFormat = keyof typeof VolumeFormats
+
+function getVolumeData(format: VolumeFormat, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>) {
+    switch (format) {
+        case 'ccp4': case 'mrc':
+            return b.apply(StateTransforms.Data.ParseCcp4).apply(StateTransforms.Model.VolumeFromCcp4);
+        case 'dsn6': case 'brix':
+            return b.apply(StateTransforms.Data.ParseDsn6).apply(StateTransforms.Model.VolumeFromDsn6);
+    }
+}
+
+function createVolumeTree(format: VolumeFormat, ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
+
+    const root = getVolumeData(format, b)
         .apply(StateTransforms.Representation.VolumeRepresentation3D,
             VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface'));
 
     return root.getTree();
 }
 
+function getFileFormat(format: VolumeFormat | 'auto', file: File): VolumeFormat {
+    if (format === 'auto') {
+        const fileFormat = getFileInfo(file).ext
+        if (fileFormat in VolumeFormats) {
+            return fileFormat as VolumeFormat
+        } else {
+            throw new Error('unsupported format')
+        }
+    } else {
+        return format
+    }
+}
+
 export const OpenVolume = StateAction.build({
     display: { name: 'Open Volume', description: 'Load a volume from file and create its default visual' },
     from: PluginStateObject.Root,
     params: {
-        file: PD.File({ accept: '.ccp4,.mrc'}),
-        // format: PD.Select('auto', [['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC']]),
+        file: PD.File({ accept: '.ccp4,.mrc,.dsn6,.brix'}),
+        format: PD.Select('auto', [
+            ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
+        ]),
     }
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: true });
-    return state.update(createVolumeTree(ctx, data));
+    const format = getFileFormat(params.format, params.file)
+    return state.update(createVolumeTree(format, ctx, data));
 });
