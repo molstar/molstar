@@ -15,9 +15,9 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers, VolumeRepresentation3DHelpers } from '../transforms/representation';
-import { getFileInfo } from 'mol-util/file-info';
+import { getFileInfo, FileInput } from 'mol-util/file-info';
 
-// TODO: "structure parser provider"
+// TODO: "structure/volume parser provider"
 
 export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure
@@ -55,25 +55,25 @@ const DownloadStructure = StateAction.build({
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const src = params.source;
-    let url: Transformer.Params<Download>;
+    let downloadParams: Transformer.Params<Download>;
 
     switch (src.name) {
         case 'url':
-            url = src.params;
+            downloadParams = src.params;
             break;
         case 'pdbe-updated':
-            url = { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.id.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params.id}` };
+            downloadParams = { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.id.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params.id}` };
             break;
         case 'rcsb':
-            url = { url: `https://files.rcsb.org/download/${src.params.id.toUpperCase()}.cif`, isBinary: false, label: `RCSB: ${src.params.id}` };
+            downloadParams = { url: `https://files.rcsb.org/download/${src.params.id.toUpperCase()}.cif`, isBinary: false, label: `RCSB: ${src.params.id}` };
             break;
         case 'bcif-static':
-            url = { url: `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${src.params.id.toLowerCase()}`, isBinary: true, label: `BinaryCIF: ${src.params.id}` };
+            downloadParams = { url: `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${src.params.id.toLowerCase()}`, isBinary: true, label: `BinaryCIF: ${src.params.id}` };
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    const data = b.toRoot().apply(StateTransforms.Data.Download, url);
+    const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams);
     return state.update(createStructureTree(ctx, data, params.source.params.supportProps));
 });
 
@@ -183,7 +183,7 @@ function createVolumeTree(format: VolumeFormat, ctx: PluginContext, b: StateTree
     return root.getTree();
 }
 
-function getFileFormat(format: VolumeFormat | 'auto', file: File): VolumeFormat {
+function getFileFormat(format: VolumeFormat | 'auto', file: FileInput): VolumeFormat {
     if (format === 'auto') {
         const fileFormat = getFileInfo(file).ext
         if (fileFormat in VolumeFormats) {
@@ -209,5 +209,72 @@ export const OpenVolume = StateAction.build({
     const b = state.build();
     const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: true });
     const format = getFileFormat(params.format, params.file)
+    return state.update(createVolumeTree(format, ctx, data));
+});
+
+export { DownloadDensity };
+type DownloadDensity = typeof DownloadDensity
+const DownloadDensity = StateAction.build({
+    from: PluginStateObject.Root,
+    display: { name: 'Download Density', description: 'Load a density from the provided source and create its default visual.' },
+    params: {
+        source: PD.MappedStatic('rcsb', {
+            'pdbe': PD.Group({
+                id: PD.Text('1tqn', { label: 'Id' }),
+                type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
+            }, { isFlat: true }),
+            'rcsb': PD.Group({
+                id: PD.Text('1tqn', { label: 'Id' }),
+                type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
+            }, { isFlat: true }),
+            'url': PD.Group({
+                url: PD.Text(''),
+                format: PD.Select('auto', [
+                    ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
+                ]),
+            }, { isFlat: true })
+        }, {
+            options: [
+                ['pdbe', 'PDBe X-ray maps'],
+                ['rcsb', 'RCSB X-ray maps'],
+                ['url', 'URL']
+            ]
+        })
+    }
+})(({ params, state }, ctx: PluginContext) => {
+    const b = state.build();
+    const src = params.source;
+    let downloadParams: Transformer.Params<Download>;
+    let format: VolumeFormat
+
+    switch (src.name) {
+        case 'url':
+            downloadParams = src.params;
+            format = getFileFormat(src.params.format, src.params.url)
+            break;
+        case 'pdbe':
+            downloadParams = {
+                url: src.params.type === '2fofc'
+                    ? `http://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.id.toLowerCase()}.ccp4`
+                    : `http://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.id.toLowerCase()}_diff.ccp4`,
+                isBinary: true,
+                label: `PDBe X-ray map: ${src.params.id}`
+            };
+            format = 'ccp4'
+            break;
+        case 'rcsb':
+            downloadParams = {
+                url: src.params.type === '2fofc'
+                    ? `https://edmaps.rcsb.org/maps/${src.params.id.toLowerCase()}_2fofc.dsn6`
+                    : `https://edmaps.rcsb.org/maps/${src.params.id.toLowerCase()}_fofc.dsn6`,
+                isBinary: true,
+                label: `RCSB X-ray map: ${src.params.id}`
+            };
+            format = 'dsn6'
+            break;
+        default: throw new Error(`${(src as any).name} not supported.`);
+    }
+
+    const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams);
     return state.update(createVolumeTree(format, ctx, data));
 });
