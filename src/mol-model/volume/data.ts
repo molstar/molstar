@@ -21,6 +21,13 @@ interface VolumeData {
 }
 
 namespace VolumeData {
+    export const Empty: VolumeData = {
+        cell: SpacegroupCell.Zero,
+        fractionalBox: Box3D.empty(),
+        data: Tensor.create(Tensor.Space([0, 0, 0], [0, 1, 2]), Tensor.Data1([])),
+        dataStats: { min: 0, max: 0, mean: 0, sigma: 0 }
+    }
+
     const _scale = Mat4.zero(), _translate = Mat4.zero();
     export function getGridToCartesianTransform(volume: VolumeData) {
         const { data: { space } } = volume;

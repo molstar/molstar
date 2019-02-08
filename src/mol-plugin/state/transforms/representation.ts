@@ -56,6 +56,26 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     params: (a, ctx: PluginContext) => {
         const { registry, themeCtx } = ctx.structureRepresentation
         const type = registry.get(registry.default.name);
+
+        if (!a) {
+            return {
+                type: PD.Mapped<any>(
+                    registry.default.name,
+                    registry.types,
+                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, Structure.Empty))),
+                colorTheme: PD.Mapped<any>(
+                    type.defaultColorTheme,
+                    themeCtx.colorThemeRegistry.types,
+                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ structure: Structure.Empty }))
+                ),
+                sizeTheme: PD.Mapped<any>(
+                    type.defaultSizeTheme,
+                    themeCtx.sizeThemeRegistry.types,
+                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ structure: Structure.Empty }))
+                )
+            }
+        }
+
         const dataCtx = { structure: a.data }
         return ({
             type: PD.Mapped<any>(
@@ -163,6 +183,26 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     params: (a, ctx: PluginContext) => {
         const { registry, themeCtx } = ctx.volumeRepresentation
         const type = registry.get(registry.default.name);
+
+        if (!a) {
+            return {
+                type: PD.Mapped<any>(
+                    registry.default.name,
+                    registry.types,
+                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, VolumeData.Empty ))),
+                colorTheme: PD.Mapped<any>(
+                    type.defaultColorTheme,
+                    themeCtx.colorThemeRegistry.types,
+                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: VolumeData.Empty }))
+                ),
+                sizeTheme: PD.Mapped<any>(
+                    type.defaultSizeTheme,
+                    themeCtx.sizeThemeRegistry.types,
+                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: VolumeData.Empty }))
+                )
+            }
+        }
+
         const dataCtx = { volume: a.data }
         return ({
             type: PD.Mapped<any>(

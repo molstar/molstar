@@ -156,13 +156,5 @@ export function Snapshots(ctx: PluginContext) {
         } catch (e) {
             ctx.log.error(`Reading JSON state: ${e}`);
         }
-        // const element = document.createElement('a');
-        // const json = JSON.stringify(ctx.state.getSnapshot(), null, 2);
-        // element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(json));
-        // element.setAttribute('download', `mol-star_state_${(name || getFormattedTime())}.json`);
-        // element.style.display = 'none';
-        // document.body.appendChild(element);
-        // element.click();
-        // document.body.removeChild(element);
     });
 }

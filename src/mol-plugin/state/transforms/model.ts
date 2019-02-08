@@ -27,6 +27,11 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     from: SO.Format.Cif,
     to: SO.Molecule.Trajectory,
     params(a) {
+        if (!a) {
+            return {
+                blockHeader: PD.makeOptional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
+            };
+        }
         const { blocks } = a.data;
         return {
             blockHeader: PD.makeOptional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
@@ -55,7 +60,12 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     display: { name: 'Model from Trajectory', description: 'Create a molecular structure from the specified model.' },
     from: SO.Molecule.Trajectory,
     to: SO.Molecule.Model,
-    params: a => ({ modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) })
+    params: a => {
+        if (!a) {
+            return { modelIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the model' }) };
+        }
+        return { modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) }
+    }
 })({
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
@@ -93,6 +103,9 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Model,
     to: SO.Molecule.Structure,
     params(a) {
+        if (!a) {
+            return { id: PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. If none specified (undefined or empty string), the asymmetric unit is used.' }) };
+        }
         const model = a.data;
         const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
         if (!ids.length) ids.push(['deposited', 'Deposited'])
@@ -104,7 +117,7 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
             const model = a.data;
             const id = params.id;
             const asm = ModelSymmetry.findAssembly(model, id);
-            if (id !== 'deposited' && !asm) throw new Error(`Assembly '${id}' not found`);
+            if (!!id && id !== 'deposited' && !asm) throw new Error(`Assembly '${id}' not found`);
 
             const base = Structure.ofModel(model);
             if (!asm) {
@@ -179,7 +192,10 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     display: { name: 'Custom Model Properties' },
     from: SO.Molecule.Model,
     to: SO.Molecule.Model,
-    params: (a, ctx: PluginContext) => ({ properties: ctx.customModelProperties.getSelect(a.data) })
+    params: (a, ctx: PluginContext) => {
+        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of property descriptor ids.' }) };
+        return { properties: ctx.customModelProperties.getSelect(a.data) };
+    }
 })({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {

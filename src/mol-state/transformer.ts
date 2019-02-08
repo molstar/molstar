@@ -151,7 +151,8 @@ export namespace Transformer {
             name: string,
             from: A | A[],
             to: B | B[],
-            params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>),
+            /** The source StateObject can be undefined: used for generating docs. */
+            params?: PD.For<P> | ((a: StateObject.From<A> | undefined, globalCtx: any) => PD.For<P>),
             display?: string | { name: string, description?: string }
         }
 
