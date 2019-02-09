@@ -130,6 +130,7 @@ namespace Representation {
         create(): S
         update(state: S, update: Partial<S>): void
     }
+    export const StateBuilder: StateBuilder<State> = { create: createState, update: updateState }
 
     export type Any = Representation<any, any, any>
     export const Empty: Any = {
