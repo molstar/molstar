@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,6 @@
 import { VolumeData } from 'mol-model/volume'
 import { RuntimeContext } from 'mol-task'
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
-import { createRenderObject } from 'mol-gl/render-object';
 import { EmptyLoci } from 'mol-model/loci';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -15,13 +14,13 @@ import { Box3D } from 'mol-math/geometry';
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { createTexture } from 'mol-gl/webgl/texture';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { BaseGeometry } from 'mol-geo/geometry/base';
 import { VisualUpdateState } from 'mol-repr/util';
 import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
 import { VisualContext } from 'mol-repr/visual';
+import { NullLocation } from 'mol-model/location';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty()
@@ -144,7 +143,7 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
 
 //
 
-export async function createDirectVolume(ctx: VisualContext, volume: VolumeData, props: PD.Values<DirectVolumeParams>, directVolume?: DirectVolume) {
+export async function createDirectVolume(ctx: VisualContext, volume: VolumeData, theme: Theme, props: PD.Values<DirectVolumeParams>, directVolume?: DirectVolume) {
     const { runtime, webgl } = ctx
     if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props')
 
@@ -166,22 +165,15 @@ export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: VolumeD
 }
 
 export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
-    return VolumeVisual<DirectVolumeParams>({
+    return VolumeVisual<DirectVolume, DirectVolumeParams>({
         defaultProps: PD.getDefaultValues(DirectVolumeParams),
         createGeometry: createDirectVolume,
+        createLocationIterator: (volume: VolumeData) => LocationIterator(1, 1, () => NullLocation),
         getLoci: () => EmptyLoci,
         mark: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {
         },
-        createRenderObject: (geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<DirectVolumeParams>) => {
-            const transform = createIdentityTransform()
-            const values = DirectVolume.Utils.createValues(geometry, transform, locationIt, theme, props)
-            const state = DirectVolume.Utils.createRenderableState(props)
-            return createRenderObject('direct-volume', values, state)
-        },
-        updateValues: DirectVolume.Utils.updateValues,
-        updateBoundingSphere: DirectVolume.Utils.updateBoundingSphere,
-        updateRenderableState: DirectVolume.Utils.updateRenderableState
+        geometryUtils: DirectVolume.Utils
     })
 }
 

@@ -35,6 +35,10 @@ namespace VolumeData {
         const translate = Mat4.fromTranslation(_translate, volume.fractionalBox.min);
         return Mat4.mul3(Mat4.zero(), volume.cell.fromFractional, translate, scale);
     }
+
+    export function areEquivalent(volA: VolumeData, volB: VolumeData) {
+        return volA === volB
+    }
 }
 
 type VolumeIsoValue = VolumeIsoValue.Absolute | VolumeIsoValue.Relative
