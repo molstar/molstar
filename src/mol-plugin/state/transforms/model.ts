@@ -137,7 +137,7 @@ export { StructureSelection }
 type StructureSelection = typeof StructureSelection
 const StructureSelection = PluginStateTransform.BuiltIn({
     name: 'structure-selection',
-    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified model.' },
+    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified query expression.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
@@ -156,14 +156,17 @@ const StructureSelection = PluginStateTransform.BuiltIn({
 });
 
 export { StructureComplexElement }
-namespace StructureComplexElement { export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres' }
+namespace StructureComplexElement {
+    export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres'
+}
+const StructureComplexElementTypes: [StructureComplexElement.Types, StructureComplexElement.Types][] = ['atomic-sequence', 'water', 'atomic-het', 'spheres'].map(t => [t, t] as any);
 type StructureComplexElement = typeof StructureComplexElement
 const StructureComplexElement = PluginStateTransform.BuiltIn({
     name: 'structure-complex-element',
     display: { name: 'Complex Element', description: 'Create a molecular structure from the specified model.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
-    params: { type: PD.Text<StructureComplexElement.Types>('atomic-sequence', { isHidden: true }) }
+    params: { type: PD.Select<StructureComplexElement.Types>('atomic-sequence', StructureComplexElementTypes, { isHidden: true }) }
 })({
     apply({ a, params }) {
         // TODO: update function.
