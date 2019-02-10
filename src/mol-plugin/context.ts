@@ -146,7 +146,7 @@ export class PluginContext {
             tree.toRoot().apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
         }
 
-        await this.runTask(this.state.behaviorState.update(tree));
+        await this.runTask(this.state.behaviorState.update(tree, true));
     }
 
     initDataActions() {

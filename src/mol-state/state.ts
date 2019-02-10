@@ -118,7 +118,7 @@ class State {
         });
     }
 
-    update(tree: StateTree | StateTreeBuilder): Task<void> {
+    update(tree: StateTree | StateTreeBuilder, silent: boolean = false): Task<void> {
         const _tree = (StateTreeBuilder.is(tree) ? tree.getTree() : tree).asTransient();
         return Task.create('Update Tree', async taskCtx => {
             let updated = false;
@@ -138,6 +138,8 @@ class State {
                     transformCache: this.transformCache,
 
                     results: [],
+
+                    silent,
 
                     changed: false,
                     hadError: false,
@@ -208,6 +210,9 @@ interface UpdateContext {
     transformCache: Map<Ref, unknown>,
 
     results: UpdateNodeResult[],
+
+    // suppress timing messages
+    silent: boolean,
 
     changed: boolean,
     hadError: boolean,
@@ -492,13 +497,13 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.results.push(update);
         if (update.action === 'created') {
             isNull = update.obj === StateObject.Null;
-            if (!isNull) ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull && !ctx.silent) ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'updated') {
             isNull = update.obj === StateObject.Null;
-            if (!isNull) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull && !ctx.silent) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'replaced') {
             isNull = update.obj === StateObject.Null;
-            if (!isNull) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull && !ctx.silent) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         }
     } catch (e) {
         ctx.changed = true;
