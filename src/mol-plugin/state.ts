@@ -52,11 +52,13 @@ class PluginState {
     }
 
     async setSnapshot(snapshot: PluginState.Snapshot) {
-        await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
-        await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: snapshot.canvas3d.viewport || { } });
-        this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
-        this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
+        if (snapshot.behaviour) await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
+        if (snapshot.data) await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));
+        if (snapshot.cameraSnapshots) this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
+        if (snapshot.canvas3d) {
+            if (snapshot.canvas3d.viewport) PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: snapshot.canvas3d.viewport || { } });
+            if (snapshot.canvas3d.camera) this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
+        }
         this.plugin.canvas3d.requestDraw(true);
     }
 
@@ -86,12 +88,12 @@ namespace PluginState {
     export type Kind = 'data' | 'behavior'
 
     export interface Snapshot {
-        data: State.Snapshot,
-        behaviour: State.Snapshot,
-        cameraSnapshots: CameraSnapshotManager.StateSnapshot,
-        canvas3d: {
-            camera: Camera.Snapshot,
-            viewport: Canvas3DProps
+        data?: State.Snapshot,
+        behaviour?: State.Snapshot,
+        cameraSnapshots?: CameraSnapshotManager.StateSnapshot,
+        canvas3d?: {
+            camera?: Camera.Snapshot,
+            viewport?: Canvas3DProps
         }
     }
 }
