@@ -104,19 +104,19 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params(a) {
         if (!a) {
-            return { id: PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. If none specified (undefined or empty string), the asymmetric unit is used.' }) };
+            return { id: PD.makeOptional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. If none specified (undefined or empty string), the asymmetric unit is used.' })) };
         }
         const model = a.data;
         const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
         if (!ids.length) ids.push(['deposited', 'Deposited'])
-        return { id: PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' }) };
+        return { id: PD.makeOptional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
     }
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Assembly', async ctx => {
             const model = a.data;
             const id = params.id;
-            const asm = ModelSymmetry.findAssembly(model, id);
+            const asm = ModelSymmetry.findAssembly(model, id || '');
             if (!!id && id !== 'deposited' && !asm) throw new Error(`Assembly '${id}' not found`);
 
             const base = Structure.ofModel(model);

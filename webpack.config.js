@@ -87,6 +87,7 @@ function createNodeApp(name) { return createNodeEntryPoint('index', `apps/${name
 
 module.exports = [
     createApp('viewer'),
+    createApp('basic-wrapper'),
     createNodeApp('state-docs'),
     createApp('model-server-query'),
 
