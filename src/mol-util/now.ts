@@ -11,7 +11,7 @@ const now: () => now.Timestamp = (function () {
     if (typeof window !== 'undefined' && window.performance) {
         const perf = window.performance;
         return () => perf.now();
-    } else if (typeof process !== 'undefined' && process.hrtime !== 'undefined') {
+    } else if (typeof process !== 'undefined' && process.hrtime !== 'undefined' && typeof process.hrtime === 'function') {
         return () => {
             const t = process.hrtime();
             return t[0] * 1000 + t[1] / 1000000;

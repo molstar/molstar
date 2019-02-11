@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* Viewer</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #app {
+                position: absolute;
+                left: 100px;
+                top: 100px;
+                width: 600px;
+                height: 600px;
+                border: 1px solid #ccc;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="app.css" />
+        <script type="text/javascript" src="./index.js"></script>
+    </head>
+    <body>
+        <button id='spin'>Toggle Spin</button>
+        <button id='asym'>Load Asym Unit</button>
+        <button id='asm'>Load Assemly 1</button>
+        <div id="app"></div>
+        <script>            
+            var pdbId = '5ire', assemblyId= '1';
+            var url = 'https://www.ebi.ac.uk/pdbe/static/entry/' + pdbId + '_updated.cif';
+
+            BasicMolStarWrapper.init('app' /** or document.getElementById('app') */);
+            BasicMolStarWrapper.setBackground(0xffffff);
+            BasicMolStarWrapper.loadCif(url, assemblyId);
+            BasicMolStarWrapper.toggleSpin();
+
+            document.getElementById('spin').onclick = () => BasicMolStarWrapper.toggleSpin();
+            document.getElementById('asym').onclick = () => BasicMolStarWrapper.loadCif(url);
+            document.getElementById('asm').onclick = () => BasicMolStarWrapper.loadCif(url, assemblyId);
+        </script>
+    </body>
+</html>

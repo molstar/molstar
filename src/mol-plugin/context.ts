@@ -26,6 +26,9 @@ import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 import { ajaxGet } from 'mol-util/data-source';
 import { CustomPropertyRegistry } from './util/custom-prop-registry';
 import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
+import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
+import { PluginLayout } from './layout';
+import { List } from 'immutable';
 
 export class PluginContext {
     private disposed = false;
@@ -69,6 +72,7 @@ export class PluginContext {
     };
 
     readonly canvas3d: Canvas3D;
+    readonly layout: PluginLayout = new PluginLayout(this);
 
     readonly lociLabels: LociLabelManager;
 
@@ -86,6 +90,8 @@ export class PluginContext {
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
+            this.layout.setRoot(container);
+            if (this.spec.initialLayout) this.layout.updateState(this.spec.initialLayout);
             (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
             PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { backgroundColor: Color(0xFCFBF9) } });
             this.canvas3d.animate();
@@ -98,6 +104,7 @@ export class PluginContext {
     }
 
     readonly log = {
+        entries: List<LogEntry>(),
         entry: (e: LogEntry) => this.events.log.next(e),
         error: (msg: string) => this.events.log.next(LogEntry.error(msg)),
         message: (msg: string) => this.events.log.next(LogEntry.message(msg)),
@@ -145,7 +152,7 @@ export class PluginContext {
             tree.toRoot().apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
         }
 
-        await this.runTask(this.state.behaviorState.update(tree));
+        await this.runTask(this.state.behaviorState.update(tree, true));
     }
 
     initDataActions() {
@@ -165,12 +172,17 @@ export class PluginContext {
     }
 
     constructor(public spec: PluginSpec) {
+        this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e));
+
         this.initBuiltInBehavior();
 
         this.initBehaviors();
         this.initDataActions();
 
         this.lociLabels = new LociLabelManager(this);
+
+        // TODO: find a better solution for this.
+        setTimeout(() => this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE}]`), 500);
     }
 
     // settings = ;

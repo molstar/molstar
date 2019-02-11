@@ -117,6 +117,10 @@ Run the image
 
     export NODE_PATH="build/src"; node build/src/servers/model/test.js
 
+**State Transformer Docs**
+
+    node build/state-docs
+
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.
 
