@@ -9,6 +9,7 @@ import { PluginComponent } from './component';
 import { PluginContext } from './context';
 import { PluginCommands } from './command';
 
+// TODO: support collapsed state control orientation
 export const PluginLayoutStateParams = {
     isExpanded: PD.Boolean(false),
     showControls: PD.Boolean(true)
@@ -120,7 +121,8 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
                 s.marginTop = '0';
                 s.marginBottom = '0';
 
-                this.root.style.zIndex = '2147483647';
+                // TODO: setting this breaks viewport controls for some reason. Is there a fix?
+                // this.root.style.zIndex = '100000';
             } else {
                 let children = head.children;
                 for (let i = 0; i < children.length; i++) {
@@ -166,7 +168,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
     }
 
     constructor(context: PluginContext) {
-        super(context, PD.getDefaultValues(PluginLayoutStateParams));
+        super(context, { ...PD.getDefaultValues(PluginLayoutStateParams), ...context.spec.initialLayout });
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 

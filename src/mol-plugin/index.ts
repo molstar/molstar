@@ -20,7 +20,7 @@ function getParam(name: string, regex: string): string {
     return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
 }
 
-const DefaultSpec: PluginSpec = {
+export const DefaultPluginSpec: PluginSpec = {
     actions: [
         PluginSpec.Action(DownloadStructure),
         PluginSpec.Action(OpenStructure),
@@ -49,8 +49,8 @@ const DefaultSpec: PluginSpec = {
     ]
 }
 
-export function createPlugin(target: HTMLElement): PluginContext {
-    const ctx = new PluginContext(DefaultSpec);
+export function createPlugin(target: HTMLElement, spec?: PluginSpec): PluginContext {
+    const ctx = new PluginContext(spec || DefaultPluginSpec);
     ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
 
     trySetSnapshot(ctx);

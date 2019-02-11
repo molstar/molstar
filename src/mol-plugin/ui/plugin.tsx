@@ -52,20 +52,19 @@ class Layout extends PluginComponent {
     }
 
     render() {
-        const showControls = this.plugin.layout.latestState.showControls;
-
+        const layout = this.plugin.layout.latestState;
         return <div className='msp-plugin'>
-            <div className='msp-plugin-content msp-layout-expanded'>
-                <div className={showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
+            <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
+                <div className={layout.showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
                     {this.region('main', <ViewportWrapper />)}
-                    {showControls && this.region('left', <State />)}
-                    {showControls && this.region('right', <div className='msp-scrollable-container msp-right-controls'>
+                    {layout.showControls && this.region('left', <State />)}
+                    {layout.showControls && this.region('right', <div className='msp-scrollable-container msp-right-controls'>
                         <CurrentObject />
                         <Controls />
                         <CameraSnapshots />
                         <StateSnapshots />
                     </div>)}
-                    {showControls && this.region('bottom', <Log />)}
+                    {layout.showControls && this.region('bottom', <Log />)}
                 </div>
             </div>
         </div>;

@@ -38,6 +38,10 @@ export class ViewportControls extends PluginComponent {
         PluginCommands.Layout.Update.dispatch(this.plugin, { state: { showControls: !this.plugin.layout.latestState.showControls } });
     }
 
+    toggleExpanded = () => {
+        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { isExpanded: !this.plugin.layout.latestState.isExpanded } });
+    }
+
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { [p.name]: p.value } });
     }
@@ -56,13 +60,23 @@ export class ViewportControls extends PluginComponent {
         });
     }
 
+    icon(name: string, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
+        return <button
+            className={`msp-btn msp-btn-link msp-btn-link-toggle-${isOn ? 'on' : 'off'}`}
+            onClick={onClick}
+            title={title}>
+                <span className={`msp-icon msp-icon-${name}`}/>
+            </button>
+    }
+
     render() {
         // TODO: show some icons dimmed etc..
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
-                <button className='msp-btn msp-btn-link' onClick={this.toggleControls} title='Show/Hide Controls'><span className='msp-icon msp-icon-tools'/></button>
-                <button className='msp-btn msp-btn-link' onClick={this.toggleSettingsExpanded}><span className='msp-icon msp-icon-settings'/></button>
-                <button className='msp-btn msp-btn-link' title='Reset Camera' onClick={this.resetCamera}><span className='msp-icon msp-icon-reset-scene'/></button>
+                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.latestState.showControls)}
+                {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.latestState.isExpanded)}
+                {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
+                {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
             </div>
             {this.state.isSettingsExpanded &&
             <div className='msp-viewport-controls-scene-options'>
