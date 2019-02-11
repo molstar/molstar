@@ -34,6 +34,10 @@ export class ViewportControls extends PluginComponent {
         e.currentTarget.blur();
     }
 
+    toggleControls = () => {
+        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { showControls: !this.plugin.layout.latestState.showControls } });
+    }
+
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { [p.name]: p.value } });
     }
@@ -56,6 +60,7 @@ export class ViewportControls extends PluginComponent {
         // TODO: show some icons dimmed etc..
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
+                <button className='msp-btn msp-btn-link' onClick={this.toggleControls} title='Show/Hide Controls'><span className='msp-icon msp-icon-tools'/></button>
                 <button className='msp-btn msp-btn-link' onClick={this.toggleSettingsExpanded}><span className='msp-icon msp-icon-settings'/></button>
                 <button className='msp-btn msp-btn-link' title='Reset Camera' onClick={this.resetCamera}><span className='msp-icon msp-icon-reset-scene'/></button>
             </div>
@@ -81,7 +86,7 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
     };
 
     private handleResize = () => {
-         this.plugin.canvas3d.handleResize();
+        this.plugin.canvas3d.handleResize();
     }
 
     componentDidMount() {
@@ -107,6 +112,10 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
         this.subscribe(canvas3d.input.click, ({x, y, buttons}) => {
             if (buttons !== ButtonsType.Flag.Primary) return;
             idHelper.select(x, y);
+        });
+
+        this.subscribe(this.plugin.layout.updated, () => {
+            setTimeout(this.handleResize, 50);
         });
     }
 

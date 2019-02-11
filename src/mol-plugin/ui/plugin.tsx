@@ -33,22 +33,42 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
     render() {
         return <PluginReactContext.Provider value={this.props.plugin}>
-            <div className='msp-plugin'>
-                <div className='msp-plugin-content msp-layout-expanded'>
-                    <div className='msp-layout-hide-top'>
-                        {this.region('main', <ViewportWrapper />)}
-                        {this.region('left', <State />)}
-                        {this.region('right', <div className='msp-scrollable-container msp-right-controls'>
-                            <CurrentObject />
-                            <Controls />
-                            <CameraSnapshots />
-                            <StateSnapshots />
-                        </div>)}
-                        {this.region('bottom', <Log />)}
-                    </div>
+            <Layout />
+        </PluginReactContext.Provider>;
+    }
+}
+
+class Layout extends PluginComponent {
+    componentDidMount() {
+        this.subscribe(this.plugin.layout.updated, () => this.forceUpdate());
+    }
+
+    region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
+        return <div className={`msp-layout-region msp-layout-${kind}`}>
+            <div className='msp-layout-static'>
+                {element}
+            </div>
+        </div>;
+    }
+
+    render() {
+        const showControls = this.plugin.layout.latestState.showControls;
+
+        return <div className='msp-plugin'>
+            <div className='msp-plugin-content msp-layout-expanded'>
+                <div className={showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
+                    {this.region('main', <ViewportWrapper />)}
+                    {showControls && this.region('left', <State />)}
+                    {showControls && this.region('right', <div className='msp-scrollable-container msp-right-controls'>
+                        <CurrentObject />
+                        <Controls />
+                        <CameraSnapshots />
+                        <StateSnapshots />
+                    </div>)}
+                    {showControls && this.region('bottom', <Log />)}
                 </div>
             </div>
-        </PluginReactContext.Provider>;
+        </div>;
     }
 }
 
