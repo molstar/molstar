@@ -55,7 +55,7 @@ namespace VolumeIsoValue {
     }
 
     export function calcRelative(stats: VolumeData['dataStats'], absoluteValue: number): number {
-        return (stats.mean - absoluteValue) / stats.sigma
+        return (absoluteValue - stats.mean) / stats.sigma
     }
 
     export function toAbsolute(value: VolumeIsoValue): Absolute {
