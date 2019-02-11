@@ -119,7 +119,7 @@ Run the image
 
 **State Transformer Docs**
 
-    node build/state-docs
+    export NODE_PATH="build/src"; node build/state-docs
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.

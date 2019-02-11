@@ -5,6 +5,7 @@
 * [ms-plugin.read-file](#ms-plugin-read-file)
 * [ms-plugin.parse-cif](#ms-plugin-parse-cif)
 * [ms-plugin.parse-ccp4](#ms-plugin-parse-ccp4)
+* [ms-plugin.parse-dsn6](#ms-plugin-parse-dsn6)
 * [ms-plugin.trajectory-from-mmcif](#ms-plugin-trajectory-from-mmcif)
 * [ms-plugin.model-from-trajectory](#ms-plugin-model-from-trajectory)
 * [ms-plugin.structure-from-model](#ms-plugin-structure-from-model)
@@ -13,6 +14,7 @@
 * [ms-plugin.structure-complex-element](#ms-plugin-structure-complex-element)
 * [ms-plugin.custom-model-properties](#ms-plugin-custom-model-properties)
 * [ms-plugin.volume-from-ccp4](#ms-plugin-volume-from-ccp4)
+* [ms-plugin.volume-from-dsn6](#ms-plugin-volume-from-dsn6)
 * [ms-plugin.representation-highlight-loci](#ms-plugin-representation-highlight-loci)
 * [ms-plugin.representation-select-loci](#ms-plugin-representation-select-loci)
 * [ms-plugin.default-loci-label-provider](#ms-plugin-default-loci-label-provider)
@@ -63,7 +65,11 @@
 
 ----------------------------
 ## <a name="ms-plugin-parse-ccp4"></a>ms-plugin.parse-ccp4 :: Binary -> Ccp4
-*Parse CCP4 from Binary data*
+*Parse CCP4/MRC from Binary data*
+
+----------------------------
+## <a name="ms-plugin-parse-dsn6"></a>ms-plugin.parse-dsn6 :: Binary -> Dsn6
+*Parse CCP4/BRIX from Binary data*
 
 ----------------------------
 ## <a name="ms-plugin-trajectory-from-mmcif"></a>ms-plugin.trajectory-from-mmcif :: Cif -> Trajectory
@@ -98,13 +104,11 @@
 *Create a molecular structure assembly.*
 
 ### Parameters
-- **id**: String *(Assembly Id. If none specified (undefined or empty string), the asymmetric unit is used.)*
+- **id**?: String *(Assembly Id. If none specified (undefined or empty string), the asymmetric unit is used.)*
 
 ### Default Parameters
 ```js
-{
-  "id": ""
-}
+{}
 ```
 ----------------------------
 ## <a name="ms-plugin-structure-selection"></a>ms-plugin.structure-selection :: Structure -> Structure
@@ -146,6 +150,23 @@
 ----------------------------
 ## <a name="ms-plugin-volume-from-ccp4"></a>ms-plugin.volume-from-ccp4 :: Ccp4 -> Data
 *Create Volume from CCP4/MRC data*
+
+### Parameters
+- **voxelSize**: 3D vector [x, y, z]
+
+### Default Parameters
+```js
+{
+  "voxelSize": [
+    1,
+    1,
+    1
+  ]
+}
+```
+----------------------------
+## <a name="ms-plugin-volume-from-dsn6"></a>ms-plugin.volume-from-dsn6 :: Dsn6 -> Data
+*Create Volume from DSN6/BRIX data*
 
 ### Parameters
 - **voxelSize**: 3D vector [x, y, z]
@@ -445,7 +466,12 @@ Object with:
       - **doubleSided**: true/false
       - **flipSided**: true/false
       - **flatShaded**: true/false
-      - **isoValue**: Numeric value
+      - **isoValue**:       - **absolute**: Numeric value
+      - **relative**: Numeric value
+
+      - **sizeFactor**: Numeric value
+      - **lineSizeAttenuation**: true/false
+      - **visuals**: Array of 'solid', 'wireframe'
 
   - **direct-volume**:
 Object with:
@@ -540,7 +566,21 @@ Object with:
       "doubleSided": false,
       "flipSided": false,
       "flatShaded": false,
-      "isoValue": 0.22
+      "isoValue": {
+        "kind": "relative",
+        "stats": {
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "sigma": 0
+        },
+        "relativeValue": 2
+      },
+      "sizeFactor": 1,
+      "lineSizeAttenuation": false,
+      "visuals": [
+        "solid"
+      ]
     }
   },
   "colorTheme": {

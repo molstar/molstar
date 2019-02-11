@@ -172,9 +172,12 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 
-        // <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />
-        this.expandedViewport = document.createElement('meta') as any;
-        this.expandedViewport.name = 'viewport';
-        this.expandedViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0';
+        // TODO how best make sure it runs on node.js as well as in the browser?
+        if (typeof document !== 'undefined') {
+            // <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />
+            this.expandedViewport = document.createElement('meta') as any;
+            this.expandedViewport.name = 'viewport';
+            this.expandedViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0';
+        }
     }
 }
