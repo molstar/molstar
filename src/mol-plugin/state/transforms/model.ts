@@ -221,7 +221,7 @@ export { VolumeFromCcp4 }
 type VolumeFromCcp4 = typeof VolumeFromCcp4
 const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
     name: 'volume-from-ccp4',
-    display: { name: 'Volume from CCP4/MRC', description: 'Create Volume from CCP4/MRC data' },
+    display: { name: 'Volume from CCP4/MRC/MAP', description: 'Create Volume from CCP4/MRC/MAP data' },
     from: SO.Format.Ccp4,
     to: SO.Volume.Data,
     params(a) {
@@ -231,7 +231,7 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
     }
 })({
     apply({ a, params }) {
-        return Task.create('Create volume from CCP4/MRC', async ctx => {
+        return Task.create('Create volume from CCP4/MRC/MAP', async ctx => {
             const volume = await volumeFromCcp4(a.data, params).runInContext(ctx)
             const props = { label: 'Volume' };
             return new SO.Volume.Data(volume, props);

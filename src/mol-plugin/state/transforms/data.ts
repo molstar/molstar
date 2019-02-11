@@ -99,12 +99,12 @@ export { ParseCcp4 }
 type ParseCcp4 = typeof ParseCcp4
 const ParseCcp4 = PluginStateTransform.BuiltIn({
     name: 'parse-ccp4',
-    display: { name: 'Parse CCP4/MRC', description: 'Parse CCP4/MRC from Binary data' },
+    display: { name: 'Parse CCP4/MRC/MAP', description: 'Parse CCP4/MRC/MAP from Binary data' },
     from: [SO.Data.Binary],
     to: SO.Format.Ccp4
 })({
     apply({ a }) {
-        return Task.create('Parse CCP4/MRC', async ctx => {
+        return Task.create('Parse CCP4/MRC/MAP', async ctx => {
             const parsed = await CCP4.parse(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Ccp4(parsed.result);

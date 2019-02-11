@@ -162,12 +162,12 @@ export const UpdateTrajectory = StateAction.build({
 
 //
 
-const VolumeFormats = { 'ccp4': '', 'mrc': '', 'dsn6': '', 'brix': '' }
+const VolumeFormats = { 'ccp4': '', 'mrc': '', 'map': '', 'dsn6': '', 'brix': '' }
 type VolumeFormat = keyof typeof VolumeFormats
 
 function getVolumeData(format: VolumeFormat, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>) {
     switch (format) {
-        case 'ccp4': case 'mrc':
+        case 'ccp4': case 'mrc': case 'map':
             return b.apply(StateTransforms.Data.ParseCcp4).apply(StateTransforms.Model.VolumeFromCcp4);
         case 'dsn6': case 'brix':
             return b.apply(StateTransforms.Data.ParseDsn6).apply(StateTransforms.Model.VolumeFromDsn6);
@@ -200,9 +200,9 @@ export const OpenVolume = StateAction.build({
     display: { name: 'Open Volume', description: 'Load a volume from file and create its default visual' },
     from: PluginStateObject.Root,
     params: {
-        file: PD.File({ accept: '.ccp4,.mrc,.dsn6,.brix'}),
+        file: PD.File({ accept: '.ccp4,.mrc,.map,.dsn6,.brix'}),
         format: PD.Select('auto', [
-            ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
+            ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
         ]),
     }
 })(({ params, state }, ctx: PluginContext) => {
@@ -230,7 +230,7 @@ const DownloadDensity = StateAction.build({
             'url': PD.Group({
                 url: PD.Text(''),
                 format: PD.Select('auto', [
-                    ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
+                    ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
                 ]),
             }, { isFlat: true })
         }, {

@@ -59,7 +59,7 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
-        export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC File', typeClass: 'Data' }) { }
+        export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
     }
 
