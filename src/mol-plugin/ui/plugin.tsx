@@ -116,15 +116,14 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     private wrapper = React.createRef<HTMLDivElement>();
 
     componentDidMount() {
-        // TODO: only show last 100 entries.
-        this.subscribe(this.plugin.events.log, e => this.setState({ entries: this.state.entries.push(e) }));
+        this.subscribe(this.plugin.events.log, () => this.setState({ entries: this.plugin.log.entries.takeLast(100).toList() }));
     }
 
     componentDidUpdate() {
         this.scrollToBottom();
     }
 
-    state = { entries: List<LogEntry>() };
+    state = { entries: this.plugin.log.entries.takeLast(100).toList() };
 
     private scrollToBottom() {
         const log = this.wrapper.current;

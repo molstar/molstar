@@ -28,6 +28,7 @@ import { CustomPropertyRegistry } from './util/custom-prop-registry';
 import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { PluginLayout } from './layout';
+import { List } from 'immutable';
 
 export class PluginContext {
     private disposed = false;
@@ -103,6 +104,7 @@ export class PluginContext {
     }
 
     readonly log = {
+        entries: List<LogEntry>(),
         entry: (e: LogEntry) => this.events.log.next(e),
         error: (msg: string) => this.events.log.next(LogEntry.error(msg)),
         message: (msg: string) => this.events.log.next(LogEntry.message(msg)),
@@ -170,6 +172,8 @@ export class PluginContext {
     }
 
     constructor(public spec: PluginSpec) {
+        this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e));
+
         this.initBuiltInBehavior();
 
         this.initBehaviors();
