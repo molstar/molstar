@@ -7,12 +7,14 @@
 import { StateAction } from 'mol-state/action';
 import { Transformer } from 'mol-state';
 import { StateTransformParameters } from './ui/state/common';
+import { PluginLayoutStateProps } from './layout';
 
 export { PluginSpec }
 
 interface PluginSpec {
     actions: PluginSpec.Action[],
-    behaviors: PluginSpec.Behavior[]
+    behaviors: PluginSpec.Behavior[],
+    initialLayout?: PluginLayoutStateProps
 }
 
 namespace PluginSpec {

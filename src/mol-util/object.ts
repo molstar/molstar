@@ -41,6 +41,10 @@ export function shallowEqual<T>(a: T, b: T) {
 }
 
 export function shallowMerge<T>(source: T, ...rest: (Partial<T> | undefined)[]): T {
+    return shallowMergeArray(source, rest);
+}
+
+export function shallowMergeArray<T>(source: T, rest: (Partial<T> | undefined)[]): T {
     // Adapted from LiteMol (https://github.com/dsehnal/LiteMol)
     let ret: any = source;
 
