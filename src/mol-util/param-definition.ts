@@ -190,7 +190,7 @@ export namespace ParamDefinition {
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
         converted: Any,
-        /** converts from props value to display value */
+        /** converts from prop value to display value */
         fromValue(v: T): C,
         /** converts from display value to prop value */
         toValue(v: C): T
@@ -199,7 +199,19 @@ export namespace ParamDefinition {
         return { type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue };
     }
 
-    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any>
+    export interface Conditioned<T, P extends Base<T>, C = { [k: string]: P }> extends Base<T> {
+        type: 'conditioned',
+        select: Select<string>,
+        conditionParams: C
+        conditionForValue(v: T): keyof C 
+        conditionedValue(v: T, condition: keyof C): T,
+    }
+    export function Conditioned<T, P extends Base<T>, C = { [k: string]: P }>(defaultValue: T, conditionParams: C, conditionForValue: (v: T) => keyof C, conditionedValue: (v: T, condition: keyof C) => T): Conditioned<T, P, C> {
+        const options = Object.keys(conditionParams).map(k => [k, k]) as [string, string][];
+        return { type: 'conditioned', select: Select<string>(conditionForValue(defaultValue) as string, options), defaultValue, conditionParams, conditionForValue, conditionedValue };
+    }
+
+    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any>
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }

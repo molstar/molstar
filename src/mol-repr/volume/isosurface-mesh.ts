@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeData } from 'mol-model/volume'
+import { VolumeData, VolumeIsoValue } from 'mol-model/volume'
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { EmptyLoci } from 'mol-model/loci';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -19,9 +19,30 @@ import { VisualContext } from 'mol-repr/visual';
 import { NullLocation } from 'mol-model/location';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 
-interface VolumeIsosurfaceProps {
-    isoValue: number
+const IsoValueParam = PD.Conditioned(
+    VolumeIsoValue.relative(VolumeData.Empty.dataStats, 2),
+    {
+        'absolute': PD.Converted(
+            (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v).absoluteValue,
+            (v: number) => VolumeIsoValue.absolute(VolumeData.Empty.dataStats, v),
+            PD.Numeric(0, { min: -1, max: 1, step: 0.01 })
+        ),
+        'relative': PD.Converted(
+            (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v).relativeValue,
+            (v: number) => VolumeIsoValue.relative(VolumeData.Empty.dataStats, v),
+            PD.Numeric(0, { min: -1, max: 1, step: 0.01 })
+        )
+    },
+    (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
+    (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v) : VolumeIsoValue.toRelative(v)
+)
+type IsoValueParam = typeof IsoValueParam
+
+export const VolumeIsosurfaceParams = {
+    isoValue: IsoValueParam
 }
+export type VolumeIsosurfaceParams = typeof VolumeIsosurfaceParams
+export type VolumeIsosurfaceProps = PD.Values<VolumeIsosurfaceParams>
 
 //
 
@@ -29,7 +50,7 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
     ctx.runtime.update({ message: 'Marching cubes...' });
 
     const surface = await computeMarchingCubesMesh({
-        isoLevel: props.isoValue,
+        isoLevel: VolumeIsoValue.toAbsolute(props.isoValue).absoluteValue,
         scalarField: volume.data
     }, mesh).runAsChild(ctx.runtime);
 
@@ -43,7 +64,7 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
 
 export const IsosurfaceMeshParams = {
     ...Mesh.Params,
-    isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
+    ...VolumeIsosurfaceParams
 }
 export type IsosurfaceMeshParams = typeof IsosurfaceMeshParams
 
@@ -66,11 +87,10 @@ export function IsosurfaceMeshVisual(): VolumeVisual<IsosurfaceMeshParams> {
 export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume: VolumeData, theme: Theme, props: VolumeIsosurfaceProps, lines?: Lines) {
     ctx.runtime.update({ message: 'Marching cubes...' });
 
-    const params = {
-        isoLevel: props.isoValue,
+    const wireframe = await computeMarchingCubesLines({
+        isoLevel: VolumeIsoValue.toAbsolute(props.isoValue).absoluteValue,
         scalarField: volume.data
-    }
-    const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime)
+    }, lines).runAsChild(ctx.runtime)
 
     const transform = VolumeData.getGridToCartesianTransform(volume);
     Lines.transformImmediate(wireframe, transform)
@@ -80,7 +100,7 @@ export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume
 
 export const IsosurfaceWireframeParams = {
     ...Lines.Params,
-    isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
+    ...VolumeIsosurfaceParams
 }
 export type IsosurfaceWireframeParams = typeof IsosurfaceWireframeParams
 
@@ -114,7 +134,26 @@ export const IsosurfaceParams = {
 }
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
-    return PD.clone(IsosurfaceParams)
+    const p = PD.clone(IsosurfaceParams)
+    const { min, max, mean, sigma } = volume.dataStats
+    p.isoValue = PD.Conditioned(
+        VolumeIsoValue.relative(volume.dataStats, 2),
+        {
+            'absolute': PD.Converted(
+                (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v).absoluteValue,
+                (v: number) => VolumeIsoValue.absolute(volume.dataStats, v),
+                PD.Numeric(mean, { min, max, step: sigma / 100 })
+            ),
+            'relative': PD.Converted(
+                (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v).relativeValue,
+                (v: number) => VolumeIsoValue.relative(volume.dataStats, v),
+                PD.Numeric(2, { min: -10, max: 10, step: 0.001 })
+            )
+        },
+        (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
+        (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v) : VolumeIsoValue.toRelative(v)
+    )
+    return p
 }
 
 export type IsosurfaceRepresentation = VolumeRepresentation<IsosurfaceParams>

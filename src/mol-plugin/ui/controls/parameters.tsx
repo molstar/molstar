@@ -47,6 +47,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'number': return typeof param.min !== 'undefined' && typeof param.max !== 'undefined'
             ? NumberRangeControl : NumberInputControl;
         case 'converted': return ConvertedControl;
+        case 'conditioned': return ConditionedControl;
         case 'multi-select': return MultiSelectControl;
         case 'color': return ColorControl;
         case 'color-scale': return ColorScaleControl;
@@ -452,6 +453,41 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
         return <div>
             {select}
             <Mapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
+        </div>
+    }
+}
+
+export class ConditionedControl extends React.PureComponent<ParamProps<PD.Conditioned<any, any, any>>> {
+    change(value: PD.Conditioned<any, any, any>['defaultValue'] ) {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    onChangeCondition: ParamOnChange = e => {
+        this.change(this.props.param.conditionedValue(this.props.value, e.value));
+    }
+
+    onChangeParam: ParamOnChange = e => {
+        this.change(e.value);
+    }
+
+    render() {
+        const value = this.props.value;
+        const condition = this.props.param.conditionForValue(value) as string
+        const param = this.props.param.conditionParams[condition];
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
+        const Conditioned = controlFor(param);
+
+        const select = <SelectControl param={this.props.param.select}
+            isDisabled={this.props.isDisabled} onChange={this.onChangeCondition} onEnter={this.props.onEnter}
+            name={`${label} Kind`} value={condition} />
+
+        if (!Conditioned) {
+            return select;
+        }
+
+        return <div>
+            {select}
+            <Conditioned param={param} value={value} name={label} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
         </div>
     }
 }
