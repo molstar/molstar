@@ -16,6 +16,7 @@ function paramInfo(param: PD.Any, offset: number): string {
         case 'boolean': return 'true/false';
         case 'number': return 'Numeric value';
         case 'converted': return paramInfo(param.converted, offset);
+        case 'conditioned': return getParams(param.conditionParams, offset);
         case 'multi-select': return `Array of ${oToS(param.options)}`;
         case 'color': return 'Color as 0xrrggbb';
         case 'color-scale': return `One of ${oToS(param.options)}`;

@@ -203,7 +203,7 @@ export namespace ParamDefinition {
         type: 'conditioned',
         select: Select<string>,
         conditionParams: C
-        conditionForValue(v: T): keyof C 
+        conditionForValue(v: T): keyof C
         conditionedValue(v: T, condition: keyof C): T,
     }
     export function Conditioned<T, P extends Base<T>, C = { [k: string]: P }>(defaultValue: T, conditionParams: C, conditionForValue: (v: T) => keyof C, conditionedValue: (v: T, condition: keyof C) => T): Conditioned<T, P, C> {
