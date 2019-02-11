@@ -25,12 +25,12 @@ const IsoValueParam = PD.Conditioned(
         'absolute': PD.Converted(
             (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v).absoluteValue,
             (v: number) => VolumeIsoValue.absolute(VolumeData.Empty.dataStats, v),
-            PD.Numeric(0, { min: -1, max: 1, step: 0.01 })
+            PD.Numeric(0.5, { min: -1, max: 1, step: 0.01 })
         ),
         'relative': PD.Converted(
             (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v).relativeValue,
             (v: number) => VolumeIsoValue.relative(VolumeData.Empty.dataStats, v),
-            PD.Numeric(0, { min: -1, max: 1, step: 0.01 })
+            PD.Numeric(2, { min: -10, max: 10, step: 0.01 })
         )
     },
     (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',

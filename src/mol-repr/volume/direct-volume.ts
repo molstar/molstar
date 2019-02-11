@@ -152,7 +152,6 @@ export async function createDirectVolume(ctx: VisualContext, volume: VolumeData,
         await createDirectVolume2d(runtime, webgl, volume, directVolume)
 }
 
-
 //
 
 export const DirectVolumeParams = {

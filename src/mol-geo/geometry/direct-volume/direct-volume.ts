@@ -73,7 +73,7 @@ export namespace DirectVolume {
 
     export const Params = {
         ...BaseGeometry.Params,
-        isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
+        isoValueNorm: PD.Numeric(0.22, { min: 0, max: 1, step: 0.01 }, { description: 'Normalized Isolevel Value' }),
         renderMode: PD.Select('volume', RenderModeOptions),
         controlPoints: PD.LineGraph([
             Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
@@ -122,7 +122,7 @@ export namespace DirectVolume {
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
 
-            uIsoValue: ValueCell.create(props.isoValue),
+            uIsoValue: ValueCell.create(props.isoValueNorm),
             uBboxMin: bboxMin,
             uBboxMax: bboxMax,
             uBboxSize: bboxSize,
@@ -145,7 +145,7 @@ export namespace DirectVolume {
     }
 
     function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
-        ValueCell.updateIfChanged(values.uIsoValue, props.isoValue)
+        ValueCell.updateIfChanged(values.uIsoValue, props.isoValueNorm)
         ValueCell.updateIfChanged(values.uAlpha, props.alpha)
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)
