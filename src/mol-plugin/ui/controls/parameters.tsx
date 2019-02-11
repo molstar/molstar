@@ -410,16 +410,28 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
 }
 
 export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>>> {
+    private valuesCache: { [name: string]: PD.Values<any> } = {}
+    private setValues(name: string, values: PD.Values<any>) {
+        this.valuesCache[name] = values
+    }
+    private getValues(name: string) {
+        if (name in this.valuesCache) {
+            return this.valuesCache[name]
+        } else {
+            return this.props.param.map(name).defaultValue
+        }
+    }
+
     change(value: PD.Mapped<any>['defaultValue'] ) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
     }
 
     onChangeName: ParamOnChange = e => {
-        // TODO: Cache values when changing types?
-        this.change({ name: e.value, params: this.props.param.map(e.value).defaultValue });
+        this.change({ name: e.value, params: this.getValues(e.value) });
     }
 
     onChangeParam: ParamOnChange = e => {
+        this.setValues(this.props.value.name, e.value)
         this.change({ name: this.props.value.name, params: e.value });
     }
 
