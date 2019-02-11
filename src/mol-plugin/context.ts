@@ -26,7 +26,7 @@ import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 import { ajaxGet } from 'mol-util/data-source';
 import { CustomPropertyRegistry } from './util/custom-prop-registry';
 import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
-import { PLUGIN_VERSION } from './version';
+import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 
 export class PluginContext {
     private disposed = false;
@@ -174,7 +174,7 @@ export class PluginContext {
         this.lociLabels = new LociLabelManager(this);
 
         // TODO: find a better solution for this.
-        setTimeout(() => this.log.message(`Mol* Plugin ${PLUGIN_VERSION}`), 500);
+        setTimeout(() => this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE}]`), 500);
     }
 
     // settings = ;

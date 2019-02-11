@@ -28,7 +28,15 @@ const sharedConfig = {
             {
                 test: /\.(s*)css$/,
                 use: [MiniCssExtractPlugin.loader, 'css-loader', 'resolve-url-loader', 'sass-loader']
-            }
+            },
+            {
+                test: /version\.js$/,
+                loader: 'string-replace-loader',
+                options: {
+                  search: '$PLUGIN_VERSION_DATE$',
+                  replace: function (date) { return date.getFullYear() + '/' + (date.getMonth() + 1) + '/' + date.getDate() } (new Date()),
+                }
+              }
         ]
     },
     plugins: [
