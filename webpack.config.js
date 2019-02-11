@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 // const CircularDependencyPlugin = require('circular-dependency-plugin');
@@ -28,15 +29,7 @@ const sharedConfig = {
             {
                 test: /\.(s*)css$/,
                 use: [MiniCssExtractPlugin.loader, 'css-loader', 'resolve-url-loader', 'sass-loader']
-            },
-            {
-                test: /version\.js$/,
-                loader: 'string-replace-loader',
-                options: {
-                  search: '$PLUGIN_VERSION_DATE$',
-                  replace: function (date) { return date.getFullYear() + '/' + (date.getMonth() + 1) + '/' + date.getDate() } (new Date()),
-                }
-              }
+            }
         ]
     },
     plugins: [
@@ -53,6 +46,9 @@ const sharedConfig = {
                 './build/src/**/*.scss',
                 './build/src/**/*.html'
             ],
+        }),
+        new webpack.DefinePlugin({
+            __PLUGIN_VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
         }),
         new MiniCssExtractPlugin({ filename: 'app.css' })
     ],

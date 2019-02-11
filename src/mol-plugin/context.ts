@@ -182,7 +182,7 @@ export class PluginContext {
         this.lociLabels = new LociLabelManager(this);
 
         // TODO: find a better solution for this.
-        setTimeout(() => this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE}]`), 500);
+        setTimeout(() => this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`), 500);
     }
 
     // settings = ;

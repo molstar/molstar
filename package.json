@@ -104,7 +104,6 @@
     "raw-loader": "^1.0.0",
     "resolve-url-loader": "^3.0.0",
     "sass-loader": "^7.1.0",
-    "string-replace-loader": "^2.1.1",
     "style-loader": "^0.23.1",
     "ts-jest": "^23.10.5",
     "tslint": "^5.12.1",
