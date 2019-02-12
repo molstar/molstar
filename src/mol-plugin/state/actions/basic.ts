@@ -162,7 +162,7 @@ export const UpdateTrajectory = StateAction.build({
 
 //
 
-const VolumeFormats = { 'ccp4': '', 'mrc': '', 'map': '', 'dsn6': '', 'brix': '' }
+const VolumeFormats = { 'ccp4': '', 'mrc': '', 'map': '', 'dsn6': '', 'brix': '', 'dscif': '' }
 type VolumeFormat = keyof typeof VolumeFormats
 
 function getVolumeData(format: VolumeFormat, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>) {
@@ -171,6 +171,8 @@ function getVolumeData(format: VolumeFormat, b: StateTreeBuilder.To<PluginStateO
             return b.apply(StateTransforms.Data.ParseCcp4).apply(StateTransforms.Model.VolumeFromCcp4);
         case 'dsn6': case 'brix':
             return b.apply(StateTransforms.Data.ParseDsn6).apply(StateTransforms.Model.VolumeFromDsn6);
+        case 'dscif':
+            return b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.VolumeFromDensityServerCif);
     }
 }
 
@@ -200,14 +202,15 @@ export const OpenVolume = StateAction.build({
     display: { name: 'Open Volume', description: 'Load a volume from file and create its default visual' },
     from: PluginStateObject.Root,
     params: {
-        file: PD.File({ accept: '.ccp4,.mrc,.map,.dsn6,.brix'}),
+        file: PD.File({ accept: '.ccp4,.mrc,.map,.dsn6,.brix,.cif'}),
+        isBinary: PD.Boolean(true),
         format: PD.Select('auto', [
-            ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
+            ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX'], ['dscif', 'densityServerCIF']
         ]),
     }
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
-    const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: true });
+    const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: params.isBinary });
     const format = getFileFormat(params.format, params.file)
     return state.update(createVolumeTree(format, ctx, data));
 });
@@ -229,8 +232,9 @@ const DownloadDensity = StateAction.build({
             }, { isFlat: true }),
             'url': PD.Group({
                 url: PD.Text(''),
+                isBinary: PD.Boolean(true),
                 format: PD.Select('auto', [
-                    ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
+                    ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX'], ['dscif', 'densityServerCIF']
                 ]),
             }, { isFlat: true })
         }, {

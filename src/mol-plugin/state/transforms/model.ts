@@ -19,6 +19,8 @@ import { stringToWords } from 'mol-util/string';
 import { volumeFromCcp4 } from 'mol-model/volume/formats/ccp4';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { volumeFromDsn6 } from 'mol-model/volume/formats/dsn6';
+import { volumeFromDensityServerData } from 'mol-model/volume';
+import CIF from 'mol-io/reader/cif';
 
 export { TrajectoryFromMmCif }
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
@@ -256,6 +258,39 @@ const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
         return Task.create('Create volume from DSN6/BRIX', async ctx => {
             const volume = await volumeFromDsn6(a.data, params).runInContext(ctx)
             const props = { label: 'Volume' };
+            return new SO.Volume.Data(volume, props);
+        });
+    }
+});
+
+export { VolumeFromDensityServerCif }
+type VolumeFromDensityServerCif = typeof VolumeFromDensityServerCif
+const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
+    name: 'volume-from-density-server-cif',
+    display: { name: 'Volume from density-server CIF', description: 'Identify and create all separate models in the specified CIF data block' },
+    from: SO.Format.Cif,
+    to: SO.Volume.Data,
+    params(a) {
+        if (!a) {
+            return {
+                blockHeader: PD.makeOptional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
+            };
+        }
+        const blocks = a.data.blocks.slice(1); // zero block contains query meta-data
+        return {
+            blockHeader: PD.makeOptional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
+        };
+    }
+})({
+    isApplicable: a => a.data.blocks.length > 0,
+    apply({ a, params }) {
+        return Task.create('Parse density-server CIF', async ctx => {
+            const header = params.blockHeader || a.data.blocks[1].header; // zero block contains query meta-data
+            const block = a.data.blocks.find(b => b.header === header);
+            if (!block) throw new Error(`Data block '${[header]}' not found.`);
+            const densityServerCif = CIF.schema.densityServer(block)
+            const volume = await volumeFromDensityServerData(densityServerCif).runInContext(ctx)
+            const props = { label: densityServerCif.volume_data_3d_info.name.value(0), description: `${densityServerCif.volume_data_3d_info.name.value(0)}` };
             return new SO.Volume.Data(volume, props);
         });
     }
