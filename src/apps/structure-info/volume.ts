@@ -8,7 +8,7 @@ import * as fs from 'fs'
 import * as argparse from 'argparse'
 import * as util from 'util'
 
-import { VolumeData, parseDensityServerData, VolumeIsoValue } from 'mol-model/volume'
+import { VolumeData, volumeFromDensityServerData, VolumeIsoValue } from 'mol-model/volume'
 import { downloadCif } from './helpers'
 import CIF from 'mol-io/reader/cif'
 import { DensityServer_Data_Database } from 'mol-io/reader/cif/schema/density-server';
@@ -26,7 +26,7 @@ type Volume = { source: DensityServer_Data_Database, volume: VolumeData }
 async function getVolume(url: string): Promise<Volume> {
     const cif = await downloadCif(url, true);
     const data = CIF.schema.densityServer(cif.blocks[1]);
-    return { source: data, volume: await parseDensityServerData(data).run() };
+    return { source: data, volume: await volumeFromDensityServerData(data).run() };
 }
 
 function print(data: Volume) {
