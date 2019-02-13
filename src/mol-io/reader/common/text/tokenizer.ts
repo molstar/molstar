@@ -8,7 +8,9 @@
 
 import { chunkedSubtask, RuntimeContext } from 'mol-task'
 
-export interface Tokenizer {
+export { Tokenizer }
+
+interface Tokenizer {
     data: string,
 
     position: number,
@@ -25,7 +27,7 @@ export interface Tokens {
     indices: ArrayLike<number>
 }
 
-export function Tokenizer(data: string): Tokenizer {
+function Tokenizer(data: string): Tokenizer {
     return {
         data,
         position: 0,
@@ -36,7 +38,7 @@ export function Tokenizer(data: string): Tokenizer {
     };
 }
 
-export namespace Tokenizer {
+namespace Tokenizer {
     export function getTokenString(state: Tokenizer) {
         return state.data.substring(state.tokenStart, state.tokenEnd);
     }
@@ -270,5 +272,3 @@ export namespace TokenBuilder {
         }
     }
 }
-
-export default Tokenizer

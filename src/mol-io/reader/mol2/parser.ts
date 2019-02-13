@@ -15,7 +15,7 @@ import { Column } from 'mol-data/db'
 import { TokenBuilder, Tokenizer } from '../common/text/tokenizer'
 import TokenColumn from '../common/text/column/token'
 import * as Schema from './schema'
-import Result from '../result'
+import { ReaderResult as Result } from '../result'
 import { Task, RuntimeContext, chunkedSubtask } from 'mol-task'
 
 const { skipWhitespace, eatValue, markLine, getTokenString, readLine } = Tokenizer;

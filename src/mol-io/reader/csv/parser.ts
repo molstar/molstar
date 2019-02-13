@@ -8,7 +8,7 @@
 import { Tokens, TokenBuilder, Tokenizer } from '../common/text/tokenizer'
 import * as Data from './data-model'
 import Field from './field'
-import Result from '../result'
+import { ReaderResult as Result } from '../result'
 import { Task, RuntimeContext, chunkedSubtask, } from 'mol-task'
 
 const enum CsvTokenType {
