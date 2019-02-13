@@ -84,13 +84,31 @@ export const OpenStructure = StateAction.build({
     const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
     return state.update(createStructureTree(ctx, data, false));
 });
+import * as data_functions from "../../../mol-io/reader/ply//read_data/data"
+export const PLYtest = StateAction.build({
+    display: { name: 'PLY Test', description: 'nothing ply' },
+    from: PluginStateObject.Root,
+    params: { file: PD.File({ accept: '.ply' }) }
+})(({ params, state }, ctx: PluginContext) => {
+    const b = state.build();
+    const data = b.toRoot().apply(data_functions.ReadFile_ascii, { file: params.file, isBinary: false });
+    return state.update(getPLYdata(ctx, data));
+});
+
+function getPLYdata(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.String>, ): StateTree {
+    let root = b
+        .apply(data_functions.ParsePLY);
+    console.log(data_functions.ParsePLY);
+
+    return root.getTree();
+}
+
 
 function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, supportProps: boolean): StateTree {
     let root = b
         .apply(StateTransforms.Data.ParseCif)
         .apply(StateTransforms.Model.TrajectoryFromMmCif)
         .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
-
     if (supportProps) {
         root = root.apply(StateTransforms.Model.CustomModelProperties);
     }

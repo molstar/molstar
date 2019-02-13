@@ -85,6 +85,7 @@ export namespace Tokenizer {
     /** Sets the current token start to current position and moves to the next line. */
     export function markLine(state: Tokenizer) {
         state.tokenStart = state.position;
+        console.log("hello");
         eatLine(state);
     }
 

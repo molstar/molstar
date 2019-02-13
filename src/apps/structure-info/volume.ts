@@ -35,6 +35,7 @@ function print(data: Volume) {
     console.log(data.volume.cell);
     console.log(data.volume.dataStats);
     console.log(data.volume.fractionalBox);
+    console.log("\n\n Hello 12156421231 \n\n");
 }
 
 async function doMesh(data: Volume, filename: string) {

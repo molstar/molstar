@@ -5,6 +5,7 @@
  */
 
 import { CifFile } from 'mol-io/reader/cif';
+import { PlyFile } from 'mol-io/reader/ply/parse_data/data-model';
 import { Model as _Model, Structure as _Structure } from 'mol-model/structure';
 import { VolumeData } from 'mol-model/volume';
 import { PluginBehavior } from 'mol-plugin/behavior/behavior';
@@ -56,6 +57,7 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
+        export class Ply extends Create<PlyFile>({ name: 'PLY File', typeClass: 'Data' }) { }
     }
 
     export namespace Molecule {

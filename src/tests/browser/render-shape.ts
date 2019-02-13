@@ -16,6 +16,8 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { labelFirst } from 'mol-theme/label';
 import { RuntimeContext, Progress } from 'mol-task';
 
+
+
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
 parent.style.height = '100%'
@@ -56,7 +58,7 @@ async function getSphereMesh(ctx: RuntimeContext, centers: number[], mesh?: Mesh
     const builderState = MeshBuilder.createState(centers.length * 128, centers.length * 128 / 2, mesh)
     const t = Mat4.identity()
     const v = Vec3.zero()
-    const sphere = Sphere(2)
+    const sphere = Sphere(4)
     builderState.currentGroup = 0
     for (let i = 0, il = centers.length / 3; i < il; ++i) {
         // for production, calls to update should be guarded by `if (ctx.shouldUpdate)`
@@ -69,8 +71,8 @@ async function getSphereMesh(ctx: RuntimeContext, centers: number[], mesh?: Mesh
 }
 
 const myData = {
-    centers: [0, 0, 0, 0, 3, 0],
-    colors: [ColorNames.tomato, ColorNames.springgreen],
+    centers: [0, 0, 0, 0, 3, 0, 1, 0 , 4],
+    colors: [ColorNames.tomato, ColorNames.springgreen,ColorNames.springgreen],
     labels: ['Sphere 0, Instance A', 'Sphere 1, Instance A', 'Sphere 0, Instance B', 'Sphere 1, Instance B'],
     transforms: [Mat4.identity(), Mat4.fromTranslation(Mat4.zero(), Vec3.create(3, 0, 0))]
 }
@@ -96,7 +98,7 @@ async function getShape(ctx: RuntimeContext, data: MyData, props: {}, shape?: Sh
 // Init ShapeRepresentation container
 const repr = ShapeRepresentation(getShape, Mesh.Utils)
 
-async function init() {
+export async function init() {
     // Create shape from myData and add to canvas3d
     await repr.createOrUpdate({}, myData).run((p: Progress) => console.log(Progress.format(p)))
     console.log(repr)
@@ -110,4 +112,4 @@ async function init() {
         await repr.createOrUpdate({}, myData).run()
     }, 1000)
 }
-init()
+export default init();

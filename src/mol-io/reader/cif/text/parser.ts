@@ -60,6 +60,7 @@ interface TokenizerState {
  * Eat everything until a whitespace/newline occurs.
  */
 function eatValue(state: TokenizerState) {
+    console.log("hello");
     while (state.position < state.length) {
         switch (state.data.charCodeAt(state.position)) {
             case 9:  // \t
