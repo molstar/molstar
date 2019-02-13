@@ -74,7 +74,7 @@ const DownloadStructure = StateAction.build({
     }
 
     const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams);
-    return state.update(createStructureTree(ctx, data, params.source.params.supportProps));
+    return state.updateTree(createStructureTree(ctx, data, params.source.params.supportProps));
 });
 
 export const OpenStructure = StateAction.build({
@@ -84,7 +84,7 @@ export const OpenStructure = StateAction.build({
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
-    return state.update(createStructureTree(ctx, data, false));
+    return state.updateTree(createStructureTree(ctx, data, false));
 });
 
 function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, supportProps: boolean): StateTree {
@@ -123,7 +123,7 @@ export const CreateComplexRepresentation = StateAction.build({
 })(({ ref, state }, ctx: PluginContext) => {
     const root = state.build().to(ref);
     complexRepresentation(ctx, root);
-    return state.update(root.getTree());
+    return state.updateTree(root.getTree());
 });
 
 export const UpdateTrajectory = StateAction.build({
@@ -133,7 +133,7 @@ export const UpdateTrajectory = StateAction.build({
         by: PD.makeOptional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
     }
 })(({ params, state }) => {
-    const models = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Model)
+    const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)
         .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
 
     const update = state.build();
@@ -157,7 +157,7 @@ export const UpdateTrajectory = StateAction.build({
         }
     }
 
-    return state.update(update);
+    return state.updateTree(update);
 });
 
 //
@@ -175,15 +175,13 @@ function getVolumeData(format: VolumeFormat, b: StateTreeBuilder.To<PluginStateO
 }
 
 function createVolumeTree(format: VolumeFormat, ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
-
-    const root = getVolumeData(format, b)
+    return getVolumeData(format, b)
         .apply(StateTransforms.Representation.VolumeRepresentation3D,
-            VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface'));
-
-    return root.getTree();
+            VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface'))
+        .getTree();
 }
 
-function getFileFormat(format: VolumeFormat | 'auto', file: FileInput): VolumeFormat {
+function getFileFormat(format: VolumeFormat | 'auto', file: FileInput, data?: Uint8Array): VolumeFormat {
     if (format === 'auto') {
         const fileFormat = getFileInfo(file).ext
         if (fileFormat in VolumeFormats) {
@@ -205,11 +203,20 @@ export const OpenVolume = StateAction.build({
             ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
         ]),
     }
-})(({ params, state }, ctx: PluginContext) => {
-    const b = state.build();
-    const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: true });
-    const format = getFileFormat(params.format, params.file)
-    return state.update(createVolumeTree(format, ctx, data));
+})(async ({ params, state }, ctx: PluginContext) => {
+    const dataTree = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: true });
+    const volumeData = await ctx.runTask(state.updateTree(dataTree));
+
+    // Alternative for more complex states where the builder is not a simple StateTreeBuilder.To<>:
+    /*
+    const dataRef = dataTree.ref;
+    await ctx.runTask(state.updateTree(dataTree));
+    const dataCell = state.select(dataRef)[0];
+    */
+
+    const format = getFileFormat(params.format, params.file, volumeData.data as Uint8Array)
+    const volumeTree = state.build().to(dataTree.ref);
+    return state.updateTree(createVolumeTree(format, ctx, volumeTree));
 });
 
 export { DownloadDensity };
@@ -276,5 +283,5 @@ const DownloadDensity = StateAction.build({
     }
 
     const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams);
-    return state.update(createVolumeTree(format, ctx, data));
+    return state.updateTree(createVolumeTree(format, ctx, data));
 });

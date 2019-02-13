@@ -112,7 +112,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
         /** Update structures to be labeled, returns true if changed */
         private updateStructures(p: SceneLabelsProps) {
             const state = this.ctx.state.dataState
-            const structures = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Structure));
+            const structures = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure));
             const rootStructures = new Set<SO.Molecule.Structure>()
             for (const s of structures) {
                 const rootStructure = getRootStructure(s, state)

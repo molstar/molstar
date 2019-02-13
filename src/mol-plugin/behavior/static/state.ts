@@ -51,17 +51,17 @@ export function SetCurrentObject(ctx: PluginContext) {
 }
 
 export function Update(ctx: PluginContext) {
-    PluginCommands.State.Update.subscribe(ctx, ({ state, tree }) => ctx.runTask(state.update(tree)));
+    PluginCommands.State.Update.subscribe(ctx, ({ state, tree }) => ctx.runTask(state.updateTree(tree)));
 }
 
 export function ApplyAction(ctx: PluginContext) {
-    PluginCommands.State.ApplyAction.subscribe(ctx, ({ state, action, ref }) => ctx.runTask(state.apply(action.action, action.params, ref)));
+    PluginCommands.State.ApplyAction.subscribe(ctx, ({ state, action, ref }) => ctx.runTask(state.applyAction(action.action, action.params, ref)));
 }
 
 export function RemoveObject(ctx: PluginContext) {
     PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref }) => {
         const tree = state.tree.build().delete(ref).getTree();
-        return ctx.runTask(state.update(tree));
+        return ctx.runTask(state.updateTree(tree));
     });
 }
 
