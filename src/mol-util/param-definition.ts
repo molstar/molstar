@@ -14,13 +14,15 @@ export namespace ParamDefinition {
     export interface Info {
         label?: string,
         description?: string,
+        fieldLabels?: { [name: string]: string },
         isHidden?: boolean,
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
         if (!info) return param;
-        if (info.description) param.description = info.description;
         if (info.label) param.label = info.label;
+        if (info.description) param.description = info.description;
+        if (info.fieldLabels) param.fieldLabels = info.fieldLabels;
         if (info.isHidden) param.isHidden = info.isHidden;
         return param;
     }

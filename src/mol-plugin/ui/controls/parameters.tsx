@@ -344,9 +344,9 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
     state = { isExpanded: false }
 
     components = {
-        0: PD.Numeric(0, void 0, { label: 'X' }),
-        1: PD.Numeric(0, void 0, { label: 'Y' }),
-        2: PD.Numeric(0, void 0, { label: 'Z' })
+        0: PD.Numeric(0, void 0, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.x) || 'X' }),
+        1: PD.Numeric(0, void 0, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.y) || 'Y' }),
+        2: PD.Numeric(0, void 0, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.z) || 'Z' })
     }
 
     change(value: PD.MultiSelect<any>['defaultValue']) {
