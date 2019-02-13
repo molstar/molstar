@@ -16,6 +16,7 @@ import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers, VolumeRepresentation3DHelpers } from '../transforms/representation';
 import { getFileInfo, FileInput } from 'mol-util/file-info';
+import { Task } from 'mol-task';
 
 // TODO: "structure/volume parser provider"
 
@@ -176,8 +177,10 @@ function getVolumeData(format: VolumeFormat, b: StateTreeBuilder.To<PluginStateO
 
 function createVolumeTree(format: VolumeFormat, ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
     return getVolumeData(format, b)
-        .apply(StateTransforms.Representation.VolumeRepresentation3D,
-            VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface'))
+        .apply(StateTransforms.Representation.VolumeRepresentation3D)
+            // the parameters will be used automatically by the reconciler and the IsoValue object
+            // will get the correct Stats object instead of the empty one
+            // VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface'))
         .getTree();
 }
 
@@ -203,21 +206,22 @@ export const OpenVolume = StateAction.build({
             ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX']
         ]),
     }
-})(async ({ params, state }, ctx: PluginContext) => {
+})(({ params, state }, ctx: PluginContext) => Task.create('Open Volume', async taskCtx => {
     const dataTree = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: true });
-    const volumeData = await ctx.runTask(state.updateTree(dataTree));
+    const volumeData = await state.updateTree(dataTree).runInContext(taskCtx);
 
     // Alternative for more complex states where the builder is not a simple StateTreeBuilder.To<>:
     /*
     const dataRef = dataTree.ref;
-    await ctx.runTask(state.updateTree(dataTree));
+    await state.updateTree(dataTree).runInContext(taskCtx);
     const dataCell = state.select(dataRef)[0];
     */
 
-    const format = getFileFormat(params.format, params.file, volumeData.data as Uint8Array)
+    const format = getFileFormat(params.format, params.file, volumeData.data as Uint8Array);
     const volumeTree = state.build().to(dataTree.ref);
-    return state.updateTree(createVolumeTree(format, ctx, volumeTree));
-});
+    // need to await the 2nd update the so that the enclosing Task finishes after the update is done.
+    await state.updateTree(createVolumeTree(format, ctx, volumeTree)).runInContext(taskCtx);
+}));
 
 export { DownloadDensity };
 type DownloadDensity = typeof DownloadDensity
