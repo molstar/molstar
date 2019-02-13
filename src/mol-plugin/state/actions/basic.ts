@@ -41,6 +41,7 @@ const DownloadStructure = StateAction.build({
             }, { isFlat: true }),
             'url': PD.Group({
                 url: PD.Text(''),
+                format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']]),
                 isBinary: PD.Boolean(false),
                 supportProps: PD.Boolean(false)
             }, { isFlat: true })
@@ -60,7 +61,7 @@ const DownloadStructure = StateAction.build({
 
     switch (src.name) {
         case 'url':
-            downloadParams = src.params;
+            downloadParams = { url: src.params.url, isBinary: src.params.isBinary };
             break;
         case 'pdbe-updated':
             downloadParams = { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.id.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params.id}` };
@@ -75,7 +76,8 @@ const DownloadStructure = StateAction.build({
     }
 
     const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams);
-    return state.updateTree(createStructureTree(ctx, data, params.source.params.supportProps));
+    const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
+    return state.updateTree(createStructureTree(ctx, traj, params.source.params.supportProps));
 });
 
 export const OpenStructure = StateAction.build({
@@ -85,15 +87,20 @@ export const OpenStructure = StateAction.build({
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
-    return state.updateTree(createStructureTree(ctx, data, false));
+    const traj = createModelTree(data, 'cif');
+    return state.updateTree(createStructureTree(ctx, traj, false));
 });
 
-function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, supportProps: boolean): StateTree {
-    let root = b
-        .apply(StateTransforms.Data.ParseCif)
-        .apply(StateTransforms.Model.TrajectoryFromMmCif)
-        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+function createModelTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' = 'cif') {
+    const parsed = format === 'cif'
+        ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
+        : b.apply(StateTransforms.Data.ConvertPDBtoMmCif).apply(StateTransforms.Model.TrajectoryFromMmCif);
 
+    return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+}
+
+function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean): StateTree {
+    let root = b;
     if (supportProps) {
         root = root.apply(StateTransforms.Model.CustomModelProperties);
     }

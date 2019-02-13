@@ -139,12 +139,22 @@ namespace Tokenizer {
         return tokens;
     }
 
+    function readLinesChunkChecked(state: Tokenizer, count: number, tokens: Tokens) {
+        let read = 0;
+        for (let i = 0; i < count; i++) {
+            if (!markLine(state)) return read;
+            TokenBuilder.add(tokens, state.tokenStart, state.tokenEnd);
+            read++;
+        }
+        return read;
+    }
+
     export async function readAllLinesAsync(data: string, ctx: RuntimeContext, chunkSize = 100000) {
         const state = Tokenizer(data);
         const tokens = TokenBuilder.create(state.data, Math.max(data.length / 80, 2));
 
         await chunkedSubtask(ctx, chunkSize, state, (chunkSize, state) => {
-            readLinesChunk(state, chunkSize, tokens);
+            readLinesChunkChecked(state, chunkSize, tokens);
             return state.position < state.length ? chunkSize : 0;
         }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: length }));
 
