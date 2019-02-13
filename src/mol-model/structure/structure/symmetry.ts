@@ -90,9 +90,28 @@ namespace StructureSymmetry {
 }
 
 function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
+    const operators: SymmetryOperator[] = [];
+    const { spacegroup } = symmetry;
+    if (operators.length === 0) {
+        for (let op = 0; op < spacegroup.operators.length; op++) {
+            for (let i = ijkMin[0]; i < ijkMax[0]; i++) {
+                for (let j = ijkMin[1]; j < ijkMax[1]; j++) {
+                    for (let k = ijkMin[2]; k < ijkMax[2]; k++) {
+                        operators[operators.length] = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
+                    }
+                }
+            }
+        }
+    }
+    return operators;
+}
+
+function getOperatorsCached333(symmetry: ModelSymmetry) {
     const operators: SymmetryOperator[] = symmetry._operators_333 || [];
     const { spacegroup } = symmetry;
     if (operators.length === 0) {
+        const ijkMin = Vec3.create(-3, -3, -3)
+        const ijkMax = Vec3.create(3, 3, 3)
         operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
         for (let op = 0; op < spacegroup.operators.length; op++) {
             for (let i = ijkMin[0]; i < ijkMax[0]; i++) {
@@ -150,7 +169,7 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 
     if (ctx.shouldUpdate) await ctx.update('Initialing...');
-    const operators = getOperators(symmetry, Vec3.create(-3, -3, -3), Vec3.create(3, 3, 3));
+    const operators = getOperatorsCached333(symmetry);
     const lookup = structure.lookup3d;
 
     const assembler = Structure.Builder();
