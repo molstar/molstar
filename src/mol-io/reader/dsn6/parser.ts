@@ -6,7 +6,7 @@
 
 import { Task, RuntimeContext } from 'mol-task';
 import { Dsn6File, Dsn6Header } from './schema'
-import Result from '../result'
+import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
 
 function parseBrixHeader(str: string): Dsn6Header {

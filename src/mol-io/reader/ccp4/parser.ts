@@ -6,7 +6,7 @@
 
 import { Task, RuntimeContext } from 'mol-task';
 import { Ccp4File, Ccp4Header } from './schema'
-import Result from '../result'
+import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
 
 async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Result<Ccp4File>> {

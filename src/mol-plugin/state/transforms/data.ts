@@ -15,6 +15,8 @@ import { Transformer } from 'mol-state';
 import { readFromFile } from 'mol-util/data-source';
 import * as CCP4 from 'mol-io/reader/ccp4/parser'
 import * as DSN6 from 'mol-io/reader/dsn6/parser'
+import { parsePDB } from 'mol-io/reader/pdb/parser';
+import { convertPDBtoMmCif } from 'mol-io/reader/pdb/to-cif';
 
 export { Download }
 type Download = typeof Download
@@ -91,6 +93,24 @@ const ParseCif = PluginStateTransform.BuiltIn({
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Cif(parsed.result);
+        });
+    }
+});
+
+export { ConvertPDBtoMmCif }
+type ConvertPDBtoMmCif = typeof ConvertPDBtoMmCif
+const ConvertPDBtoMmCif = PluginStateTransform.BuiltIn({
+    name: 'convert-pdb-to-mmcif',
+    display: { name: 'Convert PDB string to mmCIF' },
+    from: [SO.Data.String],
+    to: SO.Format.Cif
+})({
+    apply({ a }) {
+        return Task.create('Parse CIF', async ctx => {
+            const parsed = await parsePDB(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const cif = await convertPDBtoMmCif(parsed.result).runInContext(ctx);
+            return new SO.Format.Cif(cif);
         });
     }
 });
