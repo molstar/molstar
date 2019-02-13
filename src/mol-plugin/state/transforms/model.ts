@@ -134,6 +134,32 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     }
 });
 
+export { StructureSymmetryFromModel }
+type StructureSymmetryFromModel = typeof StructureSymmetryFromModel
+const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
+    name: 'structure-symmetry-from-model',
+    display: { name: 'Structure Symmetry', description: 'Create a molecular structure symmetry.' },
+    from: SO.Molecule.Model,
+    to: SO.Molecule.Structure,
+    params(a) {
+        return {
+            ijkMin: PD.Vec3(Vec3.create(-1, -1, -1), { label: 'Min IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } }),
+            ijkMax: PD.Vec3(Vec3.create(1, 1, 1), { label: 'Max IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
+        }
+    }
+})({
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Build Symmetry', async ctx => {
+            const { ijkMin, ijkMax } = params
+            const model = a.data;
+            const base = Structure.ofModel(model);
+            const s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
+            const props = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: structureDesc(s) };
+            return new SO.Molecule.Structure(s, props);
+        })
+    }
+});
+
 export { StructureSelection }
 type StructureSelection = typeof StructureSelection
 const StructureSelection = PluginStateTransform.BuiltIn({
