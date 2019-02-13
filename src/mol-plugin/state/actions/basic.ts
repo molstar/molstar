@@ -14,7 +14,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
-import { StructureRepresentation3DHelpers, VolumeRepresentation3DHelpers } from '../transforms/representation';
+import { StructureRepresentation3DHelpers } from '../transforms/representation';
 import { getFileInfo, FileInput } from 'mol-util/file-info';
 import { Task } from 'mol-task';
 

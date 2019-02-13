@@ -52,7 +52,7 @@ export namespace Tokenizer {
     /**
      * Eat everything until a newline occurs.
      */
-    export function eatLine(state: Tokenizer) {
+    export function eatLine(state: Tokenizer): boolean {
         const { data } = state;
         while (state.position < state.length) {
             switch (data.charCodeAt(state.position)) {
@@ -60,7 +60,7 @@ export namespace Tokenizer {
                     state.tokenEnd = state.position;
                     ++state.position;
                     ++state.lineNumber;
-                    return;
+                    return true;
                 case 13: // \r
                     state.tokenEnd = state.position;
                     ++state.position;
@@ -68,13 +68,14 @@ export namespace Tokenizer {
                     if (data.charCodeAt(state.position) === 10) {
                         ++state.position;
                     }
-                    return;
+                    return true;
                 default:
                     ++state.position;
                     break;
             }
         }
         state.tokenEnd = state.position;
+        return state.tokenStart !== state.tokenEnd;
     }
 
     /** Sets the current token start to the current position */
@@ -85,7 +86,7 @@ export namespace Tokenizer {
     /** Sets the current token start to current position and moves to the next line. */
     export function markLine(state: Tokenizer) {
         state.tokenStart = state.position;
-        eatLine(state);
+        return eatLine(state);
     }
 
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */
@@ -95,10 +96,13 @@ export namespace Tokenizer {
     }
 
     function readLinesChunk(state: Tokenizer, count: number, tokens: Tokens) {
+        let read = 0;
         for (let i = 0; i < count; i++) {
-            markLine(state);
+            if (!markLine(state)) return read;
             TokenBuilder.addUnchecked(tokens, state.tokenStart, state.tokenEnd);
+            read++;
         }
+        return read;
     }
 
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */
@@ -122,6 +126,27 @@ export namespace Tokenizer {
         }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: length }));
 
         return lineTokens;
+    }
+
+    export function readAllLines(data: string) {
+        const state = Tokenizer(data);
+        const tokens = TokenBuilder.create(state, Math.max(data.length / 160, 2))
+        while (markLine(state)) {
+            TokenBuilder.add(tokens, state.tokenStart, state.tokenEnd);
+        }
+        return tokens;
+    }
+
+    export async function readAllLinesAsync(data: string, ctx: RuntimeContext, chunkSize = 100000) {
+        const state = Tokenizer(data);
+        const tokens = TokenBuilder.create(state, Math.max(data.length / 160, 2));
+
+        await chunkedSubtask(ctx, chunkSize, state, (chunkSize, state) => {
+            readLinesChunk(state, chunkSize, tokens);
+            return state.position < state.length ? chunkSize : 0;
+        }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: length }));
+
+        return tokens;
     }
 
     /**
