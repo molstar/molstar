@@ -9,6 +9,6 @@ import { Task } from 'mol-task';
 import { ReaderResult } from '../result';
 import { Tokenizer } from '../common/text/tokenizer';
 
-export function parse(data: string): Task<ReaderResult<PdbFile>> {
-    return Task.create('Parse PDB', async ctx => ReaderResult.success({ lines: await Tokenizer.readAllLinesAsync(data, ctx) }));
+export function parse(data: string, id?: string): Task<ReaderResult<PdbFile>> {
+    return Task.create('Parse PDB', async ctx => ReaderResult.success({ id, lines: await Tokenizer.readAllLinesAsync(data, ctx) }));
 }

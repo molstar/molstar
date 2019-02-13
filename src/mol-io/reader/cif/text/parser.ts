@@ -507,7 +507,7 @@ async function handleLoop(tokenizer: TokenizerState, ctx: FrameContext): Promise
     const rowCountEstimate = name === '_atom_site' ? (tokenizer.data.length / 100) | 0 : 32;
     const tokens: Tokens[] = [];
     const fieldCount = fieldNames.length;
-    for (let i = 0; i < fieldCount; i++) tokens[i] = TokenBuilder.create(tokenizer, rowCountEstimate);
+    for (let i = 0; i < fieldCount; i++) tokens[i] = TokenBuilder.create(tokenizer.data, rowCountEstimate);
 
     const state: LoopReadState = {
         fieldCount,

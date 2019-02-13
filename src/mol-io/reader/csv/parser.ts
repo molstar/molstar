@@ -231,7 +231,7 @@ function readRecordsChunks(state: State) {
 
 function addColumn (state: State) {
     state.columnNames.push(Tokenizer.getTokenString(state.tokenizer))
-    state.tokens.push(TokenBuilder.create(state.tokenizer, state.data.length / 80))
+    state.tokens.push(TokenBuilder.create(state.tokenizer.data, state.data.length / 80))
 }
 
 function init(state: State) {

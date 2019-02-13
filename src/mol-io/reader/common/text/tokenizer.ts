@@ -109,7 +109,7 @@ namespace Tokenizer {
 
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */
     export function readLines(state: Tokenizer, count: number): Tokens {
-        const lineTokens = TokenBuilder.create(state, count * 2);
+        const lineTokens = TokenBuilder.create(state.data, count * 2);
         readLinesChunk(state, count, lineTokens);
         return lineTokens;
     }
@@ -117,7 +117,7 @@ namespace Tokenizer {
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */
     export async function readLinesAsync(state: Tokenizer, count: number, ctx: RuntimeContext, initialLineCount = 100000): Promise<Tokens> {
         const { length } = state;
-        const lineTokens = TokenBuilder.create(state, count * 2);
+        const lineTokens = TokenBuilder.create(state.data, count * 2);
 
         let linesAlreadyRead = 0;
         await chunkedSubtask(ctx, initialLineCount, state, (chunkSize, state) => {
@@ -132,7 +132,7 @@ namespace Tokenizer {
 
     export function readAllLines(data: string) {
         const state = Tokenizer(data);
-        const tokens = TokenBuilder.create(state, Math.max(data.length / 160, 2))
+        const tokens = TokenBuilder.create(state.data, Math.max(data.length / 80, 2))
         while (markLine(state)) {
             TokenBuilder.add(tokens, state.tokenStart, state.tokenEnd);
         }
@@ -141,7 +141,7 @@ namespace Tokenizer {
 
     export async function readAllLinesAsync(data: string, ctx: RuntimeContext, chunkSize = 100000) {
         const state = Tokenizer(data);
-        const tokens = TokenBuilder.create(state, Math.max(data.length / 160, 2));
+        const tokens = TokenBuilder.create(state.data, Math.max(data.length / 80, 2));
 
         await chunkedSubtask(ctx, chunkSize, state, (chunkSize, state) => {
             readLinesChunk(state, chunkSize, tokens);
@@ -261,10 +261,10 @@ export namespace TokenBuilder {
         tokens.count++;
     }
 
-    export function create(tokenizer: Tokenizer, size: number): Tokens {
+    export function create(data: string, size: number): Tokens {
         size = Math.max(10, size)
         return <Builder>{
-            data: tokenizer.data,
+            data,
             indicesLenMinus2: (size - 2) | 0,
             count: 0,
             offset: 0,

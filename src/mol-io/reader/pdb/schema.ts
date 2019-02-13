@@ -7,5 +7,6 @@
 import { Tokens } from '../common/text/tokenizer';
 
 export interface PdbFile {
+    id?: string,
     lines: Tokens
 }
