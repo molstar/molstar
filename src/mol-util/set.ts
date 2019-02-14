@@ -22,7 +22,7 @@ export namespace SetUtils {
         return union;
     }
 
-    export function unionMany<T>(sets: Set<T>[]) {
+    export function unionMany<T>(...sets: Set<T>[]) {
         if (sets.length === 0) return new Set<T>();
         if (sets.length === 1) return sets[0];
         const union = new Set(sets[0]);

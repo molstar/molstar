@@ -8,6 +8,7 @@
 import BitFlags from 'mol-util/bit-flags'
 import { SaccharideCompIdMap } from '../structure/carbohydrates/constants';
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
+import { SetUtils } from 'mol-util/set';
 
 const _esCache = (function () {
     const cache = Object.create(null);
@@ -87,28 +88,28 @@ export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: string } 
     }
 }
 
-export const ProteinBackboneAtoms = [
+export const ProteinBackboneAtoms = new Set([
     'CA', 'C', 'N', 'O',
     'O1', 'O2', 'OC1', 'OC2', 'OX1', 'OXT',
     'H', 'H1', 'H2', 'H3', 'HA', 'HN',
     'BB'
-]
+])
 
-export const NucleicBackboneAtoms = [
+export const NucleicBackboneAtoms = new Set([
     'P', 'OP1', 'OP2', 'HOP2', 'HOP3',
     'O2\'', 'O3\'', 'O4\'', 'O5\'', 'C1\'', 'C2\'', 'C3\'', 'C4\'', 'C5\'',
     'H1\'', 'H2\'', 'H2\'\'', 'HO2\'', 'H3\'', 'H4\'', 'H5\'', 'H5\'\'', 'HO3\'', 'HO5\'',
     'O2*', 'O3*', 'O4*', 'O5*', 'C1*', 'C2*', 'C3*', 'C4*', 'C5*'
-]
+])
 
 /** Chemical component type names for protein */
-export const ProteinComponentTypeNames = [
+export const ProteinComponentTypeNames = new Set([
     'D-PEPTIDE LINKING', 'L-PEPTIDE LINKING', 'D-PEPTIDE NH3 AMINO TERMINUS',
     'L-PEPTIDE NH3 AMINO TERMINUS', 'D-PEPTIDE COOH CARBOXY TERMINUS',
     'L-PEPTIDE COOH CARBOXY TERMINUS', 'PEPTIDE LINKING', 'PEPTIDE-LIKE',
     'L-GAMMA-PEPTIDE, C-DELTA LINKING', 'D-GAMMA-PEPTIDE, C-DELTA LINKING',
     'L-BETA-PEPTIDE, C-GAMMA LINKING', 'D-BETA-PEPTIDE, C-GAMMA LINKING',
-]
+])
 
 /** Chemical component type names for DNA */
 export const DNAComponentTypeNames = [
@@ -116,83 +117,83 @@ export const DNAComponentTypeNames = [
 ]
 
 /** Chemical component type names for RNA */
-export const RNAComponentTypeNames = [
+export const RNAComponentTypeNames = new Set([
     'RNA LINKING', 'L-RNA LINKING', 'RNA OH 5 PRIME TERMINUS', 'RNA OH 3 PRIME TERMINUS',
-]
+])
 
 /** Chemical component type names for saccharide */
-export const SaccharideComponentTypeNames = [
+export const SaccharideComponentTypeNames = new Set([
     'D-SACCHARIDE 1,4 AND 1,4 LINKING', 'L-SACCHARIDE 1,4 AND 1,4 LINKING',
     'D-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE',
     'D-SACCHARIDE', 'SACCHARIDE',
-]
+])
 
 /** Chemical component type names for other */
-export const OtherComponentTypeNames = [
+export const OtherComponentTypeNames = new Set([
     'NON-POLYMER', 'OTHER'
-]
+])
 
 /** Common names for water molecules */
-export const WaterNames = [
+export const WaterNames = new Set([
     'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC'
-]
+])
 
-export const AminoAcidOneLetterCodeMap = {
-    'HIS': 'H',
-    'ARG': 'R',
-    'LYS': 'K',
-    'ILE': 'I',
-    'PHE': 'F',
-    'LEU': 'L',
-    'TRP': 'W',
-    'ALA': 'A',
-    'MET': 'M',
-    'PRO': 'P',
-    'CYS': 'C',
-    'ASN': 'N',
-    'VAL': 'V',
-    'GLY': 'G',
-    'SER': 'S',
-    'GLN': 'Q',
-    'TYR': 'Y',
-    'ASP': 'D',
-    'GLU': 'E',
-    'THR': 'T',
+export const AminoAcidNames = new Set([
+    'HIS', 'ARG', 'LYS', 'ILE', 'PHE', 'LEU', 'TRP', 'ALA', 'MET', 'PRO', 'CYS',
+    'ASN', 'VAL', 'GLY', 'SER', 'GLN', 'TYR', 'ASP', 'GLU', 'THR', 'SEC', 'PYL',
 
-    'SEC': 'U',  // as per IUPAC definition
-    'PYL': 'O',  // as per IUPAC definition
-}
-export const AminoAcidNames = Object.keys(AminoAcidOneLetterCodeMap)
+    'DAL', // D-ALANINE
+    'DAR', // D-ARGININE
+    'DSG', // D-ASPARAGINE
+    'DAS', // D-ASPARTIC ACID
+    'DCY', // D-CYSTEINE
+    'DGL', // D-GLUTAMIC ACID
+    'DGN', // D-GLUTAMINE
+    'DHI', // D-HISTIDINE
+    'DIL', // D-ISOLEUCINE
+    'DLE', // D-LEUCINE
+    'DLY', // D-LYSINE
+    'MED', // D-METHIONINE
+    'DPN', // D-PHENYLALANINE
+    'DPR', // D-PROLINE
+    'DSN', // D-SERINE
+    'DTH', // D-THREONINE
+    'DTR', // D-TRYPTOPHAN
+    'DTY', // D-TYROSINE
+    'DVA', // D-VALINE
+    'DNE' // D-NORLEUCINE
+    // ???  // D-SELENOCYSTEINE
+])
 
-export const RnaBaseNames = [ 'A', 'C', 'T', 'G', 'I', 'U' ]
-export const DnaBaseNames = [ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ]
-export const PeptideBaseNames = [ 'APN', 'CPN', 'TPN', 'GPN' ]
-export const PurinBaseNames = [ 'A', 'G', 'DA', 'DG', 'DI', 'APN', 'GPN' ]
-export const PyrimidineBaseNames = [ 'C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN' ]
-export const BaseNames = RnaBaseNames.concat(DnaBaseNames, PeptideBaseNames)
+export const RnaBaseNames = new Set([ 'A', 'C', 'T', 'G', 'I', 'U' ])
+export const DnaBaseNames = new Set([ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ])
+export const PeptideBaseNames = new Set([ 'APN', 'CPN', 'TPN', 'GPN' ])
+export const PurinBaseNames = new Set([ 'A', 'G', 'DA', 'DG', 'DI', 'APN', 'GPN' ])
+export const PyrimidineBaseNames = new Set([ 'C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN' ])
+export const BaseNames = SetUtils.unionMany(RnaBaseNames, DnaBaseNames, PeptideBaseNames)
 
-export const isPurinBase = (compId: string) => PurinBaseNames.includes(compId.toUpperCase())
-export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.includes(compId.toUpperCase())
+export const isPurinBase = (compId: string) => PurinBaseNames.has(compId.toUpperCase())
+export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.has(compId.toUpperCase())
 
 /** get the molecule type from component type and id */
 export function getMoleculeType(compType: string, compId: string) {
     compType = compType.toUpperCase()
     compId = compId.toUpperCase()
-    if (PeptideBaseNames.includes(compId)) {
+    if (PeptideBaseNames.has(compId)) {
         return MoleculeType.PNA
-    } else if (ProteinComponentTypeNames.includes(compType)) {
+    } else if (ProteinComponentTypeNames.has(compType)) {
         return MoleculeType.protein
-    } else if (RNAComponentTypeNames.includes(compType)) {
+    } else if (RNAComponentTypeNames.has(compType)) {
         return MoleculeType.RNA
     } else if (DNAComponentTypeNames.includes(compType)) {
         return MoleculeType.DNA
-    } else if (SaccharideComponentTypeNames.includes(compType)) {
+    } else if (SaccharideComponentTypeNames.has(compType)) {
         return MoleculeType.saccharide
-    } else if (WaterNames.includes(compId)) {
+    } else if (WaterNames.has(compId)) {
         return MoleculeType.water
-    } else if (IonNames.includes(compId)) {
+    } else if (IonNames.has(compId)) {
         return MoleculeType.ion
-    } else if (OtherComponentTypeNames.includes(compType)) {
+    } else if (OtherComponentTypeNames.has(compType)) {
         return MoleculeType.other
     } else {
         return MoleculeType.unknown
@@ -201,11 +202,11 @@ export function getMoleculeType(compType: string, compId: string) {
 
 export function getComponentType(compId: string): mmCIF_Schema['chem_comp']['type']['T'] {
     compId = compId.toUpperCase()
-    if (AminoAcidNames.includes(compId)) {
+    if (AminoAcidNames.has(compId)) {
         return 'peptide linking'
-    } else if (RnaBaseNames.includes(compId)) {
+    } else if (RnaBaseNames.has(compId)) {
         return 'RNA linking'
-    } else if (DnaBaseNames.includes(compId)) {
+    } else if (DnaBaseNames.has(compId)) {
         return 'DNA linking'
     } else if (SaccharideCompIdMap.has(compId)) {
         return 'saccharide'
@@ -224,7 +225,7 @@ export function isNucleic(moleculeType: MoleculeType) {
 
 /**
  * TODO write script that read CCD and outputs list of ion names
- * 
+ *
  * all chemical components with the word "ion" in their name, Sep 2016
  *
  * SET SESSION group_concat_max_len = 1000000;
@@ -235,7 +236,7 @@ export function isNucleic(moleculeType: MoleculeType) {
  *     GROUP BY id_
  * ) AS t1;
  */
-export const IonNames = [
+export const IonNames = new Set([
   '118', '119', '1AL', '1CU', '2FK', '2HP', '2OF', '3CO',
   '3MT', '3NI', '3OF', '3P8', '4MO', '4PU', '543', '6MO', 'ACT', 'AG', 'AL',
   'ALF', 'AM', 'ATH', 'AU', 'AU3', 'AUC', 'AZI', 'BA', 'BCT', 'BEF', 'BF4', 'BO4',
@@ -256,7 +257,7 @@ export const IonNames = [
   'YB2', 'YH', 'YT3', 'ZCM', 'ZN', 'ZN2', 'ZN3', 'ZNO', 'ZO3',
     // additional ion names
   'OHX'
-]
+])
 
 export interface SecondaryStructureType extends BitFlags<SecondaryStructureType.Flag> { }
 export namespace SecondaryStructureType {

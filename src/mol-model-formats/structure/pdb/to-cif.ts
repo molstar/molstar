@@ -10,6 +10,7 @@ import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { TokenBuilder, Tokenizer } from 'mol-io/reader/common/text/tokenizer';
 import { PdbFile } from 'mol-io/reader/pdb/schema';
 import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
+import { WaterNames } from 'mol-model/structure/model/types';
 
 function _entity(): { [K in keyof mmCIF_Schema['entity']]?: CifField } {
     return {
@@ -77,8 +78,6 @@ function _atom_site(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_s
         pdbx_PDB_model_num: CifField.ofStrings(sites.pdbx_PDB_model_num)
     };
 }
-
-const WaterNames = new Set(['SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC']);
 
 function getEntityId(residueName: string, isHet: boolean) {
     if (isHet) {

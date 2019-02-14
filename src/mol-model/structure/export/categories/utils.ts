@@ -20,7 +20,7 @@ export function getModelMmCifCategory<K extends keyof mmCIF_Schema>(model: Model
 }
 
 export function getUniqueResidueNamesFromStructures(structures: Structure[]) {
-    return SetUtils.unionMany(structures.map(s => s.uniqueResidueNames));
+    return SetUtils.unionMany(...structures.map(s => s.uniqueResidueNames));
 }
 
 export function getUniqueEntityIdsFromStructures(structures: Structure[]): Set<string> {
