@@ -57,6 +57,19 @@ export namespace CifCategory {
     export function empty(name: string): CifCategory {
         return { rowCount: 0, name, fieldNames: [], getField(name: string) { return void 0; } };
     };
+
+    export type SomeFields<S> = { [P in keyof S]?: CifField }
+    export type Fields<S> = { [P in keyof S]: CifField }
+
+    export function ofFields(name: string, fields: { [name: string]: CifField }): CifCategory {
+        const fieldNames = Object.keys(fields);
+        return {
+            rowCount: fieldNames.length > 0 ? fields[fieldNames[0]].rowCount : 0,
+            name,
+            fieldNames,
+            getField(name) { return fields[name]; }
+        };
+    }
 }
 
 /**
@@ -84,6 +97,10 @@ export interface CifField {
 }
 
 export namespace CifField {
+    export function ofString(value: string) {
+        return ofStrings([value]);
+    }
+
     export function ofStrings(values: string[]): CifField {
         const rowCount = values.length;
         const str: CifField['str'] = row => { const ret = values[row]; if (!ret || ret === '.' || ret === '?') return ''; return ret; };

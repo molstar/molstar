@@ -100,84 +100,63 @@ function getEntityId(residueName: string, isHet: boolean) {
 
 function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number, isHet: boolean) {
     const { data: str } = data;
-    let startPos = s;
-    let start = s;
-    const end = e;
-    const length = end - start;
+    const length = e - s;
 
     // TODO: filter invalid atoms
 
     // COLUMNS        DATA TYPE       CONTENTS
     // --------------------------------------------------------------------------------
     // 1 -  6        Record name     "ATOM  "
-    Tokenizer.trim(data, start, start + 6);
-    TokenBuilder.add(sites.group_PDB, data.tokenStart, data.tokenEnd);
+    TokenBuilder.addToken(sites.group_PDB, Tokenizer.trim(data, s, s + 6));
 
     // 7 - 11        Integer         Atom serial number.
     // TODO: support HEX
-    start = startPos + 6;
-    Tokenizer.trim(data, start, start + 5);
+    Tokenizer.trim(data, s + 6, s + 11);
     sites.id[sites.index] = data.data.substring(data.tokenStart, data.tokenEnd);
 
     // 13 - 16        Atom            Atom name.
-    start = startPos + 12;
-    Tokenizer.trim(data, start, start + 4);
-    TokenBuilder.add(sites.auth_atom_id, data.tokenStart, data.tokenEnd);
+    TokenBuilder.addToken(sites.auth_atom_id, Tokenizer.trim(data, s + 12, s + 16));
 
     // 17             Character       Alternate location indicator.
-    if (str.charCodeAt(startPos + 16) === 32) { // ' '
+    if (str.charCodeAt(s + 16) === 32) { // ' '
         TokenBuilder.add(sites.label_alt_id, 0, 0);
     } else {
-        TokenBuilder.add(sites.label_alt_id, startPos + 16, startPos + 17);
+        TokenBuilder.add(sites.label_alt_id, s + 16, s + 17);
     }
 
     // 18 - 20        Residue name    Residue name.
-    start = startPos + 17;
-    Tokenizer.trim(data, start, start + 3);
-    TokenBuilder.add(sites.auth_comp_id, data.tokenStart, data.tokenEnd);
+    TokenBuilder.addToken(sites.auth_comp_id, Tokenizer.trim(data, s + 17, s + 20));
     const residueName = str.substring(data.tokenStart, data.tokenEnd);
 
     // 22             Character       Chain identifier.
-    TokenBuilder.add(sites.auth_asym_id, startPos + 21, startPos + 22);
+    TokenBuilder.add(sites.auth_asym_id, s + 21, s + 22);
 
     // 23 - 26        Integer         Residue sequence number.
     // TODO: support HEX
-    start = startPos + 22;
-    Tokenizer.trim(data, start, start + 4);
-    TokenBuilder.add(sites.auth_seq_id, data.tokenStart, data.tokenEnd);
+    TokenBuilder.addToken(sites.auth_seq_id, Tokenizer.trim(data, s + 22, s + 26));
 
     // 27             AChar           Code for insertion of residues.
-    if (str.charCodeAt(startPos + 26) === 32) { // ' '
+    if (str.charCodeAt(s + 26) === 32) { // ' '
         TokenBuilder.add(sites.label_alt_id, 0, 0);
     } else {
-        TokenBuilder.add(sites.label_alt_id, startPos + 26, startPos + 27);
+        TokenBuilder.add(sites.label_alt_id, s + 26, s + 27);
     }
 
     // 31 - 38        Real(8.3)       Orthogonal coordinates for X in Angstroms.
-    start = startPos + 30;
-    Tokenizer.trim(data, start, start + 8);
-    TokenBuilder.add(sites.Cartn_x, data.tokenStart, data.tokenEnd);
+    TokenBuilder.addToken(sites.Cartn_x, Tokenizer.trim(data, s + 30, s + 38));
 
     // 39 - 46        Real(8.3)       Orthogonal coordinates for Y in Angstroms.
-    start = startPos + 38;
-    Tokenizer.trim(data, start, start + 8);
-    TokenBuilder.add(sites.Cartn_y, data.tokenStart, data.tokenEnd);
+    TokenBuilder.addToken(sites.Cartn_y, Tokenizer.trim(data, s + 38, s + 46));
 
     // 47 - 54        Real(8.3)       Orthogonal coordinates for Z in Angstroms.
-    start = startPos + 46;
-    Tokenizer.trim(data, start, start + 8);
-    TokenBuilder.add(sites.Cartn_z, data.tokenStart, data.tokenEnd);
+    TokenBuilder.addToken(sites.Cartn_z, Tokenizer.trim(data, s + 46, s + 54));
 
     // 55 - 60        Real(6.2)       Occupancy.
-    start = startPos + 54;
-    Tokenizer.trim(data, start, start + 6);
-    TokenBuilder.add(sites.occupancy, data.tokenStart, data.tokenEnd);
+    TokenBuilder.addToken(sites.occupancy, Tokenizer.trim(data, s + 54, s + 60));
 
     // 61 - 66        Real(6.2)       Temperature factor (Default = 0.0).
     if (length >= 66) {
-        start = startPos + 60;
-        Tokenizer.trim(data, start, start + 6);
-        TokenBuilder.add(sites.B_iso_or_equiv, data.tokenStart, data.tokenEnd);
+        TokenBuilder.addToken(sites.B_iso_or_equiv, Tokenizer.trim(data, s + 60, s + 66));
     } else {
         TokenBuilder.add(sites.label_alt_id, 0, 0);
     }
@@ -187,17 +166,16 @@ function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: num
 
     // 77 - 78        LString(2)      Element symbol, right-justified.
     if (length >= 78) {
-        start = startPos + 76;
-        Tokenizer.trim(data, start, start + 2);
+        Tokenizer.trim(data, s + 76, s + 78);
 
         if (data.tokenStart < data.tokenEnd) {
-            TokenBuilder.add(sites.type_symbol, data.tokenStart, data.tokenEnd);
+            TokenBuilder.addToken(sites.type_symbol, data);
         } else {
             // "guess" the symbol
-            TokenBuilder.add(sites.type_symbol, startPos + 12, startPos + 13);
+            TokenBuilder.add(sites.type_symbol, s + 12, s + 13);
         }
     } else {
-        TokenBuilder.add(sites.type_symbol, startPos + 12, startPos + 13);
+        TokenBuilder.add(sites.type_symbol, s + 12, s + 13);
     }
 
     sites.label_entity_id[sites.index] = getEntityId(residueName, isHet);

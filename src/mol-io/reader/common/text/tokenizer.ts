@@ -228,6 +228,7 @@ namespace Tokenizer {
         state.tokenStart = s;
         state.tokenEnd = e + 1;
         state.position = end;
+        return state;
     }
 }
 
@@ -263,6 +264,10 @@ export namespace TokenBuilder {
         builder.indices[builder.offset++] = start;
         builder.indices[builder.offset++] = end;
         tokens.count++;
+    }
+
+    export function addToken(tokens: Tokens, tokenizer: Tokenizer) {
+        add(tokens, tokenizer.tokenStart, tokenizer.tokenEnd);
     }
 
     export function addUnchecked(tokens: Tokens, start: number, end: number) {
