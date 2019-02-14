@@ -9,17 +9,7 @@ import { CifField, CifCategory, CifFrame } from 'mol-io/reader/cif';
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { TokenBuilder, Tokenizer } from 'mol-io/reader/common/text/tokenizer';
 import { PdbFile } from 'mol-io/reader/pdb/schema';
-
-function toCategory(name: string, fields: { [name: string]: CifField | undefined }, rowCount: number): CifCategory {
-    return {
-        name,
-        fieldNames: Object.keys(fields),
-        rowCount,
-        getField(f: string) {
-            return fields[f];
-        }
-    }
-}
+import { parseCryst1, parseRemark350 } from './assembly';
 
 function _entity(): { [K in keyof mmCIF_Schema['entity']]?: CifField } {
     return {
@@ -88,7 +78,7 @@ function _atom_site(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_s
     };
 }
 
-const WaterNames = new Set([ 'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC' ]);
+const WaterNames = new Set(['SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC']);
 
 function getEntityId(residueName: string, isHet: boolean) {
     if (isHet) {
@@ -205,15 +195,22 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
 
     const atom_site = atom_site_template(data, atomCount);
 
+    const helperCategories: CifCategory[] = [];
+
     let modelNum = 0, modelStr = '';
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
-        const s = indices[2 * i], e = indices[2 * i + 1];
+        let s = indices[2 * i], e = indices[2 * i + 1];
         switch (data[s]) {
             case 'A':
                 if (!substringStartsWith(data, s, e, 'ATOM  ')) continue;
                 if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
                 addAtom(atom_site, modelStr, tokenizer, s, e, false);
+                break;
+            case 'C':
+                if (substringStartsWith(data, s, e, 'CRYST1')) {
+                    helperCategories.push(...parseCryst1(pdb.id || '?', data.substring(s, e)));
+                }
                 break;
             case 'H':
                 if (!substringStartsWith(data, s, e, 'HETATM')) continue;
@@ -226,13 +223,30 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     modelStr = '' + modelNum;
                 }
                 break;
+            case 'R': {
+                if (substringStartsWith(data, s, e, 'REMARK 350')) {
+                    let j = i + 1;
+                    while (true) {
+                        s = indices[2 * j]; e = indices[2 * j + 1];
+                        if (!substringStartsWith(data, s, e, 'REMARK 350')) break;
+                        j++;
+                    }
+                    helperCategories.push(...parseRemark350(lines, i, j));
+                    i = j - 1;
+                }
+                break;
+            }
 
         }
     }
 
     const categories = {
-        entity: toCategory('entity', _entity(), 3),
-        atom_site: toCategory('atom_site', _atom_site(atom_site), atomCount)
+        entity: CifCategory.ofFields('entity', _entity()),
+        atom_site: CifCategory.ofFields('atom_site', _atom_site(atom_site))
+    } as any;
+
+    for (const c of helperCategories) {
+        categories[c.name] = c;
     }
 
     return {

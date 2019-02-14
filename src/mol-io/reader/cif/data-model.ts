@@ -61,10 +61,10 @@ export namespace CifCategory {
     export type SomeFields<S> = { [P in keyof S]?: CifField }
     export type Fields<S> = { [P in keyof S]: CifField }
 
-    export function ofFields(name: string, fields: { [name: string]: CifField }): CifCategory {
+    export function ofFields(name: string, fields: { [name: string]: CifField | undefined }): CifCategory {
         const fieldNames = Object.keys(fields);
         return {
-            rowCount: fieldNames.length > 0 ? fields[fieldNames[0]].rowCount : 0,
+            rowCount: fieldNames.length > 0 ? fields[fieldNames[0]]!.rowCount : 0,
             name,
             fieldNames,
             getField(name) { return fields[name]; }

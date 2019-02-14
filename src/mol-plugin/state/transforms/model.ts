@@ -129,11 +129,11 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params(a) {
         if (!a) {
-            return { id: PD.makeOptional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. If none specified (undefined or empty string), the asymmetric unit is used.' })) };
+            return { id: PD.makeOptional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. Value \'deposited\' can be used to specify deposited asymmetric unit.' })) };
         }
         const model = a.data;
         const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
-        if (!ids.length) ids.push(['deposited', 'Deposited'])
+        ids.push(['deposited', 'Deposited']);
         return { id: PD.makeOptional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
     }
 })({
@@ -146,7 +146,7 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
 
             const base = Structure.ofModel(model);
             if (!asm) {
-                plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
+                if (!!id && id !== 'deposited') plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
                 const label = { label: a.data.label, description: structureDesc(base) };
                 return new SO.Molecule.Structure(base, label);
             }
