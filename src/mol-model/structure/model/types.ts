@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,6 +7,7 @@
 
 import BitFlags from 'mol-util/bit-flags'
 import { SaccharideCompIdMap } from '../structure/carbohydrates/constants';
+import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 
 const _esCache = (function () {
     const cache = Object.create(null);
@@ -99,29 +100,6 @@ export const NucleicBackboneAtoms = [
     'H1\'', 'H2\'', 'H2\'\'', 'HO2\'', 'H3\'', 'H4\'', 'H5\'', 'H5\'\'', 'HO3\'', 'HO5\'',
     'O2*', 'O3*', 'O4*', 'O5*', 'C1*', 'C2*', 'C3*', 'C4*', 'C5*'
 ]
-
-/** Chemical component types as defined in the mmCIF CCD */
-export enum ComponentType {
-    // protein
-    'D-peptide linking', 'L-peptide linking', 'D-peptide NH3 amino terminus',
-    'L-peptide NH3 amino terminus', 'D-peptide COOH carboxy terminus',
-    'L-peptide COOH carboxy terminus', 'peptide linking', 'peptide-like',
-    'L-gamma-peptide, C-delta linking', 'D-gamma-peptide, C-delta linking',
-    'L-beta-peptide, C-gamma linking', 'D-beta-peptide, C-gamma linking',
-
-    // DNA
-    'DNA linking', 'L-DNA linking', 'DNA OH 5 prime terminus', 'DNA OH 3 prime terminus',
-
-    // RNA
-    'RNA linking', 'L-RNA linking', 'RNA OH 5 prime terminus', 'RNA OH 3 prime terminus',
-
-    // sacharide
-    'D-saccharide 1,4 and 1,4 linking', 'L-saccharide 1,4 and 1,4 linking',
-    'D-saccharide 1,4 and 1,6 linking', 'L-saccharide 1,4 and 1,6 linking', 'L-saccharide',
-    'D-saccharide', 'saccharide',
-
-    'non-polymer', 'other'
-}
 
 /** Chemical component type names for protein */
 export const ProteinComponentTypeNames = [
@@ -221,7 +199,7 @@ export function getMoleculeType(compType: string, compId: string) {
     }
 }
 
-export function getComponentType(compId: string) {
+export function getComponentType(compId: string): mmCIF_Schema['chem_comp']['type']['T'] {
     compId = compId.toUpperCase()
     if (AminoAcidNames.includes(compId)) {
         return 'peptide linking'
@@ -245,6 +223,8 @@ export function isNucleic(moleculeType: MoleculeType) {
 }
 
 /**
+ * TODO write script that read CCD and outputs list of ion names
+ * 
  * all chemical components with the word "ion" in their name, Sep 2016
  *
  * SET SESSION group_concat_max_len = 1000000;

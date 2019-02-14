@@ -12,9 +12,9 @@ import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
 import { Entities } from './properties/common';
 import { CustomProperties } from './properties/custom';
 import { SecondaryStructure } from './properties/seconday-structure';
-import { ChemicalComponentMap } from './properties/chemical-component';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from 'mol-model-formats/structure/format';
+import { ChemicalComponentMap } from './properties/chemical-component';
 
 /**
  * Interface to the "source data" of the molecule.

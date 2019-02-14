@@ -23,8 +23,8 @@ import { getSecondaryStructureMmCif } from './secondary-structure';
 import { getSequence } from './sequence';
 import { sortAtomSite } from './sort';
 import { StructConn } from './bonds/struct_conn';
-import { ChemicalComponent, ChemicalComponentMap } from 'mol-model/structure/model/properties/chemical-component';
-import { ComponentType, getMoleculeType, MoleculeType } from 'mol-model/structure/model/types';
+import { ChemicalComponent } from 'mol-model/structure/model/properties/chemical-component';
+import { getMoleculeType, MoleculeType } from 'mol-model/structure/model/types';
 import { ModelFormat } from '../format';
 import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from 'mol-model/structure/structure/carbohydrates/constants';
 import mmCIF_Format = ModelFormat.mmCIF
@@ -96,24 +96,13 @@ function getModifiedResidueNameMap(format: mmCIF_Format): Model['properties']['m
     return { parentId, details };
 }
 
-function getChemicalComponentMap(format: mmCIF_Format): ChemicalComponentMap {
+function getChemicalComponentMap(format: mmCIF_Format): Model['properties']['chemicalComponentMap'] {
     const map = new Map<string, ChemicalComponent>();
     const { chem_comp } = format.data
     if (chem_comp._rowCount > 0) {
-        const { id, type, name, pdbx_synonyms, formula, formula_weight } = format.data.chem_comp
+        const { id } = format.data.chem_comp
         for (let i = 0, il = id.rowCount; i < il; ++i) {
-            const _id = id.value(i)
-            const _type = type.value(i)
-            const cc: ChemicalComponent = {
-                id: _id,
-                type: ComponentType[_type],
-                moleculeType: getMoleculeType(_type, _id),
-                name: name.value(i),
-                synonyms: pdbx_synonyms.value(i),
-                formula: formula.value(i),
-                formulaWeight: formula_weight.value(i),
-            }
-            map.set(_id, cc)
+            map.set(id.value(i), Table.getRow(format.data.chem_comp, i))
         }
     }
     return map

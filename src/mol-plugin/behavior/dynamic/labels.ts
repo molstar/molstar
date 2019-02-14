@@ -21,6 +21,7 @@ import { Unit, StructureElement, StructureProperties } from 'mol-model/structure
 import { SetUtils } from 'mol-util/set';
 import { arrayEqual } from 'mol-util';
 import { MoleculeType } from 'mol-model/structure/model/types';
+import { getElementMoleculeType } from 'mol-model/structure/util';
 
 // TODO
 // - support more object types than structures
@@ -157,9 +158,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
                     }
 
                     if (p.levels.includes('ligand') && !u.polymerElements.length) {
-                        const compId = StructureProperties.residue.label_comp_id(l)
-                        const chemComp = u.model.properties.chemicalComponentMap.get(compId)
-                        const moleculeType = chemComp ? chemComp.moleculeType : MoleculeType.unknown
+                        const moleculeType = getElementMoleculeType(u, u.elements[0])
                         if (moleculeType === MoleculeType.other || moleculeType === MoleculeType.saccharide) {
                             label = `${StructureProperties.entity.pdbx_description(l).join(', ')} (${getAsymId(u)(l)})`
                         }

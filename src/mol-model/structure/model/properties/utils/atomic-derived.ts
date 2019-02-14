@@ -23,12 +23,12 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
     for (let i = 0; i < n; ++i) {
         const compId = label_comp_id.value(i)
         const chemCompMap = chemicalComponentMap
-        const cc = chemCompMap.get(compId)
         let molType: MoleculeType
-        if (cc) {
-            molType = cc.moleculeType
-        } else if (moleculeTypeMap.has(compId)){
+        if (moleculeTypeMap.has(compId)){
             molType = moleculeTypeMap.get(compId)!
+        } else if (chemCompMap.has(compId)) {
+            molType = getMoleculeType(chemCompMap.get(compId)!.type, compId)
+            moleculeTypeMap.set(compId, molType)
         } else {
             molType = getMoleculeType(getComponentType(compId), compId)
             // TODO if unknown molecule type, use atom names to guess molecule type
