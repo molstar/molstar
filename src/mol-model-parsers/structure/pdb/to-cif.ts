@@ -4,13 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CifField, CifCategory } from '../cif';
-import { mmCIF_Schema } from '../cif/schema/mmcif';
-import { TokenBuilder, Tokenizer } from '../common/text/tokenizer';
-import { PdbFile } from './schema';
-import { CifFile } from '../cif/data-model';
 import { substringStartsWith } from 'mol-util/string';
-import { Task } from 'mol-task';
+import { CifField, CifCategory, CifFrame } from 'mol-io/reader/cif';
+import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
+import { TokenBuilder, Tokenizer } from 'mol-io/reader/common/text/tokenizer';
+import { PdbFile } from 'mol-io/reader/pdb/schema';
 
 function toCategory(name: string, fields: { [name: string]: CifField | undefined }, rowCount: number): CifCategory {
     return {
@@ -208,7 +206,7 @@ function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: num
     sites.index++;
 }
 
-async function pdbToMmCIF(pdb: PdbFile): Promise<CifFile> {
+export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const { lines } = pdb;
     const { data, indices } = lines;
     const tokenizer = Tokenizer(data);
@@ -260,19 +258,8 @@ async function pdbToMmCIF(pdb: PdbFile): Promise<CifFile> {
     }
 
     return {
-        name: pdb.id,
-        blocks: [{
-            saveFrames: [],
-            header: pdb.id || 'PDB',
-            categoryNames: Object.keys(categories),
-            categories
-        }]
+        header: pdb.id || 'PDB',
+        categoryNames: Object.keys(categories),
+        categories
     };
-}
-
-export function convertPDBtoMmCif(pdb: PdbFile): Task<CifFile> {
-    return Task.create('Convert PDB to mmCIF', async ctx => {
-        await ctx.update('Converting to mmCIF...');
-        return pdbToMmCIF(pdb);
-    });
 }

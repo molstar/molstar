@@ -15,10 +15,10 @@ import { getAtomicIndex } from 'mol-model/structure/model/properties/utils/atomi
 import { ElementSymbol } from 'mol-model/structure/model/types';
 import { Entities } from 'mol-model/structure/model/properties/common';
 import { getAtomicRanges } from 'mol-model/structure/model/properties/utils/atomic-ranges';
-import { FormatData } from '../mmcif';
 import { getAtomicDerivedData } from 'mol-model/structure/model/properties/utils/atomic-derived';
 import { ModelFormat } from '../format';
 import mmCIF_Format = ModelFormat.mmCIF
+import { FormatData } from './parser';
 
 
 type AtomSite = mmCIF_Database['atom_site']

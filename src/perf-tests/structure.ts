@@ -17,7 +17,7 @@ import { Structure, Model, Queries as Q, StructureElement, StructureSelection, S
 import to_mmCIF from 'mol-model/structure/export/mmcif'
 import { Vec3 } from 'mol-math/linear-algebra';
 import { ModelFormat } from 'mol-model-parsers/structure/format';
-import { parse_mmCIF } from 'mol-model-parsers/structure/mmcif';
+import { trajecotryFromMmCIF } from 'mol-model-parsers/structure/mmcif';
 // import { printUnits } from 'apps/structure-info/model';
 // import { EquivalenceClasses } from 'mol-data/util';
 
@@ -76,7 +76,7 @@ export async function readCIF(path: string) {
 
     console.timeEnd('schema')
     console.time('buildModels')
-    const models = await parse_mmCIF(mmcif).run();
+    const models = await trajecotryFromMmCIF(mmcif).run();
     console.timeEnd('buildModels')
     const structures = models.map(Structure.ofModel);
 

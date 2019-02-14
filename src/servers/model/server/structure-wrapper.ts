@@ -15,7 +15,7 @@ import * as zlib from 'zlib'
 import { Job } from './jobs';
 import { ConsoleLogger } from 'mol-util/console-logger';
 import { ModelPropertiesProvider } from '../property-provider';
-import { parse_mmCIF } from 'mol-model-parsers/structure/mmcif';
+import { trajecotryFromMmCIF } from 'mol-model-parsers/structure/mmcif';
 import { ModelFormat } from 'mol-model-parsers/structure/format';
 
 require('util.promisify').shim();
@@ -110,7 +110,7 @@ export async function readStructureWrapper(key: string, sourceId: string | '_loc
     const frame = (await parseCif(data)).blocks[0];
     perf.end('parse');
     perf.start('createModel');
-    const models = await parse_mmCIF(ModelFormat.mmCIF(frame)).run();
+    const models = await trajecotryFromMmCIF(ModelFormat.mmCIF(frame)).run();
     perf.end('createModel');
 
     const modelMap = new Map<number, Model>();

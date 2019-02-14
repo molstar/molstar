@@ -14,7 +14,7 @@ import { Segmentation, Interval } from 'mol-data/int';
 import { Mat3, Tensor } from 'mol-math/linear-algebra';
 import { ElementIndex, ChainIndex } from 'mol-model/structure/model/indexing';
 import { getCoarseRanges } from 'mol-model/structure/model/properties/utils/coarse-ranges';
-import { FormatData } from '../mmcif';
+import { FormatData } from './parser';
 
 export interface IHMData {
     model_id: number,
