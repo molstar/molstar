@@ -54,6 +54,7 @@
       "mol-math($|/.*)": "<rootDir>/src/mol-math$1",
       "mol-model($|/.*)": "<rootDir>/src/mol-model$1",
       "mol-model-props($|/.*)": "<rootDir>/src/mol-model-props$1",
+      "mol-model-formats($|/.*)": "<rootDir>/src/mol-model-formats$1",
       "mol-plugin($|/.*)": "<rootDir>/src/mol-plugin$1",
       "mol-ql($|/.*)": "<rootDir>/src/mol-ql$1",
       "mol-repr($|/.*)": "<rootDir>/src/mol-repr$1",

@@ -94,7 +94,7 @@ export const OpenStructure = StateAction.build({
 function createModelTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' = 'cif') {
     const parsed = format === 'cif'
         ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
-        : b.apply(StateTransforms.Data.ConvertPDBtoMmCif).apply(StateTransforms.Model.TrajectoryFromMmCif);
+        : b.apply(StateTransforms.Model.TrajectoryFromPDB);
 
     return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }

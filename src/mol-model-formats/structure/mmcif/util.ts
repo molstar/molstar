@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from '../../model'
-import { ElementIndex } from '../../indexing';
+import { Model } from 'mol-model/structure/model'
+import { ElementIndex } from 'mol-model/structure/model/indexing';
 
 export function findEntityIdByAsymId(model: Model, asymId: string) {
     if (model.sourceData.kind !== 'mmCIF') return ''

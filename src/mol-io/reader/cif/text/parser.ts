@@ -23,7 +23,6 @@
  */
 
 import * as Data from '../data-model'
-import Field from './field'
 import { Tokens, TokenBuilder } from '../../common/text/tokenizer'
 import { ReaderResult as Result } from '../../result'
 import { Task, RuntimeContext, chunkedSubtask } from 'mol-task'
@@ -445,7 +444,7 @@ function handleSingle(tokenizer: TokenizerState, ctx: FrameContext): CifCategory
                 errorMessage: 'Expected value.'
             }
         }
-        fields[fieldName] = Field({ data: tokenizer.data, indices: [tokenizer.tokenStart, tokenizer.tokenEnd], count: 1 }, 1);
+        fields[fieldName] = Data.CifField.ofTokens({ data: tokenizer.data, indices: [tokenizer.tokenStart, tokenizer.tokenEnd], count: 1 });
         fieldNames[fieldNames.length] = fieldName;
         moveNext(tokenizer);
     }
@@ -529,7 +528,7 @@ async function handleLoop(tokenizer: TokenizerState, ctx: FrameContext): Promise
     const rowCount = (state.tokenCount / fieldCount) | 0;
     const fields = Object.create(null);
     for (let i = 0; i < fieldCount; i++) {
-        fields[fieldNames[i]] = Field(tokens[i], rowCount);
+        fields[fieldNames[i]] = Data.CifField.ofTokens(tokens[i]);
     }
 
     const catName = name.substr(1);

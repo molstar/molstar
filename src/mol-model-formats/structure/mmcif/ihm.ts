@@ -5,16 +5,16 @@
  */
 
 import { mmCIF_Database as mmCIF, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
-import { CoarseHierarchy, CoarseConformation, CoarseElementData, CoarseSphereConformation, CoarseGaussianConformation } from '../../properties/coarse'
-import { Entities } from '../../properties/common';
+import { CoarseHierarchy, CoarseConformation, CoarseElementData, CoarseSphereConformation, CoarseGaussianConformation } from 'mol-model/structure/model/properties/coarse'
+import { Entities } from 'mol-model/structure/model/properties/common';
 import { Column } from 'mol-data/db';
-import { getCoarseKeys } from '../../properties/utils/coarse-keys';
+import { getCoarseKeys } from 'mol-model/structure/model/properties/utils/coarse-keys';
 import { UUID } from 'mol-util';
 import { Segmentation, Interval } from 'mol-data/int';
 import { Mat3, Tensor } from 'mol-math/linear-algebra';
-import { ElementIndex, ChainIndex } from '../../indexing';
-import { getCoarseRanges } from '../../properties/utils/coarse-ranges';
-import { FormatData } from '../mmcif';
+import { ElementIndex, ChainIndex } from 'mol-model/structure/model/indexing';
+import { getCoarseRanges } from 'mol-model/structure/model/properties/utils/coarse-ranges';
+import { FormatData } from './parser';
 
 export interface IHMData {
     model_id: number,

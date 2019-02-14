@@ -5,16 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from '../../../model'
-import { Structure } from '../../../../structure'
-import { LinkType } from '../../../types'
+import { Model } from 'mol-model/structure/model/model'
+import { Structure } from 'mol-model/structure'
+import { LinkType } from 'mol-model/structure/model/types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'
 import { Column } from 'mol-data/db'
-import { ModelPropertyDescriptor } from '../../../properties/custom';
+import { ModelPropertyDescriptor } from 'mol-model/structure/model/properties/custom';
 import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif'
-import { ElementIndex, ResidueIndex } from '../../../indexing';
+import { ElementIndex, ResidueIndex } from 'mol-model/structure/model/indexing';
 
 export interface StructConn {
     getResidueEntries(residueAIndex: ResidueIndex, residueBIndex: ResidueIndex): ReadonlyArray<StructConn.Entry>,

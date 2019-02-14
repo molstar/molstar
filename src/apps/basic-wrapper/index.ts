@@ -55,7 +55,7 @@ class BasicWrapper {
         const state = this.stateTemplate.build();
 
         state.to('url').update(StateTransforms.Data.Download, p => ({ ...p, url }));
-        state.to('asm').update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId }));
+        state.to('asm').update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId || 'deposited' }));
 
         await PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree: state });
 

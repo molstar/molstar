@@ -119,6 +119,10 @@ namespace Mat4 {
         a[4 * j + i] = value;
     }
 
+    export function getValue(a: Mat4, i: number, j: number) {
+        return a[4 * j + i];
+    }
+
     export function toArray(a: Mat4, out: NumberArray, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];

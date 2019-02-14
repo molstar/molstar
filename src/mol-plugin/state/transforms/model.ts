@@ -8,7 +8,7 @@
 import { PluginStateTransform } from '../objects';
 import { PluginStateObject as SO } from '../objects';
 import { Task, RuntimeContext } from 'mol-task';
-import { Model, Format, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection as Sel, StructureQuery, Queries } from 'mol-model/structure';
+import { Model, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection as Sel, StructureQuery, Queries } from 'mol-model/structure';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
@@ -16,9 +16,12 @@ import { MolScriptBuilder } from 'mol-script/language/builder';
 import { StateObject } from 'mol-state';
 import { PluginContext } from 'mol-plugin/context';
 import { stringToWords } from 'mol-util/string';
-import { volumeFromCcp4 } from 'mol-model/volume/formats/ccp4';
+import { volumeFromCcp4 } from 'mol-model-formats/volume/ccp4';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { volumeFromDsn6 } from 'mol-model/volume/formats/dsn6';
+import { volumeFromDsn6 } from 'mol-model-formats/volume/dsn6';
+import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
+import { parsePDB } from 'mol-io/reader/pdb/parser';
+import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
 
 export { TrajectoryFromMmCif }
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
@@ -45,13 +48,34 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
             const header = params.blockHeader || a.data.blocks[0].header;
             const block = a.data.blocks.find(b => b.header === header);
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
-            const models = await Model.create(Format.mmCIF(block)).runInContext(ctx);
+            const models = await trajectoryFromMmCIF(block).runInContext(ctx);
             if (models.length === 0) throw new Error('No models found.');
             const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);
         });
     }
 });
+
+
+export { TrajectoryFromPDB }
+type TrajectoryFromPDB = typeof TrajectoryFromPDB
+const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-pdb',
+    display: { name: 'Parse PDB string and create trajectory' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse PDB', async ctx => {
+            const parsed = await parsePDB(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const models = await trajectoryFromPDB(parsed.result).runInContext(ctx);
+            const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
 
 export { ModelFromTrajectory }
 const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
@@ -105,11 +129,11 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params(a) {
         if (!a) {
-            return { id: PD.makeOptional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. If none specified (undefined or empty string), the asymmetric unit is used.' })) };
+            return { id: PD.makeOptional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. Value \'deposited\' can be used to specify deposited asymmetric unit.' })) };
         }
         const model = a.data;
         const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
-        if (!ids.length) ids.push(['deposited', 'Deposited'])
+        ids.push(['deposited', 'Deposited']);
         return { id: PD.makeOptional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
     }
 })({
@@ -122,7 +146,7 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
 
             const base = Structure.ofModel(model);
             if (!asm) {
-                plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
+                if (!!id && id !== 'deposited') plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
                 const label = { label: a.data.label, description: structureDesc(base) };
                 return new SO.Molecule.Structure(base, label);
             }

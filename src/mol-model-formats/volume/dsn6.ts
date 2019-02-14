@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeData } from '../data'
+import { VolumeData } from 'mol-model/volume/data'
 import { Task } from 'mol-task';
 import { SpacegroupCell, Box3D } from 'mol-math/geometry';
 import { Tensor, Vec3 } from 'mol-math/linear-algebra';

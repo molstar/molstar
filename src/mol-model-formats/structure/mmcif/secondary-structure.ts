@@ -6,11 +6,11 @@
  */
 
 import { mmCIF_Database as mmCIF, mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif'
-import { SecondaryStructureType } from '../../types';
-import { AtomicHierarchy } from '../../properties/atomic';
-import { SecondaryStructure } from '../../properties/seconday-structure';
+import { SecondaryStructureType } from 'mol-model/structure/model/types';
+import { AtomicHierarchy } from 'mol-model/structure/model/properties/atomic';
+import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
 import { Column } from 'mol-data/db';
-import { ChainIndex, ResidueIndex } from '../../indexing';
+import { ChainIndex, ResidueIndex } from 'mol-model/structure/model/indexing';
 
 export function getSecondaryStructureMmCif(data: mmCIF_Database, hierarchy: AtomicHierarchy): SecondaryStructure {
     const map: SecondaryStructureMap = new Map();

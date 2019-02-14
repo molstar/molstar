@@ -254,7 +254,7 @@ async function handleRecords(state: State): Promise<Data.CsvTable> {
 
     const columns: Data.CsvColumns = Object.create(null);
     for (let i = 0; i < state.columnCount; ++i) {
-        columns[state.columnNames[i]] = Field(state.tokens[i], state.recordCount);
+        columns[state.columnNames[i]] = Field(state.tokens[i]);
     }
 
     return Data.CsvTable(state.recordCount, state.columnNames, columns)

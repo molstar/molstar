@@ -9,26 +9,31 @@ import { Column, Table } from 'mol-data/db';
 import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { Spacegroup, SpacegroupCell, SymmetryOperator } from 'mol-math/geometry';
 import { Tensor, Vec3 } from 'mol-math/linear-algebra';
-import { Task, RuntimeContext } from 'mol-task';
+import { RuntimeContext } from 'mol-task';
 import UUID from 'mol-util/uuid';
-import Format from '../format';
-import { Model } from '../model';
-import { Entities } from '../properties/common';
-import { CustomProperties } from '../properties/custom';
-import { ModelSymmetry } from '../properties/symmetry';
-import { createAssemblies } from './mmcif/assembly';
-import { getAtomicHierarchyAndConformation } from './mmcif/atomic';
-import { ComponentBond } from './mmcif/bonds';
-import { getIHMCoarse, EmptyIHMCoarse, IHMData } from './mmcif/ihm';
-import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
-import { getSequence } from './mmcif/sequence';
-import { sortAtomSite } from './mmcif/sort';
-import { StructConn } from './mmcif/bonds/struct_conn';
-import { ChemicalComponent, ChemicalComponentMap, CommonChemicalComponentMap } from '../properties/chemical-component';
-import { ComponentType, getMoleculeType, MoleculeType } from '../types';
-
-import mmCIF_Format = Format.mmCIF
+import { Model } from 'mol-model/structure/model/model';
+import { Entities } from 'mol-model/structure/model/properties/common';
+import { CustomProperties } from 'mol-model/structure/model/properties/custom';
+import { ModelSymmetry } from 'mol-model/structure/model/properties/symmetry';
+import { createAssemblies } from './assembly';
+import { getAtomicHierarchyAndConformation } from './atomic';
+import { ComponentBond } from './bonds';
+import { getIHMCoarse, EmptyIHMCoarse, IHMData } from './ihm';
+import { getSecondaryStructureMmCif } from './secondary-structure';
+import { getSequence } from './sequence';
+import { sortAtomSite } from './sort';
+import { StructConn } from './bonds/struct_conn';
+import { ChemicalComponent, ChemicalComponentMap, CommonChemicalComponentMap } from 'mol-model/structure/model/properties/chemical-component';
+import { ComponentType, getMoleculeType, MoleculeType } from 'mol-model/structure/model/types';
+import { ModelFormat } from '../format';
 import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from 'mol-model/structure/structure/carbohydrates/constants';
+import mmCIF_Format = ModelFormat.mmCIF
+
+export async function _parse_mmCif(format: mmCIF_Format, ctx: RuntimeContext) {
+    const formatData = getFormatData(format)
+    const isIHM = format.data.ihm_model_list._rowCount > 0;
+    return isIHM ? await readIHM(ctx, format, formatData) : await readStandard(ctx, format, formatData);
+}
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -304,13 +309,3 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
 
     return models;
 }
-
-function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
-    const formatData = getFormatData(format)
-    return Task.create('Create mmCIF Model', async ctx => {
-        const isIHM = format.data.ihm_model_list._rowCount > 0;
-        return isIHM ? await readIHM(ctx, format, formatData) : await readStandard(ctx, format, formatData);
-    });
-}
-
-export default buildModels;
