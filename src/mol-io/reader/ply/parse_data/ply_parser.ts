@@ -7,17 +7,22 @@
 // import { Column } from 'mol-data/db'
 import { Tokens, TokenBuilder, Tokenizer } from '../../common/text/tokenizer'
 import * as Data from './data-model'
-import Field from './field'
+
 import Result from '../../result'
 import { Task, RuntimeContext, chunkedSubtask, } from 'mol-task'
+
+
+
 
 
 const enum PlyTokenType {
     Value = 0,
     Comment = 1,
     End = 2,
-    property = 3
+    property = 3,
+    element = 4
 }
+
 
 interface State {
     data: string;
@@ -28,14 +33,26 @@ interface State {
     tokens: Tokens[],
 
     fieldCount: number,
-    recordCount: number,
 
     columnCount: number,
+    propertyCount: number,
+    vertexCount: number,
+    currentVertex: number,
+    currentProperty: number,
+    currentFace: number,
+    currentFaceElement: number,
+    faceCount: number,
+    endHeader: number,
+
     initialHead: string[],
+    properties: number[],
+    faces: number[],
     propertyNames: string[],
+    check: string[],
 
     commentCharCode: number,
-    propertyCharCode: number
+    propertyCharCode: number,
+    elementCharCode: number
 }
 
 function State(data: string, runtimeCtx: RuntimeContext, opts: PlyOptions): State {
@@ -50,14 +67,26 @@ function State(data: string, runtimeCtx: RuntimeContext, opts: PlyOptions): Stat
         tokens: [],
 
         fieldCount: 0,
-        recordCount: 0,
 
         columnCount: 0,
+        propertyCount: 0,
+        vertexCount: 0,
+        currentVertex: 0,
+        currentProperty: 0,
+        currentFace: 0,
+        currentFaceElement: 0,
+        faceCount: 0,
+        endHeader: 0,
+
         initialHead: [],
+        properties: [],
+        faces: [],
         propertyNames: [],
+        check: [],
 
         commentCharCode: opts.comment.charCodeAt(0),
-        propertyCharCode: opts.property.charCodeAt(0)
+        propertyCharCode: opts.property.charCodeAt(0),
+        elementCharCode: opts.element.charCodeAt(0)
     };
 }
 
@@ -75,7 +104,7 @@ function eatValue(state: Tokenizer) {
             case 13:  // \r
                 return true;
             case 32: // ' ' Delimeter of ply is space (Unicode 32)
-                return;
+                return true;
             case 9:  // \t
             case 32:  // ' '
                 break;
@@ -86,36 +115,24 @@ function eatValue(state: Tokenizer) {
     }
 }
 
-
-
-function skipWhitespace(state: Tokenizer) {
-    let prev = -1;
+function eatLine (state: Tokenizer) {
     while (state.position < state.length) {
         const c = state.data.charCodeAt(state.position);
+        ++state.position
         switch (c) {
-            case 9:  // '\t'
-            //case 32:  // ' '
-                prev = c;
-                ++state.position;
-                break;
             case 10:  // \n
-                // handle \r\n
-                if (prev !== 13) {
-                    ++state.lineNumber;
-                }
-                prev = c;
-                ++state.position;
-                break;
             case 13:  // \r
-                prev = c;
-                ++state.position;
-                ++state.lineNumber;
+                return true;
+            case 9:  // \t
                 break;
             default:
-                return;
+                ++state.tokenEnd;
+                break;
         }
     }
+
 }
+
 
 function skipLine(state: Tokenizer) {
     while (state.position < state.length) {
@@ -125,13 +142,20 @@ function skipLine(state: Tokenizer) {
     }
 }
 
+function getColumns(state: State, NumberofColumns: number){
+    eatLine(state.tokenizer);
+    let tmp = (Tokenizer.getTokenString(state.tokenizer))
+    let split = tmp.split(" ", NumberofColumns);
+    return split;
+}
+
+
 /**
  * Move to the next token.
  * Returns true when the current char is a newline, i.e. indicating a full record.
  */
 function moveNextInternal(state: State) {
     const tokenizer = state.tokenizer
-    //skipWhitespace(tokenizer);
 
     if (tokenizer.position >= tokenizer.length) {
         state.tokenType = PlyTokenType.End;
@@ -146,12 +170,45 @@ function moveNextInternal(state: State) {
             state.tokenType = PlyTokenType.Comment;
             skipLine(tokenizer);
             break;
-        case state.propertyCharCode:
-            state.tokenType = PlyTokenType.property;
-            //return eatProperty(tokenizer);
-        default:
+        case state.propertyCharCode: // checks all line beginning with 'p'
+            state.check = getColumns(state,3);
+            if(state.check[0] !== 'ply' && state.faceCount === 0){
+                state.propertyNames.push(state.check[1]);
+                state.propertyNames.push(state.check[2]);
+                state.propertyCount++;
+            }
+            return;
+        case state.elementCharCode: // checks all line beginning with 'e'
+            state.check = getColumns(state, 3);
+            if(state.check[1] === 'vertex')  state.vertexCount= Number(state.check[2]);
+            if(state.check[1] === 'face')  state.faceCount = Number(state.check[2]);
+            if(state.check[0] === 'end_header')  state.endHeader = 1;
+            return;
+        default:                    // for all the other lines
             state.tokenType = PlyTokenType.Value;
-            return eatValue(tokenizer);
+            let return_value = eatValue(tokenizer);
+
+            if(state.endHeader === 1)
+            {
+                if(state.currentVertex < state.vertexCount){
+                    state.properties[state.currentVertex * state.propertyCount + state.currentProperty] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    state.currentProperty++;
+                    if(state.currentProperty === state.propertyCount){
+                        state.currentProperty = 0;
+                        state.currentVertex++;
+                    }
+                    return return_value;
+                }
+                if(state.currentFace < state.faceCount && state.currentVertex === state.vertexCount){
+                    state.faces[state.currentFace * 4 + state.currentFaceElement] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    state.currentFaceElement++;
+                    if(state.currentProperty === 4){
+                        state.currentFaceElement = 0;
+                        state.currentFace++;
+                    }
+                }
+            }
+            return return_value;
     }
 }
 
@@ -161,25 +218,24 @@ function moveNextInternal(state: State) {
  */
 function moveNext(state: State) {
     let newRecord = moveNextInternal(state);
-    while (state.tokenType === PlyTokenType.Comment) { // skip comment lines (marco
+    while (state.tokenType === PlyTokenType.Comment) { // skip comment lines (marco)
         newRecord = moveNextInternal(state);
     }
     return newRecord
 }
 
+
+
 function readRecordsChunk(chunkSize: number, state: State) {
     if (state.tokenType === PlyTokenType.End) return 0
 
-    let newRecord = moveNext(state);
-    if (newRecord) ++state.recordCount
-
+    moveNext(state);
     const { tokens, tokenizer } = state;
     let counter = 0;
     while (state.tokenType === PlyTokenType.Value && counter < chunkSize) {
         TokenBuilder.add(tokens[state.fieldCount % state.columnCount], tokenizer.tokenStart, tokenizer.tokenEnd);
         ++state.fieldCount
-        newRecord = moveNext(state);
-        if (newRecord) ++state.recordCount
+        moveNext(state);
         ++counter;
     }
     return counter;
@@ -190,24 +246,26 @@ function readRecordsChunks(state: State) {
         (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.data.length }));
 }
 
-function addColumn (state: State) {
+function addHeadEntry (state: State) {
     state.initialHead.push(Tokenizer.getTokenString(state.tokenizer))
     state.tokens.push(TokenBuilder.create(state.tokenizer, state.data.length / 80))
 }
 
-function init(state: State) { // only for first line to get the columns! (marco)
+
+
+function init(state: State) { // only for first two lines to get the format and the coding! (marco)
     let newRecord = moveNext(state)
     while (!newRecord) {  // newRecord is only true when a newline occurs (marco)
-        addColumn(state)
+        addHeadEntry(state)
         newRecord = moveNext(state);
     }
-    addColumn(state)
+    addHeadEntry(state)
     newRecord = moveNext(state);
     while (!newRecord) {
-        addColumn(state)
+        addHeadEntry(state)
         newRecord = moveNext(state);
     }
-    addColumn(state)
+    addHeadEntry(state)
     if(state.initialHead[0] !== 'ply'){
         console.log("ERROR: this is not a .ply file!")
         throw new Error("this is not a .ply file!");
@@ -229,13 +287,7 @@ async function handleRecords(state: State): Promise<Data.ply_form> {
     }
     await readRecordsChunks(state)
 
-    const columns: Data.CsvColumns = Object.create(null);
-    for (let i = 0; i < state.columnCount; ++i) {
-        columns[state.initialHead[i]] = Field(state.tokens[i], state.recordCount);
-    }
-
-
-    return Data.CsvTable(state.recordCount,0,0,0, state.initialHead, columns)
+    return Data.PlyStructure(state.vertexCount, state.faceCount, state.propertyCount, state.initialHead, state.propertyNames, state.properties, state.faces)
 }
 
 async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions): Promise<Result<Data.PlyFile>> {
@@ -243,7 +295,7 @@ async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
     const table = await handleRecords(state)
-    const result = Data.CsvFile(table)
+    const result = Data.PlyFile(table)
     console.log(result);
     return Result.success(result);
 }
@@ -251,10 +303,11 @@ async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions
 interface PlyOptions {
     comment: string;
     property: string;
+    element: string;
 }
 
 export function parse(data: string, opts?: Partial<PlyOptions>) {
-    const completeOpts = Object.assign({}, { comment: 'c', property: 'p' }, opts)
+    const completeOpts = Object.assign({}, { comment: 'c', property: 'p', element: 'e' }, opts)
     return Task.create<Result<Data.PlyFile>>('Parse PLY', async ctx => {
         return await parseInternal(data, ctx, completeOpts);
     });

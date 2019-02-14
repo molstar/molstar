@@ -46,7 +46,7 @@ export { ParsePLY }
 type ParsePLY = typeof ParsePLY
 const ParsePLY = PluginStateTransform.BuiltIn({
     name: 'parse-ply',
-    display: { name: 'Parse PLY', description: 'Parse OLY from String' },
+    display: { name: 'Parse PLY', description: 'Parse PLY from String' },
     from: [SO.Data.String],
     to: SO.Format.Ply
 })({

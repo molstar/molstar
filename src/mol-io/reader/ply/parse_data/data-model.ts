@@ -4,33 +4,34 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CifField as CsvColumn } from '../../cif/data-model'
+import { CifField as PlyColumn } from '../../cif/data-model'
 
-export { CsvColumn }
+export { PlyColumn }
 
 export interface PlyFile {
     readonly name?: string,
     readonly PLY_File: ply_form
 }
 
-export function CsvFile(PLY_File: ply_form, name?: string): PlyFile {
+export function PlyFile(PLY_File: ply_form, name?: string): PlyFile {
     return { name, PLY_File };
 }
 
 export interface ply_form {
-    readonly rowCount: number,
     readonly vertexCount: number,
     readonly faceCount: number,
     readonly propertyCount: number,
     readonly initialHead: ReadonlyArray<string>,
-    getColumn(name: string): CsvColumn | undefined
+    readonly propertyNames: ReadonlyArray<string>,
+    readonly properties: number[],
+    readonly  faces: number[],
 }
 
-export function CsvTable(rowCount: number, vertexCount: number, faceCount: number, propertyCount: number, initialHead: string[], columns: CsvColumns): ply_form {
-    return { rowCount, vertexCount, faceCount, propertyCount, initialHead: [...initialHead], getColumn(name) { return columns[name]; } };
+export function PlyStructure(vertexCount: number, faceCount: number, propertyCount: number, initialHead: string[], propertyNames: string[],  properties: number[], faces: number[]): ply_form {
+    return {vertexCount, faceCount, propertyCount, initialHead: [...initialHead], propertyNames: [...propertyNames], properties: [...properties], faces: [...faces]};
 }
 
-export type CsvColumns = { [name: string]: CsvColumn }
+export type PlyColumns = { [name: string]: PlyColumn }
 
 // export namespace CsvTable {
 //     export function empty(name: string): Table {
