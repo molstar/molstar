@@ -14,8 +14,7 @@ import { Model, Structure, StructureElement, Unit, StructureProperties, UnitRing
 import { OrderedSet } from 'mol-data/int';
 import { openCif, downloadCif } from './helpers';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { trajecotryFromMmCIF } from 'mol-model-parsers/structure/mmcif';
-import { ModelFormat } from 'mol-model-parsers/structure/format';
+import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -200,7 +199,7 @@ export function printModelStats(models: ReadonlyArray<Model>) {
 }
 
 export async function getModelsAndStructure(frame: CifFrame) {
-    const models = await trajecotryFromMmCIF(ModelFormat.mmCIF(frame)).run();
+    const models = await trajectoryFromMmCIF(frame).run();
     const structure = Structure.ofModel(models[0]);
     return { models, structure };
 }
@@ -249,7 +248,7 @@ interface Args {
     download?: string,
     file?: string,
 
-    models?:boolean,
+    models?: boolean,
     seq?: boolean,
     ihm?: boolean,
     units?: boolean,

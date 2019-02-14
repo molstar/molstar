@@ -9,8 +9,8 @@ import { Model } from 'mol-model/structure/model/model';
 import { Task } from 'mol-task';
 import { ModelFormat } from './format';
 import { _parse_mmCif } from './mmcif/parser';
-import mmCIF_Format = ModelFormat.mmCIF
+import { CifFrame } from 'mol-io/reader/cif';
 
-export function trajecotryFromMmCIF(format: mmCIF_Format): Task<Model.Trajectory> {
-    return Task.create('Create mmCIF Model', ctx => _parse_mmCif(format, ctx));
+export function trajectoryFromMmCIF(frame: CifFrame): Task<Model.Trajectory> {
+    return Task.create('Create mmCIF Model', ctx => _parse_mmCif(ModelFormat.mmCIF(frame), ctx));
 }

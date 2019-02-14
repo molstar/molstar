@@ -5,4 +5,3 @@
  */
 
 export * from './volume/data'
-export * from '../mol-model-parsers/volume/density-server'

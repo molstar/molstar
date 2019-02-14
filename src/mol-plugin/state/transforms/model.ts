@@ -16,13 +16,12 @@ import { MolScriptBuilder } from 'mol-script/language/builder';
 import { StateObject } from 'mol-state';
 import { PluginContext } from 'mol-plugin/context';
 import { stringToWords } from 'mol-util/string';
-import { volumeFromCcp4 } from 'mol-model-parsers/volume/ccp4';
+import { volumeFromCcp4 } from 'mol-model-formats/volume/ccp4';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { volumeFromDsn6 } from 'mol-model-parsers/volume/dsn6';
-import { trajecotryFromMmCIF } from 'mol-model-parsers/structure/mmcif';
-import { ModelFormat } from 'mol-model-parsers/structure/format';
+import { volumeFromDsn6 } from 'mol-model-formats/volume/dsn6';
+import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 import { parsePDB } from 'mol-io/reader/pdb/parser';
-import { trajectoryFromPDB } from 'mol-model-parsers/structure/pdb';
+import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
 
 export { TrajectoryFromMmCif }
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
@@ -49,7 +48,7 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
             const header = params.blockHeader || a.data.blocks[0].header;
             const block = a.data.blocks.find(b => b.header === header);
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
-            const models = await trajecotryFromMmCIF(ModelFormat.mmCIF(block)).runInContext(ctx);
+            const models = await trajectoryFromMmCIF(block).runInContext(ctx);
             if (models.length === 0) throw new Error('No models found.');
             const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);

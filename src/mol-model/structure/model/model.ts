@@ -14,7 +14,7 @@ import { CustomProperties } from './properties/custom';
 import { SecondaryStructure } from './properties/seconday-structure';
 import { ChemicalComponentMap } from './properties/chemical-component';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
-import { ModelFormat } from 'mol-model-parsers/structure/format';
+import { ModelFormat } from 'mol-model-formats/structure/format';
 
 /**
  * Interface to the "source data" of the molecule.
