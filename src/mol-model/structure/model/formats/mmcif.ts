@@ -24,7 +24,7 @@ import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
 import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
 import { StructConn } from './mmcif/bonds/struct_conn';
-import { ChemicalComponent, ChemicalComponentMap } from '../properties/chemical-component';
+import { ChemicalComponent, ChemicalComponentMap, CommonChemicalComponentMap } from '../properties/chemical-component';
 import { ComponentType, getMoleculeType, MoleculeType } from '../types';
 
 import mmCIF_Format = Format.mmCIF
@@ -90,23 +90,28 @@ function getModifiedResidueNameMap(format: mmCIF_Format): Model['properties']['m
 }
 
 function getChemicalComponentMap(format: mmCIF_Format): ChemicalComponentMap {
-    const map = new Map<string, ChemicalComponent>();
-    const { id, type, name, pdbx_synonyms, formula, formula_weight } = format.data.chem_comp
-    for (let i = 0, il = id.rowCount; i < il; ++i) {
-        const _id = id.value(i)
-        const _type = type.value(i)
-        const cc: ChemicalComponent = {
-            id: _id,
-            type: ComponentType[_type],
-            moleculeType: getMoleculeType(_type, _id),
-            name: name.value(i),
-            synonyms: pdbx_synonyms.value(i),
-            formula: formula.value(i),
-            formulaWeight: formula_weight.value(i),
+    const { chem_comp } = format.data
+    if (chem_comp._rowCount > 0) {
+        const map = new Map<string, ChemicalComponent>();
+        const { id, type, name, pdbx_synonyms, formula, formula_weight } = format.data.chem_comp
+        for (let i = 0, il = id.rowCount; i < il; ++i) {
+            const _id = id.value(i)
+            const _type = type.value(i)
+            const cc: ChemicalComponent = {
+                id: _id,
+                type: ComponentType[_type],
+                moleculeType: getMoleculeType(_type, _id),
+                name: name.value(i),
+                synonyms: pdbx_synonyms.value(i),
+                formula: formula.value(i),
+                formulaWeight: formula_weight.value(i),
+            }
+            map.set(_id, cc)
         }
-        map.set(_id, cc)
+        return map
+    } else {
+        return CommonChemicalComponentMap
     }
-    return map
 }
 
 function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap {
