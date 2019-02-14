@@ -137,7 +137,7 @@ export function parseRemark350(lines: Tokens, lineStart: number, lineEnd: number
                     type: '?',
                     name: '?',
                     symmetry_operation: '?'
-                } as any;
+                } as (typeof pdbx_struct_oper_list_rows)[0] as any;
                 for (let i = 0; i < 3; i++) {
                     for (let j = 0; j < 3; j++) {
                         row[`matrix[${i + 1}][${j + 1}]`] = '' + Mat4.getValue(oper.matrix, i, j);
@@ -169,4 +169,62 @@ export function parseRemark350(lines: Tokens, lineStart: number, lineEnd: number
         CifCategory.ofFields('pdbx_struct_assembly_gen', pdbx_struct_assembly_gen),
         CifCategory.ofFields('pdbx_struct_oper_list', pdbx_struct_oper_list)
     ];
+}
+
+export function parseMtrix(lines: Tokens, lineStart: number, lineEnd: number): CifCategory[] {
+    const matrices: Mat4[] = [];
+    let matrix: Mat4;
+
+    const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
+    for (let i = lineStart; i < lineEnd; i++) {
+        let line = getLine(i);
+
+        const ncs = line.split(/\s+/);
+        const row = parseInt(line[5]) - 1;
+
+        if (row === 0) {
+            matrix = Mat4.identity();
+            matrices.push(matrix);
+        }
+
+        Mat4.setValue(matrix!, row, 0, parseFloat(ncs[2]));
+        Mat4.setValue(matrix!, row, 1, parseFloat(ncs[3]));
+        Mat4.setValue(matrix!, row, 2, parseFloat(ncs[4]));
+        Mat4.setValue(matrix!, row, 3, parseFloat(ncs[5]));
+    }
+
+    if (matrices.length === 0) return [];
+
+    const struct_ncs_oper_rows: { [P in keyof CifCategory.Fields<mmCIF_Schema['struct_ncs_oper']>]?: string }[] = [];
+    let id = 1;
+    for (const oper of matrices) {
+            const row = {
+                id: 'ncsop' + (id++),
+                code: '.',
+                details: '.'
+            } as (typeof struct_ncs_oper_rows)[0] as any;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    row[`matrix[${i + 1}][${j + 1}]`] = '' + Mat4.getValue(oper, i, j);
+                }
+                row[`vector[${i + 1}]`] = '' + Mat4.getValue(oper, i, 3);
+            }
+            struct_ncs_oper_rows.push(row);
+    }
+
+    const struct_ncs_oper: CifCategory.SomeFields<mmCIF_Schema['struct_ncs_oper']> = {
+        id: CifField.ofStrings(struct_ncs_oper_rows.map(r => r.id!)),
+        code: CifField.ofStrings(struct_ncs_oper_rows.map(r => r.code!)),
+        details: CifField.ofStrings(struct_ncs_oper_rows.map(r => r.details!)),
+    };
+    for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+            const k = `matrix[${i + 1}][${j + 1}]`;
+            (struct_ncs_oper as any)[k] = CifField.ofStrings(struct_ncs_oper_rows.map(r => (r as any)[k]!));
+        }
+        const k = `vector[${i + 1}]`;
+        (struct_ncs_oper as any)[k] = CifField.ofStrings(struct_ncs_oper_rows.map(r => (r as any)[k]!));
+    }
+
+    return [CifCategory.ofFields('struct_ncs_oper', struct_ncs_oper)];
 }

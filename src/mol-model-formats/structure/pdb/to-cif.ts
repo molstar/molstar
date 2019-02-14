@@ -9,7 +9,7 @@ import { CifField, CifCategory, CifFrame } from 'mol-io/reader/cif';
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { TokenBuilder, Tokenizer } from 'mol-io/reader/common/text/tokenizer';
 import { PdbFile } from 'mol-io/reader/pdb/schema';
-import { parseCryst1, parseRemark350 } from './assembly';
+import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
 
 function _entity(): { [K in keyof mmCIF_Schema['entity']]?: CifField } {
     return {
@@ -213,17 +213,33 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 }
                 break;
             case 'H':
-                if (!substringStartsWith(data, s, e, 'HETATM')) continue;
-                if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                addAtom(atom_site, modelStr, tokenizer, s, e, true);
+                if (substringStartsWith(data, s, e, 'HETATM')) {
+                    if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
+                    addAtom(atom_site, modelStr, tokenizer, s, e, true);
+                }
+                // TODO: HELIX
                 break;
             case 'M':
                 if (substringStartsWith(data, s, e, 'MODEL ')) {
                     modelNum++;
                     modelStr = '' + modelNum;
                 }
+                if (substringStartsWith(data, s, e, 'MTRIX')) {
+                    let j = i + 1;
+                    while (true) {
+                        s = indices[2 * j]; e = indices[2 * j + 1];
+                        if (!substringStartsWith(data, s, e, 'MTRIX')) break;
+                        j++;
+                    }
+                    helperCategories.push(...parseMtrix(lines, i, j));
+                    i = j - 1;
+                }
                 break;
-            case 'R': {
+            case 'O':
+                // TODO
+                // ORIGX to generate _atom_sites
+                break;
+            case 'R':
                 if (substringStartsWith(data, s, e, 'REMARK 350')) {
                     let j = i + 1;
                     while (true) {
@@ -235,8 +251,10 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     i = j - 1;
                 }
                 break;
-            }
-
+            case 'S':
+                // TODO
+                // SHEET
+                break;
         }
     }
 
