@@ -27,8 +27,15 @@ import { ChemicalComponent, ChemicalComponentMap } from 'mol-model/structure/mod
 import { ComponentType, getMoleculeType, MoleculeType } from 'mol-model/structure/model/types';
 import { ModelFormat } from './format';
 import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from 'mol-model/structure/structure/carbohydrates/constants';
-
 import mmCIF_Format = ModelFormat.mmCIF
+
+export function parse_mmCIF(format: mmCIF_Format): Task<Model.Trajectory> {
+    const formatData = getFormatData(format)
+    return Task.create('Create mmCIF Model', async ctx => {
+        const isIHM = format.data.ihm_model_list._rowCount > 0;
+        return isIHM ? await readIHM(ctx, format, formatData) : await readStandard(ctx, format, formatData);
+    });
+}
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -299,13 +306,3 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
 
     return models;
 }
-
-function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
-    const formatData = getFormatData(format)
-    return Task.create('Create mmCIF Model', async ctx => {
-        const isIHM = format.data.ihm_model_list._rowCount > 0;
-        return isIHM ? await readIHM(ctx, format, formatData) : await readStandard(ctx, format, formatData);
-    });
-}
-
-export default buildModels;

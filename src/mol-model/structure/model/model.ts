@@ -4,19 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import UUID from 'mol-util/uuid'
-import Format from './format'
-import StructureSequence from './properties/sequence'
-import { AtomicHierarchy, AtomicConformation } from './properties/atomic'
-import { ModelSymmetry } from './properties/symmetry'
-import { CoarseHierarchy, CoarseConformation } from './properties/coarse'
+import UUID from 'mol-util/uuid';
+import StructureSequence from './properties/sequence';
+import { AtomicHierarchy, AtomicConformation } from './properties/atomic';
+import { ModelSymmetry } from './properties/symmetry';
+import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
 import { Entities } from './properties/common';
 import { CustomProperties } from './properties/custom';
 import { SecondaryStructure } from './properties/seconday-structure';
-
-import from_mmCIF from './formats/mmcif'
 import { ChemicalComponentMap } from './properties/chemical-component';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
+import { ModelFormat } from 'mol-model-parsers/structure/format';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -30,7 +28,7 @@ export interface Model extends Readonly<{
     // for IHM, corresponds to ihm_model_list.model_id
     modelNum: number,
 
-    sourceData: Format,
+    sourceData: ModelFormat,
 
     symmetry: ModelSymmetry,
     entities: Entities,
@@ -69,10 +67,6 @@ export interface Model extends Readonly<{
 } { }
 
 export namespace Model {
-    export function create(format: Format) {
-        switch (format.kind) {
-            // case 'gro': return from_gro(format);
-            case 'mmCIF': return from_mmCIF(format);
-        }
-    }
+    // TODO: is this enough?
+    export type Trajectory = ReadonlyArray<Model>
 }

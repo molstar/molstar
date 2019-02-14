@@ -2,11 +2,13 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Format } from 'mol-model/structure'
+import { Structure } from 'mol-model/structure'
 
 import { GridLookup3D } from 'mol-math/geometry';
 // import { sortArray } from 'mol-data/util';
 import { OrderedSet } from 'mol-data/int';
+import { ModelFormat } from 'mol-model-parsers/structure/format';
+import { parse_mmCIF } from 'mol-model-parsers/structure/mmcif';
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
@@ -31,8 +33,8 @@ export async function readCIF(path: string) {
         throw parsed;
     }
 
-    const mmcif = Format.mmCIF(parsed.result.blocks[0]);
-    const models = await Model.create(mmcif).run();
+    const mmcif = ModelFormat.mmCIF(parsed.result.blocks[0]);
+    const models = await parse_mmCIF(mmcif).run();
     const structures = models.map(Structure.ofModel);
 
     return { mmcif: mmcif.data, models, structures };
