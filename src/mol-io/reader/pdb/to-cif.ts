@@ -6,7 +6,6 @@
 
 import { CifField, CifCategory } from '../cif';
 import { mmCIF_Schema } from '../cif/schema/mmcif';
-import CifTextField, { CifTextValueField } from '../cif/text/field';
 import { TokenBuilder, Tokenizer } from '../common/text/tokenizer';
 import { PdbFile } from './schema';
 import { CifFile } from '../cif/data-model';
@@ -26,13 +25,14 @@ function toCategory(name: string, fields: { [name: string]: CifField | undefined
 
 function _entity(): { [K in keyof mmCIF_Schema['entity']]?: CifField } {
     return {
-        id: CifTextValueField(['1', '2', '3']),
-        type: CifTextValueField(['polymer', 'non-polymer', 'water'])
+        id: CifField.ofStrings(['1', '2', '3']),
+        type: CifField.ofStrings(['polymer', 'non-polymer', 'water'])
     }
 }
 
+type AtomSiteTemplate = typeof atom_site_template extends (...args: any) => infer T ? T : never
 function atom_site_template(data: string, count: number) {
-    const str = () => new Array(count) as string[];
+    const str = () => [] as string[];
     const ts = () => TokenBuilder.create(data, 2 * count);
     return {
         index: 0,
@@ -57,36 +57,36 @@ function atom_site_template(data: string, count: number) {
 }
 
 function _atom_site(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_site']]?: CifField } {
-    const auth_asym_id = CifTextField(sites.auth_asym_id, sites.count);
-    const auth_atom_id = CifTextField(sites.auth_atom_id, sites.count);
-    const auth_comp_id = CifTextField(sites.auth_comp_id, sites.count);
-    const auth_seq_id = CifTextField(sites.auth_seq_id, sites.count);
+    const auth_asym_id = CifField.ofTokens(sites.auth_asym_id);
+    const auth_atom_id = CifField.ofTokens(sites.auth_atom_id);
+    const auth_comp_id = CifField.ofTokens(sites.auth_comp_id);
+    const auth_seq_id = CifField.ofTokens(sites.auth_seq_id);
 
     return {
         auth_asym_id,
         auth_atom_id,
         auth_comp_id,
         auth_seq_id,
-        B_iso_or_equiv: CifTextField(sites.B_iso_or_equiv, sites.count),
-        Cartn_x: CifTextField(sites.Cartn_x, sites.count),
-        Cartn_y: CifTextField(sites.Cartn_y, sites.count),
-        Cartn_z: CifTextField(sites.Cartn_z, sites.count),
-        group_PDB: CifTextField(sites.group_PDB, sites.count),
-        id: CifTextValueField(sites.id),
+        B_iso_or_equiv: CifField.ofTokens(sites.B_iso_or_equiv),
+        Cartn_x: CifField.ofTokens(sites.Cartn_x),
+        Cartn_y: CifField.ofTokens(sites.Cartn_y),
+        Cartn_z: CifField.ofTokens(sites.Cartn_z),
+        group_PDB: CifField.ofTokens(sites.group_PDB),
+        id: CifField.ofStrings(sites.id),
 
-        label_alt_id: CifTextField(sites.label_alt_id, sites.count),
+        label_alt_id: CifField.ofTokens(sites.label_alt_id),
 
         label_asym_id: auth_asym_id,
         label_atom_id: auth_atom_id,
         label_comp_id: auth_comp_id,
         label_seq_id: auth_seq_id,
-        label_entity_id: CifTextValueField(sites.label_entity_id),
+        label_entity_id: CifField.ofStrings(sites.label_entity_id),
 
-        occupancy: CifTextField(sites.occupancy, sites.count),
-        type_symbol: CifTextField(sites.type_symbol, sites.count),
+        occupancy: CifField.ofTokens(sites.occupancy),
+        type_symbol: CifField.ofTokens(sites.type_symbol),
 
-        pdbx_PDB_ins_code: CifTextField(sites.pdbx_PDB_ins_code, sites.count),
-        pdbx_PDB_model_num: CifTextValueField(sites.pdbx_PDB_model_num)
+        pdbx_PDB_ins_code: CifField.ofTokens(sites.pdbx_PDB_ins_code),
+        pdbx_PDB_model_num: CifField.ofStrings(sites.pdbx_PDB_model_num)
     };
 }
 
@@ -207,8 +207,6 @@ function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: num
 
     sites.index++;
 }
-
-type AtomSiteTemplate = typeof atom_site_template extends (...args: any) => infer T ? T : never
 
 async function pdbToMmCIF(pdb: PdbFile): Promise<CifFile> {
     const { lines } = pdb;
