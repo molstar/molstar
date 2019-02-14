@@ -6,6 +6,7 @@
  */
 
 import BitFlags from 'mol-util/bit-flags'
+import { SaccharideCompIdMap } from '../structure/carbohydrates/constants';
 
 const _esCache = (function () {
     const cache = Object.create(null);
@@ -158,9 +159,32 @@ export const WaterNames = [
     'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC'
 ]
 
-export const ExtraSaccharideNames = [
-    'MLR'
-]
+export const AminoAcidOneLetterCodeMap = {
+    'HIS': 'H',
+    'ARG': 'R',
+    'LYS': 'K',
+    'ILE': 'I',
+    'PHE': 'F',
+    'LEU': 'L',
+    'TRP': 'W',
+    'ALA': 'A',
+    'MET': 'M',
+    'PRO': 'P',
+    'CYS': 'C',
+    'ASN': 'N',
+    'VAL': 'V',
+    'GLY': 'G',
+    'SER': 'S',
+    'GLN': 'Q',
+    'TYR': 'Y',
+    'ASP': 'D',
+    'GLU': 'E',
+    'THR': 'T',
+
+    'SEC': 'U',  // as per IUPAC definition
+    'PYL': 'O',  // as per IUPAC definition
+}
+export const AminoAcidNames = Object.keys(AminoAcidOneLetterCodeMap)
 
 export const RnaBaseNames = [ 'A', 'C', 'T', 'G', 'I', 'U' ]
 export const DnaBaseNames = [ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ]
@@ -184,7 +208,7 @@ export function getMoleculeType(compType: string, compId: string) {
         return MoleculeType.RNA
     } else if (DNAComponentTypeNames.includes(compType)) {
         return MoleculeType.DNA
-    } else if (SaccharideComponentTypeNames.includes(compType) || ExtraSaccharideNames.includes(compId)) {
+    } else if (SaccharideComponentTypeNames.includes(compType)) {
         return MoleculeType.saccharide
     } else if (WaterNames.includes(compId)) {
         return MoleculeType.water
@@ -194,6 +218,21 @@ export function getMoleculeType(compType: string, compId: string) {
         return MoleculeType.other
     } else {
         return MoleculeType.unknown
+    }
+}
+
+export function getComponentType(compId: string) {
+    compId = compId.toUpperCase()
+    if (AminoAcidNames.includes(compId)) {
+        return 'peptide linking'
+    } else if (RnaBaseNames.includes(compId)) {
+        return 'RNA linking'
+    } else if (DnaBaseNames.includes(compId)) {
+        return 'DNA linking'
+    } else if (SaccharideCompIdMap.has(compId)) {
+        return 'saccharide'
+    } else {
+        return 'other'
     }
 }
 
