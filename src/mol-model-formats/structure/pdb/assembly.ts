@@ -65,8 +65,12 @@ export function parseRemark350(lines: Tokens, lineStart: number, lineEnd: number
         let line = getLine(i);
         if (line.substr(11, 12) === 'BIOMOLECULE:') {
             const id = line.substr(23).trim();
-            line = getLine(++i);
-            const details = line.substr(11).trim();
+            let details: string = `Biomolecule ` + id;
+            line = getLine(i + 1);
+            if (line.substr(11, 30) !== 'APPLY THE FOLLOWING TO CHAINS:') {
+                i++;
+                details = line.substr(11).trim();
+            }
             current = PdbAssembly(id, details);
             assemblies.push(current);
         } else if (line.substr(13, 5) === 'BIOMT') {
