@@ -7,7 +7,7 @@
 import { ElementPointVisual, ElementPointParams } from '../visual/element-point';
 import { UnitsRepresentation } from '../units-representation';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
+import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
@@ -28,7 +28,7 @@ export function getPointParams(ctx: ThemeRegistryContext, structure: Structure) 
 
 export type PointRepresentation = StructureRepresentation<PointParams>
 export function PointRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PointParams>): PointRepresentation {
-    return Representation.createMulti('Point', ctx, getParams, PointVisuals as unknown as Representation.Def<Structure, PointParams>)
+    return Representation.createMulti('Point', ctx, getParams, StructureRepresentationStateBuilder, PointVisuals as unknown as Representation.Def<Structure, PointParams>)
 }
 
 export const PointRepresentationProvider: StructureRepresentationProvider<PointParams> = {

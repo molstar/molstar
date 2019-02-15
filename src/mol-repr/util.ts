@@ -6,7 +6,7 @@
 
 import { defaults } from 'mol-util';
 import { Structure } from 'mol-model/structure';
-import { VisualQuality } from 'mol-geo/geometry/geometry';
+import { VisualQuality } from 'mol-geo/geometry/base';
 
 export interface VisualUpdateState {
     updateTransform: boolean

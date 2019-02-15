@@ -28,7 +28,11 @@ export const DirectVolumeSchema = {
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
-    transform: AttributeSpec('float32', 16, 1),
+
+    matrix: ValueSpec('m4'),
+    transform: ValueSpec('float32'),
+    extraTransform: ValueSpec('float32'),
+
     boundingSphere: ValueSpec('sphere'),
     invariantBoundingSphere: ValueSpec('sphere'),
 
@@ -65,7 +69,5 @@ export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: Di
     }
     const shaderCode = DirectVolumeShaderCode
     const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
-    const renderable = createRenderable(renderItem, values, state);
-
-    return renderable
+    return createRenderable(renderItem, values, state);
 }

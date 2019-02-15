@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructConn } from '../../../model/formats/mmcif/bonds';
 import { LinkType } from '../../../model/types';
 import Structure from '../../structure';
 import Unit from '../../unit';
@@ -14,6 +13,7 @@ import { UniqueArray } from 'mol-data/generic';
 import { SortedArray } from 'mol-data/int';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import StructureElement from '../../element';
+import { StructConn } from 'mol-model-formats/structure/mmcif/bonds';
 
 const MAX_RADIUS = 4;
 

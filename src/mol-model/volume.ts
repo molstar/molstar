@@ -5,4 +5,3 @@
  */
 
 export * from './volume/data'
-export * from './volume/formats/density-server'

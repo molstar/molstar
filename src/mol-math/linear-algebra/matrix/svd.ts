@@ -5,10 +5,11 @@
  */
 
 import Matrix from './matrix';
+import { NumberArray } from 'mol-util/type-helpers';
 
 // svd method adapted from http://inspirit.github.io/jsfeat/ MIT Eugene Zatepyakin
 
-export function swap(A: Helpers.NumberArray, i0: number, i1: number, t: number) {
+export function swap(A: NumberArray, i0: number, i1: number, t: number) {
     t = A[i0]
     A[i0] = A[i1]
     A[i1] = t
@@ -31,7 +32,7 @@ export function hypot(a: number, b: number) {
 const EPSILON = 0.0000001192092896
 const FLT_MIN = 1E-37
 
-export function JacobiSVDImpl(At: Helpers.NumberArray, astep: number, _W: Helpers.NumberArray, Vt: Helpers.NumberArray, vstep: number, m: number, n: number, n1: number) {
+export function JacobiSVDImpl(At: NumberArray, astep: number, _W: NumberArray, Vt: NumberArray, vstep: number, m: number, n: number, n1: number) {
     const eps = EPSILON * 2.0
     const minval = FLT_MIN
     let i = 0

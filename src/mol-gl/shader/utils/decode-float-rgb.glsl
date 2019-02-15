@@ -5,7 +5,7 @@
  */
 
 float decodeFloatRGB(const in vec3 rgb) {
-    return rgb.r * 256.0 * 256.0 * 255.0 + rgb.g * 256.0 * 255.0 + rgb.b * 255.0;
+    return (rgb.r * 256.0 * 256.0 * 255.0 + rgb.g * 256.0 * 255.0 + rgb.b * 255.0) - 1.0;
 }
 
 #pragma glslify: export(decodeFloatRGB)

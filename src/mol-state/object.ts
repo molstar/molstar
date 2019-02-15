@@ -7,6 +7,8 @@
 import { UUID } from 'mol-util';
 import { Transform } from './transform';
 import { ParamDefinition } from 'mol-util/param-definition';
+import { State } from './state';
+import { StateSelection } from './state/selection';
 
 export { StateObject, StateObjectCell }
 
@@ -89,4 +91,28 @@ namespace StateObjectCell {
         if (typeof b.isHidden !== 'undefined' && a.isHidden !== b.isHidden) return true;
         return false;
     }
+}
+
+// TODO: improve the API?
+export class StateObjectTracker<T extends StateObject> {
+    private query: StateSelection.Query;
+    private version: string = '';
+    cell: StateObjectCell | undefined;
+    data: T['data'] | undefined;
+
+    setQuery(sel: StateSelection.Selector) {
+        this.query = StateSelection.compile(sel);
+    }
+
+    update() {
+        const cell = this.state.select(this.query)[0];
+        const version = cell ? cell.transform.version : void 0;
+        const changed = this.cell !== cell || this.version !== version;
+        this.cell = cell;
+        this.version = version || '';
+        this.data = cell.obj ? cell.obj.data as T : void 0 as any;
+        return changed;
+    }
+
+    constructor(private state: State) { }
 }

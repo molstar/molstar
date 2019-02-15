@@ -18,6 +18,7 @@
  */
 
 import { Mat4 } from '../3d'
+import { NumberArray } from 'mol-util/type-helpers';
 
 interface Mat3 extends Array<number> { [d: number]: number, '@type': 'mat3', length: 9 }
 
@@ -56,7 +57,7 @@ namespace Mat3 {
         return mat;
     }
 
-    export function toArray(a: Mat3, out: Helpers.NumberArray, offset: number) {
+    export function toArray(a: Mat3, out: NumberArray, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
@@ -68,7 +69,7 @@ namespace Mat3 {
         out[offset + 8] = a[8];
     }
 
-    export function fromArray(a: Mat3, array: Helpers.NumberArray, offset: number) {
+    export function fromArray(a: Mat3, array: NumberArray, offset: number) {
         a[0] = array[offset + 0]
         a[1] = array[offset + 1]
         a[2] = array[offset + 2]

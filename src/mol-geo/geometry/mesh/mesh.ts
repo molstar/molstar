@@ -9,17 +9,18 @@ import { ValueCell } from 'mol-util'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Sphere3D } from 'mol-math/geometry'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
-import { Geometry } from '../geometry';
+import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
-import { TransformData, createIdentityTransform } from '../transform-data';
+import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { createColors, createValueColor } from '../color-data';
+import { createColors } from '../color-data';
 import { ChunkedArray } from 'mol-data/util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { Theme } from 'mol-theme/theme';
 import { MeshValues } from 'mol-gl/renderable/mesh';
-import { ColorNames } from 'mol-util/color/tables';
+import { Color } from 'mol-util/color';
+import { BaseGeometry } from '../base';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -60,6 +61,19 @@ export namespace Mesh {
             normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
             groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, gb) : ValueCell.create(gb),
             normalsComputed: true,
+        }
+    }
+
+    export function fromArrays(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, triangleCount: number, normalsComputed: boolean): Mesh {
+        return {
+            kind: 'mesh',
+            vertexCount,
+            triangleCount,
+            vertexBuffer: ValueCell.create(vertices),
+            indexBuffer: ValueCell.create(indices),
+            normalBuffer: ValueCell.create(normals),
+            groupBuffer: ValueCell.create(groups),
+            normalsComputed,
         }
     }
 
@@ -341,14 +355,25 @@ export namespace Mesh {
     //
 
     export const Params = {
-        ...Geometry.Params,
+        ...BaseGeometry.Params,
         doubleSided: PD.Boolean(false),
         flipSided: PD.Boolean(false),
         flatShaded: PD.Boolean(false),
     }
     export type Params = typeof Params
 
-    export function createValues(mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): MeshValues {
+    export const Utils: GeometryUtils<Mesh, Params> = {
+        Params,
+        createEmpty,
+        createValues,
+        createValuesSimple,
+        updateValues,
+        updateBoundingSphere,
+        createRenderableState: BaseGeometry.createRenderableState,
+        updateRenderableState: BaseGeometry.updateRenderableState
+    }
+
+    function createValues(mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): MeshValues {
         const { instanceCount, groupCount } = locationIt
         if (instanceCount !== transform.instanceCount.ref.value) {
             throw new Error('instanceCount values in TransformData and LocationIterator differ')
@@ -375,54 +400,27 @@ export namespace Mesh {
             ...marker,
             ...transform,
 
-            ...Geometry.createValues(props, counts),
+            ...BaseGeometry.createValues(props, counts),
             dDoubleSided: ValueCell.create(props.doubleSided),
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
         }
     }
 
-    export function createValuesSimple(mesh: Mesh, props: Partial<PD.Values<Params>>, colorValue = ColorNames.grey, transform?: TransformData): MeshValues {
+    function createValuesSimple(mesh: Mesh, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
+        const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
         const p = { ...PD.getDefaultValues(Params), ...props }
-        if (!transform) transform = createIdentityTransform()
-        const instanceCount = transform.instanceCount.ref.value
-        const groupCount = 1
-        const color = createValueColor(colorValue)
-        const marker = createMarkers(instanceCount * groupCount)
-
-        const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
-
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            mesh.vertexBuffer.ref.value, mesh.vertexCount,
-            transform.aTransform.ref.value, instanceCount
-        )
-
-        return {
-            aPosition: mesh.vertexBuffer,
-            aNormal: mesh.normalBuffer,
-            aGroup: mesh.groupBuffer,
-            elements: mesh.indexBuffer,
-            boundingSphere: ValueCell.create(boundingSphere),
-            invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
-            ...color,
-            ...marker,
-            ...transform,
-
-            ...Geometry.createValues(p, counts),
-            dDoubleSided: ValueCell.create(p.doubleSided),
-            dFlatShaded: ValueCell.create(p.flatShaded),
-            dFlipSided: ValueCell.create(p.flipSided),
-        }
+        return createValues(mesh, s.transform, s.locationIterator, s.theme, p)
     }
 
-    export function updateValues(values: MeshValues, props: PD.Values<Params>) {
-        Geometry.updateValues(values, props)
+    function updateValues(values: MeshValues, props: PD.Values<Params>) {
+        BaseGeometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
     }
 
-    export function updateBoundingSphere(values: MeshValues, mesh: Mesh) {
+    function updateBoundingSphere(values: MeshValues, mesh: Mesh) {
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, mesh.vertexCount,
             values.aTransform.ref.value, values.instanceCount.ref.value

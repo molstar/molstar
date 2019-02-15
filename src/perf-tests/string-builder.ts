@@ -47,7 +47,7 @@ export namespace Test {
         suite
             // .add(`naive`, () => naive(data))
             // .add(`join`, () => join(data))
-            //.add(`${N} chunks`, () => SB.getChunks(build(data, N)))
+            // .add(`${N} chunks`, () => SB.getChunks(build(data, N)))
             .add(`${N} str`, () => SB.getString(build(data, N)))
             .add(`${N} str ws`, () => SB.getString(buildWS(data, N)))
             .on('cycle', (e: any) => console.log(String(e.target)))

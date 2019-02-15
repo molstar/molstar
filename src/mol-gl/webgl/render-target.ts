@@ -10,6 +10,7 @@ import { createTexture, Texture } from './texture';
 import { createFramebuffer } from './framebuffer';
 import { createRenderbuffer } from './renderbuffer';
 import { TextureImage } from '../renderable/util';
+import { Mutable } from 'mol-util/type-helpers';
 
 const getNextRenderTargetId = idFactory()
 
@@ -32,7 +33,7 @@ export interface RenderTarget {
 export function createRenderTarget (ctx: WebGLContext, _width: number, _height: number): RenderTarget {
     const { gl } = ctx
 
-    const image: Helpers.Mutable<TextureImage<Uint8Array>> = {
+    const image: Mutable<TextureImage<Uint8Array>> = {
         array: new Uint8Array(_width * _height * 4),
         width: _width,
         height: _height

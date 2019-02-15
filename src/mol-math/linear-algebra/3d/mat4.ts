@@ -21,6 +21,7 @@ import { EPSILON, equalEps } from './common'
 import Vec3 from './vec3';
 import Quat from './quat';
 import { degToRad } from '../../misc';
+import { NumberArray } from 'mol-util/type-helpers';
 
 interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }
 interface ReadonlyMat4 extends Array<number> { readonly [d: number]: number, '@type': 'mat4', length: 16 }
@@ -118,7 +119,11 @@ namespace Mat4 {
         a[4 * j + i] = value;
     }
 
-    export function toArray(a: Mat4, out: Helpers.NumberArray, offset: number) {
+    export function getValue(a: Mat4, i: number, j: number) {
+        return a[4 * j + i];
+    }
+
+    export function toArray(a: Mat4, out: NumberArray, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
@@ -137,7 +142,7 @@ namespace Mat4 {
         out[offset + 15] = a[15];
     }
 
-    export function fromArray(a: Mat4, array: Helpers.NumberArray, offset: number) {
+    export function fromArray(a: Mat4, array: NumberArray, offset: number) {
         a[0] = array[offset + 0]
         a[1] = array[offset + 1]
         a[2] = array[offset + 2]
@@ -370,7 +375,7 @@ namespace Mat4 {
     /**
      * Like `mul` but with offsets into arrays
      */
-    export function mulOffset(out: Helpers.NumberArray, a: Helpers.NumberArray, b: Helpers.NumberArray, oOut: number, oA: number, oB: number) {
+    export function mulOffset(out: NumberArray, a: NumberArray, b: NumberArray, oOut: number, oA: number, oB: number) {
         const a00 = a[0 + oA], a01 = a[1 + oA], a02 = a[2 + oA], a03 = a[3 + oA],
             a10 = a[4 + oA], a11 = a[5 + oA], a12 = a[6 + oA], a13 = a[7 + oA],
             a20 = a[8 + oA], a21 = a[9 + oA], a22 = a[10 + oA], a23 = a[11 + oA],

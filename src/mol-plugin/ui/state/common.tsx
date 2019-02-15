@@ -102,6 +102,7 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): Transformer.Definition['display'];
     abstract canApply(): boolean;
+    abstract getTransformerId(): string;
     abstract canAutoApply(newParams: any): boolean;
     abstract applyText(): string;
     abstract isUpdate(): boolean;
@@ -170,13 +171,18 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
 
         const display = this.getHeader();
 
+        const tId = this.getTransformerId();
+        const ParamEditor: StateTransformParameters.Class = this.plugin.customParamEditors.has(tId)
+            ? this.plugin.customParamEditors.get(tId)!
+            : StateTransformParameters;
+
         return <div className='msp-transform-wrapper'>
             <div className='msp-transform-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>{display.name}</button>
                 {!this.state.isCollapsed && <button className='msp-btn msp-btn-link msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>}
             </div>
             {!this.state.isCollapsed && <>
-                <StateTransformParameters info={info} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
+                <ParamEditor info={info} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
 
                 <div className='msp-transform-apply-wrap'>
                     <button className='msp-btn msp-btn-block msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>

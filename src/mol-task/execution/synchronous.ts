@@ -6,7 +6,7 @@
 
 import { RuntimeContext } from './runtime-context'
 
-class SynchronousRuntimeContext implements RuntimeContext {
+export class SynchronousRuntimeContext implements RuntimeContext {
     shouldUpdate = false;
     isSynchronous = true;
     update(progress: string | Partial<RuntimeContext.ProgressUpdate>, dontNotify?: boolean): Promise<void> | void { }

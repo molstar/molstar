@@ -20,6 +20,7 @@
 import Mat4 from './mat4';
 import { Quat, Mat3, EPSILON } from '../3d';
 import { spline as _spline, clamp } from '../../interpolate'
+import { NumberArray } from 'mol-util/type-helpers';
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 
@@ -57,7 +58,7 @@ namespace Vec3 {
         return v
     }
 
-    export function toArray(v: Vec3, out: Helpers.NumberArray, offset: number) {
+    export function toArray(v: Vec3, out: NumberArray, offset: number) {
         out[offset + 0] = v[0]
         out[offset + 1] = v[1]
         out[offset + 2] = v[2]
@@ -372,7 +373,7 @@ namespace Vec3 {
     /**
      * Like `transformMat4` but with offsets into arrays
      */
-    export function transformMat4Offset(out: Helpers.NumberArray, a: Helpers.NumberArray, m: Helpers.NumberArray, outO: number, aO: number, oM: number) {
+    export function transformMat4Offset(out: NumberArray, a: NumberArray, m: NumberArray, outO: number, aO: number, oM: number) {
         const x = a[0 + aO], y = a[1 + aO], z = a[2 + aO],
             w = 1 / ((m[3 + oM] * x + m[7 + oM] * y + m[11 + oM] * z + m[15 + oM]) || 1.0);
         out[0 + outO] = (m[0 + oM] * x + m[4 + oM] * y + m[8 + oM] * z + m[12 + oM]) * w;

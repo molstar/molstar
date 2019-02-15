@@ -10,6 +10,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ThemeDataContext, ThemeRegistry, ThemeProvider } from 'mol-theme/theme';
 import { PhysicalSizeThemeProvider } from './size/physical';
 import { deepEqual } from 'mol-util';
+import { ShapeGroupSizeThemeProvider } from './size/shape-group';
 
 export { SizeTheme }
 interface SizeTheme<P extends PD.Params> {
@@ -40,5 +41,6 @@ namespace SizeTheme {
 
 export const BuiltInSizeThemes = {
     'physical': PhysicalSizeThemeProvider,
+    'shape-group': ShapeGroupSizeThemeProvider,
     'uniform': UniformSizeThemeProvider
 }

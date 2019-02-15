@@ -32,6 +32,7 @@ namespace PluginBehavior {
     export interface CreateParams<P> {
         name: string,
         ctor: Ctor<P>,
+        canAutoUpdate?: Transformer.Definition<Root, Behavior, P>['canAutoUpdate'],
         label?: (params: P) => { label: string, description?: string },
         display: {
             name: string,
@@ -59,13 +60,15 @@ namespace PluginBehavior {
                     const updated = await b.data.update(newParams);
                     return updated ? Transformer.UpdateResult.Updated : Transformer.UpdateResult.Unchanged;
                 })
-            }
+            },
+            canAutoUpdate: params.canAutoUpdate
         });
     }
 
     export function simpleCommandHandler<T>(cmd: PluginCommand<T>, action: (data: T, ctx: PluginContext) => void | Promise<void>) {
         return class implements PluginBehavior<{}> {
-            private sub: PluginCommand.Subscription | undefined = void 0;
+            // TODO can't be private due to bug with generating declerations, see https://github.com/Microsoft/TypeScript/issues/17293
+            /** private */ sub: PluginCommand.Subscription | undefined = void 0;
             register(): void {
                 this.sub = cmd.subscribe(this.ctx, data => action(data, this.ctx));
             }
@@ -73,7 +76,8 @@ namespace PluginBehavior {
                 if (this.sub) this.sub.unsubscribe();
                 this.sub = void 0;
             }
-            constructor(private ctx: PluginContext) { }
+            // TODO can't be private due to bug with generating declerations, see https://github.com/Microsoft/TypeScript/issues/17293
+            constructor(/** private */ public ctx: PluginContext) { }
         }
     }
 
@@ -93,7 +97,7 @@ namespace PluginBehavior {
             for (const s of this.subs) s.unsubscribe();
             this.subs = [];
         }
-        update(params: P): boolean {
+        update(params: P): boolean | Promise<boolean> {
             if (shallowEqual(params, this.params)) return false;
             this.params = params;
             return true;

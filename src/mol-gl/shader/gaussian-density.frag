@@ -22,7 +22,9 @@ varying float vRadius;
 #endif
 
 #pragma glslify: import('./chunks/common.glsl')
-#pragma glslify: encodeIdRGB = require(./utils/encode-id-rgb.glsl)
+#pragma glslify: encodeFloatLog = require(./utils/encode-float-log.glsl)
+#pragma glslify: decodeFloatLog = require(./utils/decode-float-log.glsl)
+#pragma glslify: encodeFloatRGB = require(./utils/encode-float-rgb.glsl)
 #pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
 
 uniform vec3 uBboxSize;
@@ -46,12 +48,6 @@ uniform float uAlpha;
     #endif
 #endif
 
-// encode distance logarithmically with given maxDistance
-const float maxDistance = 10000.0;
-const float distLogFactor = log(maxDistance + 1.0);
-float encodeDistLog(float dist) { return log(dist + 1.0) / distLogFactor; }
-float decodeDistLog(float logDist) { return exp(logDist * distLogFactor) - 1.0; }
-
 void main() {
     vec2 v = gl_FragCoord.xy - vec2(uCurrentX, uCurrentY) - 0.5;
     vec3 fragPos = vec3(v.x, v.y, uCurrentSlice) / uGridDim;
@@ -62,13 +58,13 @@ void main() {
         float density = exp(-uAlpha * ((dist * dist) / radiusSq));
         gl_FragColor = vec4(density);
     #elif defined(dCalcType_minDistance)
-        gl_FragColor.a = 1.0 - encodeDistLog(dist);
+        gl_FragColor.a = 1.0 - encodeFloatLog(dist);
     #elif defined(dCalcType_groupId)
-        float minDistance = decodeDistLog(1.0 - textureMinDist(fragPos).a);
+        float minDistance = decodeFloatLog(1.0 - textureMinDist(fragPos).a);
         // TODO verify `length(uBboxSize / uGridDim) * 2.0`
         //      on some machines `* 2.0` is needed while on others `* 0.5` works
         if (dist > minDistance + length(uBboxSize / uGridDim) * 0.5)
             discard;
-        gl_FragColor.rgb = encodeIdRGB(vGroup);
+        gl_FragColor.rgb = encodeFloatRGB(vGroup);
     #endif
 }

@@ -9,9 +9,8 @@ import { now } from 'mol-util/now';
 
 import { Vec3 } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
-import * as SetUtils from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
-import { RenderObject } from 'mol-gl/render-object'
+import { GraphicsRenderObject } from 'mol-gl/render-object'
 
 import { TrackballControls, TrackballControlsParams } from './controls/trackball'
 import { Viewport } from './camera/util'
@@ -21,19 +20,22 @@ import { Representation } from 'mol-repr/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
-import { PickingId, decodeIdRGB } from 'mol-geo/geometry/picking';
+import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
 import { Camera } from './camera';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-sphere-helper';
+import { decodeFloatRGB } from 'mol-util/float-packing';
+import { SetUtils } from 'mol-util/set';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
     // maxFps: PD.Numeric(30),
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     backgroundColor: PD.Color(Color(0x000000)),
+    cameraClipDistance: PD.Numeric(0, { min: 0.0, max: 50.0, step: 0.1 }, { description: 'The distance between camera and scene at which to clip regardless of near clipping plane.' }),
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
@@ -81,7 +83,7 @@ namespace Canvas3D {
     export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
-        const reprRenderObjects = new Map<Representation.Any, Set<RenderObject>>()
+        const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>()
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>()
         const reprCount = new BehaviorSubject(0)
 
@@ -161,13 +163,24 @@ namespace Canvas3D {
 
             const nearFactor = (50 - p.clip[0]) / 50
             const farFactor = -(50 - p.clip[1]) / 50
-            const near = cDist - (bRadius * nearFactor)
-            const far = cDist + (bRadius * farFactor)
+            let near = cDist - (bRadius * nearFactor)
+            let far = cDist + (bRadius * farFactor)
 
             const fogNearFactor = (50 - p.fog[0]) / 50
             const fogFarFactor = -(50 - p.fog[1]) / 50
-            const fogNear = cDist - (bRadius * fogNearFactor)
-            const fogFar = cDist + (bRadius * fogFarFactor)
+            let fogNear = cDist - (bRadius * fogNearFactor)
+            let fogFar = cDist + (bRadius * fogFarFactor)
+
+            if (camera.state.mode === 'perspective') {
+                near = Math.max(0.1, p.cameraClipDistance, near)
+                far = Math.max(1, far)
+                fogNear = Math.max(0.1, fogNear)
+                fogFar = Math.max(1, fogFar)
+            } else if (camera.state.mode === 'orthographic') {
+                if (p.cameraClipDistance > 0) {
+                    near = Math.max(p.cameraClipDistance, near)
+                }
+            }
 
             if (near !== currentNear || far !== currentFar || fogNear !== currentFogNear || fogFar !== currentFogFar) {
                 camera.setState({ near, far, fogNear, fogFar })
@@ -187,6 +200,7 @@ namespace Canvas3D {
             if (force || cameraChanged) {
                 switch (variant) {
                     case 'pick':
+                        renderer.setViewport(0, 0, pickWidth, pickHeight);
                         objectPickTarget.bind();
                         renderer.clear()
                         renderer.render(scene, 'pickObject');
@@ -263,19 +277,19 @@ namespace Canvas3D {
             // TODO slow in Chrome, ok in FF; doesn't play well with gpu surface calc
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
-            const objectId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
+            const objectId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
             if (objectId === -1) { isIdentifying = false; return; }
 
             instancePickTarget.bind()
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
-            const instanceId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
+            const instanceId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
             if (instanceId === -1) { isIdentifying = false; return; }
 
             groupPickTarget.bind()
             // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             webgl.readPixels(xp, yp, 1, 1, buffer)
-            const groupId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
+            const groupId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
             if (groupId === -1) { isIdentifying = false; return; }
 
             isIdentifying = false
@@ -286,11 +300,13 @@ namespace Canvas3D {
         function add(repr: Representation.Any) {
             isUpdating = true
             const oldRO = reprRenderObjects.get(repr)
-            const newRO = new Set<RenderObject>()
+            const newRO = new Set<GraphicsRenderObject>()
             repr.renderObjects.forEach(o => newRO.add(o))
             if (oldRO) {
-                SetUtils.difference(newRO, oldRO).forEach(o => scene.add(o))
-                SetUtils.difference(oldRO, newRO).forEach(o => scene.remove(o))
+                if (!SetUtils.areEqual(newRO, oldRO)) {
+                    for (const o of Array.from(newRO)) { if (!oldRO.has(o)) scene.add(o) }
+                    for (const o of Array.from(oldRO)) { if (!newRO.has(o)) scene.remove(o) }
+                }
             } else {
                 repr.renderObjects.forEach(o => scene.add(o))
             }
@@ -371,6 +387,7 @@ namespace Canvas3D {
                     renderer.setClearColor(props.backgroundColor)
                 }
 
+                if (props.cameraClipDistance !== undefined) p.cameraClipDistance = props.cameraClipDistance
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
@@ -386,6 +403,7 @@ namespace Canvas3D {
                 return {
                     cameraMode: camera.state.mode,
                     backgroundColor: renderer.props.clearColor,
+                    cameraClipDistance: p.cameraClipDistance,
                     clip: p.clip,
                     fog: p.fog,
                     pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,

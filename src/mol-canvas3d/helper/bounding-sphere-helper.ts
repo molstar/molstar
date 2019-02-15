@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createMeshRenderObject, RenderObject } from 'mol-gl/render-object'
+import { createRenderObject, RenderObject } from 'mol-gl/render-object'
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -57,7 +57,9 @@ export class BoundingSphereHelper {
                 const instanceData = this.instancesData.get(ro)
                 const newInstanceData = updateBoundingSphereData(this.scene, r.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, {
                     aTransform: ro.values.aTransform,
+                    matrix: ro.values.matrix,
                     transform: ro.values.transform,
+                    extraTransform: ro.values.extraTransform,
                     uInstanceCount: ro.values.uInstanceCount,
                     instanceCount: ro.values.instanceCount,
                     aInstance: ro.values.aInstance,
@@ -135,6 +137,6 @@ function createBoundingSphereMesh(boundingSphere: Sphere3D, mesh?: Mesh) {
 }
 
 function createBoundingSphereRenderObject(mesh: Mesh, color: Color, transform?: TransformData) {
-    const values = Mesh.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color, transform)
-    return createMeshRenderObject(values, { visible: true, pickable: false, opaque: false })
+    const values = Mesh.Utils.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color, 1, transform)
+    return createRenderObject('mesh', values, { visible: true, pickable: false, opaque: false })
 }

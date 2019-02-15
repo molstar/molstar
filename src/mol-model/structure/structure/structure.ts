@@ -72,6 +72,10 @@ class Structure {
         return prc && ec ? ec / prc < 2 : false
     }
 
+    get isEmpty() {
+        return this.units.length === 0;
+    }
+
     get hashCode() {
         if (this._props.hashCode !== -1) return this._props.hashCode;
         return this.computeHash();

@@ -4,6 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Field from '../cif/text/field'
+import { CifField } from '../cif/data-model';
 
-export default Field
+export default CifField.ofTokens

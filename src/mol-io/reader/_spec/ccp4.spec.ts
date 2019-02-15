@@ -4,15 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import CCP4 from '../ccp4/parser'
-import { FileHandle } from '../../common/file-handle';
+import * as CCP4 from '../ccp4/parser'
 
 const ccp4Buffer = new Uint8Array(4 * 64)
 
 describe('ccp4 reader', () => {
     it('basic', async () => {
-        const file = FileHandle.fromBuffer(ccp4Buffer)
-        const parsed = await CCP4(file).run();
+        const parsed = await CCP4.parse(ccp4Buffer).run();
 
         if (parsed.isError) {
             console.log(parsed)

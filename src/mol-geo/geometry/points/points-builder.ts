@@ -15,21 +15,21 @@ export interface PointsBuilder {
 
 export namespace PointsBuilder {
     export function create(initialCount = 2048, chunkSize = 1024, points?: Points): PointsBuilder {
-        const vertices = ChunkedArray.create(Float32Array, 3, chunkSize, points ? points.centerBuffer.ref.value : initialCount);
+        const centers = ChunkedArray.create(Float32Array, 3, chunkSize, points ? points.centerBuffer.ref.value : initialCount);
         const groups = ChunkedArray.create(Float32Array, 1, chunkSize, points ? points.groupBuffer.ref.value : initialCount);
 
         return {
             add: (x: number, y: number, z: number, group: number) => {
-                ChunkedArray.add3(vertices, x, y, z);
+                ChunkedArray.add3(centers, x, y, z);
                 ChunkedArray.add(groups, group);
             },
             getPoints: () => {
-                const vb = ChunkedArray.compact(vertices, true) as Float32Array
+                const cb = ChunkedArray.compact(centers, true) as Float32Array
                 const gb = ChunkedArray.compact(groups, true) as Float32Array
                 return {
                     kind: 'points',
-                    pointCount: vertices.elementCount,
-                    centerBuffer: points ? ValueCell.update(points.centerBuffer, vb) : ValueCell.create(vb),
+                    pointCount: centers.elementCount,
+                    centerBuffer: points ? ValueCell.update(points.centerBuffer, cb) : ValueCell.create(cb),
                     groupBuffer: points ? ValueCell.update(points.groupBuffer, gb) : ValueCell.create(gb),
                 }
             }

@@ -82,7 +82,7 @@ export namespace Tasks {
         let ret = 0;
         const y = new CheckYielding();
         for (let i = 0; i < 1000000; i++) {
-            //ret += +(i.toString() + i.toString());
+            // ret += +(i.toString() + i.toString());
             if (i % 10000 === 0) await y.yield();
         }
         console.timeEnd('immediate');
@@ -94,7 +94,7 @@ export namespace Tasks {
         const suite = new B.Suite();
         suite
             .add(`yielding`, async () => { return await yielding() })
-            //.add(`test yielding`, () => testYielding().then(() => { }))
+            // .add(`test yielding`, () => testYielding().then(() => { }))
             .on('cycle', (e: any) => console.log(String(e.target)))
             .run();
     }

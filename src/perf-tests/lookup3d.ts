@@ -2,11 +2,12 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Format } from 'mol-model/structure'
+import { Structure } from 'mol-model/structure'
 
 import { GridLookup3D } from 'mol-math/geometry';
 // import { sortArray } from 'mol-data/util';
 import { OrderedSet } from 'mol-data/int';
+import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
@@ -31,11 +32,10 @@ export async function readCIF(path: string) {
         throw parsed;
     }
 
-    const mmcif = Format.mmCIF(parsed.result.blocks[0]);
-    const models = await Model.create(mmcif).run();
+    const models = await trajectoryFromMmCIF(parsed.result.blocks[0]).run();
     const structures = models.map(Structure.ofModel);
 
-    return { mmcif: mmcif.data, models, structures };
+    return { mmcif: models[0].sourceData.data, models, structures };
 }
 
 export async function test() {
@@ -43,13 +43,13 @@ export async function test() {
 
     const lookup = GridLookup3D({ x: mmcif.atom_site.Cartn_x.toArray(), y: mmcif.atom_site.Cartn_y.toArray(), z: mmcif.atom_site.Cartn_z.toArray(),
         indices: OrderedSet.ofBounds(0, mmcif.atom_site._rowCount),
-        //radius: [1, 1, 1, 1]
-        //indices: [1]
+        // radius: [1, 1, 1, 1]
+        // indices: [1]
     });
     console.log(lookup.boundary.box, lookup.boundary.sphere);
 
     const result = lookup.find(-30.07, 8.178, -13.897, 10);
-    console.log(result.count)//, sortArray(result.indices));
+    console.log(result.count) // , sortArray(result.indices));
 
     // const sl = structures[0].lookup3d;
     // const result1 = sl.find(-30.07, 8.178, -13.897, 10);

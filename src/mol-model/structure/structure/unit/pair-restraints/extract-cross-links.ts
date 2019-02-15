@@ -6,9 +6,9 @@
 
 import Unit from '../../unit';
 import Structure from '../../structure';
-import { IHMCrossLinkRestraint } from '../../../model/formats/mmcif/pair-restraint';
 import { PairRestraints, CrossLinkRestraint } from './data';
 import { StructureElement } from '../../../structure';
+import { IHMCrossLinkRestraint } from 'mol-model-formats/structure/mmcif/pair-restraint';
 
 function _addRestraints(map: Map<number, number>, unit: Unit, restraints: IHMCrossLinkRestraint) {
     const { elements } = unit;

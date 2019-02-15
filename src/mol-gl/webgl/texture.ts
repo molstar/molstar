@@ -11,6 +11,7 @@ import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { Framebuffer } from './framebuffer';
 import { isWebGL2 } from './compat';
+import { ValueOf } from 'mol-util/type-helpers';
 
 const getNextTextureId = idFactory()
 
@@ -21,7 +22,7 @@ export type TextureKindValue = {
     'volume-float32': TextureVolume<Float32Array>
     'texture': Texture
 }
-export type TextureValueType = Helpers.ValueOf<TextureKindValue>
+export type TextureValueType = ValueOf<TextureKindValue>
 export type TextureKind = keyof TextureKindValue
 export type TextureType = 'ubyte' | 'float'
 export type TextureFormat = 'alpha' | 'rgb' | 'rgba'

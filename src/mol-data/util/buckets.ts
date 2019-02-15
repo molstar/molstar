@@ -5,6 +5,7 @@
  */
 
 import { sort, arraySwap } from './sort';
+import { AssignableArrayLike } from 'mol-util/type-helpers';
 
 type Bucket = {
     key: any,
@@ -14,7 +15,7 @@ type Bucket = {
 
 function sortAsc(bs: Bucket[], i: number, j: number) { return bs[i].key < bs[j].key ? -1 : 1; }
 
-function _makeBuckets(indices: Helpers.ArrayLike<number>,
+function _makeBuckets(indices: AssignableArrayLike<number>,
     getKey: (i: number) => any, sortBuckets: boolean, start: number, end: number) {
 
     const buckets = new Map<any, Bucket>();
@@ -95,7 +96,7 @@ export interface MakeBucketsOptions<K> {
  * Returns the offsets of buckets. So that [offsets[i], offsets[i + 1]) determines the range.
  */
 export function makeBuckets<K extends string | number>(
-    indices: Helpers.ArrayLike<number>, getKey: (i: number) => K, options?: MakeBucketsOptions<K>): ArrayLike<number> {
+    indices: AssignableArrayLike<number>, getKey: (i: number) => K, options?: MakeBucketsOptions<K>): ArrayLike<number> {
     const s = (options && options.start) || 0;
     const e = (options && options.end) || indices.length;
     if (e - s <= 0) throw new Error('Can only bucket non-empty collections.');

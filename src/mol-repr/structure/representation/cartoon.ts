@@ -9,7 +9,7 @@ import { PolymerGapVisual, PolymerGapParams } from '../visual/polymer-gap-cylind
 import { NucleotideBlockVisual, NucleotideBlockParams } from '../visual/nucleotide-block-mesh';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
-import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
+import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { PolymerDirectionVisual, PolymerDirectionParams } from '../visual/polymer-direction-wedge';
 import { Structure, Unit } from 'mol-model/structure';
@@ -49,7 +49,7 @@ export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure
 
 export type CartoonRepresentation = StructureRepresentation<CartoonParams>
 export function CartoonRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CartoonParams>): CartoonRepresentation {
-    return Representation.createMulti('Cartoon', ctx, getParams, CartoonVisuals as unknown as Representation.Def<Structure, CartoonParams>)
+    return Representation.createMulti('Cartoon', ctx, getParams, StructureRepresentationStateBuilder, CartoonVisuals as unknown as Representation.Def<Structure, CartoonParams>)
 }
 
 export const CartoonRepresentationProvider: StructureRepresentationProvider<CartoonParams> = {

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-class EquivalenceClassesImpl<K, V> {
+export class EquivalenceClassesImpl<K, V> {
     private id = 0;
     private byHash = new Map<number, { id: number, keys: K[], value: V }[]>();
 

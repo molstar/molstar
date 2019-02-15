@@ -9,6 +9,8 @@ import { now } from 'mol-util/now';
 type UUID = string & { '@type': 'uuid' }
 
 namespace UUID {
+    const _btoa = typeof btoa !== 'undefined' ? btoa : (s: string) => Buffer.from(s).toString('base64')
+
     const chars: string[] = [];
     /** Creates 22 characted "base64" UUID */
     export function create22(): UUID {
@@ -17,7 +19,7 @@ namespace UUID {
             chars[i] = String.fromCharCode((d + Math.random()*0xff)%0xff | 0);
             d = Math.floor(d/0xff);
         }
-        return btoa(chars.join('')).replace(/\+/g, '-').replace(/\//g, '_').substr(0, 22) as UUID;
+        return _btoa(chars.join('')).replace(/\+/g, '-').replace(/\//g, '_').substr(0, 22) as UUID;
     }
 
     export function createv4(): UUID {

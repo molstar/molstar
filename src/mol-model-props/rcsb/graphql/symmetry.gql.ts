@@ -26,6 +26,5 @@ gql`query AssemblySymmetry($pdbId: String!) {
             symbol
             type
         }
-        rcsb_struct_symmetry_provenance
     }
 }`

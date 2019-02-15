@@ -1,6 +1,6 @@
 import * as B from 'benchmark'
 import { Tuple, Segmentation, OrderedSet as OrdSet } from 'mol-data/int'
-//import { ElementSet } from 'mol-model/structure'
+// import { ElementSet } from 'mol-model/structure'
 
 // export namespace Iteration {
 //     const U = 1000, V = 2500;
@@ -420,22 +420,22 @@ export namespace IntVsStringIndices {
 
     export function run() {
         const N = 1000;
-        //const int = createInt(N);
+        // const int = createInt(N);
         const map = createMap(N);
-        //const str = createStr(N);
+        // const str = createStr(N);
         const keys = createCacheKeys(N);
         const keyMap = createMapKeys(N);
         console.log(sumMap(map), sumCached(keys), sumKeyMap(keyMap));
         new B.Suite()
-            //.add('c int', () => createInt(N))
+            // .add('c int', () => createInt(N))
             .add('q map', () => sumMap(map))
             .add('c map', () => createMap(N))
             .add('c mk', () => createMapKeys(N))
-            //.add('c str', () => createStr(N))
+            // .add('c str', () => createStr(N))
             .add('c cc', () => createCacheKeys(N))
-            //.add('q int', () => sumInt(int))
+            // .add('q int', () => sumInt(int))
             .add('q mk', () => sumKeyMap(keyMap))
-            //.add('q str', () => sumStr(str))
+            // .add('q str', () => sumStr(str))
             .add('q cc', () => sumCached(keys))
             .on('cycle', (e: any) => console.log(String(e.target)))
             .run();
@@ -444,11 +444,11 @@ export namespace IntVsStringIndices {
 
 IntVsStringIndices.run();
 
-//ObjectVsMap.run();
+// ObjectVsMap.run();
 
-//testSegments();
+// testSegments();
 
-//Tuples.run();
+// Tuples.run();
 
 // interface AA { kind: 'a' }
 // //interface BB { kind: 'b' }

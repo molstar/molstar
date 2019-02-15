@@ -33,6 +33,10 @@ namespace StateTreeBuilder {
         return !!obj && typeof (obj as StateTreeBuilder).getTree === 'function';
     }
 
+    export function isTo(obj: any): obj is StateTreeBuilder.To<any> {
+        return !!obj && typeof (obj as StateTreeBuilder).getTree === 'function' && typeof (obj as StateTreeBuilder.To<any>).ref === 'string';
+    }
+
     export class Root implements StateTreeBuilder {
         private state: State;
         get editInfo() { return this.state.editInfo; }

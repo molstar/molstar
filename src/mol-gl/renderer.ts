@@ -99,6 +99,7 @@ namespace Renderer {
             uLightColor: ValueCell.create(lightColor),
             uLightAmbient: ValueCell.create(lightAmbient),
 
+            uCameraPosition: ValueCell.create(Vec3.clone(camera.state.position)),
             uFogNear: ValueCell.create(camera.state.fogNear),
             uFogFar: ValueCell.create(camera.state.fogFar),
             uFogColor: ValueCell.create(fogColor),
@@ -160,6 +161,7 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection))
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection))
 
+            ValueCell.update(globalUniforms.uCameraPosition, camera.state.position)
             ValueCell.update(globalUniforms.uFogFar, camera.state.fogFar)
             ValueCell.update(globalUniforms.uFogNear, camera.state.fogNear)
 
@@ -178,9 +180,9 @@ namespace Renderer {
 
                 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
                 gl.enable(gl.BLEND)
-                gl.depthMask(false)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
+                    gl.depthMask(r.values.uAlpha.ref.value === 1.0)
                     if (!r.state.opaque) renderObject(r, variant)
                 }
             } else {

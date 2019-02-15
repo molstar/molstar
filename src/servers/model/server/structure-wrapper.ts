@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, Model, Format } from 'mol-model/structure';
+import { Structure, Model } from 'mol-model/structure';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import { Cache } from './cache';
 import Config from '../config';
@@ -15,6 +15,7 @@ import * as zlib from 'zlib'
 import { Job } from './jobs';
 import { ConsoleLogger } from 'mol-util/console-logger';
 import { ModelPropertiesProvider } from '../property-provider';
+import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 
 require('util.promisify').shim();
 
@@ -108,7 +109,7 @@ export async function readStructureWrapper(key: string, sourceId: string | '_loc
     const frame = (await parseCif(data)).blocks[0];
     perf.end('parse');
     perf.start('createModel');
-    const models = await Model.create(Format.mmCIF(frame)).run();
+    const models = await trajectoryFromMmCIF(frame).run();
     perf.end('createModel');
 
     const modelMap = new Map<number, Model>();

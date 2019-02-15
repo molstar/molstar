@@ -89,7 +89,7 @@ export namespace Transformer {
         readonly from: StateObject.Ctor[],
         readonly to: StateObject.Ctor[],
         readonly display: { readonly name: string, readonly description?: string },
-        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
+        params?(a: A | undefined, globalCtx: unknown): { [K in keyof P]: PD.Any },
     }
 
     const registry = new Map<Id, Transformer<any, any>>();
@@ -103,6 +103,10 @@ export namespace Transformer {
                 fromTypeIndex.set(t.type, [tr]);
             }
         }
+    }
+
+    export function getAll() {
+        return Array.from(registry.values());
     }
 
     export function get(id: string): Transformer {
@@ -151,7 +155,8 @@ export namespace Transformer {
             name: string,
             from: A | A[],
             to: B | B[],
-            params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>),
+            /** The source StateObject can be undefined: used for generating docs. */
+            params?: PD.For<P> | ((a: StateObject.From<A> | undefined, globalCtx: any) => PD.For<P>),
             display?: string | { name: string, description?: string }
         }
 
@@ -195,7 +200,7 @@ export namespace Transformer {
         name: 'root',
         from: [],
         to: [],
-        display: { name: 'Root' },
+        display: { name: 'Root', description: 'For internal use.' },
         apply() { throw new Error('should never be applied'); },
         update() { return UpdateResult.Unchanged; }
     })

@@ -15,6 +15,7 @@ import { Field, Category, Encoder } from '../encoder'
 import Writer from '../../writer'
 import { getIncludedFields, getCategoryInstanceData, CategoryInstanceData } from './util';
 import { classifyIntArray, classifyFloatArray } from '../../../common/binary-cif/classifier';
+import { ArrayCtor } from 'mol-util/type-helpers';
 
 export interface EncodingProvider {
     get(category: string, field: string): ArrayEncoder | undefined;
@@ -96,7 +97,7 @@ export default class BinaryEncoder implements Encoder<Uint8Array> {
     }
 }
 
-function getArrayCtor(field: Field, format: Field.Format | undefined): Helpers.ArrayCtor<string | number> {
+function getArrayCtor(field: Field, format: Field.Format | undefined): ArrayCtor<string | number> {
     if (format && format.typedArray) return format.typedArray;
     if (field.defaultFormat && field.defaultFormat.typedArray) return field.defaultFormat.typedArray;
     if (field.type === Field.Type.Str) return Array;
@@ -157,7 +158,7 @@ function encodeField(categoryName: string, field: Field, data: CategoryInstanceD
     };
 }
 
-function getFieldData(field: Field<any, any>, arrayCtor: Helpers.ArrayCtor<string | number>, totalCount: number, data: CategoryInstanceData['source']) {
+function getFieldData(field: Field<any, any>, arrayCtor: ArrayCtor<string | number>, totalCount: number, data: CategoryInstanceData['source']) {
     const isStr = field.type === Field.Type.Str;
     const array = new arrayCtor(totalCount);
     const mask = new Uint8Array(totalCount);
