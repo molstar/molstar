@@ -140,17 +140,19 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Assembly', async ctx => {
             const model = a.data;
-            const id = params.id;
-            const asm = ModelSymmetry.findAssembly(model, id || '');
+            let id = params.id;
+            let asm = ModelSymmetry.findAssembly(model, id || '');
             if (!!id && id !== 'deposited' && !asm) throw new Error(`Assembly '${id}' not found`);
 
             const base = Structure.ofModel(model);
-            if (!asm) {
+            if ((id && !asm) || model.symmetry.assemblies.length === 0) {
                 if (!!id && id !== 'deposited') plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
                 const label = { label: a.data.label, description: structureDesc(base) };
                 return new SO.Molecule.Structure(base, label);
             }
 
+            asm = model.symmetry.assemblies[0];
+            id = asm.id;
             const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
             const props = { label: `Assembly ${id}`, description: structureDesc(s) };
             return new SO.Molecule.Structure(s, props);
