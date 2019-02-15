@@ -31,7 +31,7 @@ const ValidationColorTable: [string, Color][] = [
 export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: {}): ColorTheme<{}> {
     let color: LocationColor
 
-    if (ctx.structure && ctx.structure.models[0].customProperties.has(StructureQualityReport.Descriptor)) {
+    if (ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(StructureQualityReport.Descriptor)) {
         const getIssues = StructureQualityReport.getIssues;
         color = (location: Location) => {
             if (StructureElement.isLocation(location)) {
