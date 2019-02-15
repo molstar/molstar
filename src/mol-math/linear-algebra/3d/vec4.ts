@@ -19,6 +19,7 @@
 
 import Mat4 from './mat4';
 import { EPSILON } from '../3d';
+import { NumberArray } from 'mol-util/type-helpers';
 
 interface Vec4 extends Array<number> { [d: number]: number, '@type': 'vec4', length: 4 }
 
@@ -52,14 +53,14 @@ namespace Vec4 {
         return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2]) || isNaN(a[3])
     }
 
-    export function toArray(a: Vec4, out: Helpers.NumberArray, offset: number) {
+    export function toArray(a: Vec4, out: NumberArray, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
         out[offset + 3] = a[3];
     }
 
-    export function fromArray(a: Vec4, array: Helpers.NumberArray, offset: number) {
+    export function fromArray(a: Vec4, array: NumberArray, offset: number) {
         a[0] = array[offset + 0]
         a[1] = array[offset + 1]
         a[2] = array[offset + 2]
@@ -67,13 +68,13 @@ namespace Vec4 {
         return a
     }
 
-    export function toVec3Array(a: Vec4, out: Helpers.NumberArray, offset: number) {
+    export function toVec3Array(a: Vec4, out: NumberArray, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
     }
 
-    export function fromVec3Array(a: Vec4, array: Helpers.NumberArray, offset: number) {
+    export function fromVec3Array(a: Vec4, array: NumberArray, offset: number) {
         a[0] = array[offset + 0]
         a[1] = array[offset + 1]
         a[2] = array[offset + 2]

@@ -8,6 +8,7 @@
 import { Vec3, Mat4, EPSILON } from '../../linear-algebra'
 import { PositionData } from '../common'
 import { OrderedSet } from 'mol-data/int';
+import { NumberArray } from 'mol-util/type-helpers';
 
 interface Sphere3D { center: Vec3, radius: number }
 
@@ -64,12 +65,12 @@ namespace Sphere3D {
         return out
     }
 
-    export function toArray(s: Sphere3D, out: Helpers.NumberArray, offset: number) {
+    export function toArray(s: Sphere3D, out: NumberArray, offset: number) {
         Vec3.toArray(s.center, out, offset)
         out[offset + 3] = s.radius
     }
 
-    export function fromArray(out: Sphere3D, array: Helpers.NumberArray, offset: number) {
+    export function fromArray(out: Sphere3D, array: NumberArray, offset: number) {
         Vec3.fromArray(out.center, array, offset)
         out.radius = array[offset + 3]
         return out
@@ -77,6 +78,12 @@ namespace Sphere3D {
 
     export function addSphere(out: Sphere3D, sphere: Sphere3D) {
         out.radius = Math.max(out.radius, Vec3.distance(out.center, sphere.center) + sphere.radius)
+        return out
+    }
+
+    /** Expand sphere by delta */
+    export function expand(out: Sphere3D, sphere: Sphere3D, delta: number): Sphere3D {
+        out.radius = sphere.radius + delta
         return out
     }
 

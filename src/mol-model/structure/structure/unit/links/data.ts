@@ -66,10 +66,10 @@ class InterUnitBonds {
                 pairBonds.linkedElementIndices.forEach(indexA => {
                     pairBonds.getBonds(indexA).forEach(bondInfo => {
                         const { unitA, unitB } = pairBonds
-                        
+
                         const bondKey = InterUnitBonds.getBondKey(indexA, unitA, bondInfo.indexB, unitB)
                         bondKeyIndex.set(bondKey, bonds.length)
-                        
+
                         const elementKey = InterUnitBonds.getElementKey(indexA, unitA)
                         const e = elementKeyIndex.get(elementKey)
                         if (e === undefined) elementKeyIndex.set(elementKey, [bonds.length])

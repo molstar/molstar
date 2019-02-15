@@ -5,7 +5,7 @@
  */
 
 vec3 encodeFloatRGB(in float value) {
-    value = clamp(value, 0.0, 16777216.0);
+    value = clamp(value, 0.0, 16777216.0 - 1.0) + 1.0;
     vec3 c = vec3(0.0);
     c.b = mod(value, 256.0);
     value = floor(value / 256.0);

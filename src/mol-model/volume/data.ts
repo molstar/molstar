@@ -21,12 +21,23 @@ interface VolumeData {
 }
 
 namespace VolumeData {
+    export const Empty: VolumeData = {
+        cell: SpacegroupCell.Zero,
+        fractionalBox: Box3D.empty(),
+        data: Tensor.create(Tensor.Space([0, 0, 0], [0, 1, 2]), Tensor.Data1([])),
+        dataStats: { min: 0, max: 0, mean: 0, sigma: 0 }
+    }
+
     const _scale = Mat4.zero(), _translate = Mat4.zero();
     export function getGridToCartesianTransform(volume: VolumeData) {
         const { data: { space } } = volume;
         const scale = Mat4.fromScaling(_scale, Vec3.div(Vec3.zero(), Box3D.size(Vec3.zero(), volume.fractionalBox), Vec3.ofArray(space.dimensions)));
         const translate = Mat4.fromTranslation(_translate, volume.fractionalBox.min);
         return Mat4.mul3(Mat4.zero(), volume.cell.fromFractional, translate, scale);
+    }
+
+    export function areEquivalent(volA: VolumeData, volB: VolumeData) {
+        return volA === volB
     }
 }
 
@@ -44,7 +55,7 @@ namespace VolumeIsoValue {
     }
 
     export function calcRelative(stats: VolumeData['dataStats'], absoluteValue: number): number {
-        return (stats.mean - absoluteValue) / stats.sigma
+        return stats.sigma === 0 ? 0 : ((absoluteValue - stats.mean) / stats.sigma)
     }
 
     export function toAbsolute(value: VolumeIsoValue): Absolute {

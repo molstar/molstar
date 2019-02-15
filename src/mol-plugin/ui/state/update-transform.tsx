@@ -28,6 +28,7 @@ namespace UpdateTransformContol {
 class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Props, UpdateTransformContol.ComponentState> {
     applyAction() { return this.plugin.updateTransform(this.props.state, this.props.transform.ref, this.state.params); }
     getInfo() { return this._getInfo(this.props.transform); }
+    getTransformerId() { return this.props.transform.transformer.id; }
     getHeader() { return this.props.transform.transformer.definition.display; }
     canApply() { return !this.state.error && !this.state.busy && !this.state.isInitial; }
     applyText() { return this.canApply() ? 'Update' : 'Nothing to Update'; }

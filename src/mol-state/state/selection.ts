@@ -52,7 +52,8 @@ namespace StateSelection {
         subtree(): Builder;
         children(): Builder;
         ofType(t: StateObject.Ctor): Builder;
-        ancestorOfType(t: StateObject.Ctor): Builder;
+        ancestorOfType(t: StateObject.Ctor[]): Builder;
+        rootOfType(t: StateObject.Ctor[]): Builder;
 
         select(state: State): CellSeq
     }
@@ -189,6 +190,9 @@ namespace StateSelection {
     registerModifier('ancestorOfType', ancestorOfType);
     export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s.tree, s.cells, n.transform.ref, types))); }
 
+    registerModifier('rootOfType', rootOfType);
+    export function rootOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findRootOfType(s.tree, s.cells, n.transform.ref, types))); }
+
     registerModifier('parent', parent);
     export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.transforms.get(n.transform.ref)!.parent))); }
 
@@ -206,6 +210,20 @@ namespace StateSelection {
                 return void 0;
             }
         }
+    }
+
+    export function findRootOfType(tree: StateTree, cells: State.Cells, root: Transform.Ref, types: StateObject.Ctor[]): StateObjectCell | undefined {
+        let parent: StateObjectCell | undefined, _root = root;
+        while (true) {
+            const _parent = StateSelection.findAncestorOfType(tree, cells, _root, types);
+            if (_parent) {
+                parent = _parent;
+                _root = _parent.transform.ref;
+            } else {
+                break;
+            }
+        }
+        return parent;
     }
 }
 

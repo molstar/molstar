@@ -7,6 +7,7 @@
 import { Color } from './color'
 import { ColorBrewer, ColorMatplotlib, ColorOther } from './tables'
 import { defaults } from 'mol-util';
+import { NumberArray } from 'mol-util/type-helpers';
 
 export type ColorListName = (
     keyof typeof ColorBrewer | keyof typeof ColorMatplotlib | keyof typeof ColorOther
@@ -44,9 +45,9 @@ export interface ColorScale {
     /** Returns hex color for given value */
     color: (value: number) => Color
     /** Copies color to rgb int8 array */
-    colorToArray: (value: number, array: Helpers.NumberArray, offset: number) => void
+    colorToArray: (value: number, array: NumberArray, offset: number) => void
     /** Copies normalized (0 to 1) hex color to rgb array */
-    normalizedColorToArray: (value: number, array: Helpers.NumberArray, offset: number) => void
+    normalizedColorToArray: (value: number, array: NumberArray, offset: number) => void
     /**  */
     setDomain: (min: number, max: number) => void
     /** Legend */
@@ -90,10 +91,10 @@ export namespace ColorScale {
         }
         return {
             color,
-            colorToArray: (value: number, array: Helpers.NumberArray, offset: number) => {
+            colorToArray: (value: number, array: NumberArray, offset: number) => {
                 Color.toArray(color(value), array, offset)
             },
-            normalizedColorToArray: (value: number, array: Helpers.NumberArray, offset: number) => {
+            normalizedColorToArray: (value: number, array: NumberArray, offset: number) => {
                 Color.toArrayNormalized(color(value), array, offset)
             },
             setDomain,

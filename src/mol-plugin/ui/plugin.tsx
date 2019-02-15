@@ -33,22 +33,41 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
     render() {
         return <PluginReactContext.Provider value={this.props.plugin}>
-            <div className='msp-plugin'>
-                <div className='msp-plugin-content msp-layout-expanded'>
-                    <div className='msp-layout-hide-top'>
-                        {this.region('main', <ViewportWrapper />)}
-                        {this.region('left', <State />)}
-                        {this.region('right', <div className='msp-scrollable-container msp-right-controls'>
-                            <CurrentObject />
-                            <Controls />
-                            <CameraSnapshots />
-                            <StateSnapshots />
-                        </div>)}
-                        {this.region('bottom', <Log />)}
-                    </div>
+            <Layout />
+        </PluginReactContext.Provider>;
+    }
+}
+
+class Layout extends PluginComponent {
+    componentDidMount() {
+        this.subscribe(this.plugin.layout.updated, () => this.forceUpdate());
+    }
+
+    region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
+        return <div className={`msp-layout-region msp-layout-${kind}`}>
+            <div className='msp-layout-static'>
+                {element}
+            </div>
+        </div>;
+    }
+
+    render() {
+        const layout = this.plugin.layout.latestState;
+        return <div className='msp-plugin'>
+            <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
+                <div className={layout.showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
+                    {this.region('main', <ViewportWrapper />)}
+                    {layout.showControls && this.region('left', <State />)}
+                    {layout.showControls && this.region('right', <div className='msp-scrollable-container msp-right-controls'>
+                        <CurrentObject />
+                        <Controls />
+                        <CameraSnapshots />
+                        <StateSnapshots />
+                    </div>)}
+                    {layout.showControls && this.region('bottom', <Log />)}
                 </div>
             </div>
-        </PluginReactContext.Provider>;
+        </div>;
     }
 }
 
@@ -96,15 +115,14 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     private wrapper = React.createRef<HTMLDivElement>();
 
     componentDidMount() {
-        // TODO: only show last 100 entries.
-        this.subscribe(this.plugin.events.log, e => this.setState({ entries: this.state.entries.push(e) }));
+        this.subscribe(this.plugin.events.log, () => this.setState({ entries: this.plugin.log.entries.takeLast(100).toList() }));
     }
 
     componentDidUpdate() {
         this.scrollToBottom();
     }
 
-    state = { entries: List<LogEntry>() };
+    state = { entries: this.plugin.log.entries.takeLast(100).toList() };
 
     private scrollToBottom() {
         const log = this.wrapper.current;

@@ -10,6 +10,7 @@
 import { ChunkedArray } from 'mol-data/util'
 import { Encoding, EncodedData } from './encoding'
 import { classifyIntArray } from './classifier';
+import { TypedIntArray, TypedFloatArray } from 'mol-util/type-helpers';
 
 export interface ArrayEncoder {
     and(f: ArrayEncoding.Provider): ArrayEncoder,
@@ -119,7 +120,7 @@ export namespace ArrayEncoding {
         [Encoding.FloatDataType.Float64]: 8
     }
 
-    export function byteArray(data: Encoding.TypedFloatArray | Encoding.TypedIntArray) {
+    export function byteArray(data: TypedFloatArray | TypedIntArray) {
         const type = Encoding.getDataType(data);
 
         if (type === Encoding.IntDataType.Int8) return int8(data as Int8Array);
@@ -137,7 +138,7 @@ export namespace ArrayEncoding {
         };
     }
 
-    function _fixedPoint(data: Encoding.TypedFloatArray, factor: number): Result {
+    function _fixedPoint(data: TypedFloatArray, factor: number): Result {
         const srcType = Encoding.getDataType(data) as Encoding.FloatDataType;
         const result = new Int32Array(data.length);
         for (let i = 0, n = data.length; i < n; i++) {
@@ -148,9 +149,9 @@ export namespace ArrayEncoding {
             data: result
         };
     }
-    export function fixedPoint(factor: number): Provider { return data => _fixedPoint(data as Encoding.TypedFloatArray, factor); }
+    export function fixedPoint(factor: number): Provider { return data => _fixedPoint(data as TypedFloatArray, factor); }
 
-    function _intervalQuantizaiton(data: Encoding.TypedFloatArray, min: number, max: number, numSteps: number, arrayType: new (size: number) => Encoding.TypedIntArray): Result {
+    function _intervalQuantizaiton(data: TypedFloatArray, min: number, max: number, numSteps: number, arrayType: new (size: number) => TypedIntArray): Result {
         const srcType = Encoding.getDataType(data) as Encoding.FloatDataType;
         if (!data.length) {
             return {
@@ -180,11 +181,11 @@ export namespace ArrayEncoding {
             data: output
         };
     }
-    export function intervalQuantizaiton(min: number, max: number, numSteps: number, arrayType: new (size: number) => Encoding.TypedIntArray = Int32Array): Provider {
-        return data => _intervalQuantizaiton(data as Encoding.TypedFloatArray, min, max, numSteps, arrayType);
+    export function intervalQuantizaiton(min: number, max: number, numSteps: number, arrayType: new (size: number) => TypedIntArray = Int32Array): Provider {
+        return data => _intervalQuantizaiton(data as TypedFloatArray, min, max, numSteps, arrayType);
     }
 
-    export function runLength(data: Encoding.TypedIntArray): Result {
+    export function runLength(data: TypedIntArray): Result {
         let srcType = Encoding.getDataType(data) as Encoding.IntDataType;
         if (srcType === void 0) {
             data = new Int32Array(data);

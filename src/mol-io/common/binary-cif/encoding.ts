@@ -5,6 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { TypedIntArray, TypedFloatArray } from 'mol-util/type-helpers';
+
 export const VERSION = '0.3.0';
 
 export type Encoding =
@@ -70,9 +72,6 @@ export namespace Encoding {
     }
 
     export type DataType = IntDataType | FloatDataType
-
-    export type TypedIntArray = Helpers.TypedIntArray
-    export type TypedFloatArray = Helpers.TypedFloatArray
 
     export function getDataType(data: TypedIntArray | TypedFloatArray): DataType {
         let srcType: DataType;

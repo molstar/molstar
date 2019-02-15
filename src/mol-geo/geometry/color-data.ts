@@ -11,7 +11,7 @@ import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
 import { LocationColor, ColorTheme } from 'mol-theme/color';
-import { getGranularity } from './geometry';
+import { Geometry } from './geometry';
 
 export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -23,7 +23,7 @@ export type ColorData = {
 }
 
 export function createColors(locationIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
-    switch (getGranularity(locationIt, colorTheme.granularity)) {
+    switch (Geometry.getGranularity(locationIt, colorTheme.granularity)) {
         case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData)
         case 'group': return createGroupColor(locationIt, colorTheme.color, colorData)
         case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData)
@@ -75,6 +75,7 @@ export function createTextureColor(colors: TextureImage<Uint8Array>, type: Color
 export function createInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { instanceCount } = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createTextureImage(instanceCount, 3)
+    locationIt.reset()
     while (locationIt.hasNext) {
         const { location, isSecondary, instanceIndex } = locationIt.move()
         Color.toArray(color(location, isSecondary), colors.array, instanceIndex * 3)
@@ -87,6 +88,7 @@ export function createInstanceColor(locationIt: LocationIterator, color: Locatio
 export function createGroupColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount } = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= groupCount * 3 ? colorData.tColor.ref.value : createTextureImage(groupCount, 3)
+    locationIt.reset()
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const { location, isSecondary, groupIndex } = locationIt.move()
         Color.toArray(color(location, isSecondary), colors.array, groupIndex * 3)
@@ -99,6 +101,7 @@ export function createGroupInstanceColor(locationIt: LocationIterator, color: Lo
     const { groupCount, instanceCount } = locationIt
     const count = instanceCount * groupCount
     const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
+    locationIt.reset()
     while (locationIt.hasNext) {
         const { location, isSecondary, index } = locationIt.move()
         Color.toArray(color(location, isSecondary), colors.array, index * 3)

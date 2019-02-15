@@ -19,8 +19,8 @@ export type ValueKindType = {
     'boolean': string
     'any': any
 
+    'm4': Mat4,
     'float32': Float32Array
-
     'sphere': Sphere3D
 }
 export type ValueKind = keyof ValueKindType
@@ -75,6 +75,20 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
         if (schema[k].type === 'uniform') uniformValues[k] = values[k]
     })
     return { attributeValues, defineValues, textureValues, uniformValues }
+}
+
+export function splitKeys(schema: RenderableSchema) {
+    const attributeKeys: string[] = []
+    const defineKeys: string[] = []
+    const textureKeys: string[] = []
+    const uniformKeys: string[] = []
+    Object.keys(schema).forEach(k => {
+        if (schema[k].type === 'attribute') attributeKeys.push(k)
+        if (schema[k].type === 'define') defineKeys.push(k)
+        if (schema[k].type === 'texture') textureKeys.push(k)
+        if (schema[k].type === 'uniform') uniformKeys.push(k)
+    })
+    return { attributeKeys, defineKeys, textureKeys, uniformKeys }
 }
 
 export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
@@ -148,6 +162,7 @@ export const GlobalUniformSchema = {
     uViewportHeight: UniformSpec('f'),
     uViewport: UniformSpec('v4'),
 
+    uCameraPosition: UniformSpec('v3'),
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
@@ -165,6 +180,7 @@ export type InternalSchema = typeof InternalSchema
 export type InternalValues = { [k in keyof InternalSchema]: ValueCell<any> }
 
 export const ColorSchema = {
+    // aColor: AttributeSpec('float32', 3, 0), // TODO
     uColor: UniformSpec('v3'),
     uColorTexDim: UniformSpec('v2'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
@@ -174,10 +190,12 @@ export type ColorSchema = typeof ColorSchema
 export type ColorValues = Values<ColorSchema>
 
 export const SizeSchema = {
+    // aSize: AttributeSpec('float32', 1, 0), // TODO
     uSize: UniformSpec('f'),
     uSizeTexDim: UniformSpec('v2'),
     tSize: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
+    uSizeFactor: UniformSpec('f'),
 }
 export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>
@@ -187,6 +205,10 @@ export const BaseSchema = {
 
     aInstance: AttributeSpec('float32', 1, 1),
     aGroup: AttributeSpec('float32', 1, 0),
+    /**
+     * final per-instance transform calculated for instance `i` as
+     * `aTransform[i] = matrix * transform[i] * extraTransform[i]`
+     */
     aTransform: AttributeSpec('float32', 16, 1),
 
     uAlpha: UniformSpec('f'),
@@ -200,8 +222,17 @@ export const BaseSchema = {
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
+
+    /** global transform, see aTransform */
+    matrix: ValueSpec('m4'),
+    /** base per-instance transform, see aTransform */
     transform: ValueSpec('float32'),
+    /** additional per-instance transform, see aTransform */
+    extraTransform: ValueSpec('float32'),
+
+    /** bounding sphere taking aTransform into account */
     boundingSphere: ValueSpec('sphere'),
+    /** bounding sphere NOT taking aTransform into account */
     invariantBoundingSphere: ValueSpec('sphere'),
 
     dUseFog: DefineSpec('boolean'),

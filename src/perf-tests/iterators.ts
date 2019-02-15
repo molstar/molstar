@@ -2,7 +2,7 @@ import * as B from 'benchmark'
 import It from 'mol-data/iterator'
 
 function createData(n: number) {
-    const data = [];//new Int32Array(n);
+    const data = []; // new Int32Array(n);
     let last = (15 * Math.random()) | 0;
     for (let i = 0; i < n; i++) {
         data[i] = last;
@@ -214,9 +214,9 @@ export namespace Iterators {
             .add('forEachClosure all', () => Iterators.forEachClosureAll())
             .add('forEachClosure all function', () => Iterators.forEachClosureAllFunction())
             .add('mutableIterator ES6', () => Iterators.mutableES6Iterator())
-            //.add('mutableIteratorOf ES6', () => Iterators.mutableES6IteratorOf())
+            // .add('mutableIteratorOf ES6', () => Iterators.mutableES6IteratorOf())
             .add('immutableIterator ES6', () => Iterators.immutableES6Iterator())
-            //.add('immutableIteratorOf ES6', () => Iterators.immutableES6IteratorOf())
+            // .add('immutableIteratorOf ES6', () => Iterators.immutableES6IteratorOf())
             .add('mutableIterator', () => Iterators.mutableIterator())
             .on('cycle', (e: any) => {
                 console.log(String(e.target));

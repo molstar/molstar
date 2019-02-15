@@ -5,18 +5,8 @@
  */
 
 import { Unit, Structure, ElementIndex, StructureElement } from 'mol-model/structure';
-import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject, createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { Mat4 } from 'mol-math/linear-algebra';
-import { TransformData, createTransform, createIdentityTransform } from 'mol-geo/geometry/transform-data';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { Geometry } from 'mol-geo/geometry/geometry';
-import { Points } from 'mol-geo/geometry/points/points';
-import { Lines } from 'mol-geo/geometry/lines/lines';
-import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { Theme } from 'mol-theme/theme';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams } from 'mol-repr/structure/representation';
+import { TransformData, createTransform } from 'mol-geo/geometry/transform-data';
 import { OrderedSet, SortedArray } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 
@@ -65,54 +55,4 @@ export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
         if (Unit.isGaussians(unit) && unitKinds[i] === 'gaussians') return true
     }
     return false
-}
-
-// mesh
-
-export function createComplexMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
-    const transform = createIdentityTransform()
-    const values = Mesh.createValues(mesh, transform, locationIt, theme, props)
-    const state = Geometry.createRenderableState(props)
-    return createMeshRenderObject(values, state)
-}
-
-export function createUnitsMeshRenderObject(group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
-    const transform = createUnitsTransform(group)
-    const values = Mesh.createValues(mesh, transform, locationIt, theme, props)
-    const state = Geometry.createRenderableState(props)
-    return createMeshRenderObject(values, state)
-}
-
-// points
-
-export function createUnitsPointsRenderObject(group: Unit.SymmetryGroup, points: Points, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructurePointsParams>) {
-    const transform = createUnitsTransform(group)
-    const values = Points.createValues(points, transform, locationIt, theme, props)
-    const state = Points.createRenderableState(props)
-    return createPointsRenderObject(values, state)
-}
-
-// lines
-
-export function createUnitsLinesRenderObject(group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureLinesParams>) {
-    const transform = createUnitsTransform(group)
-    const values = Lines.createValues(lines, transform, locationIt, theme, props)
-    const state = Geometry.createRenderableState(props)
-    return createLinesRenderObject(values, state)
-}
-
-// direct-volume
-
-export function createComplexDirectVolumeRenderObject(structure: Structure, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureDirectVolumeParams>) {
-    const transform = createIdentityTransform()
-    const values = DirectVolume.createValues(directVolume, transform, locationIt, theme, props)
-    const state = DirectVolume.createRenderableState(props)
-    return createDirectVolumeRenderObject(values, state)
-}
-
-export function createUnitsDirectVolumeRenderObject(group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureDirectVolumeParams>) {
-    const transform = createUnitsTransform(group)
-    const values = DirectVolume.createValues(directVolume, transform, locationIt, theme, props)
-    const state = DirectVolume.createRenderableState(props)
-    return createDirectVolumeRenderObject(values, state)
 }

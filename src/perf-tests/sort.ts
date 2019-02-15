@@ -12,10 +12,10 @@ function shuffle(a: number[]) {
 }
 
 function createTestData(n: number) {
-    const data = new Int32Array(n); //new Array(n);
+    const data = new Int32Array(n); // new Array(n);
     for (let i = 0; i < n; i++) {
         data[i] = i;
-        //data[i] = (n * Math.random()) | 0;
+        // data[i] = (n * Math.random()) | 0;
     }
     shuffle(data as any);
     return data;
@@ -67,10 +67,10 @@ export function runTest(size: number) {
     suite
         .add(name('native'), () => Array.prototype.sort.call(getData(), le))
         .add(name('qsort'), () => Sort.sortArray(getData()))
-        //.add(name('qsort'), () => Sort.sort(getData(), 0, _data.length, Sort.arrayLess, Sort.arraySwap))
+        // .add(name('qsort'), () => Sort.sort(getData(), 0, _data.length, Sort.arrayLess, Sort.arraySwap))
         .add(name('native sorted'), () => Array.prototype.sort.call(_data, le))
         .add(name('qsort sorted'), () => Sort.sortArray(_data))
-        //.add(name('qsort sorted'), () => Sort.sort(_data, 0, _data.length, Sort.arrayLess, Sort.arraySwap))
+        // .add(name('qsort sorted'), () => Sort.sort(_data, 0, _data.length, Sort.arrayLess, Sort.arraySwap))
         .on('cycle', (e: any) => {
             prepareData();
             console.log(String(e.target));
@@ -79,8 +79,8 @@ export function runTest(size: number) {
     console.log('---------------------');
 }
 
-//runTest(10);
-//runTest(100);
-//runTest(1000);
+// runTest(10);
+// runTest(100);
+// runTest(1000);
 runTest(10000);
-//runTest(100000);
+// runTest(100000);

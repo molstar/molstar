@@ -9,6 +9,7 @@ import { PluginCommand } from './command/base';
 import { Transform, State } from 'mol-state';
 import { StateAction } from 'mol-state/action';
 import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
+import { PluginLayoutStateProps } from './layout';
 
 export * from './command/base';
 
@@ -32,8 +33,14 @@ export const PluginCommands = {
             Clear: PluginCommand<{}>({ isImmediate: true }),
 
             Upload: PluginCommand<{ name?: string, description?: string, serverUrl: string }>({ isImmediate: true }),
-            Fetch: PluginCommand<{ url: string }>()
+            Fetch: PluginCommand<{ url: string }>(),
+
+            DownloadToFile: PluginCommand<{ name?: string }>({ isImmediate: true }),
+            OpenFile: PluginCommand<{ file: File }>({ isImmediate: true }),
         }
+    },
+    Layout: {
+        Update: PluginCommand<{ state: Partial<PluginLayoutStateProps> }>({ isImmediate: true })
     },
     Camera: {
         Reset: PluginCommand<{}>({ isImmediate: true }),

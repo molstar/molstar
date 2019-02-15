@@ -24,15 +24,15 @@ export class TrajectoryControls extends PluginComponent {
             <button className='msp-btn msp-btn-link' onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
                 state: this.plugin.state.dataState,
                 action: UpdateTrajectory.create({ action: 'advance', by: -1 })
-            })}>◀</button>
+            })} title='Previou Model'>◀</button>
             <button className='msp-btn msp-btn-link' onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
                 state: this.plugin.state.dataState,
                 action: UpdateTrajectory.create({ action: 'reset' })
-            })}>↻</button>
+            })} title='First Model'>↻</button>
             <button className='msp-btn msp-btn-link' onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
                 state: this.plugin.state.dataState,
                 action: UpdateTrajectory.create({ action: 'advance', by: +1 })
-            })}>►</button><br />
+            })} title='Next Model'>►</button><br />
         </div>
     }
 }

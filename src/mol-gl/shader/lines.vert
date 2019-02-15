@@ -11,19 +11,10 @@ precision highp int;
 
 #pragma glslify: import('./chunks/common-vert-params.glsl')
 #pragma glslify: import('./chunks/color-vert-params.glsl')
+#pragma glslify: import('./chunks/size-vert-params.glsl')
 
 uniform float uPixelRatio;
 uniform float uViewportHeight;
-
-#if defined(dSizeType_uniform)
-    uniform float uSize;
-#elif defined(dSizeType_attribute)
-    attribute float aSize;
-#elif defined(dSizeType_instance) || defined(dSizeType_group) || defined(dSizeType_groupInstance)
-    varying vec4 vSize;
-    uniform vec2 uSizeTexDim;
-    uniform sampler2D tSize;
-#endif
 
 attribute vec3 aPosition;
 attribute mat4 aTransform;
@@ -46,19 +37,8 @@ void trimSegment(const in vec4 start, inout vec4 end) {
 
 void main(){
     #pragma glslify: import('./chunks/assign-color-varying.glsl')
-
-    // TODO move to chunk (also in point.vert)
-    #if defined(dSizeType_uniform)
-        float size = uSize;
-    #elif defined(dSizeType_attribute)
-        float size = aSize;
-    #elif defined(dSizeType_instance)
-        float size = readFromTexture(tSize, aInstance, uSizeTexDim).r;
-    #elif defined(dSizeType_group)
-        float size = readFromTexture(tSize, aGroup, uSizeTexDim).r;
-    #elif defined(dSizeType_groupInstance)
-        float size = readFromTexture(tSize, aInstance * float(uGroupCount) + aGroup, uSizeTexDim).r;
-    #endif
+    #pragma glslify: import('./chunks/assign-marker-varying.glsl')
+    #pragma glslify: import('./chunks/assign-size.glsl')
 
     mat4 modelView = uView * uModel * aTransform;
 

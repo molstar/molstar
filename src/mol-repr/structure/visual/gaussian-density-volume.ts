@@ -95,7 +95,7 @@ export function GaussianDensityVolumeVisual(): ComplexVisual<GaussianDensityVolu
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) {
                 state.createGeometry = true
-                newProps.isoValue = Math.exp(-newProps.smoothness)
+                newProps.isoValueNorm = Math.exp(-newProps.smoothness)
             }
         }
     })

@@ -36,6 +36,18 @@ export const PointsShaderCode = ShaderCode(
     { standardDerivatives: false, fragDepth: false }
 )
 
+export const SpheresShaderCode = ShaderCode(
+    require('mol-gl/shader/spheres.vert'),
+    require('mol-gl/shader/spheres.frag'),
+    { standardDerivatives: false, fragDepth: true }
+)
+
+export const TextShaderCode = ShaderCode(
+    require('mol-gl/shader/text.vert'),
+    require('mol-gl/shader/text.frag'),
+    { standardDerivatives: true, fragDepth: false }
+)
+
 export const LinesShaderCode = ShaderCode(
     require('mol-gl/shader/lines.vert'),
     require('mol-gl/shader/lines.frag'),

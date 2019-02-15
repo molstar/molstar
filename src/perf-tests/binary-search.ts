@@ -1,6 +1,6 @@
 
 function createData(n: number) {
-    const data = [];//new Int32Array(n);
+    const data = []; // new Int32Array(n);
     let last = (15 * Math.random()) | 0;
     for (let i = 0; i < n; i++) {
         data[i] = last;

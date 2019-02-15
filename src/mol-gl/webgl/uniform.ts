@@ -5,9 +5,9 @@
  */
 
 import { Mat3, Mat4, Vec2, Vec3, Vec4 } from 'mol-math/linear-algebra'
-import { WebGLContext } from './context';
-import { ValueCell, arrayEqual } from 'mol-util';
-import { RenderableSchema } from '../renderable/schema';
+import { ValueCell } from 'mol-util';
+import { GLRenderingContext } from './compat';
+import { RenderableSchema } from 'mol-gl/renderable/schema';
 
 export type UniformKindValue = {
     'f': number
@@ -21,63 +21,55 @@ export type UniformKindValue = {
 }
 export type UniformKind = keyof UniformKindValue
 export type UniformType = number | Vec2 | Vec3 | Vec4 | Mat3 | Mat4
-export interface UniformUpdater {
-    set: (value: UniformType) => void,
-    clear: () => void
-}
 
 export type UniformValues = { [k: string]: ValueCell<UniformType> }
-export type UniformUpdaters = { [k: string]: UniformUpdater }
 
-function createUniformSetter(ctx: WebGLContext, program: WebGLProgram, name: string, kind: UniformKind): (value: any) => void {
-    const { gl } = ctx
-    const location = gl.getUniformLocation(program, name)
-    if (location === null) {
-        // console.info(`Could not get WebGL uniform location for '${name}'`)
-    }
+export function setUniform(gl: GLRenderingContext, location: WebGLUniformLocation | null, kind: UniformKind, value: any) {
     switch (kind) {
-        case 'f': return (value: number) => gl.uniform1f(location, value)
-        case 'i': case 't': return (value: number) => gl.uniform1i(location, value)
-        case 'v2': return (value: Vec2) => (gl as WebGLRenderingContext).uniform2fv(location, value) // TODO remove cast when webgl2 types are fixed
-        case 'v3': return (value: Vec3) => (gl as WebGLRenderingContext).uniform3fv(location, value)
-        case 'v4': return (value: Vec4) => (gl as WebGLRenderingContext).uniform4fv(location, value)
-        case 'm3': return (value: Mat3) => (gl as WebGLRenderingContext).uniformMatrix3fv(location, false, value)
-        case 'm4': return (value: Mat4) => (gl as WebGLRenderingContext).uniformMatrix4fv(location, false, value)
+        case 'f': gl.uniform1f(location, value); break
+        case 'i': case 't': gl.uniform1i(location, value); break
+        case 'v2': gl.uniform2fv(location, value); break
+        case 'v3': gl.uniform3fv(location, value); break
+        case 'v4': gl.uniform4fv(location, value); break
+        case 'm3': gl.uniformMatrix3fv(location, false, value); break
+        case 'm4': gl.uniformMatrix4fv(location, false, value); break
+        default: console.error(`unknown uniform kind '${kind}'`)
     }
 }
 
-function createUniformUpdater(ctx: WebGLContext, program: WebGLProgram, name: string, kind: UniformKind): UniformUpdater {
-    const setter = createUniformSetter(ctx, program, name, kind)
-    let _value: UniformType | undefined = undefined
-    return {
-        set: value => {
-            if (_value !== value || (Array.isArray(_value) && Array.isArray(value) && arrayEqual(_value, value))) {
-                setter(value)
-                _value = value 
-            }
-        },
-        clear: () => { _value = undefined }
+export type UniformSetter = (gl: GLRenderingContext, location: number, value: any) => void
+export type UniformSetters = { [k: string]: UniformSetter }
+
+function uniform1f (gl: GLRenderingContext, location: number, value: any) { gl.uniform1f(location, value) }
+function uniform1i (gl: GLRenderingContext, location: number, value: any) { gl.uniform1i(location, value) }
+function uniform2fv (gl: GLRenderingContext, location: number, value: any) { gl.uniform2fv(location, value) }
+function uniform3fv (gl: GLRenderingContext, location: number, value: any) { gl.uniform3fv(location, value) }
+function uniform4fv (gl: GLRenderingContext, location: number, value: any) { gl.uniform4fv(location, value) }
+function uniformMatrix3fv (gl: GLRenderingContext, location: number, value: any) { gl.uniformMatrix3fv(location, false, value) }
+function uniformMatrix4fv (gl: GLRenderingContext, location: number, value: any) { gl.uniformMatrix4fv(location, false, value) }
+
+function getUniformSetter(kind: UniformKind) {
+    switch (kind) {
+        case 'f': return uniform1f
+        case 'i': case 't': return uniform1i
+        case 'v2': return uniform2fv
+        case 'v3': return uniform3fv
+        case 'v4': return uniform4fv
+        case 'm3': return uniformMatrix3fv
+        case 'm4': return uniformMatrix4fv
     }
+    throw new Error(`unknown uniform kind '${kind}'`)
 }
 
-export function getUniformUpdaters(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
-    const updaters: UniformUpdaters = {}
+export function getUniformSetters(schema: RenderableSchema) {
+    const setters: UniformSetters = {}
     Object.keys(schema).forEach(k => {
         const spec = schema[k]
         if (spec.type === 'uniform') {
-            updaters[k] = createUniformUpdater(ctx, program, k, spec.kind)
+            setters[k] = getUniformSetter(spec.kind as UniformKind)
+        } else if (spec.type === 'texture') {
+            setters[k] = getUniformSetter('t')
         }
     })
-    return updaters
-}
-
-export function getTextureUniformUpdaters(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
-    const updaters: UniformUpdaters = {}
-    Object.keys(schema).forEach(k => {
-        const spec = schema[k]
-        if (spec.type === 'texture') {
-            updaters[k] = createUniformUpdater(ctx, program, k, 't')
-        }
-    })
-    return updaters
+    return setters
 }

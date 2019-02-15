@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,8 +9,18 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
 
 export type TransformData = {
+    /**
+     * final per-instance transform calculated for instance `i` as
+     * `aTransform[i] = matrix * transform[i] * extraTransform[i]`
+     */
     aTransform: ValueCell<Float32Array>,
+    /** global transform, see aTransform */
+    matrix: ValueCell<Mat4>,
+    /** base per-instance transform, see aTransform */
     transform: ValueCell<Float32Array>,
+    /** additional per-instance transform, see aTransform */
+    extraTransform: ValueCell<Float32Array>,
+
     uInstanceCount: ValueCell<number>,
     instanceCount: ValueCell<number>,
     aInstance: ValueCell<Float32Array>,
@@ -18,17 +28,30 @@ export type TransformData = {
 
 export function createTransform(transformArray: Float32Array, instanceCount: number, transformData?: TransformData): TransformData {
     if (transformData) {
-        ValueCell.update(transformData.aTransform, transformArray)
-        ValueCell.update(transformData.transform, new Float32Array(transformArray))
+        ValueCell.update(transformData.matrix, transformData.matrix.ref.value)
+        ValueCell.update(transformData.transform, transformArray)
         ValueCell.update(transformData.uInstanceCount, instanceCount)
         ValueCell.update(transformData.instanceCount, instanceCount)
+
+        const aTransform = transformData.aTransform.ref.value.length >= instanceCount * 16 ? transformData.aTransform.ref.value : new Float32Array(instanceCount * 16)
+        aTransform.set(transformArray)
+        ValueCell.update(transformData.aTransform, aTransform)
+
+        // Note that this sets `extraTransform` to identity transforms
+        const extraTransform = transformData.extraTransform.ref.value.length >= instanceCount * 16 ? transformData.extraTransform.ref.value : new Float32Array(instanceCount * 16)
+        ValueCell.update(transformData.extraTransform, fillIdentityTransform(extraTransform, instanceCount))
+
         const aInstance = transformData.aInstance.ref.value.length >= instanceCount ? transformData.aInstance.ref.value : new Float32Array(instanceCount)
         ValueCell.update(transformData.aInstance, fillSerial(aInstance, instanceCount))
+
+        updateTransformData(transformData)
         return transformData
     } else {
         return {
-            aTransform: ValueCell.create(transformArray),
-            transform: ValueCell.create(new Float32Array(transformArray)),
+            aTransform: ValueCell.create(new Float32Array(transformArray)),
+            matrix: ValueCell.create(Mat4.identity()),
+            transform: ValueCell.create(transformArray),
+            extraTransform: ValueCell.create(fillIdentityTransform(new Float32Array(instanceCount * 16), instanceCount)),
             uInstanceCount: ValueCell.create(instanceCount),
             instanceCount: ValueCell.create(instanceCount),
             aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount)))
@@ -38,19 +61,32 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
 
 const identityTransform = new Float32Array(16)
 Mat4.toArray(Mat4.identity(), identityTransform, 0)
+
 export function createIdentityTransform(transformData?: TransformData): TransformData {
     return createTransform(new Float32Array(identityTransform), 1, transformData)
 }
 
-const tmpTransformMat4 = Mat4.identity()
-export function setTransformData(matrix: Mat4, transformData: TransformData) {
-    const instanceCount = transformData.instanceCount.ref.value
-    const transform = transformData.transform.ref.value
+export function fillIdentityTransform(transform: Float32Array, count: number) {
+    for (let i = 0; i < count; i++) {
+        transform.set(identityTransform, i * 16)
+    }
+    return transform
+}
+
+/**
+ * updates per-instance transform calculated for instance `i` as
+ * `aTransform[i] = matrix * transform[i] * extraTransform[i]`
+ */
+export function updateTransformData(transformData: TransformData) {
     const aTransform = transformData.aTransform.ref.value
+    const instanceCount = transformData.instanceCount.ref.value
+    const matrix = transformData.matrix.ref.value
+    const transform = transformData.transform.ref.value
+    const extraTransform = transformData.extraTransform.ref.value
     for (let i = 0; i < instanceCount; i++) {
-        Mat4.fromArray(tmpTransformMat4, transform, i * 16)
-        Mat4.mul(tmpTransformMat4, tmpTransformMat4, matrix)
-        Mat4.toArray(tmpTransformMat4, aTransform, i * 16)
+        const i16 = i * 16
+        Mat4.mulOffset(aTransform, extraTransform, transform, i16, i16, i16)
+        Mat4.mulOffset(aTransform, matrix, aTransform, i16, 0, i16)
     }
     ValueCell.update(transformData.aTransform, aTransform)
 }

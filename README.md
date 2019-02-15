@@ -17,6 +17,7 @@ The core of Mol* currently consists of these modules:
 - `mol-math` Math related (loosely) algorithms and data structures.
 - `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it. Support for common coordinate, experimental/map, and annotation data formats.
 - `mol-model` Data structures and algorithms (such as querying) for representing molecular data (including coordinate, experimental/map, and annotation data).
+- `mol-model-formats` Data format parsers for `mol-model`.
 - `mol-model-props` Common "custom properties".
 - `mol-script` A scriting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
 - `mol-geo` Creating (molecular) geometries.
@@ -98,11 +99,11 @@ Run the image
 ### Code generation
 **CIF schemas**
 
-    node build/node_modules/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/mmcif.ts --fieldNamesPath data/mmcif-field-names.csv --name mmCIF
+    export NODE_PATH="build/src"; node build/src/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/mmcif.ts --fieldNamesPath data/mmcif-field-names.csv --name mmCIF
 
-    node build/node_modules/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/ccd.ts --fieldNamesPath data/ccd-field-names.csv --name CCD
+    export NODE_PATH="build/src"; node build/src/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/ccd.ts --fieldNamesPath data/ccd-field-names.csv --name CCD
 
-    node build/node_modules/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/bird.ts --fieldNamesPath data/bird-field-names.csv --name BIRD
+    export NODE_PATH="build/src"; node build/src/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/bird.ts --fieldNamesPath data/bird-field-names.csv --name BIRD
 
 **GraphQL schemas**
 
@@ -111,11 +112,15 @@ Run the image
 ### Other scripts
 **Create chem comp bond table**
 
-    node --max-old-space-size=8192 build/node_modules/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+    export NODE_PATH="build/src"; node --max-old-space-size=8192 build/src/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
 
 **Test model server**
 
-    node build/node_modules/servers/model/test.js
+    export NODE_PATH="build/src"; node build/src/servers/model/test.js
+
+**State Transformer Docs**
+
+    export NODE_PATH="build/src"; node build/state-docs
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.

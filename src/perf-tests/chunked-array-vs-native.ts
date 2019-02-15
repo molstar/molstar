@@ -41,4 +41,4 @@ suite
     })
     .run();
 
-//console.log(testChunkedTyped(10, 16));
+// console.log(testChunkedTyped(10, 16));

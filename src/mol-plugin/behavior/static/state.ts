@@ -11,6 +11,8 @@ import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
 import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
 import { EmptyLoci, EveryLoci } from 'mol-model/loci';
 import { Structure } from 'mol-model/structure';
+import { getFormattedTime } from 'mol-util/date';
+import { readFromFile } from 'mol-util/data-source';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -49,17 +51,17 @@ export function SetCurrentObject(ctx: PluginContext) {
 }
 
 export function Update(ctx: PluginContext) {
-    PluginCommands.State.Update.subscribe(ctx, ({ state, tree }) => ctx.runTask(state.update(tree)));
+    PluginCommands.State.Update.subscribe(ctx, ({ state, tree }) => ctx.runTask(state.updateTree(tree)));
 }
 
 export function ApplyAction(ctx: PluginContext) {
-    PluginCommands.State.ApplyAction.subscribe(ctx, ({ state, action, ref }) => ctx.runTask(state.apply(action.action, action.params, ref)));
+    PluginCommands.State.ApplyAction.subscribe(ctx, ({ state, action, ref }) => ctx.runTask(state.applyAction(action.action, action.params, ref)));
 }
 
 export function RemoveObject(ctx: PluginContext) {
     PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref }) => {
         const tree = state.tree.build().delete(ref).getTree();
-        return ctx.runTask(state.update(tree));
+        return ctx.runTask(state.updateTree(tree));
     });
 }
 
@@ -133,5 +135,26 @@ export function Snapshots(ctx: PluginContext) {
         const req = await fetch(url, { referrer: 'no-referrer' });
         const json = await req.json();
         return ctx.state.setSnapshot(json.data);
+    });
+
+    PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, ({ name }) => {
+        const element = document.createElement('a');
+        const json = JSON.stringify(ctx.state.getSnapshot(), null, 2);
+        element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(json));
+        element.setAttribute('download', `mol-star_state_${(name || getFormattedTime())}.json`);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    });
+
+    PluginCommands.State.Snapshots.OpenFile.subscribe(ctx, async ({ file }) => {
+        try {
+            const data = await readFromFile(file, 'string').run();
+            const json = JSON.parse(data as string);
+            await ctx.state.setSnapshot(json);
+        } catch (e) {
+            ctx.log.error(`Reading JSON state: ${e}`);
+        }
     });
 }

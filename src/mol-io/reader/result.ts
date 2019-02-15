@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-type ReaderResult<T> = Success<T> | Error
+type ReaderResult<T> = ReaderResult.Success<T> | ReaderResult.Error
 
 namespace ReaderResult {
     export function error<T>(message: string, line = -1): ReaderResult<T> {
@@ -15,28 +15,28 @@ namespace ReaderResult {
     export function success<T>(result: T, warnings: string[] = []): ReaderResult<T> {
         return new Success<T>(result, warnings);
     }
-}
 
-export class Error {
-    isError: true = true;
+    export class Error {
+        isError: true = true;
 
-    toString() {
-        if (this.line >= 0) {
-            return `[Line ${this.line}] ${this.message}`;
+        toString() {
+            if (this.line >= 0) {
+                return `[Line ${this.line}] ${this.message}`;
+            }
+            return this.message;
         }
-        return this.message;
+
+        constructor(
+            public message: string,
+            public line: number) {
+        }
     }
 
-    constructor(
-        public message: string,
-        public line: number) {
+    export class Success<T> {
+        isError: false = false;
+
+        constructor(public result: T, public warnings: string[]) { }
     }
 }
 
-export class Success<T> {
-    isError: false = false;
-
-    constructor(public result: T, public warnings: string[]) { }
-}
-
-export default ReaderResult
+export { ReaderResult }

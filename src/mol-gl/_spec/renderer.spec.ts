@@ -15,7 +15,7 @@ import { createValueColor } from 'mol-geo/geometry/color-data';
 import { createValueSize } from 'mol-geo/geometry/size-data';
 import { createContext } from '../webgl/context';
 import { RenderableState } from '../renderable';
-import { createPointsRenderObject } from '../render-object';
+import { createRenderObject } from '../render-object';
 import { PointsValues } from '../renderable/points';
 import Scene from '../scene';
 import { createEmptyMarkers } from 'mol-geo/geometry/marker-data';
@@ -57,6 +57,7 @@ function createPoints() {
     const m4 = Mat4.identity()
     Mat4.toArray(m4, aTransform.ref.value, 0)
     const transform = ValueCell.create(new Float32Array(aTransform.ref.value))
+    const extraTransform = ValueCell.create(new Float32Array(aTransform.ref.value))
 
     const boundingSphere = ValueCell.create(Sphere3D.create(Vec3.zero(), 2))
     const invariantBoundingSphere = ValueCell.create(Sphere3D.create(Vec3.zero(), 2))
@@ -78,10 +79,13 @@ function createPoints() {
 
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
+        matrix: ValueCell.create(m4),
         transform,
+        extraTransform,
         boundingSphere,
         invariantBoundingSphere,
 
+        uSizeFactor: ValueCell.create(1),
         dPointSizeAttenuation: ValueCell.create(true),
         dPointFilledCircle: ValueCell.create(false),
         uPointEdgeBleach: ValueCell.create(0.5),
@@ -93,7 +97,7 @@ function createPoints() {
         opaque: true
     }
 
-    return createPointsRenderObject(values, state)
+    return createRenderObject('points', values, state)
 }
 
 describe('renderer', () => {

@@ -7,15 +7,13 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps } from '../representation';
 import { Visual, VisualContext } from '../visual';
-import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams } from './representation';
+import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureSpheresParams } from './representation';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
-import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, includesUnitKind } from './visual/util/common';
+import { GraphicsRenderObject, createRenderObject } from 'mol-gl/render-object';
 import { deepEqual, ValueCell } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { RenderableValues } from 'mol-gl/renderable/schema';
-import { Geometry } from 'mol-geo/geometry/geometry';
+import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { createMarkers, MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
@@ -30,14 +28,21 @@ import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { UnitsParams } from './units-representation';
-import { RenderableState } from 'mol-gl/renderable';
 import { Mat4 } from 'mol-math/linear-algebra';
+import { Spheres } from 'mol-geo/geometry/spheres/spheres';
+import { createUnitsTransform, includesUnitKind } from './visual/util/common';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
-type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
+function createUnitsRenderObject<G extends Geometry>(group: Unit.SymmetryGroup, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>) {
+    const { createValues, createRenderableState } = Geometry.getUtils(geometry)
+    const transform = createUnitsTransform(group)
+    const values = createValues(geometry, transform, locationIt, theme, props)
+    const state = createRenderableState(props)
+    return createRenderObject(geometry.kind, values, state)
+}
 
 interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
     defaultProps: PD.Values<P>
@@ -49,19 +54,15 @@ interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
 }
 
 interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
-    createEmptyGeometry(geometry?: G): G
-    createRenderObject(group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): UnitsRenderObject
-    updateValues(values: RenderableValues, newProps: Partial<PD.Values<P>>): void
-    updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
-    updateRenderableState(state: RenderableState, props: Partial<PD.Values<P>>): void
+    geometryUtils: GeometryUtils<G>
 }
 
-export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryBuilder<P, Geometry>): UnitsVisual<P> {
+export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry.Params<G>>(builder: UnitsVisualGeometryBuilder<P, G>): UnitsVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
-    const { createEmptyGeometry, createRenderObject, updateValues, updateBoundingSphere, updateRenderableState } = builder
+    const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
-    let renderObject: UnitsRenderObject | undefined
+    let renderObject: GraphicsRenderObject | undefined
 
     let newProps: PD.Values<P> = Object.assign({}, defaultProps)
     let newTheme: Theme = createEmptyTheme()
@@ -71,7 +72,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
     let currentTheme: Theme
     let currentStructureGroup: StructureGroup
 
-    let geometry: Geometry
+    let geometry: G
     let locationIt: LocationIterator
 
     function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>> = {}, structureGroup: StructureGroup) {
@@ -124,19 +125,21 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
 
         if (updateState.updateTransform) {
             updateState.updateColor = true
+            updateState.updateSize = true
             updateState.updateMatrix = true
         }
 
         if (updateState.createGeometry) {
             updateState.updateColor = true
+            updateState.updateSize = true
         }
     }
 
-    function update(newGeometry?: Geometry) {
+    function update(newGeometry?: G) {
         if (updateState.createNew) {
             locationIt = createLocationIterator(newStructureGroup.group)
             if (newGeometry) {
-                renderObject = createRenderObject(newStructureGroup.group, newGeometry, locationIt, newTheme, newProps)
+                renderObject = createUnitsRenderObject(newStructureGroup.group, newGeometry, locationIt, newTheme, newProps)
             } else {
                 throw new Error('expected geometry to be given')
             }
@@ -144,8 +147,6 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             if (!renderObject) {
                 throw new Error('expected renderObject to be available')
             }
-
-            locationIt.reset()
 
             if (updateState.updateTransform) {
                 // console.log('update transform')
@@ -169,7 +170,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             }
 
             if (updateState.updateTransform || updateState.createGeometry) {
-                console.log('UnitsVisual.updateBoundingSphere')
+                // console.log('UnitsVisual.updateBoundingSphere')
                 updateBoundingSphere(renderObject.values, newGeometry || geometry)
             }
 
@@ -196,7 +197,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         if (newGeometry) geometry = newGeometry
     }
 
-    function _createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: Geometry) {
+    function _createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G) {
         return includesUnitKind(props.unitKinds, unit)
                 ? createGeometry(ctx, unit, structure, theme, props, geometry)
                 : createEmptyGeometry(geometry)
@@ -209,7 +210,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             prepareUpdate(theme, props, structureGroup || currentStructureGroup)
             if (updateState.createGeometry) {
                 const newGeometry = _createGeometry(ctx, newStructureGroup.group.units[0], newStructureGroup.structure, newTheme, newProps, geometry)
-                return newGeometry instanceof Promise ? newGeometry.then(update) : update(newGeometry)
+                return newGeometry instanceof Promise ? newGeometry.then(update) : update(newGeometry as G)
             } else {
                 update()
             }
@@ -239,14 +240,14 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             }
             return changed
         },
-        setVisibility(value: boolean) {
-            Visual.setVisibility(renderObject, value)
+        setVisibility(visible: boolean) {
+            Visual.setVisibility(renderObject, visible)
         },
-        setPickable(value: boolean) {
-            Visual.setPickable(renderObject, value)
+        setPickable(pickable: boolean) {
+            Visual.setPickable(renderObject, pickable)
         },
-        setTransform(value: Mat4) {
-            Visual.setTransform(renderObject, value)
+        setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
+            Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
         destroy() {
             // TODO
@@ -257,96 +258,85 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
 
 // mesh
 
-export const UnitsMeshParams = {
-    ...StructureMeshParams,
-    ...UnitsParams,
-}
+export const UnitsMeshParams = { ...StructureMeshParams, ...UnitsParams }
 export type UnitsMeshParams = typeof UnitsMeshParams
 export interface UnitsMeshVisualBuilder<P extends UnitsMeshParams> extends UnitsVisualBuilder<P, Mesh> { }
 
 export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVisualBuilder<P>): UnitsVisual<P> {
-    return UnitsVisual<StructureMeshParams & UnitsParams>({
+    return UnitsVisual<Mesh, StructureMeshParams & UnitsParams>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
-        createEmptyGeometry: Mesh.createEmpty,
-        createRenderObject: createUnitsMeshRenderObject,
-        updateValues: Mesh.updateValues,
-        updateBoundingSphere: Mesh.updateBoundingSphere,
-        updateRenderableState: Geometry.updateRenderableState
+        geometryUtils: Mesh.Utils
+    })
+}
+
+// spheres
+
+export const UnitsSpheresParams = { ...StructureSpheresParams, ...UnitsParams }
+export type UnitsSpheresParams = typeof UnitsSpheresParams
+export interface UnitsSpheresVisualBuilder<P extends UnitsSpheresParams> extends UnitsVisualBuilder<P, Spheres> { }
+
+export function UnitsSpheresVisual<P extends UnitsSpheresParams>(builder: UnitsSpheresVisualBuilder<P>): UnitsVisual<P> {
+    return UnitsVisual<Spheres, StructureSpheresParams & UnitsParams>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
+        },
+        geometryUtils: Spheres.Utils
     })
 }
 
 // points
 
-export const UnitsPointsParams = {
-    ...StructurePointsParams,
-    ...UnitsParams,
-}
+export const UnitsPointsParams = { ...StructurePointsParams, ...UnitsParams }
 export type UnitsPointsParams = typeof UnitsPointsParams
 export interface UnitsPointVisualBuilder<P extends UnitsPointsParams> extends UnitsVisualBuilder<P, Points> { }
 
 export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPointVisualBuilder<P>): UnitsVisual<P> {
-    return UnitsVisual<StructurePointsParams & UnitsParams>({
+    return UnitsVisual<Points, StructurePointsParams & UnitsParams>({
         ...builder,
-        createEmptyGeometry: Points.createEmpty,
-        createRenderObject: createUnitsPointsRenderObject,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
-        updateValues: Points.updateValues,
-        updateBoundingSphere: Points.updateBoundingSphere,
-        updateRenderableState: Points.updateRenderableState
+        geometryUtils: Points.Utils
     })
 }
 
 // lines
 
-export const UnitsLinesParams = {
-    ...StructureLinesParams,
-    ...UnitsParams,
-}
+export const UnitsLinesParams = { ...StructureLinesParams, ...UnitsParams }
 export type UnitsLinesParams = typeof UnitsLinesParams
 export interface UnitsLinesVisualBuilder<P extends UnitsLinesParams> extends UnitsVisualBuilder<P, Lines> { }
 
 export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLinesVisualBuilder<P>): UnitsVisual<P> {
-    return UnitsVisual<StructureLinesParams & UnitsParams>({
+    return UnitsVisual<Lines, StructureLinesParams & UnitsParams>({
         ...builder,
-        createEmptyGeometry: Lines.createEmpty,
-        createRenderObject: createUnitsLinesRenderObject,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
-        updateValues: Lines.updateValues,
-        updateBoundingSphere: Lines.updateBoundingSphere,
-        updateRenderableState: Geometry.updateRenderableState
+        geometryUtils: Lines.Utils
     })
 }
 
 // direct-volume
 
-export const UnitsDirectVolumeParams = {
-    ...StructureDirectVolumeParams,
-    ...UnitsParams,
-}
+export const UnitsDirectVolumeParams = { ...StructureDirectVolumeParams, ...UnitsParams }
 export type UnitsDirectVolumeParams = typeof UnitsDirectVolumeParams
-export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeParams> extends UnitsVisualBuilder<P, DirectVolume> { }
+export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeParams> extends UnitsVisualGeometryBuilder<P, DirectVolume> { }
 
 export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(builder: UnitsDirectVolumeVisualBuilder<P>): UnitsVisual<P> {
-    return UnitsVisual<StructureDirectVolumeParams & UnitsParams>({
+    return UnitsVisual<DirectVolume, StructureDirectVolumeParams & UnitsParams>({
         ...builder,
-        createEmptyGeometry: DirectVolume.createEmpty,
-        createRenderObject: createUnitsDirectVolumeRenderObject,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
-        updateValues: DirectVolume.updateValues,
-        updateBoundingSphere: DirectVolume.updateBoundingSphere,
-        updateRenderableState: DirectVolume.updateRenderableState
+        geometryUtils: DirectVolume.Utils
     })
 }

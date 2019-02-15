@@ -14,12 +14,13 @@ import { CarbohydrateRepresentationProvider } from './representation/carbohydrat
 import { SpacefillRepresentationProvider } from './representation/spacefill';
 import { DistanceRestraintRepresentationProvider } from './representation/distance-restraint';
 import { PointRepresentationProvider } from './representation/point';
+import { StructureRepresentationState } from './representation';
 
-export class StructureRepresentationRegistry extends RepresentationRegistry<Structure> {
+export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
         super()
         Object.keys(BuiltInStructureRepresentations).forEach(name => {
-            const p = (BuiltInStructureRepresentations as { [k: string]: RepresentationProvider<Structure, any> })[name]
+            const p = (BuiltInStructureRepresentations as { [k: string]: RepresentationProvider<Structure, any, StructureRepresentationState> })[name]
             this.add(name, p)
         })
     }

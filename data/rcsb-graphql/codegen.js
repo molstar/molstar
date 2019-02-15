@@ -4,15 +4,20 @@ const path = require('path')
 const basePath = path.join(__dirname, '..', '..', 'src', 'mol-model-props', 'rcsb', 'graphql')
 
 generate({
-    args: [
+    schema: 'http://rest-dev.rcsb.org/graphql',
+    documents: [
         path.join(basePath, 'symmetry.gql.ts')
     ],
-    schema: 'http://rest-experimental.rcsb.org/graphql',
-    template: 'graphql-codegen-typescript-template',
-    out: path.join(basePath),
-    skipSchema: true,
+    generates: {
+        [path.join(basePath, 'types.ts')]: {
+            plugins: ['time', 'typescript-common', 'typescript-client']
+        }
+    },
+    // template: 'graphql-codegen-typescript-template',
+    // out: path.join(basePath),
+    // skipSchema: true,
     overwrite: true,
     config: path.join(__dirname, 'codegen.json')
 }, true).then(
-    console.log('done')
+    () => console.log('done')
 ).catch(e => console.error(e))

@@ -7,7 +7,7 @@
 import { ValueCell } from 'mol-util'
 import { Mat4 } from 'mol-math/linear-algebra'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
-import { Geometry } from '../geometry';
+import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
@@ -20,6 +20,8 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { Sphere3D } from 'mol-math/geometry';
 import { Theme } from 'mol-theme/theme';
+import { Color } from 'mol-util/color';
+import { BaseGeometry } from '../base';
 
 /** Wide line */
 export interface Lines {
@@ -93,12 +95,24 @@ export namespace Lines {
     //
 
     export const Params = {
-        ...Geometry.Params,
+        ...BaseGeometry.Params,
+        sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
         lineSizeAttenuation: PD.Boolean(false),
     }
     export type Params = typeof Params
 
-    export function createValues(lines: Lines, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): LinesValues {
+    export const Utils: GeometryUtils<Lines, Params> = {
+        Params,
+        createEmpty,
+        createValues,
+        createValuesSimple,
+        updateValues,
+        updateBoundingSphere,
+        createRenderableState: BaseGeometry.createRenderableState,
+        updateRenderableState: BaseGeometry.updateRenderableState
+    }
+
+    function createValues(lines: Lines, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): LinesValues {
         const { instanceCount, groupCount } = locationIt
         const color = createColors(locationIt, theme.color)
         const size = createSizes(locationIt, theme.size)
@@ -108,7 +122,7 @@ export namespace Lines {
 
         const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(lines.startBuffer.ref.value, lines.endBuffer.ref.value, lines.lineCount,
             transform.aTransform.ref.value, transform.instanceCount.ref.value)
-        
+
         return {
             aMapping: lines.mappingBuffer,
             aGroup: lines.groupBuffer,
@@ -122,21 +136,31 @@ export namespace Lines {
             ...marker,
             ...transform,
 
-            ...Geometry.createValues(props, counts),
+            ...BaseGeometry.createValues(props, counts),
+            uSizeFactor: ValueCell.create(props.sizeFactor),
             dLineSizeAttenuation: ValueCell.create(props.lineSizeAttenuation),
             dDoubleSided: ValueCell.create(true),
             dFlipSided: ValueCell.create(false),
         }
     }
 
-    export function updateValues(values: LinesValues, props: PD.Values<Params>) {
-        Geometry.updateValues(values, props)
+    function createValuesSimple(lines: Lines, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
+        const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
+        const p = { ...PD.getDefaultValues(Params), ...props }
+        return createValues(lines, s.transform, s.locationIterator, s.theme, p)
+    }
+
+    function updateValues(values: LinesValues, props: PD.Values<Params>) {
+        BaseGeometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor)
         ValueCell.updateIfChanged(values.dLineSizeAttenuation, props.lineSizeAttenuation)
     }
 
-    export function updateBoundingSphere(values: LinesValues, lines: Lines) {
-        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(values.aStart.ref.value, values.aEnd.ref.value, lines.lineCount,
-            values.aTransform.ref.value, values.instanceCount.ref.value)
+    function updateBoundingSphere(values: LinesValues, lines: Lines) {
+        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(
+            values.aStart.ref.value, values.aEnd.ref.value, lines.lineCount,
+            values.aTransform.ref.value, values.instanceCount.ref.value
+        )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }

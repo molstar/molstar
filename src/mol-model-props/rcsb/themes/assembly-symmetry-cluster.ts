@@ -47,7 +47,7 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
 
     const { symmetryId } = props
 
-    if (ctx.structure && ctx.structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)) {
+    if (ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)) {
         const assemblySymmetry = AssemblySymmetry.get(ctx.structure.models[0])!
 
         const s = assemblySymmetry.db.rcsb_assembly_symmetry
@@ -99,5 +99,5 @@ export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<Asse
     factory: AssemblySymmetryClusterColorTheme,
     getParams: getAssemblySymmetryClusterColorThemeParams,
     defaultValues: PD.getDefaultValues(AssemblySymmetryClusterColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)
 }

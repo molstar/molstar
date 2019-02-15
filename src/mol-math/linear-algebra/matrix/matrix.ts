@@ -4,15 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-interface Matrix { data: Helpers.NumberArray, size: number, cols: number, rows: number }
+import { NumberArray } from 'mol-util/type-helpers';
+
+interface Matrix { data: NumberArray, size: number, cols: number, rows: number }
 
 namespace Matrix {
-    export function create(cols: number, rows: number, ctor: { new (size: number): Helpers.NumberArray } = Float32Array): Matrix {
+    export function create(cols: number, rows: number, ctor: { new (size: number): NumberArray } = Float32Array): Matrix {
         const size = cols * rows
         return { data: new ctor(size), size, cols, rows }
     }
 
-    export function fromArray(data: Helpers.NumberArray, cols: number, rows: number): Matrix {
+    export function fromArray(data: NumberArray, cols: number, rows: number): Matrix {
         return { data, size: cols * rows, cols, rows }
     }
 
@@ -61,7 +63,7 @@ namespace Matrix {
     }
 
     /** Subtract `row` from all rows in `mat` */
-    export function subRows (mat: Matrix, row: Helpers.NumberArray) {
+    export function subRows (mat: Matrix, row: NumberArray) {
         const nrows = mat.rows, ncols = mat.cols
         const md = mat.data
 

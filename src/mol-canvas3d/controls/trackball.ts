@@ -21,11 +21,14 @@ export const TrackballControlsParams = {
     zoomSpeed: PD.Numeric(6.0, { min: 0.1, max: 10, step: 0.1 }),
     panSpeed: PD.Numeric(0.8, { min: 0.1, max: 5, step: 0.1 }),
 
+    spin: PD.Boolean(false),
+    spinSpeed: PD.Numeric(1, { min: -100, max: 100, step: 1 }),
+
     staticMoving: PD.Boolean(true, { isHidden: true }),
     dynamicDampingFactor: PD.Numeric(0.2, {}, { isHidden: true }),
 
     minDistance: PD.Numeric(0.01, {}, { isHidden: true }),
-    maxDistance: PD.Numeric(Infinity, {}, { isHidden: true })
+    maxDistance: PD.Numeric(1e150, {}, { isHidden: true })
 }
 export type TrackballControlsProps = PD.Values<typeof TrackballControlsParams>
 
@@ -50,8 +53,11 @@ namespace TrackballControls {
         let disposed = false
 
         const dragSub = input.drag.subscribe(onDrag)
+        const interactionEndSub = input.interactionEnd.subscribe(onInteractionEnd)
         const wheelSub = input.wheel.subscribe(onWheel)
         const pinchSub = input.pinch.subscribe(onPinch)
+
+        let _isInteracting = false;
 
         // For internal use
         const lastPosition = Vec3.zero()
@@ -234,6 +240,8 @@ namespace TrackballControls {
         // listeners
 
         function onDrag({ pageX, pageY, buttons, modifiers, isStart }: DragInput) {
+            _isInteracting = true;
+
             if (isStart) {
                 if (buttons === ButtonsType.Flag.Primary) {
                     Vec2.copy(_moveCurr, getMouseOnCircle(pageX, pageY))
@@ -257,11 +265,17 @@ namespace TrackballControls {
             }
         }
 
+        function onInteractionEnd() {
+            _isInteracting = false;
+        }
+
         function onWheel({ dy }: WheelInput) {
             _zoomStart[1] -= dy * 0.0001
         }
 
         function onPinch({ distance, isStart }: PinchInput) {
+            _isInteracting = true;
+
             if (isStart) {
                 _touchZoomDistanceStart = distance
             }
@@ -279,16 +293,30 @@ namespace TrackballControls {
             dragSub.unsubscribe()
             wheelSub.unsubscribe()
             pinchSub.unsubscribe()
+            interactionEndSub.unsubscribe()
+        }
+
+        const _spinSpeed = Vec2.create(0.005, 0);
+        function spin() {
+            _spinSpeed[0] = (p.spinSpeed || 0) / 1000;
+            if (!_isInteracting) Vec2.add(_moveCurr, _movePrev, _spinSpeed);
+            if (p.spin) requestAnimationFrame(spin);
         }
 
         // force an update at start
         update();
 
+        if (props.spin) { spin(); }
+
         return {
             viewport,
 
             get props() { return p as Readonly<TrackballControlsProps> },
-            setProps: (props: Partial<TrackballControlsProps>) => { Object.assign(p, props) },
+            setProps: (props: Partial<TrackballControlsProps>) => {
+                const wasSpinning = p.spin
+                Object.assign(p, props)
+                if (p.spin && !wasSpinning) requestAnimationFrame(spin)
+            },
 
             update,
             reset,

@@ -8,6 +8,7 @@ import { WebGLContext } from './context'
 import { ValueCell } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
+import { ValueOf } from 'mol-util/type-helpers';
 
 const getNextBufferId = idFactory()
 
@@ -24,7 +25,7 @@ export type DataTypeArrayType = {
     'int32': Int32Array
     'float32': Float32Array
 }
-export type ArrayType = Helpers.ValueOf<DataTypeArrayType>
+export type ArrayType = ValueOf<DataTypeArrayType>
 export type ArrayKind = keyof DataTypeArrayType
 
 export type BufferItemSize = 1 | 2 | 3 | 4 | 16

@@ -12,6 +12,8 @@ import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
 import { StateSelection } from 'mol-state/state/selection';
 import { StateObjectCell, State } from 'mol-state';
+import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
+import { UUID } from 'mol-util';
 
 const StructureAnimationParams = {
     rotate: PD.Boolean(false),
@@ -21,25 +23,6 @@ const StructureAnimationParams = {
 }
 type StructureAnimationProps = PD.Values<typeof StructureAnimationParams>
 
-function getStructure(root: StateObjectCell, state: State) {
-    const parent = StateSelection.findAncestorOfType(state.tree, state.cells, root.transform.ref, [PluginStateObject.Molecule.Structure])
-    return parent && parent.obj ? parent.obj as PluginStateObject.Molecule.Structure : undefined
-}
-
-function getRootStructure(root: StateObjectCell, state: State) {
-    let parent: StateObjectCell | undefined
-    while (true) {
-        const _parent = StateSelection.findAncestorOfType(state.tree, state.cells, root.transform.ref, [PluginStateObject.Molecule.Structure])
-        if (_parent) {
-            parent = _parent
-            root = _parent
-        } else {
-            break
-        }
-    }
-    return parent && parent.obj ? parent.obj as PluginStateObject.Molecule.Structure : undefined
-}
-
 /**
  * TODO
  * - animation class is just for testing purposes, needs better API
@@ -48,6 +31,7 @@ function getRootStructure(root: StateObjectCell, state: State) {
 export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>({
     name: 'structure-animation',
     display: { name: 'Structure Animation', group: 'Animation' },
+    canAutoUpdate: () => true,
     ctor: class extends PluginBehavior.Handler<StructureAnimationProps> {
         private tmpMat = Mat4.identity()
         private rotMat = Mat4.identity()
@@ -55,36 +39,62 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
         private animMat = Mat4.identity()
         private transVec = Vec3.zero()
         private rotVec = Vec3.create(0, 1, 0)
+        private centerVec = Vec3.zero()
 
         private rotateAnimHandle = -1
         private explodeAnimHandle = -1
+
+        private updatedUnitTransforms = new Set<SO.Molecule.Structure>()
+        private structureUnitTransforms = new Map<UUID, StructureUnitTransforms>()
 
         constructor(protected ctx: PluginContext, protected params: StructureAnimationProps) {
             super(ctx, params)
             this.update(params)
         }
 
+        private getUnitTransforms(structure: SO.Molecule.Structure) {
+            let unitTransforms = this.structureUnitTransforms.get(structure.id)
+            if (!unitTransforms) {
+                unitTransforms = new StructureUnitTransforms(structure.data)
+                this.structureUnitTransforms.set(structure.id, unitTransforms)
+            }
+            return unitTransforms
+        }
+
         rotate(rad: number) {
+            this.updatedUnitTransforms.clear()
             const state = this.ctx.state.dataState
-            const reprs = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D));
+            const reprs = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D))
             Mat4.rotate(this.rotMat, this.tmpMat, rad, this.rotVec)
             for (const r of reprs) {
                 if (!SO.isRepresentation3D(r.obj)) return
                 const structure = getRootStructure(r, state)
-                if (!structure) continue
+                if (!structure || !SO.Molecule.Structure.is(structure.obj)) continue
 
-                Vec3.negate(this.transVec, Vec3.copy(this.transVec, structure.data.boundary.sphere.center))
-                Mat4.fromTranslation(this.transMat, this.transVec)
-                Mat4.mul(this.animMat, this.rotMat, this.transMat)
+                const unitTransforms = this.getUnitTransforms(structure.obj)
 
-                Vec3.copy(this.transVec, structure.data.boundary.sphere.center)
-                Mat4.fromTranslation(this.transMat, this.transVec)
-                Mat4.mul(this.animMat, this.transMat, this.animMat)
+                if (!this.updatedUnitTransforms.has(structure.obj)) {
+                    for (let i = 0, il = structure.obj.data.units.length; i < il; ++i) {
+                        const u = structure.obj.data.units[i]
+                        Vec3.transformMat4(this.centerVec, u.lookup3d.boundary.sphere.center, u.conformation.operator.matrix)
 
-                r.obj.data.setState({ transform: this.animMat })
+                        Vec3.negate(this.transVec, Vec3.copy(this.transVec, this.centerVec))
+                        Mat4.fromTranslation(this.transMat, this.transVec)
+                        Mat4.mul(this.animMat, this.rotMat, this.transMat)
+
+                        Vec3.copy(this.transVec, this.centerVec)
+                        Mat4.fromTranslation(this.transMat, this.transVec)
+                        Mat4.mul(this.animMat, this.transMat, this.animMat)
+
+                        unitTransforms.setTransform(this.animMat, u)
+                    }
+                    this.updatedUnitTransforms.add(structure.obj)
+                }
+
+                r.obj.data.setState({ unitTransforms })
                 this.ctx.canvas3d.add(r.obj.data)
-                this.ctx.canvas3d.requestDraw(true)
             }
+            this.ctx.canvas3d.requestDraw(true)
         }
 
         animateRotate(play: boolean) {
@@ -99,30 +109,42 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
             }
         }
 
-        explode(d: number) {
+        explode(p: number) {
+            this.updatedUnitTransforms.clear()
             const state = this.ctx.state.dataState
-            const reprs = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D));
+            const reprs = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D));
             for (const r of reprs) {
                 if (!SO.isRepresentation3D(r.obj)) return
-                const structure = getStructure(r, state)
-                if (!structure) continue
-                const rootStructure = getRootStructure(r, state)
-                if (!rootStructure) continue
+                const structure = getRootStructure(r, state)
+                if (!structure || !SO.Molecule.Structure.is(structure.obj)) continue
 
-                Vec3.sub(this.transVec, structure.data.boundary.sphere.center, rootStructure.data.boundary.sphere.center)
-                Vec3.setMagnitude(this.transVec, this.transVec, d)
-                Mat4.fromTranslation(this.animMat, this.transVec)
+                const unitTransforms = this.getUnitTransforms(structure.obj)
+                const d = structure.obj.data.boundary.sphere.radius * (p / 100)
 
-                r.obj.data.setState({ transform: this.animMat })
+                if (!this.updatedUnitTransforms.has(structure.obj)) {
+                    for (let i = 0, il = structure.obj.data.units.length; i < il; ++i) {
+                        const u = structure.obj.data.units[i]
+                        Vec3.transformMat4(this.centerVec, u.lookup3d.boundary.sphere.center, u.conformation.operator.matrix)
+
+                        Vec3.sub(this.transVec, this.centerVec, structure.obj.data.boundary.sphere.center)
+                        Vec3.setMagnitude(this.transVec, this.transVec, d)
+                        Mat4.fromTranslation(this.animMat, this.transVec)
+
+                        unitTransforms.setTransform(this.animMat, u)
+                    }
+                    this.updatedUnitTransforms.add(structure.obj)
+                }
+
+                r.obj.data.setState({ unitTransforms })
                 this.ctx.canvas3d.add(r.obj.data)
-                this.ctx.canvas3d.requestDraw(true)
             }
+            this.ctx.canvas3d.requestDraw(true)
         }
 
         animateExplode(play: boolean) {
             if (play) {
                 const animateExplode = (t: number) => {
-                    this.explode((Math.sin(t * 0.001) + 1) * 5)
+                    this.explode((Math.sin(t * 0.001) + 1) * 50)
                     this.explodeAnimHandle = requestAnimationFrame(animateExplode)
                 }
                 this.explodeAnimHandle = requestAnimationFrame(animateExplode)
@@ -134,7 +156,7 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
         register(): void { }
 
         update(p: StructureAnimationProps) {
-            let updated = PD.areEqual(StructureAnimationParams, this.params, p)
+            let updated = !PD.areEqual(StructureAnimationParams, this.params, p)
             if (this.params.rotate !== p.rotate) {
                 this.params.rotate = p.rotate
                 this.animateRotate(this.params.rotate)
@@ -161,3 +183,9 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
     },
     params: () => StructureAnimationParams
 });
+
+//
+
+function getRootStructure(root: StateObjectCell, state: State) {
+    return state.select(StateSelection.Generators.byValue(root).rootOfType([PluginStateObject.Molecule.Structure]))[0];
+}

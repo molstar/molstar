@@ -71,7 +71,7 @@ namespace StateAction {
             params: def.params as Transformer.Definition<Transformer.From<T>, any, Transformer.Params<T>>['params'],
             run({ cell, state, params }) {
                 const tree = state.build().to(cell.transform.ref).apply(transformer, params);
-                return state.update(tree);
+                return state.updateTree(tree) as Task<void>;
             }
         })
     }

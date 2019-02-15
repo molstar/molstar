@@ -39,8 +39,8 @@ export function abortAfter(delay: number) {
     return Task.create('abort after ' + delay, async ctx => {
         await Scheduler.delay(delay);
         throw Task.Aborted('test');
-        //if (ctx.shouldUpdate) await ctx.update({ message: 'hello from delayed... ' });
-        //return r;
+        // if (ctx.shouldUpdate) await ctx.update({ message: 'hello from delayed... ' });
+        // return r;
     });
 }
 
@@ -58,7 +58,7 @@ export function testTree() {
         const c2 = createTask(500, 2).runAsChild(ctx);
         const c3 = createTask(750, 3).runAsChild(ctx);
 
-        //await ctx.runChild(abortAfter(350));
+        // await ctx.runChild(abortAfter(350));
 
         const r = await c1 + await c2 + await c3;
         if (ctx.shouldUpdate) await ctx.update({ message: 'Almost done...' });
@@ -111,9 +111,9 @@ export function logP(p: Progress) { console.log(messageTree(p.root)); }
 
 async function test() {
     try {
-        //const r = await Run(testTree(), p => console.log(messageTree(p.root)), 250);
-        //const r = await Run(testTree(), abortingObserver, 250);
-        //console.log(r);
+        // const r = await Run(testTree(), p => console.log(messageTree(p.root)), 250);
+        // const r = await Run(testTree(), abortingObserver, 250);
+        // console.log(r);
 
         const m = await ms({ i: 10 }).run(logP);
         console.log(m);
@@ -123,4 +123,4 @@ async function test() {
 }
 
 test();
-//testObs();
+// testObs();

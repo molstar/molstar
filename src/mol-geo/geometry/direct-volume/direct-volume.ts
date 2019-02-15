@@ -16,12 +16,14 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { TransformData } from '../transform-data';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
-import { Geometry } from '../geometry';
+import { GeometryUtils } from '../geometry';
 import { transformPositionArray } from 'mol-geo/util';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { Theme } from 'mol-theme/theme';
 import { RenderableState } from 'mol-gl/renderable';
 import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
+import { Color } from 'mol-util/color';
+import { BaseGeometry } from '../base';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]
@@ -70,8 +72,8 @@ export namespace DirectVolume {
     }
 
     export const Params = {
-        ...Geometry.Params,
-        isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
+        ...BaseGeometry.Params,
+        isoValueNorm: PD.Numeric(0.22, { min: 0, max: 1, step: 0.01 }, { description: 'Normalized Isolevel Value' }),
         renderMode: PD.Select('volume', RenderModeOptions),
         controlPoints: PD.LineGraph([
             Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
@@ -81,7 +83,18 @@ export namespace DirectVolume {
     }
     export type Params = typeof Params
 
-    export function createValues(directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): DirectVolumeValues {
+    export const Utils: GeometryUtils<DirectVolume, Params> = {
+        Params,
+        createEmpty,
+        createValues,
+        createValuesSimple,
+        updateValues,
+        updateBoundingSphere,
+        createRenderableState,
+        updateRenderableState
+    }
+
+    function createValues(directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): DirectVolumeValues {
         const { gridTexture, gridTextureDim } = directVolume
         const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume
 
@@ -102,14 +115,14 @@ export namespace DirectVolume {
             ...color,
             ...marker,
             ...transform,
-            ...Geometry.createValues(props, counts),
+            ...BaseGeometry.createValues(props, counts),
 
             aPosition: ValueCell.create(VolumeBox.vertices as Float32Array),
             elements: ValueCell.create(VolumeBox.indices as Uint32Array),
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
 
-            uIsoValue: ValueCell.create(props.isoValue),
+            uIsoValue: ValueCell.create(props.isoValueNorm),
             uBboxMin: bboxMin,
             uBboxMax: bboxMax,
             uBboxSize: bboxSize,
@@ -125,8 +138,14 @@ export namespace DirectVolume {
         }
     }
 
-    export function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
-        ValueCell.updateIfChanged(values.uIsoValue, props.isoValue)
+    function createValuesSimple(directVolume: DirectVolume, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
+        const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
+        const p = { ...PD.getDefaultValues(Params), ...props }
+        return createValues(directVolume, s.transform, s.locationIterator, s.theme, p)
+    }
+
+    function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
+        ValueCell.updateIfChanged(values.uIsoValue, props.isoValueNorm)
         ValueCell.updateIfChanged(values.uAlpha, props.alpha)
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)
@@ -135,7 +154,7 @@ export namespace DirectVolume {
         createTransferFunctionTexture(controlPoints, props.list, values.tTransferTex)
     }
 
-    export function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {
+    function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {
         const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(values.uGridDim.ref.value, values.uTransform.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value)
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
@@ -145,14 +164,14 @@ export namespace DirectVolume {
         }
     }
 
-    export function createRenderableState(props: PD.Values<Params>): RenderableState {
-        const state = Geometry.createRenderableState(props)
+    function createRenderableState(props: PD.Values<Params>): RenderableState {
+        const state = BaseGeometry.createRenderableState(props)
         state.opaque = false
         return state
     }
 
-    export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
-        Geometry.updateRenderableState(state, props)
+    function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
+        BaseGeometry.updateRenderableState(state, props)
         state.opaque = false
     }
 }

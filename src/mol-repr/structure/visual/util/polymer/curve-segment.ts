@@ -5,12 +5,13 @@
  */
 
 import { Vec3 } from 'mol-math/linear-algebra';
+import { NumberArray } from 'mol-util/type-helpers';
 
 export interface CurveSegmentState {
-    curvePoints: Helpers.NumberArray,
-    tangentVectors: Helpers.NumberArray,
-    normalVectors: Helpers.NumberArray,
-    binormalVectors: Helpers.NumberArray,
+    curvePoints: NumberArray,
+    tangentVectors: NumberArray,
+    normalVectors: NumberArray,
+    binormalVectors: NumberArray,
     linearSegments: number
 }
 

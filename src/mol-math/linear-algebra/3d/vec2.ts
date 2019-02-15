@@ -1,3 +1,5 @@
+import { NumberArray } from 'mol-util/type-helpers';
+
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -44,12 +46,12 @@ namespace Vec2 {
         return isNaN(a[0]) || isNaN(a[1])
     }
 
-    export function toArray(a: Vec2, out: Helpers.NumberArray, offset: number) {
+    export function toArray(a: Vec2, out: NumberArray, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
     }
 
-    export function fromArray(a: Vec2, array: Helpers.NumberArray, offset: number) {
+    export function fromArray(a: Vec2, array: NumberArray, offset: number) {
         a[0] = array[offset + 0]
         a[1] = array[offset + 1]
         return a

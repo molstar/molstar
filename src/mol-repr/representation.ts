@@ -5,7 +5,7 @@
  */
 
 import { Task } from 'mol-task'
-import { RenderObject } from 'mol-gl/render-object'
+import { GraphicsRenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
 import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
@@ -17,6 +17,8 @@ import { SizeTheme } from 'mol-theme/size';
 import { Theme, ThemeRegistryContext, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 import { Mat4 } from 'mol-math/linear-algebra';
+import { BaseGeometry } from 'mol-geo/geometry/base';
+import { Visual } from './visual';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -30,21 +32,21 @@ export interface RepresentationContext {
 }
 
 export type RepresentationParamsGetter<D, P extends PD.Params> = (ctx: ThemeRegistryContext, data: D) => P
-export type RepresentationFactory<D, P extends PD.Params> = (ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>) => Representation<D, P>
+export type RepresentationFactory<D, P extends PD.Params, S extends Representation.State> = (ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>) => Representation<D, P, S>
 
 //
 
-export interface RepresentationProvider<D, P extends PD.Params> {
+export interface RepresentationProvider<D, P extends PD.Params, S extends Representation.State> {
     readonly label: string
     readonly description: string
-    readonly factory: RepresentationFactory<D, P>
+    readonly factory: RepresentationFactory<D, P, S>
     readonly getParams: RepresentationParamsGetter<D, P>
     readonly defaultValues: PD.Values<P>
     readonly defaultColorTheme: string
     readonly defaultSizeTheme: string
 }
 
-export type AnyRepresentationProvider = RepresentationProvider<any, {}>
+export type AnyRepresentationProvider = RepresentationProvider<any, {}, Representation.State>
 
 export const EmptyRepresentationProvider = {
     label: '',
@@ -54,9 +56,9 @@ export const EmptyRepresentationProvider = {
     defaultValues: {}
 }
 
-export class RepresentationRegistry<D> {
-    private _list: { name: string, provider: RepresentationProvider<D, any> }[] = []
-    private _map = new Map<string, RepresentationProvider<D, any>>()
+export class RepresentationRegistry<D, S extends Representation.State> {
+    private _list: { name: string, provider: RepresentationProvider<D, any, any> }[] = []
+    private _map = new Map<string, RepresentationProvider<D, any, any>>()
 
     get default() { return this._list[0]; }
     get types(): [string, string][] {
@@ -65,7 +67,7 @@ export class RepresentationRegistry<D> {
 
     constructor() {};
 
-    add<P extends PD.Params>(name: string, provider: RepresentationProvider<D, P>) {
+    add<P extends PD.Params>(name: string, provider: RepresentationProvider<D, P, S>) {
         this._list.push({ name, provider })
         this._map.set(name, provider)
     }
@@ -75,8 +77,8 @@ export class RepresentationRegistry<D> {
         this._map.delete(name)
     }
 
-    get<P extends PD.Params>(name: string): RepresentationProvider<D, P> {
-        return this._map.get(name) || EmptyRepresentationProvider as unknown as RepresentationProvider<D, P>
+    get<P extends PD.Params>(name: string): RepresentationProvider<D, P, S> {
+        return this._map.get(name) || EmptyRepresentationProvider as unknown as RepresentationProvider<D, P, S>
     }
 
     get list() {
@@ -87,18 +89,18 @@ export class RepresentationRegistry<D> {
 //
 
 export { Representation }
-interface Representation<D, P extends PD.Params = {}> {
+interface Representation<D, P extends PD.Params = {}, S extends Representation.State = Representation.State> {
     readonly label: string
     readonly updated: Subject<number>
     /** Number of addressable groups in all visuals of the representation */
     readonly groupCount: number
-    readonly renderObjects: ReadonlyArray<RenderObject>
+    readonly renderObjects: ReadonlyArray<GraphicsRenderObject>
     readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
-    readonly state: Readonly<Representation.State>
+    readonly state: Readonly<S>
     readonly theme: Readonly<Theme>
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
-    setState: (state: Partial<Representation.State>) => void
+    setState: (state: Partial<S>) => void
     setTheme: (theme: Theme) => void
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
@@ -115,8 +117,8 @@ namespace Representation {
         /** A transformation applied to the representation's renderobjects */
         transform: Mat4
     }
-    export function createState() {
-        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity() }
+    export function createState(): State {
+        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity(), /* instanceTransforms: new Float32Array(Mat4.identity()) */ }
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible
@@ -124,8 +126,13 @@ namespace Representation {
         if (update.syncManually !== undefined) state.syncManually = update.syncManually
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
     }
+    export interface StateBuilder<S extends State> {
+        create(): S
+        update(state: S, update: Partial<S>): void
+    }
+    export const StateBuilder: StateBuilder<State> = { create: createState, update: updateState }
 
-    export type Any = Representation<any>
+    export type Any = Representation<any, any, any>
     export const Empty: Any = {
         label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(), state: createState(), theme: createEmptyTheme(),
         createOrUpdate: () => Task.constant('', undefined),
@@ -136,12 +143,12 @@ namespace Representation {
         destroy: () => {}
     }
 
-    export type Def<D, P extends PD.Params = {}> = { [k: string]: RepresentationFactory<D, P> }
+    export type Def<D, P extends PD.Params = {}, S extends State = State> = { [k: string]: RepresentationFactory<D, P, S> }
 
-    export function createMulti<D, P extends PD.Params = {}>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>, reprDefs: Def<D, P>): Representation<D, P> {
+    export function createMulti<D, P extends PD.Params = {}, S extends State = State>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>, stateBuilder: StateBuilder<S>, reprDefs: Def<D, P>): Representation<D, P, S> {
         let version = 0
         const updated = new Subject<number>()
-        const currentState = Representation.createState()
+        const currentState = stateBuilder.create()
         let currentTheme = createEmptyTheme()
 
         let currentParams: P
@@ -170,7 +177,7 @@ namespace Representation {
                 return groupCount
             },
             get renderObjects() {
-                const renderObjects: RenderObject[] = []
+                const renderObjects: GraphicsRenderObject[] = []
                 if (currentProps) {
                     const { visuals } = currentProps
                     for (let i = 0, il = reprList.length; i < il; ++i) {
@@ -197,7 +204,7 @@ namespace Representation {
                 Object.assign(currentProps, props, qualityProps)
 
                 const { visuals } = currentProps
-                return Task.create(`Creating '${label}' representation`, async runtime => {
+                return Task.create(`Creating or updating '${label}' representation`, async runtime => {
                     for (let i = 0, il = reprList.length; i < il; ++i) {
                         if (!visuals || visuals.includes(reprMap[i])) {
                             await reprList[i].createOrUpdate(currentProps, currentData).runInContext(runtime)
@@ -222,11 +229,11 @@ namespace Representation {
                 }
                 return marked
             },
-            setState: (state: Partial<State>) => {
+            setState: (state: Partial<S>) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     reprList[i].setState(state)
                 }
-                Representation.updateState(currentState, state)
+                stateBuilder.update(currentState, state)
             },
             setTheme: (theme: Theme) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
@@ -238,6 +245,53 @@ namespace Representation {
                     reprList[i].destroy()
                 }
             }
+        }
+    }
+
+    export function fromRenderObject(label: string, renderObject: GraphicsRenderObject): Representation<GraphicsRenderObject, BaseGeometry.Params> {
+        let version = 0
+        const updated = new Subject<number>()
+        const currentState = Representation.createState()
+        const currentTheme = createEmptyTheme()
+
+        const currentParams = PD.clone(BaseGeometry.Params)
+        const currentProps = PD.getDefaultValues(BaseGeometry.Params)
+
+        return {
+            label,
+            updated,
+            get groupCount() { return renderObject.values.uGroupCount.ref.value },
+            get renderObjects() { return [renderObject] },
+            get props() { return currentProps },
+            get params() { return currentParams },
+            createOrUpdate: (props: Partial<PD.Values<BaseGeometry.Params>> = {}) => {
+                const qualityProps = getQualityProps(Object.assign({}, currentProps, props))
+                Object.assign(currentProps, props, qualityProps)
+
+                return Task.create(`Updating '${label}' representation`, async runtime => {
+                    // TODO
+                    updated.next(version++)
+                })
+            },
+            get state() { return currentState },
+            get theme() { return currentTheme },
+            getLoci: () => {
+                // TODO
+                return EmptyLoci
+            },
+            mark: (loci: Loci, action: MarkerAction) => {
+                // TODO
+                return false
+            },
+            setState: (state: Partial<State>) => {
+                if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible)
+                if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable)
+                if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform)
+
+                Representation.updateState(currentState, state)
+            },
+            setTheme: () => { },
+            destroy() { }
         }
     }
 }

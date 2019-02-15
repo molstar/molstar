@@ -99,6 +99,7 @@ namespace Renderer {
             uLightColor: ValueCell.create(lightColor),
             uLightAmbient: ValueCell.create(lightAmbient),
 
+            uCameraPosition: ValueCell.create(Vec3.clone(camera.state.position)),
             uFogNear: ValueCell.create(camera.state.fogNear),
             uFogFar: ValueCell.create(camera.state.fogFar),
             uFogColor: ValueCell.create(fogColor),
@@ -107,10 +108,9 @@ namespace Renderer {
         }
 
         let globalUniformsNeedUpdate = true
-        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant, opaque: boolean) => {
-            if (r.state.opaque !== opaque) return
+        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
             const program = r.getProgram(variant)
-            if (r.state.visible) {                
+            if (r.state.visible) {
                 if (ctx.currentProgramId !== program.id) {
                     globalUniformsNeedUpdate = true
                 }
@@ -146,8 +146,6 @@ namespace Renderer {
                     gl.cullFace(gl.BACK)
                 }
 
-                gl.depthMask(r.state.opaque)
-
                 r.render(variant)
             }
         }
@@ -163,6 +161,7 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection))
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection))
 
+            ValueCell.update(globalUniforms.uCameraPosition, camera.state.position)
             ValueCell.update(globalUniforms.uFogFar, camera.state.fogFar)
             ValueCell.update(globalUniforms.uFogNear, camera.state.fogNear)
 
@@ -170,16 +169,30 @@ namespace Renderer {
 
             const { renderables } = scene
 
-            gl.disable(gl.BLEND)
-            gl.enable(gl.DEPTH_TEST)
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                renderObject(renderables[i], variant, true)
-            }
+            if (variant === 'draw') {
+                gl.disable(gl.BLEND)
+                gl.enable(gl.DEPTH_TEST)
+                gl.depthMask(true)
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    const r = renderables[i]
+                    if (r.state.opaque) renderObject(r, variant)
+                }
 
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-            gl.enable(gl.BLEND)
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                renderObject(renderables[i], variant, false)
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+                gl.enable(gl.BLEND)
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    const r = renderables[i]
+                    gl.depthMask(r.values.uAlpha.ref.value === 1.0)
+                    if (!r.state.opaque) renderObject(r, variant)
+                }
+            } else {
+                // picking
+                gl.disable(gl.BLEND)
+                gl.enable(gl.DEPTH_TEST)
+                gl.depthMask(true)
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    renderObject(renderables[i], variant)
+                }
             }
 
             gl.finish()
