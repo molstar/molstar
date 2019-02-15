@@ -2,6 +2,7 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { substringStartsWith } from 'mol-util/string';
@@ -11,6 +12,7 @@ import { TokenBuilder, Tokenizer } from 'mol-io/reader/common/text/tokenizer';
 import { PdbFile } from 'mol-io/reader/pdb/schema';
 import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
 import { WaterNames } from 'mol-model/structure/model/types';
+import { parseHelix, parseSheet } from './secondary-structure';
 
 function _entity(): { [K in keyof mmCIF_Schema['entity']]?: CifField } {
     return {
@@ -215,8 +217,16 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 if (substringStartsWith(data, s, e, 'HETATM')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
                     addAtom(atom_site, modelStr, tokenizer, s, e, true);
+                } else if (substringStartsWith(data, s, e, 'HELIX')) {
+                    let j = i + 1;
+                    while (true) {
+                        s = indices[2 * j]; e = indices[2 * j + 1];
+                        if (!substringStartsWith(data, s, e, 'HELIX')) break;
+                        j++;
+                    }
+                    helperCategories.push(parseHelix(lines, i, j));
+                    i = j - 1;
                 }
-                // TODO: HELIX
                 break;
             case 'M':
                 if (substringStartsWith(data, s, e, 'MODEL ')) {
@@ -251,8 +261,16 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 }
                 break;
             case 'S':
-                // TODO
-                // SHEET
+                if (substringStartsWith(data, s, e, 'SHEET')) {
+                    let j = i + 1;
+                    while (true) {
+                        s = indices[2 * j]; e = indices[2 * j + 1];
+                        if (!substringStartsWith(data, s, e, 'SHEET')) break;
+                        j++;
+                    }
+                    helperCategories.push(parseSheet(lines, i, j));
+                    i = j - 1;
+                }
                 break;
         }
     }

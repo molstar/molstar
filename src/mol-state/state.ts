@@ -529,6 +529,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.changed = true;
         if (!ctx.hadError) ctx.newCurrent = root;
         doError(ctx, root, '' + e, false);
+        console.error(e);
         return;
     }
 
