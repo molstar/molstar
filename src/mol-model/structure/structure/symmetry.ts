@@ -5,16 +5,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Structure from './structure'
-import { StructureSelection, QueryContext } from '../query'
-import { ModelSymmetry } from '../model'
-import { Task, RuntimeContext } from 'mol-task';
 import { SortedArray } from 'mol-data/int';
-import Unit from './unit';
 import { EquivalenceClasses } from 'mol-data/util';
+import { Spacegroup, SpacegroupCell, SymmetryOperator } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { SymmetryOperator, Spacegroup, SpacegroupCell } from 'mol-math/geometry';
-import { memoize1 } from 'mol-util/memoize';
+import { RuntimeContext, Task } from 'mol-task';
+import { ModelSymmetry } from '../model';
+import { QueryContext, StructureSelection } from '../query';
+import Structure from './structure';
+import Unit from './unit';
 
 namespace StructureSymmetry {
     export function buildAssembly(structure: Structure, asmName: string) {
@@ -93,30 +92,16 @@ namespace StructureSymmetry {
 function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
     const operators: SymmetryOperator[] = [];
     const { spacegroup } = symmetry;
-    if (operators.length === 0) {
-        for (let op = 0; op < spacegroup.operators.length; op++) {
-            for (let i = ijkMin[0]; i < ijkMax[0]; i++) {
-                for (let j = ijkMin[1]; j < ijkMax[1]; j++) {
-                    for (let k = ijkMin[2]; k < ijkMax[2]; k++) {
-                        operators[operators.length] = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
-                    }
-                }
-            }
-        }
+    if (ijkMin[0] <= 0 && ijkMax[0] >= 0 &&
+        ijkMin[1] <= 0 && ijkMax[1] >= 0 &&
+        ijkMin[2] <= 0 && ijkMax[2] >= 0) {
+        operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
     }
-    return operators;
-}
 
-const getOperatorsCached333 = memoize1((symmetry: ModelSymmetry) => {
-    const ijkMin = Vec3.create(-3, -3, -3)
-    const ijkMax = Vec3.create(3, 3, 3)
-    const operators: SymmetryOperator[] = [];
-    const { spacegroup } = symmetry;
-    operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
     for (let op = 0; op < spacegroup.operators.length; op++) {
-        for (let i = ijkMin[0]; i < ijkMax[0]; i++) {
-            for (let j = ijkMin[1]; j < ijkMax[1]; j++) {
-                for (let k = ijkMin[2]; k < ijkMax[2]; k++) {
+        for (let i = ijkMin[0]; i <= ijkMax[0]; i++) {
+            for (let j = ijkMin[1]; j <= ijkMax[1]; j++) {
+                for (let k = ijkMin[2]; k <= ijkMax[2]; k++) {
                     // we have added identity as the 1st operator.
                     if (op === 0 && i === 0 && j === 0 && k === 0) continue;
                     operators[operators.length] = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
@@ -125,7 +110,13 @@ const getOperatorsCached333 = memoize1((symmetry: ModelSymmetry) => {
         }
     }
     return operators;
-})
+}
+
+function getOperatorsCached333(symmetry: ModelSymmetry) {
+    if (typeof symmetry._operators_333 !== 'undefined') return symmetry._operators_333;
+    symmetry._operators_333 = getOperators(symmetry, Vec3.create(-3, -3, -3), Vec3.create(3, 3, 3));
+    return symmetry._operators_333;
+}
 
 function assembleOperators(structure: Structure, operators: ReadonlyArray<SymmetryOperator>) {
     const assembler = Structure.Builder();
