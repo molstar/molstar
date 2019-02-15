@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -14,6 +14,7 @@ import Unit from './unit';
 import { EquivalenceClasses } from 'mol-data/util';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { SymmetryOperator, Spacegroup, SpacegroupCell } from 'mol-math/geometry';
+import { memoize1 } from 'mol-util/memoize';
 
 namespace StructureSymmetry {
     export function buildAssembly(structure: Structure, asmName: string) {
@@ -106,28 +107,25 @@ function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
     return operators;
 }
 
-function getOperatorsCached333(symmetry: ModelSymmetry) {
-    const operators: SymmetryOperator[] = symmetry._operators_333 || [];
+const getOperatorsCached333 = memoize1((symmetry: ModelSymmetry) => {
+    const ijkMin = Vec3.create(-3, -3, -3)
+    const ijkMax = Vec3.create(3, 3, 3)
+    const operators: SymmetryOperator[] = [];
     const { spacegroup } = symmetry;
-    if (operators.length === 0) {
-        const ijkMin = Vec3.create(-3, -3, -3)
-        const ijkMax = Vec3.create(3, 3, 3)
-        operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
-        for (let op = 0; op < spacegroup.operators.length; op++) {
-            for (let i = ijkMin[0]; i < ijkMax[0]; i++) {
-                for (let j = ijkMin[1]; j < ijkMax[1]; j++) {
-                    for (let k = ijkMin[2]; k < ijkMax[2]; k++) {
-                        // we have added identity as the 1st operator.
-                        if (op === 0 && i === 0 && j === 0 && k === 0) continue;
-                        operators[operators.length] = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
-                    }
+    operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
+    for (let op = 0; op < spacegroup.operators.length; op++) {
+        for (let i = ijkMin[0]; i < ijkMax[0]; i++) {
+            for (let j = ijkMin[1]; j < ijkMax[1]; j++) {
+                for (let k = ijkMin[2]; k < ijkMax[2]; k++) {
+                    // we have added identity as the 1st operator.
+                    if (op === 0 && i === 0 && j === 0 && k === 0) continue;
+                    operators[operators.length] = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
                 }
             }
         }
-        symmetry._operators_333 = operators;
     }
     return operators;
-}
+})
 
 function assembleOperators(structure: Structure, operators: ReadonlyArray<SymmetryOperator>) {
     const assembler = Structure.Builder();
