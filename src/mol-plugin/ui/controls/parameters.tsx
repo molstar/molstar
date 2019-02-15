@@ -142,6 +142,9 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
             </div>
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 <LineGraphComponent
+                    height={400}
+                    width={600}
+                    padding={70}
                     data={this.props.param.defaultValue}
                     onChange={this.onChange}
                     onHover={this.onHover}
