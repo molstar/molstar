@@ -212,6 +212,8 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 if (substringStartsWith(data, s, e, 'CRYST1')) {
                     helperCategories.push(...parseCryst1(pdb.id || '?', data.substring(s, e)));
                 }
+                // TODO CONNECT records => struct_conn
+                // TODO COMPND records => entity
                 break;
             case 'H':
                 if (substringStartsWith(data, s, e, 'HETATM')) {
@@ -227,6 +229,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     helperCategories.push(parseHelix(lines, i, j));
                     i = j - 1;
                 }
+                // TODO HETNAM records => chem_comp (at least partially, needs to be completed with common bases and amino acids)
                 break;
             case 'M':
                 if (substringStartsWith(data, s, e, 'MODEL ')) {
@@ -243,10 +246,10 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     helperCategories.push(...parseMtrix(lines, i, j));
                     i = j - 1;
                 }
+                // TODO MODRES records => pdbx_struct_mod_residue
                 break;
             case 'O':
-                // TODO
-                // ORIGX to generate _atom_sites
+                // TODO ORIGX record => cif.database_PDB_matrix.origx, cif.database_PDB_matrix.origx_vector
                 break;
             case 'R':
                 if (substringStartsWith(data, s, e, 'REMARK 350')) {
@@ -271,6 +274,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     helperCategories.push(parseSheet(lines, i, j));
                     i = j - 1;
                 }
+                // TODO SCALE record => cif.atom_sites.fract_transf_matrix, cif.atom_sites.fract_transf_vector
                 break;
         }
     }
