@@ -8,7 +8,7 @@
 import { SortedArray } from 'mol-data/int';
 import { EquivalenceClasses } from 'mol-data/util';
 import { Spacegroup, SpacegroupCell, SymmetryOperator } from 'mol-math/geometry';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { RuntimeContext, Task } from 'mol-task';
 import { ModelSymmetry } from '../model';
 import { QueryContext, StructureSelection } from '../query';
@@ -98,13 +98,26 @@ function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
         operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
     }
 
+    const { ncsOperators } = symmetry
+    const ncsCount = (ncsOperators && ncsOperators.length) || 0
+
     for (let op = 0; op < spacegroup.operators.length; op++) {
         for (let i = ijkMin[0]; i <= ijkMax[0]; i++) {
             for (let j = ijkMin[1]; j <= ijkMax[1]; j++) {
                 for (let k = ijkMin[2]; k <= ijkMax[2]; k++) {
                     // we have added identity as the 1st operator.
                     if (op === 0 && i === 0 && j === 0 && k === 0) continue;
-                    operators[operators.length] = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
+                    const symOp = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
+                    if (ncsCount) {
+                        for (let u = 0; u < ncsCount; ++u) {
+                            const ncsOp = ncsOperators![u]
+                            const matrix = Mat4.mul(Mat4.zero(), symOp.matrix, ncsOp.matrix)
+                            const operator = SymmetryOperator.create(`${symOp.name} ${ncsOp.name}`, matrix, symOp.assembly, ncsOp.ncsId, symOp.hkl);
+                            operators[operators.length] = operator;
+                        }
+                    } else {
+                        operators[operators.length] = symOp;
+                    }
                 }
             }
         }

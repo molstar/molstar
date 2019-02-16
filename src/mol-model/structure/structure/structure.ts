@@ -381,7 +381,7 @@ namespace Structure {
         const units: Unit[] = [];
         for (const u of s.units) {
             const old = u.conformation.operator;
-            const op = SymmetryOperator.create(old.name, transform, { id: '', operList: [] }, old.hkl);
+            const op = SymmetryOperator.create(old.name, transform, { id: '', operList: [] }, old.ncsId, old.hkl);
             units.push(u.applyOperator(u.id, op));
         }
 
