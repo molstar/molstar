@@ -6,7 +6,7 @@
  */
 
 import { PluginContext } from 'mol-plugin/context';
-import { StateTree, Transformer } from 'mol-state';
+import { StateTree, Transformer, StateObject } from 'mol-state';
 import { StateAction } from 'mol-state/action';
 import { StateSelection } from 'mol-state/state/selection';
 import { StateTreeBuilder } from 'mol-state/tree/builder';
@@ -15,7 +15,7 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
-import { getFileInfo, FileInput } from 'mol-util/file-info';
+import { getFileInfo, FileInfo } from 'mol-util/file-info';
 import { Task } from 'mol-task';
 
 // TODO: "structure/volume parser provider"
@@ -170,55 +170,128 @@ export const UpdateTrajectory = StateAction.build({
 
 //
 
-const VolumeFormats = { 'ccp4': '', 'mrc': '', 'map': '', 'dsn6': '', 'brix': '', 'dscif': '' }
-type VolumeFormat = keyof typeof VolumeFormats
+export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String, M extends StateObject> {
+    private _list: { name: string, provider: DataFormatProvider<D, M> }[] = []
+    private _map = new Map<string, DataFormatProvider<D, M>>()
 
-function getVolumeData(format: VolumeFormat, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>) {
-    switch (format) {
-        case 'ccp4': case 'mrc': case 'map':
-            return b.apply(StateTransforms.Data.ParseCcp4).apply(StateTransforms.Model.VolumeFromCcp4);
-        case 'dsn6': case 'brix':
-            return b.apply(StateTransforms.Data.ParseDsn6).apply(StateTransforms.Model.VolumeFromDsn6);
-        case 'dscif':
-            return b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.VolumeFromDensityServerCif);
+    get default() { return this._list[0]; }
+    get types(): [string, string][] {
+        return this._list.map(e => [e.name, e.provider.label] as [string, string]);
     }
-}
 
-function createVolumeTree(format: VolumeFormat, ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
-    return getVolumeData(format, b)
-        .apply(StateTransforms.Representation.VolumeRepresentation3D)
-            // the parameters will be used automatically by the reconciler and the IsoValue object
-            // will get the correct Stats object instead of the empty one
-            // VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface'))
-        .getTree();
-}
+    constructor() {
+        this.add('ccp4', Ccp4Provider)
+        this.add('dsn6', Dsn6Provider)
+        this.add('dscif', DscifProvider)
+    };
 
-function getFileFormat(format: VolumeFormat | 'auto', file: FileInput, data?: Uint8Array): VolumeFormat {
-    if (format === 'auto') {
-        const fileFormat = getFileInfo(file).ext
-        if (fileFormat in VolumeFormats) {
-            return fileFormat as VolumeFormat
-        } else {
-            throw new Error('unsupported format')
+    add(name: string, provider: DataFormatProvider<D, M>) {
+        this._list.push({ name, provider })
+        this._map.set(name, provider)
+    }
+
+    remove(name: string) {
+        this._list.splice(this._list.findIndex(e => e.name === name), 1)
+        this._map.delete(name)
+    }
+
+    auto(info: FileInfo, dataStateObject: D) {
+        for (let i = 0, il = this.list.length; i < il; ++i) {
+            const { provider } = this._list[i]
+            if (provider.isApplicable(info, dataStateObject.data)) return provider
         }
-    } else {
-        return format
+        throw new Error('no compatible data format provider available')
     }
+
+    get(name: string): DataFormatProvider<D, M> {
+        if (this._map.has(name)) {
+            return this._map.get(name)!
+        } else {
+            throw new Error(`unknown data format name '${name}'`)
+        }
+    }
+
+    get list() {
+        return this._list
+    }
+}
+
+interface DataFormatProvider<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String, M extends StateObject> {
+    label: string
+    description: string
+    fileExtensions: string[]
+    isApplicable(info: FileInfo, data: string | Uint8Array): boolean
+    getDefaultBuilder(b: StateTreeBuilder.To<D>): StateTreeBuilder.To<M>
+}
+
+const Ccp4Provider: DataFormatProvider<any, any> = {
+    label: 'CCP4/MRC/BRIX',
+    description: 'CCP4/MRC/BRIX',
+    fileExtensions: ['ccp4', 'mrc', 'map'],
+    isApplicable: (info: FileInfo, data: Uint8Array) => {
+        return info.ext === 'ccp4' || info.ext === 'mrc' || info.ext === 'map'
+    },
+    getDefaultBuilder: (b: StateTreeBuilder.To<PluginStateObject.Data.Binary>) => {
+        return b.apply(StateTransforms.Data.ParseCcp4)
+            .apply(StateTransforms.Model.VolumeFromCcp4)
+            .apply(StateTransforms.Representation.VolumeRepresentation3D)
+    }
+}
+
+const Dsn6Provider: DataFormatProvider<any, any> = {
+    label: 'DSN6/BRIX',
+    description: 'DSN6/BRIX',
+    fileExtensions: ['dsn6', 'brix'],
+    isApplicable: (info: FileInfo, data: Uint8Array) => {
+        return info.ext === 'dsn6' || info.ext === 'brix'
+    },
+    getDefaultBuilder: (b: StateTreeBuilder.To<PluginStateObject.Data.Binary>) => {
+        return b.apply(StateTransforms.Data.ParseDsn6)
+            .apply(StateTransforms.Model.VolumeFromDsn6)
+            .apply(StateTransforms.Representation.VolumeRepresentation3D)
+    }
+}
+
+const DscifProvider: DataFormatProvider<any, any> = {
+    label: 'DensityServer CIF',
+    description: 'DensityServer CIF',
+    fileExtensions: ['cif'],
+    isApplicable: (info: FileInfo, data: Uint8Array) => {
+        return info.ext === 'cif'
+    },
+    getDefaultBuilder: (b: StateTreeBuilder.To<PluginStateObject.Data.Binary>) => {
+        return b.apply(StateTransforms.Data.ParseCif, {  })
+            .apply(StateTransforms.Model.VolumeFromDensityServerCif)
+            .apply(StateTransforms.Representation.VolumeRepresentation3D)
+    }
+}
+
+//
+
+function getDataFormatExtensionsOptions(dataFormatRegistry: DataFormatRegistry<any, any>) {
+    const extensions: string[] = []
+    const options: [string, string][] = [['auto', 'Automatic']]
+    dataFormatRegistry.list.forEach(({ name, provider }) => {
+        extensions.push(...provider.fileExtensions)
+        options.push([ name, provider.label ])
+    })
+    return { extensions, options }
 }
 
 export const OpenVolume = StateAction.build({
     display: { name: 'Open Volume', description: 'Load a volume from file and create its default visual' },
     from: PluginStateObject.Root,
-    params: {
-        file: PD.File({ accept: '.ccp4,.mrc,.map,.dsn6,.brix,.cif'}),
-        isBinary: PD.Boolean(true),
-        format: PD.Select('auto', [
-            ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX'], ['dscif', 'densityServerCIF']
-        ]),
+    params: (a, ctx: PluginContext) => {
+        const { extensions, options } = getDataFormatExtensionsOptions(ctx.dataFormat.registry)
+        return {
+            file: PD.File({ accept: extensions.map(e => `.${e}`).join(',')}),
+            format: PD.Select('auto', options),
+            isBinary: PD.Boolean(true), // TOOD should take selected format into account
+        }
     }
 })(({ params, state }, ctx: PluginContext) => Task.create('Open Volume', async taskCtx => {
-    const dataTree = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: true });
-    const volumeData = await state.updateTree(dataTree).runInContext(taskCtx);
+    const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: params.isBinary });
+    const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
 
     // Alternative for more complex states where the builder is not a simple StateTreeBuilder.To<>:
     /*
@@ -227,10 +300,11 @@ export const OpenVolume = StateAction.build({
     const dataCell = state.select(dataRef)[0];
     */
 
-    const format = getFileFormat(params.format, params.file, volumeData.data as Uint8Array);
-    const volumeTree = state.build().to(dataTree.ref);
+    const provider = params.format === 'auto' ? ctx.dataFormat.registry.auto(getFileInfo(params.file), dataStateObject) : ctx.dataFormat.registry.get(params.format)
+    const b = state.build().to(data.ref);
+    const tree = provider.getDefaultBuilder(b).getTree()
     // need to await the 2nd update the so that the enclosing Task finishes after the update is done.
-    await state.updateTree(createVolumeTree(format, ctx, volumeTree)).runInContext(taskCtx);
+    await state.updateTree(tree).runInContext(taskCtx);
 }));
 
 export { DownloadDensity };
@@ -238,41 +312,40 @@ type DownloadDensity = typeof DownloadDensity
 const DownloadDensity = StateAction.build({
     from: PluginStateObject.Root,
     display: { name: 'Download Density', description: 'Load a density from the provided source and create its default visual.' },
-    params: {
-        source: PD.MappedStatic('rcsb', {
-            'pdbe': PD.Group({
-                id: PD.Text('1tqn', { label: 'Id' }),
-                type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
-            }, { isFlat: true }),
-            'rcsb': PD.Group({
-                id: PD.Text('1tqn', { label: 'Id' }),
-                type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
-            }, { isFlat: true }),
-            'url': PD.Group({
-                url: PD.Text(''),
-                isBinary: PD.Boolean(true),
-                format: PD.Select('auto', [
-                    ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX'], ['dscif', 'densityServerCIF']
-                ]),
-            }, { isFlat: true })
-        }, {
-            options: [
-                ['pdbe', 'PDBe X-ray maps'],
-                ['rcsb', 'RCSB X-ray maps'],
-                ['url', 'URL']
-            ]
-        })
+    params: (a, ctx: PluginContext) => {
+        const { options } = getDataFormatExtensionsOptions(ctx.dataFormat.registry)
+        return {
+            source: PD.MappedStatic('rcsb', {
+                'pdbe': PD.Group({
+                    id: PD.Text('1tqn', { label: 'Id' }),
+                    type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
+                }, { isFlat: true }),
+                'rcsb': PD.Group({
+                    id: PD.Text('1tqn', { label: 'Id' }),
+                    type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
+                }, { isFlat: true }),
+                'url': PD.Group({
+                    url: PD.Text(''),
+                    isBinary: PD.Boolean(false),
+                    format: PD.Select('auto', options),
+                }, { isFlat: true })
+            }, {
+                options: [
+                    ['pdbe', 'PDBe X-ray maps'],
+                    ['rcsb', 'RCSB X-ray maps'],
+                    ['url', 'URL']
+                ]
+            })
+        }
     }
-})(({ params, state }, ctx: PluginContext) => {
-    const b = state.build();
+})(({ params, state }, ctx: PluginContext) => Task.create('Download Density', async taskCtx => {
     const src = params.source;
     let downloadParams: Transformer.Params<Download>;
-    let format: VolumeFormat
+    let provider: DataFormatProvider<any, any>
 
     switch (src.name) {
         case 'url':
             downloadParams = src.params;
-            format = getFileFormat(src.params.format, src.params.url)
             break;
         case 'pdbe':
             downloadParams = {
@@ -282,7 +355,6 @@ const DownloadDensity = StateAction.build({
                 isBinary: true,
                 label: `PDBe X-ray map: ${src.params.id}`
             };
-            format = 'ccp4'
             break;
         case 'rcsb':
             downloadParams = {
@@ -292,11 +364,28 @@ const DownloadDensity = StateAction.build({
                 isBinary: true,
                 label: `RCSB X-ray map: ${src.params.id}`
             };
-            format = 'dsn6'
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams);
-    return state.updateTree(createVolumeTree(format, ctx, data));
-});
+    const data = state.build().toRoot().apply(StateTransforms.Data.Download, downloadParams);
+    const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
+
+    switch (src.name) {
+        case 'url':
+            downloadParams = src.params;
+            provider = src.params.format === 'auto' ? ctx.dataFormat.registry.auto(getFileInfo(downloadParams.url), dataStateObject) : ctx.dataFormat.registry.get(src.params.format)
+            break;
+        case 'pdbe':
+            provider = ctx.dataFormat.registry.get('ccp4')
+            break;
+        case 'rcsb':
+            provider = ctx.dataFormat.registry.get('dsn6')
+            break;
+        default: throw new Error(`${(src as any).name} not supported.`);
+    }
+
+    const b = state.build().to(data.ref);
+    const tree = provider.getDefaultBuilder(b).getTree()
+    await state.updateTree(tree).runInContext(taskCtx);
+}));

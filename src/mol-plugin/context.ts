@@ -30,6 +30,7 @@ import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { PluginLayout } from './layout';
 import { List } from 'immutable';
 import { StateTransformParameters } from './ui/state/common';
+import { DataFormatRegistry } from './state/actions/basic';
 
 export class PluginContext {
     private disposed = false;
@@ -85,6 +86,10 @@ export class PluginContext {
     readonly volumeRepresentation = {
         registry: new VolumeRepresentationRegistry(),
         themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
+    }
+
+    readonly dataFormat = {
+        registry: new DataFormatRegistry()
     }
 
     readonly customModelProperties = new CustomPropertyRegistry();
