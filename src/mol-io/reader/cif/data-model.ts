@@ -5,10 +5,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column } from 'mol-data/db'
+import { Column, ColumnHelpers } from 'mol-data/db'
 import { Tensor } from 'mol-math/linear-algebra'
-import { getNumberType, NumberType } from '../common/text/number-parser';
+import { getNumberType, NumberType, parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser';
 import { Encoding } from '../../common/binary-cif';
+import { Tokens } from '../common/text/tokenizer';
+import { areValuesEqualProvider } from '../common/text/column/token';
 
 export interface CifFile {
     readonly name?: string,
@@ -55,6 +57,19 @@ export namespace CifCategory {
     export function empty(name: string): CifCategory {
         return { rowCount: 0, name, fieldNames: [], getField(name: string) { return void 0; } };
     };
+
+    export type SomeFields<S> = { [P in keyof S]?: CifField }
+    export type Fields<S> = { [P in keyof S]: CifField }
+
+    export function ofFields(name: string, fields: { [name: string]: CifField | undefined }): CifCategory {
+        const fieldNames = Object.keys(fields);
+        return {
+            rowCount: fieldNames.length > 0 ? fields[fieldNames[0]]!.rowCount : 0,
+            name,
+            fieldNames,
+            getField(name) { return fields[name]; }
+        };
+    }
 }
 
 /**
@@ -79,6 +94,108 @@ export interface CifField {
     toStringArray(params?: Column.ToArrayParams<string>): ReadonlyArray<string>,
     toIntArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>,
     toFloatArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>
+}
+
+export namespace CifField {
+    export function ofString(value: string) {
+        return ofStrings([value]);
+    }
+
+    export function ofStrings(values: string[]): CifField {
+        const rowCount = values.length;
+        const str: CifField['str'] = row => { const ret = values[row]; if (!ret || ret === '.' || ret === '?') return ''; return ret; };
+        const int: CifField['int'] = row => { const v = values[row]; return fastParseInt(v, 0, v.length) || 0; };
+        const float: CifField['float'] = row => { const v = values[row]; return fastParseFloat(v, 0, v.length) || 0; };
+        const valueKind: CifField['valueKind'] = row => {
+            const v = values[row], l = v.length;
+            if (l > 1) return Column.ValueKind.Present;
+            if (l === 0) return Column.ValueKind.NotPresent;
+            const c = v.charCodeAt(0);
+            if (c === 46 /* . */) return Column.ValueKind.NotPresent;
+            if (c === 63 /* ? */) return Column.ValueKind.Unknown;
+            return Column.ValueKind.Present;
+        };
+
+        return {
+            __array: void 0,
+            binaryEncoding: void 0,
+            isDefined: true,
+            rowCount,
+            str,
+            int,
+            float,
+            valueKind,
+            areValuesEqual: (rowA, rowB) => values[rowA] === values[rowB],
+            toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
+            toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, int, params),
+            toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
+        }
+    }
+
+    export function ofNumbers(values: number[]): CifField {
+        const rowCount = values.length;
+        const str: CifField['str'] = row => { return '' + values[row]; };
+        const float: CifField['float'] = row => values[row];
+        const valueKind: CifField['valueKind'] = row => Column.ValueKind.Present;
+
+        return {
+            __array: void 0,
+            binaryEncoding: void 0,
+            isDefined: true,
+            rowCount,
+            str,
+            int: float,
+            float,
+            valueKind,
+            areValuesEqual: (rowA, rowB) => values[rowA] === values[rowB],
+            toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
+            toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params),
+            toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
+        }
+    }
+
+    export function ofTokens(tokens: Tokens): CifField {
+        const { data, indices, count: rowCount } = tokens;
+
+        const str: CifField['str'] = row => {
+            const ret = data.substring(indices[2 * row], indices[2 * row + 1]);
+            if (ret === '.' || ret === '?') return '';
+            return ret;
+        };
+
+        const int: CifField['int'] = row => {
+            return fastParseInt(data, indices[2 * row], indices[2 * row + 1]) || 0;
+        };
+
+        const float: CifField['float'] = row => {
+            return fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
+        };
+
+        const valueKind: CifField['valueKind'] = row => {
+            const s = indices[2 * row], l = indices[2 * row + 1] - s;
+            if (l > 1) return Column.ValueKind.Present;
+            if (l === 0) return Column.ValueKind.NotPresent;
+            const v = data.charCodeAt(s);
+            if (v === 46 /* . */) return Column.ValueKind.NotPresent;
+            if (v === 63 /* ? */) return Column.ValueKind.Unknown;
+            return Column.ValueKind.Present;
+        };
+
+        return {
+            __array: void 0,
+            binaryEncoding: void 0,
+            isDefined: true,
+            rowCount,
+            str,
+            int,
+            float,
+            valueKind,
+            areValuesEqual: areValuesEqualProvider(tokens),
+            toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
+            toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, int, params),
+            toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
+        }
+    }
 }
 
 export function getTensor(category: CifCategory, field: string, space: Tensor.Space, row: number, zeroIndexed: boolean): Tensor.Data {

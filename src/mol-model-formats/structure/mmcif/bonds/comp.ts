@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from '../../../model'
-import { LinkType } from '../../../types'
-import { ModelPropertyDescriptor } from '../../../properties/custom';
+import { Model } from 'mol-model/structure/model/model'
+import { LinkType } from 'mol-model/structure/model/types'
+import { ModelPropertyDescriptor } from 'mol-model/structure/model/properties/custom';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
-import { Structure, Unit, StructureProperties, StructureElement } from '../../../../structure';
+import { Structure, Unit, StructureProperties, StructureElement } from 'mol-model/structure';
 import { Segmentation } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif'
 

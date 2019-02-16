@@ -33,7 +33,7 @@ class State {
     readonly globalContext: unknown = void 0;
     readonly events = {
         cell: {
-            stateUpdated: this.ev<State.ObjectEvent & { cellState: StateObjectCell.State}>(),
+            stateUpdated: this.ev<State.ObjectEvent & { cellState: StateObjectCell.State }>(),
             created: this.ev<State.ObjectEvent & { cell: StateObjectCell }>(),
             removed: this.ev<State.ObjectEvent & { parent: Transform.Ref }>(),
         },
@@ -67,7 +67,7 @@ class State {
 
     setSnapshot(snapshot: State.Snapshot) {
         const tree = StateTree.fromJSON(snapshot.tree);
-        return this.update(tree);
+        return this.updateTree(tree);
     }
 
     setCurrent(ref: Transform.Ref) {
@@ -89,26 +89,28 @@ class State {
     }
 
     /**
-     * Select Cells by ref or a query generated on the fly.
-     * @example state.select('test')
+     * Select Cells using the provided selector.
+     * @example state.query(StateSelection.Generators.byRef('test').ancestorOfType([type]))
+     * @example state.query('test')
+     */
+    select(selector: StateSelection.Selector) {
+        return StateSelection.select(selector, this)
+    }
+
+    /**
+     * Select Cells by building a query generated on the fly.
      * @example state.select(q => q.byRef('test').subtree())
      */
-    select(selector: Transform.Ref | ((q: typeof StateSelection.Generators) => StateSelection.Selector)) {
+    selectQ(selector: (q: typeof StateSelection.Generators) => StateSelection.Selector) {
         if (typeof selector === 'string') return StateSelection.select(selector, this);
         return StateSelection.select(selector(StateSelection.Generators), this)
     }
 
     /**
-     * Select Cells using the provided selector.
-     * @example state.select('test')
-     * @example state.select(q => q.byRef('test').subtree())
+     * Creates a Task that applies the specified StateAction (i.e. must use run* on the result)
+     * If no ref is specified, apply to root.
      */
-    query(selector: StateSelection.Selector) {
-        return StateSelection.select(selector, this)
-    }
-
-    /** If no ref is specified, apply to root */
-    apply<A extends StateAction>(action: A, params: StateAction.Params<A>, ref: Transform.Ref = Transform.RootRef): Task<void> {
+    applyAction<A extends StateAction>(action: A, params: StateAction.Params<A>, ref: Transform.Ref = Transform.RootRef): Task<void> {
         return Task.create('Apply Action', ctx => {
             const cell = this.cells.get(ref);
             if (!cell) throw new Error(`'${ref}' does not exist.`);
@@ -118,41 +120,59 @@ class State {
         });
     }
 
-    update(tree: StateTree | StateTreeBuilder, silent: boolean = false): Task<void> {
-        const _tree = (StateTreeBuilder.is(tree) ? tree.getTree() : tree).asTransient();
+    /**
+     * Reconcialites the existing state tree with the new version.
+     *
+     * If the tree is StateTreeBuilder.To<T>, the corresponding StateObject is returned by the task.
+     * @param tree Tree instance or a tree builder instance
+     * @param doNotReportTiming Indicates whether to log timing of the individual transforms
+     */
+    updateTree<T extends StateObject>(tree: StateTree | StateTreeBuilder | StateTreeBuilder.To<T>, doNotLogTiming?: boolean): Task<T>
+    updateTree(tree: StateTree | StateTreeBuilder, doNotLogTiming?: boolean): Task<void>
+    updateTree(tree: StateTree | StateTreeBuilder, doNotLogTiming: boolean = false): Task<any> {
         return Task.create('Update Tree', async taskCtx => {
             let updated = false;
             try {
-                const oldTree = this._tree;
-                this._tree = _tree;
-
-                const ctx: UpdateContext = {
-                    parent: this,
-                    editInfo: StateTreeBuilder.is(tree) ? tree.editInfo : void 0,
-
-                    errorFree: this.errorFree,
-                    taskCtx,
-                    oldTree,
-                    tree: _tree,
-                    cells: this.cells as Map<Transform.Ref, StateObjectCell>,
-                    transformCache: this.transformCache,
-
-                    results: [],
-
-                    silent,
-
-                    changed: false,
-                    hadError: false,
-                    newCurrent: void 0
-                };
-
-                this.errorFree = true;
-                // TODO: handle "cancelled" error? Or would this be handled automatically?
+                const ctx = this.updateTreeAndCreateCtx(tree, taskCtx, doNotLogTiming);
                 updated = await update(ctx);
+                if (StateTreeBuilder.isTo(tree)) {
+                    const cell = this.select(tree.ref)[0];
+                    return cell && cell.obj;
+                }
             } finally {
                 if (updated) this.events.changed.next();
             }
         });
+    }
+
+    private updateTreeAndCreateCtx(tree: StateTree | StateTreeBuilder, taskCtx: RuntimeContext, doNotLogTiming: boolean) {
+        const _tree = (StateTreeBuilder.is(tree) ? tree.getTree() : tree).asTransient();
+        const oldTree = this._tree;
+        this._tree = _tree;
+
+        const ctx: UpdateContext = {
+            parent: this,
+            editInfo: StateTreeBuilder.is(tree) ? tree.editInfo : void 0,
+
+            errorFree: this.errorFree,
+            taskCtx,
+            oldTree,
+            tree: _tree,
+            cells: this.cells as Map<Transform.Ref, StateObjectCell>,
+            transformCache: this.transformCache,
+
+            results: [],
+
+            silent: doNotLogTiming,
+
+            changed: false,
+            hadError: false,
+            newCurrent: void 0
+        };
+
+        this.errorFree = true;
+
+        return ctx;
     }
 
     constructor(rootObject: StateObject, params?: { globalContext?: unknown }) {
@@ -167,8 +187,8 @@ class State {
             version: root.version,
             errorText: void 0,
             params: {
-                definition: { },
-                values: { }
+                definition: {},
+                values: {}
             }
         });
 
@@ -311,7 +331,7 @@ async function update(ctx: UpdateContext) {
         const current = ctx.parent.current;
         const currentCell = ctx.cells.get(current);
         if (currentCell && (
-                currentCell.obj === StateObject.Null
+            currentCell.obj === StateObject.Null
             || (currentCell.status === 'error' && currentCell.errorText === ParentNullErrorText))) {
             newCurrent = findNewCurrent(ctx.oldTree, current, [], ctx.cells);
             ctx.parent.setCurrent(newCurrent);
@@ -509,6 +529,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.changed = true;
         if (!ctx.hadError) ctx.newCurrent = root;
         doError(ctx, root, '' + e, false);
+        console.error(e);
         return;
     }
 
@@ -523,7 +544,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
 
 function resolveParams(ctx: UpdateContext, transform: Transform, src: StateObject) {
     const prms = transform.transformer.definition.params;
-    const definition = prms ? prms(src, ctx.parent.globalContext) : { };
+    const definition = prms ? prms(src, ctx.parent.globalContext) : {};
     const values = transform.params ? transform.params : ParamDefinition.getDefaultValues(definition);
     return { definition, values };
 }

@@ -32,7 +32,7 @@ function printHelp() {
         `    Optionally specify maximum block size.`,
         ``,
         `  node pack -em density.map output.mdb [-blockSize 96]`,
-        `    Pack single density into a block file.`, 
+        `    Pack single density into a block file.`,
         `    Optionally specify maximum block size.`
     ];
     console.log(help.join('\n'));

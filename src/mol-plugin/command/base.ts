@@ -42,7 +42,7 @@ namespace PluginCommand {
         unsubscribe(): void
     }
 
-    export type Action<T> = (params: T) => void | Promise<void>
+    export type Action<T> = (params: T) => unknown | Promise<unknown>
     type Instance = { cmd: PluginCommand<any>, params: any, resolve: () => void, reject: (e: any) => void }
 
     export class Manager {

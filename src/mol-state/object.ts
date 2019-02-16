@@ -105,7 +105,7 @@ export class StateObjectTracker<T extends StateObject> {
     }
 
     update() {
-        const cell = this.state.query(this.query)[0];
+        const cell = this.state.select(this.query)[0];
         const version = cell ? cell.transform.version : void 0;
         const changed = this.cell !== cell || this.version !== version;
         this.cell = cell;

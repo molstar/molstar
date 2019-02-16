@@ -233,6 +233,8 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const repr = provider.factory({ webgl: plugin.canvas3d.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
             repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
             // TODO set initial state, repr.setState({})
+            // TODO include isoValue in the label where available
+            console.log(params.type.params);
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Volume.Representation3D(repr, { label: provider.label });
         });

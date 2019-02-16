@@ -10,13 +10,16 @@ import { PluginContext } from 'mol-plugin/context';
 import { PluginCommands } from 'mol-plugin/command';
 import { StateTransforms } from 'mol-plugin/state/transforms';
 import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
-import { StateTree } from 'mol-state';
 import { Color } from 'mol-util/color';
+import { StateTreeBuilder } from 'mol-state/tree/builder';
+import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
 require('mol-plugin/skin/light.scss')
+
+type SupportedFormats = 'cif' | 'pdb'
+type LoadParams = { url: string, format?: SupportedFormats, assemblyId?: string }
 
 class BasicWrapper {
     plugin: PluginContext;
-    stateTemplate: StateTree;
 
     init(target: string | HTMLElement) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
@@ -26,15 +29,23 @@ class BasicWrapper {
                 showControls: false
             }
         });
+    }
 
-        const state = this.plugin.state.dataState.build();
-        const visualRoot = state.toRoot()
-            .apply(StateTransforms.Data.Download, { url: '', isBinary: false }, { ref: 'url' })
-            .apply(StateTransforms.Data.ParseCif)
-            .apply(StateTransforms.Model.TrajectoryFromMmCif)
+    private download(b: StateTreeBuilder.To<PSO.Root>, url: string) {
+        return b.apply(StateTransforms.Data.Download, { url, isBinary: false })
+    }
+
+    private parse(b: StateTreeBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats, assemblyId: string) {
+        const parsed = format === 'cif'
+            ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
+            : b.apply(StateTransforms.Model.TrajectoryFromPDB);
+
+        return parsed
             .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
-            .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: '' }, { ref: 'asm' })
+            .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
+    }
 
+    private visual(visualRoot: StateTreeBuilder.To<PSO.Molecule.Structure>) {
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'cartoon'));
@@ -47,18 +58,33 @@ class BasicWrapper {
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'spacefill'));
-
-        this.stateTemplate = state.getTree();
+        return visualRoot;
     }
 
-    async loadCif(url: string, assemblyId?: string) {
-        const state = this.stateTemplate.build();
+    private loadedParams: LoadParams = { url: '', format: 'cif', assemblyId: '' };
+    async load({ url, format = 'cif', assemblyId = '' }: LoadParams) {
+        let loadType: 'full' | 'update' = 'full';
 
-        state.to('url').update(StateTransforms.Data.Download, p => ({ ...p, url }));
-        state.to('asm').update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId }));
+        const state = this.plugin.state.dataState;
 
-        await PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree: state });
+        if (this.loadedParams.url !== url || this.loadedParams.format !== format) {
+            loadType = 'full';
+        } else if (this.loadedParams.url === url) {
+            if (state.select('asm').length > 0) loadType = 'update';
+        }
 
+        let tree: StateTreeBuilder.Root;
+        if (loadType === 'full') {
+            await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: state.tree.root.ref });
+            tree = state.build();
+            this.visual(this.parse(this.download(tree.toRoot(), url), format, assemblyId));
+        } else {
+            tree = state.build();
+            tree.to('asm').update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId || 'deposited' }));
+        }
+
+        await PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree });
+        this.loadedParams = { url, format, assemblyId };
         PluginCommands.Camera.Reset.dispatch(this.plugin, { });
     }
 

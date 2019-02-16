@@ -21,6 +21,7 @@ import { Unit, StructureElement, StructureProperties } from 'mol-model/structure
 import { SetUtils } from 'mol-util/set';
 import { arrayEqual } from 'mol-util';
 import { MoleculeType } from 'mol-model/structure/model/types';
+import { getElementMoleculeType } from 'mol-model/structure/util';
 
 // TODO
 // - support more object types than structures
@@ -112,7 +113,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
         /** Update structures to be labeled, returns true if changed */
         private updateStructures(p: SceneLabelsProps) {
             const state = this.ctx.state.dataState
-            const structures = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Structure));
+            const structures = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure));
             const rootStructures = new Set<SO.Molecule.Structure>()
             for (const s of structures) {
                 const rootStructure = getRootStructure(s, state)
@@ -157,9 +158,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
                     }
 
                     if (p.levels.includes('ligand') && !u.polymerElements.length) {
-                        const compId = StructureProperties.residue.label_comp_id(l)
-                        const chemComp = u.model.properties.chemicalComponentMap.get(compId)
-                        const moleculeType = chemComp ? chemComp.moleculeType : MoleculeType.unknown
+                        const moleculeType = getElementMoleculeType(u, u.elements[0])
                         if (moleculeType === MoleculeType.other || moleculeType === MoleculeType.saccharide) {
                             label = `${StructureProperties.entity.pdbx_description(l).join(', ')} (${getAsymId(u)(l)})`
                         }

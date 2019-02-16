@@ -14,8 +14,9 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
-import { StructureRepresentation3DHelpers, VolumeRepresentation3DHelpers } from '../transforms/representation';
+import { StructureRepresentation3DHelpers } from '../transforms/representation';
 import { getFileInfo, FileInput } from 'mol-util/file-info';
+import { Task } from 'mol-task';
 
 // TODO: "structure/volume parser provider"
 
@@ -40,6 +41,7 @@ const DownloadStructure = StateAction.build({
             }, { isFlat: true }),
             'url': PD.Group({
                 url: PD.Text(''),
+                format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']]),
                 isBinary: PD.Boolean(false),
                 supportProps: PD.Boolean(false)
             }, { isFlat: true })
@@ -59,7 +61,7 @@ const DownloadStructure = StateAction.build({
 
     switch (src.name) {
         case 'url':
-            downloadParams = src.params;
+            downloadParams = { url: src.params.url, isBinary: src.params.isBinary };
             break;
         case 'pdbe-updated':
             downloadParams = { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.id.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params.id}` };
@@ -74,7 +76,8 @@ const DownloadStructure = StateAction.build({
     }
 
     const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams);
-    return state.update(createStructureTree(ctx, data, params.source.params.supportProps));
+    const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
+    return state.updateTree(createStructureTree(ctx, traj, params.source.params.supportProps));
 });
 
 export const OpenStructure = StateAction.build({
@@ -84,15 +87,20 @@ export const OpenStructure = StateAction.build({
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
-    return state.update(createStructureTree(ctx, data, false));
+    const traj = createModelTree(data, 'cif');
+    return state.updateTree(createStructureTree(ctx, traj, false));
 });
 
-function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, supportProps: boolean): StateTree {
-    let root = b
-        .apply(StateTransforms.Data.ParseCif)
-        .apply(StateTransforms.Model.TrajectoryFromMmCif)
-        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+function createModelTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' = 'cif') {
+    const parsed = format === 'cif'
+        ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
+        : b.apply(StateTransforms.Model.TrajectoryFromPDB);
 
+    return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+}
+
+function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean): StateTree {
+    let root = b;
     if (supportProps) {
         root = root.apply(StateTransforms.Model.CustomModelProperties);
     }
@@ -123,7 +131,7 @@ export const CreateComplexRepresentation = StateAction.build({
 })(({ ref, state }, ctx: PluginContext) => {
     const root = state.build().to(ref);
     complexRepresentation(ctx, root);
-    return state.update(root.getTree());
+    return state.updateTree(root.getTree());
 });
 
 export const UpdateTrajectory = StateAction.build({
@@ -133,7 +141,7 @@ export const UpdateTrajectory = StateAction.build({
         by: PD.makeOptional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
     }
 })(({ params, state }) => {
-    const models = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Model)
+    const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)
         .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
 
     const update = state.build();
@@ -157,7 +165,7 @@ export const UpdateTrajectory = StateAction.build({
         }
     }
 
-    return state.update(update);
+    return state.updateTree(update);
 });
 
 //
@@ -177,15 +185,15 @@ function getVolumeData(format: VolumeFormat, b: StateTreeBuilder.To<PluginStateO
 }
 
 function createVolumeTree(format: VolumeFormat, ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
-
-    const root = getVolumeData(format, b)
-        .apply(StateTransforms.Representation.VolumeRepresentation3D,
-            VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface'));
-
-    return root.getTree();
+    return getVolumeData(format, b)
+        .apply(StateTransforms.Representation.VolumeRepresentation3D)
+            // the parameters will be used automatically by the reconciler and the IsoValue object
+            // will get the correct Stats object instead of the empty one
+            // VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface'))
+        .getTree();
 }
 
-function getFileFormat(format: VolumeFormat | 'auto', file: FileInput): VolumeFormat {
+function getFileFormat(format: VolumeFormat | 'auto', file: FileInput, data?: Uint8Array): VolumeFormat {
     if (format === 'auto') {
         const fileFormat = getFileInfo(file).ext
         if (fileFormat in VolumeFormats) {
@@ -208,12 +216,22 @@ export const OpenVolume = StateAction.build({
             ['auto', 'Automatic'], ['ccp4', 'CCP4'], ['mrc', 'MRC'], ['map', 'MAP'], ['dsn6', 'DSN6'], ['brix', 'BRIX'], ['dscif', 'densityServerCIF']
         ]),
     }
-})(({ params, state }, ctx: PluginContext) => {
-    const b = state.build();
-    const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: params.isBinary });
-    const format = getFileFormat(params.format, params.file)
-    return state.update(createVolumeTree(format, ctx, data));
-});
+})(({ params, state }, ctx: PluginContext) => Task.create('Open Volume', async taskCtx => {
+    const dataTree = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: true });
+    const volumeData = await state.updateTree(dataTree).runInContext(taskCtx);
+
+    // Alternative for more complex states where the builder is not a simple StateTreeBuilder.To<>:
+    /*
+    const dataRef = dataTree.ref;
+    await state.updateTree(dataTree).runInContext(taskCtx);
+    const dataCell = state.select(dataRef)[0];
+    */
+
+    const format = getFileFormat(params.format, params.file, volumeData.data as Uint8Array);
+    const volumeTree = state.build().to(dataTree.ref);
+    // need to await the 2nd update the so that the enclosing Task finishes after the update is done.
+    await state.updateTree(createVolumeTree(format, ctx, volumeTree)).runInContext(taskCtx);
+}));
 
 export { DownloadDensity };
 type DownloadDensity = typeof DownloadDensity
@@ -280,5 +298,5 @@ const DownloadDensity = StateAction.build({
     }
 
     const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams);
-    return state.update(createVolumeTree(format, ctx, data));
+    return state.updateTree(createVolumeTree(format, ctx, data));
 });

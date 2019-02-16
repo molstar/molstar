@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Model, ResidueIndex, ElementIndex } from './model';
-import { MoleculeType, AtomRole, MoleculeTypeAtomRoleId } from './model/types';
+import { MoleculeType, AtomRole, MoleculeTypeAtomRoleId, getMoleculeType } from './model/types';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit } from './structure';
 import Matrix from 'mol-math/linear-algebra/matrix/matrix';
@@ -17,27 +17,22 @@ export function getCoarseBegCompId(unit: Unit.Spheres | Unit.Gaussians, element:
     return seq.compId.value(seq_id_begin - 1) // 1-indexed
 }
 
-export function getElementMoleculeType(unit: Unit, element: ElementIndex) {
-    let compId = ''
+export function getElementMoleculeType(unit: Unit, element: ElementIndex): MoleculeType {
     switch (unit.kind) {
         case Unit.Kind.Atomic:
-            compId = unit.model.atomicHierarchy.residues.label_comp_id.value(unit.residueIndex[element])
-            break
+            return unit.model.atomicHierarchy.derived.residue.moleculeType[unit.residueIndex[element]]
         case Unit.Kind.Spheres:
         case Unit.Kind.Gaussians:
-            compId = getCoarseBegCompId(unit, element)
-            break
+            // TODO add unit.model.coarseHierarchy.derived.residue.moleculeType
+            const compId = getCoarseBegCompId(unit, element)
+            const cc = unit.model.properties.chemicalComponentMap.get(compId)
+            if (cc) return getMoleculeType(cc.type, compId)
     }
-    const chemCompMap = unit.model.properties.chemicalComponentMap
-    const cc = chemCompMap.get(compId)
-    return cc ? cc.moleculeType : MoleculeType.unknown
+    return MoleculeType.unknown
 }
 
-export function getAtomicMoleculeType(model: Model, rI: ResidueIndex) {
-    const compId = model.atomicHierarchy.residues.label_comp_id.value(rI)
-    const chemCompMap = model.properties.chemicalComponentMap
-    const cc = chemCompMap.get(compId)
-    return cc ? cc.moleculeType : MoleculeType.unknown
+export function getAtomicMoleculeType(model: Model, rI: ResidueIndex): MoleculeType {
+    return model.atomicHierarchy.derived.residue.moleculeType[rI]
 }
 
 export function getAtomIdForAtomRole(moleculeType: MoleculeType, atomRole: AtomRole) {

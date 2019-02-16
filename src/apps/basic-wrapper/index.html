@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-        <title>Mol* Viewer</title>
+        <title>Mol* Plugin Wrapper</title>
         <style>
             * {
                 margin: 0;
@@ -30,15 +30,19 @@
         <script>            
             var pdbId = '5ire', assemblyId= '1';
             var url = 'https://www.ebi.ac.uk/pdbe/static/entry/' + pdbId + '_updated.cif';
+            var format = 'cif';
+
+            // var url = 'https://www.ebi.ac.uk/pdbe/entry-files/pdb' + pdbId + '.ent';
+            // var format = 'pdb';
 
             BasicMolStarWrapper.init('app' /** or document.getElementById('app') */);
             BasicMolStarWrapper.setBackground(0xffffff);
-            BasicMolStarWrapper.loadCif(url, assemblyId);
+            BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId });
             BasicMolStarWrapper.toggleSpin();
 
             document.getElementById('spin').onclick = () => BasicMolStarWrapper.toggleSpin();
-            document.getElementById('asym').onclick = () => BasicMolStarWrapper.loadCif(url);
-            document.getElementById('asm').onclick = () => BasicMolStarWrapper.loadCif(url, assemblyId);
+            document.getElementById('asym').onclick = () => BasicMolStarWrapper.load({ url: url, format: format });
+            document.getElementById('asm').onclick = () => BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId });
         </script>
     </body>
 </html>

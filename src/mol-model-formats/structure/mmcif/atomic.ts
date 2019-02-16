@@ -8,18 +8,18 @@ import { Column, Table } from 'mol-data/db';
 import { Interval, Segmentation } from 'mol-data/int';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import UUID from 'mol-util/uuid';
-import { ElementIndex } from '../../../../structure';
-import Format from '../../format';
-import { Model } from '../../model';
-import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../../properties/atomic';
-import { getAtomicIndex } from '../../properties/utils/atomic-index';
-import { ElementSymbol } from '../../types';
-import { Entities } from '../../properties/common';
+import { ElementIndex } from 'mol-model/structure';
+import { Model } from 'mol-model/structure/model/model';
+import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from 'mol-model/structure/model/properties/atomic';
+import { getAtomicIndex } from 'mol-model/structure/model/properties/utils/atomic-index';
+import { ElementSymbol } from 'mol-model/structure/model/types';
+import { Entities } from 'mol-model/structure/model/properties/common';
+import { getAtomicRanges } from 'mol-model/structure/model/properties/utils/atomic-ranges';
+import { getAtomicDerivedData } from 'mol-model/structure/model/properties/utils/atomic-derived';
+import { ModelFormat } from '../format';
+import mmCIF_Format = ModelFormat.mmCIF
+import { FormatData } from './parser';
 
-import mmCIF_Format = Format.mmCIF
-import { getAtomicRanges } from '../../properties/utils/atomic-ranges';
-import { FormatData } from '../mmcif';
-import { getAtomicDerivedData } from '../../properties/utils/atomic-derived';
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -101,7 +101,7 @@ export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_sit
 
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
     const derived = getAtomicDerivedData(hierarchyData, index, formatData.chemicalComponentMap);
-    const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, conformation, formatData.chemicalComponentMap);
+    const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, conformation, derived.residue.moleculeType);
     const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, ...hierarchyRanges, index, derived };
     return { sameAsPrevious: false, hierarchy, conformation };
 }

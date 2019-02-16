@@ -40,7 +40,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
                 factory: StructureQualityReportColorTheme,
                 getParams: () => ({}),
                 defaultValues: {},
-                isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models[0].customProperties.has(StructureQualityReport.Descriptor)
+                isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(StructureQualityReport.Descriptor)
             })
         }
 

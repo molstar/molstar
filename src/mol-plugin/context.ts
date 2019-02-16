@@ -29,6 +29,7 @@ import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { PluginLayout } from './layout';
 import { List } from 'immutable';
+import { StateTransformParameters } from './ui/state/common';
 
 export class PluginContext {
     private disposed = false;
@@ -87,6 +88,7 @@ export class PluginContext {
     }
 
     readonly customModelProperties = new CustomPropertyRegistry();
+    readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
@@ -136,31 +138,6 @@ export class PluginContext {
         this.disposed = true;
     }
 
-    private initBuiltInBehavior() {
-        BuiltInPluginBehaviors.State.registerDefault(this);
-        BuiltInPluginBehaviors.Representation.registerDefault(this);
-        BuiltInPluginBehaviors.Camera.registerDefault(this);
-        BuiltInPluginBehaviors.Misc.registerDefault(this);
-
-        merge(this.state.dataState.events.log, this.state.behaviorState.events.log).subscribe(e => this.events.log.next(e));
-    }
-
-    async initBehaviors() {
-        const tree = this.state.behaviorState.tree.build();
-
-        for (const b of this.spec.behaviors) {
-            tree.toRoot().apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
-        }
-
-        await this.runTask(this.state.behaviorState.update(tree, true));
-    }
-
-    initDataActions() {
-        for (const a of this.spec.actions) {
-            this.state.dataState.actions.add(a.action);
-        }
-    }
-
     applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {
         const tree = state.tree.build().to(a).apply(transformer, params);
         return PluginCommands.State.Update.dispatch(this, { state, tree });
@@ -171,6 +148,39 @@ export class PluginContext {
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
+    private initBuiltInBehavior() {
+        BuiltInPluginBehaviors.State.registerDefault(this);
+        BuiltInPluginBehaviors.Representation.registerDefault(this);
+        BuiltInPluginBehaviors.Camera.registerDefault(this);
+        BuiltInPluginBehaviors.Misc.registerDefault(this);
+
+        merge(this.state.dataState.events.log, this.state.behaviorState.events.log).subscribe(e => this.events.log.next(e));
+    }
+
+    private async initBehaviors() {
+        const tree = this.state.behaviorState.tree.build();
+
+        for (const b of this.spec.behaviors) {
+            tree.toRoot().apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
+        }
+
+        await this.runTask(this.state.behaviorState.updateTree(tree, true));
+    }
+
+    private initDataActions() {
+        for (const a of this.spec.actions) {
+            this.state.dataState.actions.add(a.action);
+        }
+    }
+
+    private initCustomParamEditors() {
+        if (!this.spec.customParamEditors) return;
+
+        for (const [t, e] of this.spec.customParamEditors) {
+            this.customParamEditors.set(t.id, e);
+        }
+    }
+
     constructor(public spec: PluginSpec) {
         this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e));
 
@@ -178,12 +188,10 @@ export class PluginContext {
 
         this.initBehaviors();
         this.initDataActions();
+        this.initCustomParamEditors();
 
         this.lociLabels = new LociLabelManager(this);
 
-        // TODO: find a better solution for this.
-        setTimeout(() => this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`), 500);
+        this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
     }
-
-    // settings = ;
 }

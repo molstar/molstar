@@ -64,7 +64,7 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
         rotate(rad: number) {
             this.updatedUnitTransforms.clear()
             const state = this.ctx.state.dataState
-            const reprs = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D))
+            const reprs = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D))
             Mat4.rotate(this.rotMat, this.tmpMat, rad, this.rotVec)
             for (const r of reprs) {
                 if (!SO.isRepresentation3D(r.obj)) return
@@ -112,7 +112,7 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
         explode(p: number) {
             this.updatedUnitTransforms.clear()
             const state = this.ctx.state.dataState
-            const reprs = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D));
+            const reprs = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D));
             for (const r of reprs) {
                 if (!SO.isRepresentation3D(r.obj)) return
                 const structure = getRootStructure(r, state)
@@ -187,5 +187,5 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
 //
 
 function getRootStructure(root: StateObjectCell, state: State) {
-    return state.query(StateSelection.Generators.byValue(root).rootOfType([PluginStateObject.Molecule.Structure]))[0];
+    return state.select(StateSelection.Generators.byValue(root).rootOfType([PluginStateObject.Molecule.Structure]))[0];
 }

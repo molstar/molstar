@@ -14,6 +14,7 @@ export { PluginSpec }
 interface PluginSpec {
     actions: PluginSpec.Action[],
     behaviors: PluginSpec.Behavior[],
+    customParamEditors?: [StateAction | Transformer, StateTransformParameters.Class][]
     initialLayout?: PluginLayoutStateProps
 }
 
