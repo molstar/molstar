@@ -5,7 +5,7 @@
  */
 
 import { Task } from 'mol-task';
-import { StateObject } from './object';
+import { StateObject, StateObjectCell } from './object';
 import { Transform } from './transform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateAction } from './action';
@@ -24,6 +24,7 @@ export namespace Transformer {
     export type Params<T extends Transformer<any, any, any>> = T extends Transformer<any, any, infer P> ? P : unknown;
     export type From<T extends Transformer<any, any, any>> = T extends Transformer<infer A, any, any> ? A : unknown;
     export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
+    export type Cell<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? StateObjectCell<B> : unknown;
 
     export function is(obj: any): obj is Transformer {
         return !!obj && typeof (obj as Transformer).toAction === 'function' && typeof (obj as Transformer).apply === 'function';
