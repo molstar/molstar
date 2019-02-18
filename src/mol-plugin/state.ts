@@ -45,6 +45,7 @@ class PluginState {
         return {
             data: this.dataState.getSnapshot(),
             behaviour: this.behaviorState.getSnapshot(),
+            animation: this.animation.getSnapshot(),
             cameraSnapshots: this.cameraSnapshots.getStateSnapshot(),
             canvas3d: {
                 camera: this.plugin.canvas3d.camera.getSnapshot(),
@@ -62,6 +63,9 @@ class PluginState {
             if (snapshot.canvas3d.camera) this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
         }
         this.plugin.canvas3d.requestDraw(true);
+        if (snapshot.animation) {
+            this.animation.setSnapshot(snapshot.animation);
+        }
     }
 
     dispose() {
@@ -94,6 +98,7 @@ namespace PluginState {
     export interface Snapshot {
         data?: State.Snapshot,
         behaviour?: State.Snapshot,
+        animation?: PluginAnimationManager.Snapshot,
         cameraSnapshots?: CameraSnapshotManager.StateSnapshot,
         canvas3d?: {
             camera?: Camera.Snapshot,

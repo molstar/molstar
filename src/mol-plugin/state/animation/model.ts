@@ -23,9 +23,9 @@ interface PluginStateAnimation<P extends PD.Params = any, S = any> {
 
     /**
      * The state must be serializable to JSON. If JSON.stringify is not enough,
-     * custom serializer can be provided.
+     * custom converted to an object that works with JSON.stringify can be provided.
      */
-    stateSerialization?: { toJSON?(state: S): any, fromJSON?(data: any): S }
+    stateSerialization?: { toJSON(state: S): any, fromJSON(data: any): S }
 }
 
 namespace PluginStateAnimation {

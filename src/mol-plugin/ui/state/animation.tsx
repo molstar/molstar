@@ -33,8 +33,7 @@ export class AnimationControls extends PluginComponent<{ }> {
 
         const isDisabled = anim.latestState.animationState === 'playing';
 
-        // TODO: give it its own style
-        return <div style={{ marginBottom: '10px' }}>
+        return <div className='msp-animation-section'>
             <div className='msp-section-header'>Animations</div>
 
             <ParameterControls params={anim.getParams()} values={anim.latestState.params} onChange={this.updateParams} isDisabled={isDisabled} />

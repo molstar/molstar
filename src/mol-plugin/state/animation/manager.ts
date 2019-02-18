@@ -82,7 +82,7 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         this.triggerUpdate();
     }
 
-    animate = async (t: number) => {
+    private animate = async (t: number) => {
         if (this._current.startedTime < 0) this._current.startedTime = t;
         const newState = await this._current.anim.apply(
             this._current.state,
@@ -98,6 +98,38 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         } else if (newState.kind === 'skip') {
             if (this.latestState.animationState === 'playing') requestAnimationFrame(this.animate);
         }
+    }
+
+    getSnapshot(): PluginAnimationManager.Snapshot {
+        if (!this.current) return { state: this.latestState };
+
+        return {
+            state: this.latestState,
+            current: {
+                paramValues: this._current.paramValues,
+                state: this._current.anim.stateSerialization ? this._current.anim.stateSerialization.toJSON(this._current.state) : this._current.state
+            }
+        };
+    }
+
+    setSnapshot(snapshot: PluginAnimationManager.Snapshot) {
+        this.updateState({ animationState: snapshot.state.animationState });
+        this.updateParams(snapshot.state.params);
+
+        if (snapshot.current) {
+            this.current.paramValues = snapshot.current.paramValues;
+            this.current.state = this._current.anim.stateSerialization
+                ? this._current.anim.stateSerialization.fromJSON(snapshot.current.state)
+                : snapshot.current.state;
+            this.triggerUpdate();
+            if (this.latestState.animationState === 'playing') this.resume();
+        }
+    }
+
+    private resume() {
+        this._current.lastTime = 0;
+        this._current.startedTime = -1;
+        requestAnimationFrame(this.animate);
     }
 
     constructor(ctx: PluginContext) {
@@ -118,5 +150,13 @@ namespace PluginAnimationManager {
     export interface State {
         params: { current: string },
         animationState: 'stopped' | 'playing'
+    }
+
+    export interface Snapshot {
+        state: State,
+        current?: {
+            paramValues: any,
+            state: any
+        }
     }
 }

@@ -62,8 +62,8 @@ class Layout extends PluginComponent {
                     {layout.showControls && this.region('right', <div className='msp-scrollable-container msp-right-controls'>
                         <CurrentObject />
                         <Controls />
-                        <CameraSnapshots />
                         <AnimationControls />
+                        <CameraSnapshots />
                         <StateSnapshots />
                     </div>)}
                     {layout.showControls && this.region('bottom', <Log />)}
