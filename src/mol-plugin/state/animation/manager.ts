@@ -11,6 +11,9 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export { PluginAnimationManager }
 
+// TODO: pause functionality (this needs to reset if the state tree changes)
+// TODO: handle unregistered animations on state restore
+
 class PluginAnimationManager extends PluginComponent<PluginAnimationManager.State> {
     private map = new Map<string, PluginStateAnimation>();
     private animations: PluginStateAnimation[] = [];

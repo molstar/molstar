@@ -9,6 +9,9 @@ import { PluginContext } from 'mol-plugin/context';
 
 export { PluginStateAnimation }
 
+// TODO: helpers for building animations (once more animations are added)
+//       for example "composite animation"
+
 interface PluginStateAnimation<P extends PD.Params = any, S = any> {
     name: string,
     readonly display: { readonly name: string, readonly description?: string },
