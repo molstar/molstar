@@ -14,6 +14,7 @@ import { PluginSpec } from './spec';
 import { DownloadStructure, CreateComplexRepresentation, OpenStructure, OpenVolume, DownloadDensity } from './state/actions/basic';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
+import { AnimateModelIndex } from './state/animation/built-in';
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -48,6 +49,9 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Labels.SceneLabels),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry, { autoAttach: true }),
+    ],
+    animations: [
+        AnimateModelIndex
     ]
 }
 

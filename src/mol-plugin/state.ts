@@ -13,6 +13,7 @@ import { PluginStateSnapshotManager } from './state/snapshots';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
 import { PluginCommands } from './command';
+import { PluginAnimationManager } from './state/animation/manager';
 export { PluginState }
 
 class PluginState {
@@ -20,6 +21,7 @@ class PluginState {
 
     readonly dataState: State;
     readonly behaviorState: State;
+    readonly animation: PluginAnimationManager;
     readonly cameraSnapshots = new CameraSnapshotManager();
 
     readonly snapshots = new PluginStateSnapshotManager();
@@ -81,6 +83,8 @@ class PluginState {
         });
 
         this.behavior.currentObject.next(this.dataState.behaviors.currentObject.value);
+
+        this.animation = new PluginAnimationManager(plugin);
     }
 }
 

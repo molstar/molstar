@@ -8,13 +8,15 @@ import { StateAction } from 'mol-state/action';
 import { Transformer } from 'mol-state';
 import { StateTransformParameters } from './ui/state/common';
 import { PluginLayoutStateProps } from './layout';
+import { PluginStateAnimation } from './state/animation/model';
 
 export { PluginSpec }
 
 interface PluginSpec {
     actions: PluginSpec.Action[],
     behaviors: PluginSpec.Behavior[],
-    customParamEditors?: [StateAction | Transformer, StateTransformParameters.Class][]
+    animations?: PluginStateAnimation[],
+    customParamEditors?: [StateAction | Transformer, StateTransformParameters.Class][],
     initialLayout?: PluginLayoutStateProps
 }
 

@@ -12,12 +12,14 @@ export class PluginComponent<State> {
     private _state: BehaviorSubject<State>;
     private _updated = new Subject();
 
-    updateState(...states: Partial<State>[]) {
+    updateState(...states: Partial<State>[]): boolean {
         const latest = this.latestState;
         const s = shallowMergeArray(latest, states);
         if (s !== latest) {
             this._state.next(s);
+            return true;
         }
+        return false;
     }
 
     get states() {
