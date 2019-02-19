@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Paul Luna <paulluna0215@gmail.com>
+ */
 
 import * as React from 'react';
 
@@ -10,7 +15,6 @@ export default class PointComponent extends React.Component<any, {show: boolean}
         
         this.handleHover = this.handleHover.bind(this);
         this.handleHoverOff = this.handleHoverOff.bind(this);
-        this.deletePoint = this.deletePoint.bind(this);
     }
 
     private handleHover() {
@@ -23,11 +27,7 @@ export default class PointComponent extends React.Component<any, {show: boolean}
         this.setState({show: false});
         this.props.onmouseover(undefined);
     }
-
-    private deletePoint() {
-        this.props.delete(this.props.id);   
-    }
-
+    
     public render() {
         return([
             <circle 
@@ -37,7 +37,6 @@ export default class PointComponent extends React.Component<any, {show: boolean}
                 cx={this.props.x} 
                 cy={this.props.y} 
                 onClick={this.props.onclick}
-                onDoubleClick={this.props.delete(this.props.id)}
                 onMouseEnter={this.handleHover} 
                 onMouseLeave={this.handleHoverOff}
                 onMouseDown={this.props.onmousedown}

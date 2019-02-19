@@ -31,13 +31,6 @@
         stroke-width: 3;
     }
 
-    .show {
-        visibility: visible;
-    }
-    .hide {
-        visibility: hidden;
-    }
-
     .delete-button {
         rect {
             fill: #ED4337;
@@ -65,4 +58,166 @@
 
 .msp-canvas:focus {
     outline: none;
+}
+
+.control {
+    position: relative;
+    display: inline-block;
+    width: 16px;
+    height:16px;
+    margin: 2px 8px;
+}
+    
+.disabled-plus {
+    background-color: gray;
+    border-radius: 8px;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    position: relative;
+    cursor: not-allowed;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.disabled-plus:after {
+    background-color: #f3f2ee;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:7px;
+    left: 4px;
+    content:"";
+}
+
+.disabled-plus:before {
+    background-color: #f3f2ee;
+    width: 2px;
+    height: 8px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:4px;
+    left: 7px;
+    content:"";
+}
+
+.control-plus {
+    background-color:green;
+    border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-border-radius:8px;
+    width: 16px;
+    height: 16px;
+    position: relative; 
+    pointer-events: auto;
+    visibility: visible;
+}
+
+
+.control-plus:hover {
+    background-color: #c0d890;
+    cursor: pointer;
+    border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-border-radius:8px;
+    width: 16px;
+    height: 16px;
+    position: relative;
+    top:0;
+    left:0;
+}
+
+.control-plus:after {
+    background-color: #f3f2ee;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:7px;
+    left: 4px;
+    content:"";
+}
+
+.control-plus:before {
+    background-color: #f3f2ee;
+    width: 2px;
+    height: 8px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:4px;
+    left: 7px;
+    content:"";
+}
+
+.disabled-minus {
+    background-color: gray;
+    border-radius: 8px;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    position: relative;
+    pointer-events: none;
+    cursor: not-allowed;
+    visibility: hidden;
+}
+
+.disabled-minus:after {
+    background-color: #f3f2ee;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top: 7px;
+    left: 4px;
+    content:"";
+}
+
+.control-minus {
+    background-color: red;
+    border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-border-radius:8px;
+    width: 16px;
+    height: 16px;
+    position: relative;
+    cursor: pointer;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+.control-minus:after {
+    background-color: #f3f2ee;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    -webkit-border-radius: 1px;
+    -moz-border-radius: 1px;
+    position: absolute;
+    top:7px;
+    left: 4px;
+    content:"";
+}
+
+.control-minus:hover {
+    background-color: #ff6666;
+    cursor: pointer;
+    border-radius: 8px; 
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    width: 16px;
+    height: 16px;
+    position: relative;
+}
+
+input[type="number"] {
+    background: #f3f2ee;
 }

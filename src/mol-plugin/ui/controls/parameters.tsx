@@ -111,6 +111,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
 
     onHover = (point?: Vec2) => {
         this.setState({ isOverPoint: !this.state.isOverPoint });
+
         if (point) {
             this.setState({ message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})` });
             return;
@@ -144,6 +145,9 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
             </div>
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 <LineGraphComponent
+                    height={400}
+                    width={600}
+                    padding={70}
                     data={this.props.param.defaultValue}
                     onChange={this.onChange}
                     onHover={this.onHover}
