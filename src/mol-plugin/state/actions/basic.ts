@@ -277,7 +277,7 @@ const DscifProvider: DataFormatProvider<any> = {
             if (blocks.length === 1) {
                 tree = b
                     .apply(StateTransforms.Model.VolumeFromDensityServerCif, { blockHeader: blocks[0].header })
-                    .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 0.3 }))
+                    .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 0.3 }, 'uniform', { value: ColorNames.teal }))
             } else if (blocks.length === 2) {
                 tree = b
                     .apply(StateTransforms.Model.VolumeFromDensityServerCif, { blockHeader: blocks[0].header })
@@ -350,6 +350,14 @@ const DownloadDensity = StateAction.build({
                     id: PD.Text('1tqn', { label: 'Id' }),
                     type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
                 }, { isFlat: true }),
+                'pdbe-emd-ds': PD.Group({
+                    id: PD.Text('emd-8004', { label: 'Id' }),
+                    detail: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { label: 'Detail' }),
+                }, { isFlat: true }),
+                'pdbe-xray-ds': PD.Group({
+                    id: PD.Text('1tqn', { label: 'Id' }),
+                    detail: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { label: 'Detail' }),
+                }, { isFlat: true }),
                 'rcsb': PD.Group({
                     id: PD.Text('1tqn', { label: 'Id' }),
                     type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
@@ -362,6 +370,8 @@ const DownloadDensity = StateAction.build({
             }, {
                 options: [
                     ['pdbe', 'PDBe X-ray maps'],
+                    ['pdbe-emd-ds', 'PDBe EMD Density Server'],
+                    ['pdbe-xray-ds', 'PDBe X-ray Density Server'],
                     ['rcsb', 'RCSB X-ray maps'],
                     ['url', 'URL']
                 ]
@@ -386,6 +396,20 @@ const DownloadDensity = StateAction.build({
                 label: `PDBe X-ray map: ${src.params.id}`
             };
             break;
+        case 'pdbe-emd-ds':
+            downloadParams = {
+                url: `https://www.ebi.ac.uk/pdbe/densities/emd/${src.params.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                isBinary: true,
+                label: `PDBe EMD Density Server: ${src.params.id}`
+            };
+            break;
+        case 'pdbe-xray-ds':
+            downloadParams = {
+                url: `https://www.ebi.ac.uk/pdbe/densities/x-ray/${src.params.id.toLowerCase()}/cell?detail=${src.params.detail}`,
+                isBinary: true,
+                label: `PDBe X-ray Density Server: ${src.params.id}`
+            };
+            break;
         case 'rcsb':
             downloadParams = {
                 url: src.params.type === '2fofc'
@@ -408,6 +432,10 @@ const DownloadDensity = StateAction.build({
             break;
         case 'pdbe':
             provider = ctx.dataFormat.registry.get('ccp4')
+            break;
+        case 'pdbe-emd-ds':
+        case 'pdbe-xray-ds':
+            provider = ctx.dataFormat.registry.get('dscif')
             break;
         case 'rcsb':
             provider = ctx.dataFormat.registry.get('dsn6')
