@@ -6,7 +6,7 @@
  */
 
 import { PluginContext } from 'mol-plugin/context';
-import { StateTree, Transformer, StateObject } from 'mol-state';
+import { StateTree, Transformer, StateObject, State } from 'mol-state';
 import { StateAction } from 'mol-state/action';
 import { StateSelection } from 'mol-state/state/selection';
 import { StateTreeBuilder } from 'mol-state/tree/builder';
@@ -14,9 +14,11 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
-import { StructureRepresentation3DHelpers } from '../transforms/representation';
+import { StructureRepresentation3DHelpers, VolumeRepresentation3DHelpers } from '../transforms/representation';
 import { getFileInfo, FileInfo } from 'mol-util/file-info';
 import { Task } from 'mol-task';
+import { ColorNames } from 'mol-util/color/tables';
+import { VolumeIsoValue } from 'mol-model/volume';
 
 // TODO: "structure/volume parser provider"
 
@@ -171,8 +173,8 @@ export const UpdateTrajectory = StateAction.build({
 //
 
 export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String, M extends StateObject> {
-    private _list: { name: string, provider: DataFormatProvider<D, M> }[] = []
-    private _map = new Map<string, DataFormatProvider<D, M>>()
+    private _list: { name: string, provider: DataFormatProvider<D> }[] = []
+    private _map = new Map<string, DataFormatProvider<D>>()
 
     get default() { return this._list[0]; }
     get types(): [string, string][] {
@@ -185,7 +187,7 @@ export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | Plugin
         this.add('dscif', DscifProvider)
     };
 
-    add(name: string, provider: DataFormatProvider<D, M>) {
+    add(name: string, provider: DataFormatProvider<D>) {
         this._list.push({ name, provider })
         this._map.set(name, provider)
     }
@@ -203,7 +205,7 @@ export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | Plugin
         throw new Error('no compatible data format provider available')
     }
 
-    get(name: string): DataFormatProvider<D, M> {
+    get(name: string): DataFormatProvider<D> {
         if (this._map.has(name)) {
             return this._map.get(name)!
         } else {
@@ -216,53 +218,82 @@ export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | Plugin
     }
 }
 
-interface DataFormatProvider<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String, M extends StateObject> {
+interface DataFormatProvider<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String> {
     label: string
     description: string
     fileExtensions: string[]
     isApplicable(info: FileInfo, data: string | Uint8Array): boolean
-    getDefaultBuilder(b: StateTreeBuilder.To<D>): StateTreeBuilder.To<M>
+    getDefaultBuilder(ctx: PluginContext, data: StateTreeBuilder.To<D>, state?: State): Task<void>
 }
 
-const Ccp4Provider: DataFormatProvider<any, any> = {
+const Ccp4Provider: DataFormatProvider<any> = {
     label: 'CCP4/MRC/BRIX',
     description: 'CCP4/MRC/BRIX',
     fileExtensions: ['ccp4', 'mrc', 'map'],
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'ccp4' || info.ext === 'mrc' || info.ext === 'map'
     },
-    getDefaultBuilder: (b: StateTreeBuilder.To<PluginStateObject.Data.Binary>) => {
-        return b.apply(StateTransforms.Data.ParseCcp4)
-            .apply(StateTransforms.Model.VolumeFromCcp4)
-            .apply(StateTransforms.Representation.VolumeRepresentation3D)
+    getDefaultBuilder: (ctx: PluginContext, data: StateTreeBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
+        return Task.create('CCP4/MRC/BRIX default builder', async taskCtx => {
+            const tree = data.apply(StateTransforms.Data.ParseCcp4)
+                .apply(StateTransforms.Model.VolumeFromCcp4)
+                .apply(StateTransforms.Representation.VolumeRepresentation3D)
+            await state.updateTree(tree).runInContext(taskCtx)
+        })
     }
 }
 
-const Dsn6Provider: DataFormatProvider<any, any> = {
+const Dsn6Provider: DataFormatProvider<any> = {
     label: 'DSN6/BRIX',
     description: 'DSN6/BRIX',
     fileExtensions: ['dsn6', 'brix'],
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'dsn6' || info.ext === 'brix'
     },
-    getDefaultBuilder: (b: StateTreeBuilder.To<PluginStateObject.Data.Binary>) => {
-        return b.apply(StateTransforms.Data.ParseDsn6)
-            .apply(StateTransforms.Model.VolumeFromDsn6)
-            .apply(StateTransforms.Representation.VolumeRepresentation3D)
+    getDefaultBuilder: (ctx: PluginContext, data: StateTreeBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
+        return Task.create('DSN6/BRIX default builder', async taskCtx => {
+            const tree = data.apply(StateTransforms.Data.ParseDsn6)
+                .apply(StateTransforms.Model.VolumeFromDsn6)
+                .apply(StateTransforms.Representation.VolumeRepresentation3D)
+            await state.updateTree(tree).runInContext(taskCtx)
+        })
     }
 }
 
-const DscifProvider: DataFormatProvider<any, any> = {
+const DscifProvider: DataFormatProvider<any> = {
     label: 'DensityServer CIF',
     description: 'DensityServer CIF',
     fileExtensions: ['cif'],
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'cif'
     },
-    getDefaultBuilder: (b: StateTreeBuilder.To<PluginStateObject.Data.Binary>) => {
-        return b.apply(StateTransforms.Data.ParseCif, {  })
-            .apply(StateTransforms.Model.VolumeFromDensityServerCif)
-            .apply(StateTransforms.Representation.VolumeRepresentation3D)
+    getDefaultBuilder: (ctx: PluginContext, data: StateTreeBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
+        return Task.create('DensityServer CIF default builder', async taskCtx => {
+            const cifBuilder = data.apply(StateTransforms.Data.ParseCif)
+            const cifStateObject = await state.updateTree(cifBuilder).runInContext(taskCtx)
+            const b = state.build().to(cifBuilder.ref);
+            const blocks = cifStateObject.data.blocks.slice(1); // zero block contains query meta-data
+            let tree: StateTreeBuilder.To<any>
+            if (blocks.length === 1) {
+                tree = b
+                    .apply(StateTransforms.Model.VolumeFromDensityServerCif, { blockHeader: blocks[0].header })
+                    .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 0.3 }))
+            } else if (blocks.length === 2) {
+                tree = b
+                    .apply(StateTransforms.Model.VolumeFromDensityServerCif, { blockHeader: blocks[0].header })
+                    .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 0.3 }, 'uniform', { value: ColorNames.blue }))
+                const vol = tree.to(cifBuilder.ref)
+                    .apply(StateTransforms.Model.VolumeFromDensityServerCif, { blockHeader: blocks[1].header })
+                const posParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(3), alpha: 0.3 }, 'uniform', { value: ColorNames.green })
+                tree = vol.apply(StateTransforms.Representation.VolumeRepresentation3D, posParams)
+                const negParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(-3), alpha: 0.3 }, 'uniform', { value: ColorNames.red })
+                tree = tree.to(vol.ref).apply(StateTransforms.Representation.VolumeRepresentation3D, negParams)
+            } else {
+                throw new Error('unknown number of blocks')
+            }
+
+            await state.updateTree(tree).runInContext(taskCtx);
+        })
     }
 }
 
@@ -302,9 +333,8 @@ export const OpenVolume = StateAction.build({
 
     const provider = params.format === 'auto' ? ctx.dataFormat.registry.auto(getFileInfo(params.file), dataStateObject) : ctx.dataFormat.registry.get(params.format)
     const b = state.build().to(data.ref);
-    const tree = provider.getDefaultBuilder(b).getTree()
     // need to await the 2nd update the so that the enclosing Task finishes after the update is done.
-    await state.updateTree(tree).runInContext(taskCtx);
+    await provider.getDefaultBuilder(ctx, b, state).runInContext(taskCtx)
 }));
 
 export { DownloadDensity };
@@ -341,7 +371,7 @@ const DownloadDensity = StateAction.build({
 })(({ params, state }, ctx: PluginContext) => Task.create('Download Density', async taskCtx => {
     const src = params.source;
     let downloadParams: Transformer.Params<Download>;
-    let provider: DataFormatProvider<any, any>
+    let provider: DataFormatProvider<any>
 
     switch (src.name) {
         case 'url':
@@ -386,6 +416,5 @@ const DownloadDensity = StateAction.build({
     }
 
     const b = state.build().to(data.ref);
-    const tree = provider.getDefaultBuilder(b).getTree()
-    await state.updateTree(tree).runInContext(taskCtx);
+    await provider.getDefaultBuilder(ctx, b, state).runInContext(taskCtx)
 }));

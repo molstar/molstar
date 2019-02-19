@@ -19,6 +19,8 @@ import { ExplodeRepresentation3D } from 'mol-plugin/behavior/dynamic/representat
 import { VolumeData } from 'mol-model/volume';
 import { BuiltInVolumeRepresentationsName } from 'mol-repr/volume/registry';
 import { VolumeParams } from 'mol-repr/volume/representation';
+import { BuiltInColorThemeName, ColorTheme } from 'mol-theme/color';
+import { BuiltInSizeThemeName, SizeTheme } from 'mol-theme/size';
 
 export namespace StructureRepresentation3DHelpers {
     export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): Transformer.Params<StructureRepresentation3D> {
@@ -162,14 +164,14 @@ export namespace VolumeRepresentation3DHelpers {
         })
     }
 
-    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInVolumeRepresentationsName, volumeParams?: Partial<PD.Values<VolumeParams>>): Transformer.Params<VolumeRepresentation3D> {
+    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInVolumeRepresentationsName, volumeParams?: Partial<PD.Values<PD.Params>>, colorName?: BuiltInColorThemeName, colorParams?: Partial<ColorTheme.Props>, sizeName?: BuiltInSizeThemeName, sizeParams?: Partial<SizeTheme.Props>): Transformer.Params<VolumeRepresentation3D> {
         const type = ctx.volumeRepresentation.registry.get(name);
-        const colorParams = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).defaultValues;
-        const sizeParams = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).defaultValues
+        const colorType = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(colorName || type.defaultColorTheme);
+        const sizeType = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(sizeName || type.defaultSizeTheme);
         return ({
             type: { name, params: volumeParams ? { ...type.defaultValues, ...volumeParams } : type.defaultValues },
-            colorTheme: { name: type.defaultColorTheme, params: colorParams },
-            sizeTheme: { name: type.defaultSizeTheme, params: sizeParams }
+            colorTheme: { name: type.defaultColorTheme, params: colorParams ? { ...colorType.defaultValues, ...colorParams } : colorType.defaultValues },
+            sizeTheme: { name: type.defaultSizeTheme, params: sizeParams ? { ...sizeType.defaultValues, ...sizeParams } : sizeType.defaultValues }
         })
     }
 }
@@ -234,7 +236,6 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
             // TODO set initial state, repr.setState({})
             // TODO include isoValue in the label where available
-            console.log(params.type.params);
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Volume.Representation3D(repr, { label: provider.label });
         });
