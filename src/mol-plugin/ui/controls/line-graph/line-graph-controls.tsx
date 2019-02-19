@@ -38,11 +38,11 @@ function mouseDown (event: any, state: any ) {
         state.mouseStartPoint = Vec2.create(x, y);
         return state;
     }
+    state.mouseStartPoint = Vec2.create(x, y);
     if (state.canSelectMultiple) {
         addGhostPoint(state,id, x, y);
         size = state.ghostPoints.length;
         state.ghostPointsWrapper.appendChild(state.ghostPoints[size-1].element);
-        state.mouseStartPoint = Vec2.create(x, y);
         selected = state.selected;
         selected.push(id);
         state.selected = selected;
@@ -69,6 +69,8 @@ function mousemove(event:any, state:any) {
     const pt = state.myRef.createSVGPoint();
     state.isControlEnabled['plus'] = false;
     state.isControlEnabled['minus'] = false;
+    state.x = '';
+    state.y = '';
     pt.x = event.clientX;
     pt.y = event.clientY;
     svgP = pt.matrixTransform(state.myRef.getScreenCTM().inverse());
@@ -76,10 +78,10 @@ function mousemove(event:any, state:any) {
     if(state.selected.length == 0 && state.mouseDown) {
         svgP = Vec2.create(svgP.x, svgP.y);
         createRect(svgP, state);
+        state.createdLasso = true;
         return state;
     }
 
-    if(state.canSelectMultiple) {
         let selected = 0;
         let ghostPoint: Vec2;
         const directionalVector = Vec2.create(svgP.x-state.mouseStartPoint[0], svgP.y-state.mouseStartPoint[1]);
@@ -121,37 +123,13 @@ function mousemove(event:any, state:any) {
         
         const x = parseInt(state.ghostPoints[selected].element.getAttribute('cx') as string);
         const y = parseInt(state.ghostPoints[selected].element.getAttribute('cy') as string);
+        if(state.selected.length == 1) {
+            const unNormalizePoint = unNormalize(state.height, state.width, Vec2.create(x, y), state.padding);
+            state.displayPoint = unNormalizePoint;
+        }
         state.mouseStartPoint = Vec2.create(x, y);
+        
         return state;
-    }
-
-    if ((svgP.x < (state.padding/2) || svgP.y > (state.width+(state.padding/2))) && (svgP.y > (state.height+(state.padding)) || svgP[1] < (state.padding))) {
-        updatedCopyPoint = Vec2.create(state.updatedX, state.updatedY);
-    }
-    else if (svgP.x < state.padding/2) {
-        updatedCopyPoint = Vec2.create(state.padding/2, svgP.y);
-    }
-    else if( svgP.x > (state.width+(state.padding/2))) {
-        updatedCopyPoint = Vec2.create(state.width+(state.padding/2), svgP.x);
-    }
-    else if (svgP.y > (state.height+(state.padding))) {
-        updatedCopyPoint = Vec2.create(svgP.x, state.height+(state.padding/2));
-    }
-    else if (svgP.y < (state.padding)) {
-        updatedCopyPoint = Vec2.create(svgP.x, (state.padding/2));
-    } else {
-        updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
-    }
-    state.updatedX = updatedCopyPoint[0];
-    state.updatedY = updatedCopyPoint[1];
-
-    // TODO: Display unNormalziedPoint
-    const unNormalizePoint = unNormalize(state.height, state.width, updatedCopyPoint, state.padding);
-    state.displayPoint = unNormalizePoint;
-    state.ghostPoints[0].element.setAttribute('style', 'display: visible');
-    state.ghostPoints[0].element.setAttribute('cx', `${updatedCopyPoint[0]}`);
-    state.ghostPoints[0].element.setAttribute('cy', `${updatedCopyPoint[1]}`);
-    return state;
 }
 
 function mouseUp(event: any, state: any) {
@@ -175,8 +153,6 @@ function mouseUp(event: any, state: any) {
                 addGhostPoint(state, i, point[0], point[1]);
                 size = state.ghostPoints.length;
                 state.ghostPoints[size-1].element.setAttribute('style', 'display: visible');
-                // state.ghostPoints[size-1].element.addEventListener('mousedown', state.handleEvent); MIGHT NOT NEED THIS
-                // state.ghostPoints[size-1].element.addEventListener('click', state.handleEvent);    MIGHT NOT NEED THIS
                 state.ghostPointsWrapper.appendChild(state.ghostPoints[size-1].element);
             }
         }
@@ -205,17 +181,20 @@ function mouseUp(event: any, state: any) {
     state.leftMost.setAttribute('cx', '0');
     state.canSelectMultiple = false;
     state.displayPoint = Vec2.create(-1, -1);
-    // document.removeEventListener('mousemove', this.handleDrag, true);
-    // document.removeEventListener('mouseup', mouseUp);
     return state;
 }
 
 function click(event: any, state: any) {
     state.mouseDown = false;
-    if((event.target.tagName != 'circle' && !state.canSelectMultiple) || (event.target.tagName == 'circle' && !state.canSelectMultiple)) {
+    if(event.target.tagName != 'circle') {
         if(state.canSeleMultiple) { return;}
+
         state.isControlEnabled['plus'] = false;
         state.isControlEnabled['minus'] = false;
+        if(state.createdLasso) {
+            state.createdLasso = false;
+            return state;
+        }
         state.ghostPointsWrapper.innerHTML = '';
         state.ghostPoints = [];
         state.hasDragged = false;
@@ -254,7 +233,7 @@ function click(event: any, state: any) {
     // this.userInput['x'] = this.state.points[this.state.selected[0]][0] as number;
     // this.userInput['y'] = this.state.points[this.state.selected[0]][1] as number; 
     state.x = state.points[state.selected[0]][0];
-    state.y = state.points[state.selected[0]][0];
+    state.y = state.points[state.selected[0]][1];
     return state;
 }
 

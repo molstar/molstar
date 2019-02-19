@@ -33,10 +33,10 @@ interface LineGraphComponentState {[x:string]:any,
     upperMost: SVGElement;
     bottomMost: SVGElement;
     displayPoint: Vec2;
+    createdLasso: boolean;
 }
 
 export default class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
-    private ghostPoints: {id: number, element: SVGElement}[];
     private namespace: string;
     private userInput: {[name:string]: number} = {};
     private data: any;
@@ -72,7 +72,6 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             bottomMost: document.createElementNS(this.namespace, 'circle') as SVGElement,
         };
 
-        this.ghostPoints = [];
         this.namespace = 'http://www.w3.org/2000/svg';
         this.userInput['x'] = -1;
         this.userInput['y'] = -1;
@@ -138,6 +137,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         ]);
     }
 
+    
     componentDidMount() {
         this.setState({
             ghostPointsWrapper: document.getElementsByClassName('ghost-points')[0] as SVGElement,
@@ -148,6 +148,11 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         document.addEventListener('keyup', this.handleKeyUp);
     }
 
+    componentDidUpdate() {
+        this.userInput['x'] = this.state.x == '' ? -1 : this.state.x as number;
+        this.userInput['y'] = this.state.y == '' ? -1 : this.state.y as number;
+    }
+    
     componentWillUnmount() {
         document.removeEventListener('keydown', this.handleKeyDown);
         document.removeEventListener('keyup', this.handleKeyUp);
@@ -176,9 +181,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
     private handleKeyUp = (event: any) => {
         if(event.keyCode != 16) { return; }
-        this.ghostPoints = [];
         this.state.ghostPointsWrapper.innerHTML = '';
-        this.setState({canSelectMultiple: false});
+        this.setState({canSelectMultiple: false, ghostPoints: []});
     }
 
     private handleEvent = (event: any) => {
@@ -251,16 +255,16 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     private handlePointUpdate() {
-        let x: number = this.userInput['x'];
-        let y: number = this.userInput['y'];
+        let x: number = this.state.x as number;
+        let y: number = this.state.y as number;
         let id = this.state.selected[0];
         let unNormalizePoint;
         const updatePoint = normalize(this.state.height, this.state.width, Vec2.create(x, y), this.state.padding);
         
-        this.ghostPoints[0].element.setAttribute('cx', `${updatePoint[0]}`);
-        this.ghostPoints[0].element.setAttribute('cy', `${updatePoint[1]}`);
-        x = parseInt(this.ghostPoints[0].element.getAttribute('cx') as string); // This, for some reason, was the only way to make
-        y = parseInt(this.ghostPoints[0].element.getAttribute('cy') as string); // x and y be of the type 'number'
+        this.state.ghostPoints[0].element.setAttribute('cx', `${updatePoint[0]}`);
+        this.state.ghostPoints[0].element.setAttribute('cy', `${updatePoint[1]}`);
+        x = parseInt(this.state.ghostPoints[0].element.getAttribute('cx') as string); // This, for some reason, was the only way to make
+        y = parseInt(this.state.ghostPoints[0].element.getAttribute('cy') as string); // x and y be of the type 'number'
         unNormalizePoint = unNormalize(this.state.height, this.state.width, Vec2.create(x, y), this.state.padding);
 
         let points = this.state.points.filter((_, j) => j != id);
@@ -288,8 +292,10 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.state.ghostPointsWrapper.innerHTML = '';
         this.setControls(false, false);
         this.change(points);
-
+        this.userInput['x'] = -1;
+        this.userInput['y'] = -1;
         this.setState({
+            selected: [],
             points,
             x: '',
             y: ''
@@ -300,23 +306,14 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     private handleLeave() {
-        if(this.state.selected.length === 0) {
-            return;
-        }
-        if(this.state.canSelectMultiple){
-            document.addEventListener('mousemove', this.handleEvent);
-        } else {
-           document.addEventListener('mousemove', this.handleEvent);
-        }
+        if(this.state.selected.length === 0) { return; }
+        
+        document.addEventListener('mousemove', this.handleEvent);
         document.addEventListener('mouseup', this.handleEvent);
     }
 
     private handleEnter() {
-        if(this.state.canSelectMultiple) {
-            document.removeEventListener('mousemove', this.handleEvent);
-        } else {
-            document.removeEventListener('mousemouse', this.handleEvent);
-        }
+        document.removeEventListener('mousemove', this.handleEvent);
         document.removeEventListener('mouseup', this.handleEvent);
     }
 
