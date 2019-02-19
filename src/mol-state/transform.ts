@@ -25,7 +25,9 @@ export namespace Transform {
     export interface Props {
         tag?: string
         isGhost?: boolean,
-        isBinding?: boolean
+        isBinding?: boolean,
+        // determine if the corresponding cell can be deleted by the user.
+        isLocked?: boolean
     }
 
     export interface Options {

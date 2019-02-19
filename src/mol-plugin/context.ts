@@ -178,6 +178,13 @@ export class PluginContext {
         }
     }
 
+    private initAnimations() {
+        if (!this.spec.animations) return;
+        for (const anim of this.spec.animations) {
+            this.state.animation.register(anim);
+        }
+    }
+
     private initCustomParamEditors() {
         if (!this.spec.customParamEditors) return;
 
@@ -193,6 +200,7 @@ export class PluginContext {
 
         this.initBehaviors();
         this.initDataActions();
+        this.initAnimations();
         this.initCustomParamEditors();
 
         this.lociLabels = new LociLabelManager(this);

@@ -20,6 +20,7 @@ import { ApplyActionContol } from './state/apply-action';
 import { PluginState } from 'mol-plugin/state';
 import { UpdateTransformContol } from './state/update-transform';
 import { StateObjectCell } from 'mol-state';
+import { AnimationControls } from './state/animation';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
@@ -61,6 +62,7 @@ class Layout extends PluginComponent {
                     {layout.showControls && this.region('right', <div className='msp-scrollable-container msp-right-controls'>
                         <CurrentObject />
                         <Controls />
+                        <AnimationControls />
                         <CameraSnapshots />
                         <StateSnapshots />
                     </div>)}

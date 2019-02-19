@@ -53,7 +53,7 @@ namespace StateObject {
     };
 }
 
-interface StateObjectCell {
+interface StateObjectCell<T = StateObject> {
     transform: Transform,
 
     // Which object was used as a parent to create data in this cell
@@ -68,7 +68,7 @@ interface StateObjectCell {
     } | undefined;
 
     errorText?: string,
-    obj?: StateObject
+    obj?: T
 }
 
 namespace StateObjectCell {
