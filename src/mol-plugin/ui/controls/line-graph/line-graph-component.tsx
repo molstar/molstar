@@ -149,8 +149,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     componentDidUpdate() {
-        this.userInput['x'] = this.state.x == '' ? -1 : this.state.x as number;
-        this.userInput['y'] = this.state.y == '' ? -1 : this.state.y as number;
+        this.userInput['x'] = this.state.x < '' ? -1 : this.state.x as number;
+        this.userInput['y'] = this.state.y < '' ? -1 : this.state.y as number;
     }
     
     componentWillUnmount() {
@@ -255,8 +255,9 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     }
 
     private handlePointUpdate() {
-        let x: number = this.state.x as number;
-        let y: number = this.state.y as number;
+        let x: number = this.userInput['x'];
+        let y: number = this.userInput['y'];
+        if(x > 1 || y > 1) { return -1; }
         let id = this.state.selected[0];
         let unNormalizePoint;
         const updatePoint = normalize(this.state.height, this.state.width, Vec2.create(x, y), this.state.padding);
