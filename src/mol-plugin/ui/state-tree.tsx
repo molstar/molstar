@@ -177,10 +177,6 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
         const children = this.props.state.tree.children.get(this.props.nodeRef);
         const cellState = this.props.state.cellStates.get(this.props.nodeRef);
 
-        const remove = <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
-            <span className='msp-icon msp-icon-remove' />
-        </button>;
-
         const visibility = <button onClick={this.toggleVisible} className={`msp-btn msp-btn-link msp-tree-visibility${cellState.isHidden ? ' msp-tree-visibility-hidden' : ''}`}>
             <span className='msp-icon msp-icon-visual-visibility' />
         </button>;
@@ -190,7 +186,9 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />
             </button>}
-            {remove}{visibility}
+            {!cell.transform.props.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
+                <span className='msp-icon msp-icon-remove' />
+            </button>}{visibility}
         </div>
     }
 }

@@ -209,6 +209,8 @@ namespace TrackballControls {
 
         /** Update the object's position, direction and up vectors */
         function update() {
+            if (p.spin) spin();
+
             Vec3.sub(_eye, object.position, target)
 
             rotateCamera()
@@ -300,7 +302,6 @@ namespace TrackballControls {
         function spin() {
             _spinSpeed[0] = (p.spinSpeed || 0) / 1000;
             if (!_isInteracting) Vec2.add(_moveCurr, _movePrev, _spinSpeed);
-            if (p.spin) requestAnimationFrame(spin);
         }
 
         // force an update at start
@@ -313,9 +314,7 @@ namespace TrackballControls {
 
             get props() { return p as Readonly<TrackballControlsProps> },
             setProps: (props: Partial<TrackballControlsProps>) => {
-                const wasSpinning = p.spin
                 Object.assign(p, props)
-                if (p.spin && !wasSpinning) requestAnimationFrame(spin)
             },
 
             update,

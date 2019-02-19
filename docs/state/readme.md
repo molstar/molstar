@@ -8,6 +8,8 @@ interface Snapshot {
     data?: State.Snapshot,
     // Snapshot of behavior state tree
     behaviour?: State.Snapshot,
+    // Snapshot for current animation,
+    animation?: PluginAnimationManager.Snapshot,
     // Saved camera positions
     cameraSnapshots?: CameraSnapshotManager.StateSnapshot,
     canvas3d?: {
@@ -68,6 +70,10 @@ interface Transform.Props {
 ```
 
 "Built-in" data state transforms and description of their parameters are defined in ``mol-plugin/state/transforms``. Behavior transforms are defined in ``mol-plugin/behavior``. Auto-generated documentation for the transforms is also [available](transforms.md).
+
+# Animation State
+
+Defined by ``CameraSnapshotManager.StateSnapshot`` in ``mol-plugin/state/animation/manager.ts``.
 
 # Canvas3D State
 

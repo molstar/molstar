@@ -5,6 +5,7 @@
  */
 
 import * as React from 'react'
+import { NumericInput } from './common';
 
 export class Slider extends React.Component<{
     min: number,
@@ -12,7 +13,8 @@ export class Slider extends React.Component<{
     value: number,
     step?: number,
     onChange: (v: number) => void,
-    disabled?: boolean
+    disabled?: boolean,
+    onEnter?: () => void
 }, { isChanging: boolean, current: number }> {
 
     state = { isChanging: false, current: 0 }
@@ -35,18 +37,27 @@ export class Slider extends React.Component<{
         this.setState({ current });
     }
 
+    updateManually = (v: number) => {
+        let n = v;
+        if (this.props.step === 1) n = Math.round(n);
+        if (n < this.props.min) n = this.props.min;
+        if (n > this.props.max) n = this.props.max;
+        this.props.onChange(n);
+    }
+
     render() {
         let step = this.props.step;
         if (step === void 0) step = 1;
         return <div className='msp-slider'>
             <div>
-                <div>
-                    <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
-                        onBeforeChange={this.begin}
-                        onChange={this.updateCurrent as any} onAfterChange={this.end as any} />
-                </div></div>
+                <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
+                    onBeforeChange={this.begin}
+                    onChange={this.updateCurrent as any} onAfterChange={this.end as any} />
+            </div>
             <div>
-                {`${Math.round(100 * this.state.current) / 100}`}
+                <NumericInput
+                    value={this.state.current} onEnter={this.props.onEnter} blurOnEnter={true}
+                    isDisabled={this.props.disabled} onChange={this.updateManually} />
             </div>
         </div>;
     }
@@ -58,7 +69,8 @@ export class Slider2 extends React.Component<{
     value: [number, number],
     step?: number,
     onChange: (v: [number, number]) => void,
-    disabled?: boolean
+    disabled?: boolean,
+    onEnter?: () => void
 }, { isChanging: boolean, current: [number, number] }> {
 
     state = { isChanging: false, current: [0, 1] as [number, number] }
@@ -81,20 +93,41 @@ export class Slider2 extends React.Component<{
         this.setState({ current });
     }
 
+    updateMax = (v: number) => {
+        let n = v;
+        if (this.props.step === 1) n = Math.round(n);
+        if (n < this.state.current[0]) n = this.state.current[0]
+        else if (n < this.props.min) n = this.props.min;
+        if (n > this.props.max) n = this.props.max;
+        this.props.onChange([this.state.current[0], n]);
+    }
+
+    updateMin = (v: number) => {
+        let n = v;
+        if (this.props.step === 1) n = Math.round(n);
+        if (n < this.props.min) n = this.props.min;
+        if (n > this.state.current[1]) n = this.state.current[1];
+        else if (n > this.props.max) n = this.props.max;
+        this.props.onChange([n, this.state.current[1]]);
+    }
+
     render() {
         let step = this.props.step;
         if (step === void 0) step = 1;
         return <div className='msp-slider2'>
             <div>
-                {`${Math.round(100 * this.state.current[0]) / 100}`}
+                <NumericInput
+                    value={this.state.current[0]} onEnter={this.props.onEnter} blurOnEnter={true}
+                    isDisabled={this.props.disabled} onChange={this.updateMin} />
             </div>
             <div>
-                <div>
-                    <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
-                        onBeforeChange={this.begin} onChange={this.updateCurrent as any} onAfterChange={this.end as any} range={true} pushable={true} />
-                </div></div>
+                <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
+                    onBeforeChange={this.begin} onChange={this.updateCurrent as any} onAfterChange={this.end as any} range={true} pushable={true} />
+            </div>
             <div>
-                {`${Math.round(100 * this.state.current[1]) / 100}`}
+                <NumericInput
+                    value={this.state.current[1]} onEnter={this.props.onEnter} blurOnEnter={true}
+                    isDisabled={this.props.disabled} onChange={this.updateMax} />
             </div>
         </div>;
     }
@@ -102,10 +135,10 @@ export class Slider2 extends React.Component<{
 
 /**
  * The following code was adapted from react-components/slider library.
- * 
+ *
  * The MIT License (MIT)
  * Copyright (c) 2015-present Alipay.com, https://www.alipay.com/
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -116,12 +149,12 @@ export class Slider2 extends React.Component<{
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY 
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, 
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
@@ -540,7 +573,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         }
         return false;
 
-        // return this.state.bounds.some((x, i) => e.target 
+        // return this.state.bounds.some((x, i) => e.target
 
         // (
         //     //this.handleElements[i] && e.target === ReactDOM.findDOMNode(this.handleElements[i])
@@ -702,7 +735,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
             dragging: handle === i,
             index: i,
             key: i,
-            ref: (h: any) => this.handleElements.push(h)  //`handle-${i}`,
+            ref: (h: any) => this.handleElements.push(h)  // `handle-${i}`,
         }));
         if (!range) { handles.shift(); }
 
