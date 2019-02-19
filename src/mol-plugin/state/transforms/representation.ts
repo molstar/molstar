@@ -16,7 +16,7 @@ import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry
 import { Structure } from 'mol-model/structure';
 import { StructureParams } from 'mol-repr/structure/representation';
 import { ExplodeRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
-import { VolumeData } from 'mol-model/volume';
+import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { BuiltInVolumeRepresentationsName } from 'mol-repr/volume/registry';
 import { VolumeParams } from 'mol-repr/volume/representation';
 import { BuiltInColorThemeName, ColorTheme } from 'mol-theme/color';
@@ -174,6 +174,10 @@ export namespace VolumeRepresentation3DHelpers {
             sizeTheme: { name: type.defaultSizeTheme, params: sizeParams ? { ...sizeType.defaultValues, ...sizeParams } : sizeType.defaultValues }
         })
     }
+
+    export function getDescription(props: any) {
+        return props.isoValue && VolumeIsoValue.toString(props.isoValue)
+    }
 }
 export { VolumeRepresentation3D }
 type VolumeRepresentation3D = typeof VolumeRepresentation3D
@@ -235,9 +239,8 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const repr = provider.factory({ webgl: plugin.canvas3d.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
             repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
             // TODO set initial state, repr.setState({})
-            // TODO include isoValue in the label where available
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
-            return new SO.Volume.Representation3D(repr, { label: provider.label });
+            return new SO.Volume.Representation3D(repr, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
@@ -246,6 +249,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.props, ...newParams.type.params }
             b.data.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
             await b.data.createOrUpdate(props, a.data).runInContext(ctx);
+            b.description = VolumeRepresentation3DHelpers.getDescription(props)
             return Transformer.UpdateResult.Updated;
         });
     }

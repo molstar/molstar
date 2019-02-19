@@ -65,6 +65,12 @@ namespace VolumeIsoValue {
     export function toRelative(value: VolumeIsoValue, stats: VolumeData['dataStats']): Relative {
         return value.kind === 'relative' ? value : { kind: 'relative', relativeValue: VolumeIsoValue.calcRelative(stats, value.absoluteValue) }
     }
+
+    export function toString(value: VolumeIsoValue) {
+        return value.kind === 'relative'
+            ? `${value.relativeValue} σ`
+            : `${value.absoluteValue}`
+    }
 }
 
 export { VolumeData, VolumeIsoValue }

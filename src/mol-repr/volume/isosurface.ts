@@ -148,7 +148,7 @@ export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeDat
             'relative': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v, stats).relativeValue,
                 (v: number) => VolumeIsoValue.relative(v),
-                PD.Numeric(2, { min: -10, max: 10, step: 0.001 })
+                PD.Numeric(2, { min: Math.floor((min - mean) / sigma), max: Math.ceil((max - mean) / sigma), step: Math.ceil((max - min) / sigma) / 100 })
             )
         },
         (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
