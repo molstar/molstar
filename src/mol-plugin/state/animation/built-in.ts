@@ -16,7 +16,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
     display: { name: 'Animate Model Index' },
     params: () => ({
         mode: PD.MappedStatic('once', {
-            once: PD.Group({ direction: PD.Select('forward', [['forward', 'Forward'], ['backward', 'Backward']]) }),
+            once: PD.Group({ direction: PD.Select('forward', [['forward', 'Forward'], ['backward', 'Backward']]) }, { isFlat: true }),
             palindrome: PD.Group({ }),
             loop: PD.Group({ }),
         }, { options: [['once', 'Once'], ['palindrome', 'Palindrome'], ['loop', 'Loop']] }),

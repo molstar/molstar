@@ -436,6 +436,10 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
 
     render() {
         const params = this.props.param.params;
+
+        // Do not show if there are no params.
+        if (Object.keys(params).length === 0) return null;
+
         const label = this.props.param.label || camelCaseToWords(this.props.name);
 
         const controls = <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />;
