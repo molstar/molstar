@@ -117,14 +117,14 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     private wrapper = React.createRef<HTMLDivElement>();
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.log, () => this.setState({ entries: this.plugin.log.entries.takeLast(100).toList() }));
+        this.subscribe(this.plugin.events.log, () => this.setState({ entries: this.plugin.log.entries }));
     }
 
     componentDidUpdate() {
         this.scrollToBottom();
     }
 
-    state = { entries: this.plugin.log.entries.takeLast(100).toList() };
+    state = { entries: this.plugin.log.entries };
 
     private scrollToBottom() {
         const log = this.wrapper.current;
@@ -132,14 +132,21 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     }
 
     render() {
+        // TODO: ability to show full log
+        // showing more entries dramatically slows animations.
+        const maxEntries = 10;
+        const xs = this.state.entries, l = xs.size;
+        const entries: JSX.Element[] = [];
+        for (let i = Math.max(0, l - maxEntries), o = 0; i < l; i++) {
+            const e = xs.get(i);
+            entries.push(<li key={o++}>
+                <div className={'msp-log-entry-badge msp-log-entry-' + e!.type} />
+                <div className='msp-log-timestamp'>{formatTime(e!.timestamp)}</div>
+                <div className='msp-log-entry'>{e!.message}</div>
+            </li>);
+        }
         return <div ref={this.wrapper} className='msp-log' style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', overflowY: 'auto' }}>
-            <ul className='msp-list-unstyled'>
-                {this.state.entries.map((e, i) => <li key={i}>
-                    <div className={'msp-log-entry-badge msp-log-entry-' + e!.type} />
-                    <div className='msp-log-timestamp'>{formatTime(e!.timestamp)}</div>
-                    <div className='msp-log-entry'>{e!.message}</div>
-                </li>)}
-            </ul>
+            <ul className='msp-list-unstyled'>{entries}</ul>
         </div>;
     }
 }
