@@ -8,7 +8,6 @@ import { Camera } from 'mol-canvas3d/camera';
 import { OrderedMap } from 'immutable';
 import { UUID } from 'mol-util';
 import { PluginComponent } from 'mol-plugin/component';
-import { PluginContext } from 'mol-plugin/context';
 
 export { CameraSnapshotManager }
 
@@ -53,8 +52,8 @@ class CameraSnapshotManager extends PluginComponent<{ entries: OrderedMap<string
         this.events.changed.next();
     }
 
-    constructor(ctx: PluginContext) {
-        super(ctx, { entries: OrderedMap<string, CameraSnapshotManager.Entry>() });
+    constructor() {
+        super({ entries: OrderedMap<string, CameraSnapshotManager.Entry>() });
     }
 }
 

@@ -6,44 +6,39 @@
 
 import { OrderedMap } from 'immutable';
 import { UUID } from 'mol-util';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { PluginState } from '../state';
+import { PluginComponent } from 'mol-plugin/component';
 
 export { PluginStateSnapshotManager }
 
-class PluginStateSnapshotManager {
-    private ev = RxEventHelper.create();
-    private _entries = OrderedMap<string, PluginStateSnapshotManager.Entry>().asMutable();
-
+class PluginStateSnapshotManager extends PluginComponent<{ entries: OrderedMap<string, PluginStateSnapshotManager.Entry> }> {
     readonly events = {
         changed: this.ev()
     };
 
-    get entries() { return this._entries; }
-
     getEntry(id: string) {
-        return this._entries.get(id);
+        return this.state.entries.get(id);
     }
 
     remove(id: string) {
-        if (!this._entries.has(id)) return;
-        this._entries.delete(id);
+        if (!this.state.entries.has(id)) return;
+        this.updateState({ entries: this.state.entries.delete(id) });
         this.events.changed.next();
     }
 
     add(e: PluginStateSnapshotManager.Entry) {
-        this._entries.set(e.id, e);
+        this.updateState({ entries: this.state.entries.set(e.id, e) });
         this.events.changed.next();
     }
 
     clear() {
-        if (this._entries.size === 0) return;
-        this._entries = OrderedMap<string, PluginStateSnapshotManager.Entry>().asMutable();
+        if (this.state.entries.size === 0) return;
+        this.updateState({ entries: OrderedMap<string, PluginStateSnapshotManager.Entry>() });
         this.events.changed.next();
     }
 
-    dispose() {
-        this.ev.dispose();
+    constructor() {
+        super({ entries: OrderedMap<string, PluginStateSnapshotManager.Entry>() });
     }
 }
 

@@ -162,8 +162,8 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         requestAnimationFrame(this.animate);
     }
 
-    constructor(ctx: PluginContext) {
-        super(ctx, { params: { current: '' }, animationState: 'stopped' });
+    constructor(private context: PluginContext) {
+        super({ params: { current: '' }, animationState: 'stopped' });
     }
 }
 

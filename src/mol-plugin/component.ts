@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginContext } from './context';
 import { shallowMergeArray } from 'mol-util/object';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 
@@ -35,7 +34,7 @@ export class PluginComponent<State> {
         if (this._ev) this._ev.dispose();
     }
 
-    constructor(public context: PluginContext, initialState: State) {
+    constructor(initialState: State) {
         this._state = initialState;
     }
 }

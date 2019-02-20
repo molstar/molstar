@@ -22,8 +22,7 @@ class PluginState {
     readonly dataState: State;
     readonly behaviorState: State;
     readonly animation: PluginAnimationManager;
-    readonly cameraSnapshots: CameraSnapshotManager;
-
+    readonly cameraSnapshots = new CameraSnapshotManager();
     readonly snapshots = new PluginStateSnapshotManager();
 
     readonly behavior = {
@@ -89,7 +88,6 @@ class PluginState {
 
         this.behavior.currentObject.next(this.dataState.behaviors.currentObject.value);
 
-        this.cameraSnapshots = new CameraSnapshotManager(plugin);
         this.animation = new PluginAnimationManager(plugin);
     }
 }

@@ -42,7 +42,6 @@ interface RootState {
 }
 
 export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
-
     readonly events = {
         updated: this.ev()
     }
@@ -176,8 +175,8 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
         }
     }
 
-    constructor(context: PluginContext) {
-        super(context, { ...PD.getDefaultValues(PluginLayoutStateParams), ...context.spec.initialLayout });
+    constructor(private context: PluginContext) {
+        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...context.spec.initialLayout });
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 
