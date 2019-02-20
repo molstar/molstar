@@ -96,6 +96,10 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         this.triggerUpdate();
     }
 
+    get isAnimating() {
+        return this.latestState.animationState === 'playing';
+    }
+
     private animate = async (t: number) => {
         if (this._current.startedTime < 0) this._current.startedTime = t;
         const newState = await this._current.anim.apply(

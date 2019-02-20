@@ -52,7 +52,7 @@ export class Canvas3dIdentifyHelper {
     }
 
     private animate: (t: number) => void = t => {
-        if (this.inside && t - this.prevT > 1000 / this.maxFps) {
+        if (!this.ctx.state.animation.isAnimating && this.inside && t - this.prevT > 1000 / this.maxFps) {
             this.prevT = t;
             this.currentIdentifyT = t;
             this.identify(false, t);
