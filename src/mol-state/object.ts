@@ -59,7 +59,6 @@ interface StateObjectCell<T = StateObject> {
     // Which object was used as a parent to create data in this cell
     sourceRef: Transform.Ref | undefined,
 
-    version: string
     status: StateObjectCell.Status,
 
     params: {

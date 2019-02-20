@@ -29,7 +29,7 @@ namespace StateSelection {
     }
 
     function isObj(arg: any): arg is StateObjectCell {
-        return (arg as StateObjectCell).version !== void 0 && (arg as StateObjectCell).transform !== void 0;
+        return (arg as StateObjectCell).transform !== void 0 && (arg as StateObjectCell).status !== void 0;
     }
 
     function isBuilder(arg: any): arg is Builder {

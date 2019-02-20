@@ -8,7 +8,6 @@ import { StateObject, StateObjectCell } from './object';
 import { StateTree } from './tree';
 import { Transform } from './transform';
 import { Transformer } from './transformer';
-import { UUID } from 'mol-util';
 import { RuntimeContext, Task } from 'mol-task';
 import { StateSelection } from './state/selection';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
@@ -184,7 +183,6 @@ class State {
             sourceRef: void 0,
             obj: rootObject,
             status: 'ok',
-            version: root.version,
             errorText: void 0,
             params: {
                 definition: {},
@@ -350,7 +348,7 @@ function findUpdateRoots(cells: Map<Transform.Ref, StateObjectCell>, tree: State
 
 function findUpdateRootsVisitor(n: Transform, _: any, s: { roots: Ref[], cells: Map<Ref, StateObjectCell> }) {
     const cell = s.cells.get(n.ref);
-    if (!cell || cell.version !== n.version || cell.status === 'error') {
+    if (!cell || cell.transform.version !== n.version || cell.status === 'error') {
         s.roots.push(n.ref);
         return false;
     }
@@ -406,7 +404,6 @@ function initCellsVisitor(transform: Transform, _: any, { ctx, added }: InitCell
         transform,
         sourceRef: void 0,
         status: 'pending',
-        version: UUID.create22(),
         errorText: void 0,
         params: void 0
     };
@@ -556,7 +553,6 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
 
     // special case for Root
     if (current.transform.ref === Transform.RootRef) {
-        current.version = transform.version;
         return { action: 'none' };
     }
 
@@ -574,7 +570,6 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         current.params = params;
         const obj = await createObject(ctx, currentRef, transform.transformer, parent, params.values);
         current.obj = obj;
-        current.version = transform.version;
 
         return { ref: currentRef, action: 'created', obj };
     } else {
@@ -591,14 +586,11 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
                 const oldObj = current.obj;
                 const newObj = await createObject(ctx, currentRef, transform.transformer, parent, newParams);
                 current.obj = newObj;
-                current.version = transform.version;
                 return { ref: currentRef, action: 'replaced', oldObj, obj: newObj };
             }
             case Transformer.UpdateResult.Updated:
-                current.version = transform.version;
                 return { ref: currentRef, action: 'updated', obj: current.obj! };
             default:
-                current.version = transform.version;
                 return { action: 'none' };
         }
     }
