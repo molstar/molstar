@@ -14,8 +14,11 @@ import { ParamDefinition } from 'mol-util/param-definition';
 export const AnimateModelIndex = PluginStateAnimation.create({
     name: 'built-in.animate-model-index',
     display: { name: 'Animate Model Index' },
-    params: () => ({ maxFPS: ParamDefinition.Numeric(3, { min: 0.5, max: 30, step: 0.5 }) }),
-    initialState: () => ({ frame: 1 }),
+    params: () => ({
+        direction: ParamDefinition.Select('forward', [['forward', 'Forward'], ['backward', 'Backward']]),
+        maxFPS: ParamDefinition.Numeric(3, { min: 0.5, max: 30, step: 0.5 })
+    }),
+    initialState: () => ({ }),
     async apply(animState, t, ctx) {
         // limit fps
         if (t.current > 0 && t.current - t.lastApplied < 1000 / ctx.params.maxFPS) {
@@ -28,19 +31,21 @@ export const AnimateModelIndex = PluginStateAnimation.create({
 
         const update = state.build();
 
+        const dir = ctx.params.direction === 'backward' ? -1 : 1;
+
         for (const m of models) {
             const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
             if (!parent || !parent.obj) continue;
             const traj = parent.obj as PluginStateObject.Molecule.Trajectory;
             update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
                 old => {
-                    let modelIndex = animState.frame % traj.data.length;
+                    let modelIndex = (old.modelIndex + dir) % traj.data.length;
                     if (modelIndex < 0) modelIndex += traj.data.length;
                     return { modelIndex };
                 });
         }
 
         await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update });
-        return { kind: 'next', state: { frame: animState.frame + 1 } };
+        return { kind: 'next', state: {} };
     }
 })

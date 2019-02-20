@@ -12,11 +12,11 @@ export { PluginStateAnimation }
 // TODO: helpers for building animations (once more animations are added)
 //       for example "composite animation"
 
-interface PluginStateAnimation<P extends PD.Params = any, S = any> {
+interface PluginStateAnimation<P = any, S = any> {
     name: string,
     readonly display: { readonly name: string, readonly description?: string },
-    params: (ctx: PluginContext) => P,
-    initialState(params: PD.Values<P>, ctx: PluginContext): S,
+    params: (ctx: PluginContext) => PD.For<P>,
+    initialState(params: P, ctx: PluginContext): S,
 
     /**
      * Apply the current frame and modify the state.
@@ -38,12 +38,12 @@ namespace PluginStateAnimation {
     }
 
     export type ApplyResult<S> = { kind: 'finished' } | { kind: 'skip' } | { kind: 'next', state: S }
-    export interface Context<P extends PD.Params> {
-        params: PD.Values<P>,
+    export interface Context<P> {
+        params: P,
         plugin: PluginContext
     }
 
-    export function create<P extends PD.Params, S>(params: PluginStateAnimation<P, S>) {
+    export function create<P, S>(params: PluginStateAnimation<P, S>) {
         return params;
     }
 }

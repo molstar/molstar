@@ -13,6 +13,7 @@ export { PluginAnimationManager }
 
 // TODO: pause functionality (this needs to reset if the state tree changes)
 // TODO: handle unregistered animations on state restore
+// TODO: better API
 
 class PluginAnimationManager extends PluginComponent<PluginAnimationManager.State> {
     private map = new Map<string, PluginStateAnimation>();
@@ -37,7 +38,7 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
     updateParams(newParams: Partial<PluginAnimationManager.State['params']>) {
         this.updateState({ params: { ...this.latestState.params, ...newParams } });
         const anim = this.map.get(this.latestState.params.current)!;
-        const params = anim.params(this.context);
+        const params = anim.params(this.context) as PD.Params;
         this._current = {
             anim,
             params,
@@ -67,6 +68,16 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         } else {
             this.triggerUpdate();
         }
+    }
+
+    play<P>(animation: PluginStateAnimation<P>, params: P) {
+        this.stop();
+        if (!this.map.has(animation.name)) {
+            this.register(animation);
+        }
+        this.updateParams({ current: animation.name });
+        this.updateParams(params);
+        this.start();
     }
 
     start() {
