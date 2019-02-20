@@ -324,9 +324,9 @@ async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions
     //console.log(plyToShape.getShape(state.runtimeCtx, table));
     let shape  = plyToShape.init_ren(PLYdata);
     console.log("shape"+shape);
-    const script = document.createElement('script');
-    script.src = "../../build/src/mol-model/shape/formarts/ply/plyData_to_shape.js";
-    document.body.appendChild(script);
+   // const script = document.createElement('script');
+   // script.src = "../../build/src/mol-model/shape/formarts/ply/plyData_to_shape.js";
+   // document.body.appendChild(script);
 
     return Result.success(result);
 }
