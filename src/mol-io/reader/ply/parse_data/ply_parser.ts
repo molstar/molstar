@@ -9,8 +9,15 @@ import { Tokens, TokenBuilder, Tokenizer } from '../../common/text/tokenizer'
 import * as Data from './data-model'
 
 import Result from '../../result'
-import { Task, RuntimeContext, chunkedSubtask, } from 'mol-task'
-
+import {Task, RuntimeContext, chunkedSubtask, Progress,} from 'mol-task'
+import * as plyToShape from 'mol-model/shape/formarts/ply/plyData_to_shape'
+import {MyData} from 'mol-model/shape/formarts/ply/plyData_to_shape';
+import {Mesh} from '../../../../mol-geo/geometry/mesh/mesh';
+import {ParamDefinition} from '../../../../mol-util/param-definition';
+import Color = ParamDefinition.Color;
+import {ColorNames} from '../../../../mol-util/color/tables';
+import {ShapeRepresentation} from '../../../../mol-repr/shape/representation';
+//import {init2} from '../../../../tests/browser/render-shape';
 
 
 
@@ -46,6 +53,9 @@ interface State {
 
     initialHead: string[],
     properties: number[],
+    vertices: number[],
+    colors: number[],
+    normals: number[],
     faces: number[],
     propertyNames: string[],
     check: string[],
@@ -80,6 +90,9 @@ function State(data: string, runtimeCtx: RuntimeContext, opts: PlyOptions): Stat
 
         initialHead: [],
         properties: [],
+        vertices: [],
+        colors: [],
+        normals:[],
         faces: [],
         propertyNames: [],
         check: [],
@@ -192,6 +205,15 @@ function moveNextInternal(state: State) {
             {
                 if(state.currentVertex < state.vertexCount){
                     state.properties[state.currentVertex * state.propertyCount + state.currentProperty] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    if(state.currentProperty < 3){
+                        state.vertices[state.currentVertex * 3 + state.currentProperty] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    }
+                    if(state.currentProperty >= 3 && state.currentProperty <6){
+                        state.colors[state.currentVertex * 3 + state.currentProperty-3] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    }
+                    if(state.currentProperty >= 6 && state.currentProperty <9){
+                        state.normals[state.currentVertex * 3 + state.currentProperty-6] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    }
                     state.currentProperty++;
                     if(state.currentProperty === state.propertyCount){
                         state.currentProperty = 0;
@@ -287,16 +309,25 @@ async function handleRecords(state: State): Promise<Data.ply_form> {
     }
     await readRecordsChunks(state)
 
-    return Data.PlyStructure(state.vertexCount, state.faceCount, state.propertyCount, state.initialHead, state.propertyNames, state.properties, state.faces)
+    return Data.PlyStructure(state.vertexCount, state.faceCount, state.propertyCount, state.initialHead, state.propertyNames, state.properties, state.vertices, state.colors, state.normals, state.faces)
 }
 
 async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions): Promise<Result<Data.PlyFile>> {
     const state = State(data, ctx, opts);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
-    const table = await handleRecords(state)
-    const result = Data.PlyFile(table)
+    const PLYdata = await handleRecords(state)
+    const result = Data.PlyFile(PLYdata)
     console.log(result);
+
+   // let Data_for_Shape = plyToShape.collectData_for_Shape(table, datas);
+    //console.log(plyToShape.getShape(state.runtimeCtx, table));
+    let shape  = plyToShape.init_ren(PLYdata);
+    console.log("shape"+shape);
+    const script = document.createElement('script');
+    script.src = "../../build/src/mol-model/shape/formarts/ply/plyData_to_shape.js";
+    document.body.appendChild(script);
+
     return Result.success(result);
 }
 

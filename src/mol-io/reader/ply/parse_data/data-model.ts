@@ -24,11 +24,14 @@ export interface ply_form {
     readonly initialHead: ReadonlyArray<string>,
     readonly propertyNames: ReadonlyArray<string>,
     readonly properties: number[],
+    readonly vertices: number[],
+    readonly colors: number[],
+    readonly normals: number[],
     readonly  faces: number[],
 }
 
-export function PlyStructure(vertexCount: number, faceCount: number, propertyCount: number, initialHead: string[], propertyNames: string[],  properties: number[], faces: number[]): ply_form {
-    return {vertexCount, faceCount, propertyCount, initialHead: [...initialHead], propertyNames: [...propertyNames], properties: [...properties], faces: [...faces]};
+export function PlyStructure(vertexCount: number, faceCount: number, propertyCount: number, initialHead: string[], propertyNames: string[],  properties: number[],  vertices: number[],  colors: number[],  normals: number[], faces: number[]): ply_form {
+    return {vertexCount, faceCount, propertyCount, initialHead: [...initialHead], propertyNames: [...propertyNames], properties: [...properties], vertices: [...vertices], colors: [...colors], normals: [...normals], faces: [...faces]};
 }
 
 export type PlyColumns = { [name: string]: PlyColumn }

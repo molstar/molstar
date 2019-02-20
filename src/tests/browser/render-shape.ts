@@ -18,6 +18,7 @@ import { RuntimeContext, Progress } from 'mol-task';
 
 
 
+
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
 parent.style.height = '100%'
@@ -101,7 +102,6 @@ const repr = ShapeRepresentation(getShape, Mesh.Utils)
 export async function init() {
     // Create shape from myData and add to canvas3d
     await repr.createOrUpdate({}, myData).run((p: Progress) => console.log(Progress.format(p)))
-    console.log(repr)
     canvas3d.add(repr)
     canvas3d.resetCamera()
 
