@@ -9,7 +9,7 @@ import { PluginContext } from '../context';
 import { StateTree } from './state-tree';
 import { Viewport, ViewportControls } from './viewport';
 import { Controls, TrajectoryControls, LociLabelControl } from './controls';
-import { PluginComponent, PluginReactContext } from './base';
+import { PluginUIComponent, PluginReactContext } from './base';
 import { CameraSnapshots } from './camera';
 import { StateSnapshots } from './state';
 import { List } from 'immutable';
@@ -39,9 +39,9 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     }
 }
 
-class Layout extends PluginComponent {
+class Layout extends PluginUIComponent {
     componentDidMount() {
-        this.subscribe(this.plugin.layout.updated, () => this.forceUpdate());
+        this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
     }
 
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -53,7 +53,7 @@ class Layout extends PluginComponent {
     }
 
     render() {
-        const layout = this.plugin.layout.latestState;
+        const layout = this.plugin.layout.state;
         return <div className='msp-plugin'>
             <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
                 <div className={layout.showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
@@ -73,7 +73,7 @@ class Layout extends PluginComponent {
     }
 }
 
-export class ViewportWrapper extends PluginComponent {
+export class ViewportWrapper extends PluginUIComponent {
     render() {
         return <>
             <Viewport />
@@ -91,7 +91,7 @@ export class ViewportWrapper extends PluginComponent {
     }
 }
 
-export class State extends PluginComponent {
+export class State extends PluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.state.behavior.kind, () => this.forceUpdate());
     }
@@ -113,7 +113,7 @@ export class State extends PluginComponent {
     }
 }
 
-export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
+export class Log extends PluginUIComponent<{}, { entries: List<LogEntry> }> {
     private wrapper = React.createRef<HTMLDivElement>();
 
     componentDidMount() {
@@ -151,7 +151,7 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     }
 }
 
-export class CurrentObject extends PluginComponent {
+export class CurrentObject extends PluginUIComponent {
     get current() {
         return this.plugin.state.behavior.currentObject.value;
     }

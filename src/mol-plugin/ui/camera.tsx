@@ -6,11 +6,11 @@
 
 import { PluginCommands } from 'mol-plugin/command';
 import * as React from 'react';
-import { PluginComponent } from './base';
+import { PluginUIComponent } from './base';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
 
-export class CameraSnapshots extends PluginComponent<{ }, { }> {
+export class CameraSnapshots extends PluginUIComponent<{ }, { }> {
     render() {
         return <div>
             <div className='msp-section-header'>Camera Snapshots</div>
@@ -20,7 +20,7 @@ export class CameraSnapshots extends PluginComponent<{ }, { }> {
     }
 }
 
-class CameraSnapshotControls extends PluginComponent<{ }, { name: string, description: string }> {
+class CameraSnapshotControls extends PluginUIComponent<{ }, { name: string, description: string }> {
     static Params = {
         name: PD.Text(),
         description: PD.Text()
@@ -48,7 +48,7 @@ class CameraSnapshotControls extends PluginComponent<{ }, { name: string, descri
     }
 }
 
-class CameraSnapshotList extends PluginComponent<{ }, { }> {
+class CameraSnapshotList extends PluginUIComponent<{ }, { }> {
     componentDidMount() {
         this.subscribe(this.plugin.events.state.cameraSnapshots.changed, () => this.forceUpdate());
     }

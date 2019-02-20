@@ -6,7 +6,7 @@
 
 import { State, Transform, Transformer } from 'mol-state';
 import * as React from 'react';
-import { PurePluginComponent } from '../base';
+import { PurePluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { StateAction } from 'mol-state/action';
 import { PluginContext } from 'mol-plugin/context';
@@ -15,7 +15,7 @@ import { Subject } from 'rxjs';
 
 export { StateTransformParameters, TransformContolBase };
 
-class StateTransformParameters extends PurePluginComponent<StateTransformParameters.Props> {
+class StateTransformParameters extends PurePluginUIComponent<StateTransformParameters.Props> {
     validate(params: any) {
         // TODO
         return void 0;
@@ -97,7 +97,7 @@ namespace TransformContolBase {
     }
 }
 
-abstract class TransformContolBase<P, S extends TransformContolBase.ControlState> extends PurePluginComponent<P, S> {
+abstract class TransformContolBase<P, S extends TransformContolBase.ControlState> extends PurePluginUIComponent<P, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): Transformer.Definition['display'];

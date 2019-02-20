@@ -73,6 +73,7 @@ class PluginState {
         this.dataState.dispose();
         this.behaviorState.dispose();
         this.cameraSnapshots.dispose();
+        this.animation.dispose();
     }
 
     constructor(private plugin: import('./context').PluginContext) {

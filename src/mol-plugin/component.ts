@@ -4,41 +4,38 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { PluginContext } from './context';
 import { shallowMergeArray } from 'mol-util/object';
+import { RxEventHelper } from 'mol-util/rx-event-helper';
 
 export class PluginComponent<State> {
-    private _state: BehaviorSubject<State>;
-    private _updated = new Subject();
+    private _ev: RxEventHelper;
 
-    updateState(...states: Partial<State>[]): boolean {
-        const latest = this.latestState;
+    protected get ev() {
+        return this._ev || (this._ev = RxEventHelper.create());
+    }
+
+    private _state: State;
+
+    protected updateState(...states: Partial<State>[]): boolean {
+        const latest = this.state;
         const s = shallowMergeArray(latest, states);
         if (s !== latest) {
-            this._state.next(s);
+            this._state = s;
             return true;
         }
         return false;
     }
 
-    get states() {
-        return <Observable<State>>this._state;
+    get state() {
+        return this._state;
     }
 
-    get latestState() {
-        return this._state.value;
-    }
-
-    get updated() {
-        return <Observable<{}>>this._updated;
-    }
-
-    triggerUpdate() {
-        this._updated.next({});
+    dispose() {
+        if (this._ev) this._ev.dispose();
     }
 
     constructor(public context: PluginContext, initialState: State) {
-        this._state = new BehaviorSubject<State>(initialState);
+        this._state = initialState;
     }
 }
