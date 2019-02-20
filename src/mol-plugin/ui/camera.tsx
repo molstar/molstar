@@ -65,7 +65,7 @@ class CameraSnapshotList extends PluginUIComponent<{ }, { }> {
 
     render() {
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
-            {this.plugin.state.cameraSnapshots.entries.valueSeq().map(e =><li key={e!.id}>
+            {this.plugin.state.cameraSnapshots.state.entries.valueSeq().map(e =><li key={e!.id}>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></button>
                 <button onClick={this.remove(e!.id)} className='msp-btn msp-btn-link msp-state-list-remove-button'>
                     <span className='msp-icon msp-icon-remove' />
