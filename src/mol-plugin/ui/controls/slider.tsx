@@ -6,6 +6,7 @@
 
 import * as React from 'react'
 import { NumericInput } from './common';
+import { noop } from 'mol-util';
 
 export class Slider extends React.Component<{
     min: number,
@@ -182,9 +183,6 @@ function classNames(_classes: { [name: string]: boolean | number }) {
     }
 
     return classes.join(' ');
-}
-
-function noop() {
 }
 
 function isNotTouchEvent(e: TouchEvent) {
