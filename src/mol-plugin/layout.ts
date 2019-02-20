@@ -42,21 +42,29 @@ interface RootState {
 }
 
 export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
+    readonly events = {
+        updated: this.ev()
+    }
+
     private updateProps(state: Partial<PluginLayoutStateProps>) {
-        let prevExpanded = !!this.latestState.isExpanded;
+        let prevExpanded = !!this.state.isExpanded;
         this.updateState(state);
         if (this.root && typeof state.isExpanded === 'boolean' && state.isExpanded !== prevExpanded) this.handleExpand();
 
-        this.triggerUpdate();
+        this.events.updated.next();
     }
 
     private root: HTMLElement;
     private rootState: RootState | undefined = void 0;
     private expandedViewport: HTMLMetaElement;
 
+    setProps(props: PluginLayoutStateProps) {
+        this.updateState(props);
+    }
+
     setRoot(root: HTMLElement) {
         this.root = root;
-        if (this.latestState.isExpanded) this.handleExpand();
+        if (this.state.isExpanded) this.handleExpand();
     }
 
     private getScrollElement() {
@@ -72,7 +80,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
 
             if (!body || !head) return;
 
-            if (this.latestState.isExpanded) {
+            if (this.state.isExpanded) {
                 let children = head.children;
                 let hasExp = false;
                 let viewports: HTMLElement[] = [];
@@ -167,8 +175,8 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
         }
     }
 
-    constructor(context: PluginContext) {
-        super(context, { ...PD.getDefaultValues(PluginLayoutStateParams), ...context.spec.initialLayout });
+    constructor(private context: PluginContext) {
+        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...context.spec.initialLayout });
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 

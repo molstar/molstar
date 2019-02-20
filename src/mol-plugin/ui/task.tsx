@@ -5,13 +5,13 @@
  */
 
 import * as React from 'react';
-import { PluginComponent } from './base';
+import { PluginUIComponent } from './base';
 import { OrderedMap } from 'immutable';
 import { TaskManager } from 'mol-plugin/util/task-manager';
 import { filter } from 'rxjs/operators';
 import { Progress } from 'mol-task';
 
-export class BackgroundTaskProgress extends PluginComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
+export class BackgroundTaskProgress extends PluginUIComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
     componentDidMount() {
         this.subscribe(this.plugin.events.task.progress.pipe(filter(e => e.level !== 'none')), e => {
             this.setState({ tracked: this.state.tracked.set(e.id, e) })
@@ -30,7 +30,7 @@ export class BackgroundTaskProgress extends PluginComponent<{ }, { tracked: Orde
     }
 }
 
-class ProgressEntry extends PluginComponent<{ event: TaskManager.ProgressEvent }> {
+class ProgressEntry extends PluginUIComponent<{ event: TaskManager.ProgressEvent }> {
     render() {
         const root = this.props.event.progress.root;
         const subtaskCount = countSubtasks(this.props.event.progress.root) - 1;

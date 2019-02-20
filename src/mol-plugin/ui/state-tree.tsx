@@ -8,16 +8,16 @@ import * as React from 'react';
 import { PluginStateObject } from 'mol-plugin/state/objects';
 import { State, StateObject } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
-import { PluginComponent } from './base';
+import { PluginUIComponent } from './base';
 
-export class StateTree extends PluginComponent<{ state: State }> {
+export class StateTree extends PluginUIComponent<{ state: State }> {
     render() {
         const n = this.props.state.tree.root.ref;
         return <StateTreeNode state={this.props.state} nodeRef={n} />;
     }
 }
 
-class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, { state: State, isCollapsed: boolean }> {
+class StateTreeNode extends PluginUIComponent<{ nodeRef: string, state: State }, { state: State, isCollapsed: boolean }> {
     is(e: State.ObjectEvent) {
         return e.ref === this.props.nodeRef && e.state === this.props.state;
     }
@@ -77,7 +77,7 @@ class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, {
     }
 }
 
-class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State }, { state: State, isCurrent: boolean, isCollapsed: boolean }> {
+class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: State }, { state: State, isCurrent: boolean, isCollapsed: boolean }> {
     is(e: State.ObjectEvent) {
         return e.ref === this.props.nodeRef && e.state === this.props.state;
     }

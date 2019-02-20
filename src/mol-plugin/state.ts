@@ -23,7 +23,6 @@ class PluginState {
     readonly behaviorState: State;
     readonly animation: PluginAnimationManager;
     readonly cameraSnapshots = new CameraSnapshotManager();
-
     readonly snapshots = new PluginStateSnapshotManager();
 
     readonly behavior = {
@@ -73,6 +72,7 @@ class PluginState {
         this.dataState.dispose();
         this.behaviorState.dispose();
         this.cameraSnapshots.dispose();
+        this.animation.dispose();
     }
 
     constructor(private plugin: import('./context').PluginContext) {

@@ -9,7 +9,7 @@ import { PluginContext } from '../context';
 import { StateTree } from './state-tree';
 import { Viewport, ViewportControls } from './viewport';
 import { Controls, TrajectoryControls, LociLabelControl } from './controls';
-import { PluginComponent, PluginReactContext } from './base';
+import { PluginUIComponent, PluginReactContext } from './base';
 import { CameraSnapshots } from './camera';
 import { StateSnapshots } from './state';
 import { List } from 'immutable';
@@ -39,9 +39,9 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     }
 }
 
-class Layout extends PluginComponent {
+class Layout extends PluginUIComponent {
     componentDidMount() {
-        this.subscribe(this.plugin.layout.updated, () => this.forceUpdate());
+        this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
     }
 
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -53,7 +53,7 @@ class Layout extends PluginComponent {
     }
 
     render() {
-        const layout = this.plugin.layout.latestState;
+        const layout = this.plugin.layout.state;
         return <div className='msp-plugin'>
             <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
                 <div className={layout.showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
@@ -73,7 +73,7 @@ class Layout extends PluginComponent {
     }
 }
 
-export class ViewportWrapper extends PluginComponent {
+export class ViewportWrapper extends PluginUIComponent {
     render() {
         return <>
             <Viewport />
@@ -91,7 +91,7 @@ export class ViewportWrapper extends PluginComponent {
     }
 }
 
-export class State extends PluginComponent {
+export class State extends PluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.state.behavior.kind, () => this.forceUpdate());
     }
@@ -113,18 +113,18 @@ export class State extends PluginComponent {
     }
 }
 
-export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
+export class Log extends PluginUIComponent<{}, { entries: List<LogEntry> }> {
     private wrapper = React.createRef<HTMLDivElement>();
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.log, () => this.setState({ entries: this.plugin.log.entries.takeLast(100).toList() }));
+        this.subscribe(this.plugin.events.log, () => this.setState({ entries: this.plugin.log.entries }));
     }
 
     componentDidUpdate() {
         this.scrollToBottom();
     }
 
-    state = { entries: this.plugin.log.entries.takeLast(100).toList() };
+    state = { entries: this.plugin.log.entries };
 
     private scrollToBottom() {
         const log = this.wrapper.current;
@@ -132,19 +132,26 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     }
 
     render() {
+        // TODO: ability to show full log
+        // showing more entries dramatically slows animations.
+        const maxEntries = 10;
+        const xs = this.state.entries, l = xs.size;
+        const entries: JSX.Element[] = [];
+        for (let i = Math.max(0, l - maxEntries), o = 0; i < l; i++) {
+            const e = xs.get(i);
+            entries.push(<li key={o++}>
+                <div className={'msp-log-entry-badge msp-log-entry-' + e!.type} />
+                <div className='msp-log-timestamp'>{formatTime(e!.timestamp)}</div>
+                <div className='msp-log-entry'>{e!.message}</div>
+            </li>);
+        }
         return <div ref={this.wrapper} className='msp-log' style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', overflowY: 'auto' }}>
-            <ul className='msp-list-unstyled'>
-                {this.state.entries.map((e, i) => <li key={i}>
-                    <div className={'msp-log-entry-badge msp-log-entry-' + e!.type} />
-                    <div className='msp-log-timestamp'>{formatTime(e!.timestamp)}</div>
-                    <div className='msp-log-entry'>{e!.message}</div>
-                </li>)}
-            </ul>
+            <ul className='msp-list-unstyled'>{entries}</ul>
         </div>;
     }
 }
 
-export class CurrentObject extends PluginComponent {
+export class CurrentObject extends PluginUIComponent {
     get current() {
         return this.plugin.state.behavior.currentObject.value;
     }
