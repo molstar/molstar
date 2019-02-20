@@ -182,7 +182,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private handleKeyUp = (event: any) => {
         if(event.keyCode != 16) { return; }
         this.state.ghostPointsWrapper.innerHTML = '';
-        this.setState({canSelectMultiple: false, ghostPoints: []});
+        this.setState({canSelectMultiple: false, ghostPoints: [], mouseDown: false, selected: []});
     }
 
     private handleEvent = (event: any) => {
