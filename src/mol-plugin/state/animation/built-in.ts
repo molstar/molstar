@@ -70,7 +70,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
                 });
         }
 
-        await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update });
+        await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, doNotLogTiming: true });
 
         if (params.mode.name === 'once' && isEnd) return { kind: 'finished' };
         if (params.mode.name === 'palindrome') return { kind: 'next', state: { palindromeDirections } };
