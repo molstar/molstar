@@ -76,7 +76,7 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
             this.register(animation);
         }
         this.updateParams({ current: animation.name });
-        this.updateParams(params);
+        this.updateCurrentParams(params);
         this.start();
     }
 
@@ -92,6 +92,7 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
     }
 
     stop() {
+        if (typeof this._frame !== 'undefined') cancelAnimationFrame(this._frame);
         this.updateState({ animationState: 'stopped' });
         this.triggerUpdate();
     }
@@ -100,7 +101,10 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         return this.latestState.animationState === 'playing';
     }
 
+    private _frame: number | undefined = void 0;
     private animate = async (t: number) => {
+        this._frame = void 0;
+
         if (this._current.startedTime < 0) this._current.startedTime = t;
         const newState = await this._current.anim.apply(
             this._current.state,
@@ -112,9 +116,9 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         } else if (newState.kind === 'next') {
             this._current.state = newState.state;
             this._current.lastTime = t - this._current.startedTime;
-            if (this.latestState.animationState === 'playing') requestAnimationFrame(this.animate);
+            if (this.latestState.animationState === 'playing') this._frame = requestAnimationFrame(this.animate);
         } else if (newState.kind === 'skip') {
-            if (this.latestState.animationState === 'playing') requestAnimationFrame(this.animate);
+            if (this.latestState.animationState === 'playing') this._frame = requestAnimationFrame(this.animate);
         }
     }
 

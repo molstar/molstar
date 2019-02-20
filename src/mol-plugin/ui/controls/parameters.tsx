@@ -29,8 +29,10 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
     render() {
         const params = this.props.params;
         const values = this.props.values;
+        const keys = Object.keys(params);
+        if (keys.length === 0) return null;
         return <div style={{ width: '100%' }}>
-            {Object.keys(params).map(key => {
+            {keys.map(key => {
                 const param = params[key];
                 if (param.isHidden) return null;
                 const Control = controlFor(param);

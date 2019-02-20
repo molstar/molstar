@@ -29,6 +29,7 @@
             #controls > button {
                 display: block;
                 width: 100%;
+                text-align: left;
             }
 
             #controls > hr {
@@ -57,18 +58,30 @@
             BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId });
             BasicMolStarWrapper.toggleSpin();
 
-            addControl('Toggle Spin', () => BasicMolStarWrapper.toggleSpin());
-
-            addSeparator();
-
+            addHeader('Source');
             addControl('Load Asym Unit', () => BasicMolStarWrapper.load({ url: url, format: format }));
             addControl('Load Assembly 1', () => BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId }));
 
             addSeparator();
 
-            addControl('Play Forward', () => BasicMolStarWrapper.animate.modelIndex.forward(8 /** maxFPS */));
+            addHeader('Camera');
+            addControl('Toggle Spin', () => BasicMolStarWrapper.toggleSpin());
+            
+            addSeparator();
+
+            addHeader('Animation');
+
+            // adjust this number to make the animation faster or slower
+            // requires to "restart" the animation if changed
+            BasicMolStarWrapper.animate.modelIndex.maxFPS = 4;
+
+            addControl('Play To End', () => BasicMolStarWrapper.animate.modelIndex.onceForward());
+            addControl('Play To Start', () => BasicMolStarWrapper.animate.modelIndex.onceBackward());
+            addControl('Play Palindrome', () => BasicMolStarWrapper.animate.modelIndex.palindrome());
+            addControl('Play Loop', () => BasicMolStarWrapper.animate.modelIndex.loop());
             addControl('Stop', () => BasicMolStarWrapper.animate.modelIndex.stop());
-            addControl('Play Backward', () => BasicMolStarWrapper.animate.modelIndex.backward(8 /** maxFPS */));
+
+            ////////////////////////////////////////////////////////
 
             function addControl(label, action) {
                 var btn = document.createElement('button');
@@ -80,6 +93,12 @@
             function addSeparator() {
                 var hr = document.createElement('hr');
                 document.getElementById('controls').appendChild(hr);
+            }
+
+            function addHeader(header) {
+                var h = document.createElement('h3');
+                h.innerText = header;
+                document.getElementById('controls').appendChild(h);
             }
         </script>
     </body>

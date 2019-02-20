@@ -102,8 +102,11 @@ class BasicWrapper {
 
     animate = {
         modelIndex: {
-            forward: (maxFPS = 8) => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, maxFPS | 0), direction: 'forward' }) },
-            backward: (maxFPS = 8) => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, maxFPS | 0), direction: 'backward' }) },
+            maxFPS: 8,
+            onceForward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'forward' } } }) },
+            onceBackward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'backward' } } }) },
+            palindrome: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'palindrome', params: {} } }) },
+            loop: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'loop', params: {} } }) },
             stop: () => this.plugin.state.animation.stop()
         }
     }
