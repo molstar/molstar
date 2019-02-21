@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as CCP4 from './ccp4'
+import * as Format from './format'
 import * as File from '../common/file'
 import * as Data from './data-model'
 import * as Sampling from './sampling'
@@ -49,7 +49,7 @@ async function allocateFile(ctx: Data.Context) {
     }
 }
 
-function determineBlockSize(data: CCP4.Data, blockSize: number) {
+function determineBlockSize(data: Format.Data, blockSize: number) {
     const { extent } = data.header;
     const maxLayerSize = 1024 * 1024 * 1024;
     const valueCount = extent[0] * extent[1];
@@ -83,20 +83,22 @@ async function create(filename: string, sourceDensities: { name: string, filenam
     process.stdout.write('Initializing... ');
     const files: FileHandle[] = [];
     try {
-        // Step 1a: Read the CCP4 headers
-        const channels: CCP4.Data[] = [];
-        for (const s of sourceDensities) channels.push(await CCP4.open(s.name, s.filename));
-        // Step 1b: Check if the CCP4 headers are compatible.
-        const isOk = channels.reduce((ok, s) => ok && CCP4.compareHeaders(channels[0].header, s.header), true);
+        // Step 1a: Read the Format headers
+        const channels: Format.Context[] = [];
+        for (const s of sourceDensities) {
+            channels.push(await Format.open(s.name, s.filename));
+        }
+        // Step 1b: Check if the Format headers are compatible.
+        const isOk = channels.reduce((ok, s) => ok && Format.compareHeaders(channels[0].data.header, s.data.header), true);
         if (!isOk) {
             throw new Error('Input file headers are not compatible (different grid, etc.).');
         }
-        const blockSize = determineBlockSize(channels[0], sourceBlockSize);
-        for (const ch of channels) CCP4.assignSliceBuffer(ch, blockSize);
+        const blockSize = determineBlockSize(channels[0].data, sourceBlockSize);
+        for (const ch of channels) Format.assignSliceBuffer(ch.data, blockSize);
 
         // Step 1c: Create data context.
         const context = await Sampling.createContext(filename, channels, blockSize, isPeriodic);
-        for (const s of channels) files.push(s.file);
+        for (const s of channels) files.push(s.data.file);
         files.push(context.file);
         process.stdout.write('   done.\n');
 

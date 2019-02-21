@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as CCP4 from './ccp4'
+import * as Format from './format'
 import * as Data from './data-model'
 import * as File from '../common/file'
 import * as Downsampling from './downsampling'
@@ -14,10 +14,10 @@ import * as Writer from './writer'
 import * as DataFormat from '../common/data-format'
 import { FileHandle } from 'mol-io/common/file-handle';
 
-export async function createContext(filename: string, channels: CCP4.Data[], blockSize: number, isPeriodic: boolean): Promise<Data.Context> {
-    const header = channels[0].header;
-    const samplingCounts = getSamplingCounts(channels[0].header.extent, blockSize);
-    const valueType = CCP4.getValueType(header);
+export async function createContext(filename: string, channels: Format.Context[], blockSize: number, isPeriodic: boolean): Promise<Data.Context> {
+    const header = channels[0].data.header;
+    const samplingCounts = getSamplingCounts(channels[0].data.header.extent, blockSize);
+    const valueType = Format.getValueType(header);
     const cubeBuffer = new Buffer(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * DataFormat.getValueByteSize(valueType)));
 
     const litteEndianCubeBuffer = File.IsNativeEndianLittle
@@ -61,9 +61,9 @@ export async function createContext(filename: string, channels: CCP4.Data[], blo
 
 export async function processData(ctx: Data.Context) {
     const channel = ctx.channels[0];
-    while (!channel.slices.isFinished) {
+    while (!channel.data.slices.isFinished) {
         for (const src of ctx.channels) {
-            await CCP4.readSlices(src);
+            await src.provider.readSlices(src.data);
         }
         await processSlices(ctx);
     }
@@ -149,7 +149,7 @@ function copyLayer(ctx: Data.Context, sliceIndex: number) {
     const targetOffset = blocks.slicesWritten * size;
 
     for (let channelIndex = 0; channelIndex < channels.length; channelIndex++) {
-        const src = channels[channelIndex].slices.values;
+        const src = channels[channelIndex].data.slices.values;
         const target = blocks.values[channelIndex];
         for (let i = 0; i < size; i++) {
             const v = src[srcOffset + i];
@@ -198,14 +198,14 @@ async function writeBlocks(ctx: Data.Context, isDataFinished: boolean) {
 
 async function processSlices(ctx: Data.Context) {
     const channel = ctx.channels[0];
-    const sliceCount = channel.slices.sliceCount;
+    const sliceCount = channel.data.slices.sliceCount;
     for (let i = 0; i < sliceCount; i++) {
         copyLayer(ctx, i);
         Downsampling.downsampleLayer(ctx);
 
         await writeBlocks(ctx, false);
 
-        const isDataFinished = i === sliceCount - 1 && channel.slices.isFinished;
+        const isDataFinished = i === sliceCount - 1 && channel.data.slices.isFinished;
         if (isDataFinished) {
             Downsampling.finalize(ctx);
             await writeBlocks(ctx, true);

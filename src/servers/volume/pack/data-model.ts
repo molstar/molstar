@@ -5,7 +5,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
-import * as CCP4 from './ccp4'
+import * as Format from './format'
 import * as DataFormat from '../common/data-format'
 import { FileHandle } from 'mol-io/common/file-handle';
 import { SimpleBuffer } from 'mol-io/common/simple-buffer';
@@ -75,7 +75,7 @@ export interface Context {
     /** Periodic are x-ray density files that cover the entire grid and have [0,0,0] origin */
     isPeriodic: boolean,
 
-    channels: CCP4.Data[],
+    channels: Format.Context[],
     valueType: DataFormat.ValueType,
     blockSize: number,
     /** Able to store channels.length * blockSize^3 values. */
@@ -92,7 +92,7 @@ export interface Context {
 }
 
 export function createHeader(ctx: Context): DataFormat.Header {
-    const header = ctx.channels[0].header;
+    const header = ctx.channels[0].data.header;
     const grid = header.grid;
 
     function normalize(data: number[]) {
@@ -101,13 +101,13 @@ export function createHeader(ctx: Context): DataFormat.Header {
 
     return {
         formatVersion: FORMAT_VERSION,
-        valueType: CCP4.getValueType(header),
+        valueType: Format.getValueType(header),
         blockSize: ctx.blockSize,
         axisOrder: header.axisOrder,
         origin: normalize(header.origin),
         dimensions: normalize(header.extent),
         spacegroup: { number: header.spacegroupNumber, size: header.cellSize, angles: header.cellAngles, isPeriodic: ctx.isPeriodic },
-        channels: ctx.channels.map(c => c.header.name),
+        channels: ctx.channels.map(c => c.data.header.name),
         sampling: ctx.sampling.map(s => {
             const N = s.sampleCount[0] * s.sampleCount[1] * s.sampleCount[2];
             const valuesInfo = [];
