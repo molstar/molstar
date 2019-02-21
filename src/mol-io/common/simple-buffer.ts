@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { defaults } from 'mol-util';
+
 export interface SimpleBuffer extends Uint8Array {
     readInt8: (offset: number) => number
     readUInt8: (offset: number) => number
@@ -38,6 +40,8 @@ export interface SimpleBuffer extends Uint8Array {
     writeUInt32BE: (value: number, offset: number) => void
     writeFloatBE: (value: number, offset: number) => void
     writeDoubleBE: (value: number, offset: number) => void
+
+    copy: (targetBuffer: Uint8Array, targetStart?: number, sourceStart?: number, sourceEnd?: number) => number
 }
 
 export namespace SimpleBuffer {
@@ -76,6 +80,14 @@ export namespace SimpleBuffer {
             writeUInt32BE: (value: number, offset: number) => dv.setUint32(offset, value, false),
             writeFloatBE: (value: number, offset: number) => dv.setFloat32(offset, value, false),
             writeDoubleBE: (value: number, offset: number) => dv.setFloat64(offset, value, false),
+
+            copy: (targetBuffer: Uint8Array, targetStart?: number, sourceStart?: number, sourceEnd?: number) => {
+                targetStart = defaults(targetStart, 0)
+                sourceStart = defaults(sourceStart, 0)
+                sourceEnd = defaults(sourceEnd, array.length)
+                targetBuffer.set(array.subarray(sourceStart, sourceEnd), targetStart)
+                return sourceEnd - sourceStart
+            }
         })
     }
 

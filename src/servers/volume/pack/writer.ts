@@ -46,8 +46,7 @@ function fillCubeBuffer(ctx: Data.Context, sampling: Data.Sampling, u: number, v
             for (let k = offsetK; k < maxK; k++) {
                 // copying the bytes direct is faster than using buffer.write* functions.
                 const start = (l * sizeHK + k * sizeH + offsetH) * elementSize;
-                // TODO
-                cubeBuffer.set(src.subarray(start, start + copyH), writeOffset)
+                src.copy(cubeBuffer, writeOffset, start, start + copyH);
                 writeOffset += copyH;
             }
         }
