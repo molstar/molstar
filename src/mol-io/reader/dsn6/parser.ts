@@ -8,6 +8,7 @@ import { Task, RuntimeContext } from 'mol-task';
 import { Dsn6File, Dsn6Header } from './schema'
 import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
+import { SimpleBuffer } from 'mol-io/common/simple-buffer';
 
 function parseBrixHeader(str: string): Dsn6Header {
     return {
@@ -56,10 +57,10 @@ function parseDsn6Header(int: Int16Array): Dsn6Header {
     }
 }
 
-async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Result<Dsn6File>> {
+async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext): Promise<Dsn6File> {
     await ctx.update({ message: 'Parsing DSN6/BRIX file...' });
 
-    const { buffer } = await file.readBuffer(0, file.length)
+    const { buffer } = await file.readBuffer(0, size)
     const bin = buffer.buffer
 
     const intView = new Int16Array(bin)
@@ -115,13 +116,19 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
     }
 
     const result: Dsn6File = { header, values };
-    return Result.success(result);
+    return result;
 }
 
-export function parseFile(file: FileHandle) {
-    return Task.create<Result<Dsn6File>>('Parse DSN6/BRIX', ctx => parseInternal(file, ctx));
+export function parseFile(file: FileHandle, size: number) {
+    return Task.create<Result<Dsn6File>>('Parse DSN6/BRIX', async ctx => {
+        try {
+            return Result.success(await parseInternal(file, size, ctx));
+        } catch (e) {
+            return Result.error(e);
+        }
+    })
 }
 
 export function parse(buffer: Uint8Array) {
-    return parseFile(FileHandle.fromBuffer(buffer))
+    return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer)), buffer.length)
 }

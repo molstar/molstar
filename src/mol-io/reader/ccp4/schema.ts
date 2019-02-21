@@ -81,6 +81,9 @@ export interface Ccp4Header {
      * May be used in CCP4 but not in MRC
      */
     SKWTRN: number[]
+    /** see https://github.com/uglymol/uglymol/blob/master/tools/mapmode2to0#L69 */
+    userFlag1: number,
+    userFlag2: number,
     /** x axis origin transformation (not used in CCP4) */
     originX: number
     /** y axis origin transformation (not used in CCP4) */

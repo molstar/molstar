@@ -62,6 +62,7 @@ const sharedConfig = {
 
 function createEntryPoint(name, dir, out) {
     return {
+        node: { fs: 'empty' }, // TODO find better solution? Currently used in file-handle.ts
         entry: path.resolve(__dirname, `build/src/${dir}/${name}.js`),
         output: { filename: `${name}.js`, path: path.resolve(__dirname, `build/${out}`) },
         ...sharedConfig

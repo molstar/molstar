@@ -8,15 +8,12 @@ import { Task, RuntimeContext } from 'mol-task';
 import { Ccp4File, Ccp4Header } from './schema'
 import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
+import { SimpleBuffer } from 'mol-io/common/simple-buffer';
 
-async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Result<Ccp4File>> {
-    await ctx.update({ message: 'Parsing CCP4/MRC file...' });
-
-    const { buffer } = await file.readBuffer(0, file.length)
+export async function readCcp4Header(file: FileHandle) {
+    const headerSize = 1024;
+    const { buffer } = await file.readBuffer(0, headerSize)
     const bin = buffer.buffer
-
-    const intView = new Int32Array(bin, 0, 56)
-    const floatView = new Float32Array(bin, 0, 56)
     const dv = new DataView(bin)
 
     // 53  MAP         Character string 'MAP ' to identify file type
@@ -25,88 +22,121 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
         dv.getUint8(52 * 4 + 2), dv.getUint8(52 * 4 + 3)
     )
     if (MAP !== 'MAP ') {
-        return Result.error('ccp4 format error, missing "MAP " string');
+        throw new Error('ccp4 format error, missing "MAP " string');
     }
 
     // 54  MACHST      Machine stamp indicating machine type which wrote file
     //                 17 and 17 for big-endian or 68 and 65 for little-endian
     const MACHST = [ dv.getUint8(53 * 4), dv.getUint8(53 * 4 + 1) ]
+    let littleEndian = true
     // found MRC files that don't have the MACHST stamp set and are big-endian
     if (MACHST[0] !== 68 && MACHST[1] !== 65) {
-        // flip byte order in-place
-        for (let i = 0, il = bin.byteLength; i < il; i += 4) {
-            dv.setFloat32(i, dv.getFloat32(i), true)
-        }
+        littleEndian = false;
     }
 
+    const readInt = (o: number) => dv.getInt32(o * 4, littleEndian)
+    const readFloat = (o: number) => dv.getFloat32(o * 4, littleEndian)
+
     const header: Ccp4Header = {
-        NC: intView[0],
-        NR: intView[1],
-        NS: intView[2],
+        NC: readInt(0),
+        NR: readInt(1),
+        NS: readInt(2),
 
-        MODE: intView[3],
+        MODE: readInt(3),
 
-        NCSTART: intView[4],
-        NRSTART: intView[5],
-        NSSTART: intView[6],
+        NCSTART: readInt(4),
+        NRSTART: readInt(5),
+        NSSTART: readInt(6),
 
-        NX: intView[7],
-        NY: intView[8],
-        NZ: intView[9],
+        NX: readInt(7),
+        NY: readInt(8),
+        NZ: readInt(9),
 
-        xLength: floatView[10],
-        yLength: floatView[11],
-        zLength: floatView[12],
+        xLength: readFloat(10),
+        yLength: readFloat(11),
+        zLength: readFloat(12),
 
-        alpha: floatView[13],
-        beta: floatView[14],
-        gamma: floatView[15],
+        alpha: readFloat(13),
+        beta: readFloat(14),
+        gamma: readFloat(15),
 
-        MAPC: intView[16],
-        MAPR: intView[17],
-        MAPS: intView[18],
+        MAPC: readInt(16),
+        MAPR: readInt(17),
+        MAPS: readInt(18),
 
-        AMIN: floatView[19],
-        AMAX: floatView[20],
-        AMEAN: floatView[21],
+        AMIN: readFloat(19),
+        AMAX: readFloat(20),
+        AMEAN: readFloat(21),
 
-        ISPG: intView[22],
+        ISPG: readInt(22),
 
-        NSYMBT: intView[23],
+        NSYMBT: readInt(23),
 
-        LSKFLG: intView[24],
+        LSKFLG: readInt(24),
 
         SKWMAT: [], // TODO bytes 26-34
         SKWTRN: [], // TODO bytes 35-37
 
+        userFlag1: readInt(39),
+        userFlag2: readInt(40),
+
         // bytes 50-52 origin in X,Y,Z used for transforms
-        originX: floatView[49],
-        originY: floatView[50],
-        originZ: floatView[51],
+        originX: readFloat(49),
+        originY: readFloat(50),
+        originZ: readFloat(51),
 
         MAP, // bytes 53 MAP
         MACHST, // bytes 54 MACHST
 
-        ARMS: floatView[54],
+        ARMS: readFloat(54),
 
         // TODO bytes 56 NLABL
         // TODO bytes 57-256 LABEL
     }
 
+    return { header, littleEndian }
+}
+
+function getElementByteSize(mode: number) {
+    if (mode === 2) {
+        return 4
+    } else if (mode === 1) {
+        return 2
+    } else if (mode === 0) {
+        return 1
+    } else {
+        throw new Error(`ccp4 mode '${mode}' unsupported`);
+    }
+}
+
+async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext): Promise<Ccp4File> {
+    await ctx.update({ message: 'Parsing CCP4/MRC file...' });
+
+    const { header, littleEndian } = await readCcp4Header(file)
+
     const offset = 256 * 4 + header.NSYMBT
     const count = header.NC * header.NR * header.NS
+    const elementByteSize = getElementByteSize(header.MODE)
+    const byteCount = count * elementByteSize
+
+    const { buffer } = await file.readBuffer(offset, size)
+
     let values
     if (header.MODE === 2) {
-        values = new Float32Array(bin, offset, count)
+        values = new Float32Array(buffer, offset, count)
     } else if (header.MODE === 0) {
-        values = new Int8Array(bin, offset, count)
+        values = new Int8Array(buffer, offset, count)
     } else {
-        return Result.error(`ccp4 mode '${header.MODE}' unsupported`);
+        throw new Error(`ccp4 mode '${header.MODE}' unsupported`);
+    }
+
+    if (!littleEndian) {
+        SimpleBuffer.flipByteOrder(buffer, new Uint8Array(values.buffer), byteCount, elementByteSize, 0)
     }
 
     // if the file was converted by mapmode2to0 - scale the data
     // based on uglymol (https://github.com/uglymol/uglymol) by Marcin Wojdyr (wojdyr)
-    if (intView[39] === -128 && intView[40] === 127) {
+    if (header.userFlag1 -128 && header.userFlag2 === 127) {
         values = new Float32Array(values)
         // scaling f(x)=b1*x+b0 such that f(-128)=min and f(127)=max
         const b1 = (header.AMAX - header.AMIN) / 255.0
@@ -117,13 +147,19 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
     }
 
     const result: Ccp4File = { header, values };
-    return Result.success(result);
+    return result
 }
 
-export function parseFile(file: FileHandle) {
-    return Task.create<Result<Ccp4File>>('Parse CCP4/MRC', ctx => parseInternal(file, ctx));
+export function parseFile(file: FileHandle, size: number) {
+    return Task.create<Result<Ccp4File>>('Parse CCP4/MRC', async ctx => {
+        try {
+            return Result.success(await parseInternal(file, size, ctx));
+        } catch (e) {
+            return Result.error(e);
+        }
+    })
 }
 
 export function parse(buffer: Uint8Array) {
-    return parseFile(FileHandle.fromBuffer(buffer))
+    return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer)), buffer.length)
 }
