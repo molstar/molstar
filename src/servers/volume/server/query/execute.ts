@@ -21,6 +21,7 @@ import encode from './encode'
 import { SpacegroupCell } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UUID } from 'mol-util';
+import { FileHandle } from 'mol-io/common/file-handle';
 
 export default async function execute(params: Data.QueryParams, outputProvider: () => Data.QueryOutputStream) {
     const start = getTime();
@@ -30,16 +31,16 @@ export default async function execute(params: Data.QueryParams, outputProvider: 
     params.detail = Math.min(Math.max(0, params.detail | 0), ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
     ConsoleLogger.logId(guid, 'Info', `id=${params.sourceId},encoding=${params.asBinary ? 'binary' : 'text'},detail=${params.detail},${queryBoxToString(params.box)}`);
 
-    let sourceFile: number | undefined = void 0;
+    let sourceFile: FileHandle | undefined;
     try {
-        sourceFile = await File.openRead(params.sourceFilename);
+        sourceFile = FileHandle.fromDescriptor(await File.openRead(params.sourceFilename));
         await _execute(sourceFile, params, guid, outputProvider);
         return true;
     } catch (e) {
         ConsoleLogger.errorId(guid, e);
         return false;
     } finally {
-        File.close(sourceFile);
+        if (sourceFile) sourceFile.close();
         ConsoleLogger.logId(guid, 'Time', `${Math.round(getTime() - start)}ms`);
         State.pendingQueries--;
     }
@@ -80,7 +81,7 @@ function createSampling(header: DataFormat.Header, index: number, dataOffset: nu
     }
 }
 
-async function createDataContext(file: number): Promise<Data.DataContext> {
+async function createDataContext(file: FileHandle): Promise<Data.DataContext> {
     const { header, dataOffset } = await DataFormat.readHeader(file);
 
     const origin = Coords.fractional(header.origin[0], header.origin[1], header.origin[2]);
@@ -185,7 +186,7 @@ function createQueryContext(data: Data.DataContext, params: Data.QueryParams, gu
 }
 
 
-async function _execute(file: number, params: Data.QueryParams, guid: string, outputProvider: () => Data.QueryOutputStream) {
+async function _execute(file: FileHandle, params: Data.QueryParams, guid: string, outputProvider: () => Data.QueryOutputStream) {
     let output: any = void 0;
     try {
         // Step 1a: Create data context

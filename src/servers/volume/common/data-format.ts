@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as File from './file'
 import * as Schema from './binary-schema'
+import { FileHandle } from 'mol-io/common/file-handle';
 
 export type ValueType = 'float32' | 'int8' | 'int16'
 
@@ -121,12 +121,12 @@ export function encodeHeader(header: Header) {
     return Schema.encode(headerSchema, header);
 }
 
-export async function readHeader(file: number): Promise<{ header: Header, dataOffset: number }> {
-    let { buffer } = await File.readBuffer(file, 0, 4 * 4096);
+export async function readHeader(file: FileHandle): Promise<{ header: Header, dataOffset: number }> {
+    let { buffer } = await file.readBuffer(0, 4 * 4096);
     const headerSize = buffer.readInt32LE(0);
 
     if (headerSize > buffer.byteLength - 4) {
-        buffer = (await File.readBuffer(file, 0, headerSize + 4)).buffer;
+        buffer = (await file.readBuffer(0, headerSize + 4)).buffer;
     }
 
     const header = Schema.decode<Header>(headerSchema, buffer, 4);

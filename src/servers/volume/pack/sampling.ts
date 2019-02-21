@@ -12,6 +12,7 @@ import * as File from '../common/file'
 import * as Downsampling from './downsampling'
 import * as Writer from './writer'
 import * as DataFormat from '../common/data-format'
+import { FileHandle } from 'mol-io/common/file-handle';
 
 export async function createContext(filename: string, channels: CCP4.Data[], blockSize: number, isPeriodic: boolean): Promise<Data.Context> {
     const header = channels[0].header;
@@ -29,7 +30,7 @@ export async function createContext(filename: string, channels: CCP4.Data[], blo
     }
 
     const ctx: Data.Context = {
-        file: await File.createFile(filename),
+        file: FileHandle.fromDescriptor(await File.createFile(filename)),
         isPeriodic,
         channels,
         valueType,

@@ -1,13 +1,16 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Taken/adapted from DensityServer (https://github.com/dsehnal/DensityServer)
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as File from '../common/file'
 import * as DataFormat from '../common/data-format'
+import { FileHandle } from 'mol-io/common/file-handle';
+import { readCcp4Header } from 'mol-io/reader/ccp4/parser';
 
 export const enum Mode { Int8 = 0, Int16 = 1, Float32 = 2 }
 
@@ -40,7 +43,7 @@ export interface SliceBuffer {
 
 export interface Data {
     header: Header,
-    file: number,
+    file: FileHandle,
     slices: SliceBuffer
 }
 
@@ -84,47 +87,24 @@ export function compareHeaders(a: Header, b: Header) {
     return true;
 }
 
-function getArray(r: (offset: number) => number, offset: number, count: number) {
-    const ret: number[] = [];
-    for (let i = 0; i < count; i++) {
-        ret[i] = r(offset + i);
-    }
-    return ret;
-}
+async function readHeader(name: string, file: FileHandle) {
+    const { header: ccp4Header, littleEndian } = await readCcp4Header(file)
 
-async function readHeader(name: string, file: number) {
-    const headerSize = 1024;
-    const { buffer: data } = await File.readBuffer(file, 0, headerSize);
-
-    let littleEndian = true;
-
-    let mode = data.readInt32LE(3 * 4);
-    if (mode < 0 || mode > 2) {
-        littleEndian = false;
-        mode = data.readInt32BE(3 * 4, true);
-        if (mode < 0 || mode > 2) {
-            throw Error('Only CCP4 modes 0, 1, and 2 are supported.');
-        }
-    }
-
-    const readInt = littleEndian ? (o: number) => data.readInt32LE(o * 4) : (o: number) => data.readInt32BE(o * 4);
-    const readFloat = littleEndian ? (o: number) => data.readFloatLE(o * 4) : (o: number) => data.readFloatBE(o * 4);
-
-    const origin2k = getArray(readFloat, 49, 3);
-    const nxyzStart = getArray(readInt, 4, 3);
+    const origin2k = [ccp4Header.originX, ccp4Header.originY, ccp4Header.originZ];
+    const nxyzStart = [ccp4Header.NCSTART, ccp4Header.NRSTART, ccp4Header.NSSTART];
     const header: Header = {
         name,
-        mode,
-        grid: getArray(readInt, 7, 3),
-        axisOrder: getArray(readInt, 16, 3).map(i => i - 1),
-        extent: getArray(readInt, 0, 3),
+        mode: ccp4Header.MODE,
+        grid: [ccp4Header.NX, ccp4Header.NY, ccp4Header.NZ],
+        axisOrder: [ccp4Header.MAPC, ccp4Header.MAPR, ccp4Header.MAPS].map(i => i - 1),
+        extent: [ccp4Header.NC, ccp4Header.NR, ccp4Header.NS],
         origin: origin2k[0] === 0.0 && origin2k[1] === 0.0 && origin2k[2] === 0.0 ? nxyzStart : origin2k,
-        spacegroupNumber: readInt(22),
-        cellSize: getArray(readFloat, 10, 3),
-        cellAngles: getArray(readFloat, 13, 3),
+        spacegroupNumber: ccp4Header.ISPG,
+        cellSize: [ccp4Header.xLength, ccp4Header.yLength, ccp4Header.zLength],
+        cellAngles: [ccp4Header.alpha, ccp4Header.beta, ccp4Header.gamma],
         // mean: readFloat(21),
         littleEndian,
-        dataOffset: headerSize + readInt(23) /* symBytes */
+        dataOffset: 256 * 4 + ccp4Header.NSYMBT /* symBytes */
     };
     // "normalize" the grid axis order
     header.grid = [header.grid[header.axisOrder[0]], header.grid[header.axisOrder[1]], header.grid[header.axisOrder[2]]];
@@ -153,7 +133,8 @@ export async function readSlices(data: Data) {
 }
 
 export async function open(name: string, filename: string): Promise<Data> {
-    const file = await File.openRead(filename);
+    const descriptor = await File.openRead(filename);
+    const file = FileHandle.fromDescriptor(descriptor)
     const header = await readHeader(name, file);
     return {
         header,

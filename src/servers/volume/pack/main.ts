@@ -11,7 +11,7 @@ import * as File from '../common/file'
 import * as Data from './data-model'
 import * as Sampling from './sampling'
 import * as DataFormat from '../common/data-format'
-import * as fs from 'fs'
+import { FileHandle } from 'mol-io/common/file-handle';
 
 export default async function pack(input: { name: string, filename: string }[], blockSize: number, isPeriodic: boolean, outputFilename: string) {
     try {
@@ -36,7 +36,7 @@ function updateAllocationProgress(progress: Data.Progress, progressDone: number)
 }
 
 /**
- * Pre allocate the disk space to be able to do "random" writes into the entire file. 
+ * Pre allocate the disk space to be able to do "random" writes into the entire file.
  */
 async function allocateFile(ctx: Data.Context) {
     const { totalByteSize, file } = ctx;
@@ -44,7 +44,7 @@ async function allocateFile(ctx: Data.Context) {
     const progress: Data.Progress = { current: 0, max: Math.ceil(totalByteSize / buffer.byteLength) };
     let written = 0;
     while (written < totalByteSize) {
-        written += fs.writeSync(file, buffer, 0, Math.min(totalByteSize - written, buffer.byteLength));
+        written += file.writeBufferSync(written, buffer, Math.min(totalByteSize - written, buffer.byteLength));
         updateAllocationProgress(progress, 1);
     }
 }
@@ -66,7 +66,7 @@ function determineBlockSize(data: CCP4.Data, blockSize: number) {
 async function writeHeader(ctx: Data.Context) {
     const header = DataFormat.encodeHeader(Data.createHeader(ctx));
     await File.writeInt(ctx.file, header.byteLength, 0);
-    await File.writeBuffer(ctx.file, 4, header);
+    await ctx.file.writeBuffer(4, header);
 }
 
 async function create(filename: string, sourceDensities: { name: string, filename: string }[], sourceBlockSize: number, isPeriodic: boolean) {
@@ -81,7 +81,7 @@ async function create(filename: string, sourceDensities: { name: string, filenam
     }
 
     process.stdout.write('Initializing... ');
-    const files: number[] = [];
+    const files: FileHandle[] = [];
     try {
         // Step 1a: Read the CCP4 headers
         const channels: CCP4.Data[] = [];
@@ -102,18 +102,18 @@ async function create(filename: string, sourceDensities: { name: string, filenam
 
         console.log(`Block size: ${blockSize}`);
 
-        // Step 2: Allocate disk space.        
+        // Step 2: Allocate disk space.
         process.stdout.write('Allocating...      0%');
         await allocateFile(context);
         process.stdout.write('\rAllocating...      done.\n');
 
-        // Step 3: Process and write the data 
+        // Step 3: Process and write the data
         process.stdout.write('Writing data...    0%');
         await Sampling.processData(context);
         process.stdout.write('\rWriting data...    done.\n');
 
         // Step 4: Write the header at the start of the file.
-        // The header is written last because the sigma/min/max values are computed 
+        // The header is written last because the sigma/min/max values are computed
         // during step 3.
         process.stdout.write('Writing header...  ');
         await writeHeader(context);
@@ -123,11 +123,11 @@ async function create(filename: string, sourceDensities: { name: string, filenam
         const time = getTime() - startedTime;
         console.log(`[Done] ${time.toFixed(0)}ms.`);
     } finally {
-        for (let f of files) File.close(f);
+        for (let f of files) f.close();
 
         // const ff = await File.openRead(filename);
         // const hh = await DataFormat.readHeader(ff);
         // File.close(ff);
         // console.log(hh.header);
     }
-} 
+}

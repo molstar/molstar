@@ -7,6 +7,8 @@
  */
 import * as CCP4 from './ccp4'
 import * as DataFormat from '../common/data-format'
+import { FileHandle } from 'mol-io/common/file-handle';
+import { SimpleBuffer } from 'mol-io/common/simple-buffer';
 
 const FORMAT_VERSION = '1.0.0';
 
@@ -24,7 +26,7 @@ export interface ValuesInfo {
 
 export interface BlockBuffer {
     values: DataFormat.ValueArray[],
-    buffers: Buffer[],
+    buffers: SimpleBuffer[],
     slicesWritten: number
 }
 
@@ -68,7 +70,7 @@ export interface Kernel {
 
 export interface Context {
     /** Output file handle  */
-    file: number,
+    file: FileHandle,
 
     /** Periodic are x-ray density files that cover the entire grid and have [0,0,0] origin */
     isPeriodic: boolean,
@@ -77,9 +79,9 @@ export interface Context {
     valueType: DataFormat.ValueType,
     blockSize: number,
     /** Able to store channels.length * blockSize^3 values. */
-    cubeBuffer: Buffer,
+    cubeBuffer: SimpleBuffer,
     /** All values are stored in little endian format which might not be the native endian of the system  */
-    litteEndianCubeBuffer: Buffer,
+    litteEndianCubeBuffer: SimpleBuffer,
 
     kernel: Kernel,
     sampling: Sampling[],

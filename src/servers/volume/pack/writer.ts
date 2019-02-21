@@ -19,7 +19,7 @@ export async function writeBlockLayer(ctx: Data.Context, sampling: Data.Sampling
     for (let v = 0; v < nV; v++) {
         for (let u = 0; u < nU; u++) {
             const size = fillCubeBuffer(ctx, sampling, u, v);
-            await File.writeBuffer(ctx.file, startOffset + sampling.writeByteOffset, ctx.litteEndianCubeBuffer, size);
+            await ctx.file.writeBuffer(startOffset + sampling.writeByteOffset, ctx.litteEndianCubeBuffer, size);
             sampling.writeByteOffset += size;
             updateProgress(ctx.progress, 1);
         }
@@ -46,7 +46,8 @@ function fillCubeBuffer(ctx: Data.Context, sampling: Data.Sampling, u: number, v
             for (let k = offsetK; k < maxK; k++) {
                 // copying the bytes direct is faster than using buffer.write* functions.
                 const start = (l * sizeHK + k * sizeH + offsetH) * elementSize;
-                src.copy(cubeBuffer, writeOffset, start, start + copyH);
+                // TODO
+                cubeBuffer.set(src.subarray(start, start + copyH), writeOffset)
                 writeOffset += copyH;
             }
         }

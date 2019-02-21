@@ -11,6 +11,7 @@ import * as Coords from '../algebra/coordinate'
 import * as Box from '../algebra/box'
 import Writer from 'mol-io/writer/writer'
 import { SpacegroupCell } from 'mol-math/geometry';
+import { FileHandle } from 'mol-io/common/file-handle';
 
 //////////////////////////////////////
 // DATA
@@ -25,7 +26,7 @@ export interface Sampling {
 }
 
 export interface DataContext {
-    file: number,
+    file: FileHandle,
     header: DataFormat.Header,
     spacegroup: SpacegroupCell,
     dataBox: Box.Fractional,

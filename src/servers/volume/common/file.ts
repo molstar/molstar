@@ -9,6 +9,8 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as DataFormat from './data-format'
+import { FileHandle } from 'mol-io/common/file-handle';
+import { SimpleBuffer } from 'mol-io/common/simple-buffer';
 
 export const IsNativeEndianLittle = new Uint16Array(new Uint8Array([0x12, 0x34]).buffer)[0] === 0x3412;
 
@@ -27,43 +29,6 @@ export async function openRead(filename: string) {
             }
         })
     });
-}
-
-export function readBuffer(file: number, position: number, sizeOrBuffer: Buffer | number, size?: number, byteOffset?: number): Promise<{ bytesRead: number, buffer: Buffer }> {
-    return new Promise((res, rej) => {
-        if (typeof sizeOrBuffer === 'number') {
-            let buff = new Buffer(new ArrayBuffer(sizeOrBuffer));
-            fs.read(file, buff, 0, sizeOrBuffer, position, (err, bytesRead, buffer) => {
-                if (err) {
-                    rej(err);
-                    return;
-                }
-                res({ bytesRead, buffer });
-            });
-        } else {
-            if (size === void 0) {
-                rej('readBuffer: Specify size.');
-                return;
-            }
-
-            fs.read(file, sizeOrBuffer, byteOffset ? +byteOffset : 0, size, position, (err, bytesRead, buffer) => {
-                if (err) {
-                    rej(err);
-                    return;
-                }
-                res({ bytesRead, buffer });
-            });
-        }
-    })
-}
-
-export function writeBuffer(file: number, position: number, buffer: Buffer, size?: number): Promise<number> {
-    return new Promise<number>((res, rej) => {
-        fs.write(file, buffer, 0, size !== void 0 ? size : buffer.length, position, (err, written) => {
-            if (err) rej(err);
-            else res(written);
-        })
-    })
 }
 
 function makeDir(path: string, root?: string): boolean {
@@ -95,19 +60,10 @@ export function createFile(filename: string) {
     });
 }
 
-const __emptyFunc = function () { };
-export function close(file: number | undefined) {
-    try {
-        if (file !== void 0) fs.close(file, __emptyFunc);
-    } catch (e) {
-
-    }
-}
-
-const smallBuffer = new Buffer(8);
-export async function writeInt(file: number, value: number, position: number) {
+const smallBuffer = SimpleBuffer.fromBuffer(new Buffer(8));
+export async function writeInt(file: FileHandle, value: number, position: number) {
     smallBuffer.writeInt32LE(value, 0);
-    await writeBuffer(file, position, smallBuffer, 4);
+    await file.writeBuffer(position, smallBuffer, 4);
 }
 
 export interface TypedArrayBufferContext {
@@ -144,7 +100,7 @@ export function createTypedArrayBufferContext(size: number, type: DataFormat.Val
     };
 }
 
-function flipByteOrder(source: Buffer, target: Uint8Array, byteCount: number, elementByteSize: number, offset: number) {
+function flipByteOrder(source: SimpleBuffer, target: Uint8Array, byteCount: number, elementByteSize: number, offset: number) {
     for (let i = 0, n = byteCount; i < n; i += elementByteSize) {
         for (let j = 0; j < elementByteSize; j++) {
             target[offset + i + elementByteSize - j - 1] = source[offset + i + j];
@@ -152,19 +108,19 @@ function flipByteOrder(source: Buffer, target: Uint8Array, byteCount: number, el
     }
 }
 
-export async function readTypedArray(ctx: TypedArrayBufferContext, file: number, position: number, count: number, valueOffset: number, littleEndian?: boolean) {
+export async function readTypedArray(ctx: TypedArrayBufferContext, file: FileHandle, position: number, count: number, valueOffset: number, littleEndian?: boolean) {
     let byteCount = ctx.elementByteSize * count;
     let byteOffset = ctx.elementByteSize * valueOffset;
 
-    await readBuffer(file, position, ctx.readBuffer, byteCount, byteOffset);
+    await file.readBuffer(position, ctx.readBuffer, byteCount, byteOffset);
     if (ctx.elementByteSize > 1 && ((littleEndian !== void 0 && littleEndian !== IsNativeEndianLittle) || !IsNativeEndianLittle)) {
-        // fix the endian 
+        // fix the endian
         flipByteOrder(ctx.readBuffer, ctx.valuesBuffer, byteCount, ctx.elementByteSize, byteOffset);
     }
     return ctx.values;
 }
 
-export function ensureLittleEndian(source: Buffer, target: Buffer, byteCount: number, elementByteSize: number, offset: number) {
+export function ensureLittleEndian(source: SimpleBuffer, target: SimpleBuffer, byteCount: number, elementByteSize: number, offset: number) {
     if (IsNativeEndianLittle) return;
     if (!byteCount || elementByteSize <= 1) return;
     flipByteOrder(source, target, byteCount, elementByteSize, offset);
