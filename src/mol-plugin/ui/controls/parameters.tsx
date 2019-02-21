@@ -29,8 +29,10 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
     render() {
         const params = this.props.params;
         const values = this.props.values;
+        const keys = Object.keys(params);
+        if (keys.length === 0) return null;
         return <div style={{ width: '100%' }}>
-            {Object.keys(params).map(key => {
+            {keys.map(key => {
                 const param = params[key];
                 if (param.isHidden) return null;
                 const Control = controlFor(param);
@@ -434,6 +436,10 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
 
     render() {
         const params = this.props.param.params;
+
+        // Do not show if there are no params.
+        if (Object.keys(params).length === 0) return null;
+
         const label = this.props.param.label || camelCaseToWords(this.props.name);
 
         const controls = <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />;

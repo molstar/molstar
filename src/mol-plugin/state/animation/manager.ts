@@ -13,6 +13,7 @@ export { PluginAnimationManager }
 
 // TODO: pause functionality (this needs to reset if the state tree changes)
 // TODO: handle unregistered animations on state restore
+// TODO: better API
 
 class PluginAnimationManager extends PluginComponent<PluginAnimationManager.State> {
     private map = new Map<string, PluginStateAnimation>();
@@ -20,8 +21,16 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
     private _current: PluginAnimationManager.Current;
     private _params?: PD.For<PluginAnimationManager.State['params']> = void 0;
 
+    readonly events = {
+        updated: this.ev()
+    };
+
     get isEmpty() { return this.animations.length === 0; }
     get current() { return this._current!; }
+
+    private triggerUpdate() {
+        this.events.updated.next();
+    }
 
     getParams(): PD.Params {
         if (!this._params) {
@@ -35,9 +44,9 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
     }
 
     updateParams(newParams: Partial<PluginAnimationManager.State['params']>) {
-        this.updateState({ params: { ...this.latestState.params, ...newParams } });
-        const anim = this.map.get(this.latestState.params.current)!;
-        const params = anim.params(this.context);
+        this.updateState({ params: { ...this.state.params, ...newParams } });
+        const anim = this.map.get(this.state.params.current)!;
+        const params = anim.params(this.context) as PD.Params;
         this._current = {
             anim,
             params,
@@ -69,6 +78,16 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         }
     }
 
+    play<P>(animation: PluginStateAnimation<P>, params: P) {
+        this.stop();
+        if (!this.map.has(animation.name)) {
+            this.register(animation);
+        }
+        this.updateParams({ current: animation.name });
+        this.updateCurrentParams(params);
+        this.start();
+    }
+
     start() {
         this.updateState({ animationState: 'playing' });
         this.triggerUpdate();
@@ -81,11 +100,19 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
     }
 
     stop() {
+        if (typeof this._frame !== 'undefined') cancelAnimationFrame(this._frame);
         this.updateState({ animationState: 'stopped' });
         this.triggerUpdate();
     }
 
+    get isAnimating() {
+        return this.state.animationState === 'playing';
+    }
+
+    private _frame: number | undefined = void 0;
     private animate = async (t: number) => {
+        this._frame = void 0;
+
         if (this._current.startedTime < 0) this._current.startedTime = t;
         const newState = await this._current.anim.apply(
             this._current.state,
@@ -97,17 +124,17 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         } else if (newState.kind === 'next') {
             this._current.state = newState.state;
             this._current.lastTime = t - this._current.startedTime;
-            if (this.latestState.animationState === 'playing') requestAnimationFrame(this.animate);
+            if (this.state.animationState === 'playing') this._frame = requestAnimationFrame(this.animate);
         } else if (newState.kind === 'skip') {
-            if (this.latestState.animationState === 'playing') requestAnimationFrame(this.animate);
+            if (this.state.animationState === 'playing') this._frame = requestAnimationFrame(this.animate);
         }
     }
 
     getSnapshot(): PluginAnimationManager.Snapshot {
-        if (!this.current) return { state: this.latestState };
+        if (!this.current) return { state: this.state };
 
         return {
-            state: this.latestState,
+            state: this.state,
             current: {
                 paramValues: this._current.paramValues,
                 state: this._current.anim.stateSerialization ? this._current.anim.stateSerialization.toJSON(this._current.state) : this._current.state
@@ -125,7 +152,7 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
                 ? this._current.anim.stateSerialization.fromJSON(snapshot.current.state)
                 : snapshot.current.state;
             this.triggerUpdate();
-            if (this.latestState.animationState === 'playing') this.resume();
+            if (this.state.animationState === 'playing') this.resume();
         }
     }
 
@@ -135,8 +162,8 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         requestAnimationFrame(this.animate);
     }
 
-    constructor(ctx: PluginContext) {
-        super(ctx, { params: { current: '' }, animationState: 'stopped' });
+    constructor(private context: PluginContext) {
+        super({ params: { current: '' }, animationState: 'stopped' });
     }
 }
 

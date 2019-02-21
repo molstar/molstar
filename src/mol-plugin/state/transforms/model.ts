@@ -24,6 +24,7 @@ import { volumeFromDensityServerData } from 'mol-model-formats/volume/density-se
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 import { parsePDB } from 'mol-io/reader/pdb/parser';
 import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
+import { Assembly } from 'mol-model/structure/model/properties/symmetry';
 
 export { TrajectoryFromMmCif }
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
@@ -143,12 +144,26 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
         return Task.create('Build Assembly', async ctx => {
             const model = a.data;
             let id = params.id;
-            let asm = ModelSymmetry.findAssembly(model, id || '');
-            if (!!id && id !== 'deposited' && !asm) throw new Error(`Assembly '${id}' not found`);
+            let asm: Assembly | undefined = void 0;
+
+            // if no id is specified, use the 1st assembly.
+            if (!id && model.symmetry.assemblies.length !== 0) {
+                id = model.symmetry.assemblies[0].id;
+            }
+
+            if (model.symmetry.assemblies.length === 0) {
+                if (id !== 'deposited') {
+                    plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
+                }
+            } else {
+                asm = ModelSymmetry.findAssembly(model, id || '');
+                if (!asm) {
+                    plugin.log.warn(`Model '${a.label}' has no assembly called '${id}', returning deposited structure.`);
+                }
+            }
 
             const base = Structure.ofModel(model);
-            if ((id && !asm) || model.symmetry.assemblies.length === 0) {
-                if (!!id && id !== 'deposited') plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
+            if (!asm) {
                 const label = { label: a.data.label, description: structureDesc(base) };
                 return new SO.Molecule.Structure(base, label);
             }

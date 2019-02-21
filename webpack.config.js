@@ -49,6 +49,8 @@ const sharedConfig = {
         }),
         new webpack.DefinePlugin({
             __PLUGIN_VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
+            // include this for production version of React
+            // 'process.env.NODE_ENV': JSON.stringify('production')
         }),
         new MiniCssExtractPlugin({ filename: 'app.css' })
     ],

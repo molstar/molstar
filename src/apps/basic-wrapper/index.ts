@@ -13,6 +13,7 @@ import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/re
 import { Color } from 'mol-util/color';
 import { StateTreeBuilder } from 'mol-state/tree/builder';
 import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
+import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -97,6 +98,17 @@ class BasicWrapper {
         const spinning = trackball.spin;
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
         if (!spinning) PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+    }
+
+    animate = {
+        modelIndex: {
+            maxFPS: 8,
+            onceForward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'forward' } } }) },
+            onceBackward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'backward' } } }) },
+            palindrome: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'palindrome', params: {} } }) },
+            loop: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'loop', params: {} } }) },
+            stop: () => this.plugin.state.animation.stop()
+        }
     }
 }
 

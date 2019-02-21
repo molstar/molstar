@@ -18,7 +18,7 @@
     "watch": "concurrently --kill-others \"npm:watch-ts\" \"npm:watch-extra\" \"npm:watch-webpack\"",
     "watch-ts": "tsc -watch",
     "watch-extra": "cpx \"src/**/*.{vert,frag,glsl,scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" build/src/ --watch",
-    "build-webpack": "webpack --mode development",
+    "build-webpack": "webpack --mode production",
     "watch-webpack": "webpack -w --mode development",
     "model-server": "node build/src/servers/model/server.js",
     "model-server-watch": "nodemon --watch build/src build/src/servers/model/server.js"

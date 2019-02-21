@@ -7,57 +7,53 @@
 import { Camera } from 'mol-canvas3d/camera';
 import { OrderedMap } from 'immutable';
 import { UUID } from 'mol-util';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { PluginComponent } from 'mol-plugin/component';
 
 export { CameraSnapshotManager }
 
-class CameraSnapshotManager {
-    private ev = RxEventHelper.create();
-    private _entries = OrderedMap<string, CameraSnapshotManager.Entry>().asMutable();
-
+class CameraSnapshotManager extends PluginComponent<{ entries: OrderedMap<string, CameraSnapshotManager.Entry> }> {
     readonly events = {
         changed: this.ev()
     };
 
-    get entries() { return this._entries; }
-
     getEntry(id: string) {
-        return this._entries.get(id);
+        return this.state.entries.get(id);
     }
 
     remove(id: string) {
-        if (!this._entries.has(id)) return;
-        this._entries.delete(id);
+        if (!this.state.entries.has(id)) return;
+        this.updateState({ entries: this.state.entries.delete(id) });
         this.events.changed.next();
     }
 
     add(e: CameraSnapshotManager.Entry) {
-        this._entries.set(e.id, e);
+        this.updateState({ entries: this.state.entries.set(e.id, e) });
         this.events.changed.next();
     }
 
     clear() {
-        if (this._entries.size === 0) return;
-        this._entries = OrderedMap<string, CameraSnapshotManager.Entry>().asMutable();
+        if (this.state.entries.size === 0) return;
+        this.updateState({ entries: OrderedMap<string, CameraSnapshotManager.Entry>() });
         this.events.changed.next();
     }
 
     getStateSnapshot(): CameraSnapshotManager.StateSnapshot {
         const entries: CameraSnapshotManager.Entry[] = [];
-        this._entries.forEach(e => entries.push(e!));
+        this.state.entries.forEach(e => entries.push(e!));
         return { entries };
     }
 
     setStateSnapshot(state: CameraSnapshotManager.StateSnapshot ) {
-        this._entries = OrderedMap<string, CameraSnapshotManager.Entry>().asMutable();
+        const entries = OrderedMap<string, CameraSnapshotManager.Entry>().asMutable();
         for (const e of state.entries) {
-            this._entries.set(e.id, e);
+            entries.set(e.id, e);
         }
+        this.updateState({ entries: entries.asImmutable() });
         this.events.changed.next();
     }
 
-    dispose() {
-        this.ev.dispose();
+    constructor() {
+        super({ entries: OrderedMap<string, CameraSnapshotManager.Entry>() });
     }
 }
 

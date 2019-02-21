@@ -7,10 +7,10 @@
 import * as React from 'react';
 import { PluginCommands } from 'mol-plugin/command';
 import { UpdateTrajectory } from 'mol-plugin/state/actions/basic';
-import { PluginComponent } from './base';
+import { PluginUIComponent } from './base';
 import { LociLabelEntry } from 'mol-plugin/util/loci-label-manager';
 
-export class Controls extends PluginComponent<{ }, { }> {
+export class Controls extends PluginUIComponent<{ }, { }> {
     render() {
         return <>
 
@@ -18,7 +18,7 @@ export class Controls extends PluginComponent<{ }, { }> {
     }
 }
 
-export class TrajectoryControls extends PluginComponent {
+export class TrajectoryControls extends PluginUIComponent {
     render() {
         return <div>
             <button className='msp-btn msp-btn-link' onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
@@ -37,7 +37,7 @@ export class TrajectoryControls extends PluginComponent {
     }
 }
 
-export class LociLabelControl extends PluginComponent<{}, { entries: ReadonlyArray<LociLabelEntry> }> {
+export class LociLabelControl extends PluginUIComponent<{}, { entries: ReadonlyArray<LociLabelEntry> }> {
     state = { entries: [] }
 
     componentDidMount() {
