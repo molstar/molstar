@@ -5,16 +5,17 @@
  */
 
 import { FileHandle } from 'mol-io/common/file-handle';
-import { Header, Provider, Mode } from '../format';
+import { Header, Provider } from '../format';
 import { readSlices } from './common';
 import { readDsn6Header, dsn6HeaderSize } from 'mol-io/reader/dsn6/parser';
+import { TypedArrayValueType } from 'mol-io/common/typed-array';
 
 async function readHeader(name: string, file: FileHandle) {
     const { header: dsn6Header, littleEndian } = await readDsn6Header(file)
 
     const header: Header = {
         name,
-        mode: Mode.Int16,
+        valueType: TypedArrayValueType.Int16,
         grid: [dsn6Header.xRate, dsn6Header.yRate, dsn6Header.zRate],
         axisOrder: [0, 1, 2],
         extent: [dsn6Header.xExtent, dsn6Header.yExtent, dsn6Header.zExtent],

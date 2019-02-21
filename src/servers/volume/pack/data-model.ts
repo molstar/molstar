@@ -9,6 +9,7 @@ import * as Format from './format'
 import * as DataFormat from '../common/data-format'
 import { FileHandle } from 'mol-io/common/file-handle';
 import { SimpleBuffer } from 'mol-io/common/simple-buffer';
+import { TypedArrayValueArray, TypedArrayValueType } from 'mol-io/common/typed-array';
 
 const FORMAT_VERSION = '1.0.0';
 
@@ -25,16 +26,16 @@ export interface ValuesInfo {
 }
 
 export interface BlockBuffer {
-    values: DataFormat.ValueArray[],
+    values: TypedArrayValueArray[],
     buffers: SimpleBuffer[],
     slicesWritten: number
 }
 
 export interface DownsamplingBuffer {
     /** dimensions (sampleCount[1], sampleCount[0] / 2, 1), axis order (K, H, L) */
-    downsampleH: DataFormat.ValueArray,
+    downsampleH: TypedArrayValueArray,
     /** "Cyclic" (in the 1st dimensions) buffer with dimensions (5, sampleCount[0] / 2, sampleCount[1] / 2), axis order (L, H, K),  */
-    downsampleHK: DataFormat.ValueArray,
+    downsampleHK: TypedArrayValueArray,
 
     slicesWritten: number,
     startSliceIndex: number
@@ -76,7 +77,7 @@ export interface Context {
     isPeriodic: boolean,
 
     channels: Format.Context[],
-    valueType: DataFormat.ValueType,
+    valueType: TypedArrayValueType,
     blockSize: number,
     /** Able to store channels.length * blockSize^3 values. */
     cubeBuffer: SimpleBuffer,
@@ -101,7 +102,7 @@ export function createHeader(ctx: Context): DataFormat.Header {
 
     return {
         formatVersion: FORMAT_VERSION,
-        valueType: Format.getValueType(header),
+        valueType: header.valueType,
         blockSize: ctx.blockSize,
         axisOrder: header.axisOrder,
         origin: normalize(header.origin),

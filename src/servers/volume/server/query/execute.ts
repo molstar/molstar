@@ -22,6 +22,7 @@ import { SpacegroupCell } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UUID } from 'mol-util';
 import { FileHandle } from 'mol-io/common/file-handle';
+import { createTypedArray, TypedArrayValueType } from 'mol-io/common/typed-array';
 
 export default async function execute(params: Data.QueryParams, outputProvider: () => Data.QueryOutputStream) {
     const start = getTime();
@@ -142,10 +143,10 @@ function getQueryBox(data: Data.DataContext, queryBox: Data.QueryParamsBox) {
     }
 }
 
-function allocateValues(domain: Coords.GridDomain<'Query'>, numChannels: number, valueType: DataFormat.ValueType) {
+function allocateValues(domain: Coords.GridDomain<'Query'>, numChannels: number, valueType: TypedArrayValueType) {
     const values = [];
     for (let i = 0; i < numChannels; i++) {
-        values[values.length] = DataFormat.createValueArray(valueType, domain.sampleVolume);
+        values[values.length] = createTypedArray(valueType, domain.sampleVolume);
     }
     return values;
 }

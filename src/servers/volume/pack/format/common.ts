@@ -6,7 +6,7 @@
  */
 
 import { Data } from '../format';
-import * as File from '../../common/file'
+import { readTypedArray } from 'mol-io/common/typed-array';
 
 export async function readSlices(data: Data) {
     const { slices, header } = data;
@@ -19,8 +19,9 @@ export async function readSlices(data: Data) {
     const sliceByteOffset = slices.buffer.elementByteSize * sliceSize * slices.slicesRead;
     const sliceCount = Math.min(slices.sliceCapacity, extent[2] - slices.slicesRead);
     const sliceByteCount = sliceCount * sliceSize;
+    console.log('sliceByteOffset', sliceByteOffset, 'sliceSize', sliceSize, 'sliceCount', sliceCount)
 
-    await File.readTypedArray(slices.buffer, data.file, header.dataOffset + sliceByteOffset, sliceByteCount, 0, header.littleEndian);
+    await readTypedArray(slices.buffer, data.file, header.dataOffset + sliceByteOffset, sliceByteCount, 0, header.littleEndian);
     slices.slicesRead += sliceCount;
     slices.sliceCount = sliceCount;
 

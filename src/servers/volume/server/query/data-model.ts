@@ -12,6 +12,7 @@ import * as Box from '../algebra/box'
 import Writer from 'mol-io/writer/writer'
 import { SpacegroupCell } from 'mol-math/geometry';
 import { FileHandle } from 'mol-io/common/file-handle';
+import { TypedArrayValueArray } from 'mol-io/common/typed-array';
 
 //////////////////////////////////////
 // DATA
@@ -35,7 +36,7 @@ export interface DataContext {
 
 export interface BlockData {
     sampleCount: number[],
-    values: DataFormat.ValueArray
+    values: TypedArrayValueArray
 }
 
 //////////////////////////////////////
@@ -75,5 +76,5 @@ export namespace QueryContext {
     type Base = { guid: string, params: QueryParams }
     export type Error = { kind: 'Error', message: string } & Base
     export type Empty = { kind: 'Empty', data: DataContext } & Base
-    export type Data = { kind: 'Data', data: DataContext, samplingInfo: QuerySamplingInfo, values: DataFormat.ValueArray[] } & Base
+    export type Data = { kind: 'Data', data: DataContext, samplingInfo: QuerySamplingInfo, values: TypedArrayValueArray[] } & Base
 }

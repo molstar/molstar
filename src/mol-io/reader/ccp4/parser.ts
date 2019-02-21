@@ -9,6 +9,7 @@ import { Ccp4File, Ccp4Header } from './schema'
 import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
 import { SimpleBuffer } from 'mol-io/common/simple-buffer';
+import { TypedArrayValueType, getElementByteSize, makeTypedArray } from 'mol-io/common/typed-array';
 
 export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4Header, littleEndian: boolean }> {
     const headerSize = 1024;
@@ -95,11 +96,11 @@ export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4He
     return { header, littleEndian }
 }
 
-function getElementByteSize(mode: number) {
+function getTypedArrayValueType(mode: number) {
     switch (mode) {
-        case 2: return 4
-        case 1: return 2
-        case 0: return 1
+        case 2: return TypedArrayValueType.Float32
+        case 1: return TypedArrayValueType.Int16
+        case 0: return TypedArrayValueType.Int8
     }
     throw new Error(`ccp4 mode '${mode}' unsupported`);
 }
@@ -110,28 +111,20 @@ async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext
     const { header, littleEndian } = await readCcp4Header(file)
 
     const offset = 256 * 4 + header.NSYMBT
+    const valueType = getTypedArrayValueType(header.MODE)
     const { buffer, bytesRead } = await file.readBuffer(offset, size - offset)
 
     const count = header.NC * header.NR * header.NS
-    const elementByteSize = getElementByteSize(header.MODE)
+    const elementByteSize = getElementByteSize(valueType)
     const byteCount = count * elementByteSize
 
     if (byteCount !== bytesRead) {
         console.warn(`byteCount ${byteCount} and bytesRead ${bytesRead} differ`)
     }
 
-    let values
-    if (header.MODE === 2) {
-        values = new Float32Array(buffer.buffer, offset, count)
-    } else if (header.MODE === 1) {
-        values = new Int16Array(buffer.buffer, offset, count)
-    } else if (header.MODE === 0) {
-        values = new Int8Array(buffer.buffer, offset, count)
-    } else {
-        throw new Error(`ccp4 mode '${header.MODE}' unsupported`);
-    }
+    let values = makeTypedArray(valueType, buffer.buffer, offset, count)
 
-    if (!littleEndian) {
+    if (!littleEndian && valueType !== TypedArrayValueType.Int8) {
         SimpleBuffer.flipByteOrder(buffer, new Uint8Array(values.buffer), byteCount, elementByteSize, 0)
     }
 

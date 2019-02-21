@@ -2,6 +2,7 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { defaults } from 'mol-util';
@@ -95,6 +96,8 @@ export namespace SimpleBuffer {
         return buffer
     }
 
+    export const IsNativeEndianLittle = new Uint16Array(new Uint8Array([0x12, 0x34]).buffer)[0] === 0x3412;
+
     /** source and target can't be the same */
     export function flipByteOrder(source: SimpleBuffer, target: Uint8Array, byteCount: number, elementByteSize: number, offset: number) {
         for (let i = 0, n = byteCount; i < n; i += elementByteSize) {
@@ -110,5 +113,11 @@ export namespace SimpleBuffer {
             const val = intView[i]
             intView[i] = ((val & 0xff) << 8) | ((val >> 8) & 0xff)
         }
+    }
+
+    export function ensureLittleEndian(source: SimpleBuffer, target: SimpleBuffer, byteCount: number, elementByteSize: number, offset: number) {
+        if (IsNativeEndianLittle) return;
+        if (!byteCount || elementByteSize <= 1) return;
+        flipByteOrder(source, target, byteCount, elementByteSize, offset);
     }
 }

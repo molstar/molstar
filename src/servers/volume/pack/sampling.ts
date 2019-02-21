@@ -13,19 +13,21 @@ import * as Downsampling from './downsampling'
 import * as Writer from './writer'
 import * as DataFormat from '../common/data-format'
 import { FileHandle } from 'mol-io/common/file-handle';
+import { getElementByteSize, createTypedArray, TypedArrayValueType } from 'mol-io/common/typed-array';
+import { SimpleBuffer } from 'mol-io/common/simple-buffer';
 
 export async function createContext(filename: string, channels: Format.Context[], blockSize: number, isPeriodic: boolean): Promise<Data.Context> {
-    const header = channels[0].data.header;
-    const samplingCounts = getSamplingCounts(channels[0].data.header.extent, blockSize);
-    const valueType = Format.getValueType(header);
-    const cubeBuffer = new Buffer(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * DataFormat.getValueByteSize(valueType)));
+    const { extent, valueType, grid, origin } = channels[0].data.header;
 
-    const litteEndianCubeBuffer = File.IsNativeEndianLittle
+    const samplingCounts = getSamplingCounts(extent, blockSize);
+    const cubeBuffer = new Buffer(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * getElementByteSize(valueType)));
+
+    const litteEndianCubeBuffer = SimpleBuffer.IsNativeEndianLittle
         ? cubeBuffer
-        : new Buffer(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * DataFormat.getValueByteSize(valueType)));
+        : new Buffer(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * getElementByteSize(valueType)));
 
     // The data can be periodic iff the extent is the same as the grid and origin is 0.
-    if (header.grid.some((v, i) => v !== header.extent[i]) || header.origin.some(v => v !== 0)) {
+    if (grid.some((v, i) => v !== extent[i]) || origin.some(v => v !== 0)) {
         isPeriodic = false;
     }
 
@@ -93,9 +95,9 @@ function getSamplingCounts(baseSampleCount: number[], blockSize: number) {
     }
 }
 
-function createBlockBuffer(sampleCount: number[], blockSize: number, valueType: DataFormat.ValueType, numChannels: number): Data.BlockBuffer {
+function createBlockBuffer(sampleCount: number[], blockSize: number, valueType: TypedArrayValueType, numChannels: number): Data.BlockBuffer {
     const values = [];
-    for (let i = 0; i < numChannels; i++) values[i] = DataFormat.createValueArray(valueType, sampleCount[0] * sampleCount[1] * blockSize);
+    for (let i = 0; i < numChannels; i++) values[i] = createTypedArray(valueType, sampleCount[0] * sampleCount[1] * blockSize);
     return {
         values,
         buffers: values.map(xs => new Buffer(xs.buffer)),
@@ -103,12 +105,12 @@ function createBlockBuffer(sampleCount: number[], blockSize: number, valueType: 
     };
 }
 
-function createDownsamplingBuffer(valueType: DataFormat.ValueType, sourceSampleCount: number[], targetSampleCount: number[], numChannels: number): Data.DownsamplingBuffer[] {
+function createDownsamplingBuffer(valueType: TypedArrayValueType, sourceSampleCount: number[], targetSampleCount: number[], numChannels: number): Data.DownsamplingBuffer[] {
     const ret = [];
     for (let i = 0; i < numChannels; i++) {
         ret[ret.length] = {
-            downsampleH: DataFormat.createValueArray(valueType, sourceSampleCount[1] * targetSampleCount[0]),
-            downsampleHK: DataFormat.createValueArray(valueType, 5 * targetSampleCount[0] * targetSampleCount[1]),
+            downsampleH: createTypedArray(valueType, sourceSampleCount[1] * targetSampleCount[0]),
+            downsampleHK: createTypedArray(valueType, 5 * targetSampleCount[0] * targetSampleCount[1]),
             slicesWritten: 0,
             startSliceIndex: 0
         }
@@ -116,7 +118,7 @@ function createDownsamplingBuffer(valueType: DataFormat.ValueType, sourceSampleC
     return ret;
 }
 
-function createSampling(index: number, valueType: DataFormat.ValueType, numChannels: number, sampleCounts: number[][], blockSize: number): Data.Sampling {
+function createSampling(index: number, valueType: TypedArrayValueType, numChannels: number, sampleCounts: number[][], blockSize: number): Data.Sampling {
     const sampleCount = sampleCounts[index];
     const valuesInfo: Data.ValuesInfo[] = [];
     for (let i = 0; i < numChannels; i++) {
@@ -135,7 +137,7 @@ function createSampling(index: number, valueType: DataFormat.ValueType, numChann
         downsampling: index < sampleCounts.length - 1 ? createDownsamplingBuffer(valueType, sampleCount, sampleCounts[index + 1], numChannels) : void 0,
 
         byteOffset: 0,
-        byteSize: numChannels * sampleCount[0] * sampleCount[1] * sampleCount[2] * DataFormat.getValueByteSize(valueType),
+        byteSize: numChannels * sampleCount[0] * sampleCount[1] * sampleCount[2] * getElementByteSize(valueType),
         writeByteOffset: 0
     }
 }

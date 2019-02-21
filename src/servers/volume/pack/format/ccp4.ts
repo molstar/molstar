@@ -9,6 +9,16 @@ import { FileHandle } from 'mol-io/common/file-handle';
 import { readCcp4Header } from 'mol-io/reader/ccp4/parser';
 import { Header, Provider } from '../format';
 import { readSlices } from './common';
+import { TypedArrayValueType } from 'mol-io/common/typed-array';
+
+function getTypedArrayValueType(mode: number) {
+    switch (mode) {
+        case 2: return TypedArrayValueType.Float32
+        case 1: return TypedArrayValueType.Int16
+        case 0: return TypedArrayValueType.Int8
+    }
+    throw new Error(`ccp4 mode '${mode}' unsupported`);
+}
 
 async function readHeader(name: string, file: FileHandle) {
     const { header: ccp4Header, littleEndian } = await readCcp4Header(file)
@@ -17,7 +27,7 @@ async function readHeader(name: string, file: FileHandle) {
     const nxyzStart = [ccp4Header.NCSTART, ccp4Header.NRSTART, ccp4Header.NSSTART];
     const header: Header = {
         name,
-        mode: ccp4Header.MODE,
+        valueType: getTypedArrayValueType(ccp4Header.MODE),
         grid: [ccp4Header.NX, ccp4Header.NY, ccp4Header.NZ],
         axisOrder: [ccp4Header.MAPC, ccp4Header.MAPR, ccp4Header.MAPS].map(i => i - 1),
         extent: [ccp4Header.NC, ccp4Header.NR, ccp4Header.NS],

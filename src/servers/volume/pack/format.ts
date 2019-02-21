@@ -6,15 +6,13 @@
  */
 
 import * as File from '../common/file'
-import * as DataFormat from '../common/data-format'
 import { FileHandle } from 'mol-io/common/file-handle';
 import { Ccp4Provider } from './format/ccp4';
-
-export const enum Mode { Int8 = 0, Int16 = 1, Float32 = 2 }
+import { TypedArrayBufferContext, TypedArrayValueArray, TypedArrayValueType, getElementByteSize, createTypedArrayBufferContext } from 'mol-io/common/typed-array';
 
 export interface Header {
     name: string,
-    mode: Mode,
+    valueType: TypedArrayValueType,
     grid: number[], // grid is converted to the axis order!!
     axisOrder: number[],
     extent: number[],
@@ -28,11 +26,11 @@ export interface Header {
 
 /** Represents a circular buffer for 2 * blockSize layers */
 export interface SliceBuffer {
-    buffer: File.TypedArrayBufferContext,
+    buffer: TypedArrayBufferContext,
     sliceCapacity: number,
     slicesRead: number,
 
-    values: DataFormat.ValueArray,
+    values: TypedArrayValueArray,
     sliceCount: number,
 
     /** Have all the input slice been read? */
@@ -55,18 +53,11 @@ export interface Context {
     provider: Provider
 }
 
-export function getValueType(header: Header) {
-    if (header.mode === Mode.Float32) return DataFormat.ValueType.Float32;
-    if (header.mode === Mode.Int16) return DataFormat.ValueType.Int16;
-    return DataFormat.ValueType.Int8;
-}
-
 export function assignSliceBuffer(data: Data, blockSize: number) {
-    const { extent } = data.header;
-    const valueType = getValueType(data.header);
-    const sliceSize = extent[0] * extent[1] * DataFormat.getValueByteSize(valueType);
-    const sliceCapacity = Math.max(1, Math.floor(Math.min(64 * 1024 * 1024, sliceSize * extent[2]) / sliceSize));
-    const buffer = File.createTypedArrayBufferContext(sliceCapacity * extent[0] * extent[1], valueType);
+    const { extent, valueType } = data.header;
+    const sliceSize = extent[0] * extent[1] * getElementByteSize(valueType);
+    const sliceCapacity = Math.max(1, Math.floor(Math.min(1 * 1024 * 1024, sliceSize * extent[2]) / sliceSize));
+    const buffer = createTypedArrayBufferContext(sliceCapacity * extent[0] * extent[1], valueType);
     data.slices = {
         buffer,
         sliceCapacity,
