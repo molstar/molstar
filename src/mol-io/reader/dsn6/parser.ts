@@ -10,6 +10,8 @@ import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
 import { SimpleBuffer } from 'mol-io/common/simple-buffer';
 
+export const dsn6HeaderSize = 512;
+
 function parseBrixHeader(str: string): Dsn6Header {
     return {
         xStart: parseInt(str.substr(10, 5)),
@@ -33,61 +35,69 @@ function parseBrixHeader(str: string): Dsn6Header {
     }
 }
 
-function parseDsn6Header(int: Int16Array): Dsn6Header {
-    const factor = 1 / int[ 17 ]
+function parseDsn6Header(buffer: SimpleBuffer, littleEndian: boolean): Dsn6Header {
+    const readInt = littleEndian ? (o: number) => buffer.readInt16LE(o * 2) : (o: number) => buffer.readInt16BE(o * 2)
+    const factor = 1 / readInt(17)
     return {
-        xStart: int[ 0 ],
-        yStart: int[ 1 ],
-        zStart: int[ 2 ],
-        xExtent: int[ 3 ],
-        yExtent: int[ 4 ],
-        zExtent: int[ 5 ],
-        xRate: int[ 6 ],
-        yRate: int[ 7 ],
-        zRate: int[ 8 ],
-        xlen: int[ 9 ] * factor,
-        ylen: int[ 10 ] * factor,
-        zlen: int[ 11 ] * factor,
-        alpha: int[ 12 ] * factor,
-        beta: int[ 13 ] * factor,
-        gamma: int[ 14 ] * factor,
-        divisor: int[ 15 ] / 100,
-        summand: int[ 16 ],
+        xStart: readInt(0),
+        yStart: readInt(1),
+        zStart: readInt(2),
+        xExtent: readInt(3),
+        yExtent: readInt(4),
+        zExtent: readInt(5),
+        xRate: readInt(6),
+        yRate: readInt(7),
+        zRate: readInt(8),
+        xlen: readInt(9) * factor,
+        ylen: readInt(10) * factor,
+        zlen: readInt(11) * factor,
+        alpha: readInt(12) * factor,
+        beta: readInt(13) * factor,
+        gamma: readInt(14) * factor,
+        divisor: readInt(15) / 100,
+        summand: readInt(16),
         sigma: undefined
     }
+}
+
+export async function readDsn6Header(file: FileHandle): Promise<{ header: Dsn6Header, littleEndian: boolean }> {
+    const { buffer } = await file.readBuffer(0, dsn6HeaderSize)
+    const brixStr = String.fromCharCode.apply(null, buffer) as string
+    const isBrix = brixStr.startsWith(':-)')
+    const littleEndian = isBrix || buffer.readInt16LE(18 * 2) === 100
+    const header = isBrix ? parseBrixHeader(brixStr) : parseDsn6Header(buffer, littleEndian)
+    return { header, littleEndian }
 }
 
 async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext): Promise<Dsn6File> {
     await ctx.update({ message: 'Parsing DSN6/BRIX file...' });
 
-    const { buffer } = await file.readBuffer(0, size)
-    const bin = buffer.buffer
-
-    const intView = new Int16Array(bin)
-    const byteView = new Uint8Array(bin)
-    const brixStr = String.fromCharCode.apply(null, byteView.subarray(0, 512))
-    const isBrix = brixStr.startsWith(':-)')
-
-    if (!isBrix) {
-        // for DSN6, swap byte order when big endian
-        if (intView[18] !== 100) {
-            for (let i = 0, n = intView.length; i < n; ++i) {
-                const val = intView[i]
-                intView[i] = ((val & 0xff) << 8) | ((val >> 8) & 0xff)
-            }
-        }
-    }
-
-    const header = isBrix ? parseBrixHeader(brixStr) : parseDsn6Header(intView)
+    const { header, littleEndian } = await readDsn6Header(file)
     const { divisor, summand } = header
 
-    const values = new Float32Array(header.xExtent * header.yExtent * header.zExtent)
+    const { buffer, bytesRead } = await file.readBuffer(dsn6HeaderSize, size - dsn6HeaderSize)
 
-    let offset = 512
     const xBlocks = Math.ceil(header.xExtent / 8)
     const yBlocks = Math.ceil(header.yExtent / 8)
     const zBlocks = Math.ceil(header.zExtent / 8)
+    const valueCount = header.xExtent * header.yExtent * header.zExtent
 
+    const count = xBlocks * 8 * yBlocks * 8 * zBlocks * 8
+    const elementByteSize = 1
+    const byteCount = count * elementByteSize
+
+    if (byteCount !== bytesRead) {
+        console.warn(`byteCount ${byteCount} and bytesRead ${bytesRead} differ`)
+    }
+
+    const values = new Float32Array(valueCount)
+
+    if (!littleEndian) {
+        // even though the values are one byte they need to be swapped like they are 2
+        SimpleBuffer.flipByteOrderInPlace2(buffer.buffer)
+    }
+
+    let offset = 0
     // loop over blocks
     for (let zz = 0; zz < zBlocks; ++zz) {
         for (let yy = 0; yy < yBlocks; ++yy) {
@@ -102,7 +112,7 @@ async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext
                             // check if remaining slice-part contains values
                             if (x < header.xExtent && y < header.yExtent && z < header.zExtent) {
                                 const idx = ((((x * header.yExtent) + y) * header.zExtent) + z)
-                                values[ idx ] = (byteView[ offset ] - summand) / divisor
+                                values[idx] = (buffer[offset] - summand) / divisor
                                 ++offset
                             } else {
                                 offset += 8 - i

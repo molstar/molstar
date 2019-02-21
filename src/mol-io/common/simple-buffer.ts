@@ -103,4 +103,12 @@ export namespace SimpleBuffer {
             }
         }
     }
+
+    export function flipByteOrderInPlace2(buffer: ArrayBuffer, byteOffset = 0, length?: number) {
+        const intView = new Int16Array(buffer, byteOffset, length)
+        for (let i = 0, n = intView.length; i < n; ++i) {
+            const val = intView[i]
+            intView[i] = ((val & 0xff) << 8) | ((val >> 8) & 0xff)
+        }
+    }
 }
