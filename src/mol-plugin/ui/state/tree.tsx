@@ -1,19 +1,44 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018 - 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import * as React from 'react';
 import { PluginStateObject } from 'mol-plugin/state/objects';
-import { State, StateObject } from 'mol-state'
+import { State, StateObject, StateObjectCell, StateTransform } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
 import { PluginUIComponent } from '../base';
+import { UpdateTransformContol } from './update-transform';
+import { StateObjectActions } from './actions';
 
-export class StateTree extends PluginUIComponent<{ state: State }> {
+export class StateTree extends PluginUIComponent<{ state: State }, { showActions: boolean }> {
+    state = { showActions: true };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.state.cell.created, e => {
+            if (e.cell.transform.parent === StateTransform.RootRef) this.forceUpdate();
+        });
+
+        this.subscribe(this.plugin.events.state.cell.removed, e => {
+            if (e.parent === StateTransform.RootRef) this.forceUpdate();
+        });
+    }
+
+    static getDerivedStateFromProps(props: { state: State }, state: { showActions: boolean }) {
+        const n = props.state.tree.root.ref;
+        const children = props.state.tree.children.get(n);
+        const showActions = children.size === 0;
+        if (state.showActions === showActions) return null;
+        return { showActions };
+    }
+
     render() {
-        const n = this.props.state.tree.root.ref;
-        return <StateTreeNode state={this.props.state} nodeRef={n} depth={0} />;
+        const ref = this.props.state.tree.root.ref;
+        if (this.state.showActions) {
+            return <StateObjectActions state={this.props.state} nodeRef={ref} />
+        }
+        return <StateTreeNode state={this.props.state} nodeRef={ref} depth={0} />;
     }
 }
 
@@ -195,7 +220,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
             <span className='msp-icon msp-icon-visual-visibility' />
         </button>;
 
-        return <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}
+        const row = <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}
             style={{ marginLeft: this.state.isCurrent ? '0px' : `${this.props.depth * 10}px`, borderRadius: this.state.isCurrent ? '0' : void 0 }}>
             {isCurrent ? <b>{label}</b> : label}
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
@@ -205,5 +230,27 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
                 <span className='msp-icon msp-icon-remove' />
             </button>}{visibility}
         </div>;
+
+        if (this.state.isCurrent) {
+            return <>
+                {row}
+                <StateTreeNodeTransform {...this.props}/>
+            </>
+        }
+
+        return row;
+    }
+}
+
+class StateTreeNodeTransform extends PluginUIComponent<{ nodeRef: string, state: State, depth: number }, { isExpanded: boolean }> {
+    render() {
+        const ref = this.props.nodeRef;
+        const cell = this.props.state.cells.get(ref)!;
+        const parent: StateObjectCell | undefined = (cell.sourceRef && this.props.state.cells.get(cell.sourceRef)!) || void 0;
+
+        if (!parent || parent.status !== 'ok') return null;
+
+        const transform = cell.transform;
+        return <UpdateTransformContol state={this.props.state} transform={transform} />;
     }
 }

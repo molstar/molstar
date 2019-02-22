@@ -4,23 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { List } from 'immutable';
+import { PluginState } from 'mol-plugin/state';
+import { formatTime } from 'mol-util';
+import { LogEntry } from 'mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../context';
-import { StateTree } from './state/tree';
-import { Viewport, ViewportControls } from './viewport';
-import { Controls, TrajectoryControls, LociLabelControl } from './controls';
-import { PluginUIComponent, PluginReactContext } from './base';
+import { PluginReactContext, PluginUIComponent } from './base';
 import { CameraSnapshots } from './camera';
+import { Controls, LociLabelControl, TrajectoryControls } from './controls';
 import { StateSnapshots } from './state';
-import { List } from 'immutable';
-import { LogEntry } from 'mol-util/log-entry';
-import { formatTime } from 'mol-util';
-import { BackgroundTaskProgress } from './task';
-import { ApplyActionContol } from './state/apply-action';
-import { PluginState } from 'mol-plugin/state';
-import { UpdateTransformContol } from './state/update-transform';
-import { StateObjectCell } from 'mol-state';
+import { StateObjectActions } from './state/actions';
 import { AnimationControls } from './state/animation';
+import { StateTree } from './state/tree';
+import { BackgroundTaskProgress } from './task';
+import { Viewport, ViewportControls } from './viewport';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
@@ -105,8 +103,8 @@ export class State extends PluginUIComponent {
         const kind = this.plugin.state.behavior.kind.value;
         return <div className='msp-scrollable-container'>
             <div className='msp-btn-row-group msp-data-beh'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal'}}>Data</button>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal'}}>Behavior</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal' }}>Data</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal' }}>Behavior</button>
             </div>
             <StateTree state={kind === 'data' ? this.plugin.state.dataState : this.plugin.state.behaviorState} />
         </div>
@@ -172,21 +170,13 @@ export class CurrentObject extends PluginUIComponent {
         const current = this.current;
         const ref = current.ref;
         const cell = current.state.cells.get(ref)!;
-        const parent: StateObjectCell | undefined = (cell.sourceRef && current.state.cells.get(cell.sourceRef)!) || void 0;
-
         const transform = cell.transform;
         const def = transform.transformer.definition;
+        const display = cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name;
 
-        const actions =  current.state.actions.fromCell(cell, this.plugin);
-        return <>
-            <div className='msp-current-header'>
-                {cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name}
-            </div>
-            {(parent && parent.status === 'ok') && <UpdateTransformContol state={current.state} transform={transform} />}
-            {cell.status === 'ok' && <>
-                <div className='msp-section-header'>Actions</div>
-                {actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={current.state} action={act} nodeRef={ref} />)}
-                </>}
+        return cell.status === 'ok' && <>
+            <div className='msp-section-header'>{`Actions (${display})`}</div>
+            <StateObjectActions state={current.state} nodeRef={ref} />
         </>;
     }
 }

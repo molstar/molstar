@@ -166,7 +166,7 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
 
     render() {
         const info = this.getInfo();
-        if (info.isEmpty && this.isUpdate()) return null;
+        const isEmpty = info.isEmpty && this.isUpdate();
 
         const display = this.getHeader();
 
@@ -178,9 +178,9 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
         return <div className='msp-transform-wrapper'>
             <div className='msp-transform-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>{display.name}</button>
-                {!this.state.isCollapsed && <button className='msp-btn msp-btn-link msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>}
+                {!isEmpty && !this.state.isCollapsed && <button className='msp-btn msp-btn-link msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>}
             </div>
-            {!this.state.isCollapsed && <>
+            {!isEmpty && !this.state.isCollapsed && <>
                 <ParamEditor info={info} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
 
                 <div className='msp-transform-apply-wrap'>
