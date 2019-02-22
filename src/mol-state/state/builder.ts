@@ -69,6 +69,27 @@ namespace StateBuilder {
             return new To(this.state, t.ref, this.root);
         }
 
+        /**
+         * Inserts a new transform that does not change the object type and move the original children to it.
+         */
+        insert<T extends StateTransformer<A, A, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>, initialCellState?: Partial<StateObjectCell.State>): To<StateTransformer.To<T>> {
+            // cache the children
+            const children = this.state.tree.children.get(this.ref).toArray();
+
+            // add the new node
+            const t = tr.apply(this.ref, params, options);
+            this.state.tree.add(t, initialCellState);
+
+            // move the original children to the new node
+            for (const c of children) {
+                this.state.tree.changeParent(c, t.ref);
+            }
+
+            this.editInfo.count++;
+            this.editInfo.lastUpdate = t.ref;
+            return new To(this.state, t.ref, this.root);
+        }
+
         update<T extends StateTransformer<any, A, any>>(transformer: T, params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>): Root
         update(params: any): Root
         update<T extends StateTransformer<any, A, any>>(paramsOrTransformer: T, provider?: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>) {

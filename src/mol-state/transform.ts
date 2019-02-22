@@ -48,8 +48,12 @@ namespace Transform {
         }
     }
 
-    export function withParams<T>(t: Transform, params: any): Transform {
+    export function withParams(t: Transform, params: any): Transform {
         return { ...t, params, version: UUID.create22() };
+    }
+
+    export function withParent(t: Transform, parent: Ref): Transform {
+        return { ...t, parent, version: UUID.create22() };
     }
 
     export function createRoot(props?: Props): Transform {
