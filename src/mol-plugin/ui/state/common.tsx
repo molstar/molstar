@@ -87,7 +87,7 @@ namespace StateTransformParameters {
 }
 
 namespace TransformContolBase {
-    export interface ControlState {
+    export interface ComponentState {
         params: any,
         error?: string,
         busy: boolean,
@@ -96,7 +96,7 @@ namespace TransformContolBase {
     }
 }
 
-abstract class TransformContolBase<P, S extends TransformContolBase.ControlState> extends PurePluginUIComponent<P, S> {
+abstract class TransformContolBase<P, S extends TransformContolBase.ComponentState> extends PurePluginUIComponent<P, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): StateTransformer.Definition['display'];
@@ -175,17 +175,26 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
             ? this.plugin.customParamEditors.get(tId)!
             : StateTransformParameters;
 
-        return <div className='msp-transform-wrapper'>
+        const wrapClass = this.isUpdate()
+            ? !isEmpty && !this.state.isCollapsed
+            ? 'msp-transform-update-wrapper'
+            : 'msp-transform-update-wrapper-collapsed'
+            : 'msp-transform-wrapper';
+
+        return <div className={wrapClass}>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded} title={display.description}>{display.name}</button>
-                {!isEmpty && !this.state.isCollapsed && <button className='msp-btn msp-btn-link msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>}
+                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded} title={display.description}>
+                    {display.name}
+                    {!isEmpty && this.state.isCollapsed && this.isUpdate() && <small>Click to Edit</small>}
+                </button>
             </div>
             {!isEmpty && !this.state.isCollapsed && <>
                 <ParamEditor info={info} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
 
                 <div className='msp-transform-apply-wrap'>
+                    <button className='msp-btn msp-btn-block msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'>↻</button>
                     <button className='msp-btn msp-btn-block msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
-                        ↶ Reset
+                        ↶ Back
                     </button>
                     <div className='msp-transform-apply'>
                         <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-${this.canApply() ? 'on' : 'off'}`} onClick={this.apply} disabled={!this.canApply()}>

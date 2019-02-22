@@ -251,6 +251,6 @@ class StateTreeNodeTransform extends PluginUIComponent<{ nodeRef: string, state:
         if (!parent || parent.status !== 'ok') return null;
 
         const transform = cell.transform;
-        return <UpdateTransformContol state={this.props.state} transform={transform} />;
+        return <UpdateTransformContol state={this.props.state} transform={transform} initiallyCollapsed={true} />;
     }
 }
