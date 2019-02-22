@@ -17,6 +17,7 @@ import { PluginBehavior } from '../behavior';
 
 export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
+    category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
         register(): void {
             let prevLoci: Loci = EmptyLoci, prevRepr: any = void 0;
@@ -37,6 +38,7 @@ export const HighlightLoci = PluginBehavior.create({
 
 export const SelectLoci = PluginBehavior.create({
     name: 'representation-select-loci',
+    category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
         register(): void {
             let prevLoci: Loci = EmptyLoci, prevRepr: any = void 0;
@@ -59,6 +61,7 @@ export const SelectLoci = PluginBehavior.create({
 
 export const DefaultLociLabelProvider = PluginBehavior.create({
     name: 'default-loci-label-provider',
+    category: 'interaction',
     ctor: class implements PluginBehavior<undefined> {
         private f = labelFirst;
         register(): void { this.ctx.lociLabels.addProvider(this.f); }

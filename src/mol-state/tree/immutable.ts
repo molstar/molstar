@@ -59,8 +59,8 @@ namespace StateTree {
     /**
      * Create an instance of an immutable tree.
      */
-    export function createEmpty(): StateTree {
-        const root = StateTransform.createRoot();
+    export function createEmpty(customRoot?: StateTransform): StateTree {
+        const root = customRoot || StateTransform.createRoot();
         return create(ImmutableMap([[root.ref, root]]), ImmutableMap([[root.ref, OrderedSet()]]), ImmutableMap([[root.ref, StateObjectCell.DefaultState]]));
     }
 

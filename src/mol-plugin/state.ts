@@ -77,7 +77,7 @@ class PluginState {
 
     constructor(private plugin: import('./context').PluginContext) {
         this.dataState = State.create(new SO.Root({ }), { globalContext: plugin });
-        this.behaviorState = State.create(new PluginBehavior.Root({ }), { globalContext: plugin });
+        this.behaviorState = State.create(new PluginBehavior.Root({ }), { globalContext: plugin, rootProps: { isLocked: true } });
 
         this.dataState.behaviors.currentObject.subscribe(o => {
             if (this.behavior.kind.value === 'data') this.behavior.currentObject.next(o);

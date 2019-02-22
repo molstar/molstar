@@ -31,6 +31,7 @@ import { PluginLayout } from './layout';
 import { List } from 'immutable';
 import { StateTransformParameters } from './ui/state/common';
 import { DataFormatRegistry } from './state/actions/basic';
+import { PluginBehavior } from './behavior/behavior';
 
 export class PluginContext {
     private disposed = false;
@@ -166,8 +167,12 @@ export class PluginContext {
     private async initBehaviors() {
         const tree = this.state.behaviorState.build();
 
+        for (const cat of Object.keys(PluginBehavior.Categories)) {
+            tree.toRoot().apply(PluginBehavior.CreateCategory, { label: (PluginBehavior.Categories as any)[cat] }, { ref: cat, props: { isLocked: true } });
+        }
+
         for (const b of this.spec.behaviors) {
-            tree.toRoot().apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
+            tree.to(PluginBehavior.getCategoryId(b.transformer)).apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
         }
 
         await this.runTask(this.state.behaviorState.updateTree(tree, true));

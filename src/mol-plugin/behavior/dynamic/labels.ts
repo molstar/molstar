@@ -73,6 +73,7 @@ function getLabelsText(data: LabelsData, props: PD.Values<Text.Params>, text?: T
 
 export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
     name: 'scene-labels',
+    category: 'representation',
     display: { name: 'Scene Labels', group: 'Labels' },
     canAutoUpdate: () => true,
     ctor: class extends PluginBehavior.Handler<SceneLabelsProps> {

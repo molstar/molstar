@@ -22,7 +22,7 @@ import { ParamDefinition } from 'mol-util/param-definition';
 export { State }
 
 class State {
-    private _tree: TransientTree = StateTree.createEmpty().asTransient();
+    private _tree: TransientTree;
 
     protected errorFree = true;
     private transformCache = new Map<StateTransform.Ref, unknown>();
@@ -174,7 +174,8 @@ class State {
         return ctx;
     }
 
-    constructor(rootObject: StateObject, params?: { globalContext?: unknown }) {
+    constructor(rootObject: StateObject, params?: { globalContext?: unknown, rootProps?: StateTransform.Props }) {
+        this._tree = StateTree.createEmpty(StateTransform.createRoot(params && params.rootProps)).asTransient();
         const tree = this._tree;
         const root = tree.root;
 
@@ -209,7 +210,7 @@ namespace State {
         readonly tree: StateTree.Serialized
     }
 
-    export function create(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps?: unknown }) {
+    export function create(rootObject: StateObject, params?: { globalContext?: unknown, rootProps?: StateTransform.Props }) {
         return new State(rootObject, params);
     }
 }

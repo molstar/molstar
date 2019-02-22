@@ -16,6 +16,7 @@ import { Table } from 'mol-data/db';
 
 export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'rcsb-assembly-symmetry-prop',
+    category: 'custom-props',
     display: { name: 'RCSB Assembly Symmetry', group: 'Custom Props' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private attach = AssemblySymmetry.createAttachTask(this.ctx.fetch);

@@ -29,6 +29,7 @@ type StructureAnimationProps = PD.Values<typeof StructureAnimationParams>
  */
 export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>({
     name: 'structure-animation',
+    category: 'representation',
     display: { name: 'Structure Animation', group: 'Animation' },
     canAutoUpdate: () => true,
     ctor: class extends PluginBehavior.Handler<StructureAnimationProps> {

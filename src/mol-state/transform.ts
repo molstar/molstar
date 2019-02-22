@@ -52,8 +52,8 @@ namespace Transform {
         return { ...t, params, version: UUID.create22() };
     }
 
-    export function createRoot(): Transform {
-        return create(RootRef, StateTransformer.ROOT, {}, { ref: RootRef });
+    export function createRoot(props?: Props): Transform {
+        return create(RootRef, StateTransformer.ROOT, {}, { ref: RootRef, props });
     }
 
     export interface Serialized {

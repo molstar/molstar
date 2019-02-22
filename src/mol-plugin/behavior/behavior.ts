@@ -25,12 +25,22 @@ interface PluginBehavior<P = unknown> {
 
 namespace PluginBehavior {
     export class Root extends PluginStateObject.Create({ name: 'Root', typeClass: 'Root' }) { }
+    export class Category extends PluginStateObject.Create({ name: 'Category', typeClass: 'Object' }) { }
     export class Behavior extends PluginStateObject.CreateBehavior<PluginBehavior>({ name: 'Behavior' }) { }
 
     export interface Ctor<P = undefined> { new(ctx: PluginContext, params: P): PluginBehavior<P> }
 
+    export const Categories = {
+        'common': 'Common',
+        'representation': 'Representation',
+        'interaction': 'Interaction',
+        'custom-props': 'Custom Properties',
+        'misc': 'Miscellaneous'
+    };
+
     export interface CreateParams<P> {
         name: string,
+        category: keyof typeof Categories,
         ctor: Ctor<P>,
         canAutoUpdate?: StateTransformer.Definition<Root, Behavior, P>['canAutoUpdate'],
         label?: (params: P) => { label: string, description?: string },
@@ -42,9 +52,28 @@ namespace PluginBehavior {
         params?(a: Root, globalCtx: PluginContext): { [K in keyof P]: ParamDefinition.Any }
     }
 
+    export type CreateCategory = typeof CreateCategory
+    export const CreateCategory = PluginStateTransform.BuiltIn({
+        name: 'create-behavior-category',
+        display: { name: 'Create Cateogry' },
+        from: Root,
+        to: Category,
+        params: {
+            label: ParamDefinition.Text('', { isHidden: true }),
+        }
+    })({
+        apply({ params }) {
+            return new Category({}, { label: params.label });
+        }
+    });
+
+    const categoryMap = new Map<string, string>();
+    export function getCategoryId(t: StateTransformer) {
+        return categoryMap.get(t.id)!;
+    }
+
     export function create<P>(params: CreateParams<P>) {
-        // TODO: cache groups etc
-        return PluginStateTransform.CreateBuiltIn<Root, Behavior, P>({
+        const t = PluginStateTransform.CreateBuiltIn<Category, Behavior, P>({
             name: params.name,
             display: params.display,
             from: [Root],
@@ -63,6 +92,8 @@ namespace PluginBehavior {
             },
             canAutoUpdate: params.canAutoUpdate
         });
+        categoryMap.set(t.id, params.category);
+        return t;
     }
 
     export function simpleCommandHandler<T>(cmd: PluginCommand<T>, action: (data: T, ctx: PluginContext) => void | Promise<void>) {
