@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { PluginCommands } from 'mol-plugin/command';
-import { UpdateTrajectory } from 'mol-plugin/state/actions/basic';
+import { UpdateTrajectory } from 'mol-plugin/state/actions/structure';
 import { PluginUIComponent } from './base';
 import { LociLabelEntry } from 'mol-plugin/util/loci-label-manager';
 

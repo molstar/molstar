@@ -14,6 +14,15 @@
     // border-bottom: 1px solid $entity-color-Group; // TODO separate color
 }
 
+.msp-current-header {
+    height: $row-height;
+    line-height: $row-height;
+    margin-bottom: $control-spacing;
+    text-align: center;
+    font-weight: bold;
+    background: $default-background;
+}
+
 .msp-btn-row-group {
     display:flex;
     flex-direction:row;

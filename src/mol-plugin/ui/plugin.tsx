@@ -174,19 +174,19 @@ export class CurrentObject extends PluginUIComponent {
         const cell = current.state.cells.get(ref)!;
         const parent: StateObjectCell | undefined = (cell.sourceRef && current.state.cells.get(cell.sourceRef)!) || void 0;
 
-        const type = cell && cell.obj ? cell.obj.type : void 0;
         const transform = cell.transform;
         const def = transform.transformer.definition;
 
-        const actions = type ? current.state.actions.fromType(type) : [];
+        const actions =  current.state.actions.fromCell(cell, this.plugin);
         return <>
-            <div className='msp-section-header'>
+            <div className='msp-current-header'>
                 {cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name}
             </div>
-            { (parent && parent.status === 'ok') && <UpdateTransformContol state={current.state} transform={transform} /> }
-            {cell.status === 'ok' &&
-                actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={current.state} action={act} nodeRef={ref} />)
-            }
+            {(parent && parent.status === 'ok') && <UpdateTransformContol state={current.state} transform={transform} />}
+            {cell.status === 'ok' && <>
+                <div className='msp-section-header'>Actions</div>
+                {actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={current.state} action={act} nodeRef={ref} />)}
+                </>}
         </>;
     }
 }

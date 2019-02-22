@@ -11,10 +11,10 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginCommands } from './command';
 import { PluginSpec } from './spec';
-import { DownloadStructure, CreateComplexRepresentation, OpenStructure, OpenVolume, DownloadDensity } from './state/actions/basic';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
 import { AnimateModelIndex } from './state/animation/built-in';
+import { StateActions } from './state/actions';
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -23,11 +23,12 @@ function getParam(name: string, regex: string): string {
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
-        PluginSpec.Action(DownloadStructure),
-        PluginSpec.Action(DownloadDensity),
-        PluginSpec.Action(OpenStructure),
-        PluginSpec.Action(OpenVolume),
-        PluginSpec.Action(CreateComplexRepresentation),
+        PluginSpec.Action(StateActions.Structure.DownloadStructure),
+        PluginSpec.Action(StateActions.Volume.DownloadDensity),
+        PluginSpec.Action(StateActions.Structure.OpenStructure),
+        PluginSpec.Action(StateActions.Volume.OpenVolume),
+        PluginSpec.Action(StateActions.Structure.CreateComplexRepresentation),
+        PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
         PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),
         PluginSpec.Action(StateTransforms.Data.ParseCcp4),

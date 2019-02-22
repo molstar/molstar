@@ -30,7 +30,7 @@ import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { PluginLayout } from './layout';
 import { List } from 'immutable';
 import { StateTransformParameters } from './ui/state/common';
-import { DataFormatRegistry } from './state/actions/basic';
+import { DataFormatRegistry } from './state/actions/volume';
 import { PluginBehavior } from './behavior/behavior';
 
 export class PluginContext {

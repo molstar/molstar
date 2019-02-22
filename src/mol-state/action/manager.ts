@@ -5,7 +5,7 @@
  */
 
 import { StateAction } from '../action';
-import { StateObject } from '../object';
+import { StateObject, StateObjectCell } from '../object';
 import { StateTransformer } from '../transformer';
 
 export { StateActionManager }
@@ -32,7 +32,31 @@ class StateActionManager {
         return this;
     }
 
-    fromType(type: StateObject.Type): ReadonlyArray<StateAction> {
-        return this.fromTypeIndex.get(type) || [];
+    fromCell(cell: StateObjectCell, ctx: unknown): ReadonlyArray<StateAction> {
+        const obj = cell.obj;
+        if (!obj) return [];
+
+        const actions = this.fromTypeIndex.get(obj.type);
+        if (!actions) return [];
+        let hasTest = false;
+        for (const a of actions) {
+            if (a.definition.isApplicable) {
+                hasTest = true;
+                break;
+            }
+        }
+        if (!hasTest) return actions;
+
+        const ret: StateAction[] = [];
+        for (const a of actions) {
+            if (a.definition.isApplicable) {
+                if (a.definition.isApplicable(obj, cell.transform, ctx)) {
+                    ret.push(a);
+                }
+            } else {
+                ret.push(a);
+            }
+        }
+        return ret;
     }
 }
