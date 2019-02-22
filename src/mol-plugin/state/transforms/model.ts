@@ -64,7 +64,7 @@ export { TrajectoryFromPDB }
 type TrajectoryFromPDB = typeof TrajectoryFromPDB
 const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-pdb',
-    display: { name: 'Parse PDB string and create trajectory' },
+    display: { name: 'Parse PDB', description: 'Parse PDB string and create trajectory.' },
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory
 })({
