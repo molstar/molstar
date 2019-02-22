@@ -177,7 +177,7 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
 
         return <div className='msp-transform-wrapper'>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>{display.name}</button>
+                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded} title={display.description}>{display.name}</button>
                 {!isEmpty && !this.state.isCollapsed && <button className='msp-btn msp-btn-link msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>}
             </div>
             {!isEmpty && !this.state.isCollapsed && <>

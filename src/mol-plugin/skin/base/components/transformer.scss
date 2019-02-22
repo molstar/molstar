@@ -44,11 +44,12 @@
 
 .msp-transform-header {
     position: relative;
-    border-top: 1px solid $entity-color-Behaviour; // TODO: separate color
+    // border-top: 1px solid $entity-color-Behaviour; // TODO: separate color
 
     > button {
         text-align: left;
-        background: color-lower-contrast($default-background, 4%);
+        padding-left: $row-height;
+        background: $control-background; // color-lower-contrast($default-background, 4%);
         font-weight: bold;
     }
 

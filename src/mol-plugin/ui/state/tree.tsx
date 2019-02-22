@@ -222,7 +222,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
 
         const row = <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}
             style={{ marginLeft: this.state.isCurrent ? '0px' : `${this.props.depth * 10}px`, borderRadius: this.state.isCurrent ? '0' : void 0 }}>
-            {isCurrent ? <b>{label}</b> : label}
+            {label}
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />
             </button>}

@@ -168,7 +168,6 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
                 return new SO.Molecule.Structure(base, label);
             }
 
-            asm = model.symmetry.assemblies[0];
             id = asm.id;
             const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
             const props = { label: `Assembly ${id}`, description: structureDesc(s) };
