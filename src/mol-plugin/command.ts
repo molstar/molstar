@@ -18,7 +18,7 @@ export const PluginCommands = {
         ApplyAction: PluginCommand<{ state: State, action: StateAction.Instance, ref?: StateTransform.Ref }>(),
         Update: PluginCommand<{ state: State, tree: State.Tree | State.Builder, doNotLogTiming?: boolean }>(),
 
-        RemoveObject: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
+        RemoveObject: PluginCommand<{ state: State, ref: StateTransform.Ref, removeParentGhosts?: boolean }>(),
 
         ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
         ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),

@@ -59,9 +59,27 @@ export function ApplyAction(ctx: PluginContext) {
 }
 
 export function RemoveObject(ctx: PluginContext) {
-    PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref }) => {
+    function remove(state: State, ref: string) {
         const tree = state.build().delete(ref).getTree();
         return ctx.runTask(state.updateTree(tree));
+    }
+
+    PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref, removeParentGhosts }) => {
+        if (removeParentGhosts) {
+            const tree = state.tree;
+            let curr = tree.transforms.get(ref);
+            if (curr.parent === ref) return remove(state, ref);
+
+            while (true) {
+                const children = tree.children.get(curr.parent);
+                if (curr.parent === curr.ref || children.size > 1) return remove(state, curr.ref);
+                const parent = tree.transforms.get(curr.parent);
+                if (!parent.props || !parent.props.isGhost) return remove(state, curr.ref);
+                curr = parent;
+            }
+        } else {
+            remove(state, ref);
+        }
     });
 }
 

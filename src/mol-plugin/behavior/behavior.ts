@@ -55,7 +55,7 @@ namespace PluginBehavior {
     export type CreateCategory = typeof CreateCategory
     export const CreateCategory = PluginStateTransform.BuiltIn({
         name: 'create-behavior-category',
-        display: { name: 'Create Cateogry' },
+        display: { name: 'Behavior Category' },
         from: Root,
         to: Category,
         params: {

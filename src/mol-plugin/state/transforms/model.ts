@@ -64,7 +64,7 @@ export { TrajectoryFromPDB }
 type TrajectoryFromPDB = typeof TrajectoryFromPDB
 const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-pdb',
-    display: { name: 'Parse PDB string and create trajectory' },
+    display: { name: 'Parse PDB', description: 'Parse PDB string and create trajectory.' },
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory
 })({
@@ -168,7 +168,6 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
                 return new SO.Molecule.Structure(base, label);
             }
 
-            asm = model.symmetry.assemblies[0];
             id = asm.id;
             const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
             const props = { label: `Assembly ${id}`, description: structureDesc(s) };
