@@ -71,7 +71,7 @@ const DownloadStructure = StateAction.build({
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams);
+    const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams, { props: { isGhost: true }});
     const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
     return state.updateTree(createStructureTree(ctx, traj, params.source.params.supportProps));
 });
@@ -89,7 +89,7 @@ export const OpenStructure = StateAction.build({
 
 function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' = 'cif') {
     const parsed = format === 'cif'
-        ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
+        ? b.apply(StateTransforms.Data.ParseCif, void 0, { props: { isGhost: true }}).apply(StateTransforms.Model.TrajectoryFromMmCif)
         : b.apply(StateTransforms.Model.TrajectoryFromPDB);
 
     return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });

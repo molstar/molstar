@@ -8,16 +8,16 @@ import * as React from 'react';
 import { PluginStateObject } from 'mol-plugin/state/objects';
 import { State, StateObject } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
-import { PluginUIComponent } from './base';
+import { PluginUIComponent } from '../base';
 
 export class StateTree extends PluginUIComponent<{ state: State }> {
     render() {
         const n = this.props.state.tree.root.ref;
-        return <StateTreeNode state={this.props.state} nodeRef={n} />;
+        return <StateTreeNode state={this.props.state} nodeRef={n} depth={0} />;
     }
 }
 
-class StateTreeNode extends PluginUIComponent<{ nodeRef: string, state: State }, { state: State, isCollapsed: boolean }> {
+class StateTreeNode extends PluginUIComponent<{ nodeRef: string, state: State, depth: number }, { state: State, isCollapsed: boolean }> {
     is(e: State.ObjectEvent) {
         return e.ref === this.props.nodeRef && e.state === this.props.state;
     }
@@ -60,24 +60,34 @@ class StateTreeNode extends PluginUIComponent<{ nodeRef: string, state: State },
     }
 
     render() {
-        if (this.props.state.cells.get(this.props.nodeRef)!.obj === StateObject.Null) return null;
+        const cell = this.props.state.cells.get(this.props.nodeRef)!;
+        if (cell.obj === StateObject.Null) return null;
 
         const cellState = this.cellState;
-
+        const showLabel = cell.status !== 'ok' || !cell.transform.props || !cell.transform.props.isGhost;
         const children = this.props.state.tree.children.get(this.props.nodeRef);
-        return <div>
-            <StateTreeNodeLabel nodeRef={this.props.nodeRef} state={this.props.state} />
+        const newDepth = showLabel ? this.props.depth + 1 : this.props.depth;
+
+        if (!showLabel) {
+            if (children.size === 0) return null;
+            return <div style={{ display: cellState.isCollapsed ? 'none' : 'block' }}>
+                {children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} depth={newDepth} />)}
+            </div>;
+        }
+
+        return <>
+            <StateTreeNodeLabel nodeRef={this.props.nodeRef} state={this.props.state} depth={this.props.depth} />
             {children.size === 0
                 ? void 0
-                : <div className='msp-tree-children' style={{ display: cellState.isCollapsed ? 'none' : 'block' }}>
-                    {children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} />)}
+                : <div style={{ display: cellState.isCollapsed ? 'none' : 'block' }}>
+                    {children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} depth={newDepth} />)}
                 </div>
             }
-        </div>;
+        </>;
     }
 }
 
-class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: State }, { state: State, isCurrent: boolean, isCollapsed: boolean }> {
+class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: State, depth: number }, { state: State, isCurrent: boolean, isCollapsed: boolean }> {
     is(e: State.ObjectEvent) {
         return e.ref === this.props.nodeRef && e.state === this.props.state;
     }
@@ -126,7 +136,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
 
     remove = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef, removeParentGhosts: true });
     }
 
     toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
@@ -171,7 +181,11 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
         } else {
             const obj = cell.obj as PluginStateObject.Any;
             const title = `${obj.label} ${obj.description ? obj.description : ''}`
-            label = <><a title={title} href='#' onClick={this.setCurrent}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
+            if (this.state.isCurrent) {
+                label = <><b>{obj.label}</b> {obj.description ? <small>{obj.description}</small> : void 0}</>;
+            } else {
+                label = <><a title={title} href='#' onClick={this.setCurrent}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
+            }
         }
 
         const children = this.props.state.tree.children.get(this.props.nodeRef);
@@ -181,7 +195,8 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
             <span className='msp-icon msp-icon-visual-visibility' />
         </button>;
 
-        return <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
+        return <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}
+            style={{ marginLeft: this.state.isCurrent ? '0px' : `${this.props.depth * 10}px`, borderRadius: this.state.isCurrent ? '0' : void 0 }}>
             {isCurrent ? <b>{label}</b> : label}
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />
@@ -189,6 +204,6 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
             {!cell.transform.props.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
                 <span className='msp-icon msp-icon-remove' />
             </button>}{visibility}
-        </div>
+        </div>;
     }
 }

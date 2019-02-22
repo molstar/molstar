@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { PluginContext } from '../context';
-import { StateTree } from './state-tree';
+import { StateTree } from './state/tree';
 import { Viewport, ViewportControls } from './viewport';
 import { Controls, TrajectoryControls, LociLabelControl } from './controls';
 import { PluginUIComponent, PluginReactContext } from './base';
