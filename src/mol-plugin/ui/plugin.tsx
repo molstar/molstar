@@ -19,6 +19,7 @@ import { AnimationControls } from './state/animation';
 import { StateTree } from './state/tree';
 import { BackgroundTaskProgress } from './task';
 import { Viewport, ViewportControls } from './viewport';
+import { StateTransform } from 'mol-state';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
@@ -173,6 +174,14 @@ export class CurrentObject extends PluginUIComponent {
         const transform = cell.transform;
         const def = transform.transformer.definition;
         const display = cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name;
+
+        let showActions = true;
+        if (ref === StateTransform.RootRef) {
+            const children = current.state.tree.children.get(ref);
+            showActions = children.size !== 0;
+        }
+
+        if (!showActions) return null;
 
         return cell.status === 'ok' && <>
             <div className='msp-section-header'>{`Actions (${display})`}</div>
