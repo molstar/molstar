@@ -18,19 +18,21 @@ export default async function compose(query: Data.QueryContext.Data) {
 }
 
 async function readBlock(query: Data.QueryContext.Data, coord: Coords.Grid<'Block'>, blockBox: Box.Fractional): Promise<Data.BlockData> {
+    const { valueType, blockSize } = query.data.header;
+    const elementByteSize = getElementByteSize(valueType)
     const numChannels = query.data.header.channels.length;
     const blockSampleCount = Box.dimensions(Box.fractionalToGrid(blockBox, query.samplingInfo.sampling.dataDomain));
     const size = numChannels * blockSampleCount[0] * blockSampleCount[1] * blockSampleCount[2];
-    const { valueType, blockSize } = query.data.header;
+    const byteSize = elementByteSize * size
     const dataSampleCount = query.data.header.sampling[query.samplingInfo.sampling.index].sampleCount;
     const buffer = createTypedArrayBufferContext(size, valueType);
     const byteOffset = query.samplingInfo.sampling.byteOffset
-        + getElementByteSize(valueType) * numChannels * blockSize
+        + elementByteSize * numChannels * blockSize
         * (blockSampleCount[1] * blockSampleCount[2] * coord[0]
             + dataSampleCount[0] * blockSampleCount[2] * coord[1]
             + dataSampleCount[0] * dataSampleCount[1] * coord[2]);
 
-    const values = await readTypedArray(buffer, query.data.file, byteOffset, size, 0);
+    const values = await readTypedArray(buffer, query.data.file, byteOffset, byteSize, 0);
     return {
         sampleCount: blockSampleCount,
         values

@@ -14,7 +14,7 @@ interface Config {
     format: 'ccp4' | 'dsn6',
     isPeriodic: boolean,
     outputFilename: string,
-    blockSize: number
+    blockSizeInMB: number
 }
 
 let config: Config = {
@@ -22,7 +22,7 @@ let config: Config = {
     format: 'ccp4',
     isPeriodic: false,
     outputFilename: '',
-    blockSize: 96
+    blockSizeInMB: 96
 };
 
 function getFormat(format: string): Config['format'] {
@@ -67,7 +67,7 @@ function parseInput() {
     for (let i = 2; i < process.argv.length; i++) {
         switch (process.argv[i].toLowerCase()) {
             case '-blocksize':
-                config.blockSize = +process.argv[++i];
+                config.blockSizeInMB = +process.argv[++i];
                 break;
             case '-format':
                 config.format = getFormat(process.argv[++i]);
@@ -102,5 +102,5 @@ function parseInput() {
 }
 
 if (parseInput()) {
-    pack(config.input, config.blockSize, config.isPeriodic, config.outputFilename, config.format);
+    pack(config.input, config.blockSizeInMB, config.isPeriodic, config.outputFilename, config.format);
 }

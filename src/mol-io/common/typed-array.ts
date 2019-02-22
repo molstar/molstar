@@ -23,7 +23,7 @@ export type TypedArrayValueArray = Float32Array | Int8Array | Int16Array
 export interface TypedArrayBufferContext {
     type: TypedArrayValueType,
     elementByteSize: number,
-    readBuffer: Buffer,
+    readBuffer: SimpleBuffer,
     valuesBuffer: Uint8Array,
     values: TypedArrayValueArray
 }
@@ -52,7 +52,7 @@ export function createTypedArray(type: TypedArrayValueType, size: number) {
 export function createTypedArrayBufferContext(size: number, type: TypedArrayValueType): TypedArrayBufferContext {
     let elementByteSize = getElementByteSize(type);
     let arrayBuffer = new ArrayBuffer(elementByteSize * size);
-    let readBuffer = new Buffer(arrayBuffer);
+    let readBuffer = SimpleBuffer.fromArrayBuffer(arrayBuffer);
     let valuesBuffer = SimpleBuffer.IsNativeEndianLittle ? arrayBuffer : new ArrayBuffer(elementByteSize * size);
     return {
         type,
@@ -63,14 +63,11 @@ export function createTypedArrayBufferContext(size: number, type: TypedArrayValu
     };
 }
 
-export async function readTypedArray(ctx: TypedArrayBufferContext, file: FileHandle, position: number, count: number, valueOffset: number, littleEndian?: boolean) {
-    let byteCount = ctx.elementByteSize * count;
-    let byteOffset = ctx.elementByteSize * valueOffset;
-
-    await file.readBuffer(position, ctx.readBuffer, byteCount, byteOffset);
+export async function readTypedArray(ctx: TypedArrayBufferContext, file: FileHandle, position: number, byteCount: number, valueByteOffset: number, littleEndian?: boolean) {
+    await file.readBuffer(position, ctx.readBuffer, byteCount, valueByteOffset);
     if (ctx.elementByteSize > 1 && ((littleEndian !== void 0 && littleEndian !== SimpleBuffer.IsNativeEndianLittle) || !SimpleBuffer.IsNativeEndianLittle)) {
         // fix the endian
-        SimpleBuffer.flipByteOrder(ctx.readBuffer, ctx.valuesBuffer, byteCount, ctx.elementByteSize, byteOffset);
+        SimpleBuffer.flipByteOrder(ctx.readBuffer, ctx.valuesBuffer, byteCount, ctx.elementByteSize, valueByteOffset);
     }
     return ctx.values;
 }

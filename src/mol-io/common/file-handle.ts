@@ -26,7 +26,7 @@ export interface FileHandle {
      *
      * @param position — The offset from the beginning of the file where this data should be written.
      * @param buffer - The buffer data to be written.
-     * @param length — The number of bytes to write. If not supplied, defaults to buffer.length - offset.
+     * @param length — The number of bytes to write. If not supplied, defaults to buffer.length
      */
     writeBuffer(position: number, buffer: SimpleBuffer, length?: number): Promise<number>
 
@@ -35,7 +35,7 @@ export interface FileHandle {
      *
      * @param position — The offset from the beginning of the file where this data should be written.
      * @param buffer - The buffer data to be written.
-     * @param length — The number of bytes to write. If not supplied, defaults to buffer.length - offset.
+     * @param length — The number of bytes to write. If not supplied, defaults to buffer.length
      */
     writeBufferSync(position: number, buffer: SimpleBuffer, length?: number): number
 
@@ -47,28 +47,35 @@ export namespace FileHandle {
     export function fromBuffer(buffer: SimpleBuffer): FileHandle {
         return {
             readBuffer: (position: number, sizeOrBuffer: SimpleBuffer | number, size?: number, byteOffset?: number) => {
+                let bytesRead: number
+                let outBuffer: SimpleBuffer
                 if (typeof sizeOrBuffer === 'number') {
+                    size = defaults(size, sizeOrBuffer)
                     const start = position
-                    const end = Math.min(buffer.length, start + (defaults(size, sizeOrBuffer)))
-                    return Promise.resolve({ bytesRead: end - start, buffer: SimpleBuffer.fromUint8Array(buffer.subarray(start, end)) })
+                    const end = Math.min(buffer.length, start + size)
+                    bytesRead = end - start
+                    outBuffer = SimpleBuffer.fromUint8Array(new Uint8Array(buffer.buffer, start, end - start))
                 } else {
-                    if (size === void 0) {
-                        return Promise.reject('readBuffer: Specify size.');
-                    }
+                    size = defaults(size, sizeOrBuffer.length)
                     const start = position
-                    const end = Math.min(buffer.length, start + defaults(size, sizeOrBuffer.length))
+                    const end = Math.min(buffer.length, start + size)
                     sizeOrBuffer.set(buffer.subarray(start, end), byteOffset)
-                    return Promise.resolve({ bytesRead: end - start, buffer: sizeOrBuffer })
+                    bytesRead = end - start
+                    outBuffer = sizeOrBuffer
                 }
+                if (size !== bytesRead) {
+                    console.warn(`byteCount ${size} and bytesRead ${bytesRead} differ`)
+                }
+                return Promise.resolve({ bytesRead, buffer: outBuffer })
             },
             writeBuffer: (position: number, buffer: SimpleBuffer, length?: number) => {
                 length = defaults(length, buffer.length)
-                console.warn('FileHandle.writeBuffer not implemented')
+                console.error('.writeBuffer not implemented for FileHandle.fromBuffer')
                 return Promise.resolve(0)
             },
             writeBufferSync: (position: number, buffer: SimpleBuffer, length?: number, ) => {
                 length = defaults(length, buffer.length)
-                console.warn('FileHandle.writeSync not implemented')
+                console.error('.writeSync not implemented for FileHandle.fromBuffer')
                 return 0
             },
             close: noop
@@ -80,39 +87,39 @@ export namespace FileHandle {
         return {
             readBuffer: (position: number, sizeOrBuffer: SimpleBuffer | number, length?: number, byteOffset?: number) => {
                 return new Promise((res, rej) => {
+                    let outBuffer: SimpleBuffer
                     if (typeof sizeOrBuffer === 'number') {
-                        let buff = new Buffer(new ArrayBuffer(sizeOrBuffer));
-                        fs.read(file, buff, 0, sizeOrBuffer, position, (err, bytesRead, buffer) => {
-                            if (err) {
-                                rej(err);
-                                return;
-                            }
-                            res({ bytesRead, buffer });
-                        });
+                        byteOffset = defaults(byteOffset, 0)
+                        length = defaults(length, sizeOrBuffer)
+                        outBuffer = SimpleBuffer.fromArrayBuffer(new ArrayBuffer(sizeOrBuffer));
                     } else {
-                        if (length === void 0) {
-                            rej('readBuffer: Specify size.');
+                        byteOffset = defaults(byteOffset, 0)
+                        length = defaults(length, sizeOrBuffer.length)
+                        outBuffer = sizeOrBuffer
+                    }
+                    fs.read(file, outBuffer, byteOffset, length, position, (err, bytesRead, buffer) => {
+                        if (err) {
+                            rej(err);
                             return;
                         }
-                        fs.read(file, sizeOrBuffer, byteOffset ? +byteOffset : 0, length, position, (err, bytesRead, buffer) => {
-                            if (err) {
-                                rej(err);
-                                return;
-                            }
-                            res({ bytesRead, buffer });
-                        });
-                    }
+                        if (length !== bytesRead) {
+                            console.warn(`byteCount ${length} and bytesRead ${bytesRead} differ`)
+                        }
+                        res({ bytesRead, buffer });
+                    });
                 })
             },
-            writeBuffer: (position: number, buffer: Buffer, length?: number) => {
+            writeBuffer: (position: number, buffer: SimpleBuffer, length?: number) => {
+                length = defaults(length, buffer.length)
                 return new Promise<number>((res, rej) => {
-                    fs.write(file, buffer, 0, length !== void 0 ? length : buffer.length, position, (err, written) => {
+                    fs.write(file, buffer, 0, length, position, (err, written) => {
                         if (err) rej(err);
                         else res(written);
                     })
                 })
             },
             writeBufferSync: (position: number, buffer: Uint8Array, length?: number) => {
+                length = defaults(length, buffer.length)
                 return fs.writeSync(file, buffer, 0, length, position);
             },
             close: () => {

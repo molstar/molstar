@@ -13,9 +13,9 @@ import * as Sampling from './sampling'
 import * as DataFormat from '../common/data-format'
 import { FileHandle } from 'mol-io/common/file-handle';
 
-export default async function pack(input: { name: string, filename: string }[], blockSize: number, isPeriodic: boolean, outputFilename: string, format: Format.Type) {
+export default async function pack(input: { name: string, filename: string }[], blockSizeInMB: number, isPeriodic: boolean, outputFilename: string, format: Format.Type) {
     try {
-        await create(outputFilename, input, blockSize, isPeriodic, format);
+        await create(outputFilename, input, blockSizeInMB, isPeriodic, format);
     } catch (e) {
         console.error('[Error] ' + e);
     }
@@ -49,15 +49,15 @@ async function allocateFile(ctx: Data.Context) {
     }
 }
 
-function determineBlockSize(data: Format.Data, blockSize: number) {
+function determineBlockSize(data: Format.Data, blockSizeInMB: number) {
     const { extent } = data.header;
     const maxLayerSize = 1024 * 1024 * 1024;
     const valueCount = extent[0] * extent[1];
-    if (valueCount * blockSize <= maxLayerSize) return blockSize;
+    if (valueCount * blockSizeInMB <= maxLayerSize) return blockSizeInMB;
 
-    while (blockSize > 0) {
-        blockSize -= 4;
-        if (valueCount * blockSize <= maxLayerSize) return blockSize;
+    while (blockSizeInMB > 0) {
+        blockSizeInMB -= 4;
+        if (valueCount * blockSizeInMB <= maxLayerSize) return blockSizeInMB;
     }
 
     throw new Error('Could not determine a valid block size.');
@@ -69,10 +69,10 @@ async function writeHeader(ctx: Data.Context) {
     await ctx.file.writeBuffer(4, header);
 }
 
-async function create(filename: string, sourceDensities: { name: string, filename: string }[], sourceBlockSize: number, isPeriodic: boolean, format: Format.Type) {
+async function create(filename: string, sourceDensities: { name: string, filename: string }[], sourceBlockSizeInMB: number, isPeriodic: boolean, format: Format.Type) {
     const startedTime = getTime();
 
-    if (sourceBlockSize % 4 !== 0 || sourceBlockSize < 4) {
+    if (sourceBlockSizeInMB % 4 !== 0 || sourceBlockSizeInMB < 4) {
         throw Error('Block size must be a positive number divisible by 4.');
     }
 
@@ -93,16 +93,16 @@ async function create(filename: string, sourceDensities: { name: string, filenam
         if (!isOk) {
             throw new Error('Input file headers are not compatible (different grid, etc.).');
         }
-        const blockSize = determineBlockSize(channels[0].data, sourceBlockSize);
-        for (const ch of channels) Format.assignSliceBuffer(ch.data, blockSize);
+        const blockSizeInMB = determineBlockSize(channels[0].data, sourceBlockSizeInMB);
+        for (const ch of channels) Format.assignSliceBuffer(ch.data, blockSizeInMB);
 
         // Step 1c: Create data context.
-        const context = await Sampling.createContext(filename, channels, blockSize, isPeriodic);
+        const context = await Sampling.createContext(filename, channels, blockSizeInMB, isPeriodic);
         for (const s of channels) files.push(s.data.file);
         files.push(context.file);
         process.stdout.write('   done.\n');
 
-        console.log(`Block size: ${blockSize}`);
+        console.log(`Block size: ${blockSizeInMB}`);
 
         // Step 2: Allocate disk space.
         process.stdout.write('Allocating...      0%');

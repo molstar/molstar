@@ -40,5 +40,5 @@ export interface Dsn6Header {
  */
 export interface Dsn6File {
     header: Dsn6Header
-    values: Float32Array | Int8Array
+    values: Float32Array
 }

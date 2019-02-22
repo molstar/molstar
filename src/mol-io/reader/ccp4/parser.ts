@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,7 +9,7 @@ import { Ccp4File, Ccp4Header } from './schema'
 import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
 import { SimpleBuffer } from 'mol-io/common/simple-buffer';
-import { TypedArrayValueType, getElementByteSize, makeTypedArray, TypedArrayBufferContext, readTypedArray } from 'mol-io/common/typed-array';
+import { TypedArrayValueType, getElementByteSize, TypedArrayBufferContext, readTypedArray, createTypedArrayBufferContext } from 'mol-io/common/typed-array';
 
 export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4Header, littleEndian: boolean }> {
     const headerSize = 1024;
@@ -96,12 +96,26 @@ export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4He
     return { header, littleEndian }
 }
 
-export async function readCcp4Slices(buffer: TypedArrayBufferContext, file: FileHandle, byteOffset: number, length: number, littleEndian: boolean) {
-    // TODO support data from mapmode2to0, see below
-    await readTypedArray(buffer, file, byteOffset, length, 0, littleEndian);
+export async function readCcp4Slices(header: Ccp4Header, buffer: TypedArrayBufferContext, file: FileHandle, byteOffset: number, length: number, littleEndian: boolean) {
+    if (isMapmode2to0(header)) {
+        // data from mapmode2to0 is in MODE 0 (Int8) and needs to be scaled and written as float32
+        const valueByteOffset = 3 * length
+        // read int8 data to last quarter of the read buffer
+        await file.readBuffer(byteOffset, buffer.readBuffer, length, valueByteOffset);
+        // get int8 view of last quarter of the read buffer
+        const int8 = new Int8Array(buffer.valuesBuffer.buffer, valueByteOffset)
+        // scaling f(x)=b1*x+b0 such that f(-128)=min and f(127)=max
+        const b1 = (header.AMAX - header.AMIN) / 255.0
+        const b0 = 0.5 * (header.AMIN + header.AMAX + b1)
+        for (let j = 0, jl = length; j < jl; ++j) {
+            buffer.values[j] = b1 * int8[j] + b0
+        }
+    } else {
+        await readTypedArray(buffer, file, byteOffset, length, 0, littleEndian);
+    }
 }
 
-function getTypedArrayValueType(mode: number) {
+function getCcp4DataType(mode: number) {
     switch (mode) {
         case 2: return TypedArrayValueType.Float32
         case 1: return TypedArrayValueType.Int16
@@ -110,47 +124,40 @@ function getTypedArrayValueType(mode: number) {
     throw new Error(`ccp4 mode '${mode}' unsupported`);
 }
 
+/** check if the file was converted by mapmode2to0, see https://github.com/uglymol/uglymol */
+function isMapmode2to0(header: Ccp4Header) {
+    return header.userFlag1 === -128 && header.userFlag2 === 127
+}
+
+export function getCcp4ValueType(header: Ccp4Header) {
+    return isMapmode2to0(header) ? TypedArrayValueType.Float32 : getCcp4DataType(header.MODE)
+}
+
+export function getCcp4DataOffset(header: Ccp4Header) {
+    return 256 * 4 + header.NSYMBT
+}
+
 async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext): Promise<Ccp4File> {
-    await ctx.update({ message: 'Parsing CCP4/MRC file...' });
+    await ctx.update({ message: 'Parsing CCP4/MRC/MAP file...' });
 
     const { header, littleEndian } = await readCcp4Header(file)
-
-    const offset = 256 * 4 + header.NSYMBT
-    const valueType = getTypedArrayValueType(header.MODE)
-    const { buffer, bytesRead } = await file.readBuffer(offset, size - offset)
+    const offset = getCcp4DataOffset(header)
+    const dataType = getCcp4DataType(header.MODE)
+    const valueType = getCcp4ValueType(header)
 
     const count = header.NC * header.NR * header.NS
-    const elementByteSize = getElementByteSize(valueType)
+    const elementByteSize = getElementByteSize(dataType)
     const byteCount = count * elementByteSize
 
-    if (byteCount !== bytesRead) {
-        console.warn(`byteCount ${byteCount} and bytesRead ${bytesRead} differ`)
-    }
+    const buffer = createTypedArrayBufferContext(count, valueType)
+    readCcp4Slices(header, buffer, file, offset, byteCount, littleEndian)
 
-    let values = makeTypedArray(valueType, buffer.buffer, offset, count)
-
-    if (!littleEndian && valueType !== TypedArrayValueType.Int8) {
-        SimpleBuffer.flipByteOrder(buffer, new Uint8Array(values.buffer), byteCount, elementByteSize, 0)
-    }
-
-    // if the file was converted by mapmode2to0 - scale the data
-    // based on uglymol (https://github.com/uglymol/uglymol) by Marcin Wojdyr (wojdyr)
-    if (header.userFlag1 === -128 && header.userFlag2 === 127) {
-        values = new Float32Array(values)
-        // scaling f(x)=b1*x+b0 such that f(-128)=min and f(127)=max
-        const b1 = (header.AMAX - header.AMIN) / 255.0
-        const b0 = 0.5 * (header.AMIN + header.AMAX + b1)
-        for (let j = 0, jl = values.length; j < jl; ++j) {
-            values[j] = b1 * values[j] + b0
-        }
-    }
-
-    const result: Ccp4File = { header, values };
+    const result: Ccp4File = { header, values: buffer.values };
     return result
 }
 
 export function parseFile(file: FileHandle, size: number) {
-    return Task.create<Result<Ccp4File>>('Parse CCP4/MRC', async ctx => {
+    return Task.create<Result<Ccp4File>>('Parse CCP4/MRC/MAP', async ctx => {
         try {
             return Result.success(await parseInternal(file, size, ctx));
         } catch (e) {

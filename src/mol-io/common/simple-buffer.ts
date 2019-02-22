@@ -92,6 +92,10 @@ export namespace SimpleBuffer {
         })
     }
 
+    export function fromArrayBuffer(arrayBuffer: ArrayBuffer): SimpleBuffer {
+        return fromUint8Array(new Uint8Array(arrayBuffer))
+    }
+
     export function fromBuffer(buffer: Buffer): SimpleBuffer {
         return buffer
     }

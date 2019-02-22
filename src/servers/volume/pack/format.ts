@@ -29,6 +29,7 @@ export interface Header {
 /** Represents a circular buffer for 2 * blockSize layers */
 export interface SliceBuffer {
     buffer: TypedArrayBufferContext,
+    maxBlockBytes: number
     sliceCapacity: number,
     slicesRead: number,
 
@@ -55,13 +56,15 @@ export interface Context {
     provider: Provider
 }
 
-export function assignSliceBuffer(data: Data, blockSize: number) {
+export function assignSliceBuffer(data: Data, blockSizeInMB: number) {
     const { extent, valueType } = data.header;
+    const maxBlockBytes = blockSizeInMB * 1024 * 1024
     const sliceSize = extent[0] * extent[1] * getElementByteSize(valueType);
-    const sliceCapacity = Math.max(1, Math.floor(Math.min(1 * 1024 * 1024, sliceSize * extent[2]) / sliceSize));
+    const sliceCapacity = Math.max(1, Math.floor(Math.min(maxBlockBytes, sliceSize * extent[2]) / sliceSize));
     const buffer = createTypedArrayBufferContext(sliceCapacity * extent[0] * extent[1], valueType);
     data.slices = {
         buffer,
+        maxBlockBytes,
         sliceCapacity,
         slicesRead: 0,
         values: buffer.values,
