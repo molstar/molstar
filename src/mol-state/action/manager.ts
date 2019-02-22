@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateAction } from 'mol-state/action';
+import { StateAction } from '../action';
 import { StateObject } from '../object';
-import { Transformer } from 'mol-state/transformer';
+import { StateTransformer } from '../transformer';
 
 export { StateActionManager }
 
@@ -14,8 +14,8 @@ class StateActionManager {
     private actions: Map<StateAction['id'], StateAction> = new Map();
     private fromTypeIndex = new Map<StateObject.Type, StateAction[]>();
 
-    add(actionOrTransformer: StateAction | Transformer) {
-        const action = Transformer.is(actionOrTransformer) ? actionOrTransformer.toAction() : actionOrTransformer;
+    add(actionOrTransformer: StateAction | StateTransformer) {
+        const action = StateTransformer.is(actionOrTransformer) ? actionOrTransformer.toAction() : actionOrTransformer;
 
         if (this.actions.has(action.id)) return this;
 

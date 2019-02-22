@@ -7,7 +7,7 @@
 import { PluginStateAnimation } from './model';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
-import { StateSelection } from 'mol-state/state/selection';
+import { StateSelection } from 'mol-state';
 import { PluginCommands } from 'mol-plugin/command';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 

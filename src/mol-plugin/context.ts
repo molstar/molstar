@@ -8,7 +8,7 @@ import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 import { Representation } from 'mol-repr/representation';
 import { StructureRepresentationRegistry } from 'mol-repr/structure/registry';
-import { State, Transform, Transformer } from 'mol-state';
+import { State, StateTransform, StateTransformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
@@ -144,12 +144,12 @@ export class PluginContext {
         this.disposed = true;
     }
 
-    applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {
-        const tree = state.tree.build().to(a).apply(transformer, params);
+    applyTransform(state: State, a: StateTransform.Ref, transformer: StateTransformer, params: any) {
+        const tree = state.build().to(a).apply(transformer, params);
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
-    updateTransform(state: State, a: Transform.Ref, params: any) {
+    updateTransform(state: State, a: StateTransform.Ref, params: any) {
         const tree = state.build().to(a).update(params);
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
@@ -164,7 +164,7 @@ export class PluginContext {
     }
 
     private async initBehaviors() {
-        const tree = this.state.behaviorState.tree.build();
+        const tree = this.state.behaviorState.build();
 
         for (const b of this.spec.behaviors) {
             tree.toRoot().apply(b.transformer, b.defaultParams, { ref: b.transformer.id });

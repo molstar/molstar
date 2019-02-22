@@ -5,7 +5,7 @@
  */
 
 import { PluginStateTransform, PluginStateObject } from '../state/objects';
-import { Transformer, Transform } from 'mol-state';
+import { StateTransformer, StateTransform } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginCommand } from '../command';
@@ -16,7 +16,7 @@ import { shallowEqual } from 'mol-util';
 export { PluginBehavior }
 
 interface PluginBehavior<P = unknown> {
-    register(ref: Transform.Ref): void,
+    register(ref: StateTransform.Ref): void,
     unregister(): void,
 
     /** Update params in place. Optionally return a promise if it depends on an async action. */
@@ -32,7 +32,7 @@ namespace PluginBehavior {
     export interface CreateParams<P> {
         name: string,
         ctor: Ctor<P>,
-        canAutoUpdate?: Transformer.Definition<Root, Behavior, P>['canAutoUpdate'],
+        canAutoUpdate?: StateTransformer.Definition<Root, Behavior, P>['canAutoUpdate'],
         label?: (params: P) => { label: string, description?: string },
         display: {
             name: string,
@@ -56,9 +56,9 @@ namespace PluginBehavior {
             },
             update({ b, newParams }) {
                 return Task.create('Update Behavior', async () => {
-                    if (!b.data.update) return Transformer.UpdateResult.Unchanged;
+                    if (!b.data.update) return StateTransformer.UpdateResult.Unchanged;
                     const updated = await b.data.update(newParams);
-                    return updated ? Transformer.UpdateResult.Updated : Transformer.UpdateResult.Unchanged;
+                    return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
                 })
             },
             canAutoUpdate: params.canAutoUpdate

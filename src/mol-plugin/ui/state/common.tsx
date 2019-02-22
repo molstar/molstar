@@ -4,11 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State, Transform, Transformer } from 'mol-state';
+import { State, StateTransform, StateTransformer, StateAction } from 'mol-state';
 import * as React from 'react';
 import { PurePluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
-import { StateAction } from 'mol-state/action';
 import { PluginContext } from 'mol-plugin/context';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
@@ -61,7 +60,7 @@ namespace StateTransformParameters {
         return true;
     }
 
-    export function infoFromAction(plugin: PluginContext, state: State, action: StateAction, nodeRef: Transform.Ref): Props['info'] {
+    export function infoFromAction(plugin: PluginContext, state: State, action: StateAction, nodeRef: StateTransform.Ref): Props['info'] {
         const source = state.cells.get(nodeRef)!.obj!;
         const params = action.definition.params ? action.definition.params(source, plugin) : { };
         const initialValues = PD.getDefaultValues(params);
@@ -72,7 +71,7 @@ namespace StateTransformParameters {
         };
     }
 
-    export function infoFromTransform(plugin: PluginContext, state: State, transform: Transform): Props['info'] {
+    export function infoFromTransform(plugin: PluginContext, state: State, transform: StateTransform): Props['info'] {
         const cell = state.cells.get(transform.ref)!;
         // const source: StateObjectCell | undefined = (cell.sourceRef && state.cells.get(cell.sourceRef)!) || void 0;
         // const create = transform.transformer.definition.params;
@@ -100,7 +99,7 @@ namespace TransformContolBase {
 abstract class TransformContolBase<P, S extends TransformContolBase.ControlState> extends PurePluginUIComponent<P, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
-    abstract getHeader(): Transformer.Definition['display'];
+    abstract getHeader(): StateTransformer.Definition['display'];
     abstract canApply(): boolean;
     abstract getTransformerId(): string;
     abstract canAutoApply(newParams: any): boolean;

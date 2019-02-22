@@ -5,7 +5,7 @@
  */
 
 import * as _ from 'mol-plugin/state/transforms'
-import { Transformer, StateObject } from 'mol-state';
+import { StateTransformer, StateObject } from 'mol-state';
 import { StringBuilder } from 'mol-util';
 import * as fs from 'fs';
 import { paramsToMd } from './pd-to-md';
@@ -28,7 +28,7 @@ function typeToString(o: StateObject.Ctor[]) {
     return o.map(o => o.name).join(' | ');
 }
 
-function writeTransformer(t: Transformer) {
+function writeTransformer(t: StateTransformer) {
     StringBuilder.write(builder, `## <a name="${t.id.replace('.', '-')}"></a>${t.id} :: ${typeToString(t.definition.from)} -> ${typeToString(t.definition.to)}`);
     StringBuilder.newline(builder);
     if (t.definition.display.description) {
@@ -52,7 +52,7 @@ function writeTransformer(t: Transformer) {
     StringBuilder.newline(builder);
 }
 
-const transformers = Transformer.getAll();
+const transformers = StateTransformer.getAll();
 
 StringBuilder.write(builder, '# Mol* Plugin State Transformer Reference');
 StringBuilder.newline(builder);

@@ -11,7 +11,7 @@ import { Task } from 'mol-task';
 import CIF from 'mol-io/reader/cif'
 import { PluginContext } from 'mol-plugin/context';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Transformer } from 'mol-state';
+import { StateTransformer } from 'mol-state';
 import { readFromFile } from 'mol-util/data-source';
 import * as CCP4 from 'mol-io/reader/ccp4/parser'
 import * as DSN6 from 'mol-io/reader/dsn6/parser'
@@ -38,12 +38,12 @@ const Download = PluginStateTransform.BuiltIn({
         });
     },
     update({ oldParams, newParams, b }) {
-        if (oldParams.url !== newParams.url || oldParams.isBinary !== newParams.isBinary) return Transformer.UpdateResult.Recreate;
+        if (oldParams.url !== newParams.url || oldParams.isBinary !== newParams.isBinary) return StateTransformer.UpdateResult.Recreate;
         if (oldParams.label !== newParams.label) {
             (b.label as string) = newParams.label || newParams.url;
-            return Transformer.UpdateResult.Updated;
+            return StateTransformer.UpdateResult.Updated;
         }
-        return Transformer.UpdateResult.Unchanged;
+        return StateTransformer.UpdateResult.Unchanged;
     }
 });
 
@@ -71,9 +71,9 @@ const ReadFile = PluginStateTransform.BuiltIn({
     update({ oldParams, newParams, b }) {
         if (oldParams.label !== newParams.label) {
             (b.label as string) = newParams.label || oldParams.file.name;
-            return Transformer.UpdateResult.Updated;
+            return StateTransformer.UpdateResult.Updated;
         }
-        return Transformer.UpdateResult.Unchanged;
+        return StateTransformer.UpdateResult.Unchanged;
     },
     isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user loaded files.' })
 });

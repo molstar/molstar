@@ -9,7 +9,7 @@ import { UUID } from 'mol-util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateObject, StateObjectCell } from './object';
 import { State } from './state';
-import { Transformer } from './transformer';
+import { StateTransformer } from './transformer';
 
 export { StateAction };
 
@@ -63,12 +63,12 @@ namespace StateAction {
         return action;
     }
 
-    export function fromTransformer<T extends Transformer>(transformer: T) {
+    export function fromTransformer<T extends StateTransformer>(transformer: T) {
         const def = transformer.definition;
-        return create<Transformer.From<T>, void, Transformer.Params<T>>({
+        return create<StateTransformer.From<T>, void, StateTransformer.Params<T>>({
             from: def.from,
             display: def.display,
-            params: def.params as Transformer.Definition<Transformer.From<T>, any, Transformer.Params<T>>['params'],
+            params: def.params as StateTransformer.Definition<StateTransformer.From<T>, any, StateTransformer.Params<T>>['params'],
             run({ cell, state, params }) {
                 const tree = state.build().to(cell.transform.ref).apply(transformer, params);
                 return state.updateTree(tree) as Task<void>;

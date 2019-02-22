@@ -6,8 +6,7 @@
 
 import { Camera } from 'mol-canvas3d/camera';
 import { PluginCommand } from './command/base';
-import { Transform, State } from 'mol-state';
-import { StateAction } from 'mol-state/action';
+import { StateTransform, State, StateAction } from 'mol-state';
 import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
 import { PluginLayoutStateProps } from './layout';
 
@@ -15,16 +14,16 @@ export * from './command/base';
 
 export const PluginCommands = {
     State: {
-        SetCurrentObject: PluginCommand<{ state: State, ref: Transform.Ref }>(),
-        ApplyAction: PluginCommand<{ state: State, action: StateAction.Instance, ref?: Transform.Ref }>(),
+        SetCurrentObject: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
+        ApplyAction: PluginCommand<{ state: State, action: StateAction.Instance, ref?: StateTransform.Ref }>(),
         Update: PluginCommand<{ state: State, tree: State.Tree | State.Builder, doNotLogTiming?: boolean }>(),
 
-        RemoveObject: PluginCommand<{ state: State, ref: Transform.Ref }>(),
+        RemoveObject: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
 
-        ToggleExpanded: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
-        ToggleVisibility: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
-        Highlight: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
-        ClearHighlight: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
+        ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
+        ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
+        Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
+        ClearHighlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
 
         Snapshots: {
             Add: PluginCommand<{ name?: string, description?: string }>({ isImmediate: true }),

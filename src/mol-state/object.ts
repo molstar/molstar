@@ -5,10 +5,10 @@
  */
 
 import { UUID } from 'mol-util';
-import { Transform } from './transform';
+import { StateTransform } from './transform';
 import { ParamDefinition } from 'mol-util/param-definition';
 import { State } from './state';
-import { StateSelection } from './state/selection';
+import { StateSelection } from 'mol-state';
 
 export { StateObject, StateObjectCell }
 
@@ -54,10 +54,10 @@ namespace StateObject {
 }
 
 interface StateObjectCell<T = StateObject> {
-    transform: Transform,
+    transform: StateTransform,
 
     // Which object was used as a parent to create data in this cell
-    sourceRef: Transform.Ref | undefined,
+    sourceRef: StateTransform.Ref | undefined,
 
     status: StateObjectCell.Status,
 

@@ -6,7 +6,7 @@
 
 import { PluginCommands } from '../../command';
 import { PluginContext } from '../../context';
-import { StateTree, Transform, State } from 'mol-state';
+import { StateTree, StateTransform, State } from 'mol-state';
 import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
 import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
 import { EmptyLoci, EveryLoci } from 'mol-model/loci';
@@ -60,7 +60,7 @@ export function ApplyAction(ctx: PluginContext) {
 
 export function RemoveObject(ctx: PluginContext) {
     PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref }) => {
-        const tree = state.tree.build().delete(ref).getTree();
+        const tree = state.build().delete(ref).getTree();
         return ctx.runTask(state.updateTree(tree));
     });
 }
@@ -73,11 +73,11 @@ export function ToggleVisibility(ctx: PluginContext) {
     PluginCommands.State.ToggleVisibility.subscribe(ctx, ({ state, ref }) => setVisibility(state, ref, !state.cellStates.get(ref).isHidden));
 }
 
-function setVisibility(state: State, root: Transform.Ref, value: boolean) {
+function setVisibility(state: State, root: StateTransform.Ref, value: boolean) {
     StateTree.doPreOrder(state.tree, state.transforms.get(root), { state, value }, setVisibilityVisitor);
 }
 
-function setVisibilityVisitor(t: Transform, tree: StateTree, ctx: { state: State, value: boolean }) {
+function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: State, value: boolean }) {
     ctx.state.updateCellState(t.ref, { isHidden: ctx.value });
 }
 

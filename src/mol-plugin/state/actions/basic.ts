@@ -6,10 +6,7 @@
  */
 
 import { PluginContext } from 'mol-plugin/context';
-import { StateTree, Transformer, StateObject, State } from 'mol-state';
-import { StateAction } from 'mol-state/action';
-import { StateSelection } from 'mol-state/state/selection';
-import { StateTreeBuilder } from 'mol-state/tree/builder';
+import { StateTree, StateTransformer, StateObject, State, StateBuilder, StateSelection, StateAction } from 'mol-state';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
@@ -59,7 +56,7 @@ const DownloadStructure = StateAction.build({
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const src = params.source;
-    let downloadParams: Transformer.Params<Download>;
+    let downloadParams: StateTransformer.Params<Download>;
 
     switch (src.name) {
         case 'url':
@@ -93,7 +90,7 @@ export const OpenStructure = StateAction.build({
     return state.updateTree(createStructureTree(ctx, traj, false));
 });
 
-function createModelTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' = 'cif') {
+function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' = 'cif') {
     const parsed = format === 'cif'
         ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
         : b.apply(StateTransforms.Model.TrajectoryFromPDB);
@@ -101,7 +98,7 @@ function createModelTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | 
     return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }
 
-function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean): StateTree {
+function createStructureTree(ctx: PluginContext, b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean): StateTree {
     let root = b;
     if (supportProps) {
         root = root.apply(StateTransforms.Model.CustomModelProperties);
@@ -112,7 +109,7 @@ function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginSt
     return root.getTree();
 }
 
-function complexRepresentation(ctx: PluginContext, root: StateTreeBuilder.To<PluginStateObject.Molecule.Structure>) {
+function complexRepresentation(ctx: PluginContext, root: StateBuilder.To<PluginStateObject.Molecule.Structure>) {
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
         .apply(StateTransforms.Representation.StructureRepresentation3D,
             StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'cartoon'));
@@ -223,7 +220,7 @@ interface DataFormatProvider<D extends PluginStateObject.Data.Binary | PluginSta
     description: string
     fileExtensions: string[]
     isApplicable(info: FileInfo, data: string | Uint8Array): boolean
-    getDefaultBuilder(ctx: PluginContext, data: StateTreeBuilder.To<D>, state?: State): Task<void>
+    getDefaultBuilder(ctx: PluginContext, data: StateBuilder.To<D>, state?: State): Task<void>
 }
 
 const Ccp4Provider: DataFormatProvider<any> = {
@@ -233,7 +230,7 @@ const Ccp4Provider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'ccp4' || info.ext === 'mrc' || info.ext === 'map'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateTreeBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
         return Task.create('CCP4/MRC/BRIX default builder', async taskCtx => {
             const tree = data.apply(StateTransforms.Data.ParseCcp4)
                 .apply(StateTransforms.Model.VolumeFromCcp4)
@@ -250,7 +247,7 @@ const Dsn6Provider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'dsn6' || info.ext === 'brix'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateTreeBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
         return Task.create('DSN6/BRIX default builder', async taskCtx => {
             const tree = data.apply(StateTransforms.Data.ParseDsn6)
                 .apply(StateTransforms.Model.VolumeFromDsn6)
@@ -267,13 +264,13 @@ const DscifProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'cif'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateTreeBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
         return Task.create('DensityServer CIF default builder', async taskCtx => {
             const cifBuilder = data.apply(StateTransforms.Data.ParseCif)
             const cifStateObject = await state.updateTree(cifBuilder).runInContext(taskCtx)
             const b = state.build().to(cifBuilder.ref);
             const blocks = cifStateObject.data.blocks.slice(1); // zero block contains query meta-data
-            let tree: StateTreeBuilder.To<any>
+            let tree: StateBuilder.To<any>
             if (blocks.length === 1) {
                 tree = b
                     .apply(StateTransforms.Model.VolumeFromDensityServerCif, { blockHeader: blocks[0].header })
@@ -324,7 +321,7 @@ export const OpenVolume = StateAction.build({
     const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: params.isBinary });
     const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
 
-    // Alternative for more complex states where the builder is not a simple StateTreeBuilder.To<>:
+    // Alternative for more complex states where the builder is not a simple StateBuilder.To<>:
     /*
     const dataRef = dataTree.ref;
     await state.updateTree(dataTree).runInContext(taskCtx);
@@ -380,7 +377,7 @@ const DownloadDensity = StateAction.build({
     }
 })(({ params, state }, ctx: PluginContext) => Task.create('Download Density', async taskCtx => {
     const src = params.source;
-    let downloadParams: Transformer.Params<Download>;
+    let downloadParams: StateTransformer.Params<Download>;
     let provider: DataFormatProvider<any>
 
     switch (src.name) {
