@@ -9,7 +9,7 @@ import { Ccp4File, Ccp4Header } from './schema'
 import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
 import { SimpleBuffer } from 'mol-io/common/simple-buffer';
-import { TypedArrayValueType, getElementByteSize, makeTypedArray } from 'mol-io/common/typed-array';
+import { TypedArrayValueType, getElementByteSize, makeTypedArray, TypedArrayBufferContext, readTypedArray } from 'mol-io/common/typed-array';
 
 export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4Header, littleEndian: boolean }> {
     const headerSize = 1024;
@@ -94,6 +94,11 @@ export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4He
     }
 
     return { header, littleEndian }
+}
+
+export async function readCcp4Slices(buffer: TypedArrayBufferContext, file: FileHandle, byteOffset: number, length: number, littleEndian: boolean) {
+    // TODO support data from mapmode2to0, see below
+    await readTypedArray(buffer, file, byteOffset, length, 0, littleEndian);
 }
 
 function getTypedArrayValueType(mode: number) {

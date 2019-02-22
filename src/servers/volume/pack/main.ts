@@ -13,9 +13,9 @@ import * as Sampling from './sampling'
 import * as DataFormat from '../common/data-format'
 import { FileHandle } from 'mol-io/common/file-handle';
 
-export default async function pack(input: { name: string, filename: string }[], blockSize: number, isPeriodic: boolean, outputFilename: string) {
+export default async function pack(input: { name: string, filename: string }[], blockSize: number, isPeriodic: boolean, outputFilename: string, format: Format.Type) {
     try {
-        await create(outputFilename, input, blockSize, isPeriodic);
+        await create(outputFilename, input, blockSize, isPeriodic, format);
     } catch (e) {
         console.error('[Error] ' + e);
     }
@@ -69,7 +69,7 @@ async function writeHeader(ctx: Data.Context) {
     await ctx.file.writeBuffer(4, header);
 }
 
-async function create(filename: string, sourceDensities: { name: string, filename: string }[], sourceBlockSize: number, isPeriodic: boolean) {
+async function create(filename: string, sourceDensities: { name: string, filename: string }[], sourceBlockSize: number, isPeriodic: boolean, format: Format.Type) {
     const startedTime = getTime();
 
     if (sourceBlockSize % 4 !== 0 || sourceBlockSize < 4) {
@@ -80,13 +80,13 @@ async function create(filename: string, sourceDensities: { name: string, filenam
         throw Error('Specify at least one source density.');
     }
 
-    process.stdout.write('Initializing... ');
+    process.stdout.write(`Initializing using ${format} format...`);
     const files: FileHandle[] = [];
     try {
         // Step 1a: Read the Format headers
         const channels: Format.Context[] = [];
         for (const s of sourceDensities) {
-            channels.push(await Format.open(s.name, s.filename));
+            channels.push(await Format.open(s.name, s.filename, format));
         }
         // Step 1b: Check if the Format headers are compatible.
         const isOk = channels.reduce((ok, s) => ok && Format.compareHeaders(channels[0].data.header, s.data.header), true);

@@ -9,6 +9,7 @@ import * as File from '../common/file'
 import { FileHandle } from 'mol-io/common/file-handle';
 import { Ccp4Provider } from './format/ccp4';
 import { TypedArrayBufferContext, TypedArrayValueArray, TypedArrayValueType, getElementByteSize, createTypedArrayBufferContext } from 'mol-io/common/typed-array';
+import { Dsn6Provider } from './format/dsn6';
 
 export interface Header {
     name: string,
@@ -22,6 +23,7 @@ export interface Header {
     cellAngles: number[],
     littleEndian: boolean,
     dataOffset: number
+    originalHeader: unknown // TODO
 }
 
 /** Represents a circular buffer for 2 * blockSize layers */
@@ -86,16 +88,16 @@ export function compareHeaders(a: Header, b: Header) {
     return true;
 }
 
-export type Type = 'ccp4' // | 'dsn6'
+export type Type = 'ccp4' | 'dsn6'
 
 export function getProviderFromType(type: Type): Provider {
     switch (type) {
         case 'ccp4': return Ccp4Provider
-        // case 'dsn6': return Dsn6Provider
+        case 'dsn6': return Dsn6Provider
     }
 }
 
-export async function open(name: string, filename: string, type: Type = 'ccp4'): Promise<Context> {
+export async function open(name: string, filename: string, type: Type): Promise<Context> {
     const provider = getProviderFromType(type)
     const descriptor = await File.openRead(filename);
     const file = FileHandle.fromDescriptor(descriptor)

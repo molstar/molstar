@@ -6,9 +6,8 @@
  */
 
 import { FileHandle } from 'mol-io/common/file-handle';
-import { readCcp4Header } from 'mol-io/reader/ccp4/parser';
-import { Header, Provider } from '../format';
-import { readSlices } from './common';
+import { readCcp4Header, readCcp4Slices } from 'mol-io/reader/ccp4/parser';
+import { Header, Provider, Data } from '../format';
 import { TypedArrayValueType } from 'mol-io/common/typed-array';
 
 function getTypedArrayValueType(mode: number) {
@@ -36,11 +35,33 @@ async function readHeader(name: string, file: FileHandle) {
         cellSize: [ccp4Header.xLength, ccp4Header.yLength, ccp4Header.zLength],
         cellAngles: [ccp4Header.alpha, ccp4Header.beta, ccp4Header.gamma],
         littleEndian,
-        dataOffset: 256 * 4 + ccp4Header.NSYMBT /* symBytes */
+        dataOffset: 256 * 4 + ccp4Header.NSYMBT, /* symBytes */
+        originalHeader: ccp4Header
     };
     // "normalize" the grid axis order
     header.grid = [header.grid[header.axisOrder[0]], header.grid[header.axisOrder[1]], header.grid[header.axisOrder[2]]];
     return header;
+}
+
+export async function readSlices(data: Data) {
+    const { slices, header } = data;
+    if (slices.isFinished) {
+        return;
+    }
+
+    const { extent } = header;
+    const sliceSize = extent[0] * extent[1];
+    const sliceByteOffset = slices.buffer.elementByteSize * sliceSize * slices.slicesRead;
+    const sliceCount = Math.min(slices.sliceCapacity, extent[2] - slices.slicesRead);
+    const sliceByteCount = sliceCount * sliceSize;
+
+    await readCcp4Slices(slices.buffer, data.file, header.dataOffset + sliceByteOffset, sliceByteCount, header.littleEndian);
+    slices.slicesRead += sliceCount;
+    slices.sliceCount = sliceCount;
+
+    if (slices.slicesRead >= extent[2]) {
+        slices.isFinished = true;
+    }
 }
 
 export const Ccp4Provider: Provider = { readHeader, readSlices }
