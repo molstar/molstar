@@ -49,9 +49,16 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
         if (super.componentDidMount) super.componentDidMount();
 
         if (this.props.toggleCollapsed) this.subscribe(this.props.toggleCollapsed, () => this.setState({ isCollapsed: !this.state.isCollapsed }));
+
+        this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
+            if (this.props.transform.ref !== ref || this.props.state !== state) return;
+            if (this.state.params !== this.props.transform.params) {
+                this.setState({ params: this.props.transform.params, isInitial: true })
+            }
+        });
     }
 
-    private _getInfo = memoizeLatest((t: StateTransform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, this.props.transform));
+    private _getInfo = memoizeLatest((t: StateTransform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, t));
 
     state: UpdateTransformContol.ComponentState = { transform: this.props.transform, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
 

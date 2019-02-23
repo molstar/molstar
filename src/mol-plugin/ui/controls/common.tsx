@@ -31,6 +31,7 @@ export class NumericInput extends React.PureComponent<{
     value: number,
     onChange: (v: number) => void,
     onEnter?: () => void,
+    onBlur?: () => void,
     blurOnEnter?: boolean,
     isDisabled?: boolean,
     placeholder?: string
@@ -58,6 +59,7 @@ export class NumericInput extends React.PureComponent<{
 
     onBlur = () => {
         this.setState({ value: '' + this.props.value });
+        if (this.props.onBlur) this.props.onBlur();
     }
 
     static getDerivedStateFromProps(props: { value: number }, state: { value: string }) {

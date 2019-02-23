@@ -234,8 +234,13 @@ class StateTreeNodeLabel extends PluginUIComponent<
             <span className='msp-icon msp-icon-visual-visibility' />
         </button>;
 
-        const row = <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}
-            style={{ marginLeft: this.state.isCurrent ? '0px' : `${this.props.depth * 10}px`, borderLeft: isCurrent || this.props.depth === 0 ? 'none' : void 0 }}>
+        const style: React.HTMLAttributes<HTMLDivElement>['style'] = {
+            marginLeft: this.state.isCurrent ? void 0 : `${this.props.depth * 10}px`,
+            // paddingLeft: !this.state.isCurrent ? void 0 : `${this.props.depth * 10}px`,
+            borderLeft: isCurrent || this.props.depth === 0 ? 'none' : void 0
+        }
+
+        const row = <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={style}>
             {label}
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />
@@ -257,6 +262,13 @@ class StateTreeNodeLabel extends PluginUIComponent<
 }
 
 class StateTreeNodeTransform extends PluginUIComponent<{ nodeRef: string, state: State, depth: number, toggleCollapsed?: Observable<any> }> {
+    componentDidMount() {
+        // this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
+        //     if (this.props.nodeRef !== ref || this.props.state !== state) return;
+        //     this.forceUpdate();
+        // });
+    }
+
     render() {
         const ref = this.props.nodeRef;
         const cell = this.props.state.cells.get(ref)!;
