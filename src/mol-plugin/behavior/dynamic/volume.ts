@@ -41,7 +41,7 @@ export namespace VolumeStreaming {
                 topRight: PD.Vec3(Vec3.create(-7.1, -10, -0.9))
             }, { description: 'Static box defined by cartesian coords.' }),
             // 'around-selection': PD.Group({ radius: PD.Numeric(5, { min: 0, max: 10 }) }),
-            // 'whole-structure': PD.Group({  }),
+            'cell': PD.Group({  }),
             // 'auto': PD.Group({  }), // based on camera distance/active selection/whatever, show whole structure or slice.
         }),
         detailLevel: PD.Numeric(3, { min: 0, max: 7 }),
@@ -55,6 +55,7 @@ export namespace VolumeStreaming {
     export class Behavior implements PluginBehavior<Params> {
         // TODO: have special value for "cell"?
         private cache = LRUCache.create<ChannelData>(25);
+        // private ref: string = '';
 
         currentData: ChannelData = { }
 
@@ -109,14 +110,28 @@ export namespace VolumeStreaming {
         }
 
         register(ref: string): void {
-            // TODO: registr camera movement/loci so that "around selection box works"
+            // TODO: register camera movement/loci so that "around selection box works"
+            // alternatively, and maybe a better solution, write a global behavior that modifies this node from the outside
+            // this.ref = ref;
             this.update(this.params);
         }
 
         async update(params: Params): Promise<boolean> {
             this.params = params;
 
-            const box: Box3D = Box3D.create(params.box.params.bottomLeft, params.box.params.topRight);
+            let box: Box3D | undefined = void 0;
+
+            switch (params.box.name) {
+                case 'static-box':
+                    box = Box3D.create(params.box.params.bottomLeft, params.box.params.topRight);
+                    break;
+                case 'cell':
+                    box = this.params.levels.name === 'x-ray'
+                        ? void 0 // TODO get bounding box of the model (how to solve assemblies)
+                        : void 0;
+                    break;
+            }
+
             const data = await this.queryData(box);
             this.currentData = data || { };
 

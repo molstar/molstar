@@ -56,6 +56,10 @@ namespace Transform {
         return { ...t, parent, version: UUID.create22() };
     }
 
+    export function withNewVersion(t: Transform): Transform {
+        return { ...t, version: UUID.create22() };
+    }
+
     export function createRoot(props?: Props): Transform {
         return create(RootRef, StateTransformer.ROOT, {}, { ref: RootRef, props });
     }

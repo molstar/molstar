@@ -195,16 +195,16 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                 type: PD.Mapped<any>(
                     registry.default.name,
                     registry.types,
-                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, VolumeData.Empty ))),
+                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, VolumeData.One ))),
                 colorTheme: PD.Mapped<any>(
                     type.defaultColorTheme,
                     themeCtx.colorThemeRegistry.types,
-                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: VolumeData.Empty }))
+                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: VolumeData.One }))
                 ),
                 sizeTheme: PD.Mapped<any>(
                     type.defaultSizeTheme,
                     themeCtx.sizeThemeRegistry.types,
-                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: VolumeData.Empty }))
+                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: VolumeData.One }))
                 )
             }
         }

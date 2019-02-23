@@ -24,18 +24,18 @@ export function createIsoValueParam(defaultValue: VolumeIsoValue) {
         defaultValue,
         {
             'absolute': PD.Converted(
-                (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v, VolumeData.Empty.dataStats).absoluteValue,
+                (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v, VolumeData.One.dataStats).absoluteValue,
                 (v: number) => VolumeIsoValue.absolute(v),
                 PD.Numeric(0.5, { min: -1, max: 1, step: 0.01 })
             ),
             'relative': PD.Converted(
-                (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v, VolumeData.Empty.dataStats).relativeValue,
+                (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v, VolumeData.One.dataStats).relativeValue,
                 (v: number) => VolumeIsoValue.relative(v),
                 PD.Numeric(2, { min: -10, max: 10, step: 0.01 })
             )
         },
         (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
-        (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, VolumeData.Empty.dataStats) : VolumeIsoValue.toRelative(v, VolumeData.Empty.dataStats)
+        (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, VolumeData.One.dataStats) : VolumeIsoValue.toRelative(v, VolumeData.One.dataStats)
     )
 }
 

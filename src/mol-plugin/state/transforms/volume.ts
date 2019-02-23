@@ -111,6 +111,7 @@ const VolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     apply: ({ params }, plugin: PluginContext) => Task.create('Volume Streaming', async ctx => {
         const behavior = new VolumeStreaming.Behavior(plugin, params);
         // get the initial data now so that the child projections dont get empty volumes.
+        // TODO: this is a temporary fix
         await behavior.update(behavior.params);
         return new VolumeStreaming.Obj(behavior, { label: 'Volume Streaming' });
     }),
@@ -174,7 +175,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
 });
 
 function createVolumeProps(streaming: VolumeStreaming.Behavior, channel: keyof VolumeStreaming.ChannelData, level: VolumeStreaming.LevelType) {
-    const data = streaming.currentData[channel] || VolumeData.Empty;
+    const data = streaming.currentData[channel] || VolumeData.One;
     // TODO: createTheme fails when VolumeData.Empty is used for some reason.
 
     let isoValue: VolumeIsoValue, color: Color;

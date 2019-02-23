@@ -21,10 +21,10 @@ interface VolumeData {
 }
 
 namespace VolumeData {
-    export const Empty: VolumeData = {
+    export const One: VolumeData = {
         cell: SpacegroupCell.Zero,
         fractionalBox: Box3D.empty(),
-        data: Tensor.create(Tensor.Space([0, 0, 0], [0, 1, 2]), Tensor.Data1([])),
+        data: Tensor.create(Tensor.Space([1, 1, 1], [0, 1, 2]), Tensor.Data1([0])),
         dataStats: { min: 0, max: 0, mean: 0, sigma: 0 }
     }
 
