@@ -295,7 +295,7 @@ const DownloadDensity = StateAction.build({
 
 export const InitVolumeStreaming = StateAction.build({
     display: { name: 'Volume Streaming' },
-    from: PluginStateObject.Molecule.Model,
+    from: PluginStateObject.Molecule.Structure,
     params: VolumeStreaming.Params
 })(({ ref, state, params }, ctx: PluginContext) => {
     // TODO: specify simpler params
@@ -306,9 +306,9 @@ export const InitVolumeStreaming = StateAction.build({
     const root = state.build().to(ref)
         .apply(StateTransforms.Volume.VolumeStreamingBehavior, params);
 
-    root.apply(StateTransforms.Volume.VolumeStreamingVisual, { channel: '2FO-FC', level: '2fo-fc' });
-    root.apply(StateTransforms.Volume.VolumeStreamingVisual, { channel: 'FO-FC', level: 'fo-fc(+ve)' });
-    root.apply(StateTransforms.Volume.VolumeStreamingVisual, { channel: 'FO-FC', level: 'fo-fc(-ve)' });
+    root.apply(StateTransforms.Volume.VolumeStreamingVisual, { channel: '2FO-FC', level: '2fo-fc' }, { props: { isGhost: true } });
+    root.apply(StateTransforms.Volume.VolumeStreamingVisual, { channel: 'FO-FC', level: 'fo-fc(+ve)' }, { props: { isGhost: true } });
+    root.apply(StateTransforms.Volume.VolumeStreamingVisual, { channel: 'FO-FC', level: 'fo-fc(-ve)' }, { props: { isGhost: true } });
 
     return state.updateTree(root);
 });

@@ -16,6 +16,7 @@ import { Color } from 'mol-util/color';
 import { LRUCache } from 'mol-util/lru-cache';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
+import { Structure } from 'mol-model/structure';
 
 export namespace VolumeStreaming {
     function channelParam(label: string, color: Color, defaultValue: number) {
@@ -112,8 +113,6 @@ export namespace VolumeStreaming {
         register(ref: string): void {
             // TODO: register camera movement/loci so that "around selection box works"
             // alternatively, and maybe a better solution, write a global behavior that modifies this node from the outside
-            // this.ref = ref;
-            this.update(this.params);
         }
 
         async update(params: Params): Promise<boolean> {
@@ -127,7 +126,7 @@ export namespace VolumeStreaming {
                     break;
                 case 'cell':
                     box = this.params.levels.name === 'x-ray'
-                        ? void 0 // TODO get bounding box of the model (how to solve assemblies)
+                        ? this.structure.boundary.box
                         : void 0;
                     break;
             }
@@ -142,7 +141,7 @@ export namespace VolumeStreaming {
             // TODO unsubscribe to events
         }
 
-        constructor(public ctx: PluginContext, public params: Params) {
+        constructor(public ctx: PluginContext, public params: Params, private structure: Structure) {
         }
     }
 

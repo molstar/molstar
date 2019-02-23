@@ -53,6 +53,7 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
             if (this.props.transform.ref !== ref || this.props.state !== state) return;
             if (this.state.params !== this.props.transform.params) {
+                this._getInfo = memoizeLatest((t: StateTransform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, t));
                 this.setState({ params: this.props.transform.params, isInitial: true })
             }
         });

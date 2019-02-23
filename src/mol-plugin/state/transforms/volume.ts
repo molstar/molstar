@@ -104,14 +104,14 @@ type VolumeStreamingBehavior = typeof VolumeStreamingBehavior
 const VolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     name: 'volume-streaming-behavior',
     display: { name: 'Volume Streaming Behavior', description: 'Create Volume Streaming behavior.' },
-    from: SO.Molecule.Model,
+    from: SO.Molecule.Structure,
     to: VolumeStreaming.Obj,
     params: VolumeStreaming.Params
 })({
-    apply: ({ params }, plugin: PluginContext) => Task.create('Volume Streaming', async ctx => {
-        const behavior = new VolumeStreaming.Behavior(plugin, params);
+    canAutoUpdate: ({ oldParams, newParams }) => oldParams.serverUrl === newParams.serverUrl && oldParams.id === newParams.id,
+    apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume Streaming', async ctx => {
+        const behavior = new VolumeStreaming.Behavior(plugin, params, a.data);
         // get the initial data now so that the child projections dont get empty volumes.
-        // TODO: this is a temporary fix
         await behavior.update(behavior.params);
         return new VolumeStreaming.Obj(behavior, { label: 'Volume Streaming' });
     }),
