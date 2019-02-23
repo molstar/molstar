@@ -19,23 +19,27 @@ import { VisualContext } from 'mol-repr/visual';
 import { NullLocation } from 'mol-model/location';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 
-export const IsoValueParam = PD.Conditioned(
-    VolumeIsoValue.relative(2),
-    {
-        'absolute': PD.Converted(
-            (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v, VolumeData.Empty.dataStats).absoluteValue,
-            (v: number) => VolumeIsoValue.absolute(v),
-            PD.Numeric(0.5, { min: -1, max: 1, step: 0.01 })
-        ),
-        'relative': PD.Converted(
-            (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v, VolumeData.Empty.dataStats).relativeValue,
-            (v: number) => VolumeIsoValue.relative(v),
-            PD.Numeric(2, { min: -10, max: 10, step: 0.01 })
-        )
-    },
-    (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
-    (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, VolumeData.Empty.dataStats) : VolumeIsoValue.toRelative(v, VolumeData.Empty.dataStats)
-)
+export function createIsoValueParam(defaultValue: VolumeIsoValue) {
+    return PD.Conditioned(
+        defaultValue,
+        {
+            'absolute': PD.Converted(
+                (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v, VolumeData.Empty.dataStats).absoluteValue,
+                (v: number) => VolumeIsoValue.absolute(v),
+                PD.Numeric(0.5, { min: -1, max: 1, step: 0.01 })
+            ),
+            'relative': PD.Converted(
+                (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v, VolumeData.Empty.dataStats).relativeValue,
+                (v: number) => VolumeIsoValue.relative(v),
+                PD.Numeric(2, { min: -10, max: 10, step: 0.01 })
+            )
+        },
+        (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
+        (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, VolumeData.Empty.dataStats) : VolumeIsoValue.toRelative(v, VolumeData.Empty.dataStats)
+    )
+}
+
+export const IsoValueParam = createIsoValueParam(VolumeIsoValue.relative(2));
 type IsoValueParam = typeof IsoValueParam
 
 export const VolumeIsosurfaceParams = {
@@ -154,6 +158,7 @@ export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeDat
         (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
         (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, stats) : VolumeIsoValue.toRelative(v, stats)
     )
+
     return p
 }
 

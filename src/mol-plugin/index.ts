@@ -29,6 +29,9 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateActions.Volume.OpenVolume),
         PluginSpec.Action(StateActions.Structure.CreateComplexRepresentation),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
+
+        PluginSpec.Action(StateActions.Volume.InitVolumeStreaming),
+
         PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),
         PluginSpec.Action(StateTransforms.Data.ParseCcp4),
@@ -36,7 +39,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Model.StructureSymmetryFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
         PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
-        PluginSpec.Action(StateTransforms.Model.VolumeFromCcp4),
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
         PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),

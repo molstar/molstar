@@ -8,35 +8,41 @@ import CIF from 'mol-io/reader/cif';
 import { Box3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { volumeFromDensityServerData } from 'mol-model-formats/volume/density-server';
-import { VolumeData } from 'mol-model/volume';
+import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginStateObject } from 'mol-plugin/state/objects';
-import { IsoValueParam } from 'mol-repr/volume/isosurface';
+import { createIsoValueParam } from 'mol-repr/volume/isosurface';
 import { Color } from 'mol-util/color';
-import { ColorNames } from 'mol-util/color/tables';
 import { LRUCache } from 'mol-util/lru-cache';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
 
-export namespace VolumeStreamingBehavior {
-    function channelParam(label: string) { return PD.Group({ color: PD.Color(Color(ColorNames.teal)), isoValue: IsoValueParam }, { label }); }
+export namespace VolumeStreaming {
+    function channelParam(label: string, color: Color, defaultValue: number) {
+        return PD.Group({
+            color: PD.Color(color),
+            isoValue: createIsoValueParam(VolumeIsoValue.relative(defaultValue))
+        }, { label });
+    }
 
     export const Params = {
-        id: PD.Text(''),
-        levels: PD.MappedStatic('em', {
-            'em': channelParam('EM'),
+        id: PD.Text('1tqn'),
+        levels: PD.MappedStatic('x-ray', {
+            'em': channelParam('EM', Color(0x638F8F), 1.5),
             'x-ray': PD.Group({
-                '2fo-fc': channelParam('2Fo-Fc'),
-                'fo-fc(+ve)': channelParam('Fo-Fc(+ve)'),
-                'fo-fc(-ve)': channelParam('Fo-Fc(-ve)'),
+                '2fo-fc': channelParam('2Fo-Fc', Color(0x3362B2), 1.5),
+                'fo-fc(+ve)': channelParam('Fo-Fc(+ve)', Color(0x33BB33), 3),
+                'fo-fc(-ve)': channelParam('Fo-Fc(-ve)', Color(0xBB3333), -3),
             })
         }),
         box: PD.MappedStatic('static-box', {
             'static-box': PD.Group({
-                bottomLeft: PD.Vec3(Vec3.create(0, 0, 0)),
-                topRight: PD.Vec3(Vec3.create(1, 1, 1))
+                bottomLeft: PD.Vec3(Vec3.create(-22.4, -33.4, -21.6)),
+                topRight: PD.Vec3(Vec3.create(-7.1, -10, -0.9))
             }, { description: 'Static box defined by cartesian coords.' }),
             // 'around-selection': PD.Group({ radius: PD.Numeric(5, { min: 0, max: 10 }) }),
+            // 'whole-structure': PD.Group({  }),
+            // 'auto': PD.Group({  }), // based on camera distance/active selection/whatever, show whole structure or slice.
         }),
         detailLevel: PD.Numeric(3, { min: 0, max: 7 }),
         serverUrl: PD.Text('https://webchem.ncbr.muni.cz/DensityServer'),
@@ -47,6 +53,7 @@ export namespace VolumeStreamingBehavior {
     export type LevelType = 'em' | '2fo-fc' | 'fo-fc(+ve)' | 'fo-fc(-ve)'
 
     export class Behavior implements PluginBehavior<Params> {
+        // TODO: have special value for "cell"?
         private cache = LRUCache.create<ChannelData>(25);
 
         currentData: ChannelData = { }
@@ -95,13 +102,14 @@ export namespace VolumeStreamingBehavior {
                 const block = parsed.result.blocks[i];
 
                 const densityServerCif = CIF.schema.densityServer(block);
-                const volume = this.ctx.runTask(await volumeFromDensityServerData(densityServerCif));
+                const volume = await this.ctx.runTask(await volumeFromDensityServerData(densityServerCif));
                 (ret as any)[block.header as any] = volume;
             }
             return ret;
         }
 
         register(ref: string): void {
+            // TODO: registr camera movement/loci so that "around selection box works"
             this.update(this.params);
         }
 
@@ -116,6 +124,7 @@ export namespace VolumeStreamingBehavior {
         }
 
         unregister(): void {
+            // TODO unsubscribe to events
         }
 
         constructor(public ctx: PluginContext, public params: Params) {

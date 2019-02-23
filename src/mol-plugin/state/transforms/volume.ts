@@ -13,12 +13,14 @@ import { volumeFromDsn6 } from 'mol-model-formats/volume/dsn6';
 import { Task } from 'mol-task';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
-import { VolumeStreamingBehavior as VolumeStreaming } from 'mol-plugin/behavior/dynamic/volume';
+import { VolumeStreaming } from 'mol-plugin/behavior/dynamic/volume';
 import { PluginContext } from 'mol-plugin/context';
 import { StateTransformer } from 'mol-state';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { BuiltInVolumeRepresentations } from 'mol-repr/volume/registry';
 import { createTheme } from 'mol-theme/theme';
+import { VolumeRepresentation3DHelpers } from './representation';
+import { Color } from 'mol-util/color';
 
 export { VolumeFromCcp4 };
 export { VolumeFromDsn6 };
@@ -106,10 +108,12 @@ const VolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     to: VolumeStreaming.Obj,
     params: VolumeStreaming.Params
 })({
-    apply({ a, params }, plugin: PluginContext) {
+    apply: ({ params }, plugin: PluginContext) => Task.create('Volume Streaming', async ctx => {
         const behavior = new VolumeStreaming.Behavior(plugin, params);
+        // get the initial data now so that the child projections dont get empty volumes.
+        await behavior.update(behavior.params);
         return new VolumeStreaming.Obj(behavior, { label: 'Volume Streaming' });
-    },
+    }),
     update({ b, newParams }) {
         return Task.create('Update Volume Streaming', async _ => {
             await b.data.update(newParams);
@@ -117,6 +121,25 @@ const VolumeStreamingBehavior = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+// export { VolumeStreamingData }
+// type VolumeStreamingData = typeof VolumeStreamingData
+// const VolumeStreamingData = PluginStateTransform.BuiltIn({
+//     name: 'volume-streaming-data',
+//     display: { name: 'Volume Streaming Data' },
+//     from: VolumeStreaming.Obj,
+//     to: SO.Volume.Data,
+//     params: {
+//         channel: PD.Select<keyof VolumeStreaming.ChannelData>('EM', [['EM', 'EM'], ['FO-FC', 'Fo-Fc'], ['2FO-FC', '2Fo-Fc']], { isHidden: true }),
+//         level: PD.Text<VolumeStreaming.LevelType>('em')
+//     }
+// })({
+//     apply({ a, params }, plugin: PluginContext) {
+//         const data = a.data.currentData[params.channel] || VolumeData.Empty;
+//         console.log({ data });
+//         return new SO.Volume.Data(a.data.currentData[params.channel] || VolumeData.Empty, { label: params.level });
+//     }
+// });
 
 export { VolumeStreamingVisual }
 type VolumeStreamingVisual = typeof VolumeStreamingVisual
@@ -130,19 +153,21 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         level: PD.Text<VolumeStreaming.LevelType>('em')
     }
 })({
-    apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
-        const { data, props, theme } = createVolumeProps(a.data, params.channel, params.level)
+    apply: ({ a, params: srcParams }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
+        const { data, params } = createVolumeProps(a.data, srcParams.channel, srcParams.level);
 
-        const repr = BuiltInVolumeRepresentations.isosurface.factory({ webgl: plugin.canvas3d.webgl, ...plugin.volumeRepresentation.themeCtx }, BuiltInVolumeRepresentations.isosurface.getParams);
-        repr.setTheme(theme);
-
+        const provider = BuiltInVolumeRepresentations.isosurface;
+        const props = params.type.params || {}
+        const repr = provider.factory({ webgl: plugin.canvas3d.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
+        repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: data }, params))
         await repr.createOrUpdate(props, data).runInContext(ctx);
-        return new SO.Volume.Representation3D(repr, { label: params.level });
+        return new SO.Volume.Representation3D(repr, { label: srcParams.level, description: VolumeRepresentation3DHelpers.getDescription(props) });
     }),
-    update: ({ a, b, oldParams, newParams }) => Task.create('Volume Representation', async ctx => {
-        // TODO : check if params have changed
-        const { data, props, theme } = createVolumeProps(a.data, newParams.channel, newParams.level);
-        b.data.setTheme(theme);
+    update: ({ a, b, oldParams, newParams }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
+        // TODO : check if params/underlying data/etc have changed; maybe will need to export "data" or some other "tag" in the Representation for this to work
+        const { data, params } = createVolumeProps(a.data, newParams.channel, newParams.level);
+        const props = { ...b.data.props, ...params.type.params };
+        b.data.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: data }, params))
         await b.data.createOrUpdate(props, data).runInContext(ctx);
         return StateTransformer.UpdateResult.Updated;
     })
@@ -150,22 +175,20 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
 
 function createVolumeProps(streaming: VolumeStreaming.Behavior, channel: keyof VolumeStreaming.ChannelData, level: VolumeStreaming.LevelType) {
     const data = streaming.currentData[channel] || VolumeData.Empty;
-    const { themeCtx } = streaming.ctx.volumeRepresentation;
+    // TODO: createTheme fails when VolumeData.Empty is used for some reason.
 
-    const props = PD.getDefaultValues(BuiltInVolumeRepresentations.isosurface.getParams(themeCtx, data));
-    let isoValue: VolumeIsoValue;
+    let isoValue: VolumeIsoValue, color: Color;
 
     if (level === 'em' && streaming.params.levels.name === 'em') {
         isoValue = streaming.params.levels.params.isoValue;
+        color = streaming.params.levels.params.color;
     } else if (level !== 'em' && streaming.params.levels.name === 'x-ray') {
         isoValue = streaming.params.levels.params[level].isoValue;
+        color = streaming.params.levels.params[level].color;
     } else {
         throw new Error(`Unsupported iso level ${level}.`);
     }
 
-    props.isoValue = isoValue;
-
-    const theme = createTheme(streaming.ctx.volumeRepresentation.themeCtx, { volume: data }, props);
-
-    return { data, props, theme };
+    const params = VolumeRepresentation3DHelpers.getDefaultParamsStatic(streaming.ctx, 'isosurface', { isoValue, alpha: 0.3 }, 'uniform', { value: color });
+    return { data, params };
 }
