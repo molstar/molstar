@@ -15,6 +15,7 @@ import { createTheme } from 'mol-theme/theme';
 import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
 import { Structure } from 'mol-model/structure';
 import { StructureParams } from 'mol-repr/structure/representation';
+import { ShapeRepresentation } from 'mol-repr/shape/representation';
 
 export namespace StructureRepresentation3DHelpers {
     export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): Transformer.Params<StructureRepresentation3D> {
@@ -93,6 +94,28 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             b.data.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams))
             await b.data.createOrUpdate(props, a.data).runInContext(ctx);
             return Transformer.UpdateResult.Updated;
+        });
+    }
+});
+
+export { ShapeRepresentation3D }
+type ShapeRepresentation3D = typeof ShapeRepresentation3D
+const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'shape-representation-3d',
+    display: '3D Representation',
+    from: SO.Shape.Provider,
+    to: SO.Shape.Representation3D,
+    params: (a, ctx: PluginContext) => {
+        return { }
+    }
+})({
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Shape Representation', async ctx => {
+            const props = { ...PD.getDefaultValues(a.data.geometryUtils.Params), params }
+            const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils)
+            // TODO set initial state, repr.setState({})
+            await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
+            return new SO.Shape.Representation3D(repr, { label: a.data.label });
         });
     }
 });

@@ -4,23 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// import { Column } from 'mol-data/db'
 import { Tokens, TokenBuilder, Tokenizer } from '../../common/text/tokenizer'
 import * as Data from './data-model'
 
 import Result from '../../result'
-import {Task, RuntimeContext, chunkedSubtask, Progress,} from 'mol-task'
-import * as plyToShape from 'mol-model/shape/formarts/ply/plyData_to_shape'
-import {MyData} from 'mol-model/shape/formarts/ply/plyData_to_shape';
-import {Mesh} from '../../../../mol-geo/geometry/mesh/mesh';
-import {ParamDefinition} from '../../../../mol-util/param-definition';
-import Color = ParamDefinition.Color;
-import {ColorNames} from '../../../../mol-util/color/tables';
-import {ShapeRepresentation} from '../../../../mol-repr/shape/representation';
-//import {init2} from '../../../../tests/browser/render-shape';
-
-
-
+import {Task, RuntimeContext, chunkedSubtask } from 'mol-task'
 
 const enum PlyTokenType {
     Value = 0,
@@ -92,7 +80,7 @@ function State(data: string, runtimeCtx: RuntimeContext, opts: PlyOptions): Stat
         properties: [],
         vertices: [],
         colors: [],
-        normals:[],
+        normals: [],
         faces: [],
         propertyNames: [],
         check: [],
@@ -289,13 +277,13 @@ function init(state: State) { // only for first two lines to get the format and 
     }
     addHeadEntry(state)
     if(state.initialHead[0] !== 'ply'){
-        console.log("ERROR: this is not a .ply file!")
-        throw new Error("this is not a .ply file!");
+        console.log('ERROR: this is not a .ply file!')
+        throw new Error('this is not a .ply file!');
         return 0;
     }
     if(state.initialHead[2] !== 'ascii'){
-        console.log("ERROR: only ASCII-DECODING is supported!");
-        throw new Error("only ASCII-DECODING is supported!");
+        console.log('ERROR: only ASCII-DECODING is supported!');
+        throw new Error('only ASCII-DECODING is supported!');
         return 0;
     }
     state.columnCount = state.initialHead.length
@@ -304,8 +292,8 @@ function init(state: State) { // only for first two lines to get the format and 
 
 async function handleRecords(state: State): Promise<Data.ply_form> {
     if(!init(state)){
-        console.log("ERROR: parsing file (PLY) failed!")
-        throw new Error("parsing file (PLY) failed!");
+        console.log('ERROR: parsing file (PLY) failed!')
+        throw new Error('arsing file (PLY) failed!');
     }
     await readRecordsChunks(state)
 
@@ -320,13 +308,13 @@ async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions
     const result = Data.PlyFile(PLYdata)
     console.log(result);
 
-   // let Data_for_Shape = plyToShape.collectData_for_Shape(table, datas);
-    //console.log(plyToShape.getShape(state.runtimeCtx, table));
-    let shape  = plyToShape.init_ren(PLYdata);
-    console.log("shape"+shape);
-   // const script = document.createElement('script');
-   // script.src = "../../build/src/mol-model/shape/formarts/ply/plyData_to_shape.js";
-   // document.body.appendChild(script);
+    // let Data_for_Shape = plyToShape.collectData_for_Shape(table, datas);
+    // console.log(plyToShape.getShape(state.runtimeCtx, table));
+    // let shape  = plyToShape.init_ren(PLYdata);
+    // console.log("shape"+shape);
+    // const script = document.createElement('script');
+    // script.src = "../../build/src/mol-model/shape/formarts/ply/plyData_to_shape.js";
+    // document.body.appendChild(script);
 
     return Result.success(result);
 }
