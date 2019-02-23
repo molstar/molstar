@@ -7,6 +7,7 @@
 import { State, StateTransform } from 'mol-state';
 import { memoizeLatest } from 'mol-util/memoize';
 import { StateTransformParameters, TransformContolBase } from './common';
+import { Observable } from 'rxjs';
 
 export { UpdateTransformContol };
 
@@ -14,6 +15,7 @@ namespace UpdateTransformContol {
     export interface Props {
         transform: StateTransform,
         state: State,
+        toggleCollapsed?: Observable<any>,
         initiallyCollapsed?: boolean
     }
 
@@ -43,12 +45,18 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
         return autoUpdate({ a: cell.obj!, b: parentCell.obj!, oldParams: this.getInfo().initialValues, newParams }, this.plugin);
     }
 
+    componentDidMount() {
+        if (super.componentDidMount) super.componentDidMount();
+
+        if (this.props.toggleCollapsed) this.subscribe(this.props.toggleCollapsed, () => this.setState({ isCollapsed: !this.state.isCollapsed }));
+    }
+
     private _getInfo = memoizeLatest((t: StateTransform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, this.props.transform));
 
     state: UpdateTransformContol.ComponentState = { transform: this.props.transform, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
 
     static getDerivedStateFromProps(props: UpdateTransformContol.Props, state: UpdateTransformContol.ComponentState) {
-        if (props.transform === state.transform && props.initiallyCollapsed) return null;
+        if (props.transform === state.transform) return null;
         const cell = props.state.cells.get(props.transform.ref)!;
         const newState: Partial<UpdateTransformContol.ComponentState> = {
             transform: props.transform,

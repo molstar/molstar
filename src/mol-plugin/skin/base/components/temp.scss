@@ -78,10 +78,31 @@
     margin-bottom: 1px;
     padding-left: $row-height;
     padding-right: 2 * $row-height + $control-spacing;
-    border-bottom-left-radius: $control-spacing;
+    border-left: 1px dotted $entity-color-Group; // TODO custom color
+    // border-bottom-left-radius: $control-spacing;
 
     &-current {
-        background: $control-background
+        // background: $control-background
+        a {
+            color: $font-color;
+        }
+
+        a:hover, a:hover > small {
+            color: color-lower-contrast($font-color, 24%);
+        }
+    }
+
+    a {
+        display: block;
+    }
+
+    a > small {
+        color: $font-color;
+    }
+
+    a:hover {
+        font-weight: bold;
+        text-decoration: none;
     }
 }
 
@@ -99,6 +120,7 @@
     left: 0;
     top: 0;
     width: $row-height;
+    padding: 0;
     color: color-lower-contrast($font-color, 24%);
 }
 

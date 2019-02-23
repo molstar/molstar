@@ -85,7 +85,7 @@ const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
 type ModelFromTrajectory = typeof ModelFromTrajectory
 const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     name: 'model-from-trajectory',
-    display: { name: 'Model from Trajectory', description: 'Create a molecular structure from the specified model.' },
+    display: { name: 'Molecular Model', description: 'Create a molecular model from specified index in a trajectory.' },
     from: SO.Molecule.Trajectory,
     to: SO.Molecule.Model,
     params: a => {
@@ -99,7 +99,9 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
         const model = a.data[params.modelIndex];
-        const props = { label: `Model ${model.modelNum}` };
+        const props = a.data.length === 1
+            ? { label: `${model.label}` }
+            : { label: `${model.label}:${model.modelNum}`, description: `Model ${model.modelNum} of ${a.data.length}` };
         return new SO.Molecule.Model(model, props);
     }
 });

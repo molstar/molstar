@@ -10,7 +10,7 @@
     }
 }
 
-.msp-layout-right {
+.msp-layout-right, .msp-layout-left {
     background: $control-background;
 }
 
@@ -43,7 +43,8 @@
 }
 
 .msp-transform-update-wrapper {
-    border-bottom: $control-spacing solid $control-background;
+    //border-bottom: $control-spacing solid $control-background;
+    margin-bottom: 1px;
 }
 
 .msp-transform-update-wrapper-collapsed {
@@ -54,8 +55,9 @@
     > .msp-transform-header > button {
         text-align: left;
         padding-left: $row-height;
-        background: $control-background; // color-lower-contrast($default-background, 4%);
-        font-weight: bold;
+        line-height: 24px;
+        background: color-lower-contrast($control-background, 4%); // $control-background; // color-lower-contrast($default-background, 4%);
+        // font-weight: bold;
     }
 }
 

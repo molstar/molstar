@@ -31,7 +31,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
         const values = this.props.values;
         const keys = Object.keys(params);
         if (keys.length === 0) return null;
-        return <div style={{ width: '100%' }}>
+        return <>
             {keys.map(key => {
                 const param = params[key];
                 if (param.isHidden) return null;
@@ -39,7 +39,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
                 if (!Control) return null;
                 return <Control param={param} key={key} onChange={this.props.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} />
             })}
-        </div>;
+        </>;
     }
 }
 

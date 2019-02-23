@@ -11,6 +11,7 @@ import { PluginCommands } from 'mol-plugin/command';
 import { PluginUIComponent } from '../base';
 import { UpdateTransformContol } from './update-transform';
 import { StateObjectActions } from './actions';
+import { Observable, Subject } from 'rxjs';
 
 export class StateTree extends PluginUIComponent<{ state: State }, { showActions: boolean }> {
     state = { showActions: true };
@@ -112,7 +113,10 @@ class StateTreeNode extends PluginUIComponent<{ nodeRef: string, state: State, d
     }
 }
 
-class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: State, depth: number }, { state: State, isCurrent: boolean, isCollapsed: boolean }> {
+class StateTreeNodeLabel extends PluginUIComponent<
+    { nodeRef: string, state: State, depth: number },
+    { state: State, isCurrent: boolean, isCollapsed: boolean, updaterCollapsed: boolean }> {
+
     is(e: State.ObjectEvent) {
         return e.ref === this.props.nodeRef && e.state === this.props.state;
     }
@@ -142,7 +146,8 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
     state = {
         isCurrent: this.props.state.current === this.props.nodeRef,
         isCollapsed: this.props.state.cellStates.get(this.props.nodeRef).isCollapsed,
-        state: this.props.state
+        state: this.props.state,
+        updaterCollapsed: true
     }
 
     static getDerivedStateFromProps(props: { nodeRef: string, state: State }, state: { state: State, isCurrent: boolean, isCollapsed: boolean }) {
@@ -150,12 +155,14 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
         return {
             isCurrent: props.state.current === props.nodeRef,
             isCollapsed: props.state.cellStates.get(props.nodeRef).isCollapsed,
-            state: props.state
+            state: props.state,
+            updaterCollapsed: true
         };
     }
 
     setCurrent = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
+        e.currentTarget.blur();
         PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
     }
 
@@ -188,6 +195,13 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
         e.currentTarget.blur();
     }
 
+    private toggleUpdaterObs = new Subject();
+    toggleUpdater = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        e.currentTarget.blur();
+        this.toggleUpdaterObs.next();
+    }
+
     render() {
         const n = this.props.state.transforms.get(this.props.nodeRef)!;
         const cell = this.props.state.cells.get(this.props.nodeRef)!;
@@ -207,9 +221,9 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
             const obj = cell.obj as PluginStateObject.Any;
             const title = `${obj.label} ${obj.description ? obj.description : ''}`
             if (this.state.isCurrent) {
-                label = <><b>{obj.label}</b> {obj.description ? <small>{obj.description}</small> : void 0}</>;
+                label = <><a title={title} href='#' onClick={this.toggleUpdater}><b>{obj.label}</b> {obj.description ? <small>{obj.description}</small> : void 0}</a></>;
             } else {
-                label = <><a title={title} href='#' onClick={this.setCurrent}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
+                label = <><a title={title} href='#' onClick={this.setCurrent}>{obj.label} {obj.description ? <small>{obj.description}</small> : void 0}</a></>;
             }
         }
 
@@ -221,7 +235,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
         </button>;
 
         const row = <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}
-            style={{ marginLeft: this.state.isCurrent ? '0px' : `${this.props.depth * 10}px`, borderRadius: this.state.isCurrent ? '0' : void 0 }}>
+            style={{ marginLeft: this.state.isCurrent ? '0px' : `${this.props.depth * 10}px`, borderLeft: isCurrent || this.props.depth === 0 ? 'none' : void 0 }}>
             {label}
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />
@@ -234,7 +248,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
         if (this.state.isCurrent) {
             return <>
                 {row}
-                <StateTreeNodeTransform {...this.props}/>
+                <StateTreeNodeTransform {...this.props} toggleCollapsed={this.toggleUpdaterObs} />
             </>
         }
 
@@ -242,7 +256,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ nodeRef: string, state: Sta
     }
 }
 
-class StateTreeNodeTransform extends PluginUIComponent<{ nodeRef: string, state: State, depth: number }, { isExpanded: boolean }> {
+class StateTreeNodeTransform extends PluginUIComponent<{ nodeRef: string, state: State, depth: number, toggleCollapsed?: Observable<any> }> {
     render() {
         const ref = this.props.nodeRef;
         const cell = this.props.state.cells.get(ref)!;
@@ -251,6 +265,6 @@ class StateTreeNodeTransform extends PluginUIComponent<{ nodeRef: string, state:
         if (!parent || parent.status !== 'ok') return null;
 
         const transform = cell.transform;
-        return <UpdateTransformContol state={this.props.state} transform={transform} initiallyCollapsed={true} />;
+        return <UpdateTransformContol state={this.props.state} transform={transform} initiallyCollapsed={true} toggleCollapsed={this.props.toggleCollapsed} />;
     }
 }
