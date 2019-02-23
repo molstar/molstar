@@ -78,7 +78,7 @@
     margin-bottom: 1px;
     padding-left: $row-height;
     padding-right: 2 * $row-height + $control-spacing;
-    border-left: 1px dotted $entity-color-Group; // TODO custom color
+    border-left: 1px solid $entity-color-Group; // TODO custom color
     // border-bottom-left-radius: $control-spacing;
 
     &-current {
