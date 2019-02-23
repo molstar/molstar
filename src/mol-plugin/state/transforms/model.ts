@@ -5,28 +5,31 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginStateTransform } from '../objects';
-import { PluginStateObject as SO } from '../objects';
-import { Task, RuntimeContext } from 'mol-task';
-import { Model, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection as Sel, StructureQuery, Queries } from 'mol-model/structure';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { parsePDB } from 'mol-io/reader/pdb/parser';
+import { Vec3 } from 'mol-math/linear-algebra';
+import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
+import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
+import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry } from 'mol-model/structure';
+import { Assembly } from 'mol-model/structure/model/properties/symmetry';
+import { PluginContext } from 'mol-plugin/context';
+import { MolScriptBuilder } from 'mol-script/language/builder';
 import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
-import { MolScriptBuilder } from 'mol-script/language/builder';
 import { StateObject } from 'mol-state';
-import { PluginContext } from 'mol-plugin/context';
+import { RuntimeContext, Task } from 'mol-task';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { stringToWords } from 'mol-util/string';
-import { volumeFromCcp4 } from 'mol-model-formats/volume/ccp4';
-import { Vec3 } from 'mol-math/linear-algebra';
-import CIF from 'mol-io/reader/cif';
-import { volumeFromDsn6 } from 'mol-model-formats/volume/dsn6';
-import { volumeFromDensityServerData } from 'mol-model-formats/volume/density-server';
-import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
-import { parsePDB } from 'mol-io/reader/pdb/parser';
-import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
-import { Assembly } from 'mol-model/structure/model/properties/symmetry';
+import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 
-export { TrajectoryFromMmCif }
+export { TrajectoryFromMmCif };
+export { TrajectoryFromPDB };
+export { ModelFromTrajectory };
+export { StructureFromModel };
+export { StructureAssemblyFromModel };
+export { StructureSymmetryFromModel };
+export { StructureSelection };
+export { StructureComplexElement };
+export { CustomModelProperties };
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
 const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-mmcif',
@@ -60,7 +63,6 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
 });
 
 
-export { TrajectoryFromPDB }
 type TrajectoryFromPDB = typeof TrajectoryFromPDB
 const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-pdb',
@@ -80,7 +82,6 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
 });
 
 
-export { ModelFromTrajectory }
 const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
 type ModelFromTrajectory = typeof ModelFromTrajectory
 const ModelFromTrajectory = PluginStateTransform.BuiltIn({
@@ -106,7 +107,6 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     }
 });
 
-export { StructureFromModel }
 type StructureFromModel = typeof StructureFromModel
 const StructureFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-from-model',
@@ -125,7 +125,6 @@ function structureDesc(s: Structure) {
     return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`;
 }
 
-export { StructureAssemblyFromModel }
 type StructureAssemblyFromModel = typeof StructureAssemblyFromModel
 const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-assembly-from-model',
@@ -178,7 +177,6 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     }
 });
 
-export { StructureSymmetryFromModel }
 type StructureSymmetryFromModel = typeof StructureSymmetryFromModel
 const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-symmetry-from-model',
@@ -204,7 +202,6 @@ const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
     }
 });
 
-export { StructureSelection }
 type StructureSelection = typeof StructureSelection
 const StructureSelection = PluginStateTransform.BuiltIn({
     name: 'structure-selection',
@@ -226,7 +223,6 @@ const StructureSelection = PluginStateTransform.BuiltIn({
     }
 });
 
-export { StructureComplexElement }
 namespace StructureComplexElement {
     export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres'
 }
@@ -259,7 +255,6 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
     }
 });
 
-export { CustomModelProperties }
 type CustomModelProperties = typeof CustomModelProperties
 const CustomModelProperties = PluginStateTransform.BuiltIn({
     name: 'custom-model-properties',
@@ -284,82 +279,3 @@ async function attachProps(model: Model, ctx: PluginContext, taskCtx: RuntimeCon
         await p.attach(model).runInContext(taskCtx);
     }
 }
-
-//
-
-export { VolumeFromCcp4 }
-type VolumeFromCcp4 = typeof VolumeFromCcp4
-const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
-    name: 'volume-from-ccp4',
-    display: { name: 'Volume from CCP4/MRC/MAP', description: 'Create Volume from CCP4/MRC/MAP data' },
-    from: SO.Format.Ccp4,
-    to: SO.Volume.Data,
-    params(a) {
-        return {
-            voxelSize: PD.Vec3(Vec3.create(1, 1, 1))
-        };
-    }
-})({
-    apply({ a, params }) {
-        return Task.create('Create volume from CCP4/MRC/MAP', async ctx => {
-            const volume = await volumeFromCcp4(a.data, params).runInContext(ctx)
-            const props = { label: 'Volume' };
-            return new SO.Volume.Data(volume, props);
-        });
-    }
-});
-
-export { VolumeFromDsn6 }
-type VolumeFromDsn6 = typeof VolumeFromDsn6
-const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
-    name: 'volume-from-dsn6',
-    display: { name: 'Volume from DSN6/BRIX', description: 'Create Volume from DSN6/BRIX data' },
-    from: SO.Format.Dsn6,
-    to: SO.Volume.Data,
-    params(a) {
-        return {
-            voxelSize: PD.Vec3(Vec3.create(1, 1, 1))
-        };
-    }
-})({
-    apply({ a, params }) {
-        return Task.create('Create volume from DSN6/BRIX', async ctx => {
-            const volume = await volumeFromDsn6(a.data, params).runInContext(ctx)
-            const props = { label: 'Volume' };
-            return new SO.Volume.Data(volume, props);
-        });
-    }
-});
-
-export { VolumeFromDensityServerCif }
-type VolumeFromDensityServerCif = typeof VolumeFromDensityServerCif
-const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
-    name: 'volume-from-density-server-cif',
-    display: { name: 'Volume from density-server CIF', description: 'Identify and create all separate models in the specified CIF data block' },
-    from: SO.Format.Cif,
-    to: SO.Volume.Data,
-    params(a) {
-        if (!a) {
-            return {
-                blockHeader: PD.makeOptional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
-            };
-        }
-        const blocks = a.data.blocks.slice(1); // zero block contains query meta-data
-        return {
-            blockHeader: PD.makeOptional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
-        };
-    }
-})({
-    isApplicable: a => a.data.blocks.length > 0,
-    apply({ a, params }) {
-        return Task.create('Parse density-server CIF', async ctx => {
-            const header = params.blockHeader || a.data.blocks[1].header; // zero block contains query meta-data
-            const block = a.data.blocks.find(b => b.header === header);
-            if (!block) throw new Error(`Data block '${[header]}' not found.`);
-            const densityServerCif = CIF.schema.densityServer(block)
-            const volume = await volumeFromDensityServerData(densityServerCif).runInContext(ctx)
-            const props = { label: densityServerCif.volume_data_3d_info.name.value(0), description: `${densityServerCif.volume_data_3d_info.name.value(0)}` };
-            return new SO.Volume.Data(volume, props);
-        });
-    }
-});

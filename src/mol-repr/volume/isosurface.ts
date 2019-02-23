@@ -19,7 +19,7 @@ import { VisualContext } from 'mol-repr/visual';
 import { NullLocation } from 'mol-model/location';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 
-const IsoValueParam = PD.Conditioned(
+export const IsoValueParam = PD.Conditioned(
     VolumeIsoValue.relative(2),
     {
         'absolute': PD.Converted(
