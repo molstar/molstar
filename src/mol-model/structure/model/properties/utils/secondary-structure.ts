@@ -86,7 +86,7 @@ namespace DSSPType {
 }
 
 /** max distance between two C-alpha atoms to check for hbond */
-const caMaxDist = 9.0;
+const caMaxDist = 7.0;
 
 function calcAtomicTraceLookup3D(hierarchy: AtomicHierarchy, conformation: AtomicConformation) {
     const { x, y, z } = conformation;
