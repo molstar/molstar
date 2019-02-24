@@ -7,12 +7,12 @@
 import { PluginBehavior } from 'mol-plugin/behavior';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { AssemblySymmetry } from 'mol-model-props/rcsb/assembly-symmetry';
-import { CustomPropertyRegistry } from 'mol-plugin/util/custom-prop-registry';
 import { AssemblySymmetryClusterColorThemeProvider } from 'mol-model-props/rcsb/themes/assembly-symmetry-cluster';
 import { AssemblySymmetryAxesRepresentationProvider } from 'mol-model-props/rcsb/representations/assembly-symmetry-axes';
 import { Loci, isDataLoci } from 'mol-model/loci';
 import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
+import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
 
 export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'rcsb-assembly-symmetry-prop',

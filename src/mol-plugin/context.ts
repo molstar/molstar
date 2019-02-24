@@ -24,7 +24,6 @@ import { TaskManager } from './util/task-manager';
 import { Color } from 'mol-util/color';
 import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 import { ajaxGet } from 'mol-util/data-source';
-import { CustomPropertyRegistry } from './util/custom-prop-registry';
 import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { PluginLayout } from './layout';
@@ -32,6 +31,7 @@ import { List } from 'immutable';
 import { StateTransformParameters } from './ui/state/common';
 import { DataFormatRegistry } from './state/actions/volume';
 import { PluginBehavior } from './behavior/behavior';
+import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
 
 export class PluginContext {
     private disposed = false;

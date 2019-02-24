@@ -28,7 +28,7 @@ export interface JobEntry {
     params: {
         /** Determines the detail level as specified in server-config */
         detail?: number,
-        /** 
+        /**
          * Determines the sampling level:
          * 1: Original data
          * 2: Downsampled by factor 1/2
