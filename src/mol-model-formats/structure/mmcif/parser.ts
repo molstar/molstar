@@ -19,7 +19,7 @@ import { createAssemblies } from './assembly';
 import { getAtomicHierarchyAndConformation } from './atomic';
 import { ComponentBond } from './bonds';
 import { getIHMCoarse, EmptyIHMCoarse, IHMData } from './ihm';
-import { getSecondaryStructureMmCif } from './secondary-structure';
+import { getSecondaryStructure } from './secondary-structure';
 import { getSequence } from './sequence';
 import { sortAtomSite } from './sort';
 import { StructConn } from './bonds/struct_conn';
@@ -199,7 +199,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
-            secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
+            secondaryStructure: getSecondaryStructure(format.data, atomic.hierarchy, atomic.conformation),
             ...formatData
         },
         customProperties: new CustomProperties(),
@@ -225,7 +225,7 @@ function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatD
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
-            secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
+            secondaryStructure: getSecondaryStructure(format.data, atomic.hierarchy, atomic.conformation),
             ...formatData
         },
         customProperties: new CustomProperties(),

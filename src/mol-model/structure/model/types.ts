@@ -261,10 +261,6 @@ export const IonNames = new Set([
 
 export interface SecondaryStructureType extends BitFlags<SecondaryStructureType.Flag> { }
 export namespace SecondaryStructureType {
-    export const Helix = ['h', 'g', 'i']
-    export const Sheet = ['e', 'b']
-    export const Turn = ['s', 't', 'l', '']
-
     export const is: (ss: SecondaryStructureType, f: Flag) => boolean = BitFlags.has
     export const create: (fs: Flag) => SecondaryStructureType = BitFlags.create
 
@@ -375,7 +371,6 @@ export namespace SecondaryStructureType {
         I: Flag.Helix | Flag.HelixPi,  // PI-helix
         E: Flag.Beta | Flag.BetaSheet,  // Extended conformation
         B: Flag.Beta | Flag.BetaStrand,  // Isolated bridge
-        b: Flag.Beta | Flag.BetaStrand,  // Isolated bridge
         T: Flag.Turn,  // Turn
         C: Flag.NA,  // Coil (none of the above)
     }

@@ -52,6 +52,18 @@ export function residueLabel(model: Model, rI: number) {
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
 }
 
+export function elementLabel(model: Model, index: ElementIndex) {
+    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
+    const { label_atom_id } = atoms
+    const { auth_seq_id, auth_comp_id } = residues
+    const { auth_asym_id } = chains
+
+    const residueIndex = residueAtomSegments.index[index]
+    const chainIndex = chainAtomSegments.index[residueIndex]
+
+    return `[${auth_comp_id.value(residueIndex)}]${auth_seq_id.value(residueIndex)}:${auth_asym_id.value(chainIndex)}.${label_atom_id.value(index)}`
+}
+
 // const centerPos = Vec3.zero()
 // const centerMin = Vec3.zero()
 // export function getCenterAndRadius(centroid: Vec3, unit: Unit, indices: ArrayLike<number>) {

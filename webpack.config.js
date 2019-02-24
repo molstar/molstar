@@ -88,8 +88,9 @@ module.exports = [
     createApp('model-server-query'),
 
     createBrowserTest('font-atlas'),
-    createBrowserTest('render-text'),
+    createBrowserTest('render-mesh'),
     createBrowserTest('render-shape'),
     createBrowserTest('render-spheres'),
-    createBrowserTest('render-mesh')
+    createBrowserTest('render-structure'),
+    createBrowserTest('render-text'),
 ]

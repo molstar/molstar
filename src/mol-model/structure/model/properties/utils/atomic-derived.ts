@@ -45,8 +45,8 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
 
     return {
         residue: {
-            traceElementIndex: traceElementIndex as unknown as ArrayLike<ElementIndex>,
-            directionElementIndex: directionElementIndex as unknown as ArrayLike<ElementIndex>,
+            traceElementIndex: traceElementIndex as unknown as ArrayLike<ElementIndex>, // TODO maybe -1
+            directionElementIndex: directionElementIndex as unknown as ArrayLike<ElementIndex>, // TODO maybe -1
             moleculeType: moleculeType as unknown as ArrayLike<MoleculeType>,
         }
     }
