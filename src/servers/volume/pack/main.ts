@@ -40,7 +40,7 @@ function updateAllocationProgress(progress: Data.Progress, progressDone: number)
  */
 async function allocateFile(ctx: Data.Context) {
     const { totalByteSize, file } = ctx;
-    const buffer = new Buffer(Math.min(totalByteSize, 8 * 1024 * 1024));
+    const buffer = Buffer.alloc(Math.min(totalByteSize, 8 * 1024 * 1024));
     const progress: Data.Progress = { current: 0, max: Math.ceil(totalByteSize / buffer.byteLength) };
     let written = 0;
     while (written < totalByteSize) {

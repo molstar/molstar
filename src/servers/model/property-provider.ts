@@ -18,11 +18,11 @@ export type AttachModelProperty = (args: { model: Model, params: any, cache: any
 export type AttachModelProperties = (args: { model: Model, params: any, cache: any }) => Promise<any>[]
 export type ModelPropertiesProvider = (model: Model, cache: any) => Promise<any>[]
 
-export function createModelPropertiesProviderFromConfig(): ModelPropertiesProvider {
+export function createModelPropertiesProviderFromConfig() {
     return createModelPropertiesProvider(Config.customProperties);
 }
 
-export function createModelPropertiesProvider(configOrPath: ModelPropertyProviderConfig | string | undefined): ModelPropertiesProvider {
+export function createModelPropertiesProvider(configOrPath: ModelPropertyProviderConfig | string | undefined): ModelPropertiesProvider | undefined {
     let config: ModelPropertyProviderConfig;
     if (typeof configOrPath === 'string') {
         try {
@@ -35,7 +35,7 @@ export function createModelPropertiesProvider(configOrPath: ModelPropertyProvide
         config = configOrPath!;
     }
 
-    if (!config || !config.sources || config.sources.length === 0) return () => [];
+    if (!config || !config.sources || config.sources.length === 0) return void 0;
 
     const ps: AttachModelProperties[] = [];
     for (const p of config.sources) {

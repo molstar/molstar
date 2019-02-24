@@ -57,7 +57,7 @@ export function createFile(filename: string) {
     });
 }
 
-const smallBuffer = SimpleBuffer.fromBuffer(new Buffer(8));
+const smallBuffer = SimpleBuffer.fromBuffer(Buffer.alloc(8));
 export async function writeInt(file: FileHandle, value: number, position: number) {
     smallBuffer.writeInt32LE(value, 0);
     await file.writeBuffer(position, smallBuffer, 4);

@@ -88,6 +88,7 @@ module.exports = [
     createApp('viewer'),
     createApp('basic-wrapper'),
     createNodeApp('state-docs'),
+    createNodeEntryPoint('preprocess', 'servers/model', 'model-server'),
     createApp('model-server-query'),
 
     createBrowserTest('font-atlas'),

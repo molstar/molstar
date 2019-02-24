@@ -60,7 +60,7 @@ function wrapResponse(fn: string, res: express.Response) {
         },
         writeBinary(this: any, data: Uint8Array) {
             if (!this.headerWritten) this.writeHeader(true);
-            return res.write(new Buffer(data.buffer));
+            return res.write(Buffer.from(data.buffer));
         },
         writeString(this: any, data: string) {
             if (!this.headerWritten) this.writeHeader(false);

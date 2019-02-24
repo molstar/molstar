@@ -97,7 +97,7 @@ function writeElement(e: Element, buffer: Buffer, src: any, offset: number) {
 
 function write(element: Element, src: any) {
     const size = byteCount(element, src);
-    const buffer = new Buffer(size);
+    const buffer = Buffer.alloc(size);
     writeElement(element, buffer, src, 0);
     return buffer;
 }
