@@ -100,6 +100,10 @@
             addControl('Play Loop', () => BasicMolStarWrapper.animate.modelIndex.loop());
             addControl('Stop', () => BasicMolStarWrapper.animate.modelIndex.stop());
 
+            addHeader('Misc');
+
+            addControl('Apply Stripes', () => BasicMolStarWrapper.coloring.applyStripes());
+
             ////////////////////////////////////////////////////////
 
             function addControl(label, action) {

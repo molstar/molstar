@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -9,7 +9,7 @@ import { StructureElement } from 'mol-model/structure/structure';
 import { Location } from 'mol-model/location';
 import { CustomPropertyRegistry } from './custom-property-registry';
 import { Task } from 'mol-task';
-import { ThemeDataContext } from 'mol-theme/theme';
+import { ThemeDataContext, ThemeProvider } from 'mol-theme/theme';
 import { ColorTheme, LocationColor } from 'mol-theme/color';
 import { Color } from 'mol-util/color';
 import { TableLegend } from 'mol-util/color/tables';
@@ -19,12 +19,12 @@ import { OrderedSet } from 'mol-data/int';
 export { CustomElementProperty };
 
 namespace CustomElementProperty {
-    export interface CreateParams<S, T> {
+    export interface CreateParams<T> {
         isStatic: boolean,
         name: string,
         autoAttach?: boolean,
         display: string,
-        attachableTo: (model: Model) => boolean,
+        attachableTo?: (model: Model) => boolean,
         getData(model: Model): Map<ElementIndex, T> | Promise<Map<ElementIndex, T>>,
         format?(e: T): string,
         coloring?: {
@@ -33,7 +33,7 @@ namespace CustomElementProperty {
         }
     }
 
-    export function create<S, T>(params: CreateParams<S, T>) {
+    export function create<T>(params: CreateParams<T>) {
         const name = params.name;
 
         const Descriptor = ModelPropertyDescriptor({
@@ -51,6 +51,8 @@ namespace CustomElementProperty {
                     model._dynamicPropertyData[name] = data;
                 }
 
+                model.customProperties.add(Descriptor);
+
                 return true;
             })
         }
@@ -58,7 +60,7 @@ namespace CustomElementProperty {
         function getStatic(e: StructureElement) { return e.unit.model._staticPropertyData[name].get(e.element); }
         function getDynamic(e: StructureElement) { return e.unit.model._staticPropertyData[name].get(e.element); }
 
-        const provider: CustomPropertyRegistry.Provider = {
+        const propertyProvider: CustomPropertyRegistry.Provider = {
             option: [name, params.display],
             descriptor: Descriptor,
             defaultSelected: !!params.autoAttach,
@@ -68,12 +70,14 @@ namespace CustomElementProperty {
 
         const get = params.isStatic ? getStatic : getDynamic;
 
+        function has(model: Model) { return model.customProperties.has(Descriptor); }
+
         function Coloring(ctx: ThemeDataContext, props: {}): ColorTheme<{}> {
             let color: LocationColor;
             const getColor = params.coloring!.getColor;
             const defaultColor = params.coloring!.defaultColor;
 
-            if (ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(Descriptor)) {
+            if (ctx.structure && !ctx.structure.isEmpty && has(ctx.structure.models[0])) {
                 color = (location: Location) => {
                     if (StructureElement.isLocation(location)) {
                         const e = get(location);
@@ -95,9 +99,18 @@ namespace CustomElementProperty {
             };
         }
 
+        const colorTheme: ThemeProvider<ColorTheme<{}>, {}> = {
+            label: params.display,
+            factory: Coloring,
+            getParams: () => ({}),
+            defaultValues: {},
+            isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !ctx.structure.isEmpty && has(ctx.structure.models[0])
+        }
+
         function LabelProvider(loci: Loci): string | undefined {
             if (loci.kind === 'element-loci') {
                 const e = loci.elements[0];
+                if (!has(e.unit.model)) return void 0;
                 return params.format!(get(StructureElement.create(e.unit, e.unit.elements[OrderedSet.getAt(e.indices, 0)])));
             }
             return void 0;
@@ -107,8 +120,8 @@ namespace CustomElementProperty {
             Descriptor,
             attach,
             get,
-            provider,
-            colorTheme: params.coloring ? Coloring : void 0,
+            propertyProvider,
+            colorTheme: params.coloring ? colorTheme : void 0,
             labelProvider: params.format ? LabelProvider : ((loci: Loci) => void 0)
         };
     }
