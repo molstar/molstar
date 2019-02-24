@@ -40,7 +40,8 @@ async function downloadCif(url: string, isBinary: boolean) {
 }
 
 async function downloadFromPdb(pdb: string) {
-    const parsed = await downloadCif(`https://files.rcsb.org/download/${pdb}.cif`, false);
+    // const parsed = await downloadCif(`https://files.rcsb.org/download/${pdb}.cif`, false);
+    const parsed = await downloadCif(`https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${pdb}`, true);
     return parsed.blocks[0];
 }
 
@@ -61,7 +62,7 @@ function getCartoonRepr() {
 }
 
 async function init() {
-    const cif = await downloadFromPdb('1d66')
+    const cif = await downloadFromPdb('3j3q')
     const models = await getModels(cif)
     console.time('computeModelDSSP')
     const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy, models[0].atomicConformation)
