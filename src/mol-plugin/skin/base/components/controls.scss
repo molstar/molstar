@@ -76,19 +76,10 @@
     > div:first-child {
         position: absolute;
         top: 0;
-        left: 0;
+        left: 18px;
         bottom: 0;
-        right: 50px;
-        width: 100%;
-        padding-right: 50px;
-        display: table;
-        
-        > div {
-            height: $row-height;
-            display: table-cell;
-            vertical-align: middle;
-            padding: 0 ($control-spacing + 4px);
-        }
+        right: 62px;
+        display: grid;
     }
     > div:last-child {
         position: absolute;
@@ -101,9 +92,12 @@
         bottom: 0;
     }
     
-    // input[type=text] {
-    //     text-align: right;
-    // }
+    input[type=text] {
+        padding-right: 6px;
+        padding-left: 4px;
+        font-size: 80%;
+        text-align: right;
+    }
     
     // input[type=range] {
     //     width: 100%;
@@ -125,20 +119,10 @@
     > div:nth-child(2) {
         position: absolute;
         top: 0;
-        left: 0;
+        left: 35px;
         bottom: 0;
-        right: 25px;
-        width: 100%;
-        padding-left: 20px;
-        padding-right: 25px;
-        display: table;
-        
-        > div {
-            height: $row-height;
-            display: table-cell;
-            vertical-align: middle;
-            padding: 0 ($control-spacing + 4px);
-        }
+        right: 37px;
+        display: grid;
     }
     > div:last-child {
         position: absolute;
@@ -152,9 +136,12 @@
         font-size: 80%;
     }
     
-    // input[type=text] {
-    //     text-align: right;
-    // }
+    input[type=text] {
+        padding-right: 4px;
+        padding-left: 4px;
+        font-size: 80%;
+        text-align: center;
+    }
     
     // input[type=range] {
     //     width: 100%;

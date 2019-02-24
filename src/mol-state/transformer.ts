@@ -5,25 +5,28 @@
  */
 
 import { Task } from 'mol-task';
-import { StateObject } from './object';
-import { Transform } from './transform';
+import { StateObject, StateObjectCell } from './object';
+import { StateTransform } from './transform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateAction } from './action';
 import { capitalize } from 'mol-util/string';
 
-export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
-    apply(parent: Transform.Ref, params?: P, props?: Partial<Transform.Options>): Transform<A, B, P>,
+export { Transformer as StateTransformer }
+
+interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
+    apply(parent: StateTransform.Ref, params?: P, props?: Partial<StateTransform.Options>): StateTransform<A, B, P>,
     toAction(): StateAction<A, void, P>,
     readonly namespace: string,
     readonly id: Transformer.Id,
     readonly definition: Transformer.Definition<A, B, P>
 }
 
-export namespace Transformer {
+namespace Transformer {
     export type Id = string & { '@type': 'transformer-id' }
     export type Params<T extends Transformer<any, any, any>> = T extends Transformer<any, any, infer P> ? P : unknown;
     export type From<T extends Transformer<any, any, any>> = T extends Transformer<infer A, any, any> ? A : unknown;
     export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
+    export type Cell<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? StateObjectCell<B> : unknown;
 
     export function is(obj: any): obj is Transformer {
         return !!obj && typeof (obj as Transformer).toAction === 'function' && typeof (obj as Transformer).apply === 'function';
@@ -130,7 +133,7 @@ export namespace Transformer {
         }
 
         const t: Transformer<A, B, P> = {
-            apply(parent, params, props) { return Transform.create<A, B, P>(parent, t, params, props); },
+            apply(parent, params, props) { return StateTransform.create<A, B, P>(parent, t, params, props); },
             toAction() { return StateAction.fromTransformer(t); },
             namespace,
             id,

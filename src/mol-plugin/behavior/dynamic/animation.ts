@@ -10,8 +10,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { degToRad } from 'mol-math/misc';
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
-import { StateSelection } from 'mol-state/state/selection';
-import { StateObjectCell, State } from 'mol-state';
+import { StateObjectCell, State, StateSelection } from 'mol-state';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
 import { UUID } from 'mol-util';
 
@@ -30,6 +29,7 @@ type StructureAnimationProps = PD.Values<typeof StructureAnimationParams>
  */
 export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>({
     name: 'structure-animation',
+    category: 'representation',
     display: { name: 'Structure Animation', group: 'Animation' },
     canAutoUpdate: () => true,
     ctor: class extends PluginBehavior.Handler<StructureAnimationProps> {

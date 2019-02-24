@@ -15,6 +15,7 @@ import { camelCaseToWords } from 'mol-util/string';
 import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
+import { NumericInput } from './common';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -28,15 +29,17 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
     render() {
         const params = this.props.params;
         const values = this.props.values;
-        return <div style={{ width: '100%' }}>
-            {Object.keys(params).map(key => {
+        const keys = Object.keys(params);
+        if (keys.length === 0) return null;
+        return <>
+            {keys.map(key => {
                 const param = params[key];
                 if (param.isHidden) return null;
                 const Control = controlFor(param);
                 if (!Control) return null;
                 return <Control param={param} key={key} onChange={this.props.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} />
             })}
-        </div>;
+        </>;
     }
 }
 
@@ -152,37 +155,11 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
     }
 }
 
-export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeric>, { value: string }> {
+export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeric>> {
     state = { value: '0' };
 
-    protected update(value: any) {
+    update = (value: number) => {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
-    }
-
-    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = +e.target.value;
-        this.setState({ value: e.target.value }, () => {
-            if (!Number.isNaN(value) && value !== this.props.value) {
-                this.update(value);
-            }
-        });
-    }
-
-    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!this.props.onEnter) return;
-        if ((e.keyCode === 13 || e.charCode === 13)) {
-            this.props.onEnter();
-        }
-    }
-
-    onBlur = () => {
-        this.setState({ value: '' + this.props.value });
-    }
-
-    static getDerivedStateFromProps(props: { value: number }, state: { value: string }) {
-        const value = +state.value;
-        if (Number.isNaN(value) || value === props.value) return null;
-        return { value: '' + props.value };
     }
 
     render() {
@@ -191,14 +168,9 @@ export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeri
         return <div className='msp-control-row'>
             <span title={this.props.param.description}>{label}</span>
             <div>
-                <input type='text'
-                    onBlur={this.onBlur}
-                    value={this.state.value}
-                    placeholder={placeholder}
-                    onChange={this.onChange}
-                    onKeyPress={this.props.onEnter ? this.onKeyPress : void 0}
-                    disabled={this.props.isDisabled}
-                />
+                <NumericInput
+                    value={this.props.value} onEnter={this.props.onEnter} placeholder={placeholder}
+                    isDisabled={this.props.isDisabled} onChange={this.update} />
             </div>
         </div>;
     }
@@ -208,7 +180,7 @@ export class NumberRangeControl extends SimpleParam<PD.Numeric> {
     onChange = (v: number) => { this.update(v); }
     renderControl() {
         return <Slider value={this.props.value} min={this.props.param.min!} max={this.props.param.max!}
-            step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} />
+            step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} onEnter={this.props.onEnter} />
     }
 }
 
@@ -267,7 +239,7 @@ export class BoundedIntervalControl extends SimpleParam<PD.Interval> {
     onChange = (v: [number, number]) => { this.update(v); }
     renderControl() {
         return <Slider2 value={this.props.value} min={this.props.param.min!} max={this.props.param.max!}
-            step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} />;
+            step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} onEnter={this.props.onEnter} />;
     }
 }
 
@@ -464,6 +436,10 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
 
     render() {
         const params = this.props.param.params;
+
+        // Do not show if there are no params.
+        if (Object.keys(params).length === 0) return null;
+
         const label = this.props.param.label || camelCaseToWords(this.props.name);
 
         const controls = <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />;

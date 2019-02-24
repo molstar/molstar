@@ -44,3 +44,4 @@ export const BuiltInSizeThemes = {
     'shape-group': ShapeGroupSizeThemeProvider,
     'uniform': UniformSizeThemeProvider
 }
+export type BuiltInSizeThemeName = keyof typeof BuiltInSizeThemes

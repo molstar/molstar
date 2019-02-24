@@ -192,7 +192,7 @@ namespace Canvas3D {
             if (isIdentifying || isUpdating) return false
 
             let didRender = false
-            controls.update()
+            controls.update(currentTime);
             // TODO: is this a good fix? Also, setClipping does not work if the user has manually set a clipping plane.
             if (!camera.transition.inTransition) setClipping();
             const cameraChanged = camera.updateMatrices();
@@ -230,6 +230,7 @@ namespace Canvas3D {
         }
 
         let forceNextDraw = false;
+        let currentTime = 0;
 
         function draw(force?: boolean) {
             if (render('draw', !!force || forceNextDraw)) {
@@ -246,8 +247,8 @@ namespace Canvas3D {
         }
 
         function animate() {
-            const t = now();
-            camera.transition.tick(t);
+            currentTime = now();
+            camera.transition.tick(currentTime);
             draw(false)
             window.requestAnimationFrame(animate)
         }

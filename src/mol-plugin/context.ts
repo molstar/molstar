@@ -8,7 +8,7 @@ import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 import { Representation } from 'mol-repr/representation';
 import { StructureRepresentationRegistry } from 'mol-repr/structure/registry';
-import { State, Transform, Transformer } from 'mol-state';
+import { State, StateTransform, StateTransformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
@@ -30,7 +30,8 @@ import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { PluginLayout } from './layout';
 import { List } from 'immutable';
 import { StateTransformParameters } from './ui/state/common';
-import { DataFormatRegistry } from './state/actions/basic';
+import { DataFormatRegistry } from './state/actions/volume';
+import { PluginBehavior } from './behavior/behavior';
 
 export class PluginContext {
     private disposed = false;
@@ -98,7 +99,7 @@ export class PluginContext {
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
             this.layout.setRoot(container);
-            if (this.spec.initialLayout) this.layout.updateState(this.spec.initialLayout);
+            if (this.spec.initialLayout) this.layout.setProps(this.spec.initialLayout);
             (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
             PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { backgroundColor: Color(0xFCFBF9) } });
             this.canvas3d.animate();
@@ -140,15 +141,16 @@ export class PluginContext {
         this.ev.dispose();
         this.state.dispose();
         this.tasks.dispose();
+        this.layout.dispose();
         this.disposed = true;
     }
 
-    applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {
-        const tree = state.tree.build().to(a).apply(transformer, params);
+    applyTransform(state: State, a: StateTransform.Ref, transformer: StateTransformer, params: any) {
+        const tree = state.build().to(a).apply(transformer, params);
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
-    updateTransform(state: State, a: Transform.Ref, params: any) {
+    updateTransform(state: State, a: StateTransform.Ref, params: any) {
         const tree = state.build().to(a).update(params);
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
@@ -163,10 +165,14 @@ export class PluginContext {
     }
 
     private async initBehaviors() {
-        const tree = this.state.behaviorState.tree.build();
+        const tree = this.state.behaviorState.build();
+
+        for (const cat of Object.keys(PluginBehavior.Categories)) {
+            tree.toRoot().apply(PluginBehavior.CreateCategory, { label: (PluginBehavior.Categories as any)[cat] }, { ref: cat, props: { isLocked: true } });
+        }
 
         for (const b of this.spec.behaviors) {
-            tree.toRoot().apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
+            tree.to(PluginBehavior.getCategoryId(b.transformer)).apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
         }
 
         await this.runTask(this.state.behaviorState.updateTree(tree, true));
@@ -175,6 +181,13 @@ export class PluginContext {
     private initDataActions() {
         for (const a of this.spec.actions) {
             this.state.dataState.actions.add(a.action);
+        }
+    }
+
+    private initAnimations() {
+        if (!this.spec.animations) return;
+        for (const anim of this.spec.animations) {
+            this.state.animation.register(anim);
         }
     }
 
@@ -193,6 +206,7 @@ export class PluginContext {
 
         this.initBehaviors();
         this.initDataActions();
+        this.initAnimations();
         this.initCustomParamEditors();
 
         this.lociLabels = new LociLabelManager(this);

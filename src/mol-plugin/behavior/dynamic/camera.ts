@@ -10,6 +10,7 @@ import { PluginBehavior } from '../behavior';
 
 export const FocusLociOnSelect = PluginBehavior.create<{ minRadius: number, extraRadius: number }>({
     name: 'focus-loci-on-select',
+    category: 'interaction',
     ctor: class extends PluginBehavior.Handler<{ minRadius: number, extraRadius: number }> {
         register(): void {
             this.subscribeObservable(this.ctx.behaviors.canvas.selectLoci, current => {

@@ -188,11 +188,7 @@ namespace Representation {
                 }
                 return renderObjects
             },
-            get props() {
-                const props = {}
-                reprList.forEach(r => Object.assign(props, r.props))
-                return props as P
-            },
+            get props() { return currentProps },
             get params() { return currentParams },
             createOrUpdate: (props: Partial<P> = {}, data?: D) => {
                 if (data && data !== currentData) {

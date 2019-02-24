@@ -6,7 +6,7 @@
 
 import { PluginCommands } from '../../command';
 import { PluginContext } from '../../context';
-import { StateTree, Transform, State } from 'mol-state';
+import { StateTree, StateTransform, State } from 'mol-state';
 import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
 import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
 import { EmptyLoci, EveryLoci } from 'mol-model/loci';
@@ -51,7 +51,7 @@ export function SetCurrentObject(ctx: PluginContext) {
 }
 
 export function Update(ctx: PluginContext) {
-    PluginCommands.State.Update.subscribe(ctx, ({ state, tree }) => ctx.runTask(state.updateTree(tree)));
+    PluginCommands.State.Update.subscribe(ctx, ({ state, tree, doNotLogTiming }) => ctx.runTask(state.updateTree(tree, doNotLogTiming)));
 }
 
 export function ApplyAction(ctx: PluginContext) {
@@ -59,9 +59,27 @@ export function ApplyAction(ctx: PluginContext) {
 }
 
 export function RemoveObject(ctx: PluginContext) {
-    PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref }) => {
-        const tree = state.tree.build().delete(ref).getTree();
+    function remove(state: State, ref: string) {
+        const tree = state.build().delete(ref).getTree();
         return ctx.runTask(state.updateTree(tree));
+    }
+
+    PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref, removeParentGhosts }) => {
+        if (removeParentGhosts) {
+            const tree = state.tree;
+            let curr = tree.transforms.get(ref);
+            if (curr.parent === ref) return remove(state, ref);
+
+            while (true) {
+                const children = tree.children.get(curr.parent);
+                if (curr.parent === curr.ref || children.size > 1) return remove(state, curr.ref);
+                const parent = tree.transforms.get(curr.parent);
+                if (!parent.props || !parent.props.isGhost) return remove(state, curr.ref);
+                curr = parent;
+            }
+        } else {
+            remove(state, ref);
+        }
     });
 }
 
@@ -73,11 +91,11 @@ export function ToggleVisibility(ctx: PluginContext) {
     PluginCommands.State.ToggleVisibility.subscribe(ctx, ({ state, ref }) => setVisibility(state, ref, !state.cellStates.get(ref).isHidden));
 }
 
-function setVisibility(state: State, root: Transform.Ref, value: boolean) {
+function setVisibility(state: State, root: StateTransform.Ref, value: boolean) {
     StateTree.doPreOrder(state.tree, state.transforms.get(root), { state, value }, setVisibilityVisitor);
 }
 
-function setVisibilityVisitor(t: Transform, tree: StateTree, ctx: { state: State, value: boolean }) {
+function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: State, value: boolean }) {
     ctx.state.updateCellState(t.ref, { isHidden: ctx.value });
 }
 

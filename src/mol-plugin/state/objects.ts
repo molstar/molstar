@@ -12,7 +12,7 @@ import { PluginBehavior } from 'mol-plugin/behavior/behavior';
 import { Representation } from 'mol-repr/representation';
 import { StructureRepresentation } from 'mol-repr/structure/representation';
 import { VolumeRepresentation } from 'mol-repr/volume/representation';
-import { StateObject, Transformer } from 'mol-state';
+import { StateObject, StateTransformer } from 'mol-state';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 import { Dsn6File } from 'mol-io/reader/dsn6/schema';
 
@@ -77,6 +77,6 @@ export namespace PluginStateObject {
 }
 
 export namespace PluginStateTransform {
-    export const CreateBuiltIn = Transformer.factory('ms-plugin');
-    export const BuiltIn = Transformer.builderFactory('ms-plugin');
+    export const CreateBuiltIn = StateTransformer.factory('ms-plugin');
+    export const BuiltIn = StateTransformer.builderFactory('ms-plugin');
 }

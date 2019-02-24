@@ -7,9 +7,11 @@
 * [ms-plugin.parse-ccp4](#ms-plugin-parse-ccp4)
 * [ms-plugin.parse-dsn6](#ms-plugin-parse-dsn6)
 * [ms-plugin.trajectory-from-mmcif](#ms-plugin-trajectory-from-mmcif)
+* [ms-plugin.trajectory-from-pdb](#ms-plugin-trajectory-from-pdb)
 * [ms-plugin.model-from-trajectory](#ms-plugin-model-from-trajectory)
 * [ms-plugin.structure-from-model](#ms-plugin-structure-from-model)
 * [ms-plugin.structure-assembly-from-model](#ms-plugin-structure-assembly-from-model)
+* [ms-plugin.structure-symmetry-from-model](#ms-plugin-structure-symmetry-from-model)
 * [ms-plugin.structure-selection](#ms-plugin-structure-selection)
 * [ms-plugin.structure-complex-element](#ms-plugin-structure-complex-element)
 * [ms-plugin.custom-model-properties](#ms-plugin-custom-model-properties)
@@ -65,7 +67,7 @@
 
 ----------------------------
 ## <a name="ms-plugin-parse-ccp4"></a>ms-plugin.parse-ccp4 :: Binary -> Ccp4
-*Parse CCP4/MRC from Binary data*
+*Parse CCP4/MRC/MAP from Binary data*
 
 ----------------------------
 ## <a name="ms-plugin-parse-dsn6"></a>ms-plugin.parse-dsn6 :: Binary -> Dsn6
@@ -82,6 +84,9 @@
 ```js
 {}
 ```
+----------------------------
+## <a name="ms-plugin-trajectory-from-pdb"></a>ms-plugin.trajectory-from-pdb :: String -> Trajectory
+
 ----------------------------
 ## <a name="ms-plugin-model-from-trajectory"></a>ms-plugin.model-from-trajectory :: Trajectory -> Model
 *Create a molecular structure from the specified model.*
@@ -104,11 +109,34 @@
 *Create a molecular structure assembly.*
 
 ### Parameters
-- **id**?: String *(Assembly Id. If none specified (undefined or empty string), the asymmetric unit is used.)*
+- **id**?: String *(Assembly Id. Value 'deposited' can be used to specify deposited asymmetric unit.)*
 
 ### Default Parameters
 ```js
 {}
+```
+----------------------------
+## <a name="ms-plugin-structure-symmetry-from-model"></a>ms-plugin.structure-symmetry-from-model :: Model -> Structure
+*Create a molecular structure symmetry.*
+
+### Parameters
+- **ijkMin**: 3D vector [x, y, z]
+- **ijkMax**: 3D vector [x, y, z]
+
+### Default Parameters
+```js
+{
+  "ijkMin": [
+    -1,
+    -1,
+    -1
+  ],
+  "ijkMax": [
+    1,
+    1,
+    1
+  ]
+}
 ```
 ----------------------------
 ## <a name="ms-plugin-structure-selection"></a>ms-plugin.structure-selection :: Structure -> Structure
@@ -149,7 +177,7 @@
 ```
 ----------------------------
 ## <a name="ms-plugin-volume-from-ccp4"></a>ms-plugin.volume-from-ccp4 :: Ccp4 -> Data
-*Create Volume from CCP4/MRC data*
+*Create Volume from CCP4/MRC/MAP data*
 
 ### Parameters
 - **voxelSize**: 3D vector [x, y, z]
@@ -294,7 +322,7 @@ Object with:
       - **highlightColor**: Color as 0xrrggbb
       - **selectColor**: Color as 0xrrggbb
       - **quality**: One of 'custom', 'auto', 'highest', 'higher', 'high', 'medium', 'low', 'lower', 'lowest'
-      - **isoValue**: Numeric value
+      - **isoValueNorm**: Numeric value *(Normalized Isolevel Value)*
       - **renderMode**: One of 'isosurface', 'volume'
       - **controlPoints**: A list of 2d vectors [xi, yi][]
       - **list**: One of 'OrangeRed', 'PurpleBlue', 'BluePurple', 'Oranges', 'BlueGreen', 'YellowOrangeBrown', 'YellowGreen', 'Reds', 'RedPurple', 'Greens', 'YellowGreenBlue', 'Purples', 'GreenBlue', 'Greys', 'YellowOrangeRed', 'PurpleRed', 'Blues', 'PurpleBlueGreen', 'Spectral', 'RedYellowGreen', 'RedBlue', 'PinkYellowGreen', 'PurpleGreen', 'RedYellowBlue', 'BrownWhiteGreen', 'RedGrey', 'PurpleOrange', 'Set2', 'Accent', 'Set1', 'Set3', 'Dark2', 'Paired', 'Pastel2', 'Pastel1', 'Magma', 'Inferno', 'Plasma', 'Viridis', 'Cividis', 'Twilight', 'Rainbow', 'RedWhiteBlue'
@@ -480,7 +508,7 @@ Object with:
       - **highlightColor**: Color as 0xrrggbb
       - **selectColor**: Color as 0xrrggbb
       - **quality**: One of 'custom', 'auto', 'highest', 'higher', 'high', 'medium', 'low', 'lower', 'lowest'
-      - **isoValue**: Numeric value
+      - **isoValueNorm**: Numeric value *(Normalized Isolevel Value)*
       - **renderMode**: One of 'isosurface', 'volume'
       - **controlPoints**: A list of 2d vectors [xi, yi][]
       - **list**: One of 'OrangeRed', 'PurpleBlue', 'BluePurple', 'Oranges', 'BlueGreen', 'YellowOrangeBrown', 'YellowGreen', 'Reds', 'RedPurple', 'Greens', 'YellowGreenBlue', 'Purples', 'GreenBlue', 'Greys', 'YellowOrangeRed', 'PurpleRed', 'Blues', 'PurpleBlueGreen', 'Spectral', 'RedYellowGreen', 'RedBlue', 'PinkYellowGreen', 'PurpleGreen', 'RedYellowBlue', 'BrownWhiteGreen', 'RedGrey', 'PurpleOrange', 'Set2', 'Accent', 'Set1', 'Set3', 'Dark2', 'Paired', 'Pastel2', 'Pastel1', 'Magma', 'Inferno', 'Plasma', 'Viridis', 'Cividis', 'Twilight', 'Rainbow', 'RedWhiteBlue'

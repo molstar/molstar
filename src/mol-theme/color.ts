@@ -29,8 +29,6 @@ import { TableLegend } from 'mol-util/color/tables';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
-export type ColorThemeProps = { [k: string]: any }
-
 export { ColorTheme }
 interface ColorTheme<P extends PD.Params> {
     readonly factory: ColorTheme.Factory<P>
@@ -76,3 +74,4 @@ export const BuiltInColorThemes = {
     'unit-index': UnitIndexColorThemeProvider,
     'uniform': UniformColorThemeProvider,
 }
+export type BuiltInColorThemeName = keyof typeof BuiltInColorThemes

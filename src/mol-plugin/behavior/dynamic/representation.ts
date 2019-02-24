@@ -10,14 +10,14 @@ import { EmptyLoci, Loci } from 'mol-model/loci';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginStateObject } from 'mol-plugin/state/objects';
-import { StateObjectTracker } from 'mol-state';
-import { StateSelection } from 'mol-state/state/selection';
+import { StateObjectTracker, StateSelection } from 'mol-state';
 import { labelFirst } from 'mol-theme/label';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
 
 export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
+    category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
         register(): void {
             let prevLoci: Loci = EmptyLoci, prevRepr: any = void 0;
@@ -38,6 +38,7 @@ export const HighlightLoci = PluginBehavior.create({
 
 export const SelectLoci = PluginBehavior.create({
     name: 'representation-select-loci',
+    category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
         register(): void {
             let prevLoci: Loci = EmptyLoci, prevRepr: any = void 0;
@@ -60,6 +61,7 @@ export const SelectLoci = PluginBehavior.create({
 
 export const DefaultLociLabelProvider = PluginBehavior.create({
     name: 'default-loci-label-provider',
+    category: 'interaction',
     ctor: class implements PluginBehavior<undefined> {
         private f = labelFirst;
         register(): void { this.ctx.lociLabels.addProvider(this.f); }

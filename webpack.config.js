@@ -49,6 +49,8 @@ const sharedConfig = {
         }),
         new webpack.DefinePlugin({
             __PLUGIN_VERSION_TIMESTAMP__: webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true),
+            // include this for production version of React
+            // 'process.env.NODE_ENV': JSON.stringify('production')
         }),
         new MiniCssExtractPlugin({ filename: 'app.css' })
     ],
@@ -62,6 +64,7 @@ const sharedConfig = {
 
 function createEntryPoint(name, dir, out) {
     return {
+        node: { fs: 'empty' }, // TODO find better solution? Currently used in file-handle.ts
         entry: path.resolve(__dirname, `build/src/${dir}/${name}.js`),
         output: { filename: `${name}.js`, path: path.resolve(__dirname, `build/${out}`) },
         ...sharedConfig

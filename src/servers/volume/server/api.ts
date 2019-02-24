@@ -12,6 +12,7 @@ import * as Data from './query/data-model'
 import { ConsoleLogger } from 'mol-util/console-logger'
 import * as DataFormat from '../common/data-format'
 import ServerConfig from '../server-config'
+import { FileHandle } from 'mol-io/common/file-handle';
 
 export function getOutputFilename(source: string, id: string, { asBinary, box, detail, forcedSamplingLevel }: Data.QueryParams) {
     function n(s: string) { return (s || '').replace(/[ \n\t]/g, '').toLowerCase() }
@@ -57,16 +58,16 @@ export async function queryBox(params: Data.QueryParams, outputProvider: () => D
 }
 
 async function readHeader(filename: string | undefined, sourceId: string) {
-    let file: number | undefined = void 0;
+    let file: FileHandle | undefined;
     try {
         if (!filename) return void 0;
-        file = await File.openRead(filename);
+        file = FileHandle.fromDescriptor(await File.openRead(filename));
         const header = await DataFormat.readHeader(file);
         return header.header;
     } catch (e) {
         ConsoleLogger.error(`Info ${sourceId}`, e);
         return void 0;
     } finally {
-        File.close(file);
+        if (file) file.close();
     }
 }

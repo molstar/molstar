@@ -13,6 +13,7 @@ import { PluginStateSnapshotManager } from './state/snapshots';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
 import { PluginCommands } from './command';
+import { PluginAnimationManager } from './state/animation/manager';
 export { PluginState }
 
 class PluginState {
@@ -20,8 +21,8 @@ class PluginState {
 
     readonly dataState: State;
     readonly behaviorState: State;
+    readonly animation: PluginAnimationManager;
     readonly cameraSnapshots = new CameraSnapshotManager();
-
     readonly snapshots = new PluginStateSnapshotManager();
 
     readonly behavior = {
@@ -43,6 +44,7 @@ class PluginState {
         return {
             data: this.dataState.getSnapshot(),
             behaviour: this.behaviorState.getSnapshot(),
+            animation: this.animation.getSnapshot(),
             cameraSnapshots: this.cameraSnapshots.getStateSnapshot(),
             canvas3d: {
                 camera: this.plugin.canvas3d.camera.getSnapshot(),
@@ -60,6 +62,9 @@ class PluginState {
             if (snapshot.canvas3d.camera) this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
         }
         this.plugin.canvas3d.requestDraw(true);
+        if (snapshot.animation) {
+            this.animation.setSnapshot(snapshot.animation);
+        }
     }
 
     dispose() {
@@ -67,11 +72,12 @@ class PluginState {
         this.dataState.dispose();
         this.behaviorState.dispose();
         this.cameraSnapshots.dispose();
+        this.animation.dispose();
     }
 
     constructor(private plugin: import('./context').PluginContext) {
         this.dataState = State.create(new SO.Root({ }), { globalContext: plugin });
-        this.behaviorState = State.create(new PluginBehavior.Root({ }), { globalContext: plugin });
+        this.behaviorState = State.create(new PluginBehavior.Root({ }), { globalContext: plugin, rootProps: { isLocked: true } });
 
         this.dataState.behaviors.currentObject.subscribe(o => {
             if (this.behavior.kind.value === 'data') this.behavior.currentObject.next(o);
@@ -81,6 +87,8 @@ class PluginState {
         });
 
         this.behavior.currentObject.next(this.dataState.behaviors.currentObject.value);
+
+        this.animation = new PluginAnimationManager(plugin);
     }
 }
 
@@ -90,6 +98,7 @@ namespace PluginState {
     export interface Snapshot {
         data?: State.Snapshot,
         behaviour?: State.Snapshot,
+        animation?: PluginAnimationManager.Snapshot,
         cameraSnapshots?: CameraSnapshotManager.StateSnapshot,
         canvas3d?: {
             camera?: Camera.Snapshot,

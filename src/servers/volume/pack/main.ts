@@ -6,16 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as CCP4 from './ccp4'
+import * as Format from './format'
 import * as File from '../common/file'
 import * as Data from './data-model'
 import * as Sampling from './sampling'
 import * as DataFormat from '../common/data-format'
-import * as fs from 'fs'
+import { FileHandle } from 'mol-io/common/file-handle';
 
-export default async function pack(input: { name: string, filename: string }[], blockSize: number, isPeriodic: boolean, outputFilename: string) {
+export default async function pack(input: { name: string, filename: string }[], blockSizeInMB: number, isPeriodic: boolean, outputFilename: string, format: Format.Type) {
     try {
-        await create(outputFilename, input, blockSize, isPeriodic);
+        await create(outputFilename, input, blockSizeInMB, isPeriodic, format);
     } catch (e) {
         console.error('[Error] ' + e);
     }
@@ -36,7 +36,7 @@ function updateAllocationProgress(progress: Data.Progress, progressDone: number)
 }
 
 /**
- * Pre allocate the disk space to be able to do "random" writes into the entire file. 
+ * Pre allocate the disk space to be able to do "random" writes into the entire file.
  */
 async function allocateFile(ctx: Data.Context) {
     const { totalByteSize, file } = ctx;
@@ -44,20 +44,20 @@ async function allocateFile(ctx: Data.Context) {
     const progress: Data.Progress = { current: 0, max: Math.ceil(totalByteSize / buffer.byteLength) };
     let written = 0;
     while (written < totalByteSize) {
-        written += fs.writeSync(file, buffer, 0, Math.min(totalByteSize - written, buffer.byteLength));
+        written += file.writeBufferSync(written, buffer, Math.min(totalByteSize - written, buffer.byteLength));
         updateAllocationProgress(progress, 1);
     }
 }
 
-function determineBlockSize(data: CCP4.Data, blockSize: number) {
+function determineBlockSize(data: Format.Data, blockSizeInMB: number) {
     const { extent } = data.header;
     const maxLayerSize = 1024 * 1024 * 1024;
     const valueCount = extent[0] * extent[1];
-    if (valueCount * blockSize <= maxLayerSize) return blockSize;
+    if (valueCount * blockSizeInMB <= maxLayerSize) return blockSizeInMB;
 
-    while (blockSize > 0) {
-        blockSize -= 4;
-        if (valueCount * blockSize <= maxLayerSize) return blockSize;
+    while (blockSizeInMB > 0) {
+        blockSizeInMB -= 4;
+        if (valueCount * blockSizeInMB <= maxLayerSize) return blockSizeInMB;
     }
 
     throw new Error('Could not determine a valid block size.');
@@ -66,13 +66,13 @@ function determineBlockSize(data: CCP4.Data, blockSize: number) {
 async function writeHeader(ctx: Data.Context) {
     const header = DataFormat.encodeHeader(Data.createHeader(ctx));
     await File.writeInt(ctx.file, header.byteLength, 0);
-    await File.writeBuffer(ctx.file, 4, header);
+    await ctx.file.writeBuffer(4, header);
 }
 
-async function create(filename: string, sourceDensities: { name: string, filename: string }[], sourceBlockSize: number, isPeriodic: boolean) {
+async function create(filename: string, sourceDensities: { name: string, filename: string }[], sourceBlockSizeInMB: number, isPeriodic: boolean, format: Format.Type) {
     const startedTime = getTime();
 
-    if (sourceBlockSize % 4 !== 0 || sourceBlockSize < 4) {
+    if (sourceBlockSizeInMB % 4 !== 0 || sourceBlockSizeInMB < 4) {
         throw Error('Block size must be a positive number divisible by 4.');
     }
 
@@ -80,40 +80,42 @@ async function create(filename: string, sourceDensities: { name: string, filenam
         throw Error('Specify at least one source density.');
     }
 
-    process.stdout.write('Initializing... ');
-    const files: number[] = [];
+    process.stdout.write(`Initializing using ${format} format...`);
+    const files: FileHandle[] = [];
     try {
-        // Step 1a: Read the CCP4 headers
-        const channels: CCP4.Data[] = [];
-        for (const s of sourceDensities) channels.push(await CCP4.open(s.name, s.filename));
-        // Step 1b: Check if the CCP4 headers are compatible.
-        const isOk = channels.reduce((ok, s) => ok && CCP4.compareHeaders(channels[0].header, s.header), true);
+        // Step 1a: Read the Format headers
+        const channels: Format.Context[] = [];
+        for (const s of sourceDensities) {
+            channels.push(await Format.open(s.name, s.filename, format));
+        }
+        // Step 1b: Check if the Format headers are compatible.
+        const isOk = channels.reduce((ok, s) => ok && Format.compareHeaders(channels[0].data.header, s.data.header), true);
         if (!isOk) {
             throw new Error('Input file headers are not compatible (different grid, etc.).');
         }
-        const blockSize = determineBlockSize(channels[0], sourceBlockSize);
-        for (const ch of channels) CCP4.assignSliceBuffer(ch, blockSize);
+        const blockSizeInMB = determineBlockSize(channels[0].data, sourceBlockSizeInMB);
+        for (const ch of channels) Format.assignSliceBuffer(ch.data, blockSizeInMB);
 
         // Step 1c: Create data context.
-        const context = await Sampling.createContext(filename, channels, blockSize, isPeriodic);
-        for (const s of channels) files.push(s.file);
+        const context = await Sampling.createContext(filename, channels, blockSizeInMB, isPeriodic);
+        for (const s of channels) files.push(s.data.file);
         files.push(context.file);
         process.stdout.write('   done.\n');
 
-        console.log(`Block size: ${blockSize}`);
+        console.log(`Block size: ${blockSizeInMB}`);
 
-        // Step 2: Allocate disk space.        
+        // Step 2: Allocate disk space.
         process.stdout.write('Allocating...      0%');
         await allocateFile(context);
         process.stdout.write('\rAllocating...      done.\n');
 
-        // Step 3: Process and write the data 
+        // Step 3: Process and write the data
         process.stdout.write('Writing data...    0%');
         await Sampling.processData(context);
         process.stdout.write('\rWriting data...    done.\n');
 
         // Step 4: Write the header at the start of the file.
-        // The header is written last because the sigma/min/max values are computed 
+        // The header is written last because the sigma/min/max values are computed
         // during step 3.
         process.stdout.write('Writing header...  ');
         await writeHeader(context);
@@ -123,11 +125,11 @@ async function create(filename: string, sourceDensities: { name: string, filenam
         const time = getTime() - startedTime;
         console.log(`[Done] ${time.toFixed(0)}ms.`);
     } finally {
-        for (let f of files) File.close(f);
+        for (let f of files) f.close();
 
         // const ff = await File.openRead(filename);
         // const hh = await DataFormat.readHeader(ff);
         // File.close(ff);
         // console.log(hh.header);
     }
-} 
+}

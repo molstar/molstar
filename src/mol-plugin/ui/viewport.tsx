@@ -8,7 +8,7 @@
 import * as React from 'react';
 import { ButtonsType } from 'mol-util/input/input-observer';
 import { Canvas3dIdentifyHelper } from 'mol-plugin/util/canvas3d-identify';
-import { PluginComponent } from './base';
+import { PluginUIComponent } from './base';
 import { PluginCommands } from 'mol-plugin/command';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
@@ -20,7 +20,7 @@ interface ViewportState {
     noWebGl: boolean
 }
 
-export class ViewportControls extends PluginComponent {
+export class ViewportControls extends PluginUIComponent {
     state = {
         isSettingsExpanded: false
     }
@@ -35,11 +35,11 @@ export class ViewportControls extends PluginComponent {
     }
 
     toggleControls = () => {
-        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { showControls: !this.plugin.layout.latestState.showControls } });
+        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { showControls: !this.plugin.layout.state.showControls } });
     }
 
     toggleExpanded = () => {
-        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { isExpanded: !this.plugin.layout.latestState.isExpanded } });
+        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { isExpanded: !this.plugin.layout.state.isExpanded } });
     }
 
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
@@ -55,7 +55,7 @@ export class ViewportControls extends PluginComponent {
             this.forceUpdate();
         });
 
-        this.subscribe(this.plugin.layout.updated, () => {
+        this.subscribe(this.plugin.layout.events.updated, () => {
             this.forceUpdate();
         });
     }
@@ -73,15 +73,15 @@ export class ViewportControls extends PluginComponent {
         // TODO: show some icons dimmed etc..
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
-                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.latestState.showControls)}
-                {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.latestState.isExpanded)}
+                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
+                {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
                 {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
                 {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
             </div>
             {this.state.isSettingsExpanded &&
             <div className='msp-viewport-controls-scene-options'>
                 <ControlGroup header='Layout' initialExpanded={true}>
-                    <ParameterControls params={PluginLayoutStateParams} values={this.plugin.layout.latestState} onChange={this.setLayout} />
+                    <ParameterControls params={PluginLayoutStateParams} values={this.plugin.layout.state} onChange={this.setLayout} />
                 </ControlGroup>
                 <ControlGroup header='Viewport' initialExpanded={true}>
                     <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
@@ -91,7 +91,7 @@ export class ViewportControls extends PluginComponent {
     }
 }
 
-export class Viewport extends PluginComponent<{ }, ViewportState> {
+export class Viewport extends PluginUIComponent<{ }, ViewportState> {
     private container = React.createRef<HTMLDivElement>();
     private canvas = React.createRef<HTMLCanvasElement>();
 
@@ -128,7 +128,7 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
             idHelper.select(x, y);
         });
 
-        this.subscribe(this.plugin.layout.updated, () => {
+        this.subscribe(this.plugin.layout.events.updated, () => {
             setTimeout(this.handleResize, 50);
         });
     }

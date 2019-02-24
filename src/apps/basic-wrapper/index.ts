@@ -11,8 +11,9 @@ import { PluginCommands } from 'mol-plugin/command';
 import { StateTransforms } from 'mol-plugin/state/transforms';
 import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
 import { Color } from 'mol-util/color';
-import { StateTreeBuilder } from 'mol-state/tree/builder';
 import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
+import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
+import { StateBuilder } from 'mol-state';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -31,11 +32,11 @@ class BasicWrapper {
         });
     }
 
-    private download(b: StateTreeBuilder.To<PSO.Root>, url: string) {
+    private download(b: StateBuilder.To<PSO.Root>, url: string) {
         return b.apply(StateTransforms.Data.Download, { url, isBinary: false })
     }
 
-    private parse(b: StateTreeBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats, assemblyId: string) {
+    private parse(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats, assemblyId: string) {
         const parsed = format === 'cif'
             ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
             : b.apply(StateTransforms.Model.TrajectoryFromPDB);
@@ -45,7 +46,7 @@ class BasicWrapper {
             .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
     }
 
-    private visual(visualRoot: StateTreeBuilder.To<PSO.Molecule.Structure>) {
+    private visual(visualRoot: StateBuilder.To<PSO.Molecule.Structure>) {
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'cartoon'));
@@ -73,7 +74,7 @@ class BasicWrapper {
             if (state.select('asm').length > 0) loadType = 'update';
         }
 
-        let tree: StateTreeBuilder.Root;
+        let tree: StateBuilder.Root;
         if (loadType === 'full') {
             await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: state.tree.root.ref });
             tree = state.build();
@@ -97,6 +98,17 @@ class BasicWrapper {
         const spinning = trackball.spin;
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
         if (!spinning) PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+    }
+
+    animate = {
+        modelIndex: {
+            maxFPS: 8,
+            onceForward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'forward' } } }) },
+            onceBackward: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'once', params: { direction: 'backward' } } }) },
+            palindrome: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'palindrome', params: {} } }) },
+            loop: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'loop', params: {} } }) },
+            stop: () => this.plugin.state.animation.stop()
+        }
     }
 }
 

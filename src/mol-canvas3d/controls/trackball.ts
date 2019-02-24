@@ -39,12 +39,12 @@ interface TrackballControls {
     readonly props: Readonly<TrackballControlsProps>
     setProps: (props: Partial<TrackballControlsProps>) => void
 
-    update: () => void
+    update: (t: number) => void
     reset: () => void
     dispose: () => void
 }
 namespace TrackballControls {
-    export function create (input: InputObserver, object: Object3D & { target: Vec3 }, props: Partial<TrackballControlsProps> = {}): TrackballControls {
+    export function create(input: InputObserver, object: Object3D & { target: Vec3 }, props: Partial<TrackballControlsProps> = {}): TrackballControls {
         const p = { ...PD.getDefaultValues(TrackballControlsParams), ...props }
 
         const viewport: Viewport = { x: 0, y: 0, width: 0, height: 0 }
@@ -131,7 +131,7 @@ namespace TrackballControls {
                 Vec3.normalize(rotAxis, Vec3.cross(rotAxis, rotMoveDir, _eye))
 
                 angle *= p.rotateSpeed;
-                Quat.setAxisAngle(rotQuat, rotAxis, angle )
+                Quat.setAxisAngle(rotQuat, rotAxis, angle)
 
                 Vec3.transformQuat(_eye, _eye, rotQuat)
                 Vec3.transformQuat(object.up, object.up, rotQuat)
@@ -150,7 +150,7 @@ namespace TrackballControls {
             Vec2.copy(_movePrev, _moveCurr)
         }
 
-        function zoomCamera () {
+        function zoomCamera() {
             const factor = 1.0 + (_zoomEnd[1] - _zoomStart[1]) * p.zoomSpeed
             if (factor !== 1.0 && factor > 0.0) {
                 Vec3.scale(_eye, _eye, factor)
@@ -207,8 +207,12 @@ namespace TrackballControls {
             }
         }
 
+        let lastUpdated = -1;
         /** Update the object's position, direction and up vectors */
-        function update() {
+        function update(t: number) {
+            if (lastUpdated === t) return;
+            if (p.spin) spin(t - lastUpdated);
+
             Vec3.sub(_eye, object.position, target)
 
             rotateCamera()
@@ -224,6 +228,8 @@ namespace TrackballControls {
             if (Vec3.squaredDistance(lastPosition, object.position) > EPSILON.Value) {
                 Vec3.copy(lastPosition, object.position)
             }
+
+            lastUpdated = t;
         }
 
         /** Reset object's vectors and the target vector to their initial values */
@@ -297,25 +303,21 @@ namespace TrackballControls {
         }
 
         const _spinSpeed = Vec2.create(0.005, 0);
-        function spin() {
-            _spinSpeed[0] = (p.spinSpeed || 0) / 1000;
+        function spin(deltaT: number) {
+            const frameSpeed = (p.spinSpeed || 0) / 1000;
+            _spinSpeed[0] = 60 * Math.min(Math.abs(deltaT), 1000 / 8) / 1000 * frameSpeed;
             if (!_isInteracting) Vec2.add(_moveCurr, _movePrev, _spinSpeed);
-            if (p.spin) requestAnimationFrame(spin);
         }
 
         // force an update at start
-        update();
-
-        if (props.spin) { spin(); }
+        update(0);
 
         return {
             viewport,
 
             get props() { return p as Readonly<TrackballControlsProps> },
             setProps: (props: Partial<TrackballControlsProps>) => {
-                const wasSpinning = p.spin
                 Object.assign(p, props)
-                if (p.spin && !wasSpinning) requestAnimationFrame(spin)
             },
 
             update,

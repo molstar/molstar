@@ -8,6 +8,9 @@ import { Task, RuntimeContext } from 'mol-task';
 import { Dsn6File, Dsn6Header } from './schema'
 import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
+import { SimpleBuffer } from 'mol-io/common/simple-buffer';
+
+export const dsn6HeaderSize = 512;
 
 function parseBrixHeader(str: string): Dsn6Header {
     return {
@@ -32,61 +35,58 @@ function parseBrixHeader(str: string): Dsn6Header {
     }
 }
 
-function parseDsn6Header(int: Int16Array): Dsn6Header {
-    const factor = 1 / int[ 17 ]
+function parseDsn6Header(buffer: SimpleBuffer, littleEndian: boolean): Dsn6Header {
+    const readInt = littleEndian ? (o: number) => buffer.readInt16LE(o * 2) : (o: number) => buffer.readInt16BE(o * 2)
+    const factor = 1 / readInt(17)
     return {
-        xStart: int[ 0 ],
-        yStart: int[ 1 ],
-        zStart: int[ 2 ],
-        xExtent: int[ 3 ],
-        yExtent: int[ 4 ],
-        zExtent: int[ 5 ],
-        xRate: int[ 6 ],
-        yRate: int[ 7 ],
-        zRate: int[ 8 ],
-        xlen: int[ 9 ] * factor,
-        ylen: int[ 10 ] * factor,
-        zlen: int[ 11 ] * factor,
-        alpha: int[ 12 ] * factor,
-        beta: int[ 13 ] * factor,
-        gamma: int[ 14 ] * factor,
-        divisor: int[ 15 ] / 100,
-        summand: int[ 16 ],
+        xStart: readInt(0),
+        yStart: readInt(1),
+        zStart: readInt(2),
+        xExtent: readInt(3),
+        yExtent: readInt(4),
+        zExtent: readInt(5),
+        xRate: readInt(6),
+        yRate: readInt(7),
+        zRate: readInt(8),
+        xlen: readInt(9) * factor,
+        ylen: readInt(10) * factor,
+        zlen: readInt(11) * factor,
+        alpha: readInt(12) * factor,
+        beta: readInt(13) * factor,
+        gamma: readInt(14) * factor,
+        divisor: readInt(15) / 100,
+        summand: readInt(16),
         sigma: undefined
     }
 }
 
-async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Result<Dsn6File>> {
-    await ctx.update({ message: 'Parsing DSN6/BRIX file...' });
+function getBlocks(header: Dsn6Header) {
+    const { xExtent, yExtent, zExtent } = header
+    const xBlocks = Math.ceil(xExtent / 8)
+    const yBlocks = Math.ceil(yExtent / 8)
+    const zBlocks = Math.ceil(zExtent / 8)
+    return { xBlocks, yBlocks, zBlocks }
+}
 
-    const { buffer } = await file.readBuffer(0, file.length)
-    const bin = buffer.buffer
-
-    const intView = new Int16Array(bin)
-    const byteView = new Uint8Array(bin)
-    const brixStr = String.fromCharCode.apply(null, byteView.subarray(0, 512))
+export async function readDsn6Header(file: FileHandle): Promise<{ header: Dsn6Header, littleEndian: boolean }> {
+    const { buffer } = await file.readBuffer(0, dsn6HeaderSize)
+    const brixStr = String.fromCharCode.apply(null, buffer) as string
     const isBrix = brixStr.startsWith(':-)')
+    const littleEndian = isBrix || buffer.readInt16LE(18 * 2) === 100
+    const header = isBrix ? parseBrixHeader(brixStr) : parseDsn6Header(buffer, littleEndian)
+    return { header, littleEndian }
+}
 
-    if (!isBrix) {
-        // for DSN6, swap byte order when big endian
-        if (intView[18] !== 100) {
-            for (let i = 0, n = intView.length; i < n; ++i) {
-                const val = intView[i]
-                intView[i] = ((val & 0xff) << 8) | ((val >> 8) & 0xff)
-            }
-        }
+export async function parseDsn6Values(header: Dsn6Header, source: Uint8Array, target: Float32Array, littleEndian: boolean) {
+    if (!littleEndian) {
+        // even though the values are one byte they need to be swapped like they are 2
+        SimpleBuffer.flipByteOrderInPlace2(source.buffer)
     }
 
-    const header = isBrix ? parseBrixHeader(brixStr) : parseDsn6Header(intView)
-    const { divisor, summand } = header
+    const { divisor, summand, xExtent, yExtent, zExtent } = header
+    const { xBlocks, yBlocks, zBlocks } = getBlocks(header)
 
-    const values = new Float32Array(header.xExtent * header.yExtent * header.zExtent)
-
-    let offset = 512
-    const xBlocks = Math.ceil(header.xExtent / 8)
-    const yBlocks = Math.ceil(header.yExtent / 8)
-    const zBlocks = Math.ceil(header.zExtent / 8)
-
+    let offset = 0
     // loop over blocks
     for (let zz = 0; zz < zBlocks; ++zz) {
         for (let yy = 0; yy < yBlocks; ++yy) {
@@ -99,9 +99,9 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
                         for (let i = 0; i < 8; ++i) {
                             const x = 8 * xx + i
                             // check if remaining slice-part contains values
-                            if (x < header.xExtent && y < header.yExtent && z < header.zExtent) {
-                                const idx = ((((x * header.yExtent) + y) * header.zExtent) + z)
-                                values[ idx ] = (byteView[ offset ] - summand) / divisor
+                            if (x < xExtent && y < yExtent && z < zExtent) {
+                                const idx = ((((x * yExtent) + y) * zExtent) + z)
+                                target[idx] = (source[offset] - summand) / divisor
                                 ++offset
                             } else {
                                 offset += 8 - i
@@ -113,15 +113,41 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
             }
         }
     }
-
-    const result: Dsn6File = { header, values };
-    return Result.success(result);
 }
 
-export function parseFile(file: FileHandle) {
-    return Task.create<Result<Dsn6File>>('Parse DSN6/BRIX', ctx => parseInternal(file, ctx));
+export function getDsn6Counts(header: Dsn6Header) {
+    const { xExtent, yExtent, zExtent } = header
+    const { xBlocks, yBlocks, zBlocks } = getBlocks(header)
+    const valueCount = xExtent * yExtent * zExtent
+    const count = xBlocks * 8 * yBlocks * 8 * zBlocks * 8
+    const elementByteSize = 1
+    const byteCount = count * elementByteSize
+    return { count, byteCount, valueCount }
+}
+
+async function parseInternal(file: FileHandle, size: number, ctx: RuntimeContext): Promise<Dsn6File> {
+    await ctx.update({ message: 'Parsing DSN6/BRIX file...' });
+    const { header, littleEndian } = await readDsn6Header(file)
+    const { buffer } = await file.readBuffer(dsn6HeaderSize, size - dsn6HeaderSize)
+    const { valueCount } = getDsn6Counts(header)
+
+    const values = new Float32Array(valueCount)
+    await parseDsn6Values(header, buffer, values, littleEndian)
+
+    const result: Dsn6File = { header, values };
+    return result;
+}
+
+export function parseFile(file: FileHandle, size: number) {
+    return Task.create<Result<Dsn6File>>('Parse DSN6/BRIX', async ctx => {
+        try {
+            return Result.success(await parseInternal(file, size, ctx));
+        } catch (e) {
+            return Result.error(e);
+        }
+    })
 }
 
 export function parse(buffer: Uint8Array) {
-    return parseFile(FileHandle.fromBuffer(buffer))
+    return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer)), buffer.length)
 }

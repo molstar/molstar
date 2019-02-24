@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Transformer } from 'mol-state';
+import { StateTransformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginStateTransform } from '../objects';
 import { PluginStateObject as SO } from '../objects';
@@ -16,12 +16,14 @@ import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry
 import { Structure } from 'mol-model/structure';
 import { StructureParams } from 'mol-repr/structure/representation';
 import { ExplodeRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
-import { VolumeData } from 'mol-model/volume';
+import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { BuiltInVolumeRepresentationsName } from 'mol-repr/volume/registry';
 import { VolumeParams } from 'mol-repr/volume/representation';
+import { BuiltInColorThemeName, ColorTheme } from 'mol-theme/color';
+import { BuiltInSizeThemeName, SizeTheme } from 'mol-theme/size';
 
 export namespace StructureRepresentation3DHelpers {
-    export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): Transformer.Params<StructureRepresentation3D> {
+    export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): StateTransformer.Params<StructureRepresentation3D> {
         const type = ctx.structureRepresentation.registry.get(name);
 
         const themeDataCtx = { structure };
@@ -35,7 +37,7 @@ export namespace StructureRepresentation3DHelpers {
         })
     }
 
-    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structureParams?: Partial<PD.Values<StructureParams>>): Transformer.Params<StructureRepresentation3D> {
+    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structureParams?: Partial<PD.Values<StructureParams>>): StateTransformer.Params<StructureRepresentation3D> {
         const type = ctx.structureRepresentation.registry.get(name);
         const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).defaultValues;
         const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).defaultValues
@@ -112,11 +114,11 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            if (newParams.type.name !== oldParams.type.name) return Transformer.UpdateResult.Recreate;
+            if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
             const props = { ...b.data.props, ...newParams.type.params }
             b.data.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams))
             await b.data.createOrUpdate(props, a.data).runInContext(ctx);
-            return Transformer.UpdateResult.Updated;
+            return StateTransformer.UpdateResult.Updated;
         });
     }
 });
@@ -140,7 +142,7 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Update Explosion', async () => {
             const updated = await b.data.update(newParams);
             b.label = `Explosion T = ${newParams.t.toFixed(2)}`;
-            return updated ? Transformer.UpdateResult.Updated : Transformer.UpdateResult.Unchanged;
+            return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
         });
     }
 });
@@ -148,7 +150,7 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
 //
 
 export namespace VolumeRepresentation3DHelpers {
-    export function getDefaultParams(ctx: PluginContext, name: BuiltInVolumeRepresentationsName, volume: VolumeData, volumeParams?: Partial<PD.Values<VolumeParams>>): Transformer.Params<VolumeRepresentation3D> {
+    export function getDefaultParams(ctx: PluginContext, name: BuiltInVolumeRepresentationsName, volume: VolumeData, volumeParams?: Partial<PD.Values<VolumeParams>>): StateTransformer.Params<VolumeRepresentation3D> {
         const type = ctx.volumeRepresentation.registry.get(name);
 
         const themeDataCtx = { volume };
@@ -162,15 +164,19 @@ export namespace VolumeRepresentation3DHelpers {
         })
     }
 
-    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInVolumeRepresentationsName, volumeParams?: Partial<PD.Values<VolumeParams>>): Transformer.Params<VolumeRepresentation3D> {
+    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInVolumeRepresentationsName, volumeParams?: Partial<PD.Values<PD.Params>>, colorName?: BuiltInColorThemeName, colorParams?: Partial<ColorTheme.Props>, sizeName?: BuiltInSizeThemeName, sizeParams?: Partial<SizeTheme.Props>): StateTransformer.Params<VolumeRepresentation3D> {
         const type = ctx.volumeRepresentation.registry.get(name);
-        const colorParams = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).defaultValues;
-        const sizeParams = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).defaultValues
+        const colorType = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(colorName || type.defaultColorTheme);
+        const sizeType = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(sizeName || type.defaultSizeTheme);
         return ({
             type: { name, params: volumeParams ? { ...type.defaultValues, ...volumeParams } : type.defaultValues },
-            colorTheme: { name: type.defaultColorTheme, params: colorParams },
-            sizeTheme: { name: type.defaultSizeTheme, params: sizeParams }
+            colorTheme: { name: type.defaultColorTheme, params: colorParams ? { ...colorType.defaultValues, ...colorParams } : colorType.defaultValues },
+            sizeTheme: { name: type.defaultSizeTheme, params: sizeParams ? { ...sizeType.defaultValues, ...sizeParams } : sizeType.defaultValues }
         })
+    }
+
+    export function getDescription(props: any) {
+        return props.isoValue && VolumeIsoValue.toString(props.isoValue)
     }
 }
 export { VolumeRepresentation3D }
@@ -189,16 +195,16 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                 type: PD.Mapped<any>(
                     registry.default.name,
                     registry.types,
-                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, VolumeData.Empty ))),
+                    name => PD.Group<any>(registry.get(name).getParams(themeCtx, VolumeData.One ))),
                 colorTheme: PD.Mapped<any>(
                     type.defaultColorTheme,
                     themeCtx.colorThemeRegistry.types,
-                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: VolumeData.Empty }))
+                    name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: VolumeData.One }))
                 ),
                 sizeTheme: PD.Mapped<any>(
                     type.defaultSizeTheme,
                     themeCtx.sizeThemeRegistry.types,
-                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: VolumeData.Empty }))
+                    name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: VolumeData.One }))
                 )
             }
         }
@@ -233,19 +239,18 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const repr = provider.factory({ webgl: plugin.canvas3d.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
             repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
             // TODO set initial state, repr.setState({})
-            // TODO include isoValue in the label where available
-            console.log(params.type.params);
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
-            return new SO.Volume.Representation3D(repr, { label: provider.label });
+            return new SO.Volume.Representation3D(repr, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
-            if (newParams.type.name !== oldParams.type.name) return Transformer.UpdateResult.Recreate;
+            if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
             const props = { ...b.data.props, ...newParams.type.params }
             b.data.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
             await b.data.createOrUpdate(props, a.data).runInContext(ctx);
-            return Transformer.UpdateResult.Updated;
+            b.description = VolumeRepresentation3DHelpers.getDescription(props)
+            return StateTransformer.UpdateResult.Updated;
         });
     }
 });

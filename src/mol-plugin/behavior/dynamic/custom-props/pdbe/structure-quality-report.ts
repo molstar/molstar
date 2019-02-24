@@ -16,6 +16,7 @@ import { ThemeDataContext } from 'mol-theme/theme';
 
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'pdbe-structure-quality-report-prop',
+    category: 'custom-props',
     display: { name: 'PDBe Structure Quality Report', group: 'Custom Props' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private attach = StructureQualityReport.createAttachTask(

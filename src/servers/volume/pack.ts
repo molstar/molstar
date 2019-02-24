@@ -9,12 +9,29 @@
 import pack from './pack/main'
 import VERSION from './pack/version'
 
-let config = {
-    input: <{ name: string, filename: string }[]>[],
+interface Config {
+    input: { name: string, filename: string }[],
+    format: 'ccp4' | 'dsn6',
+    isPeriodic: boolean,
+    outputFilename: string,
+    blockSizeInMB: number
+}
+
+let config: Config = {
+    input: [],
+    format: 'ccp4',
     isPeriodic: false,
     outputFilename: '',
-    blockSize: 96
+    blockSizeInMB: 96
 };
+
+function getFormat(format: string): Config['format'] {
+    switch (format.toLowerCase()) {
+        case 'ccp4': return 'ccp4'
+        case 'dsn6': return 'dsn6'
+    }
+    throw new Error(`unsupported format '${format}'`)
+}
 
 function printHelp() {
     let help = [
@@ -50,7 +67,10 @@ function parseInput() {
     for (let i = 2; i < process.argv.length; i++) {
         switch (process.argv[i].toLowerCase()) {
             case '-blocksize':
-                config.blockSize = +process.argv[++i];
+                config.blockSizeInMB = +process.argv[++i];
+                break;
+            case '-format':
+                config.format = getFormat(process.argv[++i]);
                 break;
             case '-xray':
                 input = true;
@@ -82,5 +102,5 @@ function parseInput() {
 }
 
 if (parseInput()) {
-    pack(config.input, config.blockSize, config.isPeriodic, config.outputFilename);
+    pack(config.input, config.blockSizeInMB, config.isPeriodic, config.outputFilename, config.format);
 }
