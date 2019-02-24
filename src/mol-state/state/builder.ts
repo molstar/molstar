@@ -9,6 +9,7 @@ import { TransientTree } from '../tree/transient';
 import { StateObject, StateObjectCell } from '../object';
 import { StateTransform } from '../transform';
 import { StateTransformer } from '../transformer';
+import { State } from 'mol-state/state';
 
 export { StateBuilder }
 
@@ -24,7 +25,7 @@ namespace StateBuilder {
         lastUpdate?: StateTransform.Ref
     }
 
-    interface State {
+    interface BuildState {
         tree: TransientTree,
         editInfo: EditInfo
     }
@@ -38,7 +39,7 @@ namespace StateBuilder {
     }
 
     export class Root implements StateBuilder {
-        private state: State;
+        private state: BuildState;
         get editInfo() { return this.state.editInfo; }
 
         to<A extends StateObject>(ref: StateTransform.Ref) { return new To<A>(this.state, ref, this); }
@@ -90,8 +91,30 @@ namespace StateBuilder {
             return new To(this.state, t.ref, this.root);
         }
 
+        /**
+         * Updates a transform in an instantiated tree, passing the transform's source into the providers
+         *
+         * This only works if the transform source is NOT updated by the builder. Use at own discression.
+         */
+        updateInState<T extends StateTransformer<any, A, any>>(transformer: T, state: State, provider: (old: StateTransformer.Params<T>, a: StateTransformer.From<T>) => StateTransformer.Params<T>): Root {
+            const old = this.state.tree.transforms.get(this.ref)!;
+            const cell = state.cells.get(this.ref);
+            if (!cell || !cell.sourceRef) throw new Error('Source cell is not present in the tree.');
+            const parent = state.cells.get(cell.sourceRef);
+            if (!parent || !parent.obj) throw new Error('Parent cell is not present or computed.');
+
+            const params = provider(old.params as any, parent.obj as any);
+
+            if (this.state.tree.setParams(this.ref, params)) {
+                this.editInfo.count++;
+                this.editInfo.lastUpdate = this.ref;
+            }
+
+            return this.root;
+        }
+
         update<T extends StateTransformer<any, A, any>>(transformer: T, params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>): Root
-        update(params: any): Root
+        update<T extends StateTransformer<any, A, any> = StateTransformer<any, A, any>>(params: StateTransformer.Params<T>): Root
         update<T extends StateTransformer<any, A, any>>(paramsOrTransformer: T, provider?: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>) {
             let params: any;
             if (provider) {
@@ -115,7 +138,7 @@ namespace StateBuilder {
 
         getTree(): StateTree { return this.state.tree.asImmutable(); }
 
-        constructor(private state: State, ref: StateTransform.Ref, private root: Root) {
+        constructor(private state: BuildState, ref: StateTransform.Ref, private root: Root) {
             this.ref = ref;
             if (!this.state.tree.transforms.has(ref)) {
                 throw new Error(`Could not find node '${ref}'.`);

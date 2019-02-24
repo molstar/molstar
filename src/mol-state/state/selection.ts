@@ -97,11 +97,27 @@ namespace StateSelection {
             });
         }
 
+        export function ofType(type: StateObject.Ctor) {
+            return build(() => state => {
+                const ctx = { ret: [] as StateObjectCell[], cells: state.cells, type: type.type };
+                StateTree.doPreOrder(state.tree, state.tree.root, ctx, _findOfType);
+                return ctx.ret;
+            });
+        }
+
         function _findRootsOfType(n: StateTransform, _: any, s: { type: StateObject.Type, roots: StateObjectCell[], cells: State.Cells }) {
             const cell = s.cells.get(n.ref);
             if (cell && cell.obj && cell.obj.type === s.type) {
                 s.roots.push(cell);
                 return false;
+            }
+            return true;
+        }
+
+        function _findOfType(n: StateTransform, _: any, s: { type: StateObject.Type, ret: StateObjectCell[], cells: State.Cells }) {
+            const cell = s.cells.get(n.ref);
+            if (cell && cell.obj && cell.obj.type === s.type) {
+                s.ret.push(cell);
             }
             return true;
         }

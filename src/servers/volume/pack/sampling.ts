@@ -20,11 +20,11 @@ export async function createContext(filename: string, channels: Format.Context[]
     const { extent, valueType, grid, origin } = channels[0].data.header;
 
     const samplingCounts = getSamplingCounts(extent, blockSize);
-    const cubeBuffer = new Buffer(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * getElementByteSize(valueType)));
+    const cubeBuffer = Buffer.from(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * getElementByteSize(valueType)));
 
     const litteEndianCubeBuffer = SimpleBuffer.IsNativeEndianLittle
         ? cubeBuffer
-        : new Buffer(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * getElementByteSize(valueType)));
+        : Buffer.from(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * getElementByteSize(valueType)));
 
     // The data can be periodic iff the extent is the same as the grid and origin is 0.
     if (grid.some((v, i) => v !== extent[i]) || origin.some(v => v !== 0)) {
@@ -100,7 +100,7 @@ function createBlockBuffer(sampleCount: number[], blockSize: number, valueType: 
     for (let i = 0; i < numChannels; i++) values[i] = createTypedArray(valueType, sampleCount[0] * sampleCount[1] * blockSize);
     return {
         values,
-        buffers: values.map(xs => new Buffer(xs.buffer)),
+        buffers: values.map(xs => Buffer.from(xs.buffer)),
         slicesWritten: 0
     };
 }

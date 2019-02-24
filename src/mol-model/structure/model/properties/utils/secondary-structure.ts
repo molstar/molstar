@@ -48,7 +48,7 @@ export function computeModelDSSP(hierarchy: AtomicHierarchy, conformation: Atomi
     for (let i = 0, il = proteinResidues.length; i < il; ++i) {
         type[proteinResidues[i]] = assignment[i]
     }
-    
+
     const secondaryStructure: SecondaryStructure = {
         type,
         key: [], // TODO
@@ -294,7 +294,7 @@ function getDSSPAssignment(flags: Uint32Array, useOriginal = false) {
  * Q = -332 * 0.42 * 0.20
  *
  * f is the dimensional factor
- * 
+ *
  * q1 and q2 are partial charges which are placed on the C,O
  * (+q1,-q1) and N,H (-q2,+q2)
  */
@@ -313,7 +313,7 @@ function calcHbondEnergy(oPos: Vec3, cPos: Vec3, nPos: Vec3, hPos: Vec3) {
     const distON = Vec3.distance(oPos, nPos)
 
     const e1 = Q / distOH - Q / distCH
-	const e2 = Q / distCN - Q / distON
+    const e2 = Q / distCN - Q / distON
     return e1 + e2
 }
 
@@ -321,7 +321,7 @@ function calcHbondEnergy(oPos: Vec3, cPos: Vec3, nPos: Vec3, hPos: Vec3) {
  * The basic turn pattern is a single H bond of type (i, i + n).
  * We assign an n-turn at residue i if there is an H bond from CO(i) to NH(i + n),
  * i.e., “n-turn(i)=: Hbond(i, i + n), n = 3, 4, 5.”
- * 
+ *
  * Type: T
  */
 function assignTurns(ctx: DSSPContext) {
@@ -329,7 +329,7 @@ function assignTurns(ctx: DSSPContext) {
     const { chains, residueAtomSegments, chainAtomSegments } = hierarchy
     const { label_asym_id } = chains
 
-    const turnFlag = [ 0, 0, 0, DSSPType.Flag.T3, DSSPType.Flag.T4, DSSPType.Flag.T5 ]
+    const turnFlag = [0, 0, 0, DSSPType.Flag.T3, DSSPType.Flag.T4, DSSPType.Flag.T5]
 
     for (let i = 0, il = proteinResidues.length; i < il; ++i) {
         const rI = proteinResidues[i]
@@ -354,18 +354,18 @@ function assignTurns(ctx: DSSPContext) {
 
 /**
  * Two nonoverlapping stretches of three residues each, i - 1, i, i + 1 and j - 1, j, j + 1,
- * form either a parallel or antiparallel bridge, depending on which of 
+ * form either a parallel or antiparallel bridge, depending on which of
  * two basic patterns is matched. We assign a bridge between residues i and j
  * if there are two H bonds characteristic of P-structure; in particular,
- * 
+ *
  * Parallel Bridge(i, j) =:
  *      [Hbond(i - 1, j) and Hbond(j, i + 1)] or
  *      [Hbond(j - 1, i) and Hbond(i, j + 1)]
- * 
+ *
  * Antiparallel Bridge(i, j) =:
  *      [Hbond(i, j) and Hbond(j, i)] or
  *      [Hbond(i - 1, j + 1) and Hbond(j - 1, i + l)]
- * 
+ *
  * Type: B
  */
 function assignBridges(ctx: DSSPContext) {
@@ -378,7 +378,7 @@ function assignBridges(ctx: DSSPContext) {
         for (let t = offset[k], _t = offset[k + 1]; t < _t; t++) {
             const l = b[t]
             if (k > l) continue
-            
+
             // Parallel Bridge(i, j) =: [Hbond(i - 1, j) and Hbond(j, i + 1)]
             i = k + 1 // k is i - 1
             j = l
@@ -418,18 +418,18 @@ function assignBridges(ctx: DSSPContext) {
  * A minimal helix is defined by two consecutive n-turns.
  * For example, a 4-helix, of minimal length 4 from residues i to i + 3,
  * requires 4-turns at residues i - 1 and i,
- * 
+ *
  *      3-helix(i,i + 2)=: [3-turn(i - 1) and 3-turn(i)]
  *      4-helix(i,i + 3)=: [4-turn(i - 1) and 4-turn(i)]
  *      5-helix(i,i + 4)=: [5-turn(i - 1) and 5-turn(i)]
- * 
+ *
  * Type: G (n=3), H (n=4), I (n=5)
  */
 function assignHelices(ctx: DSSPContext) {
     const { proteinResidues, flags } = ctx
-    
-    const turnFlag = [ 0, 0, 0, DSSPType.Flag.T3, DSSPType.Flag.T4, DSSPType.Flag.T5 ]
-    const helixFlag = [ 0, 0, 0, DSSPType.Flag.G, DSSPType.Flag.H, DSSPType.Flag.I ]
+
+    const turnFlag = [0, 0, 0, DSSPType.Flag.T3, DSSPType.Flag.T4, DSSPType.Flag.T5]
+    const helixFlag = [0, 0, 0, DSSPType.Flag.G, DSSPType.Flag.H, DSSPType.Flag.I]
 
     for (let i = 1, il = proteinResidues.length; i < il; ++i) {
         const fI = DSSPType.create(flags[i])
@@ -447,7 +447,7 @@ function assignHelices(ctx: DSSPContext) {
 
 /**
  * ladder=: set of one or more consecutive bridges of identical type
- * 
+ *
  * Type: E
  */
 function assignLadders(ctx: DSSPContext) {
@@ -456,7 +456,7 @@ function assignLadders(ctx: DSSPContext) {
 
 /**
  * sheet=: set of one or more ladders connected by shared residues
- * 
+ *
  * Type: E
  */
 function assignSheets(ctx: DSSPContext) {
@@ -465,7 +465,7 @@ function assignSheets(ctx: DSSPContext) {
 
 /**
  * Bend(i) =: [angle ((CW - Ca(i - 2)),(C"(i + 2) - C"(i))) > 70"]
- * 
+ *
  * Type: S
  */
 function assignBends(ctx: DSSPContext) {

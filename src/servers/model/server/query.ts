@@ -30,7 +30,7 @@ const perf = new PerformanceMonitor();
 let _propertyProvider: ModelPropertiesProvider;
 function propertyProvider() {
     if (_propertyProvider) return _propertyProvider;
-    _propertyProvider = createModelPropertiesProviderFromConfig();
+    _propertyProvider = createModelPropertiesProviderFromConfig() || (() => []);
     return _propertyProvider;
 }
 
@@ -156,7 +156,7 @@ const _model_server_stats_fields: CifField<number, Stats>[] = [
 
 const _model_server_result: CifWriter.Category<Job> = {
     name: 'model_server_result',
-    instance: (job) => CifWriter.categoryInstance(_model_server_result_fields,{ data: job, rowCount: 1 })
+    instance: (job) => CifWriter.categoryInstance(_model_server_result_fields, { data: job, rowCount: 1 })
 };
 
 const _model_server_error: CifWriter.Category<string> = {

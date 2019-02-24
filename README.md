@@ -122,6 +122,12 @@ Run the image
 
     export NODE_PATH="build/src"; node build/state-docs
 
+**Convert any CIF to BinaryCIF**
+
+    node build/model-server/preprocess -i file.cif -ob file.bcif
+
+To see all available commands, use ``node build/model-server/preprocess -h``.
+
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.
 
