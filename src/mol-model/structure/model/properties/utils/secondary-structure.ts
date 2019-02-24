@@ -88,6 +88,9 @@ namespace DSSPType {
 /** max distance between two C-alpha atoms to check for hbond */
 const caMaxDist = 7.0;
 
+/** min distance between two C-alpha atoms to check for hbond */
+const caMinDist = 4.0;
+
 function calcAtomicTraceLookup3D(hierarchy: AtomicHierarchy, conformation: AtomicConformation) {
     const { x, y, z } = conformation;
     const { moleculeType, traceElementIndex } = hierarchy.derived.residue
@@ -99,7 +102,7 @@ function calcAtomicTraceLookup3D(hierarchy: AtomicHierarchy, conformation: Atomi
             _proteinResidues[_proteinResidues.length] = i
         }
     }
-    const lookup3d = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(indices) });
+    const lookup3d = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(indices) }, 4);
     const proteinResidues = SortedArray.ofSortedArray<ResidueIndex>(_proteinResidues)
     return { lookup3d, proteinResidues }
 }
@@ -160,6 +163,8 @@ function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConf
     const cPosPrev = Vec3.zero()
     const oPosPrev = Vec3.zero()
 
+    const caMinDistSq = caMinDist * caMinDist
+
     for (let i = 0, il = proteinResidues.length; i < il; ++i) {
         const oPI = i
         const oRI = proteinResidues[i]
@@ -178,9 +183,11 @@ function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConf
         position(cAtom, cPos)
         position(caAtom, caPos)
 
-        const { indices, count } = lookup3d.find(caPos[0], caPos[1], caPos[2], caMaxDist)
+        const { indices, count, squaredDistances } = lookup3d.find(caPos[0], caPos[1], caPos[2], caMaxDist)
 
         for (let j = 0; j < count; ++j) {
+            if (squaredDistances[j] < caMinDistSq) continue
+
             const nPI = indices[j]
 
             // ignore bonds within a residue or to prev or next residue, TODO take chain border into account
