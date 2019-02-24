@@ -6,8 +6,7 @@
 
 import { Unit, StructureElement, ElementIndex, Structure } from 'mol-model/structure';
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
-import { Task, RuntimeContext } from 'mol-task';
-import { DensityData } from 'mol-math/geometry';
+import { Task } from 'mol-task';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { GaussianDensityTexture } from 'mol-math/geometry/gaussian-density/gpu';
 import { Texture } from 'mol-gl/webgl/texture';
@@ -20,7 +19,6 @@ export const GaussianDensityParams = {
     radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
     smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }),
     useGpu: PD.Boolean(false),
-    ignoreCache: PD.Boolean(false),
 }
 export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
@@ -65,15 +63,6 @@ export function computeUnitGaussianDensityTexture(unit: Unit, props: GaussianDen
     return Task.create('Gaussian Density', async ctx => {
         return await GaussianDensityTexture(ctx, webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
     });
-}
-
-export async function computeUnitGaussianDensityCached(unit: Unit, props: GaussianDensityProps, cache: Map<string, DensityData>, ctx: RuntimeContext, webgl?: WebGLContext) {
-    const key = `${props.radiusOffset}|${props.resolution}|${props.smoothness}`
-    let density = cache.get(key)
-    if (density && !props.ignoreCache) return density
-    density = await computeUnitGaussianDensity(unit, props, webgl).runInContext(ctx)
-    if (!props.ignoreCache) cache.set(key, density)
-    return density
 }
 
 //
