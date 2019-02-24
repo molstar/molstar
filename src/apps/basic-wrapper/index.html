@@ -35,19 +35,39 @@
             #controls > hr {
                 margin: 5px 0;
             }
+
+            #controls > input, #controls > select {
+                width: 100%;
+                display: block;
+            }
         </style>
         <link rel="stylesheet" type="text/css" href="app.css" />
         <script type="text/javascript" src="./index.js"></script>
     </head>
     <body>
         <div id='controls'>
-
+            <h3>Source</h3>
+            <input type='text' id='url' placeholder='url' />
+            <input type='text' id='assemblyId' placeholder='assembly id' />
+            <select id='format'>
+                <option value='cif' selected>CIF</option>
+                <option value='pdb'>PDB</option>
+            </select>
         </div>
         <div id="app"></div>
-        <script>            
+        <script>      
+            function $(id) { return document.getElementById(id); }
+        
             var pdbId = '1grm', assemblyId= '1';
             var url = 'https://www.ebi.ac.uk/pdbe/static/entry/' + pdbId + '_updated.cif';
             var format = 'cif';
+            
+            $('url').value = url;
+            $('url').onchange = function (e) { url = e.target.value; }
+            $('assemblyId').value = assemblyId;
+            $('assemblyId').onchange = function (e) { assemblyId = e.target.value; }
+            $('format').value = format;
+            $('format').onchange = function (e) { format = e.target.value; }
 
             // var url = 'https://www.ebi.ac.uk/pdbe/entry-files/pdb' + pdbId + '.ent';
             // var format = 'pdb';
@@ -58,9 +78,8 @@
             BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId });
             BasicMolStarWrapper.toggleSpin();
 
-            addHeader('Source');
             addControl('Load Asym Unit', () => BasicMolStarWrapper.load({ url: url, format: format }));
-            addControl('Load Assembly 1', () => BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId }));
+            addControl('Load Assembly', () => BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId }));
 
             addSeparator();
 
@@ -73,7 +92,7 @@
 
             // adjust this number to make the animation faster or slower
             // requires to "restart" the animation if changed
-            BasicMolStarWrapper.animate.modelIndex.maxFPS = 4;
+            BasicMolStarWrapper.animate.modelIndex.maxFPS = 30;
 
             addControl('Play To End', () => BasicMolStarWrapper.animate.modelIndex.onceForward());
             addControl('Play To Start', () => BasicMolStarWrapper.animate.modelIndex.onceBackward());
@@ -87,18 +106,18 @@
                 var btn = document.createElement('button');
                 btn.onclick = action;
                 btn.innerText = label;
-                document.getElementById('controls').appendChild(btn);
+                $('controls').appendChild(btn);
             }
 
             function addSeparator() {
                 var hr = document.createElement('hr');
-                document.getElementById('controls').appendChild(hr);
+                $('controls').appendChild(hr);
             }
 
             function addHeader(header) {
                 var h = document.createElement('h3');
                 h.innerText = header;
-                document.getElementById('controls').appendChild(h);
+                $('controls').appendChild(h);
             }
         </script>
     </body>
