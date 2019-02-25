@@ -37,6 +37,21 @@ export namespace StructureRepresentation3DHelpers {
         })
     }
 
+    export function getDefaultParamsWithTheme(ctx: PluginContext, reprName: BuiltInStructureRepresentationsName, colorName: BuiltInColorThemeName | undefined, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): StateTransformer.Params<StructureRepresentation3D> {
+        const type = ctx.structureRepresentation.registry.get(reprName);
+
+        const themeDataCtx = { structure };
+        const color = colorName || type.defaultColorTheme;
+        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(color).getParams(themeDataCtx);
+        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).getParams(themeDataCtx)
+        const structureDefaultParams = PD.getDefaultValues(type.getParams(ctx.structureRepresentation.themeCtx, structure))
+        return ({
+            type: { name: reprName, params: structureParams ? { ...structureDefaultParams, ...structureParams } : structureDefaultParams },
+            colorTheme: { name: color, params: PD.getDefaultValues(colorParams) },
+            sizeTheme: { name: type.defaultSizeTheme, params: PD.getDefaultValues(sizeParams) }
+        })
+    }
+
     export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structureParams?: Partial<PD.Values<StructureParams>>): StateTransformer.Params<StructureRepresentation3D> {
         const type = ctx.structureRepresentation.registry.get(name);
         const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).defaultValues;
