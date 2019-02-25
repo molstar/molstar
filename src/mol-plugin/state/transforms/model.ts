@@ -15,6 +15,7 @@ import { MolScriptBuilder } from 'mol-script/language/builder';
 import { StateObject } from 'mol-state';
 import { PluginContext } from 'mol-plugin/context';
 import { stringToWords } from 'mol-util/string';
+import { shapeFromPly } from 'mol-model/shape/formarts/ply/plyData_to_shape';
 
 export { TrajectoryFromMmCif }
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
@@ -191,3 +192,23 @@ async function attachProps(model: Model, ctx: PluginContext, taskCtx: RuntimeCon
         await p.attach(model).runInContext(taskCtx);
     }
 }
+
+export { ShapeFromPly }
+type ShapeFromPly = typeof ShapeFromPly
+const ShapeFromPly = PluginStateTransform.BuiltIn({
+    name: 'shape-from-ply',
+    display: { name: 'Shape from PLY', description: 'Create Shape from PLY data' },
+    from: SO.Format.Ply,
+    to: SO.Shape.Provider,
+    params(a) {
+        return { };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create shape from PLY', async ctx => {
+            const shape = await shapeFromPly(a.data, params).runInContext(ctx)
+            const props = { label: 'Shape' };
+            return new SO.Shape.Provider(shape, props);
+        });
+    }
+});

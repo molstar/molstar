@@ -11,7 +11,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginCommands } from './command';
 import { PluginSpec } from './spec';
-import {DownloadStructure, CreateComplexRepresentation, OpenStructure, PLYtest} from './state/actions/basic';
+import {DownloadStructure, CreateComplexRepresentation, OpenStructure, OpenPlyFile} from './state/actions/basic';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
 
@@ -24,7 +24,7 @@ const DefaultSpec: PluginSpec = {
     actions: [
         PluginSpec.Action(DownloadStructure),
         PluginSpec.Action(OpenStructure),
-        PluginSpec.Action(PLYtest),
+        PluginSpec.Action(OpenPlyFile),
         PluginSpec.Action(CreateComplexRepresentation),
         PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),

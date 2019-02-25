@@ -13,6 +13,9 @@ import { Representation } from 'mol-repr/representation';
 import { StructureRepresentation } from 'mol-repr/structure/representation';
 import { VolumeRepresentation } from 'mol-repr/volume/representation';
 import { StateObject, Transformer } from 'mol-state';
+import { ShapeRepresentation } from 'mol-repr/shape/representation';
+import { Shape as _Shape } from 'mol-model/shape';
+import { ShapeProvider } from 'mol-model/shape/provider';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -70,6 +73,11 @@ export namespace PluginStateObject {
     export namespace Volume {
         export class Data extends Create<VolumeData>({ name: 'Volume Data', typeClass: 'Object' }) { }
         export class Representation3D extends CreateRepresentation3D<VolumeRepresentation<any>>({ name: 'Volume 3D' }) { }
+    }
+
+    export namespace Shape {
+        export class Provider extends Create<ShapeProvider<any, any, any>>({ name: 'Shape Provider', typeClass: 'Object' }) { }
+        export class Representation3D extends CreateRepresentation3D<ShapeRepresentation<any, any, any>>({ name: 'Shape 3D' }) { }
     }
 }
 

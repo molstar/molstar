@@ -12,6 +12,7 @@ import { PluginContext } from 'mol-plugin/context';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Transformer } from 'mol-state';
 import { readFromFile } from 'mol-util/data-source';
+import * as PLY from 'mol-io/reader/ply/parse_data/ply_parser'
 
 export { Download }
 type Download = typeof Download
@@ -88,6 +89,23 @@ const ParseCif = PluginStateTransform.BuiltIn({
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Cif(parsed.result);
+        });
+    }
+});
+
+export { ParsePly }
+type ParsePly = typeof ParsePly
+const ParsePly = PluginStateTransform.BuiltIn({
+    name: 'parse-ply',
+    display: { name: 'Parse PLY', description: 'Parse PLY from Binary data' },
+    from: [SO.Data.String],
+    to: SO.Format.Ply
+})({
+    apply({ a }) {
+        return Task.create('Parse PLY', async ctx => {
+            const parsed = await PLY.parse(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Ply(parsed.result, { label: parsed.result.name || 'PLY Data' });
         });
     }
 });

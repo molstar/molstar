@@ -14,9 +14,6 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
-import * as data_functions from 'mol-io/reader/ply/read_data/data'
-
-
 
 // TODO: "structure parser provider"
 
@@ -88,24 +85,19 @@ export const OpenStructure = StateAction.build({
     return state.update(createStructureTree(ctx, data, false));
 });
 
-
-export const PLYtest = StateAction.build({
-    display: { name: 'PLY Test', description: 'nothing ply' },
+export const OpenPlyFile = StateAction.build({
+    display: { name: 'Open PLY file', description: 'Load a PLY file' },
     from: PluginStateObject.Root,
     params: { file: PD.File({ accept: '.ply' }) }
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
-    const data = b.toRoot().apply(data_functions.ReadFile_ascii, { file: params.file, isBinary: false });
-    let tmp = state.update(getPLYdata(ctx, data));
-    return tmp ;
+    const data = b.toRoot()
+        .apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: false })
+        .apply(StateTransforms.Data.ParsePly)
+        .apply(StateTransforms.Model.ShapeFromPly)
+        .apply(StateTransforms.Representation.ShapeRepresentation3D)
+    return state.update(data.getTree());
 });
-
-function getPLYdata(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.String>, ): StateTree {
-    let root = b.apply(data_functions.ParsePLY);
-
-    return root.getTree();
-}
-
 
 function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, supportProps: boolean): StateTree {
     let root = b
