@@ -26,7 +26,7 @@ namespace CustomElementProperty {
         display: string,
         attachableTo?: (model: Model) => boolean,
         getData(model: Model): Map<ElementIndex, T> | Promise<Map<ElementIndex, T>>,
-        format?(e: T): string,
+        format?(e: T): string | undefined,
         coloring?: {
             getColor: (e: T) => Color,
             defaultColor: Color
@@ -43,17 +43,24 @@ namespace CustomElementProperty {
 
         function attach(model: Model) {
             return Task.create(`Attach ${params.display}`, async () => {
-                const data = await params.getData(model);
+                try {
+                    if (model.customProperties.has(Descriptor)) return true;
 
-                if (params.isStatic) {
-                    model._staticPropertyData[name] = data;
-                } else {
-                    model._dynamicPropertyData[name] = data;
+                    const data = await params.getData(model);
+
+                    if (params.isStatic) {
+                        model._staticPropertyData[name] = data;
+                    } else {
+                        model._dynamicPropertyData[name] = data;
+                    }
+
+                    model.customProperties.add(Descriptor);
+
+                    return true;
+                } catch (e) {
+                    console.warn('Attach Property', e);
+                    return false;
                 }
-
-                model.customProperties.add(Descriptor);
-
-                return true;
             })
         }
 

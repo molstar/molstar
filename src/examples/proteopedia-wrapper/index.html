@@ -61,7 +61,7 @@
 
             function $(id) { return document.getElementById(id); }
         
-            var pdbId = '3usb', assemblyId= 'preferred';
+            var pdbId = '2c1z', assemblyId= 'preferred';
             var url = 'https://www.ebi.ac.uk/pdbe/static/entry/' + pdbId + '_updated.cif';
             var format = 'cif';
             
@@ -107,9 +107,11 @@
             addControl('Play Loop', () => MolStarProteopediaWrapper.animate.modelIndex.loop());
             addControl('Stop', () => MolStarProteopediaWrapper.animate.modelIndex.stop());
 
+            addSeparator();
             addHeader('Misc');
 
-            addControl('Apply Stripes', () => MolStarProteopediaWrapper.coloring.applyStripes());
+            addControl('Apply Evo Cons', () => MolStarProteopediaWrapper.coloring.evolutionaryConservation());
+            addControl('Default Visuals', () => MolStarProteopediaWrapper.updateStyle());
 
             ////////////////////////////////////////////////////////
 

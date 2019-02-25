@@ -14,7 +14,7 @@ import { Color } from 'mol-util/color';
 import { PluginStateObject as PSO, PluginStateObject } from 'mol-plugin/state/objects';
 import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
 import { StateBuilder, StateObject } from 'mol-state';
-import { StripedResidues } from './annotation';
+import { EvolutionaryConservation } from './annotation';
 import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo } from './helpers';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 require('mol-plugin/skin/light.scss')
@@ -39,9 +39,9 @@ class MolStarProteopediaWrapper {
             }
         });
 
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.Descriptor.name, StripedResidues.colorTheme!);
-        this.plugin.lociLabels.addProvider(StripedResidues.labelProvider);
-        this.plugin.customModelProperties.register(StripedResidues.propertyProvider);
+        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(EvolutionaryConservation.Descriptor.name, EvolutionaryConservation.colorTheme!);
+        this.plugin.lociLabels.addProvider(EvolutionaryConservation.labelProvider);
+        this.plugin.customModelProperties.register(EvolutionaryConservation.propertyProvider);
     }
 
     get state() {
@@ -65,7 +65,7 @@ class MolStarProteopediaWrapper {
         const model = this.state.build().to('model');
 
         return model
-            .apply(StateTransforms.Model.CustomModelProperties, { properties: [StripedResidues.Descriptor.name] }, { ref: 'props', props: { isGhost: false } })
+            .apply(StateTransforms.Model.CustomModelProperties, { properties: [EvolutionaryConservation.Descriptor.name] }, { ref: 'props', props: { isGhost: false } })
             .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
     }
 
@@ -97,7 +97,7 @@ class MolStarProteopediaWrapper {
         return root;
     }
 
-    private getObj<T extends StateObject>(ref: string) {
+    private getObj<T extends StateObject>(ref: string): T['data'] {
         const state = this.state;
         const cell = state.select(ref)[0];
         if (!cell || !cell.obj) return void 0;
@@ -105,10 +105,10 @@ class MolStarProteopediaWrapper {
     }
 
     private async doInfo(checkPreferredAssembly: boolean) {
-        const s = this.getObj<PluginStateObject.Molecule.Model>('model');
-        if (!s) return;
+        const model = this.getObj<PluginStateObject.Molecule.Model>('model');
+        if (!model) return;
 
-        const info = await ModelInfo.get(this.plugin, s, checkPreferredAssembly)
+        const info = await ModelInfo.get(this.plugin, model, checkPreferredAssembly)
         this.events.modelInfo.next(info);
         return info;
     }
@@ -177,18 +177,18 @@ class MolStarProteopediaWrapper {
     }
 
     coloring = {
-        applyStripes: async () => {
+        evolutionaryConservation: async () => {
             await this.updateStyle({ sequence: { kind: 'molecular-surface' } });
 
             const state = this.state;
 
-            const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
+            //const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
             const tree = state.build();
-            const colorTheme = { name: StripedResidues.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(StripedResidues.Descriptor.name).defaultValues };
+            const colorTheme = { name: EvolutionaryConservation.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(EvolutionaryConservation.Descriptor.name).defaultValues };
 
-            for (const v of visuals) {
-                tree.to(v.transform.ref).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
-            }
+            tree.to('sequence-visual').update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
+            //for (const v of visuals) {
+            //}
 
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
         }
