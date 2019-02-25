@@ -29,7 +29,7 @@ import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { PluginLayout } from './layout';
 import { List } from 'immutable';
 import { StateTransformParameters } from './ui/state/common';
-import { DataFormatRegistry } from './state/actions/volume';
+import { DataFormatRegistry } from './state/actions/data-format';
 import { PluginBehavior } from './behavior/behavior';
 import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
 

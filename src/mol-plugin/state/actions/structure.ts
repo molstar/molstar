@@ -6,15 +6,50 @@
  */
 
 import { PluginContext } from 'mol-plugin/context';
-import { StateAction, StateBuilder, StateSelection, StateTransformer } from 'mol-state';
+import { StateAction, StateBuilder, StateSelection, StateTransformer, State } from 'mol-state';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
 import { CustomModelProperties } from '../transforms/model';
+import { DataFormatProvider } from './data-format';
+import { FileInfo } from 'mol-util/file-info';
+import { Task } from 'mol-task';
 
-// TODO: "structure/volume parser provider"
+export const MmcifProvider: DataFormatProvider<any> = {
+    label: 'mmCIF',
+    description: 'mmCIF',
+    stringExtensions: ['cif', 'mmcif', 'mcif'],
+    binaryExtensions: ['bcif'],
+    isApplicable: (info: FileInfo, data: Uint8Array) => {
+        return info.ext === 'cif' || info.ext === 'mmcif' || info.ext === 'mcif' || info.ext === 'bcif'
+    },
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, state: State) => {
+        return Task.create('mmCIF default builder', async taskCtx => {
+            const traj = createModelTree(data, 'cif');
+            await state.updateTree(createStructureTree(ctx, traj, false)).runInContext(taskCtx)
+        })
+    }
+}
+
+export const PdbProvider: DataFormatProvider<any> = {
+    label: 'PDB',
+    description: 'PDB',
+    stringExtensions: ['pdb', 'ent'],
+    binaryExtensions: [],
+    isApplicable: (info: FileInfo, data: Uint8Array) => {
+        return info.ext === 'pdb' || info.ext === 'ent'
+    },
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, state: State) => {
+        return Task.create('mmCIF default builder', async taskCtx => {
+            const traj = createModelTree(data, 'pdb');
+            await state.updateTree(createStructureTree(ctx, traj, false)).runInContext(taskCtx)
+        })
+    }
+}
+
+//
 
 export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure
@@ -74,17 +109,6 @@ const DownloadStructure = StateAction.build({
     const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams, { props: { isGhost: true }});
     const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
     return state.updateTree(createStructureTree(ctx, traj, params.source.params.supportProps));
-});
-
-export const OpenStructure = StateAction.build({
-    display: { name: 'Open Structure', description: 'Load a structure from file and create its default Assembly and visual' },
-    from: PluginStateObject.Root,
-    params: { file: PD.File({ accept: '.cif,.bcif' }) }
-})(({ params, state }, ctx: PluginContext) => {
-    const b = state.build();
-    const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
-    const traj = createModelTree(data, 'cif');
-    return state.updateTree(createStructureTree(ctx, traj, false));
 });
 
 function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' = 'cif') {

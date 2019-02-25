@@ -6,8 +6,10 @@
 
 import * as Structure from './actions/structure'
 import * as Volume from './actions/volume'
+import * as DataFormat from './actions/data-format'
 
 export const StateActions = {
     Structure,
-    Volume
+    Volume,
+    DataFormat
 }

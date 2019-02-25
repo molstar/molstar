@@ -7,7 +7,7 @@
 
 import { VolumeIsoValue } from 'mol-model/volume';
 import { PluginContext } from 'mol-plugin/context';
-import { State, StateAction, StateBuilder, StateObject, StateTransformer } from 'mol-state';
+import { State, StateAction, StateBuilder, StateTransformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { ColorNames } from 'mol-util/color/tables';
 import { FileInfo, getFileInfo } from 'mol-util/file-info';
@@ -17,65 +17,13 @@ import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { VolumeRepresentation3DHelpers } from '../transforms/representation';
 import { VolumeStreaming } from 'mol-plugin/behavior/dynamic/volume';
+import { DataFormatProvider } from './data-format';
 
-export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String, M extends StateObject> {
-    private _list: { name: string, provider: DataFormatProvider<D> }[] = []
-    private _map = new Map<string, DataFormatProvider<D>>()
-
-    get default() { return this._list[0]; }
-    get types(): [string, string][] {
-        return this._list.map(e => [e.name, e.provider.label] as [string, string]);
-    }
-
-    constructor() {
-        this.add('ccp4', Ccp4Provider)
-        this.add('dsn6', Dsn6Provider)
-        this.add('dscif', DscifProvider)
-    };
-
-    add(name: string, provider: DataFormatProvider<D>) {
-        this._list.push({ name, provider })
-        this._map.set(name, provider)
-    }
-
-    remove(name: string) {
-        this._list.splice(this._list.findIndex(e => e.name === name), 1)
-        this._map.delete(name)
-    }
-
-    auto(info: FileInfo, dataStateObject: D) {
-        for (let i = 0, il = this.list.length; i < il; ++i) {
-            const { provider } = this._list[i]
-            if (provider.isApplicable(info, dataStateObject.data)) return provider
-        }
-        throw new Error('no compatible data format provider available')
-    }
-
-    get(name: string): DataFormatProvider<D> {
-        if (this._map.has(name)) {
-            return this._map.get(name)!
-        } else {
-            throw new Error(`unknown data format name '${name}'`)
-        }
-    }
-
-    get list() {
-        return this._list
-    }
-}
-
-interface DataFormatProvider<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String> {
-    label: string
-    description: string
-    fileExtensions: string[]
-    isApplicable(info: FileInfo, data: string | Uint8Array): boolean
-    getDefaultBuilder(ctx: PluginContext, data: StateBuilder.To<D>, state?: State): Task<void>
-}
-
-const Ccp4Provider: DataFormatProvider<any> = {
+export const Ccp4Provider: DataFormatProvider<any> = {
     label: 'CCP4/MRC/BRIX',
     description: 'CCP4/MRC/BRIX',
-    fileExtensions: ['ccp4', 'mrc', 'map'],
+    stringExtensions: [],
+    binaryExtensions: ['ccp4', 'mrc', 'map'],
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'ccp4' || info.ext === 'mrc' || info.ext === 'map'
     },
@@ -89,10 +37,11 @@ const Ccp4Provider: DataFormatProvider<any> = {
     }
 }
 
-const Dsn6Provider: DataFormatProvider<any> = {
+export const Dsn6Provider: DataFormatProvider<any> = {
     label: 'DSN6/BRIX',
     description: 'DSN6/BRIX',
-    fileExtensions: ['dsn6', 'brix'],
+    stringExtensions: [],
+    binaryExtensions: ['dsn6', 'brix'],
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'dsn6' || info.ext === 'brix'
     },
@@ -106,12 +55,13 @@ const Dsn6Provider: DataFormatProvider<any> = {
     }
 }
 
-const DscifProvider: DataFormatProvider<any> = {
+export const DscifProvider: DataFormatProvider<any> = {
     label: 'DensityServer CIF',
     description: 'DensityServer CIF',
-    fileExtensions: ['cif'],
+    stringExtensions: ['cif'],
+    binaryExtensions: ['bcif'],
     isApplicable: (info: FileInfo, data: Uint8Array) => {
-        return info.ext === 'cif'
+        return info.ext === 'cif' || info.ext === 'bcif'
     },
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
         return Task.create('DensityServer CIF default builder', async taskCtx => {
@@ -143,53 +93,13 @@ const DscifProvider: DataFormatProvider<any> = {
     }
 }
 
-//
-
-function getDataFormatExtensionsOptions(dataFormatRegistry: DataFormatRegistry<any, any>) {
-    const extensions: string[] = []
-    const options: [string, string][] = [['auto', 'Automatic']]
-    dataFormatRegistry.list.forEach(({ name, provider }) => {
-        extensions.push(...provider.fileExtensions)
-        options.push([ name, provider.label ])
-    })
-    return { extensions, options }
-}
-
-export const OpenVolume = StateAction.build({
-    display: { name: 'Open Volume', description: 'Load a volume from file and create its default visual' },
-    from: PluginStateObject.Root,
-    params: (a, ctx: PluginContext) => {
-        const { extensions, options } = getDataFormatExtensionsOptions(ctx.dataFormat.registry)
-        return {
-            file: PD.File({ accept: extensions.map(e => `.${e}`).join(',')}),
-            format: PD.Select('auto', options),
-            isBinary: PD.Boolean(true), // TOOD should take selected format into account
-        }
-    }
-})(({ params, state }, ctx: PluginContext) => Task.create('Open Volume', async taskCtx => {
-    const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: params.isBinary });
-    const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
-
-    // Alternative for more complex states where the builder is not a simple StateBuilder.To<>:
-    /*
-    const dataRef = dataTree.ref;
-    await state.updateTree(dataTree).runInContext(taskCtx);
-    const dataCell = state.select(dataRef)[0];
-    */
-
-    const provider = params.format === 'auto' ? ctx.dataFormat.registry.auto(getFileInfo(params.file), dataStateObject) : ctx.dataFormat.registry.get(params.format)
-    const b = state.build().to(data.ref);
-    // need to await the 2nd update the so that the enclosing Task finishes after the update is done.
-    await provider.getDefaultBuilder(ctx, b, state).runInContext(taskCtx)
-}));
-
 export { DownloadDensity };
 type DownloadDensity = typeof DownloadDensity
 const DownloadDensity = StateAction.build({
     from: PluginStateObject.Root,
     display: { name: 'Download Density', description: 'Load a density from the provided source and create its default visual.' },
     params: (a, ctx: PluginContext) => {
-        const { options } = getDataFormatExtensionsOptions(ctx.dataFormat.registry)
+        const { options } = ctx.dataFormat.registry
         return {
             source: PD.MappedStatic('rcsb', {
                 'pdbe': PD.Group({
