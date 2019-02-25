@@ -178,17 +178,17 @@ class MolStarProteopediaWrapper {
 
     coloring = {
         evolutionaryConservation: async () => {
-            await this.updateStyle({ sequence: { kind: 'molecular-surface' } });
+            await this.updateStyle({ sequence: { kind: 'spacefill' } });
 
             const state = this.state;
 
-            //const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
+            // const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
             const tree = state.build();
             const colorTheme = { name: EvolutionaryConservation.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(EvolutionaryConservation.Descriptor.name).defaultValues };
 
             tree.to('sequence-visual').update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
-            //for (const v of visuals) {
-            //}
+            // for (const v of visuals) {
+            // }
 
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
         }

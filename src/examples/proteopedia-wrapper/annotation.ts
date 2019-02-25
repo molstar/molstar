@@ -8,27 +8,6 @@ import { CustomElementProperty } from 'mol-model-props/common/custom-element-pro
 import { Model, ElementIndex, ResidueIndex } from 'mol-model/structure';
 import { Color } from 'mol-util/color';
 
-// export const StripedResidues = CustomElementProperty.create<number>({
-//     isStatic: true,
-//     name: 'basic-wrapper-residue-striping',
-//     display: 'Residue Stripes',
-//     getData(model: Model) {
-//         const map = new Map<ElementIndex, number>();
-//         const residueIndex = model.atomicHierarchy.residueAtomSegments.index;
-//         for (let i = 0, _i = model.atomicHierarchy.atoms._rowCount; i < _i; i++) {
-//             map.set(i as ElementIndex, residueIndex[i] % 2);
-//         }
-//         return map;
-//     },
-//     coloring: {
-//         getColor(e) { return e === 0 ? Color(0xff0000) : Color(0x0000ff) },
-//         defaultColor: Color(0x777777)
-//     },
-//     format(e) {
-//         return e === 0 ? 'Odd stripe' : 'Even stripe'
-//     }
-// });
-
 const EvolutionaryConservationPalette: Color[] = [
     [255, 255, 150], // 9
     [160, 37, 96],
@@ -41,6 +20,8 @@ const EvolutionaryConservationPalette: Color[] = [
     [140, 255, 255],
     [16, 200, 209] // 1
 ].reverse().map(([r, g, b]) => Color.fromRgb(r, g, b));
+// const EvolutionaryConservationInsufficientColor = Color(0xcccc00);
+const EvolutionaryConservationDefaultColor = Color(0x999999);
 
 export const EvolutionaryConservation = CustomElementProperty.create<number>({
     isStatic: true,
@@ -71,7 +52,7 @@ export const EvolutionaryConservation = CustomElementProperty.create<number>({
             const key = `${model.atomicHierarchy.chains.auth_asym_id.value(cI)} ${model.atomicHierarchy.residues.auth_seq_id.value(rI)}`;
             if (!conservationMap.has(key)) continue;
             const ann = conservationMap.get(key)!;
-            for (let aI = residueOffsets[rI]; aI < residueOffsets[aI + 1]; aI++) {
+            for (let aI = residueOffsets[rI]; aI < residueOffsets[rI + 1]; aI++) {
                 map.set(aI, ann);
             }
         }
@@ -79,10 +60,16 @@ export const EvolutionaryConservation = CustomElementProperty.create<number>({
         return map;
     },
     coloring: {
-        getColor(e) { return EvolutionaryConservationPalette[(e - 1) || 0]; },
-        defaultColor: Color(0x999999)
+        getColor(e: number) {
+            // TODO
+            // if (e === 10) return EvolutionaryConservationInsufficientColor;
+            if (e < 0 || e > 9) return EvolutionaryConservationDefaultColor;
+            return EvolutionaryConservationPalette[e];
+        },
+        defaultColor: EvolutionaryConservationDefaultColor
     },
     format(e) {
-        return e ? `Evolutionary Conservation ${e}` : void 0;
+        if (e === 0) return `Evolutionary Conservation: InsufficientData`;
+        return e ? `Evolutionary Conservation: ${e}` : void 0;
     }
 });
