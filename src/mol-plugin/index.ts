@@ -35,6 +35,8 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Data.ParseCif),
         PluginSpec.Action(StateTransforms.Data.ParseCcp4),
         PluginSpec.Action(StateTransforms.Data.ParseDsn6),
+        PluginSpec.Action(StateTransforms.Model.TrajectoryFromMmCif),
+        PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
         PluginSpec.Action(StateTransforms.Model.StructureAssemblyFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureSymmetryFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
