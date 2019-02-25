@@ -13,13 +13,20 @@ import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/re
 import { Color } from 'mol-util/color';
 import { PluginStateObject as PSO, PluginStateObject } from 'mol-plugin/state/objects';
 import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
-import { StateBuilder } from 'mol-state';
+import { StateBuilder, StateObject } from 'mol-state';
 import { StripedResidues } from './annotation';
-import { LoadParams, SupportedFormats, RepresentationStyle } from './helpers';
+import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo } from './helpers';
+import { RxEventHelper } from 'mol-util/rx-event-helper';
 require('mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 1;
+
+    private _ev = RxEventHelper.create();
+
+    readonly events = {
+        modelInfo: this._ev<ModelInfo>()
+    };
 
     plugin: PluginContext;
 
@@ -45,24 +52,28 @@ class MolStarProteopediaWrapper {
         return b.apply(StateTransforms.Data.Download, { url, isBinary: false })
     }
 
-    private parse(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats, assemblyId: string) {
+    private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats, assemblyId: string) {
         const parsed = format === 'cif'
             ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
             : b.apply(StateTransforms.Model.TrajectoryFromPDB);
 
         return parsed
-            .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
+            .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 }, { ref: 'model' });
+    }
+
+    private structure(assemblyId: string) {
+        const model = this.state.build().to('model');
+
+        return model
             .apply(StateTransforms.Model.CustomModelProperties, { properties: [StripedResidues.Descriptor.name] }, { ref: 'props', props: { isGhost: false } })
             .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
     }
 
     private visual(ref: string, style?: RepresentationStyle) {
-        const state = this.state;
-        const cell = state.select(ref)[0];
-        if (!cell || !cell.obj) return void 0;
-        const structure = (cell.obj as PluginStateObject.Molecule.Structure).data;
+        const structure = this.getObj<PluginStateObject.Molecule.Structure>(ref);
+        if (!structure) return;
 
-        const root = state.build().to(ref);
+        const root = this.state.build().to(ref);
 
         root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' }, { ref: 'sequence' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
@@ -86,6 +97,26 @@ class MolStarProteopediaWrapper {
         return root;
     }
 
+    private getObj<T extends StateObject>(ref: string) {
+        const state = this.state;
+        const cell = state.select(ref)[0];
+        if (!cell || !cell.obj) return void 0;
+        return (cell.obj as T).data;
+    }
+
+    private async doInfo(checkPreferredAssembly: boolean) {
+        const s = this.getObj<PluginStateObject.Molecule.Model>('model');
+        if (!s) return;
+
+        const info = await ModelInfo.get(this.plugin, s, checkPreferredAssembly)
+        this.events.modelInfo.next(info);
+        return info;
+    }
+
+    private applyState(tree: StateBuilder) {
+        return PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree });
+    }
+
     private loadedParams: LoadParams = { url: '', format: 'cif', assemblyId: '' };
     async load({ url, format = 'cif', assemblyId = '', representationStyle }: LoadParams) {
         let loadType: 'full' | 'update' = 'full';
@@ -98,17 +129,19 @@ class MolStarProteopediaWrapper {
             if (state.select('asm').length > 0) loadType = 'update';
         }
 
-        let tree: StateBuilder.Root;
         if (loadType === 'full') {
             await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: state.tree.root.ref });
-            tree = state.build();
-            this.parse(this.download(tree.toRoot(), url), format, assemblyId);
+            const modelTree = this.model(this.download(state.build().toRoot(), url), format, assemblyId);
+            await this.applyState(modelTree);
+            const info = await this.doInfo(true);
+            const structureTree = this.structure((assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId);
+            await this.applyState(structureTree);
         } else {
-            tree = state.build();
+            const tree = state.build();
             tree.to('asm').update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId || 'deposited' }));
+            await this.applyState(tree);
         }
 
-        await PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree });
         await this.updateStyle(representationStyle);
 
         this.loadedParams = { url, format, assemblyId };

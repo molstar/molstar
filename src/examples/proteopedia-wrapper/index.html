@@ -61,7 +61,7 @@
 
             function $(id) { return document.getElementById(id); }
         
-            var pdbId = '1grm', assemblyId= '1';
+            var pdbId = '3usb', assemblyId= 'preferred';
             var url = 'https://www.ebi.ac.uk/pdbe/static/entry/' + pdbId + '_updated.cif';
             var format = 'cif';
             
@@ -80,6 +80,10 @@
             MolStarProteopediaWrapper.setBackground(0xffffff);
             MolStarProteopediaWrapper.load({ url: url, format: format, assemblyId: assemblyId });
             MolStarProteopediaWrapper.toggleSpin();
+
+            MolStarProteopediaWrapper.events.modelInfo.subscribe(function (info) {
+                console.log('Model Info', info);
+            });
 
             addControl('Load Asym Unit', () => MolStarProteopediaWrapper.load({ url: url, format: format }));
             addControl('Load Assembly', () => MolStarProteopediaWrapper.load({ url: url, format: format, assemblyId: assemblyId }));
