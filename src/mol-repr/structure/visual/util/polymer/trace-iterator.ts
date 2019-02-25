@@ -69,7 +69,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
     private residueAtomSegments: Segmentation<ElementIndex, ResidueIndex>
     private traceElementIndex: ArrayLike<ElementIndex>
-    private directionElementIndex: ArrayLike<ElementIndex>
+    private directionElementIndex: ArrayLike<ElementIndex | -1>
     private moleculeType: ArrayLike<MoleculeType>
     private atomicConformation: AtomicConformation
 
@@ -82,16 +82,18 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private p6 = Vec3.zero();
 
     // private v01 = Vec3.zero();
-    private v12 = Vec3.zero();
-    private v23 = Vec3.zero();
+    private v12 = Vec3.create(1, 0, 0);
+    private v23 = Vec3.create(1, 0, 0);
     // private v34 = Vec3.zero();
 
     hasNext: boolean = false;
 
     private pos(target: Vec3, index: number) {
-        target[0] = this.atomicConformation.x[index]
-        target[1] = this.atomicConformation.y[index]
-        target[2] = this.atomicConformation.z[index]
+        if (index !== -1) {
+            target[0] = this.atomicConformation.x[index]
+            target[1] = this.atomicConformation.y[index]
+            target[2] = this.atomicConformation.z[index]
+        }
     }
 
     private updateResidueSegmentRange(polymerSegment: Segmentation.Segment<ResidueIndex>) {
@@ -203,7 +205,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     constructor(private unit: Unit.Atomic) {
         this.atomicConformation = unit.model.atomicConformation
         this.residueAtomSegments = unit.model.atomicHierarchy.residueAtomSegments
-        this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex
+        this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex as ArrayLike<ElementIndex> // can assume it won't be -1 for polymer residues
         this.directionElementIndex = unit.model.atomicHierarchy.derived.residue.directionElementIndex
         this.moleculeType = unit.model.atomicHierarchy.derived.residue.moleculeType
         this.cyclicPolymerMap = unit.model.atomicHierarchy.cyclicPolymerMap

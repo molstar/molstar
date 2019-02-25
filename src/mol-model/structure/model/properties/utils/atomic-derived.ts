@@ -14,8 +14,8 @@ import { getAtomIdForAtomRole } from 'mol-model/structure/util';
 export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemicalComponentMap: ChemicalComponentMap): AtomicDerivedData {
     const { label_comp_id, _rowCount: n } = data.residues
 
-    const traceElementIndex = new Uint32Array(n)
-    const directionElementIndex = new Uint32Array(n)
+    const traceElementIndex = new Int32Array(n)
+    const directionElementIndex = new Int32Array(n)
     const moleculeType = new Uint8Array(n)
 
     const moleculeTypeMap = new Map<string, MoleculeType>()
@@ -24,7 +24,7 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
         const compId = label_comp_id.value(i)
         const chemCompMap = chemicalComponentMap
         let molType: MoleculeType
-        if (moleculeTypeMap.has(compId)){
+        if (moleculeTypeMap.has(compId)) {
             molType = moleculeTypeMap.get(compId)!
         } else if (chemCompMap.has(compId)) {
             molType = getMoleculeType(chemCompMap.get(compId)!.type, compId)
@@ -45,8 +45,8 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
 
     return {
         residue: {
-            traceElementIndex: traceElementIndex as unknown as ArrayLike<ElementIndex>, // TODO maybe -1
-            directionElementIndex: directionElementIndex as unknown as ArrayLike<ElementIndex>, // TODO maybe -1
+            traceElementIndex: traceElementIndex as unknown as ArrayLike<ElementIndex | -1>,
+            directionElementIndex: directionElementIndex as unknown as ArrayLike<ElementIndex | -1>,
             moleculeType: moleculeType as unknown as ArrayLike<MoleculeType>,
         }
     }

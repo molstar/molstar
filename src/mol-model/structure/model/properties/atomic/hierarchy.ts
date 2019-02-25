@@ -105,8 +105,8 @@ export interface AtomicData {
 
 export interface AtomicDerivedData {
     readonly residue: {
-        readonly traceElementIndex: ArrayLike<ElementIndex>
-        readonly directionElementIndex: ArrayLike<ElementIndex>
+        readonly traceElementIndex: ArrayLike<ElementIndex | -1>
+        readonly directionElementIndex: ArrayLike<ElementIndex | -1>
         readonly moleculeType: ArrayLike<MoleculeType>
     }
 }
