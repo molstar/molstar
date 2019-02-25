@@ -29,6 +29,8 @@ export function PolymerTraceIterator(unit: Unit): Iterator<PolymerTraceElement> 
 
 interface PolymerTraceElement {
     center: StructureElement
+    centerPrev: StructureElement
+    centerNext: StructureElement
     first: boolean, last: boolean
     secStrucFirst: boolean, secStrucLast: boolean
     secStrucType: SecondaryStructureType
@@ -43,6 +45,8 @@ const SecStrucTypeNA = SecondaryStructureType.create(SecondaryStructureType.Flag
 function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
     return {
         center: StructureElement.create(unit),
+        centerPrev: StructureElement.create(unit),
+        centerNext: StructureElement.create(unit),
         first: false, last: false,
         secStrucFirst: false, secStrucLast: false,
         secStrucType: SecStrucTypeNA,
@@ -154,23 +158,35 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.nextSecStrucType = residueIt.hasNext ? this.secondaryStructureType[residueIndex + 1] : SecStrucTypeNA
 
             value.secStrucType = this.currSecStrucType
-            value.center.element = this.traceElementIndex[residueIndex]
             value.first = residueIndex === this.residueSegmentMin
             value.last = residueIndex === this.residueSegmentMax
             value.secStrucFirst = this.prevSecStrucType !== this.currSecStrucType
             value.secStrucLast = this.currSecStrucType !== this.nextSecStrucType
             value.moleculeType = this.moleculeType[residueIndex]
 
-            if (value.first) {
-                this.pos(this.p0, this.traceElementIndex[this.getResidueIndex(residueIndex - 3)])
-                this.pos(this.p1, this.traceElementIndex[this.getResidueIndex(residueIndex - 2)])
-                this.pos(this.p2, this.traceElementIndex[this.getResidueIndex(residueIndex - 1)])
-                this.pos(this.p3, value.center.element)
-                this.pos(this.p4, this.traceElementIndex[this.getResidueIndex(residueIndex + 1)])
-                this.pos(this.p5, this.traceElementIndex[this.getResidueIndex(residueIndex + 2)])
+            const residueIndexPrev3 = this.getResidueIndex(residueIndex - 3)
+            const residueIndexPrev2 = this.getResidueIndex(residueIndex - 2)
+            const residueIndexPrev1 = this.getResidueIndex(residueIndex - 1)
+            const residueIndexNext1 = this.getResidueIndex(residueIndex + 1)
+            const residueIndexNext2 = this.getResidueIndex(residueIndex + 2)
+            const residueIndexNext3 = this.getResidueIndex(residueIndex + 3)
 
-                this.pos(this.v12, this.directionElementIndex[this.getResidueIndex(residueIndex - 1)])
+            if (value.first) {
+                value.centerPrev.element = this.traceElementIndex[residueIndexPrev1]
+                value.center.element = this.traceElementIndex[residueIndex]
+
+                this.pos(this.p0, this.traceElementIndex[residueIndexPrev3])
+                this.pos(this.p1, this.traceElementIndex[residueIndexPrev2])
+                this.pos(this.p2, this.traceElementIndex[residueIndexPrev1])
+                this.pos(this.p3, this.traceElementIndex[residueIndex])
+                this.pos(this.p4, this.traceElementIndex[residueIndexNext1])
+                this.pos(this.p5, this.traceElementIndex[residueIndexNext2])
+
+                this.pos(this.v12, this.directionElementIndex[residueIndexPrev1])
             } else {
+                value.centerPrev.element = value.center.element
+                value.center.element = value.centerNext.element
+
                 Vec3.copy(this.p0, this.p1)
                 Vec3.copy(this.p1, this.p2)
                 Vec3.copy(this.p2, this.p3)
@@ -180,14 +196,15 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
                 Vec3.copy(this.v12, this.v23)
             }
-            this.pos(this.p6,  this.traceElementIndex[this.getResidueIndex(residueIndex + 3 as ResidueIndex)])
+            value.centerNext.element = this.traceElementIndex[residueIndexNext1]
+            this.pos(this.p6,  this.traceElementIndex[residueIndexNext3])
             this.pos(this.v23, this.directionElementIndex[residueIndex])
 
-            this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndex - 2 as ResidueIndex)
-            this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndex - 1 as ResidueIndex)
+            this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndexPrev2)
+            this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndexPrev1)
             this.setControlPoint(value.p2, this.p2, this.p3, this.p4, residueIndex)
-            this.setControlPoint(value.p3, this.p3, this.p4, this.p5, residueIndex + 1 as ResidueIndex)
-            this.setControlPoint(value.p4, this.p4, this.p5, this.p6, residueIndex + 2 as ResidueIndex)
+            this.setControlPoint(value.p3, this.p3, this.p4, this.p5, residueIndexNext1)
+            this.setControlPoint(value.p4, this.p4, this.p5, this.p6, residueIndexNext2)
 
             Vec3.copy(value.d12, this.v12)
             Vec3.copy(value.d23, this.v23)
@@ -228,8 +245,11 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
     private elementIndex: number
     hasNext: boolean = false;
 
+    private getElementIndex(elementIndex: number) {
+        return Math.min(Math.max(this.polymerSegment.start, elementIndex), this.polymerSegment.end - 1) as ElementIndex
+    }
+
     private pos(target: Vec3, elementIndex: number) {
-        elementIndex = Math.min(Math.max(this.polymerSegment.start, elementIndex), this.polymerSegment.end - 1)
         const index = this.unit.elements[elementIndex]
         target[0] = this.conformation.x[index]
         target[1] = this.conformation.y[index]
@@ -251,13 +271,21 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
 
         if (this.state === CoarsePolymerTraceIteratorState.nextElement) {
             this.elementIndex += 1
-            this.value.center.element = this.value.center.unit.elements[this.elementIndex]
 
-            this.pos(this.value.p0, this.elementIndex - 2)
-            this.pos(this.value.p1, this.elementIndex - 1)
+            const elementIndexPrev2 = this.getElementIndex(this.elementIndex - 2)
+            const elementIndexPrev1 = this.getElementIndex(this.elementIndex - 1)
+            const elementIndexNext1 = this.getElementIndex(this.elementIndex + 1)
+            const elementIndexNext2 = this.getElementIndex(this.elementIndex + 2)
+
+            this.value.centerPrev.element = this.value.center.unit.elements[elementIndexPrev1]
+            this.value.center.element = this.value.center.unit.elements[this.elementIndex]
+            this.value.centerNext.element = this.value.center.unit.elements[elementIndexNext1]
+
+            this.pos(this.value.p0, elementIndexPrev2)
+            this.pos(this.value.p1, elementIndexPrev1)
             this.pos(this.value.p2, this.elementIndex)
-            this.pos(this.value.p3, this.elementIndex + 1)
-            this.pos(this.value.p4, this.elementIndex + 2)
+            this.pos(this.value.p3, elementIndexNext1)
+            this.pos(this.value.p4, elementIndexNext2)
 
             this.value.first = this.elementIndex === this.polymerSegment.start
             this.value.last = this.elementIndex === this.polymerSegment.end - 1
