@@ -37,10 +37,15 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
         moleculeType[i] = molType
 
         const traceAtomId = getAtomIdForAtomRole(molType, 'trace')
-        traceElementIndex[i] = index.findAtomOnResidue(i as ResidueIndex, traceAtomId)
+        let traceIndex = index.findAtomsOnResidue(i as ResidueIndex, traceAtomId)
+        if (traceIndex === -1) {
+            const coarseAtomId = getAtomIdForAtomRole(molType, 'coarseBackbone')
+            traceIndex = index.findAtomsOnResidue(i as ResidueIndex, coarseAtomId)
+        }
+        traceElementIndex[i] = traceIndex
 
         const directionAtomId = getAtomIdForAtomRole(molType, 'direction')
-        directionElementIndex[i] = index.findAtomOnResidue(i as ResidueIndex, directionAtomId)
+        directionElementIndex[i] = index.findAtomsOnResidue(i as ResidueIndex, directionAtomId)
     }
 
     return {

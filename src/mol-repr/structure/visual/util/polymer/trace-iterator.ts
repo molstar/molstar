@@ -35,6 +35,7 @@ interface PolymerTraceElement {
     secStrucFirst: boolean, secStrucLast: boolean
     secStrucType: SecondaryStructureType
     moleculeType: MoleculeType
+    isCoarseBackbone: boolean
 
     p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, p4: Vec3
     d12: Vec3, d23: Vec3
@@ -51,6 +52,7 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
         secStrucFirst: false, secStrucLast: false,
         secStrucType: SecStrucTypeNA,
         moleculeType: MoleculeType.unknown,
+        isCoarseBackbone: false,
         p0: Vec3.zero(), p1: Vec3.zero(), p2: Vec3.zero(), p3: Vec3.zero(), p4: Vec3.zero(),
         d12: Vec3.create(1, 0, 0), d23: Vec3.create(1, 0, 0),
     }
@@ -199,6 +201,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             value.centerNext.element = this.traceElementIndex[residueIndexNext1]
             this.pos(this.p6,  this.traceElementIndex[residueIndexNext3])
             this.pos(this.v23, this.directionElementIndex[residueIndex])
+            value.isCoarseBackbone = this.directionElementIndex[residueIndex] === -1
 
             this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndexPrev2)
             this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndexPrev1)

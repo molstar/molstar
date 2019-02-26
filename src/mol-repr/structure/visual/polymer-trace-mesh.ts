@@ -72,11 +72,11 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, w1, h1, arrowHeight, v.secStrucFirst, v.secStrucLast)
         } else {
             let h0: number, h1: number, h2: number
-            if (isHelix) {
+            if (isHelix && !v.isCoarseBackbone) {
                 h0 = w0 * aspectRatio
                 h1 = w1 * aspectRatio
                 h2 = w2 * aspectRatio
-            } else if (isNucleicType) {
+            } else if (isNucleicType && !v.isCoarseBackbone) {
                 h0 = w0 * aspectRatio;
                 [w0, h0] = [h0, w0]
                 h1 = w1 * aspectRatio;

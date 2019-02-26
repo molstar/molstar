@@ -145,7 +145,7 @@ export interface AtomicIndex {
     /**
      * Index of the 1st occurence of this residue.
      * auth_seq_id is used because label_seq_id is undefined for "ligands" in mmCIF.
-     * @param pdbx_PDB_ins_code Empty string for undefined
+     * @param key.pdbx_PDB_ins_code Empty string for undefined
      * @returns index or -1 if not present.
      */
     findResidue(key: AtomicIndex.ResidueKey): ResidueIndex,
@@ -153,7 +153,7 @@ export interface AtomicIndex {
 
     /**
      * Index of the 1st occurence of this residue.
-     * @param pdbx_PDB_ins_code Empty string for undefined
+     * @param key.pdbx_PDB_ins_code Empty string for undefined
      * @returns index or -1 if not present.
      */
     findResidueAuth(key: AtomicIndex.ResidueAuthKey): ResidueIndex,
@@ -161,7 +161,7 @@ export interface AtomicIndex {
     /**
      * Find the residue index where the spefied residue should be inserted to maintain the ordering (entity_id, asym_id, seq_id, ins_code).
      * Useful for determining ranges for sequence-level annotations.
-     * @param pdbx_PDB_ins_code Empty string for undefined
+     * @param key.pdbx_PDB_ins_code Use empty string for undefined
      */
     findResidueInsertion(key: AtomicIndex.ResidueLabelKey): ResidueIndex,
 
@@ -181,10 +181,15 @@ export interface AtomicIndex {
 
     /**
      * Find element index of an atom on a given residue.
-     * @param key
      * @returns index or -1 if the atom is not present.
      */
     findAtomOnResidue(residueIndex: ResidueIndex, label_atom_id: string, label_alt_id?: string): ElementIndex
+
+    /**
+     * Find element index of any given atom on a given residue.
+     * @returns first found index or -1 if none of the given atoms are present.
+     */
+    findAtomsOnResidue(residueIndex: ResidueIndex, label_atom_ids: Set<string>): ElementIndex
 
     // TODO: add indices that support comp_id?
 }

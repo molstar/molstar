@@ -35,13 +35,14 @@ export function getAtomicMoleculeType(model: Model, rI: ResidueIndex): MoleculeT
     return model.atomicHierarchy.derived.residue.moleculeType[rI]
 }
 
+const EmptyAtomIds = new Set<string>()
 export function getAtomIdForAtomRole(moleculeType: MoleculeType, atomRole: AtomRole) {
     const m = MoleculeTypeAtomRoleId[moleculeType]
     if (m !== undefined) {
         const a = m[atomRole]
         if (a !== undefined) return a
     }
-    return ''
+    return EmptyAtomIds
 }
 
 export function residueLabel(model: Model, rI: number) {
