@@ -12,7 +12,7 @@ import * as React from 'react';
 import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
 import { CameraSnapshots } from './camera';
-import { Controls, LociLabelControl, TrajectoryControls } from './controls';
+import { LociLabelControl, TrajectoryControls } from './controls';
 import { StateSnapshots } from './state';
 import { StateObjectActions } from './state/actions';
 import { AnimationControls } from './state/animation';
@@ -60,7 +60,6 @@ class Layout extends PluginUIComponent {
                     {layout.showControls && this.region('left', <State />)}
                     {layout.showControls && this.region('right', <div className='msp-scrollable-container msp-right-controls'>
                         <CurrentObject />
-                        <Controls />
                         <AnimationControls />
                         <CameraSnapshots />
                         <StateSnapshots />
@@ -72,20 +71,16 @@ class Layout extends PluginUIComponent {
     }
 }
 
-export class ViewportWrapper extends PluginUIComponent {
+export class ViewportWrapper extends PluginUIComponent {    
     render() {
         return <>
             <Viewport />
-            <div style={{ position: 'absolute', left: '10px', top: '10px', color: 'white' }}>
-                <TrajectoryControls />
-            </div>
+            <TrajectoryControls />
             <ViewportControls />
             <div style={{ position: 'absolute', left: '10px', bottom: '10px' }}>
                 <BackgroundTaskProgress />
             </div>
-            <div style={{ position: 'absolute', right: '10px', bottom: '10px' }}>
-                <LociLabelControl />
-            </div>
+            <LociLabelControl />
         </>;
     }
 }

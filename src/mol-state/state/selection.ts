@@ -212,7 +212,7 @@ namespace StateSelection {
     registerModifier('parent', parent);
     export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.transforms.get(n.transform.ref)!.parent))); }
 
-    export function findAncestorOfType(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, types: StateObject.Ctor[]): StateObjectCell | undefined {
+    export function findAncestorOfType<T extends StateObject.Ctor>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, types: T[]): StateObjectCell<StateObject.From<T>> | undefined {
         let current = tree.transforms.get(root)!, len = types.length;
         while (true) {
             current = tree.transforms.get(current.parent)!;
@@ -220,7 +220,7 @@ namespace StateSelection {
             if (!cell.obj) return void 0;
             const obj = cell.obj;
             for (let i = 0; i < len; i++) {
-                if (obj.type === types[i].type) return cells.get(current.ref);
+                if (obj.type === types[i].type) return cell as StateObjectCell<StateObject.From<T>>;
             }
             if (current.ref === StateTransform.RootRef) {
                 return void 0;

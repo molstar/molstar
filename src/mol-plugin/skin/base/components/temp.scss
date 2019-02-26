@@ -150,3 +150,17 @@
         padding: 3px 6px;
     }
 }
+
+.msp-traj-controls {
+    position: absolute;
+    left: $control-spacing;
+    top: $control-spacing;
+    line-height: $row-height;
+
+    > span {
+        color: $font-color;
+        padding-top: 1px;
+        font-size: 85%;
+        display: inline-block;
+    }
+}
