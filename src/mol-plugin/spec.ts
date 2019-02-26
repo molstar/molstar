@@ -16,7 +16,14 @@ interface PluginSpec {
     behaviors: PluginSpec.Behavior[],
     animations?: PluginStateAnimation[],
     customParamEditors?: [StateAction | StateTransformer, StateTransformParameters.Class][],
-    initialLayout?: PluginLayoutStateProps
+    layout?: {
+        initial?: PluginLayoutStateProps,
+        controls?: {
+            left?: React.ComponentClass | 'none',
+            right?: React.ComponentClass | 'none',
+            bottom?: React.ComponentClass | 'none'
+        }
+    }
 }
 
 namespace PluginSpec {
@@ -37,5 +44,11 @@ namespace PluginSpec {
 
     export function Behavior<T extends StateTransformer>(transformer: T, defaultParams?: StateTransformer.Params<T>): Behavior {
         return { transformer, defaultParams };
+    }
+
+    export interface LayoutControls {
+        left?: React.ComponentClass | 'none',
+        right?: React.ComponentClass | 'none',
+        bottom?: React.ComponentClass | 'none'
     }
 }

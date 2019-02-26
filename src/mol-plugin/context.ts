@@ -99,7 +99,7 @@ export class PluginContext {
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
             this.layout.setRoot(container);
-            if (this.spec.initialLayout) this.layout.setProps(this.spec.initialLayout);
+            if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
             (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
             PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { backgroundColor: Color(0xFCFBF9) } });
             this.canvas3d.animate();

@@ -43,35 +43,44 @@ class Layout extends PluginUIComponent {
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
     }
 
-    region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
+    region(kind: 'left' | 'right' | 'bottom' | 'main', Element: React.ComponentClass) {
         return <div className={`msp-layout-region msp-layout-${kind}`}>
             <div className='msp-layout-static'>
-                {element}
+                <Element />
             </div>
         </div>;
     }
 
     render() {
         const layout = this.plugin.layout.state;
+        const spec = this.plugin.spec.layout && this.plugin.spec.layout.controls;
+
         return <div className='msp-plugin'>
             <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
                 <div className={layout.showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
-                    {this.region('main', <ViewportWrapper />)}
-                    {layout.showControls && this.region('left', <State />)}
-                    {layout.showControls && this.region('right', <div className='msp-scrollable-container msp-right-controls'>
-                        <CurrentObject />
-                        <AnimationControls />
-                        <CameraSnapshots />
-                        <StateSnapshots />
-                    </div>)}
-                    {layout.showControls && this.region('bottom', <Log />)}
+                    {this.region('main', ViewportWrapper)}
+                    {layout.showControls && spec && spec.left !== 'none' && this.region('left', (spec && spec.left) || State)}
+                    {layout.showControls && spec && spec.right !== 'none' && this.region('right', (spec && spec.right) || ControlsWrapper)}
+                    {layout.showControls && spec && spec.bottom !== 'none' && this.region('bottom', (spec && spec.bottom) || Log)}
                 </div>
             </div>
         </div>;
     }
 }
 
-export class ViewportWrapper extends PluginUIComponent {    
+
+export class ControlsWrapper extends PluginUIComponent {
+    render() {
+        return <div className='msp-scrollable-container msp-right-controls'>
+            <CurrentObject />
+            <AnimationControls />
+            <CameraSnapshots />
+            <StateSnapshots />
+        </div>;
+    }
+}
+
+export class ViewportWrapper extends PluginUIComponent {
     render() {
         return <>
             <Viewport />

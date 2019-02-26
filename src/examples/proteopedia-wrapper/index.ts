@@ -17,6 +17,7 @@ import { StateBuilder, StateObject } from 'mol-state';
 import { EvolutionaryConservation } from './annotation';
 import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo } from './helpers';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { ControlsWrapper } from './ui/controls';
 require('mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
@@ -33,9 +34,14 @@ class MolStarProteopediaWrapper {
     init(target: string | HTMLElement) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
             ...DefaultPluginSpec,
-            initialLayout: {
-                isExpanded: false,
-                showControls: false
+            layout: {
+                initial: {
+                    isExpanded: false,
+                    showControls: false
+                },
+                controls: {
+                    right: ControlsWrapper
+                }
             }
         });
 

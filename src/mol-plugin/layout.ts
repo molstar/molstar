@@ -176,7 +176,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
     }
 
     constructor(private context: PluginContext) {
-        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...context.spec.initialLayout });
+        super({ ...PD.getDefaultValues(PluginLayoutStateParams), ...(context.spec.layout && context.spec.layout.initial) });
 
         PluginCommands.Layout.Update.subscribe(context, e => this.updateProps(e.state));
 
