@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,16 @@ export const GaussianDensityParams = {
 }
 export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
+
+export const GaussianDensityTextureParams = {
+    resolution: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }),
+    radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
+    smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }),
+}
+export const DefaultGaussianDensityTextureProps = PD.getDefaultValues(GaussianDensityTextureParams)
+export type GaussianDensityTextureProps = typeof DefaultGaussianDensityTextureProps
+
+//
 
 function getConformation(unit: Unit) {
     switch (unit.kind) {
@@ -101,15 +111,13 @@ function getStructureConformationAndRadius(structure: Structure) {
     return { position, radius }
 }
 
-export const GaussianDensityTextureParams = {
-    resolution: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }),
-    radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
-    smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }),
+export function computeStructureGaussianDensity(structure: Structure, props: GaussianDensityProps, webgl?: WebGLContext) {
+    const { position, radius } = getStructureConformationAndRadius(structure)
+    return Task.create('Gaussian Density', async ctx => {
+        return await GaussianDensity(ctx, position, structure.lookup3d.boundary.box, radius, props, webgl);
+    });
 }
-export const DefaultGaussianDensityTextureProps = PD.getDefaultValues(GaussianDensityTextureParams)
-export type GaussianDensityTextureProps = typeof DefaultGaussianDensityTextureProps
 
-// TODO calculate by combining unit volumes
 export function computeStructureGaussianDensityTexture(structure: Structure, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
     const { position, radius } = getStructureConformationAndRadius(structure)
     return Task.create('Gaussian Density', async ctx => {
