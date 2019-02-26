@@ -78,7 +78,7 @@ export namespace VolumeStreaming {
                 return data;
             }
 
-            const cif = await this.ctx.runTask(this.ctx.fetch(url, 'binary'));
+            const cif = await this.ctx.runTask(this.ctx.fetch({ url, type: 'binary' }));
             data = await this.parseCif(cif as Uint8Array);
             if (!data) {
                 return;

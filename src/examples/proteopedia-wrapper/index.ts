@@ -210,7 +210,7 @@ class MolStarProteopediaWrapper {
         },
         download: async (url: string) => {
             try {
-                const data = await this.plugin.runTask(this.plugin.fetch(url));
+                const data = await this.plugin.runTask(this.plugin.fetch({ url }));
                 const snapshot = JSON.parse(data);
                 await this.plugin.state.setSnapshot(snapshot);
             } catch (e) {

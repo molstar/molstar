@@ -9,16 +9,16 @@
 import { Task, RuntimeContext } from 'mol-task';
 import { utf8Read } from 'mol-io/common/utf8';
 
-export enum DataCompressionMethod {
-    None,
-    Gzip
-}
+// export enum DataCompressionMethod {
+//     None,
+//     Gzip
+// }
 
-export interface AjaxGetParams {
+export interface AjaxGetParams<T extends 'string' | 'binary' = 'string'> {
     url: string,
-    type: 'string' | 'binary',
+    type?: T,
     title?: string,
-    compression?: DataCompressionMethod
+    // compression?: DataCompressionMethod
     body?: string
 }
 
@@ -42,11 +42,16 @@ export function ajaxGetUint8Array(url: string, title?: string) {
     return <Task<Uint8Array>>ajaxGetInternal(title, url, true, false);
 }
 
-export function ajaxGet(params: AjaxGetParams) {
-    return <Task<string | Uint8Array>>ajaxGetInternal(params.title, params.url, params.type === 'binary', params.compression === DataCompressionMethod.Gzip, params.body);
+export function ajaxGet(url: string): Task<string>
+export function ajaxGet(params: AjaxGetParams<'string'>): Task<string>
+export function ajaxGet(params: AjaxGetParams<'binary'>): Task<Uint8Array>
+export function ajaxGet(params: AjaxGetParams<'string' | 'binary'>): Task<string | Uint8Array>
+export function ajaxGet(params: AjaxGetParams<'string' | 'binary'> | string) {
+    if (typeof params === 'string') return ajaxGetInternal(params, params, false, false);
+    return ajaxGetInternal(params.title, params.url, params.type === 'binary', false /* params.compression === DataCompressionMethod.Gzip */, params.body);
 }
 
-export type AjaxTask = (url: string, type: 'string' | 'binary') => Task<string | Uint8Array>
+export type AjaxTask = typeof ajaxGet
 
 function decompress(buffer: Uint8Array): Uint8Array {
     // TODO
