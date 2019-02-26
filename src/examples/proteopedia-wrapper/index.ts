@@ -18,6 +18,7 @@ import { EvolutionaryConservation } from './annotation';
 import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo } from './helpers';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { ControlsWrapper } from './ui/controls';
+import { PluginState } from 'mol-plugin/state';
 require('mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
@@ -198,6 +199,25 @@ class MolStarProteopediaWrapper {
 
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
         }
+    }
+
+    snapshot = {
+        get: () => {
+            return this.plugin.state.getSnapshot();
+        },
+        set: (snapshot: PluginState.Snapshot) => {
+            return this.plugin.state.setSnapshot(snapshot);
+        },
+        download: async (url: string) => {
+            try {
+                const data = await this.plugin.runTask(this.plugin.fetch(url));
+                const snapshot = JSON.parse(data);
+                await this.plugin.state.setSnapshot(snapshot);
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
     }
 }
 

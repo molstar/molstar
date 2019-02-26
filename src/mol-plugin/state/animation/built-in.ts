@@ -15,12 +15,12 @@ export const AnimateModelIndex = PluginStateAnimation.create({
     name: 'built-in.animate-model-index',
     display: { name: 'Animate Model Index' },
     params: () => ({
-        mode: PD.MappedStatic('once', {
-            once: PD.Group({ direction: PD.Select('forward', [['forward', 'Forward'], ['backward', 'Backward']]) }, { isFlat: true }),
+        mode: PD.MappedStatic('palindrome', {
             palindrome: PD.Group({ }),
             loop: PD.Group({ }),
-        }, { options: [['once', 'Once'], ['palindrome', 'Palindrome'], ['loop', 'Loop']] }),
-        maxFPS: PD.Numeric(3, { min: 0.5, max: 30, step: 0.5 })
+            once: PD.Group({ direction: PD.Select('palindrome', [['forward', 'Forward'], ['backward', 'Backward']]) }, { isFlat: true })
+        }, { options: [['palindrome', 'Palindrome'], ['loop', 'Loop'], ['once', 'Once']] }),
+        maxFPS: PD.Numeric(15, { min: 1, max: 30, step: 1 })
     }),
     initialState: () => ({} as { palindromeDirections?: { [id: string]: -1 | 1 | undefined } }),
     async apply(animState, t, ctx) {

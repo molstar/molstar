@@ -154,12 +154,12 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
 
             if (model.symmetry.assemblies.length === 0) {
                 if (id !== 'deposited') {
-                    plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
+                    plugin.log.warn(`Model '${a.data.label}' has no assembly, returning deposited structure.`);
                 }
             } else {
                 asm = ModelSymmetry.findAssembly(model, id || '');
                 if (!asm) {
-                    plugin.log.warn(`Model '${a.label}' has no assembly called '${id}', returning deposited structure.`);
+                    plugin.log.warn(`Model '${a.data.label}' has no assembly called '${id}', returning deposited structure.`);
                 }
             }
 

@@ -53,15 +53,15 @@ class Layout extends PluginUIComponent {
 
     render() {
         const layout = this.plugin.layout.state;
-        const spec = this.plugin.spec.layout && this.plugin.spec.layout.controls;
+        const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || { };
 
         return <div className='msp-plugin'>
             <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
                 <div className={layout.showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
                     {this.region('main', ViewportWrapper)}
-                    {layout.showControls && spec && spec.left !== 'none' && this.region('left', (spec && spec.left) || State)}
-                    {layout.showControls && spec && spec.right !== 'none' && this.region('right', (spec && spec.right) || ControlsWrapper)}
-                    {layout.showControls && spec && spec.bottom !== 'none' && this.region('bottom', (spec && spec.bottom) || Log)}
+                    {layout.showControls && controls.left !== 'none' && this.region('left', controls.left || State)}
+                    {layout.showControls && controls.right !== 'none' && this.region('right', controls.right || ControlsWrapper)}
+                    {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
                 </div>
             </div>
         </div>;
