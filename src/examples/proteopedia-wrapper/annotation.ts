@@ -9,8 +9,8 @@ import { Model, ElementIndex, ResidueIndex } from 'mol-model/structure';
 import { Color } from 'mol-util/color';
 
 const EvolutionaryConservationPalette: Color[] = [
-    [255, 255, 150], // 9
-    [160, 37, 96],
+    [255, 255, 129], // insufficient
+    [160, 37, 96], // 9
     [240, 125, 171],
     [250, 201, 222],
     [252, 237, 244],
@@ -20,7 +20,6 @@ const EvolutionaryConservationPalette: Color[] = [
     [140, 255, 255],
     [16, 200, 209] // 1
 ].reverse().map(([r, g, b]) => Color.fromRgb(r, g, b));
-// const EvolutionaryConservationInsufficientColor = Color(0xcccc00);
 const EvolutionaryConservationDefaultColor = Color(0x999999);
 
 export const EvolutionaryConservation = CustomElementProperty.create<number>({
@@ -61,15 +60,13 @@ export const EvolutionaryConservation = CustomElementProperty.create<number>({
     },
     coloring: {
         getColor(e: number) {
-            // TODO
-            // if (e === 10) return EvolutionaryConservationInsufficientColor;
-            if (e < 0 || e > 9) return EvolutionaryConservationDefaultColor;
-            return EvolutionaryConservationPalette[e];
+            if (e < 1 || e > 10) return EvolutionaryConservationDefaultColor;
+            return EvolutionaryConservationPalette[e - 1];
         },
         defaultColor: EvolutionaryConservationDefaultColor
     },
     format(e) {
-        if (e === 0) return `Evolutionary Conservation: InsufficientData`;
+        if (e === 10) return `Evolutionary Conservation: InsufficientData`;
         return e ? `Evolutionary Conservation: ${e}` : void 0;
     }
 });
