@@ -89,7 +89,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
                 h2 = w2
             }
             interpolateSizes(state, w0, w1, w2, h0, h1, h2, shift)
-            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, v.secStrucFirst, v.secStrucLast)
+            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, v.secStrucFirst || v.coarseBackboneFirst, v.secStrucLast || v.coarseBackboneLast)
         }
 
         ++i

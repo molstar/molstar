@@ -36,6 +36,7 @@ interface PolymerTraceElement {
     secStrucType: SecondaryStructureType
     moleculeType: MoleculeType
     isCoarseBackbone: boolean
+    coarseBackboneFirst: boolean, coarseBackboneLast: boolean
 
     p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, p4: Vec3
     d12: Vec3, d23: Vec3
@@ -52,6 +53,7 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
         secStrucFirst: false, secStrucLast: false,
         secStrucType: SecStrucTypeNA,
         moleculeType: MoleculeType.unknown,
+        coarseBackboneFirst: false, coarseBackboneLast: false,
         isCoarseBackbone: false,
         p0: Vec3.zero(), p1: Vec3.zero(), p2: Vec3.zero(), p3: Vec3.zero(), p4: Vec3.zero(),
         d12: Vec3.create(1, 0, 0), d23: Vec3.create(1, 0, 0),
@@ -72,6 +74,9 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private prevSecStrucType: SecondaryStructureType
     private currSecStrucType: SecondaryStructureType
     private nextSecStrucType: SecondaryStructureType
+    private prevCoarseBackbone: boolean
+    private currCoarseBackbone: boolean
+    private nextCoarseBackbone: boolean
     private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
     private residueAtomSegments: Segmentation<ElementIndex, ResidueIndex>
     private traceElementIndex: ArrayLike<ElementIndex>
@@ -148,6 +153,8 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                     this.state = AtomicPolymerTraceIteratorState.nextResidue
                     this.currSecStrucType = SecStrucTypeNA
                     this.nextSecStrucType = this.secondaryStructureType[this.residueSegmentMin]
+                    this.currCoarseBackbone = false
+                    this.nextCoarseBackbone = this.directionElementIndex[this.residueSegmentMin] === -1
                     break
                 }
             }
@@ -159,11 +166,18 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.currSecStrucType = this.nextSecStrucType
             this.nextSecStrucType = residueIt.hasNext ? this.secondaryStructureType[residueIndex + 1] : SecStrucTypeNA
 
+            this.prevCoarseBackbone = this.currCoarseBackbone
+            this.currCoarseBackbone = this.nextCoarseBackbone
+            this.nextCoarseBackbone = residueIt.hasNext ? this.directionElementIndex[residueIndex + 1] === -1 : false
+
             value.secStrucType = this.currSecStrucType
-            value.first = residueIndex === this.residueSegmentMin
-            value.last = residueIndex === this.residueSegmentMax
             value.secStrucFirst = this.prevSecStrucType !== this.currSecStrucType
             value.secStrucLast = this.currSecStrucType !== this.nextSecStrucType
+            value.isCoarseBackbone = this.currCoarseBackbone
+            value.coarseBackboneFirst = this.prevCoarseBackbone !== this.currCoarseBackbone
+            value.coarseBackboneLast = this.currCoarseBackbone !== this.nextCoarseBackbone
+            value.first = residueIndex === this.residueSegmentMin
+            value.last = residueIndex === this.residueSegmentMax
             value.moleculeType = this.moleculeType[residueIndex]
 
             const residueIndexPrev3 = this.getResidueIndex(residueIndex - 3)
