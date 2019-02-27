@@ -13,9 +13,9 @@ export const FocusLociOnSelect = PluginBehavior.create<{ minRadius: number, extr
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<{ minRadius: number, extraRadius: number }> {
         register(): void {
-            this.subscribeObservable(this.ctx.behaviors.canvas.selectLoci, current => {
+            this.subscribeObservable(this.ctx.events.canvas3d.click, current => {
                 if (!this.ctx.canvas3d) return;
-                const sphere = Loci.getBoundingSphere(current.loci);
+                const sphere = Loci.getBoundingSphere(current.loci.loci);
                 if (!sphere) return;
                 this.ctx.canvas3d.camera.focus(sphere.center, Math.max(sphere.radius + this.params.extraRadius, this.params.minRadius));
             });

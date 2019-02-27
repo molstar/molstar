@@ -5,7 +5,6 @@
  */
 
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { EmptyLoci, Loci } from 'mol-model/loci';
 import { Representation } from 'mol-repr/representation';
 import { StructureRepresentationRegistry } from 'mol-repr/structure/registry';
 import { State, StateTransform, StateTransformer } from 'mol-state';
@@ -32,6 +31,7 @@ import { StateTransformParameters } from './ui/state/common';
 import { DataFormatRegistry } from './state/actions/data-format';
 import { PluginBehavior } from './behavior/behavior';
 import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
+import { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer';
 
 export class PluginContext {
     private disposed = false;
@@ -58,19 +58,23 @@ export class PluginContext {
         },
         log: this.ev<LogEntry>(),
         task: this.tasks.events,
-        labels: {
-            highlight: this.ev<{ entries: ReadonlyArray<LociLabelEntry> }>()
-        },
-        canvad3d: {
-            settingsUpdated: this.ev()
+        canvas3d: {
+            settingsUpdated: this.ev(),
+
+            highlight: this.ev<{ loci: Representation.Loci, modifiers?: ModifiersKeys }>(),
+            click: this.ev<{ loci: Representation.Loci, buttons?: ButtonsType, modifiers?: ModifiersKeys }>(),
         }
     };
 
     readonly behaviors = {
-        canvas: {
-            highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
-            selectLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
+        // canvas: {
+        //     highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any, modifiers?: ModifiersKeys }>({ loci: EmptyLoci }),
+        //     selectLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any, modifiers?: ModifiersKeys }>({ loci: EmptyLoci }),
+        // },
+        labels: {
+            highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
         },
+
         command: this.commands.behaviour
     };
 

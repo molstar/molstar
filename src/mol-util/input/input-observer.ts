@@ -49,8 +49,11 @@ export type ModifiersKeys = {
     control: boolean,
     meta: boolean
 }
+export namespace ModifiersKeys {
+    export const None: ModifiersKeys = { shift: false, alt: false, control: false, meta: false }
+}
 
-export interface ButtonsType extends BitFlags<ButtonsType.Flag> { }
+export type ButtonsType = BitFlags<ButtonsType.Flag>
 
 export namespace ButtonsType {
     export const has: (ss: ButtonsType, f: Flag) => boolean = BitFlags.has
@@ -73,7 +76,7 @@ export namespace ButtonsType {
 }
 
 type BaseInput = {
-    buttons: number
+    buttons: ButtonsType
     modifiers: ModifiersKeys
 }
 
@@ -166,9 +169,13 @@ namespace InputObserver {
             meta: false
         }
 
+        function getModifiers(): ModifiersKeys {
+            return { ...modifiers };
+        }
+
         let dragging: DraggingState = DraggingState.Stopped
         let disposed = false
-        let buttons = 0
+        let buttons = 0 as ButtonsType
 
         const drag = new Subject<DragInput>()
         const interactionEnd = new Subject<undefined>();
@@ -260,7 +267,7 @@ namespace InputObserver {
 
         function handleBlur () {
             if (buttons || modifiers.shift || modifiers.alt || modifiers.meta || modifiers.control) {
-                buttons = 0
+                buttons = 0 as ButtonsType
                 modifiers.shift = modifiers.alt = modifiers.control = modifiers.meta = false
             }
         }
@@ -361,7 +368,7 @@ namespace InputObserver {
                 const { pageX, pageY } = ev
                 const [ x, y ] = pointerEnd
 
-                click.next({ x, y, pageX, pageY, buttons, modifiers })
+                click.next({ x, y, pageX, pageY, buttons, modifiers: getModifiers() })
             }
         }
 
@@ -370,7 +377,7 @@ namespace InputObserver {
             const { pageX, pageY } = ev
             const [ x, y ] = pointerEnd
             const inside = insideBounds(pointerEnd)
-            move.next({ x, y, pageX, pageY, buttons, modifiers, inside })
+            move.next({ x, y, pageX, pageY, buttons, modifiers: getModifiers(), inside })
 
             if (dragging === DraggingState.Stopped) return
 
@@ -378,7 +385,7 @@ namespace InputObserver {
 
             const isStart = dragging === DraggingState.Started
             const [ dx, dy ] = pointerDelta
-            drag.next({ x, y, dx, dy, pageX, pageY, buttons, modifiers, isStart })
+            drag.next({ x, y, dx, dy, pageX, pageY, buttons, modifiers: getModifiers(), isStart })
 
             Vec2.copy(pointerStart, pointerEnd)
             dragging = DraggingState.Moving
@@ -401,7 +408,7 @@ namespace InputObserver {
             const dz = (ev.deltaZ || 0) * scale
 
             if (dx || dy || dz) {
-                wheel.next({ dx, dy, dz, buttons, modifiers })
+                wheel.next({ dx, dy, dz, buttons, modifiers: getModifiers() })
             }
         }
 

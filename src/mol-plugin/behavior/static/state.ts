@@ -107,16 +107,16 @@ export function Highlight(ctx: PluginContext) {
         const cell = state.select(ref)[0]
         const repr = cell && SO.isRepresentation3D(cell.obj) ? cell.obj.data : undefined
         if (cell && cell.obj && cell.obj.type === PluginStateObject.Molecule.Structure.type) {
-            ctx.behaviors.canvas.highlightLoci.next({ loci: Structure.Loci(cell.obj.data) })
+            ctx.events.canvas3d.highlight.next({ loci: { loci: Structure.Loci(cell.obj.data) } });
         } else if (repr) {
-            ctx.behaviors.canvas.highlightLoci.next({ loci: EveryLoci, repr })
+            ctx.events.canvas3d.highlight.next({ loci: { loci: EveryLoci, repr } });
         }
     });
 }
 
 export function ClearHighlight(ctx: PluginContext) {
     PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
-        ctx.behaviors.canvas.highlightLoci.next({ loci: EmptyLoci })
+        ctx.events.canvas3d.highlight.next({ loci: { loci: EmptyLoci } });
     });
 }
 

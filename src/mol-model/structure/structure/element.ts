@@ -108,6 +108,56 @@ namespace StructureElement {
                 return l.unit.model.coarseHierarchy.gaussians.entityKey[l.element]
         }
     }
+
+    export namespace Loci {
+        export function all(structure: Structure): Loci {
+            return Loci(structure, structure.units.map(unit => ({
+                unit,
+                indices: OrderedSet.ofRange<UnitIndex>(0 as UnitIndex, unit.elements.length as UnitIndex)
+            })));
+        }
+
+        export function union(xs: Loci, ys: Loci): Loci {
+            if (xs.structure !== ys.structure) throw new Error(`Can't union Loci of different structures.`);
+            if (xs.elements.length > ys.elements.length) return union(ys, xs);
+            if (xs.elements.length === 0) return ys;
+
+            const map = new Map<number, OrderedSet<UnitIndex>>();
+
+            for (const e of xs.elements) map.set(e.unit.id, e.indices);
+
+            const elements: Loci['elements'][0][] = [];
+            for (const e of ys.elements) {
+                if (map.has(e.unit.id)) {
+                    elements[elements.length] = { unit: e.unit, indices: OrderedSet.union(map.get(e.unit.id)!, e.indices) };
+                } else {
+                    elements[elements.length] = e;
+                }
+            }
+
+            return Loci(xs.structure, elements);
+        }
+
+        export function subtract(xs: Loci, ys: Loci): Loci {
+            if (xs.structure !== ys.structure) throw new Error(`Can't subtract Loci of different structures.`);
+
+            const map = new Map<number, OrderedSet<UnitIndex>>();
+            for (const e of ys.elements) map.set(e.unit.id, e.indices);
+
+            const elements: Loci['elements'][0][] = [];
+            for (const e of xs.elements) {
+                if (map.has(e.unit.id)) {
+                    const indices = OrderedSet.subtract(e.indices, map.get(e.unit.id)!);
+                    if (OrderedSet.size(indices) === 0) continue;
+                    elements[elements.length] = { unit: e.unit, indices };
+                } else {
+                    elements[elements.length] = e;
+                }
+            }
+
+            return xs;
+        }
+    }
 }
 
 export default StructureElement

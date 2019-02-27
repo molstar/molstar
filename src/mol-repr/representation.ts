@@ -7,7 +7,7 @@
 import { Task } from 'mol-task'
 import { GraphicsRenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
-import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
+import { Loci as ModelLoci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { WebGLContext } from 'mol-gl/webgl/context';
@@ -102,11 +102,21 @@ interface Representation<D, P extends PD.Params = {}, S extends Representation.S
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
     setState: (state: Partial<S>) => void
     setTheme: (theme: Theme) => void
-    getLoci: (pickingId: PickingId) => Loci
-    mark: (loci: Loci, action: MarkerAction) => boolean
+    getLoci: (pickingId: PickingId) => ModelLoci
+    mark: (loci: ModelLoci, action: MarkerAction) => boolean
     destroy: () => void
 }
 namespace Representation {
+    export interface Loci { loci: ModelLoci, repr?: Representation.Any }
+
+    export namespace Loci {
+        export function areEqual(a: Loci, b: Loci) {
+            return a.repr === b.repr && ModelLoci.areEqual(a.loci, b.loci);
+        }
+
+        export const Empty: Loci = { loci: EmptyLoci };
+    }
+
     export interface State {
         /** Controls if the representation's renderobjects are rendered or not */
         visible: boolean
@@ -218,7 +228,7 @@ namespace Representation {
                 }
                 return EmptyLoci
             },
-            mark: (loci: Loci, action: MarkerAction) => {
+            mark: (loci: ModelLoci, action: MarkerAction) => {
                 let marked = false
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     marked = reprList[i].mark(loci, action) || marked
@@ -275,7 +285,7 @@ namespace Representation {
                 // TODO
                 return EmptyLoci
             },
-            mark: (loci: Loci, action: MarkerAction) => {
+            mark: (loci: ModelLoci, action: MarkerAction) => {
                 // TODO
                 return false
             },

@@ -59,8 +59,8 @@ interface Canvas3D {
     animate: () => void
     pick: () => void
     identify: (x: number, y: number) => Promise<PickingId | undefined>
-    mark: (loci: Loci, action: MarkerAction, repr?: Representation.Any) => void
-    getLoci: (pickingId: PickingId) => { loci: Loci, repr?: Representation.Any }
+    mark: (loci: Representation.Loci, action: MarkerAction) => void
+    getLoci: (pickingId: PickingId) => Representation.Loci
 
     readonly didDraw: BehaviorSubject<now.Timestamp>
 
@@ -141,12 +141,13 @@ namespace Canvas3D {
             return { loci, repr }
         }
 
-        function mark(loci: Loci, action: MarkerAction, repr?: Representation.Any) {
+        function mark(loci: Representation.Loci, action: MarkerAction) {
+            const repr = loci.repr
             let changed = false
             if (repr) {
-                changed = repr.mark(loci, action)
+                changed = repr.mark(loci.loci, action)
             } else {
-                reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed })
+                reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci.loci, action) || changed })
             }
             if (changed) {
                 scene.update(true)

@@ -9,6 +9,7 @@ import { PluginCommand } from './command/base';
 import { StateTransform, State, StateAction } from 'mol-state';
 import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
 import { PluginLayoutStateProps } from './layout';
+import { StructureElement } from 'mol-model/structure';
 
 export * from './command/base';
 
@@ -36,6 +37,13 @@ export const PluginCommands = {
 
             DownloadToFile: PluginCommand<{ name?: string }>({ isImmediate: true }),
             OpenFile: PluginCommand<{ file: File }>({ isImmediate: true }),
+        }
+    },
+    Interactivity: {
+        Structure: {
+            AddHighlight: PluginCommand<{ loci: StructureElement.Loci, tryRange?: boolean }>({ isImmediate: true }),
+            ClearHighlight: PluginCommand<{ }>({ isImmediate: true }),
+            SelectHighlighted: PluginCommand<{ type: 'toggle' | 'add' }>({ isImmediate: true })
         }
     },
     Layout: {

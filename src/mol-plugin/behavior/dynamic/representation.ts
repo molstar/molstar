@@ -6,7 +6,7 @@
 
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
-import { EmptyLoci, Loci } from 'mol-model/loci';
+import { EmptyLoci } from 'mol-model/loci';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginStateObject } from 'mol-plugin/state/objects';
@@ -14,21 +14,22 @@ import { StateObjectTracker, StateSelection } from 'mol-state';
 import { labelFirst } from 'mol-theme/label';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
+import { Representation } from 'mol-repr/representation';
 
 export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
         register(): void {
-            let prevLoci: Loci = EmptyLoci, prevRepr: any = void 0;
-            this.subscribeObservable(this.ctx.behaviors.canvas.highlightLoci, current => {
+            let prev: Representation.Loci = { loci: EmptyLoci, repr: void 0 };
+
+            this.subscribeObservable(this.ctx.events.canvas3d.highlight, ({ loci }) => {
                 if (!this.ctx.canvas3d) return;
 
-                if (current.repr !== prevRepr || !Loci.areEqual(current.loci, prevLoci)) {
-                    this.ctx.canvas3d.mark(prevLoci, MarkerAction.RemoveHighlight, prevRepr);
-                    this.ctx.canvas3d.mark(current.loci, MarkerAction.Highlight, current.repr);
-                    prevLoci = current.loci;
-                    prevRepr = current.repr;
+                if (!Representation.Loci.areEqual(prev, loci)) {
+                    this.ctx.canvas3d.mark(prev, MarkerAction.RemoveHighlight);
+                    this.ctx.canvas3d.mark(loci, MarkerAction.Highlight);
+                    prev = loci;
                 }
             });
         }
@@ -41,16 +42,15 @@ export const SelectLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
         register(): void {
-            let prevLoci: Loci = EmptyLoci, prevRepr: any = void 0;
-            this.subscribeObservable(this.ctx.behaviors.canvas.selectLoci, current => {
+            let prev = Representation.Loci.Empty;
+            this.subscribeObservable(this.ctx.events.canvas3d.click, ({ loci: current }) => {
                 if (!this.ctx.canvas3d) return;
-                if (current.repr !== prevRepr || !Loci.areEqual(current.loci, prevLoci)) {
-                    this.ctx.canvas3d.mark(prevLoci, MarkerAction.Deselect, prevRepr);
-                    this.ctx.canvas3d.mark(current.loci, MarkerAction.Select, current.repr);
-                    prevLoci = current.loci;
-                    prevRepr = current.repr;
+                if (!Representation.Loci.areEqual(prev, current)) {
+                    this.ctx.canvas3d.mark(prev, MarkerAction.Deselect);
+                    this.ctx.canvas3d.mark(current, MarkerAction.Select);
+                    prev = current;
                 } else {
-                    this.ctx.canvas3d.mark(current.loci, MarkerAction.Toggle);
+                    this.ctx.canvas3d.mark(current, MarkerAction.Toggle);
                 }
                 // this.ctx.canvas3d.mark(loci, MarkerAction.Toggle);
             });

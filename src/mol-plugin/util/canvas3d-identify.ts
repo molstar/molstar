@@ -8,6 +8,7 @@ import { PluginContext } from '../context';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 import { Representation } from 'mol-repr/representation';
+import { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer';
 
 export class Canvas3dIdentifyHelper {
     private cX = -1;
@@ -20,12 +21,15 @@ export class Canvas3dIdentifyHelper {
 
     private currentIdentifyT = 0;
 
-    private prevLoci: { loci: Loci, repr?: Representation.Any } = { loci: EmptyLoci };
+    private prevLoci: Representation.Loci = Representation.Loci.Empty;
     private prevT = 0;
 
     private inside = false;
 
-    private async identify(select: boolean, t: number) {
+    private buttons: ButtonsType = ButtonsType.create(0);
+    private modifiers: ModifiersKeys = ModifiersKeys.None;
+
+    private async identify(isClick: boolean, t: number) {
         if (this.lastX !== this.cX && this.lastY !== this.cY) {
             this.id = await this.ctx.canvas3d.identify(this.cX, this.cY);
             this.lastX = this.cX;
@@ -34,8 +38,8 @@ export class Canvas3dIdentifyHelper {
 
         if (!this.id) return;
 
-        if (select) {
-            this.ctx.behaviors.canvas.selectLoci.next(this.ctx.canvas3d.getLoci(this.id));
+        if (isClick) {
+            this.ctx.events.canvas3d.click.next({ loci: this.ctx.canvas3d.getLoci(this.id), buttons: this.buttons, modifiers: this.modifiers });
             return;
         }
 
@@ -46,7 +50,7 @@ export class Canvas3dIdentifyHelper {
 
         const loci = this.ctx.canvas3d.getLoci(this.id);
         if (loci.repr !== this.prevLoci.repr || !Loci.areEqual(loci.loci, this.prevLoci.loci)) {
-            this.ctx.behaviors.canvas.highlightLoci.next(loci);
+            this.ctx.events.canvas3d.highlight.next({ loci, modifiers: this.modifiers });
             this.prevLoci = loci;
         }
     }
@@ -63,21 +67,24 @@ export class Canvas3dIdentifyHelper {
     leave() {
         this.inside = false;
         if (this.prevLoci.loci !== EmptyLoci) {
-            this.prevLoci = { loci: EmptyLoci };
-            this.ctx.behaviors.canvas.highlightLoci.next(this.prevLoci);
+            this.prevLoci = Representation.Loci.Empty;
+            this.ctx.events.canvas3d.highlight.next({ loci: this.prevLoci });
             this.ctx.canvas3d.requestDraw(true);
         }
     }
 
-    move(x: number, y: number) {
+    move(x: number, y: number, modifiers: ModifiersKeys) {
         this.inside = true;
+        this.modifiers = modifiers;
         this.cX = x;
         this.cY = y;
     }
 
-    select(x: number, y: number) {
+    select(x: number, y: number, buttons: ButtonsType, modifiers: ModifiersKeys) {
         this.cX = x;
         this.cY = y;
+        this.buttons = buttons;
+        this.modifiers = modifiers;
         this.identify(true, 0);
     }
 

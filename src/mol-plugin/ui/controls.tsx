@@ -82,7 +82,7 @@ export class LociLabelControl extends PluginUIComponent<{}, { entries: ReadonlyA
     state = { entries: [] }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.labels.highlight, e => this.setState({ entries: e.entries }));
+        this.subscribe(this.plugin.behaviors.labels.highlight, e => this.setState({ entries: e.entries }));
     }
 
     render() {

@@ -66,7 +66,7 @@ interface DSSPContext {
     hbonds: DsspHbonds
 }
 
-interface DSSPType extends BitFlags<DSSPType.Flag> { }
+type DSSPType = BitFlags<DSSPType.Flag>
 namespace DSSPType {
     export const is: (t: DSSPType, f: Flag) => boolean = BitFlags.has
     export const create: (f: Flag) => DSSPType = BitFlags.create

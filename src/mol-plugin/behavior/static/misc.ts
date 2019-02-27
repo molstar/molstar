@@ -14,6 +14,6 @@ export function registerDefault(ctx: PluginContext) {
 export function Canvas3DSetSettings(ctx: PluginContext) {
     PluginCommands.Canvas3D.SetSettings.subscribe(ctx, e => {
         ctx.canvas3d.setProps(e.settings);
-        ctx.events.canvad3d.settingsUpdated.next();
+        ctx.events.canvas3d.settingsUpdated.next();
     })
 }

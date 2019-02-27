@@ -263,7 +263,7 @@ export const IonNames = new Set([
   'OHX'
 ])
 
-export interface SecondaryStructureType extends BitFlags<SecondaryStructureType.Flag> { }
+export type SecondaryStructureType = BitFlags<SecondaryStructureType.Flag>
 export namespace SecondaryStructureType {
     export const is: (ss: SecondaryStructureType, f: Flag) => boolean = BitFlags.has
     export const create: (fs: Flag) => SecondaryStructureType = BitFlags.create
@@ -511,7 +511,7 @@ export const VdwRadii = {
 }
 export const DefaultVdwRadius = 2.0
 
-export interface LinkType extends BitFlags<LinkType.Flag> { }
+export type LinkType = BitFlags<LinkType.Flag>
 export namespace LinkType {
     export const is: (b: LinkType, f: Flag) => boolean = BitFlags.has
     export const enum Flag {

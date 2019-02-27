@@ -51,7 +51,7 @@ export class ViewportControls extends PluginUIComponent {
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.canvad3d.settingsUpdated, e => {
+        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, e => {
             this.forceUpdate();
         });
 
@@ -114,18 +114,18 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
 
         const idHelper = new Canvas3dIdentifyHelper(this.plugin, 15);
 
-        this.subscribe(canvas3d.input.move, ({x, y, inside, buttons}) => {
+        this.subscribe(canvas3d.input.move, ({x, y, inside, buttons, modifiers }) => {
             if (!inside || buttons) { return; }
-            idHelper.move(x, y);
+            idHelper.move(x, y, modifiers);
         });
 
         this.subscribe(canvas3d.input.leave, () => {
             idHelper.leave();
         });
 
-        this.subscribe(canvas3d.input.click, ({x, y, buttons}) => {
+        this.subscribe(canvas3d.input.click, ({x, y, buttons, modifiers }) => {
             if (buttons !== ButtonsType.Flag.Primary) return;
-            idHelper.select(x, y);
+            idHelper.select(x, y, buttons, modifiers);
         });
 
         this.subscribe(this.plugin.layout.events.updated, () => {
