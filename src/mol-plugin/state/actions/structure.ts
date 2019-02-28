@@ -22,7 +22,7 @@ export const MmcifProvider: DataFormatProvider<any> = {
     description: 'mmCIF',
     stringExtensions: ['cif', 'mmcif', 'mcif'],
     binaryExtensions: ['bcif'],
-    isApplicable: (info: FileInfo, data: Uint8Array) => {
+    isApplicable: (info: FileInfo, data: Uint8Array | string) => {
         return info.ext === 'cif' || info.ext === 'mmcif' || info.ext === 'mcif' || info.ext === 'bcif'
     },
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, state: State) => {
@@ -38,12 +38,28 @@ export const PdbProvider: DataFormatProvider<any> = {
     description: 'PDB',
     stringExtensions: ['pdb', 'ent'],
     binaryExtensions: [],
-    isApplicable: (info: FileInfo, data: Uint8Array) => {
+    isApplicable: (info: FileInfo, data: string) => {
         return info.ext === 'pdb' || info.ext === 'ent'
     },
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, state: State) => {
-        return Task.create('mmCIF default builder', async taskCtx => {
+        return Task.create('PDB default builder', async taskCtx => {
             const traj = createModelTree(data, 'pdb');
+            await state.updateTree(createStructureTree(ctx, traj, false)).runInContext(taskCtx)
+        })
+    }
+}
+
+export const GroProvider: DataFormatProvider<any> = {
+    label: 'GRO',
+    description: 'GRO',
+    stringExtensions: ['gro'],
+    binaryExtensions: [],
+    isApplicable: (info: FileInfo, data: string) => {
+        return info.ext === 'gro'
+    },
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, state: State) => {
+        return Task.create('GRO default builder', async taskCtx => {
+            const traj = createModelTree(data, 'gro');
             await state.updateTree(createStructureTree(ctx, traj, false)).runInContext(taskCtx)
         })
     }
@@ -111,10 +127,22 @@ const DownloadStructure = StateAction.build({
     return state.updateTree(createStructureTree(ctx, traj, params.source.params.supportProps));
 });
 
-function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' = 'cif') {
-    const parsed = format === 'cif'
-        ? b.apply(StateTransforms.Data.ParseCif, void 0, { props: { isGhost: true }}).apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { props: { isGhost: true }})
-        : b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { props: { isGhost: true }});
+function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' | 'gro' = 'cif') {
+    let parsed: StateBuilder.To<PluginStateObject.Molecule.Trajectory>
+    switch (format) {
+        case 'cif':
+            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { props: { isGhost: true }})
+                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { props: { isGhost: true }})
+            break
+        case 'pdb':
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { props: { isGhost: true }});
+            break
+        case 'gro':
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { props: { isGhost: true }});
+            break
+        default:
+            throw new Error('unsupported format')
+    }
 
     return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }

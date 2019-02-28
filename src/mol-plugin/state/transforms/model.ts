@@ -20,9 +20,12 @@ import { RuntimeContext, Task } from 'mol-task';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { stringToWords } from 'mol-util/string';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
+import { trajectoryFromGRO } from 'mol-model-formats/structure/gro';
+import { parseGRO } from 'mol-io/reader/gro/parser';
 
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
+export { TrajectoryFromGRO };
 export { ModelFromTrajectory };
 export { StructureFromModel };
 export { StructureAssemblyFromModel };
@@ -62,7 +65,6 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     }
 });
 
-
 type TrajectoryFromPDB = typeof TrajectoryFromPDB
 const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-pdb',
@@ -81,6 +83,23 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     }
 });
 
+type TrajectoryFromGRO = typeof TrajectoryFromGRO
+const TrajectoryFromGRO = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-gro',
+    display: { name: 'Parse GRO', description: 'Parse GRO string and create trajectory.' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse GRO', async ctx => {
+            const parsed = await parseGRO(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const models = await trajectoryFromGRO(parsed.result).runInContext(ctx);
+            const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
 
 const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
 type ModelFromTrajectory = typeof ModelFromTrajectory

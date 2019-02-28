@@ -155,10 +155,8 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parse(data: string) {
+export function parseGRO(data: string) {
     return Task.create<Result<Schema.GroFile>>('Parse GRO', async ctx => {
         return await parseInternal(data, ctx);
     });
 }
-
-export default parse;
