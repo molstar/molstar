@@ -117,6 +117,13 @@ namespace StructureElement {
             })));
         }
 
+        export function remap(loci: Loci, structure: Structure): Loci {
+            return Loci(structure, loci.elements.map(e => ({
+                unit: structure.unitMap.get(e.unit.id)!,
+                indices: e.indices
+            })));
+        }
+
         export function union(xs: Loci, ys: Loci): Loci {
             if (xs.structure !== ys.structure) throw new Error(`Can't union Loci of different structures.`);
             if (xs.elements.length > ys.elements.length) return union(ys, xs);

@@ -25,8 +25,6 @@ export namespace ModelInfo {
             const json = JSON.parse(src);
             const data = json && json[id];
 
-            console.log(data);
-
             const assemblies = data[0] && data[0].assemblies;
             if (!assemblies || !assemblies.length) return void 0;
 

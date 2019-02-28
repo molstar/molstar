@@ -83,3 +83,11 @@ export function deepClone<T>(source: T): T {
 
     throw new Error(`Can't clone, type "${typeof source}" unsupported`);
 }
+
+export function mapObjectMap<O extends { [k: string]: T }, T, S>(o: O, f: (v: T) => S): { [k: string]: S } {
+    const ret: any = { };
+    for (const k of Object.keys(o)) {
+        ret[k] = f((o as any)[k]);
+    }
+    return ret;
+}

@@ -84,7 +84,7 @@ namespace StructureSelection {
     class HashBuilderImpl implements Builder {
         private structures: Structure[] = [];
         private allSingletons = true;
-        private uniqueSets = HashSet(Structure.hashCode, Structure.areEqual);
+        private uniqueSets = HashSet(Structure.hashCode, Structure.areUnitAndIndicesEqual);
 
         add(structure: Structure) {
             const atomCount = structure.elementCount;
