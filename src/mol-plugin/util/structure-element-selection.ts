@@ -4,16 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructureElement, Structure } from 'mol-model/structure';
-import { PluginContext } from '../../context';
-import { Loci, EmptyLoci } from 'mol-model/loci';
-import { PluginStateObject } from 'mol-plugin/state/objects';
-import { State, StateSelection, StateObject } from 'mol-state';
-import { mapObjectMap } from 'mol-util/object';
+import { EmptyLoci, Loci } from 'mol-model/loci';
+import { Structure, StructureElement } from 'mol-model/structure';
+import { State, StateObject, StateSelection } from 'mol-state';
+import { PluginContext } from '../context';
+import { PluginStateObject } from '../state/objects';
+import { OrderedSet } from 'mol-data/int';
 
-export { StructureLociManager }
+export { StructureElementSelectionManager };
 
-class StructureLociManager {
+class StructureElementSelectionManager {
     private entries = new Map<string, SelectionEntry>();
 
     // maps structure to a parent StateObjectCell
@@ -34,28 +34,65 @@ class StructureLociManager {
         return this.entries.get(key)!;
     }
 
-    add(loci: StructureElement.Loci | Structure.Loci, type: 'selection' | 'highlight'): Loci {
+    add(loci: StructureElement.Loci): Loci {
         const entry = this.getEntry(loci.structure);
         if (!entry) return EmptyLoci;
-        const xs = entry.elements;
-        xs[type] = Structure.isLoci(loci) ? StructureElement.Loci.all(loci.structure) : StructureElement.Loci.union(xs[type], loci);
-        return xs[type];
+        entry.selection = StructureElement.Loci.union(entry.selection, loci);
+        return entry.selection;
     }
 
-    remove(loci: StructureElement.Loci | Structure.Loci, type: 'selection' | 'highlight'): Loci {
+    remove(loci: StructureElement.Loci): Loci {
         const entry = this.getEntry(loci.structure);
         if (!entry) return EmptyLoci;
-        const xs = entry.elements;
-        xs[type] = Structure.isLoci(loci) ? StructureElement.Loci(loci.structure, []) : StructureElement.Loci.subtract(xs[type], loci);
-        return xs[type].elements.length === 0 ? EmptyLoci : xs[type];
+        entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
+        return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
     }
 
-    set(loci: StructureElement.Loci | Structure.Loci, type: 'selection' | 'highlight'): Loci {
+    set(loci: StructureElement.Loci): Loci {
         const entry = this.getEntry(loci.structure);
         if (!entry) return EmptyLoci;
-        const xs = entry.elements;
-        xs[type] = Structure.isLoci(loci) ? StructureElement.Loci.all(loci.structure) : loci;
-        return xs[type].elements.length === 0 ? EmptyLoci : xs[type];
+        entry.selection = loci;
+        return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
+    }
+
+    get(structure: Structure) {
+        const entry = this.getEntry(structure);
+        if (!entry) return EmptyLoci;
+        return entry.selection;
+    }
+
+    has(loci: StructureElement.Loci) {
+        const entry = this.getEntry(loci.structure);
+        if (!entry) return false;
+        return StructureElement.Loci.areIntersecting(loci, entry.selection);
+    }
+
+    tryGetRange(loci: StructureElement.Loci): StructureElement.Loci | undefined {
+        if (loci.elements.length !== 1) return;
+        const entry = this.getEntry(loci.structure);
+        if (!entry) return;
+
+        let xs = loci.elements[0];
+        let e: StructureElement.Loci['elements'][0] | undefined;
+        for (const _e of entry.selection.elements) {
+            if (xs.unit === _e.unit) {
+                e = _e;
+                break;
+            }
+        }
+        if (!e) return;
+
+        const predIdx = OrderedSet.findPredecessorIndex(e.indices, OrderedSet.min(xs.indices));
+        if (predIdx === 0) return;
+
+        const fst = predIdx < OrderedSet.size(e.indices)
+            ? OrderedSet.getAt(e.indices, predIdx)
+            : OrderedSet.getAt(e.indices, predIdx - 1) + 1 as StructureElement.UnitIndex;
+
+        return StructureElement.Loci(entry.selection.structure, [{
+            unit: e.unit,
+            indices: OrderedSet.ofRange(fst, OrderedSet.max(xs.indices))
+        }]);
     }
 
     private prevHighlight: StructureElement.Loci | undefined = void 0;
@@ -131,17 +168,17 @@ class StructureLociManager {
 }
 
 interface SelectionEntry {
-    elements: { [category: string]: StructureElement.Loci }
+    selection: StructureElement.Loci
 }
 
 function SelectionEntry(s: Structure): SelectionEntry {
     return {
-        elements: { }
+        selection: StructureElement.Loci(s, [])
     };
 }
 
 function remapSelectionEntry(e: SelectionEntry, s: Structure): SelectionEntry {
     return {
-        elements: mapObjectMap(e.elements, (l: StructureElement.Loci) => StructureElement.Loci.remap(l, s))
+        selection: StructureElement.Loci.remap(e.selection, s)
     };
 }

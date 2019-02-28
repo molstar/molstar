@@ -41,9 +41,8 @@ export const PluginCommands = {
     },
     Interactivity: {
         Structure: {
-            AddHighlight: PluginCommand<{ loci: StructureElement.Loci, tryRange?: boolean }>({ isImmediate: true }),
-            ClearHighlight: PluginCommand<{ }>({ isImmediate: true }),
-            SelectHighlighted: PluginCommand<{ type: 'toggle' | 'add' }>({ isImmediate: true })
+            Highlight: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>({ isImmediate: true }),
+            Select: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>({ isImmediate: true })
         }
     },
     Layout: {

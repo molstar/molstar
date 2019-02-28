@@ -8,7 +8,7 @@ import { BehaviorSubject, Subscription } from 'rxjs';
 import { now } from 'mol-util/now';
 
 import { Vec3 } from 'mol-math/linear-algebra'
-import InputObserver from 'mol-util/input/input-observer'
+import InputObserver, { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
 import { GraphicsRenderObject } from 'mol-gl/render-object'
 
@@ -29,6 +29,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-sphere-helper';
 import { decodeFloatRGB } from 'mol-util/float-packing';
 import { SetUtils } from 'mol-util/set';
+import { Canvas3dInteractionHelper } from './helper/interaction-events';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -76,10 +77,18 @@ interface Canvas3D {
     readonly props: Canvas3DProps
     readonly input: InputObserver
     readonly stats: RendererStats
+    readonly interaction: Canvas3dInteractionHelper['events']
+
+    // TODO: is this a good solution?
+    setSceneAnimating(animating: boolean): void
+
     dispose: () => void
 }
 
 namespace Canvas3D {
+    export interface HighlightEvent { current: Representation.Loci, prev: Representation.Loci, modifiers?: ModifiersKeys }
+    export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
+
     export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
@@ -125,7 +134,10 @@ namespace Canvas3D {
         let isUpdating = false
         let drawPending = false
 
-        const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug)
+        const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
+        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
+
+        let isSceneAnimating = false
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -250,7 +262,8 @@ namespace Canvas3D {
         function animate() {
             currentTime = now();
             camera.transition.tick(currentTime);
-            draw(false)
+            draw(false);
+            if (!camera.transition.inTransition && !isSceneAnimating) interactionHelper.tick(currentTime);
             window.requestAnimationFrame(animate)
         }
 
@@ -419,6 +432,12 @@ namespace Canvas3D {
             get stats() {
                 return renderer.stats
             },
+            get interaction() {
+                return interactionHelper.events
+            },
+            setSceneAnimating(animating) {
+                isSceneAnimating = animating;
+            },
             dispose: () => {
                 scene.clear()
                 debugHelper.clear()
@@ -426,6 +445,7 @@ namespace Canvas3D {
                 controls.dispose()
                 renderer.dispose()
                 camera.dispose()
+                interactionHelper.dispose()
             }
         }
 

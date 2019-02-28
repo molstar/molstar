@@ -8,9 +8,7 @@ import { PluginCommands } from '../../command';
 import { PluginContext } from '../../context';
 import { StateTree, StateTransform, State } from 'mol-state';
 import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
-import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
-import { EmptyLoci, EveryLoci } from 'mol-model/loci';
-import { Structure } from 'mol-model/structure';
+import { PluginStateObject as SO } from '../../state/objects';
 import { getFormattedTime } from 'mol-util/date';
 import { readFromFile } from 'mol-util/data-source';
 
@@ -104,19 +102,19 @@ function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: 
 // TODO should also work for volumes and shapes
 export function Highlight(ctx: PluginContext) {
     PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
-        const cell = state.select(ref)[0]
-        const repr = cell && SO.isRepresentation3D(cell.obj) ? cell.obj.data : undefined
-        if (cell && cell.obj && cell.obj.type === PluginStateObject.Molecule.Structure.type) {
-            ctx.events.canvas3d.highlight.next({ loci: { loci: Structure.Loci(cell.obj.data) } });
-        } else if (repr) {
-            ctx.events.canvas3d.highlight.next({ loci: { loci: EveryLoci, repr } });
-        }
+        // const cell = state.select(ref)[0]
+        // const repr = cell && SO.isRepresentation3D(cell.obj) ? cell.obj.data : undefined
+        // if (cell && cell.obj && cell.obj.type === PluginStateObject.Molecule.Structure.type) {
+        //     ctx.events.canvas3d.highlight.next({ current: { loci: Structure.Loci(cell.obj.data) } });
+        // } else if (repr) {
+        //     ctx.events.canvas3d.highlight.next({ current: { loci: EveryLoci, repr } });
+        // }
     });
 }
 
 export function ClearHighlight(ctx: PluginContext) {
     PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
-        ctx.events.canvas3d.highlight.next({ loci: { loci: EmptyLoci } });
+        // ctx.events.canvas3d.highlight.next({ current: { loci: EmptyLoci } });
     });
 }
 

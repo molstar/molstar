@@ -125,7 +125,6 @@ namespace StructureElement {
         }
 
         export function union(xs: Loci, ys: Loci): Loci {
-            if (xs.structure !== ys.structure) throw new Error(`Can't union Loci of different structures.`);
             if (xs.elements.length > ys.elements.length) return union(ys, xs);
             if (xs.elements.length === 0) return ys;
 
@@ -146,8 +145,6 @@ namespace StructureElement {
         }
 
         export function subtract(xs: Loci, ys: Loci): Loci {
-            if (xs.structure !== ys.structure) throw new Error(`Can't subtract Loci of different structures.`);
-
             const map = new Map<number, OrderedSet<UnitIndex>>();
             for (const e of ys.elements) map.set(e.unit.id, e.indices);
 
@@ -162,7 +159,22 @@ namespace StructureElement {
                 }
             }
 
-            return xs;
+            return Loci(xs.structure, elements);
+        }
+
+        export function areIntersecting(xs: Loci, ys: Loci): boolean {
+            if (xs.elements.length > ys.elements.length) return areIntersecting(ys, xs);
+            if (xs.elements.length === 0) return ys.elements.length === 0;
+
+            const map = new Map<number, OrderedSet<UnitIndex>>();
+
+            for (const e of xs.elements) map.set(e.unit.id, e.indices);
+            for (const e of ys.elements) {
+                if (!map.has(e.unit.id)) continue;
+                if (OrderedSet.areIntersecting(map.get(e.unit.id)!, e.indices)) return true;
+            }
+
+            return false;
         }
     }
 }

@@ -4,34 +4,33 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { List } from 'immutable';
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { Representation } from 'mol-repr/representation';
+import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
 import { StructureRepresentationRegistry } from 'mol-repr/structure/registry';
+import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
 import { State, StateTransform, StateTransformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { ThemeRegistryContext } from 'mol-theme/theme';
+import { Color } from 'mol-util/color';
+import { ajaxGet } from 'mol-util/data-source';
 import { LogEntry } from 'mol-util/log-entry';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { merge } from 'rxjs';
 import { BuiltInPluginBehaviors } from './behavior';
+import { PluginBehavior } from './behavior/behavior';
 import { PluginCommand, PluginCommands } from './command';
+import { PluginLayout } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
-import { TaskManager } from './util/task-manager';
-import { Color } from 'mol-util/color';
-import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
-import { ajaxGet } from 'mol-util/data-source';
-import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
-import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
-import { PluginLayout } from './layout';
-import { List } from 'immutable';
-import { StateTransformParameters } from './ui/state/common';
 import { DataFormatRegistry } from './state/actions/data-format';
-import { PluginBehavior } from './behavior/behavior';
-import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
-import { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer';
+import { StateTransformParameters } from './ui/state/common';
+import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
+import { TaskManager } from './util/task-manager';
+import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
+import { StructureElementSelectionManager } from './util/structure-element-selection';
 
 export class PluginContext {
     private disposed = false;
@@ -61,8 +60,8 @@ export class PluginContext {
         canvas3d: {
             settingsUpdated: this.ev(),
 
-            highlight: this.ev<{ loci: Representation.Loci, modifiers?: ModifiersKeys }>(),
-            click: this.ev<{ loci: Representation.Loci, buttons?: ButtonsType, modifiers?: ModifiersKeys }>(),
+            highlight: this.ev<Canvas3D.HighlightEvent>(),
+            click: this.ev<Canvas3D.ClickEvent>()
         }
     };
 
@@ -99,6 +98,10 @@ export class PluginContext {
 
     readonly customModelProperties = new CustomPropertyRegistry();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
+
+    readonly selection = {
+        structure: new StructureElementSelectionManager(this)
+    };
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {

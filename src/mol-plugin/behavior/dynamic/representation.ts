@@ -15,6 +15,8 @@ import { labelFirst } from 'mol-theme/label';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
 import { Representation } from 'mol-repr/representation';
+import { ButtonsType } from 'mol-util/input/input-observer';
+import { StructureElement } from 'mol-model/structure';
 
 export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
@@ -22,15 +24,29 @@ export const HighlightLoci = PluginBehavior.create({
     ctor: class extends PluginBehavior.Handler {
         register(): void {
             let prev: Representation.Loci = { loci: EmptyLoci, repr: void 0 };
+            const sel = this.ctx.selection.structure;
 
-            this.subscribeObservable(this.ctx.events.canvas3d.highlight, ({ loci }) => {
+            this.subscribeObservable(this.ctx.events.canvas3d.highlight, ({ current, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
 
-                if (!Representation.Loci.areEqual(prev, loci)) {
+                if (StructureElement.isLoci(current.loci)) {
+                    let loci: StructureElement.Loci = current.loci;
+                    if (modifiers && modifiers.shift) {
+                        loci = sel.tryGetRange(loci) || loci;
+                    }
+
                     this.ctx.canvas3d.mark(prev, MarkerAction.RemoveHighlight);
-                    this.ctx.canvas3d.mark(loci, MarkerAction.Highlight);
-                    prev = loci;
+                    const toHighlight = { loci, repr: current.repr };
+                    this.ctx.canvas3d.mark(toHighlight, MarkerAction.Highlight);
+                    prev = toHighlight;
+                } else {
+                    if (!Representation.Loci.areEqual(prev, current)) {
+                        this.ctx.canvas3d.mark(prev, MarkerAction.RemoveHighlight);
+                        this.ctx.canvas3d.mark(current, MarkerAction.Highlight);
+                        prev = current;
+                    }
                 }
+
             });
         }
     },
@@ -42,17 +58,43 @@ export const SelectLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
         register(): void {
-            let prev = Representation.Loci.Empty;
-            this.subscribeObservable(this.ctx.events.canvas3d.click, ({ loci: current }) => {
-                if (!this.ctx.canvas3d) return;
-                if (!Representation.Loci.areEqual(prev, current)) {
-                    this.ctx.canvas3d.mark(prev, MarkerAction.Deselect);
-                    this.ctx.canvas3d.mark(current, MarkerAction.Select);
-                    prev = current;
+            const sel = this.ctx.selection.structure;
+
+            const toggleSel = (current: Representation.Loci<StructureElement.Loci>) => {
+                if (sel.has(current.loci)) {
+                    sel.remove(current.loci);
+                    this.ctx.canvas3d.mark(current, MarkerAction.Deselect);
                 } else {
+                    sel.add(current.loci);
+                    this.ctx.canvas3d.mark(current, MarkerAction.Select);
+                }
+            }
+
+            this.subscribeObservable(this.ctx.events.canvas3d.click, ({ current, buttons, modifiers }) => {
+                if (!this.ctx.canvas3d) return;
+
+                if (StructureElement.isLoci(current.loci)) {
+                    if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
+                        // select only the current element on Ctrl + Right-Click
+                        const old = sel.get(current.loci.structure);
+                        this.ctx.canvas3d.mark({ loci: old }, MarkerAction.Deselect);
+                        sel.set(current.loci);
+                        this.ctx.canvas3d.mark(current, MarkerAction.Select);
+                    } else if (modifiers.control && buttons === ButtonsType.Flag.Primary) {
+                        // toggle current element on Ctrl + Left-Click
+                        toggleSel(current as Representation.Loci<StructureElement.Loci>);
+                    } else if (modifiers.shift && buttons === ButtonsType.Flag.Primary) {
+                        // try to extend sequence on Shift + Left-Click
+                        let loci: StructureElement.Loci = current.loci;
+                        if (modifiers && modifiers.shift) {
+                            loci = sel.tryGetRange(loci) || loci;
+                        }
+                        toggleSel({ loci, repr: current.repr });
+                    }
+                } else {
+                    if (!ButtonsType.has(buttons, ButtonsType.Flag.Secondary)) return;
                     this.ctx.canvas3d.mark(current, MarkerAction.Toggle);
                 }
-                // this.ctx.canvas3d.mark(loci, MarkerAction.Toggle);
             });
         }
     },

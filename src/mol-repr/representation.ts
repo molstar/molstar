@@ -107,7 +107,7 @@ interface Representation<D, P extends PD.Params = {}, S extends Representation.S
     destroy: () => void
 }
 namespace Representation {
-    export interface Loci { loci: ModelLoci, repr?: Representation.Any }
+    export interface Loci<T extends ModelLoci = ModelLoci> { loci: T, repr?: Representation.Any }
 
     export namespace Loci {
         export function areEqual(a: Loci, b: Loci) {

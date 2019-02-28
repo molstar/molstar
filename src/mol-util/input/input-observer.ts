@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Subject } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 
 import { Vec2 } from 'mol-math/linear-algebra';
 
@@ -50,13 +50,17 @@ export type ModifiersKeys = {
     meta: boolean
 }
 export namespace ModifiersKeys {
-    export const None: ModifiersKeys = { shift: false, alt: false, control: false, meta: false }
+    export const None: ModifiersKeys = { shift: false, alt: false, control: false, meta: false };
+
+    export function areEqual(a: ModifiersKeys, b: ModifiersKeys) {
+        return a.shift === b.shift && a.alt === b.alt && a.control === b.control && a.meta === b.meta;
+    }
 }
 
 export type ButtonsType = BitFlags<ButtonsType.Flag>
 
 export namespace ButtonsType {
-    export const has: (ss: ButtonsType, f: Flag) => boolean = BitFlags.has
+    export const has: (btn: ButtonsType, f: Flag) => boolean = BitFlags.has
     export const create: (fs: Flag) => ButtonsType = BitFlags.create
 
     export const enum Flag {
@@ -138,16 +142,17 @@ interface InputObserver {
     noScroll: boolean
     noContextMenu: boolean
 
-    drag: Subject<DragInput>,
+    drag: Observable<DragInput>,
     // Equivalent to mouseUp and touchEnd
-    interactionEnd: Subject<undefined>,
-    wheel: Subject<WheelInput>,
-    pinch: Subject<PinchInput>,
-    click: Subject<ClickInput>,
-    move: Subject<MoveInput>,
-    leave: Subject<undefined>,
-    enter: Subject<undefined>,
-    resize: Subject<ResizeInput>,
+    interactionEnd: Observable<undefined>,
+    wheel: Observable<WheelInput>,
+    pinch: Observable<PinchInput>,
+    click: Observable<ClickInput>,
+    move: Observable<MoveInput>,
+    leave: Observable<undefined>,
+    enter: Observable<undefined>,
+    resize: Observable<ResizeInput>,
+    modifiers: Observable<ModifiersKeys>
 
     dispose: () => void
 }
@@ -176,6 +181,7 @@ namespace InputObserver {
         let dragging: DraggingState = DraggingState.Stopped
         let disposed = false
         let buttons = 0 as ButtonsType
+        let isInside = false
 
         const drag = new Subject<DragInput>()
         const interactionEnd = new Subject<undefined>();
@@ -186,6 +192,7 @@ namespace InputObserver {
         const resize = new Subject<ResizeInput>()
         const leave = new Subject<undefined>()
         const enter = new Subject<undefined>()
+        const modifiersEvent = new Subject<ModifiersKeys>()
 
         attach()
 
@@ -204,6 +211,7 @@ namespace InputObserver {
             leave,
             enter,
             resize,
+            modifiers: modifiersEvent,
 
             dispose
         }
@@ -226,9 +234,8 @@ namespace InputObserver {
             element.addEventListener('touchend', onTouchEnd as any, false)
 
             element.addEventListener('blur', handleBlur)
-            element.addEventListener('keyup', handleMods as EventListener)
-            element.addEventListener('keydown', handleMods as EventListener)
-            element.addEventListener('keypress', handleMods as EventListener)
+            window.addEventListener('keyup', handleKeyUp as EventListener, false)
+            window.addEventListener('keydown', handleKeyDown as EventListener, false)
 
             window.addEventListener('resize', onResize, false)
         }
@@ -252,9 +259,8 @@ namespace InputObserver {
             element.removeEventListener('touchend', onTouchEnd as any, false)
 
             element.removeEventListener('blur', handleBlur)
-            element.removeEventListener('keyup', handleMods as EventListener)
-            element.removeEventListener('keydown', handleMods as EventListener)
-            element.removeEventListener('keypress', handleMods as EventListener)
+            window.removeEventListener('keyup', handleKeyUp as EventListener, false)
+            window.removeEventListener('keydown', handleKeyDown as EventListener, false)
 
             window.removeEventListener('resize', onResize, false)
         }
@@ -272,11 +278,25 @@ namespace InputObserver {
             }
         }
 
-        function handleMods (event: MouseEvent | KeyboardEvent) {
-            if ('altKey' in event) modifiers.alt = !!event.altKey
-            if ('shiftKey' in event) modifiers.shift = !!event.shiftKey
-            if ('ctrlKey' in event) modifiers.control = !!event.ctrlKey
-            if ('metaKey' in event) modifiers.meta = !!event.metaKey
+        function handleKeyDown (event: KeyboardEvent) {
+            let changed = false;
+            if (!modifiers.alt && event.altKey) { changed = true; modifiers.alt = true; }
+            if (!modifiers.shift && event.shiftKey) { changed = true; modifiers.shift = true; }
+            if (!modifiers.control && event.ctrlKey) { changed = true; modifiers.control = true; }
+            if (!modifiers.meta && event.metaKey) { changed = true; modifiers.meta = true; }
+
+            if (changed && isInside) modifiersEvent.next(getModifiers());
+        }
+
+        function handleKeyUp (event: KeyboardEvent) {
+            let changed = false;
+
+            if (modifiers.alt && !event.altKey) { changed = true; modifiers.alt = false; }
+            if (modifiers.shift && !event.shiftKey) { changed = true; modifiers.shift = false; }
+            if (modifiers.control && !event.ctrlKey) { changed = true; modifiers.control = false; }
+            if (modifiers.meta && !event.metaKey) { changed = true; modifiers.meta = false; }
+
+            if (changed && isInside) modifiersEvent.next(getModifiers());
         }
 
         function getCenterTouch (ev: TouchEvent): PointerEvent {
@@ -413,10 +433,12 @@ namespace InputObserver {
         }
 
         function onMouseEnter (ev: Event) {
+            isInside = true;
             enter.next();
         }
 
         function onMouseLeave (ev: Event) {
+            isInside = false;
             leave.next();
         }
 
