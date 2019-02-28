@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Taken/adapted from DensityServer (https://github.com/dsehnal/DensityServer)
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as express from 'express'
@@ -12,12 +13,14 @@ import * as Api from './api'
 
 import * as Data from './query/data-model'
 import * as Coords from './algebra/coordinate'
-import Docs from './documentation'
-import ServerConfig from '../server-config'
+import { getDocumentation } from './documentation'
 import { ConsoleLogger } from 'mol-util/console-logger'
 import { State } from './state'
+import { LimitsConfig, ServerConfig } from '../config';
+import { interpolate } from 'mol-util/string';
 
 export default function init(app: express.Express) {
+    app.locals.mapFile = getMapFileFn()
     function makePath(p: string) {
         return ServerConfig.apiPrefix + '/' + p;
     }
@@ -31,16 +34,26 @@ export default function init(app: express.Express) {
 
     app.get('*', (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(Docs);
+        res.end(getDocumentation());
     });
 }
 
-function mapFile(type: string, id: string) {
-    return ServerConfig.mapFile(type || '', id || '');
+function getMapFileFn() {
+    const map = new Function('type', 'id', 'interpolate', [
+        'id = id.toLowerCase()',
+        'switch (type.toLowerCase()) {',
+            ...ServerConfig.idMap.map(mapping => {
+                const [type, path] = mapping
+                return `    case '${type}': return interpolate('${path}', { id });`
+            }),
+        '    default: return void 0;',
+        '}'
+    ].join('\n'))
+    return (type: string, id: string) => map(type, id, interpolate)
 }
 
 function wrapResponse(fn: string, res: express.Response) {
-    const w = {
+    return {
         do404(this: any) {
             if (!this.headerWritten) {
                 res.writeHead(404);
@@ -74,13 +87,11 @@ function wrapResponse(fn: string, res: express.Response) {
         ended: false,
         headerWritten: false
     };
-
-    return w;
 }
 
 function getSourceInfo(req: express.Request) {
     return {
-        filename: mapFile(req.params.source, req.params.id),
+        filename: req.app.locals.mapFile(req.params.source, req.params.id),
         id: `${req.params.source}/${req.params.id}`
     };
 }
@@ -130,7 +141,7 @@ function getQueryParams(req: express.Request, isCell: boolean): Data.QueryParams
     const a = [+req.params.a1, +req.params.a2, +req.params.a3];
     const b = [+req.params.b1, +req.params.b2, +req.params.b3];
 
-    const detail = Math.min(Math.max(0, (+req.query.detail) | 0), ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1)
+    const detail = Math.min(Math.max(0, (+req.query.detail) | 0), LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1)
     const isCartesian = (req.query.space || '').toLowerCase() !== 'fractional';
 
     const box: Data.QueryParamsBox = isCell
@@ -140,7 +151,7 @@ function getQueryParams(req: express.Request, isCell: boolean): Data.QueryParams
             : { kind: 'Fractional', a: Coords.fractional(a[0], a[1], a[2]), b: Coords.fractional(b[0], b[1], b[2]) });
 
     const asBinary = (req.query.encoding || '').toLowerCase() !== 'cif';
-    const sourceFilename = mapFile(req.params.source, req.params.id)!;
+    const sourceFilename = req.app.locals.mapFile(req.params.source, req.params.id)!;
 
     return {
         sourceFilename,

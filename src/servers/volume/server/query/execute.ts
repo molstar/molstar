@@ -13,7 +13,6 @@ import * as Coords from '../algebra/coordinate'
 import * as Box from '../algebra/box'
 import { ConsoleLogger } from 'mol-util/console-logger'
 import { State } from '../state'
-import ServerConfig from '../../server-config'
 
 import identify from './identify'
 import compose from './compose'
@@ -23,13 +22,14 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { UUID } from 'mol-util';
 import { FileHandle } from 'mol-io/common/file-handle';
 import { createTypedArray, TypedArrayValueType } from 'mol-io/common/typed-array';
+import { LimitsConfig } from 'servers/volume/config';
 
 export default async function execute(params: Data.QueryParams, outputProvider: () => Data.QueryOutputStream) {
     const start = getTime();
     State.pendingQueries++;
 
     const guid = UUID.create22() as any as string;
-    params.detail = Math.min(Math.max(0, params.detail | 0), ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
+    params.detail = Math.min(Math.max(0, params.detail | 0), LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
     ConsoleLogger.logId(guid, 'Info', `id=${params.sourceId},encoding=${params.asBinary ? 'binary' : 'text'},detail=${params.detail},${queryBoxToString(params.box)}`);
 
     let sourceFile: FileHandle | undefined;
@@ -114,7 +114,7 @@ function pickSampling(data: Data.DataContext, queryBox: Box.Fractional, forcedLe
         return createQuerySampling(data, data.sampling[Math.min(data.sampling.length, forcedLevel) - 1], queryBox);
     }
 
-    const sizeLimit = ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel[precision] || (2 * 1024 * 1024);
+    const sizeLimit = LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel[precision] || (2 * 1024 * 1024);
 
     for (const s of data.sampling) {
         const gridBox = Box.fractionalToGrid(queryBox, s.dataDomain);
@@ -122,7 +122,7 @@ function pickSampling(data: Data.DataContext, queryBox: Box.Fractional, forcedLe
 
         if (approxSize <= sizeLimit) {
             const sampling = createQuerySampling(data, s, queryBox);
-            if (sampling.blocks.length <= ServerConfig.limits.maxRequestBlockCount) {
+            if (sampling.blocks.length <= LimitsConfig.maxRequestBlockCount) {
                 return sampling;
             }
         }
@@ -168,7 +168,7 @@ function createQueryContext(data: Data.DataContext, params: Data.QueryParams, gu
         throw `The query box is not defined.`;
     }
 
-    if (dimensions[0] * dimensions[1] * dimensions[2] > ServerConfig.limits.maxFractionalBoxVolume) {
+    if (dimensions[0] * dimensions[1] * dimensions[2] > LimitsConfig.maxFractionalBoxVolume) {
         throw `The query box volume is too big.`;
     }
 

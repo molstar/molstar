@@ -1,23 +1,26 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Taken/adapted from DensityServer (https://github.com/dsehnal/DensityServer)
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import VERSION from './version'
-import ServerConfig from '../server-config'
+import { LimitsConfig } from '../config';
 
-function detail(i: number) {
-     return `<span class='id'>${i}</span><small> (${Math.round(100 * ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel[i] / 1000 / 1000) / 100 }M voxels)</small>`;
-}
-const detailMax = ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1;
-const dataSource = `Specifies the data source (determined by the experiment method). Currently, <span class='id'>x-ray</span> and <span class='id'>em</span> sources are supported.`;
-const entryId = `Id of the entry. For <span class='id'>x-ray</span>, use PDB ID (i.e. <span class='id'>1cbs</span>) and for <span class='id'>em</span> use EMDB id (i.e. <span class='id'>emd-8116</span>).`;
+export function getDocumentation() {
+    function detail(i: number) {
+       return `<span class='id'>${i}</span><small> (${Math.round(100 *      LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel[i] / 1000 / 1000) / 100 }M voxels)</small>`;
+    }
+    const detailMax = LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1;
 
-export default `
-<!DOCTYPE html>
+    // TODO get from config
+    const dataSource = `Specifies the data source (determined by the experiment method). Currently, <span class='id'>x-ray</span> and <span class='id'>em</span> sources are supported.`;
+    const entryId = `Id of the entry. For <span class='id'>x-ray</span>, use PDB ID (i.e. <span class='id'>1cbs</span>) and for <span class='id'>em</span> use EMDB id (i.e. <span class='id'>emd-8116</span>).`;
+
+    return `<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta charset="utf-8" />
@@ -170,5 +173,5 @@ span.id  { color: #DE4D4E; font-family: Menlo,Monaco,Consolas,"Courier New",mono
 <div style="color: #999;font-size:smaller;margin: 20px 0; text-align: right">&copy; 2016 &ndash; now, David Sehnal | Node ${process.version}</div>
 
 </body>
-</html>
-`;
+</html>`;
+}

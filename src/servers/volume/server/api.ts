@@ -11,15 +11,15 @@ import execute from './query/execute'
 import * as Data from './query/data-model'
 import { ConsoleLogger } from 'mol-util/console-logger'
 import * as DataFormat from '../common/data-format'
-import ServerConfig from '../server-config'
 import { FileHandle } from 'mol-io/common/file-handle';
+import { LimitsConfig } from '../config';
 
 export function getOutputFilename(source: string, id: string, { asBinary, box, detail, forcedSamplingLevel }: Data.QueryParams) {
     function n(s: string) { return (s || '').replace(/[ \n\t]/g, '').toLowerCase() }
     function r(v: number) { return Math.round(10 * v) / 10; }
     const det = forcedSamplingLevel !== void 0
         ? `l${forcedSamplingLevel}`
-        : `d${Math.min(Math.max(0, detail | 0), ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1)}`;
+        : `d${Math.min(Math.max(0, detail | 0), LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1)}`;
     const boxInfo = box.kind === 'Cell'
         ? 'cell'
         : `${box.kind === 'Cartesian' ? 'cartn' : 'frac'}_${r(box.a[0])}_${r(box.a[1])}_${r(box.a[2])}_${r(box.b[0])}_${r(box.b[1])}_${r(box.b[2])}`;
@@ -37,7 +37,7 @@ export async function getHeaderJson(filename: string | undefined, sourceId: stri
         const header = { ...await readHeader(filename, sourceId) } as DataFormat.Header;
         const { sampleCount } = header!.sampling[0];
         const maxVoxelCount = sampleCount[0] * sampleCount[1] * sampleCount[2];
-        const precisions = ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel
+        const precisions = LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel
             .map((maxVoxels, precision) => ({ precision, maxVoxels }));
         const availablePrecisions = [];
         for (const p of precisions) {
