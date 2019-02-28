@@ -1,154 +1,82 @@
-// TODO: make this work when the time comes.
-// /**
-//  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
-//  *
-//  * @author Alexander Rose <alexander.rose@weirdbyte.de>
-//  */
+/**
+ * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
 
-// import { Column, Table } from 'mol-data/db';
-// import { Interval, Segmentation } from 'mol-data/int';
-// import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif';
-// import { Atoms } from 'mol-io/reader/gro/schema';
-// import UUID from 'mol-util/uuid';
-// import Format from '../format';
-// import Model from '../model';
-// import { AtomicConformation, AtomicData, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../properties/atomic';
-// import { CoarseHierarchy } from '../properties/coarse';
-// import { Entities } from '../properties/common';
-// import Sequence from '../properties/sequence';
-// import { ModelSymmetry } from '../properties/symmetry';
-// import { guessElement } from '../properties/utils/guess-element';
-// import { getAtomicKeys } from '../properties/utils/keys';
-// import { ElementSymbol } from '../types';
+import { Model } from 'mol-model/structure/model';
+import { Task } from 'mol-task';
+import { ModelFormat } from './format';
+import { _parse_mmCif } from './mmcif/parser';
+import { GroFile, GroAtoms } from 'mol-io/reader/gro/schema';
+import { CifCategory, CifField } from 'mol-io/reader/cif';
+import { Column } from 'mol-data/db';
+import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 
-// import gro_Format = Format.gro
+// TODO multi model files
+// TODO seperate chains
+// TODO better entity handling
+// TODO improve performance
 
-// type HierarchyOffsets = { residues: ArrayLike<number>, chains: ArrayLike<number> }
+function _entity(): { [K in keyof mmCIF_Schema['entity']]?: CifField } {
+    return {
+        id: CifField.ofStrings(['1', '2', '3']),
+        type: CifField.ofStrings(['polymer', 'non-polymer', 'water'])
+    }
+}
 
-// function findHierarchyOffsets(atomsData: Atoms, bounds: Interval) {
-//     const start = Interval.start(bounds), end = Interval.end(bounds);
-//     const residues = [start], chains = [start];
+function _atom_site(atoms: GroAtoms): { [K in keyof mmCIF_Schema['atom_site']]?: CifField } {
+    const auth_asym_id = CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str))
+    const auth_atom_id = CifField.ofColumn(atoms.atomName)
+    const auth_comp_id = CifField.ofColumn(atoms.residueName)
+    const auth_seq_id = CifField.ofColumn(atoms.residueNumber)
 
-//     const { residueName, residueNumber } = atomsData;
+    return {
+        auth_asym_id,
+        auth_atom_id,
+        auth_comp_id,
+        auth_seq_id,
+        B_iso_or_equiv: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.float)),
+        Cartn_x: CifField.ofNumbers(Column.mapToArray(atoms.x, x => x * 10, Float32Array)), 
+        Cartn_y: CifField.ofNumbers(Column.mapToArray(atoms.y, y => y * 10, Float32Array)),
+        Cartn_z: CifField.ofNumbers(Column.mapToArray(atoms.z, z => z * 10, Float32Array)),
+        group_PDB: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
+        id: CifField.ofColumn(atoms.atomNumber),
 
-//     for (let i = start + 1; i < end; i++) {
-//         const newResidue = !residueNumber.areValuesEqual(i - 1, i)
-//             || !residueName.areValuesEqual(i - 1, i);
-//         console.log(residueName.value(i - 1), residueName.value(i), residueNumber.value(i - 1), residueNumber.value(i), newResidue)
-//         if (newResidue) residues[residues.length] = i;
-//     }
-//     console.log(residues, residues.length)
-//     return { residues, chains };
-// }
+        label_alt_id: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
 
-// function guessElementSymbol (value: string) {
-//     return ElementSymbol(guessElement(value));
-// }
+        label_asym_id: auth_asym_id,
+        label_atom_id: auth_atom_id,
+        label_comp_id: auth_comp_id,
+        label_seq_id: auth_seq_id,
+        label_entity_id: CifField.ofColumn(Column.ofConst('1', atoms.count, Column.Schema.str)),
 
-// function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): AtomicData {
-//     console.log(atomsData.atomName)
-//     const atoms = Table.ofColumns(AtomsSchema, {
-//         type_symbol: Column.ofArray({ array: Column.mapToArray(atomsData.atomName, guessElementSymbol), schema: Column.Schema.Aliased<ElementSymbol>(Column.Schema.str) }),
-//         label_atom_id: atomsData.atomName,
-//         auth_atom_id: atomsData.atomName,
-//         label_alt_id: Column.Undefined(atomsData.count, Column.Schema.str),
-//         pdbx_formal_charge: Column.Undefined(atomsData.count, Column.Schema.int)
-//     });
+        occupancy: CifField.ofColumn(Column.ofConst(1, atoms.count, Column.Schema.float)),
+        type_symbol: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
 
-//     const residues = Table.view(Table.ofColumns(ResiduesSchema, {
-//         group_PDB: Column.Undefined(atomsData.count, Column.Schema.Aliased<'ATOM' | 'HETATM'>(Column.Schema.str)),
-//         label_comp_id: atomsData.residueName,
-//         auth_comp_id: atomsData.residueName,
-//         label_seq_id: atomsData.residueNumber,
-//         auth_seq_id: atomsData.residueNumber,
-//         pdbx_PDB_ins_code: Column.Undefined(atomsData.count, Column.Schema.str),
-//     }), ResiduesSchema, offsets.residues);
-//     // Optimize the numeric columns
-//     Table.columnToArray(residues, 'label_seq_id', Int32Array);
-//     Table.columnToArray(residues, 'auth_seq_id', Int32Array);
+        pdbx_PDB_ins_code: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
+        pdbx_PDB_model_num: CifField.ofColumn(Column.ofConst('1', atoms.count, Column.Schema.str)),
+    }
+}
 
-//     // const chains = Table.ofColumns(Hierarchy.ChainsSchema, {
-//     //     label_asym_id: Column.ofConst('A', atomsData.count, Column.Schema.str),
-//     //     auth_asym_id: Column.ofConst('A', atomsData.count, Column.Schema.str),
-//     //     label_entity_id: Column.Undefined(atomsData.count, Column.Schema.str)
-//     // });
+async function groToMmCif(gro: GroFile) {
+    const categories = {
+        entity: CifCategory.ofFields('entity', _entity()),
+        atom_site: CifCategory.ofFields('atom_site', _atom_site(gro.structures[0].atoms))
+    } as any;
 
-//     const chains = Table.ofUndefinedColumns(ChainsSchema, 0);
+    return {
+        header: 'GRO',
+        categoryNames: Object.keys(categories),
+        categories
+    };
+}
 
-//     return { atoms, residues, chains };
-// }
-
-// function getConformation(atoms: Atoms): AtomicConformation {
-//     return {
-//         id: UUID.create(),
-//         atomId: atoms.atomNumber,
-//         occupancy: Column.Undefined(atoms.count, Column.Schema.int),
-//         B_iso_or_equiv: Column.Undefined(atoms.count, Column.Schema.float),
-//         x: Column.mapToArray(atoms.x, x => x * 10, Float32Array),
-//         y: Column.mapToArray(atoms.y, y => y * 10, Float32Array),
-//         z: Column.mapToArray(atoms.z, z => z * 10, Float32Array)
-//     }
-// }
-
-// function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
-//     // need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
-//     return Table.areEqual(a.residues as Table<ResiduesSchema>, b.residues as Table<ResiduesSchema>)
-//         && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
-// }
-
-// function createModel(format: gro_Format, modelNum: number, previous?: Model): Model {
-//     const structure = format.data.structures[modelNum];
-//     const bounds = Interval.ofBounds(0, structure.atoms.count);
-
-//     const hierarchyOffsets = findHierarchyOffsets(structure.atoms, bounds);
-//     const hierarchyData = createHierarchyData(structure.atoms, hierarchyOffsets);
-
-//     if (previous && isHierarchyDataEqual(previous.atomicHierarchy, hierarchyData)) {
-//         return {
-//             ...previous,
-//             atomicConformation: getConformation(structure.atoms)
-//         };
-//     }
-
-//     const hierarchySegments: AtomicSegments = {
-//         residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
-//         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
-//     }
-
-//     // TODO: create a better mock entity
-//     const entityTable = Table.ofRows<mmCIF['entity']>(mmCIF.entity, [{
-//         id: '0',
-//         src_method: 'syn',
-//         type: 'polymer',
-//         pdbx_number_of_molecules: 1
-//     }]);
-
-//     const entities: Entities = { data: entityTable, getEntityIndex: Column.createIndexer(entityTable.id) };
-
-//     const hierarchyKeys = getAtomicKeys(hierarchyData, entities, hierarchySegments);
-//     const atomicHierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
-//     return {
-//         id: UUID.create(),
-//         sourceData: format,
-//         modelNum,
-//         atomicHierarchy,
-//         entities,
-//         sequence: Sequence.fromAtomicHierarchy(atomicHierarchy),
-//         atomicConformation: getConformation(structure.atoms),
-//         coarseHierarchy: CoarseHierarchy.Empty,
-//         coarseConformation: void 0 as any,
-//         symmetry: ModelSymmetry.Default
-//     };
-// }
-
-// function buildModels(format: gro_Format): ReadonlyArray<Model> {
-//     const models: Model[] = [];
-
-//     format.data.structures.forEach((_, i) => {
-//         const model = createModel(format, i, models.length > 0 ? models[models.length - 1] : void 0);
-//         models.push(model);
-//     });
-//     return models;
-// }
-
-// export default buildModels;
+export function trajectoryFromGRO(gro: GroFile): Task<Model.Trajectory> {
+    return Task.create('Parse GRO', async ctx => {
+        await ctx.update('Converting to mmCIF');
+        const cif = await groToMmCif(gro);
+        const format = ModelFormat.mmCIF(cif);
+        return _parse_mmCif(format, ctx);
+    })
+}

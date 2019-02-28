@@ -12,7 +12,7 @@ import { PluginStateObject } from '../objects';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Ccp4Provider, Dsn6Provider, DscifProvider } from './volume';
 import { StateTransforms } from '../transforms';
-import { MmcifProvider, PdbProvider } from './structure';
+import { MmcifProvider, PdbProvider, GroProvider } from './structure';
 
 export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String> {
     private _list: { name: string, provider: DataFormatProvider<D> }[] = []
@@ -56,6 +56,7 @@ export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | Plugin
         this.add('ccp4', Ccp4Provider)
         this.add('dscif', DscifProvider)
         this.add('dsn6', Dsn6Provider)
+        this.add('gro', GroProvider)
         this.add('mmcif', MmcifProvider)
         this.add('pdb', PdbProvider)
     };

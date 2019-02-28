@@ -132,7 +132,7 @@ export namespace CifField {
         }
     }
 
-    export function ofNumbers(values: number[]): CifField {
+    export function ofNumbers(values: ArrayLike<number>): CifField {
         const rowCount = values.length;
         const str: CifField['str'] = row => { return '' + values[row]; };
         const float: CifField['float'] = row => values[row];
@@ -191,6 +191,46 @@ export namespace CifField {
             float,
             valueKind,
             areValuesEqual: areValuesEqualProvider(tokens),
+            toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
+            toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, int, params),
+            toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
+        }
+    }
+
+    export function ofColumn(column: Column<any>): CifField {
+        const { rowCount, valueKind, areValuesEqual } = column;
+        
+        let str: CifField['str']
+        let int: CifField['int']
+        let float: CifField['float']
+
+        switch (column.schema.valueType) {
+            case 'float':
+            case 'int':
+                str = row => { return '' + column.value(row); };
+                int = row => column.value(row);
+                float = row => column.value(row);
+                break
+            case 'str':
+                str = row => column.value(row);
+                int = row => { const v = column.value(row); return fastParseInt(v, 0, v.length) || 0; };
+                float = row => { const v = column.value(row); return fastParseFloat(v, 0, v.length) || 0; };
+                break
+            default:
+                throw new Error('unsupported')
+        }
+                
+
+        return {
+            __array: void 0,
+            binaryEncoding: void 0,
+            isDefined: true,
+            rowCount,
+            str,
+            int,
+            float,
+            valueKind,
+            areValuesEqual,
             toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
             toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, int, params),
             toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
