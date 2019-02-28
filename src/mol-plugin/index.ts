@@ -52,7 +52,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
         PluginSpec.Behavior(PluginBehaviors.Camera.FocusLociOnSelect, { minRadius: 20, extraRadius: 4 }),
         PluginSpec.Behavior(PluginBehaviors.Animation.StructureAnimation, { rotate: false, rotateValue: 0, explode: false, explodeValue: 0 }),
-        PluginSpec.Behavior(PluginBehaviors.Labels.SceneLabels),
+        // PluginSpec.Behavior(PluginBehaviors.Labels.SceneLabels),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry, { autoAttach: true }),
     ],

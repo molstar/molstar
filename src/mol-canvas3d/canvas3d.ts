@@ -162,7 +162,7 @@ namespace Canvas3D {
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci.loci, action) || changed })
             }
             if (changed) {
-                scene.update(true)
+                scene.update(void 0, true)
                 const prevPickDirty = pickDirty
                 draw(true)
                 pickDirty = prevPickDirty // marking does not change picking buffers
@@ -317,16 +317,17 @@ namespace Canvas3D {
             const oldRO = reprRenderObjects.get(repr)
             const newRO = new Set<GraphicsRenderObject>()
             repr.renderObjects.forEach(o => newRO.add(o))
+
             if (oldRO) {
                 if (!SetUtils.areEqual(newRO, oldRO)) {
-                    for (const o of Array.from(newRO)) { if (!oldRO.has(o)) scene.add(o) }
+                    for (const o of Array.from(newRO)) { if (!oldRO.has(o)) scene.add(o); }
                     for (const o of Array.from(oldRO)) { if (!newRO.has(o)) scene.remove(o) }
                 }
             } else {
                 repr.renderObjects.forEach(o => scene.add(o))
             }
             reprRenderObjects.set(repr, newRO)
-            scene.update()
+            scene.update(repr.renderObjects, false)
             if (debugHelper.isEnabled) debugHelper.update()
             isUpdating = false
             requestDraw(true)
@@ -354,14 +355,14 @@ namespace Canvas3D {
                     isUpdating = true
                     renderObjects.forEach(o => scene.remove(o))
                     reprRenderObjects.delete(repr)
-                    scene.update()
+                    scene.update(void 0, false)
                     if (debugHelper.isEnabled) debugHelper.update()
                     isUpdating = false
                     requestDraw(true)
                     reprCount.next(reprRenderObjects.size)
                 }
             },
-            update: () => scene.update(),
+            update: () => scene.update(void 0, false),
             clear: () => {
                 reprRenderObjects.clear()
                 scene.clear()
