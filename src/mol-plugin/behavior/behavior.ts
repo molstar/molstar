@@ -136,4 +136,24 @@ namespace PluginBehavior {
         constructor(protected ctx: PluginContext, protected params: P) {
         }
     }
+
+    export abstract class WithSubscribers<P = { }> implements PluginBehavior<P> {
+        abstract register(ref: string): void;
+
+        private subs: PluginCommand.Subscription[] = [];
+        protected subscribeCommand<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>) {
+            this.subs.push(cmd.subscribe(this.plugin, action));
+        }
+        protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void) {
+            this.subs.push(o.subscribe(action));
+        }
+
+        unregister() {
+            for (const s of this.subs) s.unsubscribe();
+            this.subs = [];
+        }
+
+        constructor(protected plugin: PluginContext) {
+        }
+    }
 }

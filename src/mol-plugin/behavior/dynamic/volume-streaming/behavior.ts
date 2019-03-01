@@ -18,6 +18,9 @@ import CIF from 'mol-io/reader/cif';
 import { Box3D } from 'mol-math/geometry';
 import { urlCombine } from 'mol-util/url';
 import { volumeFromDensityServerData } from 'mol-model-formats/volume/density-server';
+import { StructureElement } from 'mol-model/structure';
+import { Loci } from 'mol-model/loci';
+import { CreateVolumeStreamingBehavior } from './transformers';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -42,15 +45,19 @@ export namespace VolumeStreaming {
         const info = data || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: VolumeIsoValue.relative(0) };
 
         return {
-            view: PD.MappedStatic('box', {
+            view: PD.MappedStatic('selection-box', {
                 'box': PD.Group({
                     bottomLeft: PD.Vec3(Vec3.create(-22.4, -33.4, -21.6)),
                     topRight: PD.Vec3(Vec3.create(-7.1, -10, -0.9)),
-                    autoUpdate: PD.Boolean(true, { description: 'Update the box when user clicks an element.' })
                 }, { description: 'Static box defined by cartesian coords.', isFlat: true }),
+                'selection-box': PD.Group({
+                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }),
+                    bottomLeft: PD.Vec3(Vec3.create(0, 0, 0), { isHidden: true }),
+                    topRight: PD.Vec3(Vec3.create(0, 0, 0), { isHidden: true }),
+                }, { description: 'Box around last-interacted element.', isFlat: true }),
                 'cell': PD.Group({}),
                 // 'auto': PD.Group({  }), // based on camera distance/active selection/whatever, show whole structure or slice.
-            }, { options: [['box', 'Bounded Box'], ['cell', 'Whole Structure']] }),
+            }, { options: [['box', 'Bounded Box'], ['selection-box', 'Selection'], ['cell', 'Whole Structure']] }),
             detailLevel: PD.Select<number>(Math.min(1, info.header.availablePrecisions.length - 1),
                 info.header.availablePrecisions.map((p, i) => [i, `${i + 1} (${Math.pow(p.maxVoxels, 1 / 3) | 0}^3)`] as [number, string])),
             channels: info.kind === 'em'
@@ -81,10 +88,10 @@ export namespace VolumeStreaming {
     }
     export type Channels = { [name in ChannelType]?: ChannelInfo }
 
-    export class Behavior implements PluginBehavior<{}> {
+    export class Behavior extends PluginBehavior.WithSubscribers<Params> {
         private cache = LRUCache.create<ChannelsData>(25);
         private params: Params = {} as any;
-        private ref: string = '';
+        // private ref: string = '';
 
         channels: Channels = {}
 
@@ -139,17 +146,49 @@ export namespace VolumeStreaming {
         }
 
         register(ref: string): void {
-            this.ref = ref;
+            // this.ref = ref;
+
+            this.subscribeObservable(this.plugin.events.canvas3d.click, ({ current }) => {
+                if (this.params.view.name !== 'selection-box') return;
+                if (!StructureElement.isLoci(current.loci)) return;
+
+                // TODO: check if it's the related structure
+
+                const eR = this.params.view.params.radius;
+
+                const sphere = Loci.getBoundingSphere(current.loci)!;
+                const r = Vec3.create(sphere.radius + eR, sphere.radius + eR, sphere.radius + eR);
+                const box = Box3D.create(Vec3.sub(Vec3.zero(), sphere.center, r), Vec3.add(Vec3.zero(), sphere.center, r));
+
+                const update = this.plugin.state.dataState.build().to(ref)
+                    .update(CreateVolumeStreamingBehavior, old => ({
+                        ...old,
+                        view: {
+                            name: 'selection-box' as 'selection-box',
+                            params: {
+                                radius: eR,
+                                bottomLeft: box.min,
+                                topRight: box.max
+                            }
+                        }
+                    }));
+
+                this.plugin.runTask(this.plugin.state.dataState.updateTree(update));
+            });
         }
 
         async update(params: Params) {
             this.params = params;
 
-            let box: Box3D | undefined = void 0;
+            let box: Box3D | undefined = void 0, emptyData = false;
 
             switch (params.view.name) {
                 case 'box':
                     box = Box3D.create(params.view.params.bottomLeft, params.view.params.topRight);
+                    break;
+                case 'selection-box':
+                    box = Box3D.create(params.view.params.bottomLeft, params.view.params.topRight);
+                    emptyData = Box3D.volume(box) < 0.0001;
                     break;
                 case 'cell':
                     box = this.info.kind === 'x-ray'
@@ -158,18 +197,18 @@ export namespace VolumeStreaming {
                     break;
             }
 
-            const data = await this.queryData(box);
+            const data = emptyData ? { } : await this.queryData(box);
 
             if (!data) return false;
 
             const info = params.channels as ChannelsInfo;
 
             if (this.info.kind === 'x-ray') {
-                this.channels['2fo-fc'] = this.createChannel(data['2FO-FC']!, info['2fo-fc'], this.info.header.sampling[0].valuesInfo[0]);
-                this.channels['fo-fc(+ve)'] = this.createChannel(data['FO-FC']!, info['fo-fc(+ve)'], this.info.header.sampling[0].valuesInfo[1]);
-                this.channels['fo-fc(-ve)'] = this.createChannel(data['FO-FC']!, info['fo-fc(-ve)'], this.info.header.sampling[0].valuesInfo[1]);
+                this.channels['2fo-fc'] = this.createChannel(data['2FO-FC'] || VolumeData.One, info['2fo-fc'], this.info.header.sampling[0].valuesInfo[0]);
+                this.channels['fo-fc(+ve)'] = this.createChannel(data['FO-FC'] || VolumeData.One, info['fo-fc(+ve)'], this.info.header.sampling[0].valuesInfo[1]);
+                this.channels['fo-fc(-ve)'] = this.createChannel(data['FO-FC'] || VolumeData.One, info['fo-fc(-ve)'], this.info.header.sampling[0].valuesInfo[1]);
             } else {
-                this.channels['em'] = this.createChannel(data['EM']!, info['em'], this.info.header.sampling[0].valuesInfo[0]);
+                this.channels['em'] = this.createChannel(data['EM'] || VolumeData.One, info['em'], this.info.header.sampling[0].valuesInfo[0]);
             }
 
             return true;
@@ -185,12 +224,8 @@ export namespace VolumeStreaming {
             };
         }
 
-        unregister(): void {
-            // throw new Error('Method not implemented.');
-        }
-
         constructor(public plugin: PluginContext, public info: VolumeServerInfo.Data) {
-
+            super(plugin);
         }
     }
 }

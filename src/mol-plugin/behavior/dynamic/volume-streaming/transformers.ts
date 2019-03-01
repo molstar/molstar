@@ -33,10 +33,10 @@ export const InitVolumeStreaming = StateAction.build({
 })(({ ref, state, params }, plugin: PluginContext) => Task.create('Volume Streaming', async taskCtx => {
     // TODO: custom react view for this and the VolumeStreamingBehavior transformer
 
-    let dataId = params.id, emDefaultContourLevel: number | undefined;
+    let dataId = params.id.toLowerCase(), emDefaultContourLevel: number | undefined;
     if (params.method === 'em') {
         await taskCtx.update('Getting EMDB info...');
-        const emInfo = await getEmdbIdAndContourLevel(plugin, taskCtx, params.id);
+        const emInfo = await getEmdbIdAndContourLevel(plugin, taskCtx, dataId);
         dataId = emInfo.emdbId;
         emDefaultContourLevel = emInfo.contour;
     }
@@ -54,11 +54,11 @@ export const InitVolumeStreaming = StateAction.build({
 
     const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior, PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data)))
     if (params.method === 'em') {
-        behTree.apply(VolumeStreamingVisual, { channel: 'em' });
+        behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { props: { isGhost: true } });
     } else {
-        behTree.apply(VolumeStreamingVisual, { channel: '2fo-fc' });
-        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(+ve)' });
-        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(-ve)' });
+        behTree.apply(VolumeStreamingVisual, { channel: '2fo-fc' }, { props: { isGhost: true } });
+        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(+ve)' }, { props: { isGhost: true } });
+        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(-ve)' }, { props: { isGhost: true } });
     }
     await state.updateTree(behTree).runInContext(taskCtx);
 }));
@@ -112,7 +112,8 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     }
 })({
     canAutoUpdate: ({ oldParams, newParams }) => {
-        return oldParams.view === newParams.view;
+        return oldParams.view === newParams.view
+            || (oldParams.view.name === newParams.view.name && oldParams.view.name === 'selection-box');
     },
     apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume streaming', async _ => {
         const behavior = new VolumeStreaming.Behavior(plugin, a.data);
