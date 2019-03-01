@@ -16,7 +16,6 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { VolumeRepresentation3DHelpers } from '../transforms/representation';
-import { VolumeStreaming } from 'mol-plugin/behavior/dynamic/volume';
 import { DataFormatProvider } from './data-format';
 
 export const Ccp4Provider: DataFormatProvider<any> = {
@@ -202,23 +201,3 @@ const DownloadDensity = StateAction.build({
     const b = state.build().to(data.ref);
     await provider.getDefaultBuilder(ctx, b, state).runInContext(taskCtx)
 }));
-
-export const InitVolumeStreaming = StateAction.build({
-    display: { name: 'Volume Streaming' },
-    from: PluginStateObject.Molecule.Structure,
-    params: VolumeStreaming.Params
-})(({ ref, state, params }, ctx: PluginContext) => {
-    // TODO: specify simpler params
-    // TODO: try to determine if the input is x-ray or emd (in params provider)
-    // TODO: for EMD, use PDBe API to determine controur level https://github.com/dsehnal/LiteMol/blob/master/src/Viewer/Extensions/DensityStreaming/Entity.ts#L168
-    // TODO: custom react view for this and the VolumeStreamingBehavior transformer
-
-    const root = state.build().to(ref)
-        .apply(StateTransforms.Volume.VolumeStreamingBehavior, params);
-
-    root.apply(StateTransforms.Volume.VolumeStreamingVisual, { channel: '2FO-FC', level: '2fo-fc' }, { props: { isGhost: true } });
-    root.apply(StateTransforms.Volume.VolumeStreamingVisual, { channel: 'FO-FC', level: 'fo-fc(+ve)' }, { props: { isGhost: true } });
-    root.apply(StateTransforms.Volume.VolumeStreamingVisual, { channel: 'FO-FC', level: 'fo-fc(-ve)' }, { props: { isGhost: true } });
-
-    return state.updateTree(root);
-});
