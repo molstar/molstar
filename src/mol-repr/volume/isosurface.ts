@@ -19,24 +19,41 @@ import { VisualContext } from 'mol-repr/visual';
 import { NullLocation } from 'mol-model/location';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 
-export function createIsoValueParam(defaultValue: VolumeIsoValue) {
+const defaultStats: VolumeData['dataStats'] = { min: -1, max: 1, mean: 0, sigma: 0.1  };
+export function createIsoValueParam(defaultValue: VolumeIsoValue, stats?: VolumeData['dataStats']) {
+    const sts = stats || defaultStats;
+    const { min, max, mean, sigma } = sts;
+
+    // using ceil/floor could lead to "ouf of bounds" when converting
+    const relMin = (min - mean) / sigma;
+    const relMax = (max - mean) / sigma;
+
+    let def = defaultValue;
+    if (defaultValue.kind === 'absolute') {
+        if (defaultValue.absoluteValue < min) def = VolumeIsoValue.absolute(min);
+        else if (defaultValue.absoluteValue > max) def = VolumeIsoValue.absolute(max);
+    } else {
+        if (defaultValue.relativeValue < relMin) def = VolumeIsoValue.relative(relMin);
+        else if (defaultValue.relativeValue > relMax) def = VolumeIsoValue.relative(relMax);
+    }
+
     return PD.Conditioned(
-        defaultValue,
+        def,
         {
             'absolute': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v, VolumeData.One.dataStats).absoluteValue,
                 (v: number) => VolumeIsoValue.absolute(v),
-                PD.Numeric(0.5, { min: -1, max: 1, step: 0.01 })
+                PD.Numeric(mean, { min, max, step: sigma / 100 })
             ),
             'relative': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v, VolumeData.One.dataStats).relativeValue,
                 (v: number) => VolumeIsoValue.relative(v),
-                PD.Numeric(2, { min: -10, max: 10, step: 0.01 })
+                PD.Numeric(Math.min(1, relMax), { min: relMin, max: relMax, step: Math.round(((max - min) / sigma)) / 100 })
             )
         },
         (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
-        (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, VolumeData.One.dataStats) : VolumeIsoValue.toRelative(v, VolumeData.One.dataStats)
-    )
+        (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, sts) : VolumeIsoValue.toRelative(v, sts)
+    );
 }
 
 export const IsoValueParam = createIsoValueParam(VolumeIsoValue.relative(2));
@@ -138,27 +155,8 @@ export const IsosurfaceParams = {
 }
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
-    const p = PD.clone(IsosurfaceParams)
-    const stats = volume.dataStats
-    const { min, max, mean, sigma } = stats
-    p.isoValue = PD.Conditioned(
-        VolumeIsoValue.relative(2),
-        {
-            'absolute': PD.Converted(
-                (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v, stats).absoluteValue,
-                (v: number) => VolumeIsoValue.absolute(v),
-                PD.Numeric(mean, { min, max, step: sigma / 100 })
-            ),
-            'relative': PD.Converted(
-                (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v, stats).relativeValue,
-                (v: number) => VolumeIsoValue.relative(v),
-                PD.Numeric(2, { min: Math.floor((min - mean) / sigma), max: Math.ceil((max - mean) / sigma), step: Math.ceil((max - min) / sigma) / 100 })
-            )
-        },
-        (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
-        (v: VolumeIsoValue, c: 'absolute' | 'relative') => c === 'absolute' ? VolumeIsoValue.toAbsolute(v, stats) : VolumeIsoValue.toRelative(v, stats)
-    )
-
+    const p = PD.clone(IsosurfaceParams);
+    p.isoValue = createIsoValueParam(VolumeIsoValue.relative(2), volume.dataStats);
     return p
 }
 

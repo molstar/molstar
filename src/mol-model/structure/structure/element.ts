@@ -9,6 +9,9 @@ import Unit from './unit'
 import { ElementIndex } from '../model';
 import { ResidueIndex, ChainIndex } from '../model/indexing';
 import Structure from './structure';
+import { Boundary } from './util/boundary';
+import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 interface StructureElement<U = Unit> {
     readonly kind: 'element-location',
@@ -175,6 +178,67 @@ namespace StructureElement {
             }
 
             return false;
+        }
+
+        export function extendToWholeResidues(loci: Loci): Loci {
+            const elements: Loci['elements'][0][] = [];
+
+            for (const lociElement of loci.elements) {
+                if (lociElement.unit.kind !== Unit.Kind.Atomic) elements[elements.length] = lociElement;
+
+                const unitElements = lociElement.unit.elements;
+                const h = lociElement.unit.model.atomicHierarchy;
+
+                const { index: residueIndex, offsets: residueOffsets } = h.residueAtomSegments;
+
+                const newIndices: UnitIndex[] = [];
+                const indices = lociElement.indices, len = OrderedSet.size(indices);
+                let i = 0;
+                while (i < len) {
+                    const rI = residueIndex[unitElements[OrderedSet.getAt(indices, i)]];
+                    while (i < len && residueIndex[unitElements[OrderedSet.getAt(indices, i)]] === rI) {
+                        i++;
+                    }
+
+                    for (let j = residueOffsets[rI], _j = residueOffsets[rI + 1]; j < _j; j++) {
+                        const idx = OrderedSet.indexOf(unitElements, j);
+                        if (idx >= 0) newIndices[newIndices.length] = idx as UnitIndex;
+                    }
+                }
+
+                elements[elements.length] = { unit: lociElement.unit, indices: SortedArray.ofSortedArray(newIndices) };
+            }
+
+            return Loci(loci.structure, elements);
+        }
+
+        const boundaryHelper = new BoundaryHelper(), tempPos = Vec3.zero();
+        export function getBoundary(loci: Loci): Boundary {
+            boundaryHelper.reset(0);
+
+            for (const e of loci.elements) {
+                const { indices } = e;
+                const pos = e.unit.conformation.position, r = e.unit.conformation.r;
+                const { elements } = e.unit;
+                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                    const eI = elements[OrderedSet.getAt(indices, i)];
+                    pos(eI, tempPos);
+                    boundaryHelper.boundaryStep(tempPos, r(eI));
+                }
+            }
+            boundaryHelper.finishBoundaryStep();
+            for (const e of loci.elements) {
+                const { indices } = e;
+                const pos = e.unit.conformation.position, r = e.unit.conformation.r;
+                const { elements } = e.unit;
+                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                    const eI = elements[OrderedSet.getAt(indices, i)];
+                    pos(eI, tempPos);
+                    boundaryHelper.extendStep(tempPos, r(eI));
+                }
+            }
+
+            return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };
         }
     }
 }

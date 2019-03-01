@@ -15,6 +15,7 @@ import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
 import { AnimateModelIndex } from './state/animation/built-in';
 import { StateActions } from './state/actions';
+import { InitVolumeStreaming } from './behavior/dynamic/volume-streaming/transformers';
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -29,7 +30,8 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateActions.Structure.CreateComplexRepresentation),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
 
-        PluginSpec.Action(StateActions.Volume.InitVolumeStreaming),
+        // PluginSpec.Action(StateActions.Volume.InitVolumeStreaming),
+        PluginSpec.Action(InitVolumeStreaming),
 
         PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),
