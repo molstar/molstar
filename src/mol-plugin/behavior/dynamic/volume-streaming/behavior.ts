@@ -19,7 +19,6 @@ import { Box3D } from 'mol-math/geometry';
 import { urlCombine } from 'mol-util/url';
 import { volumeFromDensityServerData } from 'mol-model-formats/volume/density-server';
 import { StructureElement } from 'mol-model/structure';
-import { Loci } from 'mol-model/loci';
 import { CreateVolumeStreamingBehavior } from './transformers';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
@@ -150,18 +149,15 @@ export namespace VolumeStreaming {
 
             this.subscribeObservable(this.plugin.events.canvas3d.click, ({ current }) => {
                 if (this.params.view.name !== 'selection-box') return;
+                // TODO: support link loci as well?
+                // Perhaps structure loci too?
                 if (!StructureElement.isLoci(current.loci)) return;
 
                 // TODO: check if it's the related structure
-
                 const loci = StructureElement.Loci.extendToWholeResidues(current.loci);
 
                 const eR = this.params.view.params.radius;
-
-                const sphere = Loci.getBoundingSphere(loci)!;
-                const r = Vec3.create(sphere.radius + eR, sphere.radius + eR, sphere.radius + eR);
-                const box = Box3D.create(Vec3.sub(Vec3.zero(), sphere.center, r), Vec3.add(Vec3.zero(), sphere.center, r));
-
+                const box = StructureElement.Loci.getBoundary(loci).box;
                 const update = this.plugin.state.dataState.build().to(ref)
                     .update(CreateVolumeStreamingBehavior, old => ({
                         ...old,
@@ -188,10 +184,13 @@ export namespace VolumeStreaming {
                 case 'box':
                     box = Box3D.create(params.view.params.bottomLeft, params.view.params.topRight);
                     break;
-                case 'selection-box':
-                    box = Box3D.create(params.view.params.bottomLeft, params.view.params.topRight);
+                case 'selection-box': {
+                    box = Box3D.create(Vec3.clone(params.view.params.bottomLeft), Vec3.clone(params.view.params.topRight));
+                    const r = params.view.params.radius;
                     emptyData = Box3D.volume(box) < 0.0001;
+                    Box3D.expand(box, box, Vec3.create(r, r, r));
                     break;
+                }
                 case 'cell':
                     box = this.info.kind === 'x-ray'
                         ? this.info.structure.boundary.box

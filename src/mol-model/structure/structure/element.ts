@@ -9,6 +9,9 @@ import Unit from './unit'
 import { ElementIndex } from '../model';
 import { ResidueIndex, ChainIndex } from '../model/indexing';
 import Structure from './structure';
+import { Boundary } from './util/boundary';
+import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 interface StructureElement<U = Unit> {
     readonly kind: 'element-location',
@@ -207,6 +210,35 @@ namespace StructureElement {
             }
 
             return Loci(loci.structure, elements);
+        }
+
+        const boundaryHelper = new BoundaryHelper(), tempPos = Vec3.zero();
+        export function getBoundary(loci: Loci): Boundary {
+            boundaryHelper.reset(0);
+
+            for (const e of loci.elements) {
+                const { indices } = e;
+                const pos = e.unit.conformation.position, r = e.unit.conformation.r;
+                const { elements } = e.unit;
+                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                    const eI = elements[OrderedSet.getAt(indices, i)];
+                    pos(eI, tempPos);
+                    boundaryHelper.boundaryStep(tempPos, r(eI));
+                }
+            }
+            boundaryHelper.finishBoundaryStep();
+            for (const e of loci.elements) {
+                const { indices } = e;
+                const pos = e.unit.conformation.position, r = e.unit.conformation.r;
+                const { elements } = e.unit;
+                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                    const eI = elements[OrderedSet.getAt(indices, i)];
+                    pos(eI, tempPos);
+                    boundaryHelper.extendStep(tempPos, r(eI));
+                }
+            }
+
+            return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };
         }
     }
 }
