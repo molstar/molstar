@@ -10,19 +10,19 @@
 import * as express from 'express'
 
 import * as Api from './api'
-
 import * as Data from './query/data-model'
 import * as Coords from './algebra/coordinate'
-import { getDocumentation } from './documentation'
 import { ConsoleLogger } from 'mol-util/console-logger'
 import { State } from './state'
 import { LimitsConfig, ServerConfig } from '../config';
 import { interpolate } from 'mol-util/string';
+import { getSchema } from './web-schema';
+import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from 'servers/common/swagger-ui';
 
 export default function init(app: express.Express) {
     app.locals.mapFile = getMapFileFn()
     function makePath(p: string) {
-        return ServerConfig.apiPrefix + '/' + p;
+        return `${ServerConfig.apiPrefix}/${p}`;
     }
 
     // Header
@@ -32,10 +32,17 @@ export default function init(app: express.Express) {
     // Cell /:src/:id/cell/?text=0|1&space=cartesian|fractional
     app.get(makePath(':source/:id/cell/?'), (req, res) => queryBox(req, res, getQueryParams(req, true)));
 
-    app.get('*', (req, res) => {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(getDocumentation());
+    app.get(makePath('openapi.json'), (req, res) => {
+        res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'X-Requested-With'
+        });
+        res.end(JSON.stringify(getSchema()));
     });
+
+    app.use(makePath(''), swaggerUiAssetsHandler());
+    app.get(makePath(''), swaggerUiIndexHandler(makePath('openapi.json'), ServerConfig.apiPrefix));
 }
 
 function getMapFileFn() {
@@ -115,7 +122,7 @@ async function getHeader(req: express.Request, res: express.Response) {
 
     try {
         const { filename, id } = getSourceInfo(req);
-        const header = await Api.getHeaderJson(filename, id);
+        const header = await Api.getExtendedHeaderJson(filename, id);
         if (!header) {
             res.writeHead(404);
             return;

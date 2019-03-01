@@ -85,6 +85,7 @@
     "@types/react": "^16.8.4",
     "@types/react-dom": "^16.8.2",
     "@types/webgl2": "0.0.4",
+    "@types/swagger-ui-dist": "3.0.0",
     "benchmark": "^2.1.4",
     "circular-dependency-plugin": "^5.0.2",
     "concurrently": "^4.1.0",
@@ -123,6 +124,7 @@
     "node-fetch": "^2.3.0",
     "react": "^16.8.2",
     "react-dom": "^16.8.2",
-    "rxjs": "^6.4.0"
+    "rxjs": "^6.4.0",
+    "swagger-ui-dist": "^3.20.9"
   }
 }

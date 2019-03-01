@@ -26,16 +26,21 @@ export function getOutputFilename(source: string, id: string, { asBinary, box, d
     return `${n(source)}_${n(id)}-${boxInfo}_${det}.${asBinary ? 'bcif' : 'cif'}`;
 }
 
+export interface ExtendedHeader extends DataFormat.Header {
+    availablePrecisions: { precision: number, maxVoxels: number }[]
+    isAvailable: boolean
+}
+
 /** Reads the header and includes information about available detail levels */
-export async function getHeaderJson(filename: string | undefined, sourceId: string) {
+export async function getExtendedHeaderJson(filename: string | undefined, sourceId: string) {
     ConsoleLogger.log('Header', sourceId);
     try {
         if (!filename || !File.exists(filename)) {
             ConsoleLogger.error(`Header ${sourceId}`, 'File not found.');
             return void 0;
         }
-        const header = { ...await readHeader(filename, sourceId) } as DataFormat.Header;
-        const { sampleCount } = header!.sampling[0];
+        const header: Partial<ExtendedHeader> = { ...await readHeader(filename, sourceId) };
+        const { sampleCount } = header.sampling![0];
         const maxVoxelCount = sampleCount[0] * sampleCount[1] * sampleCount[2];
         const precisions = LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel
             .map((maxVoxels, precision) => ({ precision, maxVoxels }));
@@ -44,8 +49,8 @@ export async function getHeaderJson(filename: string | undefined, sourceId: stri
             availablePrecisions.push(p);
             if (p.maxVoxels > maxVoxelCount) break;
         }
-        (header as any).availablePrecisions = availablePrecisions;
-        (header as any).isAvailable = true;
+        header.availablePrecisions = availablePrecisions;
+        header.isAvailable = true;
         return JSON.stringify(header, null, 2);
     } catch (e) {
         ConsoleLogger.error(`Header ${sourceId}`, e);
