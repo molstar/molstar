@@ -452,14 +452,13 @@ namespace Vec3 {
     }
 
     const rotTemp = zero();
-    const flipMatrix = Mat4.fromScaling(Mat4.zero(), create(-1, -1, -1))
+    const flipScaling = create(-1, -1, -1);
     export function makeRotation(mat: Mat4, a: Vec3, b: Vec3): Mat4 {
         const by = angle(a, b);
         if (Math.abs(by) < 0.0001) return Mat4.setIdentity(mat);
         if (Math.abs(by - Math.PI) < EPSILON.Value) {
             // here, axis can be [0,0,0] but the rotation is a simple flip
-            Mat4.copy(mat, flipMatrix);
-            return mat;
+            return Mat4.fromScaling(mat, flipScaling);
         }
         const axis = cross(rotTemp, a, b);
         return Mat4.fromRotation(mat, by, axis);

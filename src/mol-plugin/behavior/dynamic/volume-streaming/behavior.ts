@@ -154,9 +154,11 @@ export namespace VolumeStreaming {
 
                 // TODO: check if it's the related structure
 
+                const loci = StructureElement.Loci.extendToWholeResidues(current.loci);
+
                 const eR = this.params.view.params.radius;
 
-                const sphere = Loci.getBoundingSphere(current.loci)!;
+                const sphere = Loci.getBoundingSphere(loci)!;
                 const r = Vec3.create(sphere.radius + eR, sphere.radius + eR, sphere.radius + eR);
                 const box = Box3D.create(Vec3.sub(Vec3.zero(), sphere.center, r), Vec3.add(Vec3.zero(), sphere.center, r));
 
