@@ -5,16 +5,21 @@
  */
 
 import { PluginStateObject } from '../../../state/objects';
+import { VolumeIsoValue } from 'mol-model/volume';
+import { Structure } from 'mol-model/structure';
 
 export class VolumeServerInfo extends PluginStateObject.Create<VolumeServerInfo.Data>({ name: 'Volume Streaming', typeClass: 'Object' }) { }
 
 export namespace VolumeServerInfo {
+    export type Kind = 'x-ray' | 'em'
     export interface Data  {
         serverUrl: string,
-        kind: 'x-ray' | 'em',
+        kind: Kind,
         // for em, the EMDB access code, for x-ray, the PDB id
         dataId: string,
-        header: VolumeServerHeader
+        header: VolumeServerHeader,
+        emDefaultContourLevel?: VolumeIsoValue,
+        structure: Structure
     }
 }
 
