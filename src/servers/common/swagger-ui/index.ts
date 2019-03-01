@@ -19,6 +19,7 @@ export function swaggerUiAssetsHandler(options?: ServeStaticOptions) {
 export interface SwaggerUIOptions {
     openapiJsonUrl: string
     apiPrefix: string
+    title: string
     shortcutIconLink: string
 }
 

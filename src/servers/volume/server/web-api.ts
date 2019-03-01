@@ -45,6 +45,7 @@ export default function init(app: express.Express) {
     app.get(makePath(''), swaggerUiIndexHandler({
         openapiJsonUrl: makePath('openapi.json'),
         apiPrefix: ServerConfig.apiPrefix,
+        title: 'VolumeServer API',
         shortcutIconLink
     }));
 }
