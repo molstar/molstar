@@ -16,7 +16,7 @@ import { ConsoleLogger } from 'mol-util/console-logger'
 import { State } from './state'
 import { LimitsConfig, ServerConfig } from '../config';
 import { interpolate } from 'mol-util/string';
-import { getSchema } from './web-schema';
+import { getSchema, shortcutIconLink } from './web-schema';
 import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from 'servers/common/swagger-ui';
 
 export default function init(app: express.Express) {
@@ -42,7 +42,11 @@ export default function init(app: express.Express) {
     });
 
     app.use(makePath(''), swaggerUiAssetsHandler());
-    app.get(makePath(''), swaggerUiIndexHandler(makePath('openapi.json'), ServerConfig.apiPrefix));
+    app.get(makePath(''), swaggerUiIndexHandler({
+        openapiJsonUrl: makePath('openapi.json'),
+        apiPrefix: ServerConfig.apiPrefix,
+        shortcutIconLink
+    }));
 }
 
 function getMapFileFn() {

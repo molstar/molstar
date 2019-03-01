@@ -16,13 +16,19 @@ export function swaggerUiAssetsHandler(options?: ServeStaticOptions) {
     return express.static(getAbsoluteFSPath(), opts)
 }
 
-function createHTML(swaggerUrl: string, apiPrefix: string) {
-    const htmlTemplate = fs.readFileSync(`${__dirname}/indexTemplate.html`).toString()
-    return interpolate(htmlTemplate, { swaggerUrl, apiPrefix })
+export interface SwaggerUIOptions {
+    openapiJsonUrl: string
+    apiPrefix: string
+    shortcutIconLink: string
 }
 
-export function swaggerUiIndexHandler(swaggerUrl: string, apiPrefix: string): express.Handler {
-    const html = createHTML(swaggerUrl, apiPrefix)
+function createHTML(options: SwaggerUIOptions) {
+    const htmlTemplate = fs.readFileSync(`${__dirname}/indexTemplate.html`).toString()
+    return interpolate(htmlTemplate, options)
+}
+
+export function swaggerUiIndexHandler(options: SwaggerUIOptions): express.Handler {
+    const html = createHTML(options)
     return (req: express.Request, res: express.Response) => {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(html);

@@ -4,6 +4,8 @@
         <meta charset="UTF-8">
         <title>Swagger UI</title>
         <link rel="stylesheet" type="text/css" href="${apiPrefix}/swagger-ui.css" >
+        ${shortcutIconLink}
+
         <style>
             html
             {
@@ -42,7 +44,7 @@
             }
             window.onload = function () {
                 var ui = SwaggerUIBundle({
-                    url: '${swaggerUrl}',
+                    url: '${openapiJsonUrl}',
                     validatorUrl: null,
                     docExpansion: 'list',
                     dom_id: '#swagger-ui',
