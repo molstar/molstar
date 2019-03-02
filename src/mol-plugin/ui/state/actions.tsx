@@ -9,7 +9,7 @@ import { PluginUIComponent } from '../base';
 import { ApplyActionContol } from './apply-action';
 import { State } from 'mol-state';
 
-export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRef: string }> {
+export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRef: string, hideHeader?: boolean }> {
     get current() {
         return this.plugin.state.behavior.currentObject.value;
     }
@@ -30,6 +30,14 @@ export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRe
         const { state, nodeRef: ref } = this.props;
         const cell = state.cells.get(ref)!;
         const actions = state.actions.fromCell(cell, this.plugin);
-        return actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={state} action={act} nodeRef={ref} />);
+        if (actions.length === 0) return null;
+
+        const def = cell.transform.transformer.definition;
+        const display = cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name;
+
+        return <>
+            {!this.props.hideHeader && <div className='msp-section-header'>{`Actions (${display})`}</div> }
+            {actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={state} action={act} nodeRef={ref} />)}
+        </>;
     }
 }

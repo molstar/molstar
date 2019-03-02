@@ -175,17 +175,18 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ComponentSta
             ? this.plugin.customParamEditors.get(tId)!
             : StateTransformParameters;
 
-        const wrapClass = this.isUpdate()
-            ? !isEmpty && !this.state.isCollapsed
-            ? 'msp-transform-update-wrapper'
-            : 'msp-transform-update-wrapper-collapsed'
-            : 'msp-transform-wrapper';
+        const wrapClass = 'msp-transform-wrapper';
+        // this.isUpdate()
+        //     ? !isEmpty && !this.state.isCollapsed
+        //     ? 'msp-transform-update-wrapper'
+        //     : 'msp-transform-update-wrapper-collapsed'
+        //     : 'msp-transform-wrapper';
 
         return <div className={wrapClass}>
             <div className='msp-transform-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded} title={display.description}>
                     {display.name}
-                    {!isEmpty && this.state.isCollapsed && this.isUpdate() && <small>Click to Edit</small>}
+                    {/* {!isEmpty && this.state.isCollapsed && this.isUpdate() && <small>Click to Edit</small>} */}
                 </button>
             </div>
             {!isEmpty && !this.state.isCollapsed && <>
