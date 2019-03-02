@@ -52,7 +52,7 @@ export const InitVolumeStreaming = StateAction.build({
 
     const infoObj = await state.updateTree(infoTree).runInContext(taskCtx);
 
-    const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior, PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data)))
+    const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior, PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data)));
     if (params.method === 'em') {
         behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { props: { isGhost: true } });
     } else {

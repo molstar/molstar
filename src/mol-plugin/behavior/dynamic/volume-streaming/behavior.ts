@@ -43,12 +43,13 @@ export namespace VolumeStreaming {
     export function createParams(data?: VolumeServerInfo.Data) {
         // fake the info
         const info = data || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: VolumeIsoValue.relative(0) };
+        const box = (data && data.structure.boundary.box) || Box3D.empty();
 
         return {
             view: PD.MappedStatic('selection-box', {
                 'box': PD.Group({
-                    bottomLeft: PD.Vec3(Vec3.create(-22.4, -33.4, -21.6)),
-                    topRight: PD.Vec3(Vec3.create(-7.1, -10, -0.9)),
+                    bottomLeft: PD.Vec3(box.min),
+                    topRight: PD.Vec3(box.max),
                 }, { description: 'Static box defined by cartesian coords.', isFlat: true }),
                 'selection-box': PD.Group({
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }),
@@ -59,7 +60,7 @@ export namespace VolumeStreaming {
                 // 'auto': PD.Group({  }), // based on camera distance/active selection/whatever, show whole structure or slice.
             }, { options: [['box', 'Bounded Box'], ['selection-box', 'Selection'], ['cell', 'Whole Structure']] }),
             detailLevel: PD.Select<number>(Math.min(1, info.header.availablePrecisions.length - 1),
-                info.header.availablePrecisions.map((p, i) => [i, `${i + 1} (${Math.pow(p.maxVoxels, 1 / 3) | 0}^3)`] as [number, string])),
+                info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string])),
             channels: info.kind === 'em'
                 ? PD.Group({
                     'em': channelParam('EM', Color(0x638F8F), info.emDefaultContourLevel || VolumeIsoValue.relative(1), info.header.sampling[0].valuesInfo[0])
@@ -184,6 +185,7 @@ export namespace VolumeStreaming {
             switch (params.view.name) {
                 case 'box':
                     box = Box3D.create(params.view.params.bottomLeft, params.view.params.topRight);
+                    emptyData = Box3D.volume(box) < 0.0001;
                     break;
                 case 'selection-box': {
                     box = Box3D.create(Vec3.clone(params.view.params.bottomLeft), Vec3.clone(params.view.params.topRight));
