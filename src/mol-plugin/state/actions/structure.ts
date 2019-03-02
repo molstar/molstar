@@ -12,10 +12,11 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
-import { CustomModelProperties } from '../transforms/model';
+import { CustomModelProperties, StructureSelection } from '../transforms/model';
 import { DataFormatProvider } from './data-format';
 import { FileInfo } from 'mol-util/file-info';
 import { Task } from 'mol-task';
+import { StructureElement } from 'mol-model/structure';
 
 export const MmcifProvider: DataFormatProvider<any> = {
     label: 'mmCIF',
@@ -228,5 +229,23 @@ export const EnableModelCustomProps = StateAction.build({
     }
 })(({ ref, params, state }, ctx: PluginContext) => {
     const root = state.build().to(ref).insert(CustomModelProperties, params);
+    return state.updateTree(root);
+});
+
+export const StructureFromSelection = StateAction.build({
+    display: { name: 'Selection Structure', description: 'Create a new Structure from the current selection.' },
+    from: PluginStateObject.Molecule.Structure,
+    params: {
+        label: PD.Text()
+    }
+    // isApplicable(a, t, ctx: PluginContext) {
+    //     return t.transformer !== CustomModelProperties;
+    // }
+})(({ a, ref, params, state }, plugin: PluginContext) => {
+    const sel = plugin.helpers.structureSelection.get(a.data);
+    if (sel.kind === 'empty-loci') return Task.constant('', void 0);
+
+    const query = StructureElement.Loci.toScriptExpression(sel);
+    const root = state.build().to(ref).apply(StructureSelection, { query, label: params.label });
     return state.updateTree(root);
 });

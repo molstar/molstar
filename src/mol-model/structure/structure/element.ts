@@ -15,6 +15,8 @@ import Structure from './structure';
 import Unit from './unit';
 import { Boundary } from './util/boundary';
 import { StructureProperties } from '../structure';
+import { sortArray } from 'mol-data/util';
+import Expression from 'mol-script/language/expression';
 
 interface StructureElement<U = Unit> {
     readonly kind: 'element-location',
@@ -249,6 +251,8 @@ namespace StructureElement {
                 console.warn('toScriptExpression is only supported for Structure with single model, returning empty expression.');
                 return MS.struct.generator.empty();
             }
+            if (loci.elements.length === 0) return MS.struct.generator.empty();
+
             const sourceIndices = UniqueArray.create<number, number>();
             const el = StructureElement.create(), p = StructureProperties.atom.sourceIndex;
             for (const e of loci.elements) {
@@ -262,8 +266,43 @@ namespace StructureElement {
                     UniqueArray.add(sourceIndices, idx, idx);
                 }
             }
+
+            const xs = sourceIndices.array;
+            sortArray(xs);
+
+            const ranges: number[] = [];
+            const set: number[] = [];
+
+            let i = 0, len = xs.length;
+            while (i < len) {
+                const start = i;
+                i++;
+                while (i < len && xs[i - 1] + 1 === xs[i]) i++;
+                const end = i;
+                // TODO: is this a good value?
+                if (end - start > 12) {
+                    ranges[ranges.length] = xs[start];
+                    ranges[ranges.length] = xs[end - 1];
+                } else {
+                    for (let j = start; j < end; j++) {
+                        set[set.length] = xs[j];
+                    }
+                }
+            }
+
+            const siProp = MS.struct.atomProperty.core.sourceIndex();
+            const tests: Expression[] = [];
+
+            // TODO: add set.ofRanges constructor to MolQL???
+            if (set.length > 0) {
+                tests[tests.length] = MS.core.set.has([MS.set.apply(null, set), siProp]);
+            }
+            for (let rI = 0, _rI = ranges.length / 2; rI < _rI; rI++) {
+                tests[tests.length] = MS.core.rel.inRange([siProp, ranges[2 * rI], ranges[2 * rI + 1]]);
+            }
+
             return MS.struct.generator.atomGroups({
-                'atom-test': MS.core.set.has([MS.set.apply(null, sourceIndices.array), MS.struct.atomProperty.core.sourceIndex()]),
+                'atom-test': tests.length > 1 ? MS.core.logic.or.apply(null, tests) : tests[0],
                 'group-by': 0
             });
         }
