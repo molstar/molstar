@@ -38,7 +38,14 @@ export const AtomsSchema = {
      * The net integer charge assigned to this atom.
      * This is the formal charge assignment normally found in chemical diagrams.
      */
-    pdbx_formal_charge: mmCIF.atom_site.pdbx_formal_charge
+    pdbx_formal_charge: mmCIF.atom_site.pdbx_formal_charge,
+
+    /**
+     * The index of this atom in the input data.
+     * Required because of sorting of atoms.
+     */
+    sourceIndex: Column.Schema.int
+
     // id, occupancy and B_iso_or_equiv are part of conformation
 };
 

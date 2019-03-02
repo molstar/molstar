@@ -21,6 +21,7 @@ export interface IHMData {
     model_name: string,
     entities: Entities,
     atom_site: mmCIF['atom_site'],
+    atom_site_sourceIndex: Column<number>,
     ihm_sphere_obj_site: mmCIF['ihm_sphere_obj_site'],
     ihm_gaussian_obj_site: mmCIF['ihm_gaussian_obj_site']
 }

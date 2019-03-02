@@ -9,6 +9,8 @@ import { createRangeArray, makeBuckets } from 'mol-data/util';
 import { Column, Table } from 'mol-data/db';
 import { RuntimeContext } from 'mol-task';
 
+export type SortedAtomSite = mmCIF_Database['atom_site'] & { sourceIndex: Column<number> }
+
 function isIdentity(xs: ArrayLike<number>) {
     for (let i = 0, _i = xs.length; i < _i; i++) {
         if (xs[i] !== i) return false;
@@ -36,8 +38,11 @@ export async function sortAtomSite(ctx: RuntimeContext, atom_site: mmCIF_Databas
     }
 
     if (isIdentity(indices) && indices.length === atom_site._rowCount) {
-        return atom_site;
+        return { atom_site, sourceIndex: Column.ofIntArray(indices) };
     }
 
-    return Table.view(atom_site, atom_site._schema, indices) as mmCIF_Database['atom_site'];
+    return {
+        atom_site: Table.view(atom_site, atom_site._schema, indices) as mmCIF_Database['atom_site'],
+        sourceIndex: Column.ofIntArray(indices)
+    };
 }
