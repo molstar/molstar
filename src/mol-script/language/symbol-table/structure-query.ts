@@ -150,6 +150,10 @@ const modifier = {
         'as-whole-residues': Argument(Type.Bool, { isOptional: true })
     }), Types.ElementSelectionQuery, 'Pick all atom sets that are connected to the target.'),
 
+    wholeResidues: symbol(Arguments.Dictionary({
+        0: Argument(Types.ElementSelectionQuery),
+    }), Types.ElementSelectionQuery, 'Expand the selection to whole residues.'),
+
     expandProperty: symbol(Arguments.Dictionary({
         0: Argument(Types.ElementSelectionQuery),
         property: Argument(Type.AnyValue)

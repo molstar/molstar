@@ -195,6 +195,19 @@ const symbols = [
         groupBy: xs['group-by']
     })(ctx)),
 
+    D(MolScript.structureQuery.generator.all, (ctx) => Queries.generators.all(ctx)),
+    D(MolScript.structureQuery.generator.empty, (ctx) => Queries.generators.none(ctx)),
+
+    // ============= MODIFIERS ================
+
+    D(MolScript.structureQuery.modifier.includeSurroundings, (ctx, xs) => Queries.modifiers.includeSurroundings(xs[0] as any, {
+        radius: xs['radius'](ctx),
+        wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
+        elementRadius: xs['atom-radius']
+    })(ctx)),
+    D(MolScript.structureQuery.modifier.wholeResidues, (ctx, xs) => Queries.modifiers.wholeResidues(xs[0] as any)(ctx)),
+    D(MolScript.structureQuery.modifier.expandProperty, (ctx, xs) => Queries.modifiers.expandProperty(xs[0] as any, xs['property'])(ctx)),
+
     // ============= ATOM PROPERTIES ================
 
     // ~~~ CORE ~~~

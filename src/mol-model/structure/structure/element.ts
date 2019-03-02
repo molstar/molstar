@@ -4,14 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OrderedSet, SortedArray } from 'mol-data/int'
-import Unit from './unit'
-import { ElementIndex } from '../model';
-import { ResidueIndex, ChainIndex } from '../model/indexing';
-import Structure from './structure';
-import { Boundary } from './util/boundary';
+import { UniqueArray } from 'mol-data/generic';
+import { OrderedSet, SortedArray } from 'mol-data/int';
 import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { MolScriptBuilder as MS } from 'mol-script/language/builder';
+import { ElementIndex } from '../model';
+import { ChainIndex, ResidueIndex } from '../model/indexing';
+import Structure from './structure';
+import Unit from './unit';
+import { Boundary } from './util/boundary';
+import { StructureProperties } from '../structure';
 
 interface StructureElement<U = Unit> {
     readonly kind: 'element-location',
@@ -38,11 +41,11 @@ namespace StructureElement {
 
     function _wrongUnitKind(kind: string) { throw new Error(`Property only available for ${kind} models.`); }
     export function atomicProperty<T>(p: (location: StructureElement<Unit.Atomic>) => T) {
-        return property(l => Unit.isAtomic(l.unit) ? p(l as StructureElement<Unit.Atomic>) : _wrongUnitKind('atomic') );
+        return property(l => Unit.isAtomic(l.unit) ? p(l as StructureElement<Unit.Atomic>) : _wrongUnitKind('atomic'));
     }
 
     export function coarseProperty<T>(p: (location: StructureElement<Unit.Spheres | Unit.Gaussians>) => T) {
-        return property(l => Unit.isCoarse(l.unit) ? p(l as StructureElement<Unit.Spheres | Unit.Gaussians>) : _wrongUnitKind('coarse') );
+        return property(l => Unit.isCoarse(l.unit) ? p(l as StructureElement<Unit.Spheres | Unit.Gaussians>) : _wrongUnitKind('coarse'));
     }
 
     /** Represents multiple element index locations */
@@ -239,6 +242,30 @@ namespace StructureElement {
             }
 
             return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };
+        }
+
+        export function toScriptExpression(loci: Loci) {
+            if (loci.structure.models.length > 1) {
+                console.warn('toScriptExpression is only supported for Structure with single model, returning empty expression.');
+                return MS.struct.generator.empty();
+            }
+            const sourceIndices = UniqueArray.create<number, number>();
+            const el = StructureElement.create(), p = StructureProperties.atom.sourceIndex;
+            for (const e of loci.elements) {
+                const { indices } = e;
+                const { elements } = e.unit;
+
+                el.unit = e.unit;
+                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                    el.element = elements[OrderedSet.getAt(indices, i)];
+                    const idx = p(el);
+                    UniqueArray.add(sourceIndices, idx, idx);
+                }
+            }
+            return MS.struct.generator.atomGroups({
+                'atom-test': MS.core.set.has([MS.set.apply(null, sourceIndices.array), MS.struct.atomProperty.core.sourceIndex()]),
+                'group-by': 0
+            });
         }
     }
 }

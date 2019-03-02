@@ -4,22 +4,23 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginBehavior } from 'mol-plugin/behavior';
-import { PluginStateObject } from 'mol-plugin/state/objects';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { VolumeServerInfo, VolumeServerHeader } from './model';
-import { createIsoValueParam } from 'mol-repr/volume/isosurface';
-import { VolumeIsoValue, VolumeData } from 'mol-model/volume';
-import { Color } from 'mol-util/color';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { PluginContext } from 'mol-plugin/context';
-import { LRUCache } from 'mol-util/lru-cache';
 import CIF from 'mol-io/reader/cif';
 import { Box3D } from 'mol-math/geometry';
-import { urlCombine } from 'mol-util/url';
+import { Vec3 } from 'mol-math/linear-algebra';
 import { volumeFromDensityServerData } from 'mol-model-formats/volume/density-server';
 import { StructureElement } from 'mol-model/structure';
+import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
+import { PluginBehavior } from 'mol-plugin/behavior';
+import { PluginContext } from 'mol-plugin/context';
+import { PluginStateObject } from 'mol-plugin/state/objects';
+import { createIsoValueParam } from 'mol-repr/volume/isosurface';
+import { Color } from 'mol-util/color';
+import { LRUCache } from 'mol-util/lru-cache';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { urlCombine } from 'mol-util/url';
+import { VolumeServerHeader, VolumeServerInfo } from './model';
 import { CreateVolumeStreamingBehavior } from './transformers';
+import { ButtonsType } from 'mol-util/input/input-observer';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -147,8 +148,8 @@ export namespace VolumeStreaming {
         register(ref: string): void {
             // this.ref = ref;
 
-            this.subscribeObservable(this.plugin.events.canvas3d.click, ({ current }) => {
-                if (this.params.view.name !== 'selection-box') return;
+            this.subscribeObservable(this.plugin.events.canvas3d.click, ({ current, buttons }) => {
+                if (buttons !== ButtonsType.Flag.Secondary || this.params.view.name !== 'selection-box') return;
                 // TODO: support link loci as well?
                 // Perhaps structure loci too?
                 if (!StructureElement.isLoci(current.loci)) return;
@@ -198,7 +199,7 @@ export namespace VolumeStreaming {
                     break;
             }
 
-            const data = emptyData ? { } : await this.queryData(box);
+            const data = emptyData ? {} : await this.queryData(box);
 
             if (!data) return false;
 
