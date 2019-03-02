@@ -73,7 +73,13 @@ export const SelectLoci = PluginBehavior.create({
             this.subscribeObservable(this.ctx.events.canvas3d.click, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
 
-                if (StructureElement.isLoci(current.loci)) {
+                if (current.loci.kind === 'empty-loci') {
+                    if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
+                        // clear the selection on Ctrl + Right-Click on empty
+                        const sels = sel.clear();
+                        for (const s of sels) this.ctx.canvas3d.mark({ loci: s }, MarkerAction.Deselect);
+                    }
+                } else if (StructureElement.isLoci(current.loci)) {
                     if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
                         // select only the current element on Ctrl + Right-Click
                         const old = sel.get(current.loci.structure);

@@ -50,6 +50,19 @@ class StructureElementSelectionManager {
         return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
     }
 
+    clear() {
+        const keys = this.entries.keys();
+        const selections: StructureElement.Loci[] = [];
+        while (true) {
+            const k = keys.next();
+            if (k.done) break;
+            const s = this.entries.get(k.value)!;
+            if (s.selection.elements.length > 0) selections.push(s.selection);
+            s.selection = StructureElement.Loci(s.selection.structure, []);
+        }
+        return selections;
+    }
+
     get(structure: Structure) {
         const entry = this.getEntry(structure);
         if (!entry) return EmptyLoci;
