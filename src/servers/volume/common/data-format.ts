@@ -32,7 +32,7 @@ export interface Sampling {
     rate: number,
     valuesInfo: ValuesInfo[],
 
-    /** Number of samples along each axis, in axisOrder  */
+    /** Number of samples along each axis, in axisOrder */
     sampleCount: number[]
 }
 

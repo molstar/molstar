@@ -138,8 +138,6 @@ export namespace StructConn {
         partners: { residueIndex: ResidueIndex, atomIndex: ElementIndex, symmetry: string }[]
     }
 
-    type StructConnType = typeof mmCIF_Schema.struct_conn.conn_type_id.T
-
     export function attachFromMmCif(model: Model): boolean {
         if (model.customProperties.has(Descriptor)) return true;
         if (model.sourceData.kind !== 'mmCIF') return false;
@@ -213,7 +211,7 @@ export namespace StructConn {
             const partners = _ps(i);
             if (partners.length < 2) continue;
 
-            const type = conn_type_id.value(i)! as StructConnType;
+            const type = conn_type_id.value(i) as typeof mmCIF_Schema.struct_conn_type.id.T; // TODO workaround for dictionary inconsistency
             const orderType = (pdbx_value_order.value(i) || '').toLowerCase();
             let flags = LinkType.Flag.None;
             let order = 1;
@@ -234,7 +232,10 @@ export namespace StructConn {
                     flags = LinkType.Flag.Covalent;
                     break;
                 case 'disulf': flags = LinkType.Flag.Covalent | LinkType.Flag.Sulfide; break;
-                case 'hydrog': flags = LinkType.Flag.Hydrogen; break;
+                case 'hydrog':
+                case 'mismat':
+                    flags = LinkType.Flag.Hydrogen;
+                    break;
                 case 'metalc': flags = LinkType.Flag.MetallicCoordination; break;
                 case 'saltbr': flags = LinkType.Flag.Ionic; break;
             }
