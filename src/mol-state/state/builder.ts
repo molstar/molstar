@@ -71,6 +71,13 @@ namespace StateBuilder {
         }
 
         /**
+         * A helper to greate a group-like state object and keep the current type.
+         */
+        group<T extends StateTransformer<A, any, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>, initialCellState?: Partial<StateObjectCell.State>): To<A> {
+            return this.apply(tr, params, options, initialCellState) as To<A>;
+        }
+
+        /**
          * Inserts a new transform that does not change the object type and move the original children to it.
          */
         insert<T extends StateTransformer<A, A, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>, initialCellState?: Partial<StateObjectCell.State>): To<StateTransformer.To<T>> {
