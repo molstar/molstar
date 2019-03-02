@@ -31,6 +31,7 @@ import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 import { TaskManager } from './util/task-manager';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { StructureElementSelectionManager } from './util/structure-element-selection';
+import { SubstructureParentHelper } from './util/substructure-parent-helper';
 
 export class PluginContext {
     private disposed = false;
@@ -99,8 +100,9 @@ export class PluginContext {
     readonly customModelProperties = new CustomPropertyRegistry();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
-    readonly selection = {
-        structure: new StructureElementSelectionManager(this)
+    readonly helpers = {
+        structureSelection: new StructureElementSelectionManager(this),
+        substructureParent: new SubstructureParentHelper(this)
     };
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {

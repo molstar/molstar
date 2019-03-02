@@ -24,7 +24,7 @@ export const HighlightLoci = PluginBehavior.create({
     ctor: class extends PluginBehavior.Handler {
         register(): void {
             let prev: Representation.Loci = { loci: EmptyLoci, repr: void 0 };
-            const sel = this.ctx.selection.structure;
+            const sel = this.ctx.helpers.structureSelection;
 
             this.subscribeObservable(this.ctx.events.canvas3d.highlight, ({ current, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
@@ -58,7 +58,7 @@ export const SelectLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
         register(): void {
-            const sel = this.ctx.selection.structure;
+            const sel = this.ctx.helpers.structureSelection;
 
             const toggleSel = (current: Representation.Loci<StructureElement.Loci>) => {
                 if (sel.has(current.loci)) {

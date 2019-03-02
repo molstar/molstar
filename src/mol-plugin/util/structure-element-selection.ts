@@ -4,34 +4,29 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { OrderedSet } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 import { Structure, StructureElement } from 'mol-model/structure';
-import { State, StateObject, StateSelection } from 'mol-state';
+import { StateObject } from 'mol-state';
 import { PluginContext } from '../context';
 import { PluginStateObject } from '../state/objects';
-import { OrderedSet } from 'mol-data/int';
 
 export { StructureElementSelectionManager };
 
 class StructureElementSelectionManager {
     private entries = new Map<string, SelectionEntry>();
 
-    // maps structure to a parent StateObjectCell
-    private mapping = {
-        root: new Map<Structure, string>(),
-        tracked: new Map<string, Structure>()
-    };
-
     private getEntry(s: Structure) {
-        if (!this.mapping.root.has(s)) return;
-        const key = this.mapping.root.get(s)!;
-        if (!this.entries.has(key)) {
+        const cell = this.plugin.helpers.substructureParent.get(s);
+        if (!cell) return;
+        const ref = cell.transform.ref;
+        if (!this.entries.has(ref)) {
             const entry = SelectionEntry(s);
-            this.entries.set(key, entry);
+            this.entries.set(ref, entry);
             return entry;
         }
 
-        return this.entries.get(key)!;
+        return this.entries.get(ref)!;
     }
 
     add(loci: StructureElement.Loci): Loci {
@@ -112,27 +107,11 @@ class StructureElementSelectionManager {
         return ret || EmptyLoci;
     }
 
-    private addMapping(state: State, ref: string, obj: StateObject) {
-        if (!PluginStateObject.Molecule.Structure.is(obj)) return;
-        const parent = state.select(StateSelection.Generators.byRef(ref).rootOfType([PluginStateObject.Molecule.Structure]))[0];
-        this.mapping.tracked.set(ref, obj.data);
-        if (!parent) {
-            this.mapping.root.set(obj.data, ref);
-        } else {
-            this.mapping.root.set(obj.data, parent.transform.ref);
-        }
+    private onRemove(ref: string) {
+        if (this.entries.has(ref)) this.entries.delete(ref);
     }
 
-    private removeMapping(ref: string) {
-        if (!this.mapping.tracked.has(ref)) return;
-        const s = this.mapping.tracked.get(ref)!;
-        this.mapping.tracked.delete(ref);
-        const root = this.mapping.root.get(s);
-        this.mapping.root.delete(s);
-        if (root === ref) this.entries.delete(ref);
-    }
-
-    private updateMapping(state: State, ref: string, oldObj: StateObject | undefined, obj: StateObject) {
+    private onUpdate(ref: string, oldObj: StateObject | undefined, obj: StateObject) {
         if (!PluginStateObject.Molecule.Structure.is(obj)) return;
 
         if (this.entries.has(ref)) {
@@ -146,24 +125,12 @@ class StructureElementSelectionManager {
 
             // clear the selection
             this.entries.set(ref, SelectionEntry(obj.data));
-        } else {
-            this.removeMapping(ref);
-            this.addMapping(state, ref, obj);
         }
     }
 
-    constructor(plugin: PluginContext) {
-        plugin.state.dataState.events.object.created.subscribe(e => {
-            this.addMapping(e.state, e.ref, e.obj);
-        });
-
-        plugin.state.dataState.events.object.removed.subscribe(e => {
-            this.removeMapping(e.ref);
-        });
-
-        plugin.state.dataState.events.object.updated.subscribe(e => {
-            this.updateMapping(e.state, e.ref, e.oldObj, e.obj);
-        });
+    constructor(private plugin: PluginContext) {
+        plugin.state.dataState.events.object.removed.subscribe(e => this.onRemove(e.ref));
+        plugin.state.dataState.events.object.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));
     }
 }
 
