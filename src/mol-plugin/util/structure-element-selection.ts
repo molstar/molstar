@@ -77,12 +77,17 @@ class StructureElementSelectionManager {
         }
         if (!e) return;
 
-        const predIdx = OrderedSet.findPredecessorIndex(e.indices, OrderedSet.min(xs.indices));
+        let predIdx = OrderedSet.findPredecessorIndex(e.indices, OrderedSet.min(xs.indices));
         if (predIdx === 0) return;
 
-        const fst = predIdx < OrderedSet.size(e.indices)
-            ? OrderedSet.getAt(e.indices, predIdx)
-            : OrderedSet.getAt(e.indices, predIdx - 1) + 1 as StructureElement.UnitIndex;
+        let fst;
+
+        if (predIdx < OrderedSet.size(e.indices)) {
+            fst = OrderedSet.getAt(e.indices, predIdx)
+            if (fst > OrderedSet.min(xs.indices)) fst = OrderedSet.getAt(e.indices, predIdx - 1) + 1 as StructureElement.UnitIndex;
+        } else {
+            fst = OrderedSet.getAt(e.indices, predIdx - 1) + 1 as StructureElement.UnitIndex;
+        }
 
         return StructureElement.Loci(entry.selection.structure, [{
             unit: e.unit,
