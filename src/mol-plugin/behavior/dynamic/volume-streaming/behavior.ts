@@ -158,19 +158,19 @@ export namespace VolumeStreaming {
 
                 const eR = this.params.view.params.radius;
                 const box = StructureElement.Loci.getBoundary(loci).box;
-                const update = this.plugin.state.dataState.build().to(ref)
-                    .update(CreateVolumeStreamingBehavior, old => ({
-                        ...old,
-                        view: {
-                            name: 'selection-box' as 'selection-box',
-                            params: {
-                                radius: eR,
-                                bottomLeft: box.min,
-                                topRight: box.max
-                            }
+                const update = this.plugin.state.dataState.build().to(ref).update(CreateVolumeStreamingBehavior, old => ({
+                    ...old,
+                    view: {
+                        name: 'selection-box' as 'selection-box',
+                        params: {
+                            radius: eR,
+                            bottomLeft: box.min,
+                            topRight: box.max
                         }
-                    }));
+                    }
+                }));
 
+                // TODO: create/use command queue here and cancel any ongoing updates.
                 this.plugin.runTask(this.plugin.state.dataState.updateTree(update));
             });
         }
