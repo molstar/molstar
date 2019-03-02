@@ -292,6 +292,7 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
     const atom_sites = splitTable(format.data.atom_site, format.data.atom_site.ihm_model_id);
     // TODO: will coarse IHM records require sorting or will we trust it?
     // ==> Probably implement a sort as as well and store the sourceIndex same as with atomSite
+    // If the sorting is implemented, updated mol-model/structure/properties: atom.sourceIndex
     const sphere_sites = splitTable(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site.model_id);
     const gauss_sites = splitTable(format.data.ihm_gaussian_obj_site, format.data.ihm_gaussian_obj_site.model_id);
 

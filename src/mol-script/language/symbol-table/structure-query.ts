@@ -242,7 +242,9 @@ const atomProperty = {
         bondCount: symbol(Arguments.Dictionary({
             0: Argument(Types.ElementReference, { isOptional: true, defaultValue: 'slot.current-atom' }),
             flags: Argument(Types.BondFlags, { isOptional: true, defaultValue: 'covalent' as any }),
-        }), Type.Num, 'Number of bonds (by default only covalent bonds are counted).')
+        }), Type.Num, 'Number of bonds (by default only covalent bonds are counted).'),
+
+        sourceIndex: atomProp(Type.Num, 'Index of the atom/element in the input file.'),
     },
 
     topology: {

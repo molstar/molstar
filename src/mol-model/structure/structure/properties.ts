@@ -35,6 +35,10 @@ const atom = {
     id: StructureElement.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicConformation.atomId.value(l.element)),
     occupancy: StructureElement.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.occupancy.value(l.element)),
     B_iso_or_equiv: StructureElement.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.B_iso_or_equiv.value(l.element)),
+    sourceIndex: StructureElement.property(l => Unit.isAtomic(l.unit)
+        ? l.unit.model.atomicHierarchy.atoms.sourceIndex.value(l.element)
+        // TODO: when implemented, this should map to the source index.
+        : l.element),
 
     // Hierarchy
     type_symbol: StructureElement.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.type_symbol.value(l.element)),
