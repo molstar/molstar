@@ -254,7 +254,7 @@ namespace StateSelection {
     }
 
     export function findTagInSubtree(tree: StateTree, root: StateTransform.Ref, tag: string): StateTransform.Ref | undefined {
-        return StateTree.doPreOrder(tree, tree.transforms.get(root), { ref: void 0, tag }, _findTagInSubtree).tag;
+        return StateTree.doPreOrder(tree, tree.transforms.get(root), { ref: void 0, tag }, _findTagInSubtree).ref;
     }
 
     function _findTagInSubtree(n: StateTransform, _: any, s: { ref: string | undefined, tag: string }) {

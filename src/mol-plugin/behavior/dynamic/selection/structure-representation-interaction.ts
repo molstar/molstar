@@ -90,7 +90,17 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         if (groups.length === 0) return;
 
         const update = state.build();
-        for (const g of groups) update.delete(g.transform.ref);
+        const query = MS.struct.generator.empty();
+        for (const g of groups) {
+            // TODO: update props of the group node to ghost
+
+            const res = StateSelection.findTagInSubtree(state.tree, g.transform.ref, Tags.ResidueSel);
+            const surr = StateSelection.findTagInSubtree(state.tree, g.transform.ref, Tags.SurrSel);
+            if (res) update.to(res).update(StateTransforms.Model.StructureSelection, old => ({ ...old, query }));
+            if (surr) update.to(surr).update(StateTransforms.Model.StructureSelection, old => ({ ...old, query }));
+
+            // update.delete(g.transform.ref);
+        }
 
         PluginCommands.State.Update.dispatch(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
     }

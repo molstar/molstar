@@ -237,6 +237,7 @@ const StructureSelection = PluginStateTransform.BuiltIn({
         const compiled = compile<Sel>(params.query);
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
+        if (s.elementCount === 0) return StateObject.Null;
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
     }
