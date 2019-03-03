@@ -201,6 +201,7 @@ namespace StructureElement {
                 let i = 0;
                 while (i < len) {
                     const rI = residueIndex[unitElements[OrderedSet.getAt(indices, i)]];
+                    i++;
                     while (i < len && residueIndex[unitElements[OrderedSet.getAt(indices, i)]] === rI) {
                         i++;
                     }

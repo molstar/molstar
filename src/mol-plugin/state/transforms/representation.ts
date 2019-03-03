@@ -21,8 +21,18 @@ import { BuiltInSizeThemeName, SizeTheme } from 'mol-theme/size';
 import { createTheme, ThemeRegistryContext } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
+import { Text } from 'mol-geo/geometry/text/text';
+import { ColorNames } from 'mol-util/color/tables';
+import { getLabelRepresentation } from 'mol-plugin/util/structure-labels';
+import { ShapeRepresentation } from 'mol-repr/shape/representation';
 
-export namespace StructureRepresentation3DHelpers {
+export { StructureRepresentation3D }
+export { StructureRepresentation3DHelpers }
+export { StructureLabels3D}
+export { ExplodeStructureRepresentation3D }
+export { VolumeRepresentation3D }
+
+namespace StructureRepresentation3DHelpers {
     export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): StateTransformer.Params<StructureRepresentation3D> {
         const type = ctx.structureRepresentation.registry.get(name);
 
@@ -100,9 +110,7 @@ export namespace StructureRepresentation3DHelpers {
         })
     }
 }
-export { StructureRepresentation3D };
-export { ExplodeStructureRepresentation3D };
-export { VolumeRepresentation3D };
+
 type StructureRepresentation3D = typeof StructureRepresentation3D
 const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'structure-representation-3d',
@@ -151,9 +159,9 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         })
     }
 })({
-    canAutoUpdate({ oldParams, newParams }) {
-        // TODO: allow for small molecules
-        return oldParams.type.name === newParams.type.name;
+    canAutoUpdate({ a, oldParams, newParams }) {
+        // TODO: other criteria as well?
+        return a.data.elementCount < 10000 && oldParams.type.name === newParams.type.name;
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
@@ -176,6 +184,45 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+
+type StructureLabels3D = typeof StructureLabels3D
+const StructureLabels3D = PluginStateTransform.BuiltIn({
+    name: 'structure-labels-3d',
+    display: '3D Labels',
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Representation3D,
+    params: {
+        // TODO: other targets
+        target: PD.Select<'elements' | 'residues'>('residues', [['residues', 'Residues'], ['elements', 'Elements']]),
+        options: PD.Group({
+            ...Text.Params,
+
+            background: PD.Boolean(true),
+            backgroundMargin: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
+            backgroundColor: PD.Color(ColorNames.snow),
+            backgroundOpacity: PD.Numeric(0.9, { min: 0, max: 1, step: 0.01 }),
+        })
+    }
+})({
+    canAutoUpdate({ a, oldParams, newParams }) {
+        // TODO: find good criteria
+        return false;
+    },
+    apply({ a, params }) {
+        return Task.create('Structure Labels', async ctx => {
+            const repr = await getLabelRepresentation(ctx, a.data, params);
+            return new SO.Molecule.Representation3D(repr, { label: `Labels`, description: params.target });
+        });
+    },
+    update({ a, b, newParams }) {
+        return Task.create('Structure Labels', async ctx => {
+            await getLabelRepresentation(ctx, a.data, newParams, b.data as ShapeRepresentation<any, any, any>);
+            return StateTransformer.UpdateResult.Updated;
+        });
+    }
+});
+
 
 type ExplodeStructureRepresentation3D = typeof ExplodeStructureRepresentation3D
 const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({

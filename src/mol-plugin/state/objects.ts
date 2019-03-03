@@ -15,6 +15,7 @@ import { VolumeRepresentation } from 'mol-repr/volume/representation';
 import { StateObject, StateTransformer } from 'mol-state';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 import { Dsn6File } from 'mol-io/reader/dsn6/schema';
+import { ShapeRepresentation } from 'mol-repr/shape/representation';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -67,7 +68,7 @@ export namespace PluginStateObject {
         export class Trajectory extends Create<ReadonlyArray<_Model>>({ name: 'Trajectory', typeClass: 'Object' }) { }
         export class Model extends Create<_Model>({ name: 'Model', typeClass: 'Object' }) { }
         export class Structure extends Create<_Structure>({ name: 'Structure', typeClass: 'Object' }) { }
-        export class Representation3D extends CreateRepresentation3D<StructureRepresentation<any>>({ name: 'Structure 3D' }) { }
+        export class Representation3D extends CreateRepresentation3D<StructureRepresentation<any> | ShapeRepresentation<any, any, any>>({ name: 'Structure 3D' }) { }
     }
 
     export namespace Volume {
