@@ -580,6 +580,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     if (!oldTree.transforms.has(currentRef) || !current.params) {
         current.params = params;
         const obj = await createObject(ctx, currentRef, transform.transformer, parent, params.values);
+        updateTag(obj, transform);
         current.obj = obj;
 
         return { ref: currentRef, action: 'created', obj };
@@ -596,15 +597,22 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
             case StateTransformer.UpdateResult.Recreate: {
                 const oldObj = current.obj;
                 const newObj = await createObject(ctx, currentRef, transform.transformer, parent, newParams);
+                updateTag(newObj, transform);
                 current.obj = newObj;
                 return { ref: currentRef, action: 'replaced', oldObj, obj: newObj };
             }
             case StateTransformer.UpdateResult.Updated:
+                updateTag(current.obj, transform);
                 return { ref: currentRef, action: 'updated', obj: current.obj! };
             default:
                 return { action: 'none' };
         }
     }
+}
+
+function updateTag(obj: StateObject | undefined, transform: StateTransform) {
+    if (!obj || obj === StateObject.Null) return;
+    (obj.tag as string | undefined) = transform.props.tag;
 }
 
 function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {

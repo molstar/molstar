@@ -18,6 +18,8 @@ interface StateObject<D = any, T extends StateObject.Type = StateObject.Type<any
     readonly data: D,
     readonly label: string,
     readonly description?: string,
+    // assigned by reconciler to be StateTransform.props.tag
+    readonly tag?: string
 }
 
 namespace StateObject {
