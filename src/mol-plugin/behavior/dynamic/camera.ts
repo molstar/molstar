@@ -27,5 +27,5 @@ export const FocusLociOnSelect = PluginBehavior.create<{ minRadius: number, extr
         minRadius: ParamDefinition.Numeric(10, { min: 1, max: 50, step: 1 }),
         extraRadius: ParamDefinition.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Value added to the boundning sphere radius of the Loci.' })
     }),
-    display: { name: 'Focus Loci on Select', group: 'Camera' }
+    display: { name: 'Focus Loci on Select' }
 });

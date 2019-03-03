@@ -50,7 +50,7 @@ export const HighlightLoci = PluginBehavior.create({
             });
         }
     },
-    display: { name: 'Highlight Loci on Canvas', group: 'Representation' }
+    display: { name: 'Highlight Loci on Canvas' }
 });
 
 export const SelectLoci = PluginBehavior.create({
@@ -104,7 +104,7 @@ export const SelectLoci = PluginBehavior.create({
             });
         }
     },
-    display: { name: 'Select Loci on Canvas', group: 'Representation' }
+    display: { name: 'Select Loci on Canvas' }
 });
 
 export const DefaultLociLabelProvider = PluginBehavior.create({
@@ -116,7 +116,7 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
         unregister() { this.ctx.lociLabels.removeProvider(this.f); }
         constructor(protected ctx: PluginContext) { }
     },
-    display: { name: 'Provide Default Loci Label', group: 'Representation' }
+    display: { name: 'Provide Default Loci Label' }
 });
 
 

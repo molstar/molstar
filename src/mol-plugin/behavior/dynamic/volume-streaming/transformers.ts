@@ -127,7 +127,6 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     }
 });
 
-
 export { VolumeStreamingVisual }
 type VolumeStreamingVisual = typeof VolumeStreamingVisual
 const VolumeStreamingVisual = PluginStateTransform.BuiltIn({

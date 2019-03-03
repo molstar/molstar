@@ -567,7 +567,9 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         return { action: 'none' };
     }
 
-    const parentCell = StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
+    let parentCell = transform.transformer.definition.from.length === 0
+        ? ctx.cells.get(current.transform.parent)
+        : StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
     if (!parentCell) {
         throw new Error(`No suitable parent found for '${currentRef}'`);
     }

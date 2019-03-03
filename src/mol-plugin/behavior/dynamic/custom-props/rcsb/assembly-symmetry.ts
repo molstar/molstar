@@ -17,7 +17,7 @@ import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-r
 export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'rcsb-assembly-symmetry-prop',
     category: 'custom-props',
-    display: { name: 'RCSB Assembly Symmetry', group: 'Custom Props' },
+    display: { name: 'RCSB Assembly Symmetry' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private attach = AssemblySymmetry.createAttachTask(this.ctx.fetch);
 

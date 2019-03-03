@@ -46,7 +46,6 @@ namespace PluginBehavior {
         label?: (params: P) => { label: string, description?: string },
         display: {
             name: string,
-            group: string,
             description?: string
         },
         params?(a: Root, globalCtx: PluginContext): { [K in keyof P]: ParamDefinition.Any }

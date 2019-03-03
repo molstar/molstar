@@ -37,6 +37,8 @@ namespace SizeTheme {
     export function createRegistry() {
         return new ThemeRegistry(BuiltInSizeThemes as { [k: string]: Provider<any> }, EmptyProvider)
     }
+
+    export type ParamValues<C extends SizeTheme.Provider<any>> = C extends SizeTheme.Provider<infer P> ? PD.Values<P> : never
 }
 
 export const BuiltInSizeThemes = {

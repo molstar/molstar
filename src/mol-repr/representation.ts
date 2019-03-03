@@ -46,6 +46,14 @@ export interface RepresentationProvider<D, P extends PD.Params, S extends Repres
     readonly defaultSizeTheme: string
 }
 
+export namespace RepresentationProvider {
+    export type ParamValues<R extends RepresentationProvider<any, any, any>> = R extends RepresentationProvider<any, infer P, any> ? PD.Values<P> : never;
+
+    export function getDetaultParams<R extends RepresentationProvider<D, any, any>, D>(r: R, ctx: ThemeRegistryContext, data: D) {
+        return PD.getDefaultValues(r.getParams(ctx, data));
+    }
+}
+
 export type AnyRepresentationProvider = RepresentationProvider<any, {}, Representation.State>
 
 export const EmptyRepresentationProvider = {
@@ -59,6 +67,7 @@ export const EmptyRepresentationProvider = {
 export class RepresentationRegistry<D, S extends Representation.State> {
     private _list: { name: string, provider: RepresentationProvider<D, any, any> }[] = []
     private _map = new Map<string, RepresentationProvider<D, any, any>>()
+    private _name = new Map<RepresentationProvider<D, any, any>, string>()
 
     get default() { return this._list[0]; }
     get types(): [string, string][] {
@@ -70,11 +79,21 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     add<P extends PD.Params>(name: string, provider: RepresentationProvider<D, P, S>) {
         this._list.push({ name, provider })
         this._map.set(name, provider)
+        this._name.set(provider, name)
+    }
+
+    getName(provider: RepresentationProvider<D, any, S>): string {
+        if (!this._name.has(provider)) throw new Error(`'${provider.label}' is not a registered represenatation provider.`);
+        return this._name.get(provider)!;
     }
 
     remove(name: string) {
         this._list.splice(this._list.findIndex(e => e.name === name), 1)
-        this._map.delete(name)
+        const p = this._map.get(name);
+        if (p) {
+            this._map.delete(name);
+            this._name.delete(p);
+        }
     }
 
     get<P extends PD.Params>(name: string): RepresentationProvider<D, P, S> {

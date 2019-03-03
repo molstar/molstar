@@ -16,6 +16,7 @@ import { PluginBehaviors } from './behavior';
 import { AnimateModelIndex } from './state/animation/built-in';
 import { StateActions } from './state/actions';
 import { InitVolumeStreaming } from './behavior/dynamic/volume-streaming/transformers';
+import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -59,6 +60,7 @@ export const DefaultPluginSpec: PluginSpec = {
         // PluginSpec.Behavior(PluginBehaviors.Labels.SceneLabels),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry, { autoAttach: true }),
+        PluginSpec.Behavior(StructureRepresentationInteraction)
     ],
     animations: [
         AnimateModelIndex

@@ -94,7 +94,7 @@ export function structureSubtract(a: Structure, b: Structure): Structure {
         const u = aU[i];
         if (!bU.has(u.id)) continue;
         const v = bU.get(u.id);
-        const sub = SortedArray.intersect(u.elements, v.elements);
+        const sub = SortedArray.subtract(u.elements, v.elements);
         if (sub.length > 0) {
             units[units.length] = u.getChild(sub);
         }

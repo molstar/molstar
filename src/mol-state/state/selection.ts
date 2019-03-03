@@ -241,6 +241,29 @@ namespace StateSelection {
         }
         return parent;
     }
+
+    export function findUniqueTagsInSubtree<K extends string = string>(tree: StateTree, root: StateTransform.Ref, tags: Set<K>): { [name in K]?: StateTransform.Ref } {
+        return StateTree.doPreOrder(tree, tree.transforms.get(root), { refs: { }, tags }, _findUniqueTagsInSubtree).refs;
+    }
+
+    function _findUniqueTagsInSubtree(n: StateTransform, _: any, s: { refs: { [name: string]: StateTransform.Ref }, tags: Set<string> }) {
+        if (n.props.tag && s.tags.has(n.props.tag)) {
+            s.refs[n.props.tag] = n.ref;
+        }
+        return true;
+    }
+
+    export function findTagInSubtree(tree: StateTree, root: StateTransform.Ref, tag: string): StateTransform.Ref | undefined {
+        return StateTree.doPreOrder(tree, tree.transforms.get(root), { ref: void 0, tag }, _findTagInSubtree).tag;
+    }
+
+    function _findTagInSubtree(n: StateTransform, _: any, s: { ref: string | undefined, tag: string }) {
+        if (n.props.tag === s.tag) {
+            s.ref = n.ref;
+            return false;
+        }
+        return true;
+    }
 }
 
 export { StateSelection }

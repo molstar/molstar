@@ -30,7 +30,7 @@ type StructureAnimationProps = PD.Values<typeof StructureAnimationParams>
 export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>({
     name: 'structure-animation',
     category: 'representation',
-    display: { name: 'Structure Animation', group: 'Animation' },
+    display: { name: 'Structure Animation' },
     canAutoUpdate: () => true,
     ctor: class extends PluginBehavior.Handler<StructureAnimationProps> {
         private tmpMat = Mat4.identity()

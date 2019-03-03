@@ -5,22 +5,22 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StateTransformer } from 'mol-state';
-import { Task } from 'mol-task';
-import { PluginStateTransform } from '../objects';
-import { PluginStateObject as SO } from '../objects';
-import { PluginContext } from 'mol-plugin/context';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { createTheme } from 'mol-theme/theme';
-import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
 import { Structure } from 'mol-model/structure';
-import { StructureParams } from 'mol-repr/structure/representation';
-import { ExplodeRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
+import { ExplodeRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
+import { PluginContext } from 'mol-plugin/context';
+import { RepresentationProvider } from 'mol-repr/representation';
+import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
+import { StructureParams } from 'mol-repr/structure/representation';
 import { BuiltInVolumeRepresentationsName } from 'mol-repr/volume/registry';
 import { VolumeParams } from 'mol-repr/volume/representation';
+import { StateTransformer } from 'mol-state';
+import { Task } from 'mol-task';
 import { BuiltInColorThemeName, ColorTheme } from 'mol-theme/color';
 import { BuiltInSizeThemeName, SizeTheme } from 'mol-theme/size';
+import { createTheme, ThemeRegistryContext } from 'mol-theme/theme';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 
 export namespace StructureRepresentation3DHelpers {
     export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): StateTransformer.Params<StructureRepresentation3D> {
@@ -34,6 +34,43 @@ export namespace StructureRepresentation3DHelpers {
             type: { name, params: structureParams ? { ...structureDefaultParams, ...structureParams } : structureDefaultParams },
             colorTheme: { name: type.defaultColorTheme, params: PD.getDefaultValues(colorParams) },
             sizeTheme: { name: type.defaultSizeTheme, params: PD.getDefaultValues(sizeParams) }
+        })
+    }
+
+    export function createParams<R extends RepresentationProvider<Structure, any, any>, C extends ColorTheme.Provider<any>, S extends SizeTheme.Provider<any>>(
+            ctx: PluginContext, structure: Structure, params: {
+            repr?: R | [R, (r: R, ctx: ThemeRegistryContext, s: Structure) => RepresentationProvider.ParamValues<R>],
+            color?: C | [C, (c: C, ctx: ThemeRegistryContext) => ColorTheme.ParamValues<C>],
+            size?: S | [S, (c: S, ctx: ThemeRegistryContext) => SizeTheme.ParamValues<S>]
+        }): StateTransformer.Params<StructureRepresentation3D> {
+
+        const themeCtx = ctx.structureRepresentation.themeCtx
+
+        const repr = params.repr
+            ? params.repr instanceof Array ? params.repr[0] : params.repr
+            : ctx.structureRepresentation.registry.default.provider;
+        const reprParams = params.repr instanceof Array
+            ? params.repr[1](repr as R, themeCtx, structure)
+            : PD.getDefaultValues(repr.getParams(themeCtx, structure));
+
+        const color = params.color
+            ? params.color instanceof Array ? params.color[0] : params.color
+            : themeCtx.colorThemeRegistry.get(repr.defaultColorTheme);
+        const colorParams = params.color instanceof Array
+            ? params.color[1](color as C, themeCtx)
+            : PD.getDefaultValues(color.getParams(themeCtx));
+
+        const size = params.size
+            ? params.size instanceof Array ? params.size[0] : params.size
+            : themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme);
+        const sizeParams = params.size instanceof Array
+            ? params.size[1](size as S, themeCtx)
+            : PD.getDefaultValues(size.getParams(themeCtx));
+
+        return ({
+            type: { name: ctx.structureRepresentation.registry.getName(repr), params: reprParams },
+            colorTheme: { name: themeCtx.colorThemeRegistry.getName(color), params: colorParams },
+            sizeTheme: { name: themeCtx.sizeThemeRegistry.getName(size), params: sizeParams }
         })
     }
 
@@ -63,7 +100,9 @@ export namespace StructureRepresentation3DHelpers {
         })
     }
 }
-export { StructureRepresentation3D }
+export { StructureRepresentation3D };
+export { ExplodeStructureRepresentation3D };
+export { VolumeRepresentation3D };
 type StructureRepresentation3D = typeof StructureRepresentation3D
 const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'structure-representation-3d',
@@ -131,14 +170,13 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
             const props = { ...b.data.props, ...newParams.type.params }
-            b.data.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams))
+            b.data.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
             await b.data.createOrUpdate(props, a.data).runInContext(ctx);
             return StateTransformer.UpdateResult.Updated;
         });
     }
 });
 
-export { ExplodeStructureRepresentation3D }
 type ExplodeStructureRepresentation3D = typeof ExplodeStructureRepresentation3D
 const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'explode-structure-representation-3d',
@@ -194,7 +232,6 @@ export namespace VolumeRepresentation3DHelpers {
         return props.isoValue && VolumeIsoValue.toString(props.isoValue)
     }
 }
-export { VolumeRepresentation3D }
 type VolumeRepresentation3D = typeof VolumeRepresentation3D
 const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'volume-representation-3d',

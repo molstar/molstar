@@ -56,6 +56,8 @@ namespace ColorTheme {
     export function createRegistry() {
         return new ThemeRegistry(BuiltInColorThemes as { [k: string]: Provider<any> }, EmptyProvider)
     }
+
+    export type ParamValues<C extends ColorTheme.Provider<any>> = C extends ColorTheme.Provider<infer P> ? PD.Values<P> : never
 }
 
 export const BuiltInColorThemes = {

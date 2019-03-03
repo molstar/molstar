@@ -17,7 +17,7 @@ import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-r
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'pdbe-structure-quality-report-prop',
     category: 'custom-props',
-    display: { name: 'PDBe Structure Quality Report', group: 'Custom Props' },
+    display: { name: 'PDBe Structure Quality Report' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private attach = StructureQualityReport.createAttachTask(
             m => `https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${m.label.toLowerCase()}`,
