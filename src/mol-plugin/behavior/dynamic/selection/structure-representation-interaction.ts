@@ -84,11 +84,30 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         return { state, builder, refs };
     }
 
+    private clear() {
+        const state = this.plugin.state.dataState;
+        const groups = state.select(StateSelection.Generators.root.subtree().filter(o => o.transform.props.tag === Tags.Group));
+        if (groups.length === 0) return;
+
+        const update = state.build();
+        for (const g of groups) update.delete(g.transform.ref);
+
+        PluginCommands.State.Update.dispatch(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
+    }
+
     register(ref: string): void {
         // this.ref = ref;
 
-        this.subscribeObservable(this.plugin.events.canvas3d.click, ({ current, buttons }) => {
+        this.subscribeObservable(this.plugin.behaviors.canvas3d.click, ({ current, buttons, modifiers }) => {
             if (buttons !== ButtonsType.Flag.Secondary) return;
+
+            if (current.loci.kind === 'empty-loci') {
+                if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
+                    this.clear();
+                    return;
+                }
+            }
+
             // TODO: support link loci as well?
             if (!StructureElement.isLoci(current.loci)) return;
 

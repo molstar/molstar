@@ -21,6 +21,8 @@ import { urlCombine } from 'mol-util/url';
 import { VolumeServerHeader, VolumeServerInfo } from './model';
 import { CreateVolumeStreamingBehavior } from './transformers';
 import { ButtonsType } from 'mol-util/input/input-observer';
+import { PluginCommands } from 'mol-plugin/command';
+import { StateSelection } from 'mol-state';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -146,34 +148,55 @@ export namespace VolumeStreaming {
             return ret;
         }
 
+        private updateDynamicBox(ref: string, box: Box3D) {
+            if (this.params.view.name !== 'selection-box') return;
+
+            const eR = this.params.view.params.radius;
+            const state = this.plugin.state.dataState;
+            const update = state.build().to(ref).update(CreateVolumeStreamingBehavior, old => ({
+                ...old,
+                view: {
+                    name: 'selection-box' as 'selection-box',
+                    params: {
+                        radius: eR,
+                        bottomLeft: box.min,
+                        topRight: box.max
+                    }
+                }
+            }));
+
+            PluginCommands.State.Update.dispatch(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
+        }
+
+        private getStructureRoot(ref: string) {
+            return this.plugin.state.dataState.select(StateSelection.Generators.byRef(ref).rootOfType([PluginStateObject.Molecule.Structure]))[0];
+        }
+
         register(ref: string): void {
             // this.ref = ref;
 
-            this.subscribeObservable(this.plugin.events.canvas3d.click, ({ current, buttons }) => {
+            this.subscribeObservable(this.plugin.behaviors.canvas3d.click, ({ current, buttons, modifiers }) => {
                 if (buttons !== ButtonsType.Flag.Secondary || this.params.view.name !== 'selection-box') return;
+
+                if (current.loci.kind === 'empty-loci') {
+                    if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
+                        this.updateDynamicBox(ref, Box3D.empty());
+                        return;
+                    }
+                }
+
                 // TODO: support link loci as well?
                 // Perhaps structure loci too?
                 if (!StructureElement.isLoci(current.loci)) return;
 
-                // TODO: check if it's the related structure
+                const parent = this.plugin.helpers.substructureParent.get(current.loci.structure);
+                if (!parent) return;
+                const root = this.getStructureRoot(ref);
+                if (!root || !root.obj || root.obj !== parent.obj) return;
+
                 const loci = StructureElement.Loci.extendToWholeResidues(current.loci);
-
-                const eR = this.params.view.params.radius;
                 const box = StructureElement.Loci.getBoundary(loci).box;
-                const update = this.plugin.state.dataState.build().to(ref).update(CreateVolumeStreamingBehavior, old => ({
-                    ...old,
-                    view: {
-                        name: 'selection-box' as 'selection-box',
-                        params: {
-                            radius: eR,
-                            bottomLeft: box.min,
-                            topRight: box.max
-                        }
-                    }
-                }));
-
-                // TODO: create/use command queue here and cancel any ongoing updates.
-                this.plugin.runTask(this.plugin.state.dataState.updateTree(update));
+                this.updateDynamicBox(ref, box);
             });
         }
 

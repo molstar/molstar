@@ -35,6 +35,6 @@ export class LociLabelManager {
     }
 
     constructor(public ctx: PluginContext) {
-        ctx.events.canvas3d.highlight.subscribe(ev => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(ev.current) }));
+        ctx.behaviors.canvas3d.highlight.subscribe(ev => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(ev.current) }));
     }
 }

@@ -52,7 +52,9 @@ export const InitVolumeStreaming = StateAction.build({
 
     const infoObj = await state.updateTree(infoTree).runInContext(taskCtx);
 
-    const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior, PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data)));
+    const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior,
+        PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data)));
+
     if (params.method === 'em') {
         behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { props: { isGhost: true } });
     } else {
@@ -96,7 +98,7 @@ const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
             emDefaultContourLevel,
             structure: a.data
         };
-        return new VolumeServerInfo(data, { label: `Volume Streaming: ${dataId}` });
+        return new VolumeServerInfo(data, { label: `Volume Server: ${dataId}` });
     })
 });
 
@@ -118,7 +120,7 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume streaming', async _ => {
         const behavior = new VolumeStreaming.Behavior(plugin, a.data);
         await behavior.update(params);
-        return new VolumeStreaming(behavior, { label: 'Streaming Controls' });
+        return new VolumeStreaming(behavior, { label: 'Volume Streaming' });
     }),
     update({ b, newParams }) {
         return Task.create('Update Volume Streaming', async _ => {

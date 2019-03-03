@@ -32,6 +32,8 @@ import { TaskManager } from './util/task-manager';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { StructureElementSelectionManager } from './util/structure-element-selection';
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
+import { Representation } from 'mol-repr/representation';
+import { ModifiersKeys } from 'mol-util/input/input-observer';
 
 export class PluginContext {
     private disposed = false;
@@ -59,18 +61,15 @@ export class PluginContext {
         log: this.ev<LogEntry>(),
         task: this.tasks.events,
         canvas3d: {
-            settingsUpdated: this.ev(),
-
-            highlight: this.ev<Canvas3D.HighlightEvent>(),
-            click: this.ev<Canvas3D.ClickEvent>()
+            settingsUpdated: this.ev()
         }
     };
 
     readonly behaviors = {
-        // canvas: {
-        //     highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any, modifiers?: ModifiersKeys }>({ loci: EmptyLoci }),
-        //     selectLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any, modifiers?: ModifiersKeys }>({ loci: EmptyLoci }),
-        // },
+        canvas3d: {
+            highlight: this.ev.behavior<Canvas3D.HighlightEvent>({ current: Representation.Loci.Empty, prev: Representation.Loci.Empty }),
+            click: this.ev.behavior<Canvas3D.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
+        },
         labels: {
             highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
         },

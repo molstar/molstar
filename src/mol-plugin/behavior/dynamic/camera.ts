@@ -14,7 +14,7 @@ export const FocusLociOnSelect = PluginBehavior.create<{ minRadius: number, extr
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<{ minRadius: number, extraRadius: number }> {
         register(): void {
-            this.subscribeObservable(this.ctx.events.canvas3d.click, ({ current, buttons, modifiers }) => {
+            this.subscribeObservable(this.ctx.behaviors.canvas3d.click, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d || buttons !== ButtonsType.Flag.Primary || !ModifiersKeys.areEqual(modifiers, ModifiersKeys.None)) return;
 
                 const sphere = Loci.getBoundingSphere(current.loci);

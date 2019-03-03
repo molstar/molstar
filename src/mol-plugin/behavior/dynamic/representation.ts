@@ -26,7 +26,7 @@ export const HighlightLoci = PluginBehavior.create({
             let prev: Representation.Loci = { loci: EmptyLoci, repr: void 0 };
             const sel = this.ctx.helpers.structureSelection;
 
-            this.subscribeObservable(this.ctx.events.canvas3d.highlight, ({ current, modifiers }) => {
+            this.subscribeObservable(this.ctx.behaviors.canvas3d.highlight, ({ current, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
 
                 if (StructureElement.isLoci(current.loci)) {
@@ -70,7 +70,7 @@ export const SelectLoci = PluginBehavior.create({
                 }
             }
 
-            this.subscribeObservable(this.ctx.events.canvas3d.click, ({ current, buttons, modifiers }) => {
+            this.subscribeObservable(this.ctx.behaviors.canvas3d.click, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
 
                 if (current.loci.kind === 'empty-loci') {

@@ -105,16 +105,16 @@ export function Highlight(ctx: PluginContext) {
         // const cell = state.select(ref)[0]
         // const repr = cell && SO.isRepresentation3D(cell.obj) ? cell.obj.data : undefined
         // if (cell && cell.obj && cell.obj.type === PluginStateObject.Molecule.Structure.type) {
-        //     ctx.events.canvas3d.highlight.next({ current: { loci: Structure.Loci(cell.obj.data) } });
+        //     ctx.behaviors.canvas3d.highlight.next({ current: { loci: Structure.Loci(cell.obj.data) } });
         // } else if (repr) {
-        //     ctx.events.canvas3d.highlight.next({ current: { loci: EveryLoci, repr } });
+        //     ctx.behaviors.canvas3d.highlight.next({ current: { loci: EveryLoci, repr } });
         // }
     });
 }
 
 export function ClearHighlight(ctx: PluginContext) {
     PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
-        // ctx.events.canvas3d.highlight.next({ current: { loci: EmptyLoci } });
+        // ctx.behaviors.canvas3d.highlight.next({ current: { loci: EmptyLoci } });
     });
 }
 
