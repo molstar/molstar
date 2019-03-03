@@ -17,7 +17,7 @@ export const PluginCommands = {
     State: {
         SetCurrentObject: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
         ApplyAction: PluginCommand<{ state: State, action: StateAction.Instance, ref?: StateTransform.Ref }>(),
-        Update: PluginCommand<{ state: State, tree: State.Tree | State.Builder, doNotLogTiming?: boolean }>(),
+        Update: PluginCommand<{ state: State, tree: State.Tree | State.Builder, options?: Partial<State.UpdateOptions> }>(),
 
         RemoveObject: PluginCommand<{ state: State, ref: StateTransform.Ref, removeParentGhosts?: boolean }>(),
 

@@ -126,13 +126,13 @@ class State {
      * @param tree Tree instance or a tree builder instance
      * @param doNotReportTiming Indicates whether to log timing of the individual transforms
      */
-    updateTree<T extends StateObject>(tree: StateTree | StateBuilder | StateBuilder.To<T>, doNotLogTiming?: boolean): Task<T>
-    updateTree(tree: StateTree | StateBuilder, doNotLogTiming?: boolean): Task<void>
-    updateTree(tree: StateTree | StateBuilder, doNotLogTiming: boolean = false): Task<any> {
+    updateTree<T extends StateObject>(tree: StateBuilder.To<T>, options?: Partial<State.UpdateOptions>): Task<T>
+    updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<void>
+    updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<any> {
         return Task.create('Update Tree', async taskCtx => {
             let updated = false;
             try {
-                const ctx = this.updateTreeAndCreateCtx(tree, taskCtx, doNotLogTiming);
+                const ctx = this.updateTreeAndCreateCtx(tree, taskCtx, options);
                 updated = await update(ctx);
                 if (StateBuilder.isTo(tree)) {
                     const cell = this.select(tree.ref)[0];
@@ -144,7 +144,7 @@ class State {
         });
     }
 
-    private updateTreeAndCreateCtx(tree: StateTree | StateBuilder, taskCtx: RuntimeContext, doNotLogTiming: boolean) {
+    private updateTreeAndCreateCtx(tree: StateTree | StateBuilder, taskCtx: RuntimeContext, options: Partial<State.UpdateOptions> | undefined) {
         const _tree = (StateBuilder.is(tree) ? tree.getTree() : tree).asTransient();
         const oldTree = this._tree;
         this._tree = _tree;
@@ -162,7 +162,7 @@ class State {
 
             results: [],
 
-            silent: doNotLogTiming,
+            options: { ...StateUpdateDefaultOptions, ...options },
 
             changed: false,
             hadError: false,
@@ -210,10 +210,20 @@ namespace State {
         readonly tree: StateTree.Serialized
     }
 
+    export interface UpdateOptions {
+        doNotLogTiming: boolean,
+        doNotUpdateCurrent: boolean
+    }
+
     export function create(rootObject: StateObject, params?: { globalContext?: unknown, rootProps?: StateTransform.Props }) {
         return new State(rootObject, params);
     }
 }
+
+const StateUpdateDefaultOptions: State.UpdateOptions = {
+    doNotLogTiming: false,
+    doNotUpdateCurrent: false
+};
 
 type Ref = StateTransform.Ref
 
@@ -231,7 +241,7 @@ interface UpdateContext {
     results: UpdateNodeResult[],
 
     // suppress timing messages
-    silent: boolean,
+    options: State.UpdateOptions,
 
     changed: boolean,
     hadError: boolean,
@@ -324,13 +334,13 @@ async function update(ctx: UpdateContext) {
         }
     }
 
-    if (newCurrent) ctx.parent.setCurrent(newCurrent);
-    else {
+    if (newCurrent) {
+        if (!ctx.options.doNotUpdateCurrent) ctx.parent.setCurrent(newCurrent);
+    } else {
         // check if old current or its parent hasn't become null
         const current = ctx.parent.current;
         const currentCell = ctx.cells.get(current);
-        if (currentCell && (
-            currentCell.obj === StateObject.Null
+        if (currentCell && (currentCell.obj === StateObject.Null
             || (currentCell.status === 'error' && currentCell.errorText === ParentNullErrorText))) {
             newCurrent = findNewCurrent(ctx.oldTree, current, [], ctx.cells);
             ctx.parent.setCurrent(newCurrent);
@@ -515,13 +525,13 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.results.push(update);
         if (update.action === 'created') {
             isNull = update.obj === StateObject.Null;
-            if (!isNull && !ctx.silent) ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull && !ctx.options.doNotLogTiming) ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'updated') {
             isNull = update.obj === StateObject.Null;
-            if (!isNull && !ctx.silent) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull && !ctx.options.doNotLogTiming) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'replaced') {
             isNull = update.obj === StateObject.Null;
-            if (!isNull && !ctx.silent) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull && !ctx.options.doNotLogTiming) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         }
     } catch (e) {
         ctx.changed = true;

@@ -84,8 +84,8 @@ class StateTreeNode extends PluginUIComponent<{ nodeRef: string, state: State, d
     }
 
     render() {
-        const cell = this.props.state.cells.get(this.props.nodeRef)!;
-        if (cell.obj === StateObject.Null) return null;
+        const cell = this.props.state.cells.get(this.props.nodeRef);
+        if (!cell || cell.obj === StateObject.Null) return null;
 
         const cellState = this.cellState;
         const showLabel = cell.status !== 'ok' || !cell.transform.props || !cell.transform.props.isGhost;
@@ -202,7 +202,8 @@ class StateTreeNodeLabel extends PluginUIComponent<
 
     render() {
         const n = this.props.state.transforms.get(this.props.nodeRef)!;
-        const cell = this.props.state.cells.get(this.props.nodeRef)!;
+        const cell = this.props.state.cells.get(this.props.nodeRef);
+        if (!cell) return null;
 
         const isCurrent = this.is(this.props.state.behaviors.currentObject.value);
 

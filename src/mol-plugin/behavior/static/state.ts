@@ -49,7 +49,7 @@ export function SetCurrentObject(ctx: PluginContext) {
 }
 
 export function Update(ctx: PluginContext) {
-    PluginCommands.State.Update.subscribe(ctx, ({ state, tree, doNotLogTiming }) => ctx.runTask(state.updateTree(tree, doNotLogTiming)));
+    PluginCommands.State.Update.subscribe(ctx, ({ state, tree, options }) => ctx.runTask(state.updateTree(tree, options)));
 }
 
 export function ApplyAction(ctx: PluginContext) {

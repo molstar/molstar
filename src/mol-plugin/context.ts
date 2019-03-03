@@ -180,7 +180,7 @@ export class PluginContext {
             tree.to(PluginBehavior.getCategoryId(b.transformer)).apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
         }
 
-        await this.runTask(this.state.behaviorState.updateTree(tree, true));
+        await this.runTask(this.state.behaviorState.updateTree(tree, { doNotUpdateCurrent: true, doNotLogTiming: true }));
     }
 
     private initDataActions() {

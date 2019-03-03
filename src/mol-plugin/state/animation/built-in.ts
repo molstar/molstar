@@ -33,6 +33,11 @@ export const AnimateModelIndex = PluginStateAnimation.create({
         const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)
             .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
 
+        if (models.length === 0) {
+            // nothing more to do here
+            return { kind: 'finished' };
+        }
+
         const update = state.build();
 
         const params = ctx.params;
@@ -70,7 +75,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
                 });
         }
 
-        await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, doNotLogTiming: true });
+        await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
 
         if (params.mode.name === 'once' && isEnd) return { kind: 'finished' };
         if (params.mode.name === 'palindrome') return { kind: 'next', state: { palindromeDirections } };
