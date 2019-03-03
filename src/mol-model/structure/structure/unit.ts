@@ -79,6 +79,13 @@ namespace Unit {
         }
     }
 
+    export namespace SymmetryGroup {
+        export function areInvariantElementsEqual(a: SymmetryGroup, b: SymmetryGroup) {
+            if (a.hashCode !== b.hashCode) return false;
+            return SortedArray.areEqual(a.elements, b.elements);
+        }
+    }
+
     export function conformationId (unit: Unit) {
         return Unit.isAtomic(unit) ? unit.model.atomicConformation.id : unit.model.coarseConformation.id
     }
