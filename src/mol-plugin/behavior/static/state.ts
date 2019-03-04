@@ -127,14 +127,15 @@ export function Snapshots(ctx: PluginContext) {
         ctx.state.snapshots.remove(id);
     });
 
-    PluginCommands.State.Snapshots.Add.subscribe(ctx, ({ name, description }) => {
-        const entry = PluginStateSnapshotManager.Entry(ctx.state.getSnapshot(), name, description);
+    PluginCommands.State.Snapshots.Add.subscribe(ctx, ({ name, description, params }) => {
+        const entry = PluginStateSnapshotManager.Entry(ctx.state.getSnapshot(params), name, description);
         ctx.state.snapshots.add(entry);
     });
 
     PluginCommands.State.Snapshots.Apply.subscribe(ctx, ({ id }) => {
-        const e = ctx.state.snapshots.getEntry(id);
-        return ctx.state.setSnapshot(e.snapshot);
+        const snapshot = ctx.state.snapshots.setCurrent(id);
+        if (!snapshot) return;
+        return ctx.state.setSnapshot(snapshot);
     });
 
     PluginCommands.State.Snapshots.Upload.subscribe(ctx, ({ name, description, serverUrl }) => {
@@ -143,14 +144,15 @@ export function Snapshots(ctx: PluginContext) {
             mode: 'cors',
             referrer: 'no-referrer',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(ctx.state.getSnapshot())
+            body: JSON.stringify(ctx.state.snapshots.getRemoteSnapshot())
         }) as any as Promise<void>;
     });
 
     PluginCommands.State.Snapshots.Fetch.subscribe(ctx, async ({ url }) => {
-        const req = await fetch(url, { referrer: 'no-referrer' });
-        const json = await req.json();
-        return ctx.state.setSnapshot(json.data);
+        const json = await ctx.runTask(ctx.fetch({ url, type: 'json' })); //  fetch(url, { referrer: 'no-referrer' });
+        const current = ctx.state.snapshots.setRemoteSnapshot(json.data);
+        if (!current) return;
+        return ctx.state.setSnapshot(current);
     });
 
     PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, ({ name }) => {

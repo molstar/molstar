@@ -10,6 +10,7 @@ import { StateTransform, State, StateAction } from 'mol-state';
 import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
 import { PluginLayoutStateProps } from './layout';
 import { StructureElement } from 'mol-model/structure';
+import { PluginState } from './state';
 
 export * from './command/base';
 
@@ -27,7 +28,7 @@ export const PluginCommands = {
         ClearHighlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
 
         Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string }>({ isImmediate: true }),
+            Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>({ isImmediate: true }),
             Remove: PluginCommand<{ id: string }>({ isImmediate: true }),
             Apply: PluginCommand<{ id: string }>({ isImmediate: true }),
             Clear: PluginCommand<{}>({ isImmediate: true }),

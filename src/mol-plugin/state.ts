@@ -42,7 +42,7 @@ class PluginState {
         }
     }
 
-    getSnapshot(params?: Partial<PluginState.GetSnapshotParams>): PluginState.Snapshot {
+    getSnapshot(params?: PluginState.GetSnapshotParams): PluginState.Snapshot {
         const p = { ...PluginState.DefaultGetSnapshotParams, ...params };
         return {
             id: UUID.create22(),
@@ -119,7 +119,7 @@ namespace PluginState {
         cameraSnapshots: PD.Boolean(false),
         cameraTranstionStyle: PD.Select<CameraTransitionStyle>('animate', [['animate', 'Animate'], ['instant', 'Instant']])
     };
-    export type GetSnapshotParams = PD.Value<typeof GetSnapshotParams>
+    export type GetSnapshotParams = Partial<PD.Value<typeof GetSnapshotParams>>
     export const DefaultGetSnapshotParams = PD.getDefaultValues(GetSnapshotParams);
 
     export interface Snapshot {

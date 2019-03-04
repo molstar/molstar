@@ -11,7 +11,6 @@ import { LogEntry } from 'mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
-import { CameraSnapshots } from './camera';
 import { LociLabelControl, TrajectoryControls } from './controls';
 import { StateSnapshots } from './state';
 import { StateObjectActions } from './state/actions';
@@ -75,7 +74,7 @@ export class ControlsWrapper extends PluginUIComponent {
         return <div className='msp-scrollable-container msp-right-controls'>
             <CurrentObject />
             <AnimationControls />
-            <CameraSnapshots />
+            {/* <CameraSnapshots /> */}
             <StateSnapshots />
         </div>;
     }

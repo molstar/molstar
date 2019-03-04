@@ -22,7 +22,8 @@ import { PluginState } from 'mol-plugin/state';
 require('mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
-    static VERSION_MAJOR = 1;
+    static VERSION_MAJOR = 2;
+    static VERSION_MINOR = 0;
 
     private _ev = RxEventHelper.create();
 

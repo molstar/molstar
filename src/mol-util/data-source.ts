@@ -34,6 +34,7 @@ export function readFromFile(file: File, type: 'string' | 'binary') {
     return <Task<Uint8Array | string>>readFromFileInternal(file, type === 'binary');
 }
 
+// TODO: support for no-referrer
 export function ajaxGet(url: string): Task<string>
 export function ajaxGet(params: AjaxGetParams<'string'>): Task<string>
 export function ajaxGet(params: AjaxGetParams<'binary'>): Task<Uint8Array>
