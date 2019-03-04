@@ -55,6 +55,7 @@ export class PluginContext {
                 removed: merge(this.state.dataState.events.object.removed, this.state.behaviorState.events.object.removed),
                 updated: merge(this.state.dataState.events.object.updated, this.state.behaviorState.events.object.updated)
             },
+            isUpdating: merge(this.state.dataState.events.isUpdating, this.state.behaviorState.events.isUpdating),
             cameraSnapshots: this.state.cameraSnapshots.events,
             snapshots: this.state.snapshots.events,
         },
