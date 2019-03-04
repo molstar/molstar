@@ -81,10 +81,10 @@ export class NumericInput extends React.PureComponent<{
     }
 }
 
-export function IconButton(props: { icon: string, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title?: string, toggleState?: boolean }) {
+export function IconButton(props: { icon: string, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title?: string, toggleState?: boolean, disabled?: boolean }) {
     let className = `msp-btn msp-btn-link msp-btn-icon`;
     if (typeof props.toggleState !== 'undefined') className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
-    return <button className={className} onClick={props.onClick} title={props.title}>
+    return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled}>
         <span className={`msp-icon msp-icon-${props.icon}`}/>
     </button>;
 }

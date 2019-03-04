@@ -151,16 +151,32 @@
     }
 }
 
-.msp-traj-controls {
+.msp-viewport-top-left-controls {
     position: absolute;
     left: $control-spacing;
     top: $control-spacing;
-    line-height: $row-height;
 
-    > span {
-        color: $font-color;
-        padding-top: 1px;
-        font-size: 85%;
-        display: inline-block;
+    .msp-traj-controls {        
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+
+        > span {
+            color: $font-color;
+            padding-top: 1px;
+            font-size: 85%;
+            display: inline-block;
+        }
+    }
+
+    .msp-state-snapshot-viewport-controls {
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+
+        > select {
+            display: inline-block;
+            width: 200px;
+        }
     }
 }

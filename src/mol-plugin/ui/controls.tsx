@@ -25,7 +25,8 @@ export class TrajectoryControls extends PluginUIComponent<{}, { show: boolean, l
             .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
 
         if (models.length === 0) {
-            this.setState({ show: false })
+            this.setState({ show: false });
+            return;
         }
 
         let label = '', count = 0, parents = new Set<string>();
@@ -57,23 +58,81 @@ export class TrajectoryControls extends PluginUIComponent<{}, { show: boolean, l
         this.subscribe(this.plugin.state.dataState.events.changed, this.update);
     }
 
+    reset = () => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
+        state: this.plugin.state.dataState,
+        action: UpdateTrajectory.create({ action: 'reset' })
+    });
+
+    prev = () => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
+        state: this.plugin.state.dataState,
+        action: UpdateTrajectory.create({ action: 'advance', by: -1 })
+    });
+
+    next = () => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
+        state: this.plugin.state.dataState,
+        action: UpdateTrajectory.create({ action: 'advance', by: 1 })
+    });
+
     render() {
         if (!this.state.show) return null;
 
         return <div className='msp-traj-controls'>
-            <IconButton icon='model-first' title='First Model' onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
-                state: this.plugin.state.dataState,
-                action: UpdateTrajectory.create({ action: 'reset' })
-            })} />
-            <IconButton icon='model-prev' title='Previous Model' onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
-                state: this.plugin.state.dataState,
-                action: UpdateTrajectory.create({ action: 'advance', by: -1 })
-            })} />
-            <IconButton icon='model-next' title='Next Model' onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
-                state: this.plugin.state.dataState,
-                action: UpdateTrajectory.create({ action: 'advance', by: 1 })
-            })} />
+            <IconButton icon='model-first' title='First Model' onClick={this.reset} />
+            <IconButton icon='model-prev' title='Previous Model' onClick={this.prev} />
+            <IconButton icon='model-next' title='Next Model' onClick={this.next} />
             { !!this.state.label && <span>{this.state.label}</span> }
+        </div>;
+    }
+}
+
+export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean }> {
+    state = { isBusy: false }
+
+    componentDidMount() {
+        // TODO: this needs to be diabled when the state is updating!
+        this.subscribe(this.plugin.state.snapshots.events.changed, () => this.forceUpdate());
+    }
+
+    async update(id: string) {
+        this.setState({ isBusy: true });
+        await PluginCommands.State.Snapshots.Apply.dispatch(this.plugin, { id });
+        this.setState({ isBusy: false });
+    }
+
+    change = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        if (e.target.value === 'none') return;
+        this.update(e.target.value);
+    }
+
+    prev =  () => {
+        const s = this.plugin.state.snapshots;
+        const id = s.getNextId(s.state.current, -1);
+        if (id) this.update(id);
+    }
+
+    next =  () => {
+        const s = this.plugin.state.snapshots;
+        const id = s.getNextId(s.state.current, 1);
+        if (id) this.update(id);
+    }
+
+    render() {
+        const snapshots = this.plugin.state.snapshots;
+        const count = snapshots.state.entries.size;
+
+        if (count < 2) {
+            return null;
+        }
+
+        const current = snapshots.state.current;
+
+        return <div className='msp-state-snapshot-viewport-controls'>
+            <select className='msp-form-control' value={current || 'none'} onChange={this.change} disabled={this.state.isBusy}>
+                {!current && <option key='none' value='none'></option>}
+                {snapshots.state.entries.valueSeq().map((e, i) => <option key={e!.snapshot.id} value={e!.snapshot.id}>{`[${i! + 1}/${count}]`} {e!.name || new Date(e!.timestamp).toLocaleString()}</option>)}
+            </select>
+            <IconButton icon='model-prev' title='Previous State' onClick={this.prev} disabled={this.state.isBusy} />
+            <IconButton icon='model-next' title='Next State' onClick={this.next} disabled={this.state.isBusy} />
         </div>;
     }
 }

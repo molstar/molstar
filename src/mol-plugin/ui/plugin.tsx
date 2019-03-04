@@ -11,7 +11,7 @@ import { LogEntry } from 'mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
-import { LociLabelControl, TrajectoryControls } from './controls';
+import { LociLabelControl, TrajectoryControls, StateSnapshotViewportControls } from './controls';
 import { StateSnapshots } from './state';
 import { StateObjectActions } from './state/actions';
 import { AnimationControls } from './state/animation';
@@ -84,7 +84,10 @@ export class ViewportWrapper extends PluginUIComponent {
     render() {
         return <>
             <Viewport />
-            <TrajectoryControls />
+            <div className='msp-viewport-top-left-controls'>
+                <TrajectoryControls />
+                <StateSnapshotViewportControls />
+            </div>
             <ViewportControls />
             <div style={{ position: 'absolute', left: '10px', bottom: '10px' }}>
                 <BackgroundTaskProgress />
@@ -186,7 +189,7 @@ export class CurrentObject extends PluginUIComponent {
         if (!showActions) return null;
 
         return <>
-            {(cell.status === 'ok' || cell.status == 'error') && <UpdateTransformContol state={current.state} transform={transform} /> }
+            {(cell.status === 'ok' || cell.status === 'error') && <UpdateTransformContol state={current.state} transform={transform} /> }
             {cell.status === 'ok' && <StateObjectActions state={current.state} nodeRef={ref} />}
         </>;
     }

@@ -49,6 +49,23 @@ class PluginStateSnapshotManager extends PluginComponent<{ current?: UUID | unde
         return e && e.snapshot;
     }
 
+    getNextId(id: string | undefined, dir: -1 | 1) {
+        const xs = this.state.entries;
+        const keys = xs.keys();
+        let k = keys.next();
+        let prev = k.value;
+        const fst = prev;
+        while (!k.done) {
+            k = keys.next();
+            if (k.value === id && dir === -1) return prev;
+            if (!k.done && prev === id && dir === 1) return k.value;
+            if (!k.done) prev = k.value;
+            else break;
+        }
+        if (dir === -1) return prev;
+        return fst;
+    }
+
     setRemoteSnapshot(snapshot: PluginStateSnapshotManager.RemoteSnapshot): PluginState.Snapshot | undefined {
         this.clear();
         const entries = this.state.entries.withMutations(m => {
