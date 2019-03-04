@@ -131,8 +131,8 @@ class State {
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<any> {
         return Task.create('Update Tree', async taskCtx => {
             let updated = false;
+            const ctx = this.updateTreeAndCreateCtx(tree, taskCtx, options);
             try {
-                const ctx = this.updateTreeAndCreateCtx(tree, taskCtx, options);
                 updated = await update(ctx);
                 if (StateBuilder.isTo(tree)) {
                     const cell = this.select(tree.ref)[0];
@@ -140,6 +140,10 @@ class State {
                 }
             } finally {
                 if (updated) this.events.changed.next();
+
+                for (const ref of ctx.stateChanges) {
+                    this.events.cell.stateUpdated.next({ state: this, ref, cellState: this.tree.cellStates.get(ref) });
+                }
             }
         });
     }
@@ -161,6 +165,7 @@ class State {
             transformCache: this.transformCache,
 
             results: [],
+            stateChanges: [],
 
             options: { ...StateUpdateDefaultOptions, ...options },
 
@@ -239,6 +244,7 @@ interface UpdateContext {
     transformCache: Map<Ref, unknown>,
 
     results: UpdateNodeResult[],
+    stateChanges: StateTransform.Ref[],
 
     // suppress timing messages
     options: State.UpdateOptions,
@@ -347,7 +353,6 @@ async function update(ctx: UpdateContext) {
         }
     }
 
-
     return deletes.length > 0 || roots.length > 0 || ctx.changed;
 }
 
@@ -378,12 +383,16 @@ function findDeletes(ctx: UpdateContext): Ref[] {
     return deleteCtx.deletes;
 }
 
-function syncStatesVisitor(n: StateTransform, tree: StateTree, oldState: StateTree.CellStates) {
-    if (!oldState.has(n.ref)) return;
-    (tree as TransientTree).updateCellState(n.ref, oldState.get(n.ref));
+function syncStatesVisitor(n: StateTransform, tree: StateTree, ctx: { oldState: StateTree.CellStates, newState: StateTree.CellStates, changes: StateTransform.Ref[] }) {
+    if (!ctx.oldState.has(n.ref)) return;
+    const changed = StateObjectCell.isStateChange(ctx.oldState.get(n.ref)!, ctx.newState.get(n.ref)!);
+    (tree as TransientTree).updateCellState(n.ref, ctx.newState.get(n.ref));
+    if (changed) {
+        ctx.changes.push(n.ref);
+    }
 }
 function syncStates(ctx: UpdateContext) {
-    StateTree.doPreOrder(ctx.tree, ctx.tree.root, ctx.oldTree.cellStates, syncStatesVisitor);
+    StateTree.doPreOrder(ctx.tree, ctx.tree.root, { newState: ctx.tree.cellStates, oldState: ctx.oldTree.cellStates, changes: ctx.stateChanges }, syncStatesVisitor);
 }
 
 function setCellStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Status, errorText?: string) {
