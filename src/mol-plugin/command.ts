@@ -33,8 +33,6 @@ export const PluginCommands = {
             Apply: PluginCommand<{ id: string }>({ isImmediate: true }),
             Clear: PluginCommand<{}>({ isImmediate: true }),
 
-            Set: PluginCommand<{ snapshot: PluginState.Snapshot }>(),
-
             Upload: PluginCommand<{ name?: string, description?: string, serverUrl: string }>({ isImmediate: true }),
             Fetch: PluginCommand<{ url: string }>(),
 

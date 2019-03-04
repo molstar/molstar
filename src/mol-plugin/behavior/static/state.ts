@@ -135,10 +135,6 @@ export function Snapshots(ctx: PluginContext) {
     PluginCommands.State.Snapshots.Apply.subscribe(ctx, ({ id }) => {
         const snapshot = ctx.state.snapshots.setCurrent(id);
         if (!snapshot) return;
-        return PluginCommands.State.Snapshots.Set.dispatch(ctx, { snapshot });
-    });
-
-    PluginCommands.State.Snapshots.Set.subscribe(ctx, ({ snapshot }) => {
         return ctx.state.setSnapshot(snapshot);
     });
 
@@ -156,7 +152,7 @@ export function Snapshots(ctx: PluginContext) {
         const json = await ctx.runTask(ctx.fetch({ url, type: 'json' })); //  fetch(url, { referrer: 'no-referrer' });
         const snapshot = ctx.state.snapshots.setRemoteSnapshot(json.data);
         if (!snapshot) return;
-        return PluginCommands.State.Snapshots.Set.dispatch(ctx, { snapshot });
+        return ctx.state.setSnapshot(snapshot);
     });
 
     PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, ({ name }) => {
@@ -174,7 +170,7 @@ export function Snapshots(ctx: PluginContext) {
         try {
             const data = await readFromFile(file, 'string').run();
             const snapshot = JSON.parse(data as string);
-            return PluginCommands.State.Snapshots.Set.dispatch(ctx, { snapshot });
+            return ctx.state.setSnapshot(snapshot);
         } catch (e) {
             ctx.log.error(`Reading JSON state: ${e}`);
         }
