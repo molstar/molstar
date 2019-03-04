@@ -214,8 +214,8 @@ class StateTreeNodeLabel extends PluginUIComponent<
             label = <><b>[{cell.status}]</b> <span title={name}>{name}</span></>;
         } else if (cell.status !== 'ok' || !cell.obj) {
             const name = n.transformer.definition.display.name;
-            const title = `${cell.errorText}`
-            label = <><b>[{cell.status}]</b> <a title={title} href='#' onClick={this.setCurrent}>{name}</a>: <i>{cell.errorText}</i></>;
+            const title = `${cell.errorText}`;
+            label = <><a title={title} href='#' onClick={this.setCurrent}><b>[{cell.status}]</b> {name}: <i>{cell.errorText}</i> </a></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
             const title = `${obj.label} ${obj.description ? obj.description : ''}`
