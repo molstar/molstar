@@ -249,6 +249,7 @@ const atomProperty = {
         }), Type.Num, 'Number of bonds (by default only covalent bonds are counted).'),
 
         sourceIndex: atomProp(Type.Num, 'Index of the atom/element in the input file.'),
+        operatorName: atomProp(Type.Str, 'Name of the symmetry operator applied to this element.'),
     },
 
     topology: {
