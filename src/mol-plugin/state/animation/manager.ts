@@ -103,8 +103,11 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
     stop() {
         this.context.canvas3d.setSceneAnimating(false);
         if (typeof this._frame !== 'undefined') cancelAnimationFrame(this._frame);
-        this.updateState({ animationState: 'stopped' });
-        this.triggerUpdate();
+
+        if (this.state.animationState !== 'stopped') {
+            this.updateState({ animationState: 'stopped' });
+            this.triggerUpdate();
+        }
     }
 
     get isAnimating() {

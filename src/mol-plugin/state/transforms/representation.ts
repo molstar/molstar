@@ -161,7 +161,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
 })({
     canAutoUpdate({ a, oldParams, newParams }) {
         // TODO: other criteria as well?
-        return a.data.elementCount < 10000 && oldParams.type.name === newParams.type.name;
+        return a.data.elementCount < 10000 || oldParams.type.name === newParams.type.name;
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
