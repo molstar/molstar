@@ -8,14 +8,20 @@ import { List } from 'immutable';
 import { UUID } from 'mol-util';
 import { PluginState } from '../state';
 import { PluginComponent } from 'mol-plugin/component';
+import { PluginContext } from 'mol-plugin/context';
 
 export { PluginStateSnapshotManager }
 
 class PluginStateSnapshotManager extends PluginComponent<{
     current?: UUID | undefined,
     entries: List<PluginStateSnapshotManager.Entry>,
-    entryMap: Map<string, PluginStateSnapshotManager.Entry>
+    isPlaying: boolean,
+    nextSnapshotDelayInMs: number
 }> {
+    static DefaultNextSnapshotDelayInMs = 1500;
+
+    private entryMap = new Map<string, PluginStateSnapshotManager.Entry>();
+
     readonly events = {
         changed: this.ev()
     };
@@ -28,14 +34,14 @@ class PluginStateSnapshotManager extends PluginComponent<{
 
     getEntry(id: string | undefined) {
         if (!id) return;
-        return this.state.entryMap.get(id);
+        return this.entryMap.get(id);
     }
 
     remove(id: string) {
-        const e = this.state.entryMap.get(id);
+        const e = this.entryMap.get(id);
         if (!e) return;
 
-        this.state.entryMap.delete(id);
+        this.entryMap.delete(id);
         this.updateState({
             current: this.state.current === id ? void 0 : this.state.current,
             entries: this.state.entries.delete(this.getIndex(e))
@@ -44,7 +50,7 @@ class PluginStateSnapshotManager extends PluginComponent<{
     }
 
     add(e: PluginStateSnapshotManager.Entry) {
-        this.state.entryMap.set(e.snapshot.id, e);
+        this.entryMap.set(e.snapshot.id, e);
         this.updateState({ current: e.snapshot.id, entries: this.state.entries.push(e) });
         this.events.changed.next();
     }
@@ -56,7 +62,7 @@ class PluginStateSnapshotManager extends PluginComponent<{
         const idx = this.getIndex(old);
         // The id changes here!
         const e = PluginStateSnapshotManager.Entry(snapshot, old.name, old.description);
-        this.state.entryMap.set(snapshot.id, e);
+        this.entryMap.set(snapshot.id, e);
         this.updateState({ current: e.snapshot.id, entries: this.state.entries.set(idx, e) });
         this.events.changed.next();
     }
@@ -82,7 +88,7 @@ class PluginStateSnapshotManager extends PluginComponent<{
 
     clear() {
         if (this.state.entries.size === 0) return;
-        this.state.entryMap.clear();
+        this.entryMap.clear();
         this.updateState({ current: void 0, entries: List<PluginStateSnapshotManager.Entry>() });
         this.events.changed.next();
     }
@@ -115,11 +121,11 @@ class PluginStateSnapshotManager extends PluginComponent<{
         return this.state.entries.get(idx).snapshot.id;
     }
 
-    setRemoteSnapshot(snapshot: PluginStateSnapshotManager.RemoteSnapshot): PluginState.Snapshot | undefined {
+    async setRemoteSnapshot(snapshot: PluginStateSnapshotManager.RemoteSnapshot): Promise<PluginState.Snapshot | undefined> {
         this.clear();
         const entries = List<PluginStateSnapshotManager.Entry>().asMutable()
         for (const e of snapshot.entries) {
-            this.state.entryMap.set(e.snapshot.id, e);
+            this.entryMap.set(e.snapshot.id, e);
             entries.push(e);
         }
         const current = snapshot.current
@@ -127,11 +133,20 @@ class PluginStateSnapshotManager extends PluginComponent<{
             : snapshot.entries.length > 0
             ? snapshot.entries[0].snapshot.id
             : void 0;
-        this.updateState({ current, entries: entries.asImmutable() });
+        this.updateState({
+            current,
+            entries: entries.asImmutable(),
+            isPlaying: false,
+            nextSnapshotDelayInMs: snapshot.playback ? snapshot.playback.nextSnapshotDelayInMs : PluginStateSnapshotManager.DefaultNextSnapshotDelayInMs
+        });
         this.events.changed.next();
         if (!current) return;
-        const ret = this.getEntry(current);
-        return ret && ret.snapshot;
+        const entry = this.getEntry(current);
+        const next = entry && entry.snapshot;
+        if (!next) return;
+        await this.plugin.state.setSnapshot(next);
+        if (snapshot.playback &&  snapshot.playback.isPlaying) this.play();
+        return next;
     }
 
     getRemoteSnapshot(options?: { name?: string, description?: string }): PluginStateSnapshotManager.RemoteSnapshot {
@@ -141,12 +156,52 @@ class PluginStateSnapshotManager extends PluginComponent<{
             name: options && options.name,
             description: options && options.description,
             current: this.state.current,
+            playback: {
+                isPlaying: this.state.isPlaying,
+                nextSnapshotDelayInMs: this.state.nextSnapshotDelayInMs
+            },
             entries: this.state.entries.valueSeq().toArray()
         };
     }
 
-    constructor() {
-        super({ current: void 0, entries: List(), entryMap: new Map() });
+    private timeoutHandle: any = void 0;
+    private next = async () => {
+        this.timeoutHandle = void 0;
+        const next = this.getNextId(this.state.current, 1);
+        if (!next || next === this.state.current) {
+            this.stop();
+            return;
+        }
+        const snapshot = this.setCurrent(next)!;
+        await this.plugin.state.setSnapshot(snapshot);
+        this.timeoutHandle = setTimeout(this.next, this.state.nextSnapshotDelayInMs);
+    };
+
+    play() {
+        this.updateState({ isPlaying: true });
+        this.next();
+    }
+
+    stop() {
+        this.updateState({ isPlaying: false });
+        if (typeof this.timeoutHandle !== 'undefined') clearTimeout(this.timeoutHandle);
+        this.timeoutHandle = void 0;
+        this.events.changed.next();
+    }
+
+    togglePlay() {
+        if (this.state.isPlaying) this.stop();
+        else this.play();
+    }
+
+    constructor(private plugin: PluginContext) {
+        super({
+            current: void 0,
+            entries: List(),
+            isPlaying: false,
+            nextSnapshotDelayInMs: PluginStateSnapshotManager.DefaultNextSnapshotDelayInMs
+        });
+        // TODO make nextSnapshotDelayInMs editable
     }
 }
 
@@ -167,6 +222,10 @@ namespace PluginStateSnapshotManager {
         name?: string,
         description?: string,
         current: UUID | undefined,
+        playback: {
+            isPlaying: boolean,
+            nextSnapshotDelayInMs: number,
+        },
         entries: Entry[]
     }
 }

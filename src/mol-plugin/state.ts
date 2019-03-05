@@ -25,7 +25,7 @@ class PluginState {
     readonly behaviorState: State;
     readonly animation: PluginAnimationManager;
     readonly cameraSnapshots = new CameraSnapshotManager();
-    readonly snapshots = new PluginStateSnapshotManager();
+    readonly snapshots: PluginStateSnapshotManager;
 
     readonly behavior = {
         kind: this.ev.behavior<PluginState.Kind>('data'),
@@ -89,6 +89,7 @@ class PluginState {
     }
 
     constructor(private plugin: import('./context').PluginContext) {
+        this.snapshots = new PluginStateSnapshotManager(plugin);
         this.dataState = State.create(new SO.Root({ }), { globalContext: plugin });
         this.behaviorState = State.create(new PluginBehavior.Root({ }), { globalContext: plugin, rootProps: { isLocked: true } });
 

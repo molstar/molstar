@@ -139,7 +139,7 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
     render() {
         const current = this.plugin.state.snapshots.state.current;
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
-            {this.plugin.state.snapshots.state.entries.valueSeq().map(e =><li key={e!.snapshot.id}>
+            {this.plugin.state.snapshots.state.entries.map(e =><li key={e!.snapshot.id}>
                 <button data-id={e!.snapshot.id} className='msp-btn msp-btn-block msp-form-control' onClick={this.apply}>
                     <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0}}>{e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>{e!.description}</small>
                 </button>

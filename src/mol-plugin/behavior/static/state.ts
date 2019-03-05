@@ -158,9 +158,7 @@ export function Snapshots(ctx: PluginContext) {
 
     PluginCommands.State.Snapshots.Fetch.subscribe(ctx, async ({ url }) => {
         const json = await ctx.runTask(ctx.fetch({ url, type: 'json' })); //  fetch(url, { referrer: 'no-referrer' });
-        const snapshot = ctx.state.snapshots.setRemoteSnapshot(json.data);
-        if (!snapshot) return;
-        return ctx.state.setSnapshot(snapshot);
+        await ctx.state.snapshots.setRemoteSnapshot(json.data);
     });
 
     PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, ({ name }) => {

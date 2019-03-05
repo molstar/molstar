@@ -109,16 +109,20 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         this.update(e.target.value);
     }
 
-    prev =  () => {
+    prev = () => {
         const s = this.plugin.state.snapshots;
         const id = s.getNextId(s.state.current, -1);
         if (id) this.update(id);
     }
 
-    next =  () => {
+    next = () => {
         const s = this.plugin.state.snapshots;
         const id = s.getNextId(s.state.current, 1);
         if (id) this.update(id);
+    }
+
+    togglePlay = () => {
+        this.plugin.state.snapshots.togglePlay();
     }
 
     render() {
@@ -130,14 +134,18 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         }
 
         const current = snapshots.state.current;
+        const isPlaying = snapshots.state.isPlaying;
+
+        // TODO: better handle disabled state
 
         return <div className='msp-state-snapshot-viewport-controls'>
-            <select className='msp-form-control' value={current || 'none'} onChange={this.change} disabled={this.state.isBusy}>
+            <select className='msp-form-control' value={current || 'none'} onChange={this.change} disabled={this.state.isBusy || isPlaying}>
                 {!current && <option key='none' value='none'></option>}
                 {snapshots.state.entries.valueSeq().map((e, i) => <option key={e!.snapshot.id} value={e!.snapshot.id}>{`[${i! + 1}/${count}]`} {e!.name || new Date(e!.timestamp).toLocaleString()}</option>)}
             </select>
-            <IconButton icon='model-prev' title='Previous State' onClick={this.prev} disabled={this.state.isBusy} />
-            <IconButton icon='model-next' title='Next State' onClick={this.next} disabled={this.state.isBusy} />
+            <IconButton icon='left-open' title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
+            <IconButton icon='right-open' title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />
+            <IconButton icon={isPlaying ? 'pause' : 'play'} title={isPlaying ? 'Pause' : 'Play'} onClick={this.togglePlay} />
         </div>;
     }
 }
