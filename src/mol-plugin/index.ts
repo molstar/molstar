@@ -9,7 +9,6 @@ import { PluginContext } from './context';
 import { Plugin } from './ui/plugin'
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { PluginCommands } from './command';
 import { PluginSpec } from './spec';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
@@ -17,11 +16,6 @@ import { AnimateModelIndex } from './state/animation/built-in';
 import { StateActions } from './state/actions';
 import { InitVolumeStreaming } from './behavior/dynamic/volume-streaming/transformers';
 import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
-
-function getParam(name: string, regex: string): string {
-    let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
-    return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
-}
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
@@ -71,19 +65,5 @@ export const DefaultPluginSpec: PluginSpec = {
 export function createPlugin(target: HTMLElement, spec?: PluginSpec): PluginContext {
     const ctx = new PluginContext(spec || DefaultPluginSpec);
     ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
-
-    trySetSnapshot(ctx);
-
     return ctx;
-}
-
-async function trySetSnapshot(ctx: PluginContext) {
-    try {
-        const snapshotUrl = getParam('snapshot-url', `[^&]+`);
-        if (!snapshotUrl) return;
-        await PluginCommands.State.Snapshots.Fetch.dispatch(ctx, { url: snapshotUrl })
-    } catch (e) {
-        ctx.log.error('Failed to load snapshot.');
-        console.warn('Failed to load snapshot', e);
-    }
 }
