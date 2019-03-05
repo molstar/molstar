@@ -24,6 +24,7 @@ import { RenderableState } from 'mol-gl/renderable';
 import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
 import { Color } from 'mol-util/color';
 import { BaseGeometry } from '../base';
+import { createEmptyOverpaint } from '../overpaint-data';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]
@@ -101,6 +102,7 @@ export namespace DirectVolume {
         const { instanceCount, groupCount } = locationIt
         const color = createColors(locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
+        const overpaint = createEmptyOverpaint()
 
         const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount }
 
@@ -114,6 +116,7 @@ export namespace DirectVolume {
         return {
             ...color,
             ...marker,
+            ...overpaint,
             ...transform,
             ...BaseGeometry.createValues(props, counts),
 

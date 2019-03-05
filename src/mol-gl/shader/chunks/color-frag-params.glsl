@@ -9,3 +9,7 @@
         flat in vec4 vColor;
     #endif
 #endif
+
+#ifdef dOverpaint
+    varying vec4 vOverpaint;
+#endif
