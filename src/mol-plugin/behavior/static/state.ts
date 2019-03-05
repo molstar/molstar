@@ -128,8 +128,16 @@ export function Snapshots(ctx: PluginContext) {
     });
 
     PluginCommands.State.Snapshots.Add.subscribe(ctx, ({ name, description, params }) => {
-        const entry = PluginStateSnapshotManager.Entry(ctx.state.getSnapshot(params), name, description);
+        const entry = PluginStateSnapshotManager.Entry(ctx.state.getSnapshot(params), { name, description });
         ctx.state.snapshots.add(entry);
+    });
+
+    PluginCommands.State.Snapshots.Replace.subscribe(ctx, ({ id, params }) => {
+        ctx.state.snapshots.replace(id, ctx.state.getSnapshot(params));
+    });
+
+    PluginCommands.State.Snapshots.Move.subscribe(ctx, ({ id, dir }) => {
+        ctx.state.snapshots.move(id, dir);
     });
 
     PluginCommands.State.Snapshots.Apply.subscribe(ctx, ({ id }) => {
@@ -150,9 +158,7 @@ export function Snapshots(ctx: PluginContext) {
 
     PluginCommands.State.Snapshots.Fetch.subscribe(ctx, async ({ url }) => {
         const json = await ctx.runTask(ctx.fetch({ url, type: 'json' })); //  fetch(url, { referrer: 'no-referrer' });
-        const current = ctx.state.snapshots.setRemoteSnapshot(json.data);
-        if (!current) return;
-        return ctx.state.setSnapshot(current);
+        await ctx.state.snapshots.setRemoteSnapshot(json.data);
     });
 
     PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, ({ name }) => {
@@ -169,8 +175,8 @@ export function Snapshots(ctx: PluginContext) {
     PluginCommands.State.Snapshots.OpenFile.subscribe(ctx, async ({ file }) => {
         try {
             const data = await readFromFile(file, 'string').run();
-            const json = JSON.parse(data as string);
-            await ctx.state.setSnapshot(json);
+            const snapshot = JSON.parse(data as string);
+            return ctx.state.setSnapshot(snapshot);
         } catch (e) {
             ctx.log.error(`Reading JSON state: ${e}`);
         }

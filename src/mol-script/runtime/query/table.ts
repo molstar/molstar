@@ -206,8 +206,13 @@ const symbols = [
         elementRadius: xs['atom-radius']
     })(ctx)),
     D(MolScript.structureQuery.modifier.wholeResidues, (ctx, xs) => Queries.modifiers.wholeResidues(xs[0] as any)(ctx)),
+    D(MolScript.structureQuery.modifier.union, (ctx, xs) => Queries.modifiers.union(xs[0] as any)(ctx)),
     D(MolScript.structureQuery.modifier.expandProperty, (ctx, xs) => Queries.modifiers.expandProperty(xs[0] as any, xs['property'])(ctx)),
     D(MolScript.structureQuery.modifier.exceptBy, (ctx, xs) => Queries.modifiers.exceptBy(xs[0] as any, xs['by'] as any)(ctx)),
+
+    // ============= COMBINATORS ================
+
+    D(MolScript.structureQuery.combinator.merge, (ctx, xs) => Queries.combinators.merge(xs as any)(ctx)),
 
     // ============= ATOM PROPERTIES ================
 
@@ -220,6 +225,7 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.core.y, atomProp(StructureProperties.atom.y)),
     D(MolScript.structureQuery.atomProperty.core.z, atomProp(StructureProperties.atom.z)),
     D(MolScript.structureQuery.atomProperty.core.sourceIndex, atomProp(StructureProperties.atom.sourceIndex)),
+    D(MolScript.structureQuery.atomProperty.core.operatorName, atomProp(StructureProperties.unit.operator_name)),
     D(MolScript.structureQuery.atomProperty.core.atomKey, (ctx, _) => cantorPairing(ctx.element.unit.id, ctx.element.element)),
 
     // TODO:

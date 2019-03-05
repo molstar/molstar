@@ -213,7 +213,14 @@ export namespace ParamDefinition {
         return { type: 'conditioned', select: Select<string>(conditionForValue(defaultValue) as string, options), defaultValue, conditionParams, conditionForValue, conditionedValue };
     }
 
-    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any>
+    export interface ScriptExpression extends Base<{ language: 'mol-script', expression: string }> {
+        type: 'script-expression'
+    }
+    export function ScriptExpression(defaultValue: ScriptExpression['defaultValue'], info?: Info): ScriptExpression {
+        return setInfo<ScriptExpression>({ type: 'script-expression', defaultValue }, info)
+    }
+
+    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -301,6 +308,9 @@ export namespace ParamDefinition {
             return true;
         } else if (p.type === 'vec3') {
             return Vec3Data.equals(a, b);
+        } else if (p.type === 'script-expression') {
+            const u = a as ScriptExpression['defaultValue'], v = b as ScriptExpression['defaultValue'];
+            return u.language === v.language && u.expression === v.expression;
         } else if (typeof a === 'object' && typeof b === 'object') {
             return shallowEqual(a, b);
         }

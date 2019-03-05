@@ -17,7 +17,7 @@ interface PluginSpec {
     animations?: PluginStateAnimation[],
     customParamEditors?: [StateAction | StateTransformer, StateTransformParameters.Class][],
     layout?: {
-        initial?: PluginLayoutStateProps,
+        initial?: Partial<PluginLayoutStateProps>,
         controls?: {
             left?: React.ComponentClass | 'none',
             right?: React.ComponentClass | 'none',

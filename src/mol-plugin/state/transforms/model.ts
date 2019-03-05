@@ -22,6 +22,8 @@ import { stringToWords } from 'mol-util/string';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { trajectoryFromGRO } from 'mol-model-formats/structure/gro';
 import { parseGRO } from 'mol-io/reader/gro/parser';
+import { parseMolScript } from 'mol-script/language/parser';
+import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
@@ -31,8 +33,10 @@ export { StructureFromModel };
 export { StructureAssemblyFromModel };
 export { StructureSymmetryFromModel };
 export { StructureSelection };
+export { UserStructureSelection };
 export { StructureComplexElement };
 export { CustomModelProperties };
+
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
 const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-mmcif',
@@ -235,6 +239,31 @@ const StructureSelection = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         // TODO: use cache, add "update"
         const compiled = compile<Sel>(params.query);
+        const result = compiled(new QueryContext(a.data));
+        const s = Sel.unionStructure(result);
+        if (s.elementCount === 0) return StateObject.Null;
+        const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
+        return new SO.Molecule.Structure(s, props);
+    }
+});
+
+type UserStructureSelection = typeof UserStructureSelection
+const UserStructureSelection = PluginStateTransform.BuiltIn({
+    name: 'user-structure-selection',
+    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified query expression.' },
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: {
+        query: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
+        label: PD.makeOptional(PD.Text(''))
+    }
+})({
+    apply({ a, params }) {
+        // TODO: use cache, add "update"
+        const parsed = parseMolScript(params.query.expression);
+        if (parsed.length === 0) throw new Error('No query');
+        const query = transpileMolScript(parsed[0]);
+        const compiled = compile<Sel>(query);
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
         if (s.elementCount === 0) return StateObject.Null;

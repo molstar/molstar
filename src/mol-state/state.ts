@@ -42,7 +42,8 @@ class State {
             removed: this.ev<State.ObjectEvent & { obj?: StateObject }>()
         },
         log: this.ev<LogEntry>(),
-        changed: this.ev<void>()
+        changed: this.ev<void>(),
+        isUpdating: this.ev<boolean>()
     };
 
     readonly behaviors = {
@@ -130,6 +131,7 @@ class State {
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<void>
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<any> {
         return Task.create('Update Tree', async taskCtx => {
+            this.events.isUpdating.next(true);
             let updated = false;
             const ctx = this.updateTreeAndCreateCtx(tree, taskCtx, options);
             try {
@@ -140,6 +142,7 @@ class State {
                 }
             } finally {
                 if (updated) this.events.changed.next();
+                this.events.isUpdating.next(false);
 
                 for (const ref of ctx.stateChanges) {
                     this.events.cell.stateUpdated.next({ state: this, ref, cellState: this.tree.cellStates.get(ref) });

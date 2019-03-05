@@ -91,6 +91,9 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
     start() {
         this.context.canvas3d.setSceneAnimating(true);
         this.updateState({ animationState: 'playing' });
+        if (!this.context.behaviors.state.isAnimating.value) {
+            this.context.behaviors.state.isAnimating.next(true);
+        }
         this.triggerUpdate();
 
         this._current.lastTime = 0;
@@ -103,6 +106,9 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
     stop() {
         this.context.canvas3d.setSceneAnimating(false);
         if (typeof this._frame !== 'undefined') cancelAnimationFrame(this._frame);
+        if (this.context.behaviors.state.isAnimating.value) {
+            this.context.behaviors.state.isAnimating.next(false);
+        }
 
         if (this.state.animationState !== 'stopped') {
             this.updateState({ animationState: 'stopped' });

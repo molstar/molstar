@@ -58,7 +58,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
     private rootState: RootState | undefined = void 0;
     private expandedViewport: HTMLMetaElement;
 
-    setProps(props: PluginLayoutStateProps) {
+    setProps(props: Partial<PluginLayoutStateProps>) {
         this.updateState(props);
     }
 

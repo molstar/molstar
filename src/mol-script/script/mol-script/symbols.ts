@@ -7,7 +7,6 @@
 import { UniqueArray } from 'mol-data/generic';
 import Expression from '../../language/expression';
 import { Argument, MSymbol } from '../../language/symbol';
-//import * as M from './macro'
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
 import Type from '../../language/type';
 
@@ -197,6 +196,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.atomProperty.core.y, 'atom.y'),
             Alias(MolScript.structureQuery.atomProperty.core.z, 'atom.z'),
             Alias(MolScript.structureQuery.atomProperty.core.sourceIndex, 'atom.src-index'),
+            Alias(MolScript.structureQuery.atomProperty.core.operatorName, 'atom.op-name'),
             Alias(MolScript.structureQuery.atomProperty.core.atomKey, 'atom.key'),
             Alias(MolScript.structureQuery.atomProperty.core.bondCount, 'atom.bond-count'),
 
@@ -343,4 +343,4 @@ export function transpileMolScript(expr: Expression) {
 //     if (a.length === b.length) return (a < b) as any;
 //     return a.length - b.length;
 // });
-//export default [...sortedSymbols, ...NamedArgs.map(a => ':' + a), ...Constants];
+// export default [...sortedSymbols, ...NamedArgs.map(a => ':' + a), ...Constants];

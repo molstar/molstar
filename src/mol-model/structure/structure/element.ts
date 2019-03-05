@@ -254,11 +254,19 @@ namespace StructureElement {
             }
             if (loci.elements.length === 0) return MS.struct.generator.empty();
 
-            const sourceIndices = UniqueArray.create<number, number>();
+            const sourceIndexMap = new Map<string, UniqueArray<number, number>>();
             const el = StructureElement.create(), p = StructureProperties.atom.sourceIndex;
             for (const e of loci.elements) {
                 const { indices } = e;
                 const { elements } = e.unit;
+                const opName = e.unit.conformation.operator.name;
+
+                let sourceIndices: UniqueArray<number, number>;
+                if (sourceIndexMap.has(opName)) sourceIndices = sourceIndexMap.get(opName)!;
+                else {
+                    sourceIndices = UniqueArray.create<number, number>();
+                    sourceIndexMap.set(opName, sourceIndices);
+                }
 
                 el.unit = e.unit;
                 for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
@@ -268,7 +276,20 @@ namespace StructureElement {
                 }
             }
 
-            const xs = sourceIndices.array;
+            const byOpName: Expression[] = [];
+            const keys = sourceIndexMap.keys();
+            while (true) {
+                const k = keys.next();
+                if (k.done) break;
+                byOpName.push(getOpNameQuery(k.value, sourceIndexMap.get(k.value)!.array));
+            }
+
+            return MS.struct.modifier.union([
+                byOpName.length === 1 ? byOpName[0] : MS.struct.combinator.merge.apply(null, byOpName)
+            ]);
+        }
+
+        function getOpNameQuery(opName: string, xs: number[]) {
             sortArray(xs);
 
             const ranges: number[] = [];
@@ -304,7 +325,7 @@ namespace StructureElement {
 
             return MS.struct.generator.atomGroups({
                 'atom-test': tests.length > 1 ? MS.core.logic.or.apply(null, tests) : tests[0],
-                'group-by': 0
+                'chain-test': MS.core.rel.eq([MS.struct.atomProperty.core.operatorName(), opName])
             });
         }
     }

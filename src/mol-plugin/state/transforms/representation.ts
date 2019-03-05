@@ -194,7 +194,12 @@ const StructureLabels3D = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Representation3D,
     params: {
         // TODO: other targets
-        target: PD.Select<'elements' | 'residues'>('residues', [['residues', 'Residues'], ['elements', 'Elements']]),
+        target: PD.MappedStatic('residues', {
+            'elements': PD.Group({ }),
+            'residues': PD.Group({ }),
+            'static-text': PD.Group({ value: PD.Text('') }, { isFlat: true })
+        }),
+         // PD.Select<'elements' | 'residues'>('residues', [['residues', 'Residues'], ['elements', 'Elements']]),
         options: PD.Group({
             ...Text.Params,
 
@@ -212,7 +217,7 @@ const StructureLabels3D = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Structure Labels', async ctx => {
             const repr = await getLabelRepresentation(ctx, a.data, params);
-            return new SO.Molecule.Representation3D(repr, { label: `Labels`, description: params.target });
+            return new SO.Molecule.Representation3D(repr, { label: `Labels`, description: params.target.name });
         });
     },
     update({ a, b, newParams }) {

@@ -25,7 +25,7 @@ class PluginState {
     readonly behaviorState: State;
     readonly animation: PluginAnimationManager;
     readonly cameraSnapshots = new CameraSnapshotManager();
-    readonly snapshots = new PluginStateSnapshotManager();
+    readonly snapshots: PluginStateSnapshotManager;
 
     readonly behavior = {
         kind: this.ev.behavior<PluginState.Kind>('data'),
@@ -56,7 +56,8 @@ class PluginState {
             cameraSnapshots: p.cameraSnapshots ? this.cameraSnapshots.getStateSnapshot() : void 0,
             canvas3d: p.canvas3d ? {
                 props: this.plugin.canvas3d.props
-            } : void 0
+            } : void 0,
+            durationInMs: params && params.durationInMs
         };
     }
 
@@ -89,6 +90,7 @@ class PluginState {
     }
 
     constructor(private plugin: import('./context').PluginContext) {
+        this.snapshots = new PluginStateSnapshotManager(plugin);
         this.dataState = State.create(new SO.Root({ }), { globalContext: plugin });
         this.behaviorState = State.create(new PluginBehavior.Root({ }), { globalContext: plugin, rootProps: { isLocked: true } });
 
@@ -110,6 +112,7 @@ namespace PluginState {
 
     export type CameraTransitionStyle = 'instant' | 'animate'
     export const GetSnapshotParams = {
+        durationInMs: PD.Numeric(1500, { min: 100, max: 15000, step: 100 }, { label: 'Duration in ms' }),
         data: PD.Boolean(true),
         behavior: PD.Boolean(false),
         animation: PD.Boolean(true),
@@ -119,7 +122,7 @@ namespace PluginState {
         cameraSnapshots: PD.Boolean(false),
         cameraTranstionStyle: PD.Select<CameraTransitionStyle>('animate', [['animate', 'Animate'], ['instant', 'Instant']])
     };
-    export type GetSnapshotParams = Partial<PD.Value<typeof GetSnapshotParams>>
+    export type GetSnapshotParams = Partial<PD.Values<typeof GetSnapshotParams>>
     export const DefaultGetSnapshotParams = PD.getDefaultValues(GetSnapshotParams);
 
     export interface Snapshot {
@@ -134,6 +137,7 @@ namespace PluginState {
         cameraSnapshots?: CameraSnapshotManager.StateSnapshot,
         canvas3d?: {
             props?: Canvas3DProps
-        }
+        },
+        durationInMs?: number
     }
 }
