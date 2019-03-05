@@ -71,7 +71,7 @@ export function CarbohydrateTerminalLinkVisual(): ComplexVisual<CarbohydrateTerm
         createGeometry: createCarbohydrateTerminalLinkCylinderMesh,
         createLocationIterator: CarbohydrateTerminalLinkIterator,
         getLoci: getTerminalLinkLoci,
-        mark: markTerminalLink,
+        eachLocation: eachTerminalLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateTerminalLinkParams>, currentProps: PD.Values<CarbohydrateTerminalLinkParams>) => {
             state.createGeometry = (
                 newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
@@ -128,8 +128,8 @@ function getTerminalLinkLoci(pickingId: PickingId, structure: Structure, id: num
     return EmptyLoci
 }
 
-// TODO mark link when both of the link elements are in a StructureElement.Loci
-function markTerminalLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+// TODO for each link when both of the link elements are in a StructureElement.Loci
+function eachTerminalLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getTerminalLinkIndex } = structure.carbohydrates
 
     let changed = false

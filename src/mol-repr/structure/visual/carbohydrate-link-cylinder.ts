@@ -61,7 +61,7 @@ export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkParams> 
         createGeometry: createCarbohydrateLinkCylinderMesh,
         createLocationIterator: CarbohydrateLinkIterator,
         getLoci: getLinkLoci,
-        mark: markLink,
+        eachLocation: eachCarbohydrateLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateLinkParams>, currentProps: PD.Values<CarbohydrateLinkParams>) => {
             state.createGeometry = (
                 newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
@@ -116,7 +116,7 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+function eachCarbohydrateLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
     if (Link.isLoci(loci)) {
         if (loci.structure !== structure) return false

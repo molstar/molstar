@@ -50,7 +50,7 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
     createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
-    mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
+    eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
@@ -59,7 +59,7 @@ interface ComplexVisualGeometryBuilder<P extends UnitsParams, G extends Geometry
 }
 
 export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geometry.Params<G>>(builder: ComplexVisualGeometryBuilder<P, G>): ComplexVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder
     const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
@@ -187,7 +187,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
             if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {
                 changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
-                changed = mark(loci, currentStructure, apply)
+                changed = eachLocation(loci, currentStructure, apply)
             }
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)

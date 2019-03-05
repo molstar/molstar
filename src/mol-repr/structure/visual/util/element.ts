@@ -68,7 +68,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     return builder.getSpheres()
 }
 
-export function markElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup

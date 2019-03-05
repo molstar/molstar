@@ -78,7 +78,7 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkParams> {
         createGeometry: createIntraUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromGroup,
         getLoci: getLinkLoci,
-        mark: markLink,
+        eachLocation: eachLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitLinkParams>, currentProps: PD.Values<IntraUnitLinkParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
@@ -112,7 +112,7 @@ function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
     return EmptyLoci
 }
 
-function markLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+function eachLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (Link.isLoci(loci)) {
         const { structure, group } = structureGroup

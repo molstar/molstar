@@ -40,7 +40,7 @@ export function getNucleotideElementLoci(pickingId: PickingId, structureGroup: S
     return EmptyLoci
 }
 
-export function markNucleotideElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+export function eachNucleotideElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup

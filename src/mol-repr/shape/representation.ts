@@ -169,24 +169,19 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         mark(loci: Loci, action: MarkerAction) {
             if (!_renderObject) return false
             const { tMarker } = _renderObject.values
+            const { groupCount, instanceCount } = locationIt
+
+            function apply(interval: Interval) {
+                const start = Interval.start(interval)
+                const end = Interval.end(interval)
+                return applyMarkerAction(tMarker.ref.value.array, start, end, action)
+            }
+
             let changed = false
-            const { groupCount, count } = locationIt
-            if (isEveryLoci(loci)) {
-                if (applyMarkerAction(tMarker.ref.value.array, 0, count, action)) changed = true
-            } else if (Shape.isLoci(loci)) {
-                const { instance, groups } = loci
-                for (const g of groups) {
-                    if (Interval.is(g.ids)) {
-                        const start = instance * groupCount + Interval.start(g.ids)
-                        const end = instance * groupCount + Interval.end(g.ids)
-                        if (applyMarkerAction(tMarker.ref.value.array, start, end, action)) changed = true
-                    } else {
-                        for (let i = 0, _i = g.ids.length; i < _i; i++) {
-                            const idx = instance * groupCount + g.ids[i];
-                            if (applyMarkerAction(tMarker.ref.value.array, idx, idx + 1, action)) changed = true
-                        }
-                    }
-                }
+            if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
+                changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
+            } else {
+                changed = eachShapeLocation(loci, _shape, apply)
             }
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)
@@ -219,6 +214,27 @@ function createShapeTransform(transforms: Mat4[], transformData?: TransformData)
         Mat4.toArray(transforms[i], transformArray, i * 16)
     }
     return createTransform(transformArray, transforms.length, transformData)
+}
+
+function eachShapeLocation(loci: Loci, shape: Shape, apply: (interval: Interval) => boolean) {
+    if (!Shape.isLoci(loci)) return false
+    if (loci.shape !== shape) return false
+    let changed = false
+    const { groupCount } = shape
+    const { instance, groups } = loci
+    for (const g of groups) {
+        if (Interval.is(g.ids)) {
+            const start = instance * groupCount + Interval.start(g.ids)
+            const end = instance * groupCount + Interval.end(g.ids)
+            if (apply(Interval.ofBounds(start, end))) changed = true
+        } else {
+            for (let i = 0, _i = g.ids.length; i < _i; i++) {
+                const idx = instance * groupCount + g.ids[i];
+                if (apply(Interval.ofSingleton(idx))) changed = true
+            }
+        }
+    }
+    return changed
 }
 
 export namespace ShapeGroupIterator {

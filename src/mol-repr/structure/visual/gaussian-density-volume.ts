@@ -40,7 +40,7 @@ export function GaussianDensityVolumeVisual(): ComplexVisual<GaussianDensityVolu
         createGeometry: createGaussianDensityVolume,
         createLocationIterator: (structure: Structure) => LocationIterator(structure.elementCount, 1, () => NullLocation),
         getLoci: () => EmptyLoci, // TODO
-        mark: () => false, // TODO
+        eachLocation: () => false, // TODO
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianDensityVolumeParams>, currentProps: PD.Values<GaussianDensityVolumeParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true

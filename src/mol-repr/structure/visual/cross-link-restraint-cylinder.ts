@@ -64,7 +64,7 @@ export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintPara
         createGeometry: createCrossLinkRestraintCylinderMesh,
         createLocationIterator: CrossLinkRestraintIterator,
         getLoci: getLinkLoci,
-        mark: markLink,
+        eachLocation: eachCrossLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CrossLinkRestraintParams>, currentProps: PD.Values<CrossLinkRestraintParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
@@ -104,7 +104,7 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+function eachCrossLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const crossLinks = structure.crossLinkRestraints
 
     let changed = false

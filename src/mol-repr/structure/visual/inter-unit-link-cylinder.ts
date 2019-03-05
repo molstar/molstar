@@ -64,7 +64,7 @@ export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkParams> {
         createGeometry: createInterUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromStructure,
         getLoci: getLinkLoci,
-        mark: markLink,
+        eachLocation: eachLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitLinkParams>, currentProps: PD.Values<InterUnitLinkParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
@@ -95,7 +95,7 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+function eachLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
     if (Link.isLoci(loci)) {
         if (loci.structure !== structure) return false

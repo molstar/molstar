@@ -49,7 +49,7 @@ interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
     createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
-    mark(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
+    eachLocation(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
@@ -58,7 +58,7 @@ interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> 
 }
 
 export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry.Params<G>>(builder: UnitsVisualGeometryBuilder<P, G>): UnitsVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder
     const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
@@ -233,7 +233,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
             if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructureGroup.structure)) {
                 changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
-                changed = mark(loci, currentStructureGroup, apply)
+                changed = eachLocation(loci, currentStructureGroup, apply)
             }
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)

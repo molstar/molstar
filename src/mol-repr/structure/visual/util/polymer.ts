@@ -78,7 +78,7 @@ export function getPolymerElementLoci(pickingId: PickingId, structureGroup: Stru
 }
 
 /** Mark a polymer element (e.g. part of a cartoon trace) when all its residue's elements are in a loci. */
-export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
@@ -126,7 +126,7 @@ export function getPolymerGapElementLoci(pickingId: PickingId, structureGroup: S
     return EmptyLoci
 }
 
-export function markPolymerGapElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!Link.isLoci(loci)) return false
     const { structure, group } = structureGroup

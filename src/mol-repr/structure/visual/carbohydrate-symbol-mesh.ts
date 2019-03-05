@@ -154,7 +154,7 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolPara
         createGeometry: createCarbohydrateSymbolMesh,
         createLocationIterator: CarbohydrateElementIterator,
         getLoci: getCarbohydrateLoci,
-        mark: markCarbohydrate,
+        eachLocation: eachCarbohydrate,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateSymbolParams>, currentProps: PD.Values<CarbohydrateSymbolParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
@@ -191,8 +191,8 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
     return EmptyLoci
 }
 
-/** Mark a carbohydrate (usually a monosaccharide) when all its residue's elements are in a loci. */
-function markCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+/** For each carbohydrate (usually a monosaccharide) when all its residue's elements are in a loci. */
+function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getElementIndex, getAnomericCarbon } = structure.carbohydrates
     let changed = false
     if (StructureElement.isLoci(loci)) {
