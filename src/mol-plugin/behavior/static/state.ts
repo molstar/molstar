@@ -128,7 +128,7 @@ export function Snapshots(ctx: PluginContext) {
     });
 
     PluginCommands.State.Snapshots.Add.subscribe(ctx, ({ name, description, params }) => {
-        const entry = PluginStateSnapshotManager.Entry(ctx.state.getSnapshot(params), name, description);
+        const entry = PluginStateSnapshotManager.Entry(ctx.state.getSnapshot(params), { name, description });
         ctx.state.snapshots.add(entry);
     });
 

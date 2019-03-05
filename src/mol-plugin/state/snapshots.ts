@@ -61,7 +61,10 @@ class PluginStateSnapshotManager extends PluginComponent<{
 
         const idx = this.getIndex(old);
         // The id changes here!
-        const e = PluginStateSnapshotManager.Entry(snapshot, old.name, old.description);
+        const e = PluginStateSnapshotManager.Entry(snapshot, {
+            name: old.name,
+            description: old.description
+        });
         this.entryMap.set(snapshot.id, e);
         this.updateState({ current: e.snapshot.id, entries: this.state.entries.set(idx, e) });
         this.events.changed.next();
@@ -174,7 +177,8 @@ class PluginStateSnapshotManager extends PluginComponent<{
         }
         const snapshot = this.setCurrent(next)!;
         await this.plugin.state.setSnapshot(snapshot);
-        this.timeoutHandle = setTimeout(this.next, this.state.nextSnapshotDelayInMs);
+        const delay = typeof snapshot.durationInMs !== 'undefined' ? snapshot.durationInMs : this.state.nextSnapshotDelayInMs;
+        this.timeoutHandle = setTimeout(this.next, delay);
     };
 
     play() {
@@ -213,8 +217,8 @@ namespace PluginStateSnapshotManager {
         snapshot: PluginState.Snapshot
     }
 
-    export function Entry(snapshot: PluginState.Snapshot, name?: string, description?: string): Entry {
-        return { timestamp: +new Date(), name, snapshot, description };
+    export function Entry(snapshot: PluginState.Snapshot, params: {name?: string, description?: string }): Entry {
+        return { timestamp: +new Date(), snapshot, ...params };
     }
 
     export interface RemoteSnapshot {
