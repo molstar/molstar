@@ -9,9 +9,10 @@ import { Vec2 } from 'mol-math/linear-algebra';
 import { getEventListener } from './line-graph-controls';
 import PointComponent from './point-component';
 import { Lines } from './lines';
-import { normalize, unNormalize } from './normilization';
+import { unNormalize, normalizeToFitGraph } from './normilization';
 
-interface LineGraphComponentState {[x:string]:any,
+interface LineGraphComponentState {
+    [x:string]:any,
     points: Vec2[],
     copyPoint: any,
     canSelectMultiple: boolean,
@@ -260,7 +261,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         if(x > 1 || y > 1) { return -1; }
         let id = this.state.selected[0];
         let unNormalizePoint;
-        const updatePoint = normalize(this.state.height, this.state.width, Vec2.create(x, y), this.state.padding);
+        const updatePoint = normalizeToFitGraph(this.state.height, this.state.width, Vec2.create(x, y), this.state.padding);
         
         this.state.ghostPoints[0].element.setAttribute('cx', `${updatePoint[0]}`);
         this.state.ghostPoints[0].element.setAttribute('cy', `${updatePoint[1]}`);
@@ -354,7 +355,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.sortPoints(this.state.points);
         for (let i = 0; i < this.state.points.length; i++){
             if(i != 0 && i != this.state.points.length-1){
-                point = normalize(this.state.height, this.state.width, this.state.points[i], this.state.padding);
+                point = normalizeToFitGraph(this.state.height, this.state.width, this.state.points[i], this.state.padding);
                 points.push(<PointComponent
                         key={i}
                         id={i}

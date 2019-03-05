@@ -234,7 +234,6 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
             // TODO set initial state, repr.setState({})
             // TODO include isoValue in the label where available
-            console.log(params.type.params);
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Volume.Representation3D(repr, { label: provider.label });
         });

@@ -6,6 +6,7 @@
 
 import { SpacegroupCell, Box3D } from 'mol-math/geometry'
 import { Tensor, Mat4, Vec3 } from 'mol-math/linear-algebra'
+import { Histogram } from 'mol-math/misc';
 
 /** The basic unit cell that contains the data. */
 interface VolumeData {
@@ -16,7 +17,8 @@ interface VolumeData {
         min: number,
         max: number,
         mean: number,
-        sigma: number
+        sigma: number,
+        histogram: Histogram
     }>
 }
 
@@ -25,7 +27,7 @@ namespace VolumeData {
         cell: SpacegroupCell.Zero,
         fractionalBox: Box3D.empty(),
         data: Tensor.create(Tensor.Space([0, 0, 0], [0, 1, 2]), Tensor.Data1([])),
-        dataStats: { min: 0, max: 0, mean: 0, sigma: 0 }
+        dataStats: { min: 0, max: 0, mean: 0, sigma: 0, histogram: { bins: [0, 0], counts: [0] } }
     }
 
     const _scale = Mat4.zero(), _translate = Mat4.zero();

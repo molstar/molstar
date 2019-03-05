@@ -9,6 +9,7 @@ import { Color as ColorData } from './color';
 import { shallowEqual } from 'mol-util';
 import { Vec2 as Vec2Data, Vec3 as Vec3Data } from 'mol-math/linear-algebra';
 import { deepClone } from './object';
+import { Histogram as HistogramData } from 'mol-math/misc';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -146,7 +147,16 @@ export namespace ParamDefinition {
         type: 'line-graph'
     }
     export function LineGraph(defaultValue: Vec2Data[], info?: Info): LineGraph {
-        return setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info)
+        return setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info);
+    }
+
+    export interface Histogram extends Base<number> {
+        type: 'histogram'
+        histogram: HistogramData
+    }
+    
+    export function Histogram(defaultValue: number, histogram: HistogramData, info?: Info): Histogram {
+        return setInfo<Histogram>({ type: 'histogram', histogram, defaultValue}, info);
     }
 
     export interface Group<T> extends Base<T> {
@@ -213,7 +223,7 @@ export namespace ParamDefinition {
         return { type: 'conditioned', select: Select<string>(conditionForValue(defaultValue) as string, options), defaultValue, conditionParams, conditionForValue, conditionedValue };
     }
 
-    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any>
+    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | Histogram | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any>
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }

@@ -9,7 +9,7 @@ import { Task } from 'mol-task';
 import { SpacegroupCell, Box3D } from 'mol-math/geometry';
 import { Tensor, Vec3 } from 'mol-math/linear-algebra';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
-import { degToRad } from 'mol-math/misc';
+import { degToRad, calcHistogram } from 'mol-math/misc';
 
 function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3 }): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async ctx => {
@@ -51,7 +51,8 @@ function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3 }): Task<V
                 min: header.AMIN,
                 max: header.AMAX,
                 mean: header.AMEAN,
-                sigma: header.ARMS
+                sigma: header.ARMS,
+                histogram: calcHistogram(values, header.AMIN, header.AMAX)
             }
         };
     });

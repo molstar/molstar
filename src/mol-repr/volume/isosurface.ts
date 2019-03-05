@@ -25,6 +25,7 @@ const IsoValueParam = PD.Conditioned(
         'absolute': PD.Converted(
             (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v).absoluteValue,
             (v: number) => VolumeIsoValue.absolute(VolumeData.Empty.dataStats, v),
+            // PD.Histogram(0.22, ),
             PD.Numeric(0.5, { min: -1, max: 1, step: 0.01 })
         ),
         'relative': PD.Converted(
@@ -135,14 +136,17 @@ export const IsosurfaceParams = {
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
     const p = PD.clone(IsosurfaceParams)
-    const { min, max, mean, sigma } = volume.dataStats
+    
+    const mean = volume.dataStats.mean;
+    const histogram = volume.dataStats.histogram;
+
     p.isoValue = PD.Conditioned(
         VolumeIsoValue.relative(volume.dataStats, 2),
         {
             'absolute': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v).absoluteValue,
                 (v: number) => VolumeIsoValue.absolute(volume.dataStats, v),
-                PD.Numeric(mean, { min, max, step: sigma / 100 })
+                PD.Histogram(mean, histogram)
             ),
             'relative': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v).relativeValue,
