@@ -105,28 +105,40 @@ const DownloadStructure = StateAction.build({
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const src = params.source;
-    let downloadParams: StateTransformer.Params<Download>;
+    let downloadParams: StateTransformer.Params<Download>[];
 
     switch (src.name) {
         case 'url':
-            downloadParams = { url: src.params.url, isBinary: src.params.isBinary };
+            downloadParams = [{ url: src.params.url, isBinary: src.params.isBinary }];
             break;
         case 'pdbe-updated':
-            downloadParams = { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.id.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params.id}` };
+            downloadParams = getDownloadParams(src.params.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id}`, false);
             break;
         case 'rcsb':
-            downloadParams = { url: `https://files.rcsb.org/download/${src.params.id.toUpperCase()}.cif`, isBinary: false, label: `RCSB: ${src.params.id}` };
+            downloadParams = getDownloadParams(src.params.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB: ${id}`, false);
             break;
         case 'bcif-static':
-            downloadParams = { url: `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${src.params.id.toLowerCase()}`, isBinary: true, label: `BinaryCIF: ${src.params.id}` };
+            downloadParams = getDownloadParams(src.params.id, id => `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${id.toLowerCase()}`, id => `BinaryCIF: ${id}`, true);
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    const data = b.toRoot().apply(StateTransforms.Data.Download, downloadParams, { props: { isGhost: true }});
-    const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
-    return state.updateTree(createStructureTree(ctx, traj, params.source.params.supportProps));
+    for (const download of downloadParams) {
+        const data = b.toRoot().apply(StateTransforms.Data.Download, download, { props: { isGhost: true }});
+        const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
+        createStructureTree(ctx, traj, params.source.params.supportProps)
+    }
+    return state.updateTree(b);
 });
+
+function getDownloadParams(src: string, url: (id: string) => string, label: (id: string) => string, isBinary: boolean): StateTransformer.Params<Download>[] {
+    const ids = src.split(',').map(id => id.trim()).filter(id => !!id && id.length >= 4);
+    const ret: StateTransformer.Params<Download>[] = [];
+    for (const id of ids) {
+        ret.push({ url: url(id), isBinary, label: label(id) })
+    }
+    return ret;
+}
 
 function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' | 'gro' = 'cif') {
     let parsed: StateBuilder.To<PluginStateObject.Molecule.Trajectory>
