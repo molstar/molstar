@@ -36,7 +36,7 @@ function getLabelsText(data: LabelsData, props: PD.Values<Text.Params>, text?: T
 
 export async function getLabelRepresentation(ctx: RuntimeContext, structure: Structure, params: StateTransformer.Params<StructureLabels3D>, prev?: ShapeRepresentation<LabelsData, Text, Text.Params>) {
     const repr = prev || ShapeRepresentation(getLabelsShape, Text.Utils);
-    const data = getLabelData(structure, params.target);
+    const data = getLabelData(structure, params);
     await repr.createOrUpdate(params.options, data).runInContext(ctx);
     return repr;
 }
@@ -47,7 +47,26 @@ function getLabelsShape(ctx: RuntimeContext, data: LabelsData, props: PD.Values<
 }
 
 const boundaryHelper = new BoundaryHelper();
-function getLabelData(structure: Structure, level: 'elements' | 'residues'): LabelsData {
+function getLabelData(structure: Structure, params: StateTransformer.Params<StructureLabels3D>): LabelsData {
+    if (params.target.name === 'static-text') {
+        return getLabelDataStatic(structure, params.target.params.value);
+    } else {
+        return getLabelDataComputed(structure, params.target.name);
+    }
+
+}
+
+function getLabelDataStatic(structure: Structure, text: string): LabelsData {
+    const boundary = structure.boundary.sphere;
+    return {
+        texts: [text],
+        positions: [boundary.center],
+        sizes: [1],
+        depths: [boundary.radius]
+    };
+}
+
+function getLabelDataComputed(structure: Structure, level: 'elements' | 'residues'): LabelsData {
     const data: LabelsData = { texts: [], positions: [], sizes: [], depths: [] };
 
     const l = StructureElement.create();
