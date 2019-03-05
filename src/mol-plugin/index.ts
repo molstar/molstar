@@ -40,6 +40,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Model.StructureSymmetryFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
         PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
+        PluginSpec.Action(StateTransforms.Model.UserStructureSelection),
         PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
         PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.StructureLabels3D),

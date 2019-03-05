@@ -28,6 +28,8 @@ function paramInfo(param: PD.Any, offset: number): string {
         case 'group': return `Object with:\n${getParams(param.params, offset + 2)}`;
         case 'mapped': return `Object { name: string, params: object } where name+params are:\n${getMapped(param, offset + 2)}`;
         case 'line-graph': return `A list of 2d vectors [xi, yi][]`;
+        // TODO: support more languages
+        case 'script-expression': return `An expression in the specified language { language: 'mol-script', expressiong: string }`;
         default:
             const _: never = param;
             console.warn(`${_} has no associated UI component`);
