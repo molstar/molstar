@@ -111,7 +111,7 @@ export class StateObjectTracker<T extends StateObject> {
         const changed = this.cell !== cell || this.version !== version;
         this.cell = cell;
         this.version = version || '';
-        this.data = cell.obj ? cell.obj.data as T : void 0 as any;
+        this.data = cell && cell.obj ? cell.obj.data as T : void 0 as any;
         return changed;
     }
 
