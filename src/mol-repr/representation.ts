@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,7 @@ import { Subject } from 'rxjs';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { BaseGeometry } from 'mol-geo/geometry/base';
 import { Visual } from './visual';
+import { Overpaint } from 'mol-theme/overpaint';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -121,6 +122,7 @@ interface Representation<D, P extends PD.Params = {}, S extends Representation.S
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
     setState: (state: Partial<S>) => void
     setTheme: (theme: Theme) => void
+    setOverpaint: (layers: Overpaint.Layers) => void
     getLoci: (pickingId: PickingId) => ModelLoci
     mark: (loci: ModelLoci, action: MarkerAction) => boolean
     destroy: () => void
@@ -167,6 +169,7 @@ namespace Representation {
         createOrUpdate: () => Task.constant('', undefined),
         setState: () => {},
         setTheme: () => {},
+        setOverpaint: () => false,
         getLoci: () => EmptyLoci,
         mark: () => false,
         destroy: () => {}
@@ -265,6 +268,11 @@ namespace Representation {
                     reprList[i].setTheme(theme)
                 }
             },
+            setOverpaint: (layers: Overpaint.Layers) => {
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    reprList[i].setOverpaint(layers)
+                }
+            },
             destroy() {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     reprList[i].destroy()
@@ -316,6 +324,7 @@ namespace Representation {
                 Representation.updateState(currentState, state)
             },
             setTheme: () => { },
+            setOverpaint: () => false,
             destroy() { }
         }
     }

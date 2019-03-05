@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -17,6 +17,7 @@ import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
 import { GraphicsRenderObject } from 'mol-gl/render-object';
+import { Overpaint } from 'mol-theme/overpaint';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0
@@ -78,6 +79,10 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         _theme = theme
     }
 
+    function setOverpaint(layers: Overpaint.Layers) {
+        if (visual) visual.setOverpaint(layers)
+    }
+
     function destroy() {
         if (visual) visual.destroy()
     }
@@ -96,6 +101,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         createOrUpdate,
         setState,
         setTheme,
+        setOverpaint,
         getLoci,
         mark,
         destroy

@@ -16,6 +16,7 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { updateTransformData, fillIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { calculateTransformBoundingSphere } from 'mol-gl/renderable/util';
 import { ValueCell } from 'mol-util';
+import { Overpaint } from 'mol-theme/overpaint';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -34,6 +35,7 @@ interface Visual<D, P extends PD.Params> {
     setVisibility: (visible: boolean) => void
     setPickable: (pickable: boolean) => void
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
+    setOverpaint: (layers: Overpaint.Layers) => void
     destroy: () => void
 }
 namespace Visual {

@@ -28,6 +28,8 @@ import { UnitsParams } from './units-representation';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
+import { Overpaint } from 'mol-theme/overpaint';
+import { applyOverpaintColor, createOverpaint } from 'mol-geo/geometry/overpaint-data';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -202,6 +204,30 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         },
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
+        },
+        setOverpaint(layers: Overpaint.Layers) {
+            if (!renderObject) return false
+            const { tOverpaint } = renderObject.values
+            const { groupCount, instanceCount } = locationIt
+
+            // ensure texture has right size
+            createOverpaint(layers.length ? groupCount * instanceCount : 0, renderObject.values)
+
+            for (let i = 0, il = layers.length; i < il; ++i) {
+                const { loci, color } = layers[i]
+                const apply = (interval: Interval) => {
+                    const start = Interval.start(interval)
+                    const end = Interval.end(interval)
+                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color)
+                }
+
+                if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {
+                    apply(Interval.ofBounds(0, groupCount * instanceCount))
+                } else {
+                    eachLocation(loci, currentStructure, apply)
+                }
+            }
+            ValueCell.update(tOverpaint, tOverpaint.ref.value)
         },
         destroy() {
             // TODO

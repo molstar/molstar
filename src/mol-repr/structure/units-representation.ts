@@ -19,6 +19,7 @@ import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { Subject } from 'rxjs';
+import { Overpaint } from 'mol-theme/overpaint';
 
 export const UnitsParams = {
     ...StructureParams,
@@ -193,6 +194,10 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         _theme = theme
     }
 
+    function setOverpaint(layers: Overpaint.Layers) {
+        visuals.forEach(({ visual }) => visual.setOverpaint(layers))
+    }
+
     function destroy() {
         visuals.forEach(({ visual }) => visual.destroy())
         visuals.clear()
@@ -216,6 +221,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         createOrUpdate,
         setState,
         setTheme,
+        setOverpaint,
         getLoci,
         mark,
         destroy

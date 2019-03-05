@@ -26,6 +26,7 @@ import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { ColorTheme } from 'mol-theme/color';
 import { createColors } from 'mol-geo/geometry/color-data';
 import { createSizes } from 'mol-geo/geometry/size-data';
+import { Overpaint } from 'mol-theme/overpaint';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
@@ -190,6 +191,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
+        setOverpaint(layers: Overpaint.Layers) {
+            return false // TODO
+        },
         destroy() {
             // TODO
             renderObject = undefined
@@ -260,6 +264,10 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         _theme = theme
     }
 
+    function setOverpaint(layers: Overpaint.Layers) {
+        return visual ? visual.setOverpaint(layers) : false
+    }
+
     function destroy() {
         if (visual) visual.destroy()
     }
@@ -278,6 +286,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         createOrUpdate,
         setState,
         setTheme,
+        setOverpaint,
         getLoci,
         mark,
         destroy

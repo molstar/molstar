@@ -26,6 +26,8 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { Visual } from 'mol-repr/visual';
 import { createSizes } from 'mol-geo/geometry/size-data';
 import { ShapeGroupSizeTheme } from 'mol-theme/size/shape-group';
+import { Overpaint } from 'mol-theme/overpaint';
+import { applyOverpaintColor } from 'mol-geo/geometry/overpaint-data';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>> extends Representation<D, P> { }
 
@@ -199,6 +201,27 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         },
         setTheme(theme: Theme) {
             console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`')
+        },
+        setOverpaint(layers: Overpaint.Layers) {
+            if (!_renderObject) return false
+            const { tOverpaint } = _renderObject.values
+            const { groupCount, instanceCount } = locationIt
+
+            for (let i = 0, il = layers.length; i < il; ++i) {
+                const { loci, color } = layers[i]
+                const apply = (interval: Interval) => {
+                    const start = Interval.start(interval)
+                    const end = Interval.end(interval)
+                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color)
+                }
+
+                if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
+                    apply(Interval.ofBounds(0, groupCount * instanceCount))
+                } else {
+                    eachShapeLocation(loci, _shape, apply)
+                }
+            }
+            ValueCell.update(tOverpaint, tOverpaint.ref.value)
         },
         destroy() {
             // TODO
