@@ -19,7 +19,6 @@ import { LRUCache } from 'mol-util/lru-cache';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { urlCombine } from 'mol-util/url';
 import { VolumeServerHeader, VolumeServerInfo } from './model';
-import { CreateVolumeStreamingBehavior } from './transformers';
 import { ButtonsType } from 'mol-util/input/input-observer';
 import { PluginCommands } from 'mol-plugin/command';
 import { StateSelection } from 'mol-state';
@@ -93,7 +92,7 @@ export namespace VolumeStreaming {
 
     export class Behavior extends PluginBehavior.WithSubscribers<Params> {
         private cache = LRUCache.create<ChannelsData>(25);
-        private params: Params = {} as any;
+        public params: Params = {} as any;
         // private ref: string = '';
 
         channels: Channels = {}
@@ -151,19 +150,19 @@ export namespace VolumeStreaming {
         private updateDynamicBox(ref: string, box: Box3D) {
             if (this.params.view.name !== 'selection-box') return;
 
-            const eR = this.params.view.params.radius;
             const state = this.plugin.state.dataState;
-            const update = state.build().to(ref).update(CreateVolumeStreamingBehavior, old => ({
-                ...old,
+            const newParams: Params = {
+                ...this.params,
                 view: {
                     name: 'selection-box' as 'selection-box',
                     params: {
-                        radius: eR,
+                        radius: this.params.view.params.radius,
                         bottomLeft: box.min,
                         topRight: box.max
                     }
                 }
-            }));
+            };
+            const update = state.build().to(ref).update(newParams);
 
             PluginCommands.State.Update.dispatch(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
         }
@@ -249,6 +248,13 @@ export namespace VolumeStreaming {
                 opacity: i.opacity,
                 isoValue: i.isoValue.kind === 'relative' ? i.isoValue : VolumeIsoValue.toRelative(i.isoValue, stats)
             };
+        }
+
+        getDescription() {
+            if (this.params.view.name === 'selection-box') return 'Selection';
+            if (this.params.view.name === 'box') return 'Static Box';
+            if (this.params.view.name === 'cell') return 'Cell';
+            return '';
         }
 
         constructor(public plugin: PluginContext, public info: VolumeServerInfo.Data) {

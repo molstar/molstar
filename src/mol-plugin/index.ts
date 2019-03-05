@@ -14,7 +14,7 @@ import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
 import { AnimateModelIndex } from './state/animation/built-in';
 import { StateActions } from './state/actions';
-import { InitVolumeStreaming } from './behavior/dynamic/volume-streaming/transformers';
+import { InitVolumeStreaming, BoxifyVolumeStreaming, CreateVolumeStreamingBehavior } from './behavior/dynamic/volume-streaming/transformers';
 import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
 
 export const DefaultPluginSpec: PluginSpec = {
@@ -25,8 +25,10 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateActions.Structure.CreateComplexRepresentation),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
 
-        // PluginSpec.Action(StateActions.Volume.InitVolumeStreaming),
+        // Volume streaming
         PluginSpec.Action(InitVolumeStreaming),
+        PluginSpec.Action(BoxifyVolumeStreaming),
+        PluginSpec.Action(CreateVolumeStreamingBehavior),
 
         PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),

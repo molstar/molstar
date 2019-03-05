@@ -18,6 +18,8 @@ import { VolumeStreaming } from './behavior';
 import { VolumeRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
 import { BuiltInVolumeRepresentations } from 'mol-repr/volume/registry';
 import { createTheme } from 'mol-theme/theme';
+import { Box3D } from 'mol-math/geometry';
+import { Vec3 } from 'mol-math/linear-algebra';
 // import { PluginContext } from 'mol-plugin/context';
 
 export const InitVolumeStreaming = StateAction.build({
@@ -64,6 +66,29 @@ export const InitVolumeStreaming = StateAction.build({
     }
     await state.updateTree(behTree).runInContext(taskCtx);
 }));
+
+export const BoxifyVolumeStreaming = StateAction.build({
+    display: { name: 'Boxify Volume Streaming', description: 'Make the current box permanent.' },
+    from: VolumeStreaming,
+    isApplicable: (a) => a.data.params.view.name === 'selection-box'
+})(({ a, ref, state }, plugin: PluginContext) => {
+    const params = a.data.params;
+    if (params.view.name !== 'selection-box') return;
+    const box = Box3D.create(Vec3.clone(params.view.params.bottomLeft), Vec3.clone(params.view.params.topRight));
+    const r = params.view.params.radius;
+    Box3D.expand(box, box, Vec3.create(r, r, r));
+    const newParams: VolumeStreaming.Params = {
+        ...params,
+        view: {
+            name: 'box' as 'box',
+            params: {
+                bottomLeft: box.min,
+                topRight: box.max
+            }
+        }
+    };
+    return state.updateTree(state.build().to(ref).update(newParams));
+});
 
 export { CreateVolumeStreamingInfo }
 type CreateVolumeStreamingInfo = typeof CreateVolumeStreamingInfo
@@ -120,11 +145,13 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume streaming', async _ => {
         const behavior = new VolumeStreaming.Behavior(plugin, a.data);
         await behavior.update(params);
-        return new VolumeStreaming(behavior, { label: 'Volume Streaming' });
+        return new VolumeStreaming(behavior, { label: 'Volume Streaming', description: behavior.getDescription() });
     }),
     update({ b, newParams }) {
         return Task.create('Update Volume Streaming', async _ => {
-            return await b.data.update(newParams) ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
+            const ret = await b.data.update(newParams) ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
+            b.description = b.data.getDescription();
+            return ret;
         });
     }
 });
