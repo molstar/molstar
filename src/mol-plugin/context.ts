@@ -55,7 +55,6 @@ export class PluginContext {
                 removed: merge(this.state.dataState.events.object.removed, this.state.behaviorState.events.object.removed),
                 updated: merge(this.state.dataState.events.object.updated, this.state.behaviorState.events.object.updated)
             },
-            isUpdating: merge(this.state.dataState.events.isUpdating, this.state.behaviorState.events.isUpdating),
             cameraSnapshots: this.state.cameraSnapshots.events,
             snapshots: this.state.snapshots.events,
         },
@@ -67,6 +66,10 @@ export class PluginContext {
     };
 
     readonly behaviors = {
+        state: {
+            isAnimating: this.ev.behavior<boolean>(false),
+            isUpdating: this.ev.behavior<boolean>(false)
+        },
         canvas3d: {
             highlight: this.ev.behavior<Canvas3D.HighlightEvent>({ current: Representation.Loci.Empty, prev: Representation.Loci.Empty }),
             click: this.ev.behavior<Canvas3D.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
@@ -160,6 +163,12 @@ export class PluginContext {
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
+    private initBehaviorEvents() {
+        merge(this.state.dataState.events.isUpdating, this.state.behaviorState.events.isUpdating).subscribe(u => {
+            this.behaviors.state.isUpdating.next(u);
+        });
+    }
+
     private initBuiltInBehavior() {
         BuiltInPluginBehaviors.State.registerDefault(this);
         BuiltInPluginBehaviors.Representation.registerDefault(this);
@@ -207,6 +216,7 @@ export class PluginContext {
     constructor(public spec: PluginSpec) {
         this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e));
 
+        this.initBehaviorEvents();
         this.initBuiltInBehavior();
 
         this.initBehaviors();

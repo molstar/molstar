@@ -56,6 +56,7 @@ export class TrajectoryControls extends PluginUIComponent<{}, { show: boolean, l
 
     componentDidMount() {
         this.subscribe(this.plugin.state.dataState.events.changed, this.update);
+        this.subscribe(this.plugin.behaviors.state.isAnimating, this.update);
     }
 
     reset = () => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
@@ -76,22 +77,25 @@ export class TrajectoryControls extends PluginUIComponent<{}, { show: boolean, l
     render() {
         if (!this.state.show) return null;
 
+        const isAnimating = this.plugin.behaviors.state.isAnimating.value;
+
         return <div className='msp-traj-controls'>
-            <IconButton icon='model-first' title='First Model' onClick={this.reset} />
-            <IconButton icon='model-prev' title='Previous Model' onClick={this.prev} />
-            <IconButton icon='model-next' title='Next Model' onClick={this.next} />
+            <IconButton icon='model-first' title='First Model' onClick={this.reset} disabled={isAnimating} />
+            <IconButton icon='model-prev' title='Previous Model' onClick={this.prev} disabled={isAnimating} />
+            <IconButton icon='model-next' title='Next Model' onClick={this.next} disabled={isAnimating} />
             { !!this.state.label && <span>{this.state.label}</span> }
         </div>;
     }
 }
 
-export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean }> {
-    state = { isBusy: false }
+export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean, show: boolean }> {
+    state = { isBusy: false, show: true }
 
     componentDidMount() {
         // TODO: this needs to be diabled when the state is updating!
         this.subscribe(this.plugin.state.snapshots.events.changed, () => this.forceUpdate());
-        this.subscribe(this.plugin.events.state.isUpdating, (isBusy) => this.setState({ isBusy }));
+        this.subscribe(this.plugin.behaviors.state.isUpdating, isBusy => this.setState({ isBusy }));
+        this.subscribe(this.plugin.behaviors.state.isAnimating, isAnimating => this.setState({ show: !isAnimating }));
     }
 
     async update(id: string) {
@@ -121,7 +125,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         const snapshots = this.plugin.state.snapshots;
         const count = snapshots.state.entries.size;
 
-        if (count < 2) {
+        if (count < 2 || !this.state.show) {
             return null;
         }
 
