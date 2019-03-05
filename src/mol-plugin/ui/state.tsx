@@ -14,6 +14,7 @@ import { ParamDefinition as PD} from 'mol-util/param-definition';
 import { PluginState } from 'mol-plugin/state';
 import { urlCombine } from 'mol-util/url';
 import { IconButton } from './controls/common';
+import { formatTimespan } from 'mol-util/now';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
 
@@ -139,9 +140,12 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
     render() {
         const current = this.plugin.state.snapshots.state.current;
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
-            {this.plugin.state.snapshots.state.entries.map(e =><li key={e!.snapshot.id}>
+            {this.plugin.state.snapshots.state.entries.map(e => <li key={e!.snapshot.id}>
                 <button data-id={e!.snapshot.id} className='msp-btn msp-btn-block msp-form-control' onClick={this.apply}>
-                    <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0}}>{e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>{e!.description}</small>
+                    <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0}}>
+                        {e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>
+                        {`${e!.snapshot.durationInMs ? formatTimespan(e!.snapshot.durationInMs, false) + `${e!.description ? ', ' : ''}` : ''}${e!.description ? e!.description : ''}`}
+                    </small>
                 </button>
                 <div>
                     <IconButton data-id={e!.snapshot.id} icon='up-thin' title='Move Up' onClick={this.moveUp} isSmall={true} />
@@ -202,7 +206,11 @@ class RemoteStateSnapshots extends PluginUIComponent<
     upload = async () => {
         this.setState({ isBusy: true });
         if (this.plugin.state.snapshots.state.entries.size === 0) {
-            await PluginCommands.State.Snapshots.Add.dispatch(this.plugin, { name: this.state.params.name, description: this.state.params.options.description });
+            await PluginCommands.State.Snapshots.Add.dispatch(this.plugin, {
+                name: this.state.params.name,
+                description: this.state.params.options.description,
+                params: this.plugin.state.snapshots.currentGetSnapshotParams
+            });
         }
 
         await PluginCommands.State.Snapshots.Upload.dispatch(this.plugin, {

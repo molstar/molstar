@@ -112,7 +112,7 @@ namespace PluginState {
 
     export type CameraTransitionStyle = 'instant' | 'animate'
     export const GetSnapshotParams = {
-        durationInMs: PD.Numeric(1500, { min: 100, max: 15000, step: 100 }, { label: 'Duration in MS' }),
+        durationInMs: PD.Numeric(1500, { min: 100, max: 15000, step: 100 }, { label: 'Duration in ms' }),
         data: PD.Boolean(true),
         behavior: PD.Boolean(false),
         animation: PD.Boolean(true),
