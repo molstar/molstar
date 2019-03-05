@@ -13,24 +13,25 @@ import { ParameterControls } from './controls/parameters';
 import { ParamDefinition as PD} from 'mol-util/param-definition';
 import { PluginState } from 'mol-plugin/state';
 import { urlCombine } from 'mol-util/url';
+import { IconButton } from './controls/common';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
 
     render() {
         return <div>
             <div className='msp-section-header'>State</div>
-            <StateSnapshotControls />
+            <LocalStateSnapshots />
             <LocalStateSnapshotList />
             <RemoteStateSnapshots />
         </div>;
     }
 }
 
-class StateSnapshotControls extends PluginUIComponent<
+class LocalStateSnapshots extends PluginUIComponent<
     { },
-    { params: PD.Values<typeof StateSnapshotControls.Params> }> {
+    { params: PD.Values<typeof LocalStateSnapshots.Params> }> {
 
-    state = { params: PD.getDefaultValues(StateSnapshotControls.Params) };
+    state = { params: PD.getDefaultValues(LocalStateSnapshots.Params) };
 
     static Params = {
         name: PD.Text(),
@@ -41,7 +42,11 @@ class StateSnapshotControls extends PluginUIComponent<
     };
 
     add = () => {
-        PluginCommands.State.Snapshots.Add.dispatch(this.plugin, { name: this.state.params.name, description: this.state.params.options.description });
+        PluginCommands.State.Snapshots.Add.dispatch(this.plugin, {
+            name: this.state.params.name,
+            description: this.state.params.options.description,
+            params: this.state.params.options
+        });
         this.setState({
             params: {
                 name: '',
@@ -81,8 +86,10 @@ class StateSnapshotControls extends PluginUIComponent<
                 </div>
             </div>
 
-            <ParameterControls params={StateSnapshotControls.Params} values={this.state.params} onEnter={this.add} onChange={p => {
-                this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
+            <ParameterControls params={LocalStateSnapshots.Params} values={this.state.params} onEnter={this.add} onChange={p => {
+                const params = { ...this.state.params, [p.name]: p.value };
+                this.setState({ params } as any);
+                this.plugin.state.snapshots.currentGetSnapshotParams = params.options;
             }}/>
 
             <div className='msp-btn-row-group'>
@@ -99,26 +106,49 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
         this.subscribe(this.plugin.events.state.snapshots.changed, () => this.forceUpdate());
     }
 
-    apply(id: string) {
-        return () => PluginCommands.State.Snapshots.Apply.dispatch(this.plugin, { id });
+    apply = (e: React.MouseEvent<HTMLElement>) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        if (!id) return;
+        PluginCommands.State.Snapshots.Apply.dispatch(this.plugin, { id });
     }
 
-    remove(id: string) {
-        return () => {
-            PluginCommands.State.Snapshots.Remove.dispatch(this.plugin, { id });
-        }
+    remove = (e: React.MouseEvent<HTMLElement>) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        if (!id) return;
+        PluginCommands.State.Snapshots.Remove.dispatch(this.plugin, { id });
+    }
+
+    moveUp = (e: React.MouseEvent<HTMLElement>) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        if (!id) return;
+        PluginCommands.State.Snapshots.Move.dispatch(this.plugin, { id, dir: -1 });
+    }
+
+    moveDown = (e: React.MouseEvent<HTMLElement>) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        if (!id) return;
+        PluginCommands.State.Snapshots.Move.dispatch(this.plugin, { id, dir: 1 });
+    }
+
+    replace = (e: React.MouseEvent<HTMLElement>) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        if (!id) return;
+        PluginCommands.State.Snapshots.Replace.dispatch(this.plugin, { id, params: this.plugin.state.snapshots.currentGetSnapshotParams });
     }
 
     render() {
         const current = this.plugin.state.snapshots.state.current;
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
             {this.plugin.state.snapshots.state.entries.valueSeq().map(e =><li key={e!.snapshot.id}>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.apply(e!.snapshot.id)}>
+                <button data-id={e!.snapshot.id} className='msp-btn msp-btn-block msp-form-control' onClick={this.apply}>
                     <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0}}>{e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>{e!.description}</small>
                 </button>
-                <button onClick={this.remove(e!.snapshot.id)} className='msp-btn msp-btn-link msp-state-list-remove-button'>
-                    <span className='msp-icon msp-icon-remove' />
-                </button>
+                <div>
+                    <IconButton data-id={e!.snapshot.id} icon='up-thin' title='Move Up' onClick={this.moveUp} isSmall={true} />
+                    <IconButton data-id={e!.snapshot.id} icon='down-thin' title='Move Down' onClick={this.moveDown} isSmall={true} />
+                    <IconButton data-id={e!.snapshot.id} icon='switch' title='Replace' onClick={this.replace} isSmall={true} />
+                    <IconButton data-id={e!.snapshot.id} icon='remove' title='Remove' onClick={this.remove} isSmall={true} />
+                </div>
             </li>)}
         </ul>;
     }
@@ -254,9 +284,9 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
                     disabled={this.props.isBusy} onContextMenu={this.open} title='Click to download, right-click to open in a new tab.'>
                     {e!.name || new Date(e!.timestamp).toLocaleString()} <small>{e!.description}</small>
                 </button>
-                <button data-id={e!.id} onClick={this.props.remove} className='msp-btn msp-btn-link msp-state-list-remove-button' disabled={this.props.isBusy}>
-                    <span className='msp-icon msp-icon-remove' />
-                </button>
+                <div>
+                    <IconButton data-id={e!.id} icon='remove' title='Remove' onClick={this.props.remove} disabled={this.props.isBusy} />
+                </div>
             </li>)}
         </ul>;
     }

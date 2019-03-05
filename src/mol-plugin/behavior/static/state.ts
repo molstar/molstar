@@ -132,6 +132,14 @@ export function Snapshots(ctx: PluginContext) {
         ctx.state.snapshots.add(entry);
     });
 
+    PluginCommands.State.Snapshots.Replace.subscribe(ctx, ({ id, params }) => {
+        ctx.state.snapshots.replace(id, ctx.state.getSnapshot(params));
+    });
+
+    PluginCommands.State.Snapshots.Move.subscribe(ctx, ({ id, dir }) => {
+        ctx.state.snapshots.move(id, dir);
+    });
+
     PluginCommands.State.Snapshots.Apply.subscribe(ctx, ({ id }) => {
         const snapshot = ctx.state.snapshots.setCurrent(id);
         if (!snapshot) return;

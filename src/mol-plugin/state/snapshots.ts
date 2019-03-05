@@ -4,39 +4,86 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OrderedMap } from 'immutable';
+import { List } from 'immutable';
 import { UUID } from 'mol-util';
 import { PluginState } from '../state';
 import { PluginComponent } from 'mol-plugin/component';
 
 export { PluginStateSnapshotManager }
 
-class PluginStateSnapshotManager extends PluginComponent<{ current?: UUID | undefined, entries: OrderedMap<string, PluginStateSnapshotManager.Entry> }> {
+class PluginStateSnapshotManager extends PluginComponent<{
+    current?: UUID | undefined,
+    entries: List<PluginStateSnapshotManager.Entry>,
+    entryMap: Map<string, PluginStateSnapshotManager.Entry>
+}> {
     readonly events = {
         changed: this.ev()
     };
 
-    getEntry(id: string) {
-        return this.state.entries.get(id);
+    currentGetSnapshotParams: PluginState.GetSnapshotParams = PluginState.DefaultGetSnapshotParams as any;
+
+    getIndex(e: PluginStateSnapshotManager.Entry) {
+        return this.state.entries.indexOf(e);
+    }
+
+    getEntry(id: string | undefined) {
+        if (!id) return;
+        return this.state.entryMap.get(id);
     }
 
     remove(id: string) {
-        if (!this.state.entries.has(id)) return;
+        const e = this.state.entryMap.get(id);
+        if (!e) return;
+
+        this.state.entryMap.delete(id);
         this.updateState({
             current: this.state.current === id ? void 0 : this.state.current,
-            entries: this.state.entries.delete(id)
+            entries: this.state.entries.delete(this.getIndex(e))
         });
         this.events.changed.next();
     }
 
     add(e: PluginStateSnapshotManager.Entry) {
-        this.updateState({ current: e.snapshot.id, entries: this.state.entries.set(e.snapshot.id, e) });
+        this.state.entryMap.set(e.snapshot.id, e);
+        this.updateState({ current: e.snapshot.id, entries: this.state.entries.push(e) });
+        this.events.changed.next();
+    }
+
+    replace(id: string, snapshot: PluginState.Snapshot) {
+        const old = this.getEntry(id);
+        if (!old) return;
+
+        const idx = this.getIndex(old);
+        // The id changes here!
+        const e = PluginStateSnapshotManager.Entry(snapshot, old.name, old.description);
+        this.state.entryMap.set(snapshot.id, e);
+        this.updateState({ current: e.snapshot.id, entries: this.state.entries.set(idx, e) });
+        this.events.changed.next();
+    }
+
+    move(id: string, dir: -1 | 1) {
+        const len = this.state.entries.size;
+        if (len < 2) return;
+
+        const e = this.getEntry(id);
+        if (!e) return;
+        const from = this.getIndex(e);
+        let to = (from + dir) % len;
+        if (to < 0) to += len;
+        const f = this.state.entries.get(to);
+
+        const entries = this.state.entries.asMutable();
+        entries.set(to, e);
+        entries.set(from, f);
+
+        this.updateState({ current: e.snapshot.id, entries: entries.asImmutable() });
         this.events.changed.next();
     }
 
     clear() {
         if (this.state.entries.size === 0) return;
-        this.updateState({ current: void 0, entries: OrderedMap<string, PluginStateSnapshotManager.Entry>() });
+        this.state.entryMap.clear();
+        this.updateState({ current: void 0, entries: List<PluginStateSnapshotManager.Entry>() });
         this.events.changed.next();
     }
 
@@ -50,35 +97,37 @@ class PluginStateSnapshotManager extends PluginComponent<{ current?: UUID | unde
     }
 
     getNextId(id: string | undefined, dir: -1 | 1) {
-        const xs = this.state.entries;
-        const keys = xs.keys();
-        let k = keys.next();
-        let prev = k.value;
-        const fst = prev;
-        while (!k.done) {
-            k = keys.next();
-            if (k.value === id && dir === -1) return prev;
-            if (!k.done && prev === id && dir === 1) return k.value;
-            if (!k.done) prev = k.value;
-            else break;
+        const len = this.state.entries.size;
+        if (!id) {
+            if (len === 0) return void 0;
+            const idx = dir === -1 ? len - 1 : 0;
+            return this.state.entries.get(idx).snapshot.id;
         }
-        if (dir === -1) return prev;
-        return fst;
+
+        const e = this.getEntry(id);
+        if (!e) return;
+        let idx = this.getIndex(e);
+        if (idx < 0) return;
+
+        idx = (idx + dir) % len;
+        if (idx < 0) idx += len;
+
+        return this.state.entries.get(idx).snapshot.id;
     }
 
     setRemoteSnapshot(snapshot: PluginStateSnapshotManager.RemoteSnapshot): PluginState.Snapshot | undefined {
         this.clear();
-        const entries = this.state.entries.withMutations(m => {
-            for (const e of snapshot.entries) {
-                m.set(e.snapshot.id, e);
-            }
-        });
+        const entries = List<PluginStateSnapshotManager.Entry>().asMutable()
+        for (const e of snapshot.entries) {
+            this.state.entryMap.set(e.snapshot.id, e);
+            entries.push(e);
+        }
         const current = snapshot.current
             ? snapshot.current
             : snapshot.entries.length > 0
             ? snapshot.entries[0].snapshot.id
             : void 0;
-        this.updateState({ current, entries });
+        this.updateState({ current, entries: entries.asImmutable() });
         this.events.changed.next();
         if (!current) return;
         const ret = this.getEntry(current);
@@ -97,7 +146,7 @@ class PluginStateSnapshotManager extends PluginComponent<{ current?: UUID | unde
     }
 
     constructor() {
-        super({ current: void 0, entries: OrderedMap<string, PluginStateSnapshotManager.Entry>() });
+        super({ current: void 0, entries: List(), entryMap: new Map() });
     }
 }
 

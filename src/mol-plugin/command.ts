@@ -29,6 +29,8 @@ export const PluginCommands = {
 
         Snapshots: {
             Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>({ isImmediate: true }),
+            Replace: PluginCommand<{ id: string, params?: PluginState.GetSnapshotParams }>({ isImmediate: true }),
+            Move: PluginCommand<{ id: string, dir: -1 | 1 }>({ isImmediate: true }),
             Remove: PluginCommand<{ id: string }>({ isImmediate: true }),
             Apply: PluginCommand<{ id: string }>({ isImmediate: true }),
             Clear: PluginCommand<{}>({ isImmediate: true }),
