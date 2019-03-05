@@ -88,7 +88,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
 
         if (!renderObject) {
             updateState.createNew = true
-        } else if (!currentStructureGroup || newStructureGroup.group.hashCode !== currentStructureGroup.group.hashCode) {
+        } else if (!currentStructureGroup || !Unit.SymmetryGroup.areInvariantElementsEqual(newStructureGroup.group, currentStructureGroup.group)) {
             updateState.createNew = true
         }
 

@@ -13,6 +13,7 @@ import VERSION from '../version'
 import * as DataFormat from '../../common/data-format'
 import { Column } from 'mol-data/db';
 import { ArrayEncoding, ArrayEncoder } from 'mol-io/common/binary-cif';
+import { TypedArrayValueType, TypedArrayValueArray } from 'mol-io/common/typed-array';
 
 export default function encode(query: Data.QueryContext, output: Data.QueryOutputStream) {
     let w = CifWriter.createEncoder({ binary: query.params.asBinary, encoderName: `VolumeServer ${VERSION}` });
@@ -106,7 +107,7 @@ const _volume_data_3d_info: CifWriter.Category<ResultContext> = {
     }
 };
 
-function _volume_data_3d_number(i: number, ctx: DataFormat.ValueArray): number {
+function _volume_data_3d_number(i: number, ctx: TypedArrayValueArray): number {
     return ctx[i];
 }
 
@@ -118,7 +119,7 @@ const _volume_data_3d: CifWriter.Category<ResultContext> = {
         const E = ArrayEncoding;
         let encoder: ArrayEncoder;
         let typedArray: any;
-        if (ctx.query.data.header.valueType === DataFormat.ValueType.Float32 || ctx.query.data.header.valueType === DataFormat.ValueType.Int16) {
+        if (ctx.query.data.header.valueType === TypedArrayValueType.Float32 || ctx.query.data.header.valueType === TypedArrayValueType.Int16) {
             let min: number, max: number;
             min = data[0], max = data[0];
             for (let i = 0, n = data.length; i < n; i++) {

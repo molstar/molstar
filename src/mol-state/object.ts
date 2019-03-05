@@ -5,10 +5,10 @@
  */
 
 import { UUID } from 'mol-util';
-import { Transform } from './transform';
+import { StateTransform } from './transform';
 import { ParamDefinition } from 'mol-util/param-definition';
 import { State } from './state';
-import { StateSelection } from './state/selection';
+import { StateSelection } from 'mol-state';
 
 export { StateObject, StateObjectCell }
 
@@ -18,6 +18,8 @@ interface StateObject<D = any, T extends StateObject.Type = StateObject.Type<any
     readonly data: D,
     readonly label: string,
     readonly description?: string,
+    // assigned by reconciler to be StateTransform.props.tag
+    readonly tag?: string
 }
 
 namespace StateObject {
@@ -54,10 +56,10 @@ namespace StateObject {
 }
 
 interface StateObjectCell<T = StateObject> {
-    transform: Transform,
+    transform: StateTransform,
 
     // Which object was used as a parent to create data in this cell
-    sourceRef: Transform.Ref | undefined,
+    sourceRef: StateTransform.Ref | undefined,
 
     status: StateObjectCell.Status,
 

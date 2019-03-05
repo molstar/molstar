@@ -16,10 +16,7 @@ import { ElementSymbol } from 'mol-model/structure/model/types';
 import { Entities } from 'mol-model/structure/model/properties/common';
 import { getAtomicRanges } from 'mol-model/structure/model/properties/utils/atomic-ranges';
 import { getAtomicDerivedData } from 'mol-model/structure/model/properties/utils/atomic-derived';
-import { ModelFormat } from '../format';
-import mmCIF_Format = ModelFormat.mmCIF
 import { FormatData } from './parser';
-
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -45,13 +42,14 @@ function findHierarchyOffsets(atom_site: AtomSite) {
     return { residues, chains };
 }
 
-function createHierarchyData(atom_site: AtomSite, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): AtomicData {
+function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): AtomicData {
     const atoms = Table.ofColumns(AtomsSchema, {
         type_symbol: Column.ofArray({ array: Column.mapToArray(atom_site.type_symbol, ElementSymbol), schema: Column.Schema.Aliased<ElementSymbol>(Column.Schema.str) }),
         label_atom_id: atom_site.label_atom_id,
         auth_atom_id: atom_site.auth_atom_id,
         label_alt_id: atom_site.label_alt_id,
-        pdbx_formal_charge: atom_site.pdbx_formal_charge
+        pdbx_formal_charge: atom_site.pdbx_formal_charge,
+        sourceIndex
     });
     const residues = Table.view(atom_site, ResiduesSchema, offsets.residues);
     // Optimize the numeric columns
@@ -80,9 +78,9 @@ function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
         && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
 }
 
-export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, formatData: FormatData, previous?: Model) {
+export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, formatData: FormatData, previous?: Model) {
     const hierarchyOffsets = findHierarchyOffsets(atom_site);
-    const hierarchyData = createHierarchyData(atom_site, hierarchyOffsets);
+    const hierarchyData = createHierarchyData(atom_site, sourceIndex, hierarchyOffsets);
 
     if (previous && isHierarchyDataEqual(previous.atomicHierarchy, hierarchyData)) {
         return {
@@ -101,7 +99,7 @@ export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_sit
 
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
     const derived = getAtomicDerivedData(hierarchyData, index, formatData.chemicalComponentMap);
-    const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, conformation, derived.residue.moleculeType);
+    const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, conformation, index, derived.residue.moleculeType);
     const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, ...hierarchyRanges, index, derived };
     return { sameAsPrevious: false, hierarchy, conformation };
 }

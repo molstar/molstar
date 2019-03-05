@@ -26,6 +26,7 @@ cmdParser.addArgument(['--folderNumProcesses', '-fp'], { help: 'Convert folder n
 
 interface CmdArgs {
     // bulk?: string,
+    help?: any,
     cfg?: string,
     input?: string,
     outCIF?: string,
@@ -36,12 +37,18 @@ interface CmdArgs {
     folderNumProcesses?: string
 }
 
+
 export interface PreprocessConfig {
     numProcesses?: number,
     customProperties?: ModelPropertyProviderConfig | string
 }
 
 const cmdArgs = cmdParser.parseArgs() as CmdArgs;
+
+if (Object.keys(cmdArgs).filter(k => (cmdArgs as any)[k] !== null).length === 0 || typeof cmdArgs.help !== 'undefined') {
+    cmdParser.printHelp();
+    process.exit(0);
+}
 
 let entries: PreprocessEntry[] = []
 let config: PreprocessConfig = { numProcesses: 1, customProperties: void 0 }

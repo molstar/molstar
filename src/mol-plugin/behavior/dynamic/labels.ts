@@ -9,8 +9,7 @@ import { PluginBehavior } from '../behavior';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
-import { StateSelection } from 'mol-state/state/selection';
-import { StateObjectCell, State } from 'mol-state';
+import { StateObjectCell, State, StateSelection } from 'mol-state';
 import { RuntimeContext } from 'mol-task';
 import { Shape } from 'mol-model/shape';
 import { Text } from 'mol-geo/geometry/text/text';
@@ -74,7 +73,8 @@ function getLabelsText(data: LabelsData, props: PD.Values<Text.Params>, text?: T
 
 export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
     name: 'scene-labels',
-    display: { name: 'Scene Labels', group: 'Labels' },
+    category: 'representation',
+    display: { name: 'Scene Labels' },
     canAutoUpdate: () => true,
     ctor: class extends PluginBehavior.Handler<SceneLabelsProps> {
         private data: LabelsData = {

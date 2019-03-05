@@ -6,28 +6,31 @@
 
 import { Camera } from 'mol-canvas3d/camera';
 import { PluginCommand } from './command/base';
-import { Transform, State } from 'mol-state';
-import { StateAction } from 'mol-state/action';
+import { StateTransform, State, StateAction } from 'mol-state';
 import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
 import { PluginLayoutStateProps } from './layout';
+import { StructureElement } from 'mol-model/structure';
+import { PluginState } from './state';
 
 export * from './command/base';
 
 export const PluginCommands = {
     State: {
-        SetCurrentObject: PluginCommand<{ state: State, ref: Transform.Ref }>(),
-        ApplyAction: PluginCommand<{ state: State, action: StateAction.Instance, ref?: Transform.Ref }>(),
-        Update: PluginCommand<{ state: State, tree: State.Tree | State.Builder, doNotLogTiming?: boolean }>(),
+        SetCurrentObject: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
+        ApplyAction: PluginCommand<{ state: State, action: StateAction.Instance, ref?: StateTransform.Ref }>(),
+        Update: PluginCommand<{ state: State, tree: State.Tree | State.Builder, options?: Partial<State.UpdateOptions> }>(),
 
-        RemoveObject: PluginCommand<{ state: State, ref: Transform.Ref }>(),
+        RemoveObject: PluginCommand<{ state: State, ref: StateTransform.Ref, removeParentGhosts?: boolean }>(),
 
-        ToggleExpanded: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
-        ToggleVisibility: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
-        Highlight: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
-        ClearHighlight: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
+        ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
+        ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
+        Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
+        ClearHighlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
 
         Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string }>({ isImmediate: true }),
+            Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>({ isImmediate: true }),
+            Replace: PluginCommand<{ id: string, params?: PluginState.GetSnapshotParams }>({ isImmediate: true }),
+            Move: PluginCommand<{ id: string, dir: -1 | 1 }>({ isImmediate: true }),
             Remove: PluginCommand<{ id: string }>({ isImmediate: true }),
             Apply: PluginCommand<{ id: string }>({ isImmediate: true }),
             Clear: PluginCommand<{}>({ isImmediate: true }),
@@ -37,6 +40,12 @@ export const PluginCommands = {
 
             DownloadToFile: PluginCommand<{ name?: string }>({ isImmediate: true }),
             OpenFile: PluginCommand<{ file: File }>({ isImmediate: true }),
+        }
+    },
+    Interactivity: {
+        Structure: {
+            Highlight: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>({ isImmediate: true }),
+            Select: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>({ isImmediate: true })
         }
     },
     Layout: {

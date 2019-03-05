@@ -17,7 +17,7 @@ import { StringBuilder } from 'mol-util';
 import { Task } from 'mol-task';
 import { createVolumeIsosurfaceMesh } from 'mol-repr/volume/isosurface';
 import { createEmptyTheme } from 'mol-theme/theme';
-import { parseDensityServerData } from 'mol-model-formats/volume/density-server';
+import { volumeFromDensityServerData } from 'mol-model-formats/volume/density-server';
 
 require('util.promisify').shim();
 const writeFileAsync = util.promisify(fs.writeFile);
@@ -27,7 +27,7 @@ type Volume = { source: DensityServer_Data_Database, volume: VolumeData }
 async function getVolume(url: string): Promise<Volume> {
     const cif = await downloadCif(url, true);
     const data = CIF.schema.densityServer(cif.blocks[1]);
-    return { source: data, volume: await parseDensityServerData(data).run() };
+    return { source: data, volume: await volumeFromDensityServerData(data).run() };
 }
 
 function print(data: Volume) {
@@ -40,7 +40,7 @@ function print(data: Volume) {
 }
 
 async function doMesh(data: Volume, filename: string) {
-    const mesh = await Task.create('', runtime => createVolumeIsosurfaceMesh({ runtime }, data.volume, createEmptyTheme(), { isoValue: VolumeIsoValue.absolute(data.volume.dataStats, 1.5) } )).run();
+    const mesh = await Task.create('', runtime => createVolumeIsosurfaceMesh({ runtime }, data.volume, createEmptyTheme(), { isoValue: VolumeIsoValue.absolute(1.5) } )).run();
     console.log({ vc: mesh.vertexCount, tc: mesh.triangleCount });
 
     // Export the mesh in OBJ format.

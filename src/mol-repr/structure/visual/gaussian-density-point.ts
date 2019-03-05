@@ -11,12 +11,12 @@ import { StructureElementIterator } from './util/element';
 import { EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
-import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Points } from 'mol-geo/geometry/points/points';
 import { PointsBuilder } from 'mol-geo/geometry/points/points-builder';
 import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
+import { computeUnitGaussianDensity, GaussianDensityParams, GaussianDensityProps } from './util/gaussian';
 
 export const GaussianDensityPointParams = {
     ...UnitsPointsParams,
@@ -26,7 +26,7 @@ export const GaussianDensityPointParams = {
 export type GaussianDensityPointParams = typeof GaussianDensityPointParams
 
 export async function createGaussianDensityPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, points?: Points) {
-    const { transform, field: { space, data } } = await unit.computeGaussianDensity(props, ctx.runtime, ctx.webgl)
+    const { transform, field: { space, data } } = await computeUnitGaussianDensity(unit, props, ctx.webgl).runInContext(ctx.runtime)
 
     const { dimensions, get } = space
     const [ xn, yn, zn ] = dimensions
@@ -67,7 +67,6 @@ export function GaussianDensityPointVisual(): UnitsVisual<GaussianDensityPointPa
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
-            if (newProps.ignoreCache !== currentProps.ignoreCache) state.createGeometry = true
         }
     })
 }

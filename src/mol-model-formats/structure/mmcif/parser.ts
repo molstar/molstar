@@ -19,7 +19,7 @@ import { createAssemblies } from './assembly';
 import { getAtomicHierarchyAndConformation } from './atomic';
 import { ComponentBond } from './bonds';
 import { getIHMCoarse, EmptyIHMCoarse, IHMData } from './ihm';
-import { getSecondaryStructureMmCif } from './secondary-structure';
+import { getSecondaryStructure } from './secondary-structure';
 import { getSequence } from './sequence';
 import { sortAtomSite } from './sort';
 import { StructConn } from './bonds/struct_conn';
@@ -75,7 +75,8 @@ function getNcsOperators(format: mmCIF_Format) {
         const m = Tensor.toMat3(matrixSpace, matrix.value(i));
         const v = Tensor.toVec3(vectorSpace, vector.value(i));
         if (!SymmetryOperator.checkIfRotationAndTranslation(m, v)) continue;
-        opers[opers.length] = SymmetryOperator.ofRotationAndOffset(`ncs_${id.value(i)}`, m, v);
+        const ncsId = id.value(i)
+        opers[opers.length] = SymmetryOperator.ofRotationAndOffset(`ncs_${ncsId}`, m, v, ncsId);
     }
     return opers;
 }
@@ -168,8 +169,8 @@ function getFormatData(format: mmCIF_Format): FormatData {
     }
 }
 
-function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, formatData: FormatData, previous?: Model): Model {
-    const atomic = getAtomicHierarchyAndConformation(format, atom_site, entities, formatData, previous);
+function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, formatData: FormatData, previous?: Model): Model {
+    const atomic = getAtomicHierarchyAndConformation(atom_site, sourceIndex, entities, formatData, previous);
     if (previous && atomic.sameAsPrevious) {
         return {
             ...previous,
@@ -198,7 +199,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
-            secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
+            secondaryStructure: getSecondaryStructure(format.data, atomic.hierarchy, atomic.conformation),
             ...formatData
         },
         customProperties: new CustomProperties(),
@@ -208,7 +209,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
 }
 
 function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatData): Model {
-    const atomic = getAtomicHierarchyAndConformation(format, data.atom_site, data.entities, formatData);
+    const atomic = getAtomicHierarchyAndConformation(data.atom_site, data.atom_site_sourceIndex, data.entities, formatData);
     const coarse = getIHMCoarse(data, formatData);
 
     return {
@@ -224,7 +225,7 @@ function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatD
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
-            secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
+            secondaryStructure: getSecondaryStructure(format.data, atomic.hierarchy, atomic.conformation),
             ...formatData
         },
         customProperties: new CustomProperties(),
@@ -254,8 +255,8 @@ async function readStandard(ctx: RuntimeContext, format: mmCIF_Format, formatDat
     let modelStart = 0;
     while (modelStart < atomCount) {
         const modelEnd = findModelEnd(format.data.atom_site.pdbx_PDB_model_num, modelStart);
-        const atom_site = await sortAtomSite(ctx, format.data.atom_site, modelStart, modelEnd);
-        const model = createStandardModel(format, atom_site, entities, formatData, models.length > 0 ? models[models.length - 1] : void 0);
+        const { atom_site, sourceIndex } = await sortAtomSite(ctx, format.data.atom_site, modelStart, modelEnd);
+        const model = createStandardModel(format, atom_site, sourceIndex, entities, formatData, models.length > 0 ? models[models.length - 1] : void 0);
         attachProps(model);
         models.push(model);
         modelStart = modelEnd;
@@ -264,14 +265,17 @@ async function readStandard(ctx: RuntimeContext, format: mmCIF_Format, formatDat
 }
 
 function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
-    const ret = new Map<number, T>()
+    const ret = new Map<number, { table: T, start: number, end: number }>()
     const rowCount = table._rowCount;
     let modelStart = 0;
     while (modelStart < rowCount) {
         const modelEnd = findModelEnd(col, modelStart);
         const id = col.value(modelStart);
-        const window = Table.window(table, table._schema, modelStart, modelEnd) as T;
-        ret.set(id, window);
+        ret.set(id, {
+            table: Table.window(table, table._schema, modelStart, modelEnd) as T,
+            start: modelStart,
+            end: modelEnd
+        });
         modelStart = modelEnd;
     }
     return ret;
@@ -281,12 +285,14 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
     const { ihm_model_list } = format.data;
     const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
 
-    if (!format.data.atom_site.ihm_model_id.isDefined) {
+    if (format.data.atom_site._rowCount && !format.data.atom_site.ihm_model_id.isDefined) {
         throw new Error('expected _atom_site.ihm_model_id to be defined')
     }
 
-    // TODO: will IHM require sorting or will we trust it?
     const atom_sites = splitTable(format.data.atom_site, format.data.atom_site.ihm_model_id);
+    // TODO: will coarse IHM records require sorting or will we trust it?
+    // ==> Probably implement a sort as as well and store the sourceIndex same as with atomSite
+    // If the sorting is implemented, updated mol-model/structure/properties: atom.sourceIndex
     const sphere_sites = splitTable(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site.model_id);
     const gauss_sites = splitTable(format.data.ihm_gaussian_obj_site, format.data.ihm_gaussian_obj_site.model_id);
 
@@ -295,13 +301,26 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
     const { model_id, model_name } = ihm_model_list;
     for (let i = 0; i < ihm_model_list._rowCount; i++) {
         const id = model_id.value(i);
+
+        let atom_site, atom_site_sourceIndex;
+        if (atom_sites.has(id)) {
+            const e = atom_sites.get(id)!;
+            const { atom_site: sorted, sourceIndex } = await sortAtomSite(ctx, e.table, e.start, e.end);
+            atom_site = sorted;
+            atom_site_sourceIndex = sourceIndex;
+        } else {
+            atom_site = Table.window(format.data.atom_site, format.data.atom_site._schema, 0, 0);
+            atom_site_sourceIndex = Column.ofIntArray([]);
+        }
+
         const data: IHMData = {
             model_id: id,
             model_name: model_name.value(i),
             entities: entities,
-            atom_site: atom_sites.has(id) ? atom_sites.get(id)! : Table.window(format.data.atom_site, format.data.atom_site._schema, 0, 0),
-            ihm_sphere_obj_site: sphere_sites.has(id) ? sphere_sites.get(id)! : Table.window(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site._schema, 0, 0),
-            ihm_gaussian_obj_site: gauss_sites.has(id) ? gauss_sites.get(id)! : Table.window(format.data.ihm_gaussian_obj_site, format.data.ihm_gaussian_obj_site._schema, 0, 0)
+            atom_site,
+            atom_site_sourceIndex,
+            ihm_sphere_obj_site: sphere_sites.has(id) ? sphere_sites.get(id)!.table : Table.window(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site._schema, 0, 0),
+            ihm_gaussian_obj_site: gauss_sites.has(id) ? gauss_sites.get(id)!.table : Table.window(format.data.ihm_gaussian_obj_site, format.data.ihm_gaussian_obj_site._schema, 0, 0)
         };
         const model = createModelIHM(format, data, formatData);
         attachProps(model);

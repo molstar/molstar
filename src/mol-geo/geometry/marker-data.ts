@@ -38,12 +38,14 @@ export function applyMarkerAction(array: Uint8Array, start: number, end: number,
                 }
                 break
             case MarkerAction.Select:
-                v += 2
+                if (v < 2) v += 2
+                // v += 2
                 break
             case MarkerAction.Deselect:
-                if (v >= 2) {
-                    v -= 2
-                }
+                // if (v >= 2) {
+                //     v -= 2
+                // }
+                v = v % 2
                 break
             case MarkerAction.Toggle:
                 if (v >= 2) {

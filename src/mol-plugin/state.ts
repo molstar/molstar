@@ -14,6 +14,8 @@ import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
 import { PluginCommands } from './command';
 import { PluginAnimationManager } from './state/animation/manager';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { UUID } from 'mol-util';
 export { PluginState }
 
 class PluginState {
@@ -23,7 +25,7 @@ class PluginState {
     readonly behaviorState: State;
     readonly animation: PluginAnimationManager;
     readonly cameraSnapshots = new CameraSnapshotManager();
-    readonly snapshots = new PluginStateSnapshotManager();
+    readonly snapshots: PluginStateSnapshotManager;
 
     readonly behavior = {
         kind: this.ev.behavior<PluginState.Kind>('data'),
@@ -40,30 +42,42 @@ class PluginState {
         }
     }
 
-    getSnapshot(): PluginState.Snapshot {
+    getSnapshot(params?: PluginState.GetSnapshotParams): PluginState.Snapshot {
+        const p = { ...PluginState.DefaultGetSnapshotParams, ...params };
         return {
-            data: this.dataState.getSnapshot(),
-            behaviour: this.behaviorState.getSnapshot(),
-            animation: this.animation.getSnapshot(),
-            cameraSnapshots: this.cameraSnapshots.getStateSnapshot(),
-            canvas3d: {
-                camera: this.plugin.canvas3d.camera.getSnapshot(),
-                viewport: this.plugin.canvas3d.props
-            }
+            id: UUID.create22(),
+            data: p.data ? this.dataState.getSnapshot() : void 0,
+            behaviour: p.behavior ? this.behaviorState.getSnapshot() : void 0,
+            animation: p.animation ? this.animation.getSnapshot() : void 0,
+            camera: p.camera ? {
+                current: this.plugin.canvas3d.camera.getSnapshot(),
+                transitionStyle: p.cameraTranstionStyle ? p.cameraTranstionStyle : 'instant'
+            } : void 0,
+            cameraSnapshots: p.cameraSnapshots ? this.cameraSnapshots.getStateSnapshot() : void 0,
+            canvas3d: p.canvas3d ? {
+                props: this.plugin.canvas3d.props
+            } : void 0,
+            durationInMs: params && params.durationInMs
         };
     }
 
     async setSnapshot(snapshot: PluginState.Snapshot) {
+        this.animation.stop();
+
         if (snapshot.behaviour) await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
         if (snapshot.data) await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));
-        if (snapshot.cameraSnapshots) this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         if (snapshot.canvas3d) {
-            if (snapshot.canvas3d.viewport) PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: snapshot.canvas3d.viewport || { } });
-            if (snapshot.canvas3d.camera) this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
+            if (snapshot.canvas3d.props) await PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: snapshot.canvas3d.props || { } });
         }
-        this.plugin.canvas3d.requestDraw(true);
+        if (snapshot.cameraSnapshots) this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         if (snapshot.animation) {
             this.animation.setSnapshot(snapshot.animation);
+        }
+        if (snapshot.camera) {
+            await PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, {
+                snapshot: snapshot.camera.current,
+                durationMs: snapshot.camera.transitionStyle === 'animate' ? 250 : void 0
+            });
         }
     }
 
@@ -76,8 +90,9 @@ class PluginState {
     }
 
     constructor(private plugin: import('./context').PluginContext) {
+        this.snapshots = new PluginStateSnapshotManager(plugin);
         this.dataState = State.create(new SO.Root({ }), { globalContext: plugin });
-        this.behaviorState = State.create(new PluginBehavior.Root({ }), { globalContext: plugin });
+        this.behaviorState = State.create(new PluginBehavior.Root({ }), { globalContext: plugin, rootProps: { isLocked: true } });
 
         this.dataState.behaviors.currentObject.subscribe(o => {
             if (this.behavior.kind.value === 'data') this.behavior.currentObject.next(o);
@@ -95,14 +110,34 @@ class PluginState {
 namespace PluginState {
     export type Kind = 'data' | 'behavior'
 
+    export type CameraTransitionStyle = 'instant' | 'animate'
+    export const GetSnapshotParams = {
+        durationInMs: PD.Numeric(1500, { min: 100, max: 15000, step: 100 }, { label: 'Duration in ms' }),
+        data: PD.Boolean(true),
+        behavior: PD.Boolean(false),
+        animation: PD.Boolean(true),
+        canvas3d: PD.Boolean(true),
+        camera: PD.Boolean(true),
+        // TODO: make camera snapshots same as the StateSnapshots with "child states?"
+        cameraSnapshots: PD.Boolean(false),
+        cameraTranstionStyle: PD.Select<CameraTransitionStyle>('animate', [['animate', 'Animate'], ['instant', 'Instant']])
+    };
+    export type GetSnapshotParams = Partial<PD.Values<typeof GetSnapshotParams>>
+    export const DefaultGetSnapshotParams = PD.getDefaultValues(GetSnapshotParams);
+
     export interface Snapshot {
+        id: UUID,
         data?: State.Snapshot,
         behaviour?: State.Snapshot,
         animation?: PluginAnimationManager.Snapshot,
+        camera?: {
+            current: Camera.Snapshot,
+            transitionStyle: CameraTransitionStyle
+        },
         cameraSnapshots?: CameraSnapshotManager.StateSnapshot,
         canvas3d?: {
-            camera?: Camera.Snapshot,
-            viewport?: Canvas3DProps
-        }
+            props?: Canvas3DProps
+        },
+        durationInMs?: number
     }
 }

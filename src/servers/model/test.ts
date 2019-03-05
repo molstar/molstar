@@ -13,7 +13,7 @@ function wrapFile(fn: string) {
         },
         writeBinary(this: any, data: Uint8Array) {
             this.open();
-            fs.writeSync(this.file, new Buffer(data));
+            fs.writeSync(this.file, Buffer.from(data));
             return true;
         },
         writeString(this: any, data: string) {

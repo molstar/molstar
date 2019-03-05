@@ -18,6 +18,15 @@
     text-align: center;
 }
 
+.msp-btn-icon-small {
+    height: $row-height;
+    width: 20px;
+    font-size: 85%;
+    line-height: $row-height;
+    padding: 0;
+    text-align: center;
+}
+
 .msp-btn-link {
     .msp-icon {
         font-size: 100%;

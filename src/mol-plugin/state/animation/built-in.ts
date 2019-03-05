@@ -7,7 +7,7 @@
 import { PluginStateAnimation } from './model';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
-import { StateSelection } from 'mol-state/state/selection';
+import { StateSelection } from 'mol-state';
 import { PluginCommands } from 'mol-plugin/command';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
@@ -15,12 +15,12 @@ export const AnimateModelIndex = PluginStateAnimation.create({
     name: 'built-in.animate-model-index',
     display: { name: 'Animate Model Index' },
     params: () => ({
-        mode: PD.MappedStatic('once', {
-            once: PD.Group({ direction: PD.Select('forward', [['forward', 'Forward'], ['backward', 'Backward']]) }, { isFlat: true }),
+        mode: PD.MappedStatic('palindrome', {
             palindrome: PD.Group({ }),
             loop: PD.Group({ }),
-        }, { options: [['once', 'Once'], ['palindrome', 'Palindrome'], ['loop', 'Loop']] }),
-        maxFPS: PD.Numeric(3, { min: 0.5, max: 30, step: 0.5 })
+            once: PD.Group({ direction: PD.Select('palindrome', [['forward', 'Forward'], ['backward', 'Backward']]) }, { isFlat: true })
+        }, { options: [['palindrome', 'Palindrome'], ['loop', 'Loop'], ['once', 'Once']] }),
+        maxFPS: PD.Numeric(15, { min: 1, max: 30, step: 1 })
     }),
     initialState: () => ({} as { palindromeDirections?: { [id: string]: -1 | 1 | undefined } }),
     async apply(animState, t, ctx) {
@@ -32,6 +32,11 @@ export const AnimateModelIndex = PluginStateAnimation.create({
         const state = ctx.plugin.state.dataState;
         const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)
             .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
+
+        if (models.length === 0) {
+            // nothing more to do here
+            return { kind: 'finished' };
+        }
 
         const update = state.build();
 
@@ -70,7 +75,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
                 });
         }
 
-        await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, doNotLogTiming: true });
+        await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
 
         if (params.mode.name === 'once' && isEnd) return { kind: 'finished' };
         if (params.mode.name === 'palindrome') return { kind: 'next', state: { palindromeDirections } };

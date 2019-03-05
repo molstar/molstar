@@ -4,8 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateAction } from 'mol-state/action';
-import { Transformer } from 'mol-state';
+import { StateTransformer, StateAction } from 'mol-state';
 import { StateTransformParameters } from './ui/state/common';
 import { PluginLayoutStateProps } from './layout';
 import { PluginStateAnimation } from './state/animation/model';
@@ -16,27 +15,40 @@ interface PluginSpec {
     actions: PluginSpec.Action[],
     behaviors: PluginSpec.Behavior[],
     animations?: PluginStateAnimation[],
-    customParamEditors?: [StateAction | Transformer, StateTransformParameters.Class][],
-    initialLayout?: PluginLayoutStateProps
+    customParamEditors?: [StateAction | StateTransformer, StateTransformParameters.Class][],
+    layout?: {
+        initial?: Partial<PluginLayoutStateProps>,
+        controls?: {
+            left?: React.ComponentClass | 'none',
+            right?: React.ComponentClass | 'none',
+            bottom?: React.ComponentClass | 'none'
+        }
+    }
 }
 
 namespace PluginSpec {
     export interface Action {
-        action: StateAction | Transformer,
+        action: StateAction | StateTransformer,
         customControl?: StateTransformParameters.Class,
         autoUpdate?: boolean
     }
 
-    export function Action(action: StateAction | Transformer, params?: { customControl?: StateTransformParameters.Class, autoUpdate?: boolean }): Action {
+    export function Action(action: StateAction | StateTransformer, params?: { customControl?: StateTransformParameters.Class, autoUpdate?: boolean }): Action {
         return { action, customControl: params && params.customControl, autoUpdate: params && params.autoUpdate };
     }
 
     export interface Behavior {
-        transformer: Transformer,
+        transformer: StateTransformer,
         defaultParams?: any
     }
 
-    export function Behavior<T extends Transformer>(transformer: T, defaultParams?: Transformer.Params<T>): Behavior {
+    export function Behavior<T extends StateTransformer>(transformer: T, defaultParams?: StateTransformer.Params<T>): Behavior {
         return { transformer, defaultParams };
+    }
+
+    export interface LayoutControls {
+        left?: React.ComponentClass | 'none',
+        right?: React.ComponentClass | 'none',
+        bottom?: React.ComponentClass | 'none'
     }
 }

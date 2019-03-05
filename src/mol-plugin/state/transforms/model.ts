@@ -5,26 +5,38 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginStateTransform } from '../objects';
-import { PluginStateObject as SO } from '../objects';
-import { Task, RuntimeContext } from 'mol-task';
-import { Model, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection as Sel, StructureQuery, Queries } from 'mol-model/structure';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { parsePDB } from 'mol-io/reader/pdb/parser';
+import { Vec3 } from 'mol-math/linear-algebra';
+import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
+import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
+import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry } from 'mol-model/structure';
+import { Assembly } from 'mol-model/structure/model/properties/symmetry';
+import { PluginContext } from 'mol-plugin/context';
+import { MolScriptBuilder } from 'mol-script/language/builder';
 import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
-import { MolScriptBuilder } from 'mol-script/language/builder';
 import { StateObject } from 'mol-state';
-import { PluginContext } from 'mol-plugin/context';
+import { RuntimeContext, Task } from 'mol-task';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { stringToWords } from 'mol-util/string';
-import { volumeFromCcp4 } from 'mol-model-formats/volume/ccp4';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { volumeFromDsn6 } from 'mol-model-formats/volume/dsn6';
-import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
-import { parsePDB } from 'mol-io/reader/pdb/parser';
-import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
-import { Assembly } from 'mol-model/structure/model/properties/symmetry';
+import { PluginStateObject as SO, PluginStateTransform } from '../objects';
+import { trajectoryFromGRO } from 'mol-model-formats/structure/gro';
+import { parseGRO } from 'mol-io/reader/gro/parser';
+import { parseMolScript } from 'mol-script/language/parser';
+import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 
-export { TrajectoryFromMmCif }
+export { TrajectoryFromMmCif };
+export { TrajectoryFromPDB };
+export { TrajectoryFromGRO };
+export { ModelFromTrajectory };
+export { StructureFromModel };
+export { StructureAssemblyFromModel };
+export { StructureSymmetryFromModel };
+export { StructureSelection };
+export { UserStructureSelection };
+export { StructureComplexElement };
+export { CustomModelProperties };
+
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
 const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-mmcif',
@@ -57,12 +69,10 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     }
 });
 
-
-export { TrajectoryFromPDB }
 type TrajectoryFromPDB = typeof TrajectoryFromPDB
 const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-pdb',
-    display: { name: 'Parse PDB string and create trajectory' },
+    display: { name: 'Parse PDB', description: 'Parse PDB string and create trajectory.' },
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory
 })({
@@ -77,13 +87,29 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     }
 });
 
+type TrajectoryFromGRO = typeof TrajectoryFromGRO
+const TrajectoryFromGRO = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-gro',
+    display: { name: 'Parse GRO', description: 'Parse GRO string and create trajectory.' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse GRO', async ctx => {
+            const parsed = await parseGRO(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const models = await trajectoryFromGRO(parsed.result).runInContext(ctx);
+            const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
 
-export { ModelFromTrajectory }
 const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
 type ModelFromTrajectory = typeof ModelFromTrajectory
 const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     name: 'model-from-trajectory',
-    display: { name: 'Model from Trajectory', description: 'Create a molecular structure from the specified model.' },
+    display: { name: 'Molecular Model', description: 'Create a molecular model from specified index in a trajectory.' },
     from: SO.Molecule.Trajectory,
     to: SO.Molecule.Model,
     params: a => {
@@ -97,12 +123,13 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
         const model = a.data[params.modelIndex];
-        const props = { label: `Model ${model.modelNum}` };
+        const props = a.data.length === 1
+            ? { label: `${model.label}` }
+            : { label: `${model.label}:${model.modelNum}`, description: `Model ${model.modelNum} of ${a.data.length}` };
         return new SO.Molecule.Model(model, props);
     }
 });
 
-export { StructureFromModel }
 type StructureFromModel = typeof StructureFromModel
 const StructureFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-from-model',
@@ -121,7 +148,6 @@ function structureDesc(s: Structure) {
     return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`;
 }
 
-export { StructureAssemblyFromModel }
 type StructureAssemblyFromModel = typeof StructureAssemblyFromModel
 const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-assembly-from-model',
@@ -151,12 +177,12 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
 
             if (model.symmetry.assemblies.length === 0) {
                 if (id !== 'deposited') {
-                    plugin.log.warn(`Model '${a.label}' has no assembly, returning deposited structure.`);
+                    plugin.log.warn(`Model '${a.data.label}' has no assembly, returning deposited structure.`);
                 }
             } else {
                 asm = ModelSymmetry.findAssembly(model, id || '');
                 if (!asm) {
-                    plugin.log.warn(`Model '${a.label}' has no assembly called '${id}', returning deposited structure.`);
+                    plugin.log.warn(`Model '${a.data.label}' has no assembly called '${id}', returning deposited structure.`);
                 }
             }
 
@@ -166,7 +192,6 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
                 return new SO.Molecule.Structure(base, label);
             }
 
-            asm = model.symmetry.assemblies[0];
             id = asm.id;
             const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
             const props = { label: `Assembly ${id}`, description: structureDesc(s) };
@@ -175,7 +200,6 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     }
 });
 
-export { StructureSymmetryFromModel }
 type StructureSymmetryFromModel = typeof StructureSymmetryFromModel
 const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-symmetry-from-model',
@@ -201,7 +225,6 @@ const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
     }
 });
 
-export { StructureSelection }
 type StructureSelection = typeof StructureSelection
 const StructureSelection = PluginStateTransform.BuiltIn({
     name: 'structure-selection',
@@ -218,12 +241,36 @@ const StructureSelection = PluginStateTransform.BuiltIn({
         const compiled = compile<Sel>(params.query);
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
+        if (s.elementCount === 0) return StateObject.Null;
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
     }
 });
 
-export { StructureComplexElement }
+type UserStructureSelection = typeof UserStructureSelection
+const UserStructureSelection = PluginStateTransform.BuiltIn({
+    name: 'user-structure-selection',
+    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified query expression.' },
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: {
+        query: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
+        label: PD.makeOptional(PD.Text(''))
+    }
+})({
+    apply({ a, params }) {
+        // TODO: use cache, add "update"
+        const parsed = parseMolScript(params.query.expression);
+        if (parsed.length === 0) throw new Error('No query');
+        const query = transpileMolScript(parsed[0]);
+        const compiled = compile<Sel>(query);
+        const result = compiled(new QueryContext(a.data));
+        const s = Sel.unionStructure(result);
+        const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
+        return new SO.Molecule.Structure(s, props);
+    }
+});
+
 namespace StructureComplexElement {
     export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres'
 }
@@ -256,7 +303,6 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
     }
 });
 
-export { CustomModelProperties }
 type CustomModelProperties = typeof CustomModelProperties
 const CustomModelProperties = PluginStateTransform.BuiltIn({
     name: 'custom-model-properties',
@@ -281,49 +327,3 @@ async function attachProps(model: Model, ctx: PluginContext, taskCtx: RuntimeCon
         await p.attach(model).runInContext(taskCtx);
     }
 }
-
-//
-
-export { VolumeFromCcp4 }
-type VolumeFromCcp4 = typeof VolumeFromCcp4
-const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
-    name: 'volume-from-ccp4',
-    display: { name: 'Volume from CCP4/MRC/MAP', description: 'Create Volume from CCP4/MRC/MAP data' },
-    from: SO.Format.Ccp4,
-    to: SO.Volume.Data,
-    params(a) {
-        return {
-            voxelSize: PD.Vec3(Vec3.create(1, 1, 1))
-        };
-    }
-})({
-    apply({ a, params }) {
-        return Task.create('Create volume from CCP4/MRC/MAP', async ctx => {
-            const volume = await volumeFromCcp4(a.data, params).runInContext(ctx)
-            const props = { label: 'Volume' };
-            return new SO.Volume.Data(volume, props);
-        });
-    }
-});
-
-export { VolumeFromDsn6 }
-type VolumeFromDsn6 = typeof VolumeFromDsn6
-const VolumeFromDsn6 = PluginStateTransform.BuiltIn({
-    name: 'volume-from-dsn6',
-    display: { name: 'Volume from DSN6/BRIX', description: 'Create Volume from DSN6/BRIX data' },
-    from: SO.Format.Dsn6,
-    to: SO.Volume.Data,
-    params(a) {
-        return {
-            voxelSize: PD.Vec3(Vec3.create(1, 1, 1))
-        };
-    }
-})({
-    apply({ a, params }) {
-        return Task.create('Create volume from DSN6/BRIX', async ctx => {
-            const volume = await volumeFromDsn6(a.data, params).runInContext(ctx)
-            const props = { label: 'Volume' };
-            return new SO.Volume.Data(volume, props);
-        });
-    }
-});

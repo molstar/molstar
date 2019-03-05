@@ -31,6 +31,7 @@ export class NumericInput extends React.PureComponent<{
     value: number,
     onChange: (v: number) => void,
     onEnter?: () => void,
+    onBlur?: () => void,
     blurOnEnter?: boolean,
     isDisabled?: boolean,
     placeholder?: string
@@ -58,6 +59,7 @@ export class NumericInput extends React.PureComponent<{
 
     onBlur = () => {
         this.setState({ value: '' + this.props.value });
+        if (this.props.onBlur) this.props.onBlur();
     }
 
     static getDerivedStateFromProps(props: { value: number }, state: { value: string }) {
@@ -77,6 +79,22 @@ export class NumericInput extends React.PureComponent<{
             disabled={!!this.props.isDisabled}
         />
     }
+}
+
+export function IconButton(props: {
+    icon: string,
+    isSmall?: boolean,
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void,
+    title?: string,
+    toggleState?: boolean,
+    disabled?: boolean,
+    'data-id'?: string
+}) {
+    let className = `msp-btn msp-btn-link msp-btn-icon${props.isSmall ? '-small' : ''}`;
+    if (typeof props.toggleState !== 'undefined') className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
+    return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']}>
+        <span className={`msp-icon msp-icon-${props.icon}`}/>
+    </button>;
 }
 
 

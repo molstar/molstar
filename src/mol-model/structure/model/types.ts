@@ -59,32 +59,36 @@ export const enum MoleculeType {
     saccharide
 }
 
-export type AtomRole = 'trace' | 'direction' | 'backboneStart' | 'backboneEnd'
+export type AtomRole = 'trace' | 'direction' | 'backboneStart' | 'backboneEnd' | 'coarseBackbone'
 
-export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: string } } = {
+export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: Set<string> } } = {
     [MoleculeType.protein]: {
-        trace: 'CA', // TODO 'BB'
-        direction: 'O', // TODO 'OC1', 'O1', 'OX1', 'OXT'
-        backboneStart: 'N',
-        backboneEnd: 'C'
+        trace: new Set(['CA']),
+        direction: new Set(['O', 'OC1', 'O1', 'OX1', 'OXT']),
+        backboneStart: new Set(['N']),
+        backboneEnd: new Set(['C']),
+        coarseBackbone: new Set(['CA', 'BB'])
     },
     [MoleculeType.RNA]: {
-        trace: 'C4\'', // TODO 'C4*'
-        direction: 'C3\'', // 'C3*'
-        backboneStart: 'P',
-        backboneEnd: 'O3\'' // TODO 'O3*'
+        trace: new Set(['C4\'', 'C4*']),
+        direction: new Set(['C3\'', 'C3*']),
+        backboneStart: new Set(['P']),
+        backboneEnd: new Set(['O3\'', 'O3*']),
+        coarseBackbone: new Set(['P'])
     },
     [MoleculeType.DNA]: {
-        trace: 'C3\'', // TODO 'C3*'
-        direction: 'C1\'', // TODO 'C1*'
-        backboneStart: 'P',
-        backboneEnd: 'O3\'' // TODO 'O3*'
+        trace: new Set(['C3\'', 'C3*']),
+        direction: new Set(['C1\'', 'C1*']),
+        backboneStart: new Set(['P']),
+        backboneEnd: new Set(['O3\'', 'O3*']),
+        coarseBackbone: new Set(['P'])
     },
     [MoleculeType.PNA]: {
-        trace: 'N4\'', // TODO 'N4*'
-        direction: 'C7\'', // TODO 'C7*'
-        backboneStart: 'N1\'', // TODO 'N1*'
-        backboneEnd: 'C1\'' // TODO 'C1*'
+        trace: new Set(['N4\'', 'N4*']),
+        direction: new Set(['C7\'', 'C7*']),
+        backboneStart: new Set(['N1\'', 'N1*']),
+        backboneEnd: new Set(['C1\'', 'C1*']),
+        coarseBackbone: new Set(['P'])
     }
 }
 
@@ -259,12 +263,8 @@ export const IonNames = new Set([
   'OHX'
 ])
 
-export interface SecondaryStructureType extends BitFlags<SecondaryStructureType.Flag> { }
+export type SecondaryStructureType = BitFlags<SecondaryStructureType.Flag>
 export namespace SecondaryStructureType {
-    export const Helix = ['h', 'g', 'i']
-    export const Sheet = ['e', 'b']
-    export const Turn = ['s', 't', 'l', '']
-
     export const is: (ss: SecondaryStructureType, f: Flag) => boolean = BitFlags.has
     export const create: (fs: Flag) => SecondaryStructureType = BitFlags.create
 
@@ -375,7 +375,6 @@ export namespace SecondaryStructureType {
         I: Flag.Helix | Flag.HelixPi,  // PI-helix
         E: Flag.Beta | Flag.BetaSheet,  // Extended conformation
         B: Flag.Beta | Flag.BetaStrand,  // Isolated bridge
-        b: Flag.Beta | Flag.BetaStrand,  // Isolated bridge
         T: Flag.Turn,  // Turn
         C: Flag.NA,  // Coil (none of the above)
     }
@@ -512,7 +511,7 @@ export const VdwRadii = {
 }
 export const DefaultVdwRadius = 2.0
 
-export interface LinkType extends BitFlags<LinkType.Flag> { }
+export type LinkType = BitFlags<LinkType.Flag>
 export namespace LinkType {
     export const is: (b: LinkType, f: Flag) => boolean = BitFlags.has
     export const enum Flag {

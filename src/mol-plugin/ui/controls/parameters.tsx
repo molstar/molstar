@@ -31,7 +31,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
         const values = this.props.values;
         const keys = Object.keys(params);
         if (keys.length === 0) return null;
-        return <div style={{ width: '100%' }}>
+        return <>
             {keys.map(key => {
                 const param = params[key];
                 if (param.isHidden) return null;
@@ -39,7 +39,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
                 if (!Control) return null;
                 return <Control param={param} key={key} onChange={this.props.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} />
             })}
-        </div>;
+        </>;
     }
 }
 
@@ -63,6 +63,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'group': return GroupControl;
         case 'mapped': return MappedControl;
         case 'line-graph': return LineGraphControl;
+        case 'script-expression': return ScriptExpressionControl;
         default:
             const _: never = param;
             console.warn(`${_} has no associated UI component`);
@@ -77,7 +78,7 @@ export interface ParamProps<P extends PD.Base<any> = PD.Base<any>> { name: strin
 export type ParamControl = React.ComponentClass<ParamProps<any>>
 
 export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<ParamProps<P>> {
-    protected update(value: any) {
+    protected update(value: P['defaultValue']) {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
     }
 
@@ -225,7 +226,7 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
     }
     renderControl() {
         const isInvalid = this.props.value !== void 0 && !this.props.param.options.some(e => e[0] === this.props.value);
-        return <select value={this.props.value || this.props.param.defaultValue} onChange={this.onChange} disabled={this.props.isDisabled}>
+        return <select value={this.props.value !== void 0 ? this.props.value : this.props.param.defaultValue} onChange={this.onChange} disabled={this.props.isDisabled}>
             {isInvalid && <option key={this.props.value} value={this.props.value}>{`[Invalid] ${this.props.value}`}</option>}
             {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>;
@@ -564,5 +565,34 @@ export class ConvertedControl extends React.PureComponent<ParamProps<PD.Converte
 
         if (!Converted) return null;
         return <Converted param={this.props.param.converted} value={value} name={this.props.name} onChange={this.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
+    }
+}
+
+export class ScriptExpressionControl extends SimpleParam<PD.ScriptExpression> {
+    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (value !== this.props.value.expression) {
+            this.update({ language: this.props.value.language, expression: value });
+        }
+    }
+
+    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!this.props.onEnter) return;
+        if ((e.keyCode === 13 || e.charCode === 13)) {
+            this.props.onEnter();
+        }
+    }
+
+    renderControl() {
+        // TODO: improve!
+
+        const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
+        return <input type='text'
+            value={this.props.value.expression || ''}
+            placeholder={placeholder}
+            onChange={this.onChange}
+            onKeyPress={this.props.onEnter ? this.onKeyPress : void 0}
+            disabled={this.props.isDisabled}
+        />;
     }
 }

@@ -1,8 +1,4 @@
- // workaround so the query gets found by the codegen
-function gql (strs: TemplateStringsArray) { return strs.raw.join('') }
-
-export default
-gql`query AssemblySymmetry($pdbId: String!) {
+export default `query AssemblySymmetry($pdbId: String!) {
     assemblies(pdbId: $pdbId) {
         pdbx_struct_assembly {
             id

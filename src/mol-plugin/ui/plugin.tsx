@@ -4,23 +4,22 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { List } from 'immutable';
+import { PluginState } from 'mol-plugin/state';
+import { formatTime } from 'mol-util';
+import { LogEntry } from 'mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../context';
-import { StateTree } from './state-tree';
-import { Viewport, ViewportControls } from './viewport';
-import { Controls, TrajectoryControls, LociLabelControl } from './controls';
-import { PluginUIComponent, PluginReactContext } from './base';
-import { CameraSnapshots } from './camera';
+import { PluginReactContext, PluginUIComponent } from './base';
+import { LociLabelControl, TrajectoryControls, StateSnapshotViewportControls } from './controls';
 import { StateSnapshots } from './state';
-import { List } from 'immutable';
-import { LogEntry } from 'mol-util/log-entry';
-import { formatTime } from 'mol-util';
-import { BackgroundTaskProgress } from './task';
-import { ApplyActionContol } from './state/apply-action';
-import { PluginState } from 'mol-plugin/state';
-import { UpdateTransformContol } from './state/update-transform';
-import { StateObjectCell } from 'mol-state';
+import { StateObjectActions } from './state/actions';
 import { AnimationControls } from './state/animation';
+import { StateTree } from './state/tree';
+import { BackgroundTaskProgress } from './task';
+import { Viewport, ViewportControls } from './viewport';
+import { StateTransform } from 'mol-state';
+import { UpdateTransformContol } from './state/update-transform';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
@@ -44,31 +43,39 @@ class Layout extends PluginUIComponent {
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
     }
 
-    region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
+    region(kind: 'left' | 'right' | 'bottom' | 'main', Element: React.ComponentClass) {
         return <div className={`msp-layout-region msp-layout-${kind}`}>
             <div className='msp-layout-static'>
-                {element}
+                <Element />
             </div>
         </div>;
     }
 
     render() {
         const layout = this.plugin.layout.state;
+        const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || { };
+
         return <div className='msp-plugin'>
             <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
                 <div className={layout.showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
-                    {this.region('main', <ViewportWrapper />)}
-                    {layout.showControls && this.region('left', <State />)}
-                    {layout.showControls && this.region('right', <div className='msp-scrollable-container msp-right-controls'>
-                        <CurrentObject />
-                        <Controls />
-                        <AnimationControls />
-                        <CameraSnapshots />
-                        <StateSnapshots />
-                    </div>)}
-                    {layout.showControls && this.region('bottom', <Log />)}
+                    {this.region('main', ViewportWrapper)}
+                    {layout.showControls && controls.left !== 'none' && this.region('left', controls.left || State)}
+                    {layout.showControls && controls.right !== 'none' && this.region('right', controls.right || ControlsWrapper)}
+                    {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
                 </div>
             </div>
+        </div>;
+    }
+}
+
+
+export class ControlsWrapper extends PluginUIComponent {
+    render() {
+        return <div className='msp-scrollable-container msp-right-controls'>
+            <CurrentObject />
+            <AnimationControls />
+            {/* <CameraSnapshots /> */}
+            <StateSnapshots />
         </div>;
     }
 }
@@ -77,16 +84,15 @@ export class ViewportWrapper extends PluginUIComponent {
     render() {
         return <>
             <Viewport />
-            <div style={{ position: 'absolute', left: '10px', top: '10px', color: 'white' }}>
+            <div className='msp-viewport-top-left-controls'>
                 <TrajectoryControls />
+                <StateSnapshotViewportControls />
             </div>
             <ViewportControls />
             <div style={{ position: 'absolute', left: '10px', bottom: '10px' }}>
                 <BackgroundTaskProgress />
             </div>
-            <div style={{ position: 'absolute', right: '10px', bottom: '10px' }}>
-                <LociLabelControl />
-            </div>
+            <LociLabelControl />
         </>;
     }
 }
@@ -105,8 +111,8 @@ export class State extends PluginUIComponent {
         const kind = this.plugin.state.behavior.kind.value;
         return <div className='msp-scrollable-container'>
             <div className='msp-btn-row-group msp-data-beh'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal'}}>Data</button>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal'}}>Behavior</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal' }}>Data</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal' }}>Behavior</button>
             </div>
             <StateTree state={kind === 'data' ? this.plugin.state.dataState : this.plugin.state.behaviorState} />
         </div>
@@ -172,21 +178,19 @@ export class CurrentObject extends PluginUIComponent {
         const current = this.current;
         const ref = current.ref;
         const cell = current.state.cells.get(ref)!;
-        const parent: StateObjectCell | undefined = (cell.sourceRef && current.state.cells.get(cell.sourceRef)!) || void 0;
-
-        const type = cell && cell.obj ? cell.obj.type : void 0;
         const transform = cell.transform;
-        const def = transform.transformer.definition;
 
-        const actions = type ? current.state.actions.fromType(type) : [];
+        let showActions = true;
+        if (ref === StateTransform.RootRef) {
+            const children = current.state.tree.children.get(ref);
+            showActions = children.size !== 0;
+        }
+
+        if (!showActions) return null;
+
         return <>
-            <div className='msp-section-header'>
-                {cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name}
-            </div>
-            { (parent && parent.status === 'ok') && <UpdateTransformContol state={current.state} transform={transform} /> }
-            {cell.status === 'ok' &&
-                actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={current.state} action={act} nodeRef={ref} />)
-            }
+            {(cell.status === 'ok' || cell.status === 'error') && <UpdateTransformContol state={current.state} transform={transform} /> }
+            {cell.status === 'ok' && <StateObjectActions state={current.state} nodeRef={ref} />}
         </>;
     }
 }

@@ -6,6 +6,7 @@
 
 import * as React from 'react'
 import { NumericInput } from './common';
+import { noop } from 'mol-util';
 
 export class Slider extends React.Component<{
     min: number,
@@ -38,11 +39,19 @@ export class Slider extends React.Component<{
     }
 
     updateManually = (v: number) => {
+        this.setState({ isChanging: true });
+
         let n = v;
         if (this.props.step === 1) n = Math.round(n);
         if (n < this.props.min) n = this.props.min;
         if (n > this.props.max) n = this.props.max;
-        this.props.onChange(n);
+
+        this.setState({ current: n, isChanging: true });
+    }
+
+    onManualBlur = () => {
+        this.setState({ isChanging: false });
+        this.props.onChange(this.state.current);
     }
 
     render() {
@@ -56,7 +65,7 @@ export class Slider extends React.Component<{
             </div>
             <div>
                 <NumericInput
-                    value={this.state.current} onEnter={this.props.onEnter} blurOnEnter={true}
+                    value={this.state.current} blurOnEnter={true} onBlur={this.onManualBlur}
                     isDisabled={this.props.disabled} onChange={this.updateManually} />
             </div>
         </div>;
@@ -182,9 +191,6 @@ function classNames(_classes: { [name: string]: boolean | number }) {
     }
 
     return classes.join(' ');
-}
-
-function noop() {
 }
 
 function isNotTouchEvent(e: TouchEvent) {

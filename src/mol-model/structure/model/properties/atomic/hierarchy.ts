@@ -38,7 +38,14 @@ export const AtomsSchema = {
      * The net integer charge assigned to this atom.
      * This is the formal charge assignment normally found in chemical diagrams.
      */
-    pdbx_formal_charge: mmCIF.atom_site.pdbx_formal_charge
+    pdbx_formal_charge: mmCIF.atom_site.pdbx_formal_charge,
+
+    /**
+     * The index of this atom in the input data.
+     * Required because of sorting of atoms.
+     */
+    sourceIndex: Column.Schema.int
+
     // id, occupancy and B_iso_or_equiv are part of conformation
 };
 
@@ -105,8 +112,8 @@ export interface AtomicData {
 
 export interface AtomicDerivedData {
     readonly residue: {
-        readonly traceElementIndex: ArrayLike<ElementIndex>
-        readonly directionElementIndex: ArrayLike<ElementIndex>
+        readonly traceElementIndex: ArrayLike<ElementIndex | -1>
+        readonly directionElementIndex: ArrayLike<ElementIndex | -1>
         readonly moleculeType: ArrayLike<MoleculeType>
     }
 }
@@ -145,7 +152,7 @@ export interface AtomicIndex {
     /**
      * Index of the 1st occurence of this residue.
      * auth_seq_id is used because label_seq_id is undefined for "ligands" in mmCIF.
-     * @param pdbx_PDB_ins_code Empty string for undefined
+     * @param key.pdbx_PDB_ins_code Empty string for undefined
      * @returns index or -1 if not present.
      */
     findResidue(key: AtomicIndex.ResidueKey): ResidueIndex,
@@ -153,7 +160,7 @@ export interface AtomicIndex {
 
     /**
      * Index of the 1st occurence of this residue.
-     * @param pdbx_PDB_ins_code Empty string for undefined
+     * @param key.pdbx_PDB_ins_code Empty string for undefined
      * @returns index or -1 if not present.
      */
     findResidueAuth(key: AtomicIndex.ResidueAuthKey): ResidueIndex,
@@ -161,7 +168,7 @@ export interface AtomicIndex {
     /**
      * Find the residue index where the spefied residue should be inserted to maintain the ordering (entity_id, asym_id, seq_id, ins_code).
      * Useful for determining ranges for sequence-level annotations.
-     * @param pdbx_PDB_ins_code Empty string for undefined
+     * @param key.pdbx_PDB_ins_code Use empty string for undefined
      */
     findResidueInsertion(key: AtomicIndex.ResidueLabelKey): ResidueIndex,
 
@@ -181,10 +188,15 @@ export interface AtomicIndex {
 
     /**
      * Find element index of an atom on a given residue.
-     * @param key
      * @returns index or -1 if the atom is not present.
      */
     findAtomOnResidue(residueIndex: ResidueIndex, label_atom_id: string, label_alt_id?: string): ElementIndex
+
+    /**
+     * Find element index of any given atom on a given residue.
+     * @returns first found index or -1 if none of the given atoms are present.
+     */
+    findAtomsOnResidue(residueIndex: ResidueIndex, label_atom_ids: Set<string>): ElementIndex
 
     // TODO: add indices that support comp_id?
 }

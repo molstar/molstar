@@ -75,9 +75,9 @@
     background: $default-background; //$highlight-info-background;
 
     position: absolute;
-    top: $control-spacing;
-    left: $control-spacing;
-    text-align: left;
+    right: $control-spacing;
+    bottom: $control-spacing;
+    text-align: right;
     min-height: $row-height;
     max-width: 95%;
 

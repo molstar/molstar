@@ -62,8 +62,20 @@ const sharedConfig = {
     }
 }
 
+
+function createEntry(src, outFolder, outFilename, isNode) {
+    return {
+        node: isNode ? void 0 : { fs: 'empty' }, // TODO find better solution? Currently used in file-handle.ts
+        target: isNode ? 'node' : void 0,
+        entry: path.resolve(__dirname, `build/src/${src}.js`),
+        output: { filename: `${outFilename}.js`, path: path.resolve(__dirname, `build/${outFolder}`) },
+        ...sharedConfig
+    }
+}
+
 function createEntryPoint(name, dir, out) {
     return {
+        node: { fs: 'empty' }, // TODO find better solution? Currently used in file-handle.ts
         entry: path.resolve(__dirname, `build/src/${dir}/${name}.js`),
         output: { filename: `${name}.js`, path: path.resolve(__dirname, `build/${out}`) },
         ...sharedConfig
@@ -86,12 +98,15 @@ function createNodeApp(name) { return createNodeEntryPoint('index', `apps/${name
 module.exports = [
     createApp('viewer'),
     createApp('basic-wrapper'),
+    createEntry('examples/proteopedia-wrapper/index', 'examples/proteopedia-wrapper', 'index'),
     createNodeApp('state-docs'),
+    createNodeEntryPoint('preprocess', 'servers/model', 'model-server'),
     createApp('model-server-query'),
 
     createBrowserTest('font-atlas'),
-    createBrowserTest('render-text'),
+    createBrowserTest('render-mesh'),
     createBrowserTest('render-shape'),
     createBrowserTest('render-spheres'),
-    createBrowserTest('render-mesh')
+    createBrowserTest('render-structure'),
+    createBrowserTest('render-text'),
 ]

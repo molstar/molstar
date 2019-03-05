@@ -183,7 +183,7 @@ export function AssemblySymmetry(db: AssemblySymmetry.Database): AssemblySymmetr
 type SymmetryKind = 'GLOBAL' | 'LOCAL' | 'PSEUDO'
 type SymmetryType = 'ASYMMETRIC' | 'CYCLIC' | 'DIHEDRAL' | 'HELICAL' | 'ICOSAHEDRAL' | 'OCTAHEDRAL' | 'TETRAHEDRAL'
 
-const Client = new GraphQLClient(AssemblySymmetry.GraphQLEndpointURL, (url: string, type: 'string' | 'binary', body?: string) => ajaxGet({ url, type, body }) )
+const Client = new GraphQLClient(AssemblySymmetry.GraphQLEndpointURL, ajaxGet)
 
 export namespace AssemblySymmetry {
     export function is(x: any): x is AssemblySymmetry {
@@ -283,7 +283,7 @@ export namespace AssemblySymmetry {
         return true;
     }
 
-    export function createAttachTask(fetch: (url: string, type: 'string' | 'binary') => Task<string | Uint8Array>) {
+    export function createAttachTask(fetch: import('mol-util/data-source').AjaxTask) {
         return (model: Model) => Task.create('RCSB Assembly Symmetry', async ctx => {
             if (get(model)) return true;
 

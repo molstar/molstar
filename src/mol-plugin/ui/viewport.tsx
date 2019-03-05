@@ -6,8 +6,6 @@
  */
 
 import * as React from 'react';
-import { ButtonsType } from 'mol-util/input/input-observer';
-import { Canvas3dIdentifyHelper } from 'mol-plugin/util/canvas3d-identify';
 import { PluginUIComponent } from './base';
 import { PluginCommands } from 'mol-plugin/command';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -51,7 +49,7 @@ export class ViewportControls extends PluginUIComponent {
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.canvad3d.settingsUpdated, e => {
+        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, e => {
             this.forceUpdate();
         });
 
@@ -112,22 +110,8 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
         const canvas3d = this.plugin.canvas3d;
         this.subscribe(canvas3d.input.resize, this.handleResize);
 
-        const idHelper = new Canvas3dIdentifyHelper(this.plugin, 15);
-
-        this.subscribe(canvas3d.input.move, ({x, y, inside, buttons}) => {
-            if (!inside || buttons) { return; }
-            idHelper.move(x, y);
-        });
-
-        this.subscribe(canvas3d.input.leave, () => {
-            idHelper.leave();
-        });
-
-        this.subscribe(canvas3d.input.click, ({x, y, buttons}) => {
-            if (buttons !== ButtonsType.Flag.Primary) return;
-            idHelper.select(x, y);
-        });
-
+        this.subscribe(canvas3d.interaction.click, e => this.plugin.behaviors.canvas3d.click.next(e));
+        this.subscribe(canvas3d.interaction.highlight, e => this.plugin.behaviors.canvas3d.highlight.next(e));
         this.subscribe(this.plugin.layout.events.updated, () => {
             setTimeout(this.handleResize, 50);
         });

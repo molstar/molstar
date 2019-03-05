@@ -15,14 +15,17 @@ export function registerDefault(ctx: PluginContext) {
 }
 
 export function SyncRepresentationToCanvas(ctx: PluginContext) {
+    let reprCount = 0;
+
     const events = ctx.state.dataState.events;
     events.object.created.subscribe(e => {
         if (!SO.isRepresentation3D(e.obj)) return;
         updateVisibility(e, e.obj.data);
         e.obj.data.setState({ syncManually: true });
         ctx.canvas3d.add(e.obj.data);
-        // TODO: only do this if there were no representations previously
-        ctx.canvas3d.resetCamera();
+
+        if (reprCount === 0) ctx.canvas3d.resetCamera();
+        reprCount++;
     });
     events.object.updated.subscribe(e => {
         if (e.oldObj && SO.isRepresentation3D(e.oldObj)) {
@@ -31,7 +34,9 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
             e.oldObj.data.destroy();
         }
 
-        if (!SO.isRepresentation3D(e.obj)) return;
+        if (!SO.isRepresentation3D(e.obj)) {
+            return;
+        }
 
         updateVisibility(e, e.obj.data);
         if (e.action === 'recreate') {
@@ -44,6 +49,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
         ctx.canvas3d.remove(e.obj.data);
         ctx.canvas3d.requestDraw(true);
         e.obj.data.destroy();
+        reprCount--;
     });
 }
 

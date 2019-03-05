@@ -6,12 +6,12 @@
 
 import { StateObject, StateObjectCell } from './object';
 import { StateTree } from './tree';
-import { Transform } from './transform';
-import { Transformer } from './transformer';
+import { StateTransform } from './transform';
+import { StateTransformer } from './transformer';
 import { RuntimeContext, Task } from 'mol-task';
 import { StateSelection } from './state/selection';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
-import { StateTreeBuilder } from './tree/builder';
+import { StateBuilder } from './state/builder';
 import { StateAction } from './action';
 import { StateActionManager } from './action/manager';
 import { TransientTree } from './tree/transient';
@@ -22,10 +22,10 @@ import { ParamDefinition } from 'mol-util/param-definition';
 export { State }
 
 class State {
-    private _tree: TransientTree = StateTree.createEmpty().asTransient();
+    private _tree: TransientTree;
 
     protected errorFree = true;
-    private transformCache = new Map<Transform.Ref, unknown>();
+    private transformCache = new Map<StateTransform.Ref, unknown>();
 
     private ev = RxEventHelper.create();
 
@@ -34,7 +34,7 @@ class State {
         cell: {
             stateUpdated: this.ev<State.ObjectEvent & { cellState: StateObjectCell.State }>(),
             created: this.ev<State.ObjectEvent & { cell: StateObjectCell }>(),
-            removed: this.ev<State.ObjectEvent & { parent: Transform.Ref }>(),
+            removed: this.ev<State.ObjectEvent & { parent: StateTransform.Ref }>(),
         },
         object: {
             updated: this.ev<State.ObjectEvent & { action: 'in-place' | 'recreate', obj: StateObject, oldObj?: StateObject }>(),
@@ -42,11 +42,12 @@ class State {
             removed: this.ev<State.ObjectEvent & { obj?: StateObject }>()
         },
         log: this.ev<LogEntry>(),
-        changed: this.ev<void>()
+        changed: this.ev<void>(),
+        isUpdating: this.ev<boolean>()
     };
 
     readonly behaviors = {
-        currentObject: this.ev.behavior<State.ObjectEvent>({ state: this, ref: Transform.RootRef })
+        currentObject: this.ev.behavior<State.ObjectEvent>({ state: this, ref: StateTransform.RootRef })
     };
 
     readonly actions = new StateActionManager();
@@ -56,7 +57,7 @@ class State {
     get cellStates() { return (this._tree as StateTree).cellStates; }
     get current() { return this.behaviors.currentObject.value.ref; }
 
-    build() { return this._tree.build(); }
+    build() { return new StateBuilder.Root(this._tree); }
 
     readonly cells: State.Cells = new Map();
 
@@ -69,11 +70,11 @@ class State {
         return this.updateTree(tree);
     }
 
-    setCurrent(ref: Transform.Ref) {
+    setCurrent(ref: StateTransform.Ref) {
         this.behaviors.currentObject.next({ state: this, ref });
     }
 
-    updateCellState(ref: Transform.Ref, stateOrProvider: ((old: StateObjectCell.State) => Partial<StateObjectCell.State>) | Partial<StateObjectCell.State>) {
+    updateCellState(ref: StateTransform.Ref, stateOrProvider: ((old: StateObjectCell.State) => Partial<StateObjectCell.State>) | Partial<StateObjectCell.State>) {
         const update = typeof stateOrProvider === 'function'
             ? stateOrProvider(this.tree.cellStates.get(ref))
             : stateOrProvider;
@@ -109,7 +110,7 @@ class State {
      * Creates a Task that applies the specified StateAction (i.e. must use run* on the result)
      * If no ref is specified, apply to root.
      */
-    applyAction<A extends StateAction>(action: A, params: StateAction.Params<A>, ref: Transform.Ref = Transform.RootRef): Task<void> {
+    applyAction<A extends StateAction>(action: A, params: StateAction.Params<A>, ref: StateTransform.Ref = StateTransform.RootRef): Task<void> {
         return Task.create('Apply Action', ctx => {
             const cell = this.cells.get(ref);
             if (!cell) throw new Error(`'${ref}' does not exist.`);
@@ -122,47 +123,54 @@ class State {
     /**
      * Reconcialites the existing state tree with the new version.
      *
-     * If the tree is StateTreeBuilder.To<T>, the corresponding StateObject is returned by the task.
+     * If the tree is StateBuilder.To<T>, the corresponding StateObject is returned by the task.
      * @param tree Tree instance or a tree builder instance
      * @param doNotReportTiming Indicates whether to log timing of the individual transforms
      */
-    updateTree<T extends StateObject>(tree: StateTree | StateTreeBuilder | StateTreeBuilder.To<T>, doNotLogTiming?: boolean): Task<T>
-    updateTree(tree: StateTree | StateTreeBuilder, doNotLogTiming?: boolean): Task<void>
-    updateTree(tree: StateTree | StateTreeBuilder, doNotLogTiming: boolean = false): Task<any> {
+    updateTree<T extends StateObject>(tree: StateBuilder.To<T>, options?: Partial<State.UpdateOptions>): Task<T>
+    updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<void>
+    updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<any> {
         return Task.create('Update Tree', async taskCtx => {
+            this.events.isUpdating.next(true);
             let updated = false;
+            const ctx = this.updateTreeAndCreateCtx(tree, taskCtx, options);
             try {
-                const ctx = this.updateTreeAndCreateCtx(tree, taskCtx, doNotLogTiming);
                 updated = await update(ctx);
-                if (StateTreeBuilder.isTo(tree)) {
+                if (StateBuilder.isTo(tree)) {
                     const cell = this.select(tree.ref)[0];
                     return cell && cell.obj;
                 }
             } finally {
                 if (updated) this.events.changed.next();
+                this.events.isUpdating.next(false);
+
+                for (const ref of ctx.stateChanges) {
+                    this.events.cell.stateUpdated.next({ state: this, ref, cellState: this.tree.cellStates.get(ref) });
+                }
             }
         });
     }
 
-    private updateTreeAndCreateCtx(tree: StateTree | StateTreeBuilder, taskCtx: RuntimeContext, doNotLogTiming: boolean) {
-        const _tree = (StateTreeBuilder.is(tree) ? tree.getTree() : tree).asTransient();
+    private updateTreeAndCreateCtx(tree: StateTree | StateBuilder, taskCtx: RuntimeContext, options: Partial<State.UpdateOptions> | undefined) {
+        const _tree = (StateBuilder.is(tree) ? tree.getTree() : tree).asTransient();
         const oldTree = this._tree;
         this._tree = _tree;
 
         const ctx: UpdateContext = {
             parent: this,
-            editInfo: StateTreeBuilder.is(tree) ? tree.editInfo : void 0,
+            editInfo: StateBuilder.is(tree) ? tree.editInfo : void 0,
 
             errorFree: this.errorFree,
             taskCtx,
             oldTree,
             tree: _tree,
-            cells: this.cells as Map<Transform.Ref, StateObjectCell>,
+            cells: this.cells as Map<StateTransform.Ref, StateObjectCell>,
             transformCache: this.transformCache,
 
             results: [],
+            stateChanges: [],
 
-            silent: doNotLogTiming,
+            options: { ...StateUpdateDefaultOptions, ...options },
 
             changed: false,
             hadError: false,
@@ -174,11 +182,12 @@ class State {
         return ctx;
     }
 
-    constructor(rootObject: StateObject, params?: { globalContext?: unknown }) {
+    constructor(rootObject: StateObject, params?: { globalContext?: unknown, rootProps?: StateTransform.Props }) {
+        this._tree = StateTree.createEmpty(StateTransform.createRoot(params && params.rootProps)).asTransient();
         const tree = this._tree;
         const root = tree.root;
 
-        (this.cells as Map<Transform.Ref, StateObjectCell>).set(root.ref, {
+        (this.cells as Map<StateTransform.Ref, StateObjectCell>).set(root.ref, {
             transform: root,
             sourceRef: void 0,
             obj: rootObject,
@@ -195,10 +204,10 @@ class State {
 }
 
 namespace State {
-    export type Cells = ReadonlyMap<Transform.Ref, StateObjectCell>
+    export type Cells = ReadonlyMap<StateTransform.Ref, StateObjectCell>
 
     export type Tree = StateTree
-    export type Builder = StateTreeBuilder
+    export type Builder = StateBuilder
 
     export interface ObjectEvent {
         state: State,
@@ -209,28 +218,39 @@ namespace State {
         readonly tree: StateTree.Serialized
     }
 
-    export function create(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps?: unknown }) {
+    export interface UpdateOptions {
+        doNotLogTiming: boolean,
+        doNotUpdateCurrent: boolean
+    }
+
+    export function create(rootObject: StateObject, params?: { globalContext?: unknown, rootProps?: StateTransform.Props }) {
         return new State(rootObject, params);
     }
 }
 
-type Ref = Transform.Ref
+const StateUpdateDefaultOptions: State.UpdateOptions = {
+    doNotLogTiming: false,
+    doNotUpdateCurrent: false
+};
+
+type Ref = StateTransform.Ref
 
 interface UpdateContext {
     parent: State,
-    editInfo: StateTreeBuilder.EditInfo | undefined
+    editInfo: StateBuilder.EditInfo | undefined
 
     errorFree: boolean,
     taskCtx: RuntimeContext,
     oldTree: StateTree,
     tree: TransientTree,
-    cells: Map<Transform.Ref, StateObjectCell>,
+    cells: Map<StateTransform.Ref, StateObjectCell>,
     transformCache: Map<Ref, unknown>,
 
     results: UpdateNodeResult[],
+    stateChanges: StateTransform.Ref[],
 
     // suppress timing messages
-    silent: boolean,
+    options: State.UpdateOptions,
 
     changed: boolean,
     hadError: boolean,
@@ -241,7 +261,7 @@ async function update(ctx: UpdateContext) {
     // if only a single node was added/updated, we can skip potentially expensive diffing
     const fastTrack = !!(ctx.errorFree && ctx.editInfo && ctx.editInfo.count === 1 && ctx.editInfo.lastUpdate && ctx.editInfo.sourceTree === ctx.oldTree);
 
-    let deletes: Transform.Ref[], deletedObjects: (StateObject | undefined)[] = [], roots: Transform.Ref[];
+    let deletes: StateTransform.Ref[], deletedObjects: (StateObject | undefined)[] = [], roots: StateTransform.Ref[];
 
     if (fastTrack) {
         deletes = [];
@@ -307,7 +327,7 @@ async function update(ctx: UpdateContext) {
         await updateSubtree(ctx, root);
     }
 
-    let newCurrent: Transform.Ref | undefined = ctx.newCurrent;
+    let newCurrent: StateTransform.Ref | undefined = ctx.newCurrent;
     // Raise object updated events
     for (const update of ctx.results) {
         if (update.action === 'created') {
@@ -323,30 +343,29 @@ async function update(ctx: UpdateContext) {
         }
     }
 
-    if (newCurrent) ctx.parent.setCurrent(newCurrent);
-    else {
+    if (newCurrent) {
+        if (!ctx.options.doNotUpdateCurrent) ctx.parent.setCurrent(newCurrent);
+    } else {
         // check if old current or its parent hasn't become null
         const current = ctx.parent.current;
         const currentCell = ctx.cells.get(current);
-        if (currentCell && (
-            currentCell.obj === StateObject.Null
+        if (currentCell && (currentCell.obj === StateObject.Null
             || (currentCell.status === 'error' && currentCell.errorText === ParentNullErrorText))) {
             newCurrent = findNewCurrent(ctx.oldTree, current, [], ctx.cells);
             ctx.parent.setCurrent(newCurrent);
         }
     }
 
-
     return deletes.length > 0 || roots.length > 0 || ctx.changed;
 }
 
-function findUpdateRoots(cells: Map<Transform.Ref, StateObjectCell>, tree: StateTree) {
+function findUpdateRoots(cells: Map<StateTransform.Ref, StateObjectCell>, tree: StateTree) {
     const findState = { roots: [] as Ref[], cells };
     StateTree.doPreOrder(tree, tree.root, findState, findUpdateRootsVisitor);
     return findState.roots;
 }
 
-function findUpdateRootsVisitor(n: Transform, _: any, s: { roots: Ref[], cells: Map<Ref, StateObjectCell> }) {
+function findUpdateRootsVisitor(n: StateTransform, _: any, s: { roots: Ref[], cells: Map<Ref, StateObjectCell> }) {
     const cell = s.cells.get(n.ref);
     if (!cell || cell.transform.version !== n.version || cell.status === 'error') {
         s.roots.push(n.ref);
@@ -358,7 +377,7 @@ function findUpdateRootsVisitor(n: Transform, _: any, s: { roots: Ref[], cells: 
 }
 
 type FindDeletesCtx = { newTree: StateTree, cells: State.Cells, deletes: Ref[] }
-function checkDeleteVisitor(n: Transform, _: any, ctx: FindDeletesCtx) {
+function checkDeleteVisitor(n: StateTransform, _: any, ctx: FindDeletesCtx) {
     if (!ctx.newTree.transforms.has(n.ref) && ctx.cells.has(n.ref)) ctx.deletes.push(n.ref);
 }
 function findDeletes(ctx: UpdateContext): Ref[] {
@@ -367,12 +386,16 @@ function findDeletes(ctx: UpdateContext): Ref[] {
     return deleteCtx.deletes;
 }
 
-function syncStatesVisitor(n: Transform, tree: StateTree, oldState: StateTree.CellStates) {
-    if (!oldState.has(n.ref)) return;
-    (tree as TransientTree).updateCellState(n.ref, oldState.get(n.ref));
+function syncStatesVisitor(n: StateTransform, tree: StateTree, ctx: { oldState: StateTree.CellStates, newState: StateTree.CellStates, changes: StateTransform.Ref[] }) {
+    if (!ctx.oldState.has(n.ref)) return;
+    const changed = StateObjectCell.isStateChange(ctx.oldState.get(n.ref)!, ctx.newState.get(n.ref)!);
+    (tree as TransientTree).updateCellState(n.ref, ctx.newState.get(n.ref));
+    if (changed) {
+        ctx.changes.push(n.ref);
+    }
 }
 function syncStates(ctx: UpdateContext) {
-    StateTree.doPreOrder(ctx.tree, ctx.tree.root, ctx.oldTree.cellStates, syncStatesVisitor);
+    StateTree.doPreOrder(ctx.tree, ctx.tree.root, { newState: ctx.tree.cellStates, oldState: ctx.oldTree.cellStates, changes: ctx.stateChanges }, syncStatesVisitor);
 }
 
 function setCellStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Status, errorText?: string) {
@@ -383,7 +406,7 @@ function setCellStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Sta
     if (changed) ctx.parent.events.cell.stateUpdated.next({ state: ctx.parent, ref, cellState: ctx.tree.cellStates.get(ref) });
 }
 
-function initCellStatusVisitor(t: Transform, _: any, ctx: UpdateContext) {
+function initCellStatusVisitor(t: StateTransform, _: any, ctx: UpdateContext) {
     ctx.cells.get(t.ref)!.transform = t;
     setCellStatus(ctx, t.ref, 'pending');
 }
@@ -395,7 +418,7 @@ function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
 }
 
 type InitCellsCtx = { ctx: UpdateContext, added: StateObjectCell[] }
-function initCellsVisitor(transform: Transform, _: any, { ctx, added }: InitCellsCtx) {
+function initCellsVisitor(transform: StateTransform, _: any, { ctx, added }: InitCellsCtx) {
     if (ctx.cells.has(transform.ref)) {
         return;
     }
@@ -425,7 +448,7 @@ function findNewCurrent(tree: StateTree, start: Ref, deletes: Ref[], cells: Map<
 }
 
 function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>, cells: Map<Ref, StateObjectCell>): Ref {
-    if (ref === Transform.RootRef) return ref;
+    if (ref === StateTransform.RootRef) return ref;
 
     const node = tree.transforms.get(ref)!;
     const siblings = tree.children.get(node.parent)!.values();
@@ -514,13 +537,13 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.results.push(update);
         if (update.action === 'created') {
             isNull = update.obj === StateObject.Null;
-            if (!isNull && !ctx.silent) ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull && !ctx.options.doNotLogTiming) ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'updated') {
             isNull = update.obj === StateObject.Null;
-            if (!isNull && !ctx.silent) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull && !ctx.options.doNotLogTiming) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'replaced') {
             isNull = update.obj === StateObject.Null;
-            if (!isNull && !ctx.silent) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull && !ctx.options.doNotLogTiming) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         }
     } catch (e) {
         ctx.changed = true;
@@ -539,7 +562,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
     }
 }
 
-function resolveParams(ctx: UpdateContext, transform: Transform, src: StateObject) {
+function resolveParams(ctx: UpdateContext, transform: StateTransform, src: StateObject) {
     const prms = transform.transformer.definition.params;
     const definition = prms ? prms(src, ctx.parent.globalContext) : {};
     const values = transform.params ? transform.params : ParamDefinition.getDefaultValues(definition);
@@ -552,11 +575,13 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     const transform = current.transform;
 
     // special case for Root
-    if (current.transform.ref === Transform.RootRef) {
+    if (current.transform.ref === StateTransform.RootRef) {
         return { action: 'none' };
     }
 
-    const parentCell = StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
+    let parentCell = transform.transformer.definition.from.length === 0
+        ? ctx.cells.get(current.transform.parent)
+        : StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
     if (!parentCell) {
         throw new Error(`No suitable parent found for '${currentRef}'`);
     }
@@ -569,6 +594,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     if (!oldTree.transforms.has(currentRef) || !current.params) {
         current.params = params;
         const obj = await createObject(ctx, currentRef, transform.transformer, parent, params.values);
+        updateTag(obj, transform);
         current.obj = obj;
 
         return { ref: currentRef, action: 'created', obj };
@@ -579,16 +605,18 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
 
         const updateKind = !!current.obj && current.obj !== StateObject.Null
             ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, newParams)
-            : Transformer.UpdateResult.Recreate;
+            : StateTransformer.UpdateResult.Recreate;
 
         switch (updateKind) {
-            case Transformer.UpdateResult.Recreate: {
+            case StateTransformer.UpdateResult.Recreate: {
                 const oldObj = current.obj;
                 const newObj = await createObject(ctx, currentRef, transform.transformer, parent, newParams);
+                updateTag(newObj, transform);
                 current.obj = newObj;
                 return { ref: currentRef, action: 'replaced', oldObj, obj: newObj };
             }
-            case Transformer.UpdateResult.Updated:
+            case StateTransformer.UpdateResult.Updated:
+                updateTag(current.obj, transform);
                 return { ref: currentRef, action: 'updated', obj: current.obj! };
             default:
                 return { action: 'none' };
@@ -596,20 +624,25 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     }
 }
 
+function updateTag(obj: StateObject | undefined, transform: StateTransform) {
+    if (!obj || obj === StateObject.Null) return;
+    (obj.tag as string | undefined) = transform.props.tag;
+}
+
 function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {
     if (typeof (t as any).runInContext === 'function') return (t as Task<T>).runInContext(ctx);
     return t as T;
 }
 
-function createObject(ctx: UpdateContext, ref: Ref, transformer: Transformer, a: StateObject, params: any) {
+function createObject(ctx: UpdateContext, ref: Ref, transformer: StateTransformer, a: StateObject, params: any) {
     const cache = Object.create(null);
     ctx.transformCache.set(ref, cache);
     return runTask(transformer.definition.apply({ a, params, cache }, ctx.parent.globalContext), ctx.taskCtx);
 }
 
-async function updateObject(ctx: UpdateContext, ref: Ref, transformer: Transformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
+async function updateObject(ctx: UpdateContext, ref: Ref, transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
     if (!transformer.definition.update) {
-        return Transformer.UpdateResult.Recreate;
+        return StateTransformer.UpdateResult.Recreate;
     }
     let cache = ctx.transformCache.get(ref);
     if (!cache) {

@@ -7,7 +7,7 @@
 import { StateObject, StateObjectCell } from '../object';
 import { State } from '../state';
 import { StateTree } from '../tree';
-import { Transform } from '../transform';
+import { StateTransform } from '../transform';
 
 namespace StateSelection {
     export type Selector = Query | Builder | string | StateObjectCell;
@@ -75,7 +75,7 @@ namespace StateSelection {
     export namespace Generators {
         export const root = build(() => (state: State) => [state.cells.get(state.tree.root.ref)!]);
 
-        export function byRef(...refs: Transform.Ref[]) {
+        export function byRef(...refs: StateTransform.Ref[]) {
             return build(() => (state: State) => {
                 const ret: StateObjectCell[] = [];
                 for (const ref of refs) {
@@ -97,11 +97,27 @@ namespace StateSelection {
             });
         }
 
-        function _findRootsOfType(n: Transform, _: any, s: { type: StateObject.Type, roots: StateObjectCell[], cells: State.Cells }) {
+        export function ofType(type: StateObject.Ctor) {
+            return build(() => state => {
+                const ctx = { ret: [] as StateObjectCell[], cells: state.cells, type: type.type };
+                StateTree.doPreOrder(state.tree, state.tree.root, ctx, _findOfType);
+                return ctx.ret;
+            });
+        }
+
+        function _findRootsOfType(n: StateTransform, _: any, s: { type: StateObject.Type, roots: StateObjectCell[], cells: State.Cells }) {
             const cell = s.cells.get(n.ref);
             if (cell && cell.obj && cell.obj.type === s.type) {
                 s.roots.push(cell);
                 return false;
+            }
+            return true;
+        }
+
+        function _findOfType(n: StateTransform, _: any, s: { type: StateObject.Type, ret: StateObjectCell[], cells: State.Cells }) {
+            const cell = s.cells.get(n.ref);
+            if (cell && cell.obj && cell.obj.type === s.type) {
+                s.ret.push(cell);
             }
             return true;
         }
@@ -196,7 +212,7 @@ namespace StateSelection {
     registerModifier('parent', parent);
     export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.transforms.get(n.transform.ref)!.parent))); }
 
-    export function findAncestorOfType(tree: StateTree, cells: State.Cells, root: Transform.Ref, types: StateObject.Ctor[]): StateObjectCell | undefined {
+    export function findAncestorOfType<T extends StateObject.Ctor>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, types: T[]): StateObjectCell<StateObject.From<T>> | undefined {
         let current = tree.transforms.get(root)!, len = types.length;
         while (true) {
             current = tree.transforms.get(current.parent)!;
@@ -204,15 +220,15 @@ namespace StateSelection {
             if (!cell.obj) return void 0;
             const obj = cell.obj;
             for (let i = 0; i < len; i++) {
-                if (obj.type === types[i].type) return cells.get(current.ref);
+                if (obj.type === types[i].type) return cell as StateObjectCell<StateObject.From<T>>;
             }
-            if (current.ref === Transform.RootRef) {
+            if (current.ref === StateTransform.RootRef) {
                 return void 0;
             }
         }
     }
 
-    export function findRootOfType(tree: StateTree, cells: State.Cells, root: Transform.Ref, types: StateObject.Ctor[]): StateObjectCell | undefined {
+    export function findRootOfType(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, types: StateObject.Ctor[]): StateObjectCell | undefined {
         let parent: StateObjectCell | undefined, _root = root;
         while (true) {
             const _parent = StateSelection.findAncestorOfType(tree, cells, _root, types);
@@ -224,6 +240,29 @@ namespace StateSelection {
             }
         }
         return parent;
+    }
+
+    export function findUniqueTagsInSubtree<K extends string = string>(tree: StateTree, root: StateTransform.Ref, tags: Set<K>): { [name in K]?: StateTransform.Ref } {
+        return StateTree.doPreOrder(tree, tree.transforms.get(root), { refs: { }, tags }, _findUniqueTagsInSubtree).refs;
+    }
+
+    function _findUniqueTagsInSubtree(n: StateTransform, _: any, s: { refs: { [name: string]: StateTransform.Ref }, tags: Set<string> }) {
+        if (n.props.tag && s.tags.has(n.props.tag)) {
+            s.refs[n.props.tag] = n.ref;
+        }
+        return true;
+    }
+
+    export function findTagInSubtree(tree: StateTree, root: StateTransform.Ref, tag: string): StateTransform.Ref | undefined {
+        return StateTree.doPreOrder(tree, tree.transforms.get(root), { ref: void 0, tag }, _findTagInSubtree).ref;
+    }
+
+    function _findTagInSubtree(n: StateTransform, _: any, s: { ref: string | undefined, tag: string }) {
+        if (n.props.tag === s.tag) {
+            s.ref = n.ref;
+            return false;
+        }
+        return true;
     }
 }
 

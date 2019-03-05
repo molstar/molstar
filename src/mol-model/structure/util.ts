@@ -35,13 +35,14 @@ export function getAtomicMoleculeType(model: Model, rI: ResidueIndex): MoleculeT
     return model.atomicHierarchy.derived.residue.moleculeType[rI]
 }
 
+const EmptyAtomIds = new Set<string>()
 export function getAtomIdForAtomRole(moleculeType: MoleculeType, atomRole: AtomRole) {
     const m = MoleculeTypeAtomRoleId[moleculeType]
     if (m !== undefined) {
         const a = m[atomRole]
         if (a !== undefined) return a
     }
-    return ''
+    return EmptyAtomIds
 }
 
 export function residueLabel(model: Model, rI: number) {
@@ -50,6 +51,18 @@ export function residueLabel(model: Model, rI: number) {
     const { label_asym_id } = chains
     const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]]
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
+}
+
+export function elementLabel(model: Model, index: ElementIndex) {
+    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
+    const { label_atom_id } = atoms
+    const { auth_seq_id, auth_comp_id } = residues
+    const { auth_asym_id } = chains
+
+    const residueIndex = residueAtomSegments.index[index]
+    const chainIndex = chainAtomSegments.index[residueIndex]
+
+    return `[${auth_comp_id.value(residueIndex)}]${auth_seq_id.value(residueIndex)}:${auth_asym_id.value(chainIndex)}.${label_atom_id.value(index)}`
 }
 
 // const centerPos = Vec3.zero()

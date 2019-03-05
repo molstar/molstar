@@ -90,24 +90,30 @@ async function parseCif(data: string|Uint8Array) {
     return parsed.result;
 }
 
-export async function readStructureWrapper(key: string, sourceId: string | '_local_', entryId: string, propertyProvider: ModelPropertiesProvider | undefined) {
-    const filename = sourceId === '_local_' ? entryId : Config.mapFile(sourceId, entryId);
-    if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
-    if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
-
+export async function readDataAndFrame(filename: string, key?: string) {
     perf.start('read');
     let data;
     try {
         data = await readFile(filename);
     } catch (e) {
-        ConsoleLogger.error(key, '' + e);
-        throw new Error(`Could not read the file for '${key}' from disk.`);
+        ConsoleLogger.error(key || filename, '' + e);
+        throw new Error(`Could not read the file for '${key || filename}' from disk.`);
     }
 
     perf.end('read');
     perf.start('parse');
     const frame = (await parseCif(data)).blocks[0];
     perf.end('parse');
+
+    return { data, frame };
+}
+
+export async function readStructureWrapper(key: string, sourceId: string | '_local_', entryId: string, propertyProvider: ModelPropertiesProvider | undefined) {
+    const filename = sourceId === '_local_' ? entryId : Config.mapFile(sourceId, entryId);
+    if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
+    if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
+
+    const { data, frame } = await readDataAndFrame(filename, key);
     perf.start('createModel');
     const models = await trajectoryFromMmCIF(frame).run();
     perf.end('createModel');

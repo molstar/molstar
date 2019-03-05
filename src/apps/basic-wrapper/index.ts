@@ -11,9 +11,10 @@ import { PluginCommands } from 'mol-plugin/command';
 import { StateTransforms } from 'mol-plugin/state/transforms';
 import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
 import { Color } from 'mol-util/color';
-import { StateTreeBuilder } from 'mol-state/tree/builder';
-import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
+import { PluginStateObject as PSO, PluginStateObject } from 'mol-plugin/state/objects';
 import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
+import { StateBuilder } from 'mol-state';
+import { StripedResidues } from './coloring';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -25,28 +26,35 @@ class BasicWrapper {
     init(target: string | HTMLElement) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
             ...DefaultPluginSpec,
-            initialLayout: {
-                isExpanded: false,
-                showControls: false
+            layout: {
+                initial: {
+                    isExpanded: false,
+                    showControls: false
+                }
             }
         });
+
+        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.Descriptor.name, StripedResidues.colorTheme!);
+        this.plugin.lociLabels.addProvider(StripedResidues.labelProvider);
+        this.plugin.customModelProperties.register(StripedResidues.propertyProvider);
     }
 
-    private download(b: StateTreeBuilder.To<PSO.Root>, url: string) {
+    private download(b: StateBuilder.To<PSO.Root>, url: string) {
         return b.apply(StateTransforms.Data.Download, { url, isBinary: false })
     }
 
-    private parse(b: StateTreeBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats, assemblyId: string) {
+    private parse(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats, assemblyId: string) {
         const parsed = format === 'cif'
             ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
             : b.apply(StateTransforms.Model.TrajectoryFromPDB);
 
         return parsed
             .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
+            .apply(StateTransforms.Model.CustomModelProperties, { properties: [StripedResidues.Descriptor.name] }, { ref: 'props', props: { isGhost: false } })
             .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
     }
 
-    private visual(visualRoot: StateTreeBuilder.To<PSO.Molecule.Structure>) {
+    private visual(visualRoot: StateBuilder.To<PSO.Molecule.Structure>) {
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'cartoon'));
@@ -74,7 +82,7 @@ class BasicWrapper {
             if (state.select('asm').length > 0) loadType = 'update';
         }
 
-        let tree: StateTreeBuilder.Root;
+        let tree: StateBuilder.Root;
         if (loadType === 'full') {
             await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: state.tree.root.ref });
             tree = state.build();
@@ -108,6 +116,22 @@ class BasicWrapper {
             palindrome: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'palindrome', params: {} } }) },
             loop: () => { this.plugin.state.animation.play(AnimateModelIndex, { maxFPS: Math.max(0.5, this.animate.modelIndex.maxFPS | 0), mode: { name: 'loop', params: {} } }) },
             stop: () => this.plugin.state.animation.stop()
+        }
+    }
+
+    coloring = {
+        applyStripes: async () => {
+            const state = this.plugin.state.dataState;
+
+            const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
+            const tree = state.build();
+            const colorTheme = { name: StripedResidues.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(StripedResidues.Descriptor.name).defaultValues };
+
+            for (const v of visuals) {
+                tree.to(v.transform.ref).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
+            }
+
+            await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
         }
     }
 }
