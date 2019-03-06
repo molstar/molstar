@@ -232,7 +232,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
             }
 
             let changed = false
-            if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructureGroup.structure)) {
+            if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructureGroup.structure))) {
                 changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
                 changed = eachLocation(loci, currentStructureGroup, apply)
@@ -267,7 +267,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
                     return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, alpha)
                 }
 
-                if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructureGroup.structure)) {
+                if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructureGroup.structure))) {
                     apply(Interval.ofBounds(0, groupCount * instanceCount))
                 } else {
                     eachLocation(loci, currentStructureGroup, apply)

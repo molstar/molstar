@@ -195,25 +195,25 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
 function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getElementIndex, getAnomericCarbon } = structure.carbohydrates
     let changed = false
-    if (StructureElement.isLoci(loci)) {
-        for (const e of loci.elements) {
-            OrderedSet.forEach(e.indices, v => {
-                const { model, elements } = e.unit
-                const { index, offsets } = model.atomicHierarchy.residueAtomSegments
-                const rI = index[elements[v]]
-                const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
-                const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
-                const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
-                if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
-                const eI = getAnomericCarbon(e.unit, rI)
-                if (eI !== undefined) {
-                    const idx = getElementIndex(e.unit, eI)
-                    if (idx !== undefined) {
-                        if (apply(Interval.ofBounds(idx * 2, idx * 2 + 2))) changed = true
-                    }
+    if (!StructureElement.isLoci(loci)) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
+    for (const e of loci.elements) {
+        OrderedSet.forEach(e.indices, v => {
+            const { model, elements } = e.unit
+            const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+            const rI = index[elements[v]]
+            const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
+            const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
+            const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
+            if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+            const eI = getAnomericCarbon(e.unit, rI)
+            if (eI !== undefined) {
+                const idx = getElementIndex(e.unit, eI)
+                if (idx !== undefined) {
+                    if (apply(Interval.ofBounds(idx * 2, idx * 2 + 2))) changed = true
                 }
-            })
-        }
+            }
+        })
     }
     return changed
 }

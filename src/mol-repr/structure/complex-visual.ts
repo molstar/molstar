@@ -186,7 +186,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
             }
 
             let changed = false
-            if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {
+            if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructure))) {
                 changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
                 changed = eachLocation(loci, currentStructure, apply)
@@ -221,7 +221,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
                     return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, alpha)
                 }
 
-                if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {
+                if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructure))) {
                     apply(Interval.ofBounds(0, groupCount * instanceCount))
                 } else {
                     eachLocation(loci, currentStructure, apply)
