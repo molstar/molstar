@@ -32,6 +32,10 @@ export namespace ParamDefinition {
         defaultValue: T
     }
 
+    export interface Optional<T extends Any = Any> extends Base<T['defaultValue'] | undefined> {
+        type: T['type']
+    }
+
     export function makeOptional<T>(p: Base<T>): Base<T | undefined> {
         p.isOptional = true;
         return p;
@@ -189,6 +193,15 @@ export namespace ParamDefinition {
         }, info);
     }
 
+    export interface ObjectList<T = any> extends Base<T[]> {
+        type: 'object-list',
+        element: Params,
+        getLabel(t: T): string
+    }
+    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[] }): ObjectList<Normalize<T>> {
+        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, defaultValue: (info && info.defaultValue) || []  });
+    }
+
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
         converted: Any,
@@ -220,7 +233,9 @@ export namespace ParamDefinition {
         return setInfo<ScriptExpression>({ type: 'script-expression', defaultValue }, info)
     }
 
-    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression
+    export type Any =
+        | Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph
+        | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression | ObjectList
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -311,6 +326,14 @@ export namespace ParamDefinition {
         } else if (p.type === 'script-expression') {
             const u = a as ScriptExpression['defaultValue'], v = b as ScriptExpression['defaultValue'];
             return u.language === v.language && u.expression === v.expression;
+        } else if (p.type === 'object-list') {
+            const u = a as ObjectList['defaultValue'], v = b as ObjectList['defaultValue'];
+            const l = u.length;
+            if (l !== v.length) return false;
+            for (let i = 0; i < l; i++) {
+                if (!areEqual(p.element, u[i], v[i])) return false;
+            }
+            return true;
         } else if (typeof a === 'object' && typeof b === 'object') {
             return shallowEqual(a, b);
         }

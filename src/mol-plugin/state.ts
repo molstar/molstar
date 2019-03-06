@@ -51,7 +51,8 @@ class PluginState {
             animation: p.animation ? this.animation.getSnapshot() : void 0,
             camera: p.camera ? {
                 current: this.plugin.canvas3d.camera.getSnapshot(),
-                transitionStyle: p.cameraTranstionStyle ? p.cameraTranstionStyle : 'instant'
+                transitionStyle: p.cameraTranstion.name,
+                transitionDurationInMs: (params && params.cameraTranstion && params.cameraTranstion.name === 'animate' && params.cameraTranstion.params.durationInMs) || void 0
             } : void 0,
             cameraSnapshots: p.cameraSnapshots ? this.cameraSnapshots.getStateSnapshot() : void 0,
             canvas3d: p.canvas3d ? {
@@ -76,7 +77,9 @@ class PluginState {
         if (snapshot.camera) {
             await PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, {
                 snapshot: snapshot.camera.current,
-                durationMs: snapshot.camera.transitionStyle === 'animate' ? 250 : void 0
+                durationMs: snapshot.camera.transitionStyle === 'animate'
+                    ? snapshot.camera.transitionDurationInMs
+                    : void 0
             });
         }
     }
@@ -120,7 +123,12 @@ namespace PluginState {
         camera: PD.Boolean(true),
         // TODO: make camera snapshots same as the StateSnapshots with "child states?"
         cameraSnapshots: PD.Boolean(false),
-        cameraTranstionStyle: PD.Select<CameraTransitionStyle>('animate', [['animate', 'Animate'], ['instant', 'Instant']])
+        cameraTranstion: PD.MappedStatic('animate', {
+            animate: PD.Group({
+                durationInMs: PD.Numeric(250, { min: 100, max: 5000, step: 500 }, { label: 'Duration in ms' }),
+            }),
+            instant: PD.Group({ })
+        }, { options: [['animate', 'Animate'], ['instant', 'Instant']] })
     };
     export type GetSnapshotParams = Partial<PD.Values<typeof GetSnapshotParams>>
     export const DefaultGetSnapshotParams = PD.getDefaultValues(GetSnapshotParams);
@@ -132,7 +140,8 @@ namespace PluginState {
         animation?: PluginAnimationManager.Snapshot,
         camera?: {
             current: Camera.Snapshot,
-            transitionStyle: CameraTransitionStyle
+            transitionStyle: CameraTransitionStyle,
+            transitionDurationInMs?: number
         },
         cameraSnapshots?: CameraSnapshotManager.StateSnapshot,
         canvas3d?: {

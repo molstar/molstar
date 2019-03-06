@@ -296,14 +296,15 @@ async function update(ctx: UpdateContext) {
         roots = findUpdateRoots(ctx.cells, ctx.tree);
     }
 
+    let newCellStates: StateTree.CellStates;
+    if (!ctx.editInfo) {
+        newCellStates = ctx.tree.cellStatesSnapshot();
+        syncOldStates(ctx);
+    }
+
     // Init empty cells where not present
     // this is done in "pre order", meaning that "parents" will be created 1st.
     const addedCells = initCells(ctx, roots);
-
-    // Ensure cell states stay consistent
-    if (!ctx.editInfo) {
-        syncStates(ctx);
-    }
 
     // Notify additions of new cells.
     for (const cell of addedCells) {
@@ -325,6 +326,11 @@ async function update(ctx: UpdateContext) {
     // Sequentially update all the subtrees.
     for (const root of roots) {
         await updateSubtree(ctx, root);
+    }
+
+    // Sync cell states
+    if (!ctx.editInfo) {
+        syncNewStates(ctx, newCellStates!);
     }
 
     let newCurrent: StateTransform.Ref | undefined = ctx.newCurrent;
@@ -386,16 +392,25 @@ function findDeletes(ctx: UpdateContext): Ref[] {
     return deleteCtx.deletes;
 }
 
-function syncStatesVisitor(n: StateTransform, tree: StateTree, ctx: { oldState: StateTree.CellStates, newState: StateTree.CellStates, changes: StateTransform.Ref[] }) {
-    if (!ctx.oldState.has(n.ref)) return;
-    const changed = StateObjectCell.isStateChange(ctx.oldState.get(n.ref)!, ctx.newState.get(n.ref)!);
-    (tree as TransientTree).updateCellState(n.ref, ctx.newState.get(n.ref));
-    if (changed) {
-        ctx.changes.push(n.ref);
+function syncOldStatesVisitor(n: StateTransform, tree: StateTree, oldState: StateTree.CellStates) {
+    if (oldState.has(n.ref)) {
+        (tree as TransientTree).updateCellState(n.ref, oldState.get(n.ref));
     }
 }
-function syncStates(ctx: UpdateContext) {
-    StateTree.doPreOrder(ctx.tree, ctx.tree.root, { newState: ctx.tree.cellStates, oldState: ctx.oldTree.cellStates, changes: ctx.stateChanges }, syncStatesVisitor);
+function syncOldStates(ctx: UpdateContext) {
+    StateTree.doPreOrder(ctx.tree, ctx.tree.root, ctx.oldTree.cellStates, syncOldStatesVisitor);
+}
+
+function syncNewStatesVisitor(n: StateTransform, tree: StateTree, ctx: { newState: StateTree.CellStates, changes: StateTransform.Ref[] }) {
+    if (ctx.newState.has(n.ref)) {
+        const changed = (tree as TransientTree).updateCellState(n.ref, ctx.newState.get(n.ref));
+        if (changed) {
+            ctx.changes.push(n.ref);
+        }
+    }
+}
+function syncNewStates(ctx: UpdateContext, newState: StateTree.CellStates) {
+    StateTree.doPreOrder(ctx.tree, ctx.tree.root, { newState, changes: ctx.stateChanges }, syncNewStatesVisitor);
 }
 
 function setCellStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Status, errorText?: string) {

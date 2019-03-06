@@ -51,10 +51,11 @@ export namespace PluginStateObject {
         export class String extends Create<string>({ name: 'String Data', typeClass: 'Data', }) { }
         export class Binary extends Create<Uint8Array>({ name: 'Binary Data', typeClass: 'Data' }) { }
 
-        // TODO
-        // export class MultipleRaw extends Create<{
-        //     [key: string]: { type: 'String' | 'Binary', data: string | Uint8Array }
-        // }>({ name: 'Data', typeClass: 'Data', shortName: 'MD', description: 'Multiple Keyed Data.' }) { }
+        export type BlobEntry = { id: string } &
+            ( { kind: 'string', data: string }
+            | { kind: 'binary', data: Uint8Array })
+        export type BlobData = BlobEntry[]
+        export class Blob extends Create<BlobData>({ name: 'Data Blob', typeClass: 'Data' }) { }
     }
 
     export namespace Format {
@@ -62,6 +63,18 @@ export namespace PluginStateObject {
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
+
+        export type BlobEntry = { id: string } &
+            ( { kind: 'json', data: unknown }
+            | { kind: 'string', data: string }
+            | { kind: 'binary', data: Uint8Array }
+            | { kind: 'cif', data: CifFile }
+            | { kind: 'ccp4', data: Ccp4File }
+            | { kind: 'dsn6', data: Dsn6File }
+            // For non-build in extensions
+            | { kind: 'custom', data: unknown, tag: string })
+        export type BlobData = BlobEntry[]
+        export class Blob extends Create<BlobData>({ name: 'Format Blob', typeClass: 'Data' }) { }
     }
 
     export namespace Molecule {
