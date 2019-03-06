@@ -24,9 +24,7 @@ export function applyOverpaintColor(array: Uint8Array, start: number, end: numbe
 }
 
 export function createOverpaint(count: number, overpaintData?: OverpaintData): OverpaintData {
-    const overpaint = overpaintData && overpaintData.tOverpaint.ref.value.array.length >= count * 4
-        ? overpaintData.tOverpaint.ref.value
-        : createTextureImage(count, 4)
+    const overpaint = createTextureImage(Math.max(1, count), 4, overpaintData && overpaintData.tOverpaint.ref.value.array)
     if (overpaintData) {
         ValueCell.update(overpaintData.tOverpaint, overpaint)
         ValueCell.update(overpaintData.uOverpaintTexDim, Vec2.create(overpaint.width, overpaint.height))
