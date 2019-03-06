@@ -150,7 +150,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
         const model = a.data[params.modelIndex];
         const props = a.data.length === 1
             ? { label: `${model.label}` }
-            : { label: `${model.label}:${model.modelNum}`, description: `Model ${model.modelNum} of ${a.data.length}` };
+            : { label: `${model.label}:${model.modelNum}`, description: `Model ${params.modelIndex + 1} of ${a.data.length}` };
         return new SO.Molecule.Model(model, props);
     }
 });
