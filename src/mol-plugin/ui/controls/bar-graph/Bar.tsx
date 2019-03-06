@@ -34,6 +34,7 @@ export default class Bar extends React.Component<any, any> {
         height={this.props.height}
         onMouseOver={this.onHover}
         onClick={this.onClick}
+        onMouseLeave={this.props.onMouseLeave}
       />
     );
   }

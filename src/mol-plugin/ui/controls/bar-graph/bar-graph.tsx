@@ -41,6 +41,9 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
     this.setState({ selected: value});
   }
 
+  private handleLeave = () => {
+    this.props.onMouseLeave();
+  }
   private setHeightOfBars() {
     let bars = [];
     let max = -Infinity;
@@ -73,6 +76,7 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
           width={6}
           height={this.height + (this.padding) - position[1]}
           onHover={this.handleHover}
+          onMouseLeave={this.handleLeave}
           onClick={this.handleClick}
         />
       );

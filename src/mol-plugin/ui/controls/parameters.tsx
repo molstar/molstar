@@ -161,19 +161,25 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
     }
 }
 
-export class HistogramControl extends React.PureComponent<ParamProps<PD.Histogram>, {isExpanded: boolean, message: any}> {
+export class HistogramControl extends React.PureComponent<ParamProps<PD.Histogram>, {selected: string , isExpanded: boolean, message: any}> {
     state = {
         isExpanded: false,
+        selected: this.props.param.defaultValue.toPrecision(),
         message: this.props.param.defaultValue.toPrecision(),
     }
 
     onClick = (value: number) => {
         this.props.onChange({name: this.props.name, param: this.props.param, value: value});
+        this.setState({selected: value.toPrecision()})
     }
 
     toggleExpanded = (e:React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
+    }
+
+    displaySelected = (value: number) => {
+        this.setState({message: this.state.selected});
     }
 
     onHover = (value: any) => {
@@ -197,6 +203,7 @@ export class HistogramControl extends React.PureComponent<ParamProps<PD.Histogra
                             onClick={this.onClick}
                             height={400} 
                             padding={70} 
+                            onMouseLeave={this.displaySelected}
                             bins={this.props.param.histogram.bins} 
                             counts={this.props.param.histogram.counts} />
                     </div>
