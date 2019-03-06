@@ -68,6 +68,11 @@ export const GroProvider: DataFormatProvider<any> = {
 
 //
 
+const DownloadStructurePdbIdSourceOptions = PD.Group({
+    supportProps: PD.makeOptional(PD.Boolean(false)),
+    asTrajectory: PD.makeOptional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
+});
+
 export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure
 const DownloadStructure = StateAction.build({
@@ -77,21 +82,23 @@ const DownloadStructure = StateAction.build({
         source: PD.MappedStatic('bcif-static', {
             'pdbe-updated': PD.Group({
                 id: PD.Text('1cbs', { label: 'Id' }),
-                supportProps: PD.Boolean(false)
+                options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'rcsb': PD.Group({
                 id: PD.Text('1tqn', { label: 'Id' }),
-                supportProps: PD.Boolean(false)
+                options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'bcif-static': PD.Group({
                 id: PD.Text('1tqn', { label: 'Id' }),
-                supportProps: PD.Boolean(false)
+                options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'url': PD.Group({
                 url: PD.Text(''),
                 format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']]),
                 isBinary: PD.Boolean(false),
-                supportProps: PD.Boolean(false)
+                options: PD.Group({
+                    supportProps: PD.makeOptional(PD.Boolean(false))
+                })
             }, { isFlat: true })
         }, {
             options: [
@@ -106,27 +113,40 @@ const DownloadStructure = StateAction.build({
     const b = state.build();
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
+    let supportProps = false, asTrajectory = false;
 
     switch (src.name) {
         case 'url':
             downloadParams = [{ url: src.params.url, isBinary: src.params.isBinary }];
+            supportProps = !!src.params.options.supportProps;
             break;
         case 'pdbe-updated':
             downloadParams = getDownloadParams(src.params.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id}`, false);
+            supportProps = !!src.params.options.supportProps;
+            asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'rcsb':
             downloadParams = getDownloadParams(src.params.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB: ${id}`, false);
+            supportProps = !!src.params.options.supportProps;
+            asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'bcif-static':
             downloadParams = getDownloadParams(src.params.id, id => `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${id.toLowerCase()}`, id => `BinaryCIF: ${id}`, true);
+            supportProps = !!src.params.options.supportProps;
+            asTrajectory = !!src.params.options.asTrajectory;
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    for (const download of downloadParams) {
-        const data = b.toRoot().apply(StateTransforms.Data.Download, download, { props: { isGhost: true }});
-        const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
-        createStructureTree(ctx, traj, params.source.params.supportProps)
+    if (downloadParams.length > 0 && asTrajectory) {
+        const traj = createSingleTrajectoryModel(downloadParams, b);
+        createStructureTree(ctx, traj, supportProps);
+    } else {
+        for (const download of downloadParams) {
+            const data = b.toRoot().apply(StateTransforms.Data.Download, download, { props: { isGhost: true }});
+            const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
+            createStructureTree(ctx, traj, supportProps)
+        }
     }
     return state.updateTree(b);
 });
@@ -138,6 +158,18 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
         ret.push({ url: url(id), isBinary, label: label(id) })
     }
     return ret;
+}
+
+function createSingleTrajectoryModel(sources: StateTransformer.Params<Download>[], b: StateBuilder.Root) {
+    return b.toRoot()
+        .apply(StateTransforms.Data.DownloadBlob, {
+            sources: sources.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
+            maxConcurrency: 6
+        }).apply(StateTransforms.Data.ParseBlob, {
+            formats: sources.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' }))
+        })
+        .apply(StateTransforms.Model.TrajectoryFromBlob)
+        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }
 
 function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' | 'gro' = 'cif') {
