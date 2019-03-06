@@ -71,10 +71,10 @@ export class ViewportControls extends PluginUIComponent {
         // TODO: show some icons dimmed etc..
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
-                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
+                {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}<br/>
+                {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}<br/>
+                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}<br/>
                 {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
-                {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
-                {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
             </div>
             {this.state.isSettingsExpanded &&
             <div className='msp-viewport-controls-scene-options'>
