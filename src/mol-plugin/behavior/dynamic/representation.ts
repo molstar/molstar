@@ -245,10 +245,10 @@ export namespace ColorRepresentation3D {
             if (parsed.length === 0) throw new Error('No query');
             const query = transpileMolScript(parsed[0]);
 
-            return this.apply([{ query, color: params.color }])
+            return this.applyMappings([{ query, color: params.color }])
         }
 
-        private apply(colorMappings: ColorMappings): boolean {
+        private applyMappings(colorMappings: ColorMappings): boolean {
             if (!this.updateData() && ColorMappings.areEqual(colorMappings, this.currentColorMappings)) return false;
             this.currentColorMappings = colorMappings;
             if (!this.repr.data || !this.structure.data) return true;
@@ -266,16 +266,19 @@ export namespace ColorRepresentation3D {
                 const loci = StructureSelection.toLoci2(result)
                 layers.push({ loci, color, alpha: 1 })
             }
-            this.repr.data.setOverpaint(layers)
+            return this.applyLayers(layers)
+        }
 
+        private applyLayers(layers: Overpaint.Layers): boolean {
+            if (!this.repr.data) return true;
+            this.repr.data.setOverpaint(layers)
             this.ctx.canvas3d.add(this.repr.data);
             this.ctx.canvas3d.requestDraw(true);
-
             return true;
         }
 
         unregister(): void {
-            this.apply([])
+            this.applyLayers([{ loci: EveryLoci, color: ColorNames.black, alpha: 0 }]) // clear
             this.repr.cell = void 0;
             this.structure.cell = void 0;
         }
