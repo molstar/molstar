@@ -35,6 +35,10 @@ function mouseDown (event: any, state: any ) {
     const x = event.target.cx.animVal.value;
     const y = event.target.cy.animVal.value;
     if(isNaN(id)) {
+        state.isControlEnabled['plus'] = false;
+        state.isControlEnabled['minus'] = false;
+        state.x = '';
+        state.y = '';
         state.mouseStartPoint = Vec2.create(x, y);
         return state;
     }
