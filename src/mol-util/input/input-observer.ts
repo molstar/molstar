@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -117,6 +117,7 @@ export type MoveInput = {
 
 export type PinchInput = {
     delta: number,
+    fraction: number,
     distance: number,
     isStart: boolean
 }
@@ -324,7 +325,9 @@ namespace InputObserver {
                 buttons = ButtonsType.Flag.Secondary
                 onPointerDown(getCenterTouch(ev))
 
-                pinch.next({ distance: lastTouchDistance, delta: 0, isStart: true })
+                const touchDistance = getTouchDistance(ev)
+                lastTouchDistance = touchDistance
+                pinch.next({ distance: touchDistance, fraction: 1, delta: 0, isStart: true })
             }
         }
 
@@ -338,12 +341,14 @@ namespace InputObserver {
                 onPointerMove(ev.touches[0])
             } else if (ev.touches.length >= 2) {
                 const touchDistance = getTouchDistance(ev)
-                if (lastTouchDistance - touchDistance < 4) {
+                const touchDelta = lastTouchDistance - touchDistance
+                if (Math.abs(touchDelta) < 4) {
                     buttons = ButtonsType.Flag.Secondary
                     onPointerMove(getCenterTouch(ev))
                 } else {
                     pinch.next({
-                        delta: lastTouchDistance - touchDistance,
+                        delta: touchDelta,
+                        fraction: lastTouchDistance / touchDistance,
                         distance: touchDistance,
                         isStart: false
                     })
