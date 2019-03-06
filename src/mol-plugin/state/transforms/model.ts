@@ -25,6 +25,7 @@ import { parseGRO } from 'mol-io/reader/gro/parser';
 import { parseMolScript } from 'mol-script/language/parser';
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 
+export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
@@ -36,6 +37,30 @@ export { StructureSelection };
 export { UserStructureSelection };
 export { StructureComplexElement };
 export { CustomModelProperties };
+
+type TrajectoryFromBlob = typeof TrajectoryFromBlob
+const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-blob',
+    display: { name: 'Parse Blob', description: 'Parse format blob into a single trajectory.' },
+    from: SO.Format.Blob,
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse Format Blob', async ctx => {
+            const models: Model[] = [];
+            for (const e of a.data) {
+                if (e.kind !== 'cif') continue;
+                const block = e.data.blocks[0];
+                const xs = await trajectoryFromMmCIF(block).runInContext(ctx);
+                if (xs.length === 0) throw new Error('No models found.');
+                for (const x of xs) models.push(x);
+            }
+
+            const props = { label: `Trajectory`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
 
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
 const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({

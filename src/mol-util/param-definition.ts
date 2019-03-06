@@ -32,6 +32,10 @@ export namespace ParamDefinition {
         defaultValue: T
     }
 
+    export interface Optional<T extends Any = Any> extends Base<T['defaultValue'] | undefined> {
+        type: T['type']
+    }
+
     export function makeOptional<T>(p: Base<T>): Base<T | undefined> {
         p.isOptional = true;
         return p;
@@ -189,13 +193,13 @@ export namespace ParamDefinition {
         }, info);
     }
 
-    export interface List<T = any> extends Base<T[]> {
-        type: 'list',
-        element: Any,
+    export interface ObjectList<T = any> extends Base<T[]> {
+        type: 'object-list',
+        element: Params,
         getLabel(t: T): string
     }
-    export function List<T extends Any>(element: T, getLabel: (e: T['defaultValue']) => string, info?: Info & { defaultValue?: T['defaultValue'][] }): List<T['defaultValue']> {
-        return setInfo<List<T['defaultValue']>>({ type: 'list', element, getLabel, defaultValue: (info && info.defaultValue) || []  });
+    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[] }): ObjectList<Normalize<T>> {
+        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, defaultValue: (info && info.defaultValue) || []  });
     }
 
     export interface Converted<T, C> extends Base<T> {
@@ -231,7 +235,7 @@ export namespace ParamDefinition {
 
     export type Any =
         | Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph
-        | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression | List
+        | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression | ObjectList
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -322,12 +326,12 @@ export namespace ParamDefinition {
         } else if (p.type === 'script-expression') {
             const u = a as ScriptExpression['defaultValue'], v = b as ScriptExpression['defaultValue'];
             return u.language === v.language && u.expression === v.expression;
-        } else if (p.type === 'list') {
-            const u = a as List['defaultValue'], v = b as List['defaultValue'];
+        } else if (p.type === 'object-list') {
+            const u = a as ObjectList['defaultValue'], v = b as ObjectList['defaultValue'];
             const l = u.length;
             if (l !== v.length) return false;
             for (let i = 0; i < l; i++) {
-                if (!isParamEqual(p.element, u[i], v[i])) return false;
+                if (!areEqual(p.element, u[i], v[i])) return false;
             }
             return true;
         } else if (typeof a === 'object' && typeof b === 'object') {

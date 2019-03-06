@@ -64,7 +64,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'mapped': return MappedControl;
         case 'line-graph': return LineGraphControl;
         case 'script-expression': return ScriptExpressionControl;
-        case 'list': return ListControl;
+        case 'object-list': return ObjectListControl;
         default:
             const _: never = param;
             console.warn(`${_} has no associated UI component`);
@@ -513,7 +513,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
 }
 
 
-export class ListControl extends React.PureComponent<ParamProps<PD.List>, { isExpanded: boolean }> {
+export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectList>, { isExpanded: boolean }> {
     // state = { isExpanded: !!this.props.param.isExpanded }
 
     // change(value: any) {

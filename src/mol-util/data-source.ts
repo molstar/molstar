@@ -195,3 +195,57 @@ function ajaxGetInternal(title: string | undefined, url: string, type: 'json' | 
         if (xhttp) xhttp.abort();
     });
 }
+
+export type AjaxGetManyEntry<T> = { kind: 'ok', id: string, result: T } | { kind: 'error', id: string, error: any }
+export async function ajaxGetMany(ctx: RuntimeContext, sources: { id: string, url: string, isBinary?: boolean, canFail?: boolean }[], maxConcurrency: number) {
+    const len = sources.length;
+    const slots: AjaxGetManyEntry<string | Uint8Array>[] = new Array(sources.length);
+
+    await ctx.update({ message: 'Downloading...', current: 0, max: len });
+    let promises: Promise<AjaxGetManyEntry<any> & { index: number }>[] = [], promiseKeys: number[] = [];
+    let currentSrc = 0;
+    for (let _i = Math.min(len, maxConcurrency); currentSrc < _i; currentSrc++) {
+        const current = sources[currentSrc];
+        promises.push(wrapPromise(currentSrc, current.id, ajaxGet({ url: current.url, type: current.isBinary ? 'binary' : 'string' }).runAsChild(ctx)));
+        promiseKeys.push(currentSrc);
+    }
+
+    let done = 0;
+    while (promises.length > 0) {
+        const r = await Promise.race(promises);
+        const src = sources[r.index];
+        const idx = promiseKeys.indexOf(r.index);
+        done++;
+        if (r.kind === 'error' && !src.canFail) {
+            // TODO: cancel other downloads
+            throw new Error(`${src.url}: ${r.error}`);
+        }
+        if (ctx.shouldUpdate) {
+            await ctx.update({ message: 'Downloading...', current: done, max: len });
+        }
+        slots[r.index] = r;
+        promises = promises.filter(_filterRemoveIndex, idx);
+        promiseKeys = promiseKeys.filter(_filterRemoveIndex, idx);
+        if (currentSrc < len) {
+            const current = sources[currentSrc];
+            promises.push(wrapPromise(currentSrc, current.id, ajaxGet({ url: current.url, type: current.isBinary ? 'binary' : 'string' }).runAsChild(ctx)));
+            promiseKeys.push(currentSrc);
+            currentSrc++;
+        }
+    }
+
+    return slots;
+}
+
+function _filterRemoveIndex(this: number, _: any, i: number) {
+    return this !== i;
+}
+
+async function wrapPromise<T>(index: number, id: string, p: Promise<T>): Promise<AjaxGetManyEntry<T> & { index: number }> {
+    try {
+        const result = await p;
+        return { kind: 'ok', result, index, id };
+    } catch (error) {
+        return { kind: 'error', error, index, id }
+    }
+}
