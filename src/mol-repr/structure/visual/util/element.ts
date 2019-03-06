@@ -72,7 +72,7 @@ export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
-    if (loci.structure !== structure) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
     const elementCount = group.elements.length
     for (const e of loci.elements) {
         const unitIdx = group.unitIndexMap.get(e.unit.id)

@@ -106,9 +106,9 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
 
 function eachCrossLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const crossLinks = structure.crossLinkRestraints
-
     let changed = false
     if (Link.isLoci(loci)) {
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         for (const b of loci.links) {
             const indices = crossLinks.getPairIndices(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
             if (indices) {

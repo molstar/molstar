@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -72,9 +72,6 @@ namespace TrackballControls {
 
         const _zoomStart = Vec2.zero()
         const _zoomEnd = Vec2.zero()
-
-        let _touchZoomDistanceStart = 0
-        let _touchZoomDistanceEnd = 0
 
         const _panStart = Vec2.zero()
         const _panEnd = Vec2.zero()
@@ -245,7 +242,7 @@ namespace TrackballControls {
 
         // listeners
 
-        function onDrag({ pageX, pageY, buttons, modifiers, isStart }: DragInput) {
+        function onDrag({ pageX, pageY, buttons, isStart }: DragInput) {
             _isInteracting = true;
 
             if (isStart) {
@@ -279,17 +276,9 @@ namespace TrackballControls {
             _zoomStart[1] -= dy * 0.0001
         }
 
-        function onPinch({ distance, isStart }: PinchInput) {
+        function onPinch({ fraction }: PinchInput) {
             _isInteracting = true;
-
-            if (isStart) {
-                _touchZoomDistanceStart = distance
-            }
-            _touchZoomDistanceEnd = distance
-
-            const factor = (_touchZoomDistanceStart / _touchZoomDistanceEnd) * p.zoomSpeed
-            _touchZoomDistanceStart = _touchZoomDistanceEnd;
-            Vec3.scale(_eye, _eye, factor)
+            _zoomStart[1] -= (fraction - 1) * 0.1
         }
 
         function dispose() {

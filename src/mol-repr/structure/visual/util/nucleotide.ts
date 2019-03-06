@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureElement } from 'mol-model/structure';
+import { Unit, StructureElement, Structure } from 'mol-model/structure';
 import { getNucleotideElements } from 'mol-model/structure/structure/util/nucleotide';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { OrderedSet, Interval } from 'mol-data/int';
@@ -44,7 +44,7 @@ export function eachNucleotideElement(loci: Loci, structureGroup: StructureGroup
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
-    if (loci.structure !== structure) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
     const unit = group.units[0]
     if (!Unit.isAtomic(unit)) return false
     const { nucleotideElements, model, elements } = unit
