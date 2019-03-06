@@ -9,15 +9,28 @@ export default class Bar extends React.Component<any, any> {
   }
 
   private onHover = (event: any) => {
+    if(!this.props.onHover) { return; }
     this.props.onHover(this.value);
+    if(!this.props.setHover) { return; }
+    this.props.setHover(true);
   };
 
+  private offHover = (event: any) => {
+    if(!this.props.onMouseLeave) { return; }
+    this.props.onMouseLeave();
+    if(!this.props.setHover) { return; }
+    this.props.setHover(false);
+  }
+
   private onClick = (event: any) => {
+    if(!this.props.onClick) { return; }
     this.props.onClick(this.value);
   }
 
   private onFocus = () => {
+    if(!this.props.onHover) { return; }
     this.props.onHover(this.value);
+    if(!this.props.onClick) { return; }
     this.props.onClick(this.value);
   }
 
@@ -34,7 +47,7 @@ export default class Bar extends React.Component<any, any> {
         height={this.props.height}
         onMouseOver={this.onHover}
         onClick={this.onClick}
-        onMouseLeave={this.props.onMouseLeave}
+        onMouseLeave={this.offHover}
       />
     );
   }
