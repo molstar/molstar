@@ -208,11 +208,11 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             const { groupCount, instanceCount } = locationIt
 
             for (let i = 0, il = layers.length; i < il; ++i) {
-                const { loci, color } = layers[i]
+                const { loci, color, alpha } = layers[i]
                 const apply = (interval: Interval) => {
                     const start = Interval.start(interval)
                     const end = Interval.end(interval)
-                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color)
+                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, alpha)
                 }
 
                 if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {

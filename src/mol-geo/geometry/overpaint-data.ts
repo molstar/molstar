@@ -15,10 +15,10 @@ export type OverpaintData = {
     dOverpaint: ValueCell<boolean>,
 }
 
-export function applyOverpaintColor(array: Uint8Array, start: number, end: number, color: Color) {
+export function applyOverpaintColor(array: Uint8Array, start: number, end: number, color: Color, alpha: number) {
     for (let i = start; i < end; ++i) {
         Color.toArray(color, array, i * 4)
-        array[i * 4 + 3] = 255
+        array[i * 4 + 3] = alpha * 255
     }
     return true
 }

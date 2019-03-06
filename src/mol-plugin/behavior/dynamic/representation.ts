@@ -1,12 +1,13 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
-import { EmptyLoci } from 'mol-model/loci';
+import { EmptyLoci, EveryLoci } from 'mol-model/loci';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginStateObject } from 'mol-plugin/state/objects';
@@ -16,7 +17,15 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
 import { Representation } from 'mol-repr/representation';
 import { ButtonsType } from 'mol-util/input/input-observer';
-import { StructureElement } from 'mol-model/structure';
+import { StructureElement, StructureSelection, QueryContext } from 'mol-model/structure';
+import { ColorNames } from 'mol-util/color/tables';
+// import { MolScriptBuilder as MS } from 'mol-script/language/builder';
+import Expression from 'mol-script/language/expression';
+import { Color } from 'mol-util/color';
+import { compile } from 'mol-script/runtime/query/compiler';
+import { Overpaint } from 'mol-theme/overpaint';
+import { parseMolScript } from 'mol-script/language/parser';
+import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 
 export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
@@ -119,7 +128,6 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
     display: { name: 'Provide Default Loci Label' }
 });
 
-
 export namespace ExplodeRepresentation3D {
     export const Params = {
         t: PD.Numeric(0, { min: 0, max: 1, step: 0.01 })
@@ -196,4 +204,87 @@ export namespace ExplodeRepresentation3D {
     }
 
     export class Obj extends PluginStateObject.CreateBehavior<Behavior>({ name: 'Explode Representation3D Behavior' }) { }
+}
+
+type ColorMappings = { query: Expression, color: Color }[]
+namespace ColorMappings {
+    export function areEqual(colorMappingsA: ColorMappings, colorMappingsB: ColorMappings) {
+        return false
+    }
+}
+
+export namespace ColorRepresentation3D {
+    export const Params = {
+        query: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))' }),
+        color: PD.Color(ColorNames.blueviolet)
+        // colorMappings: PD.Value<ColorMappings>([{ query: MS.struct.generator.atomGroups({
+        //     'residue-test': MS.core.rel.eq([MS.ammp('auth_comp_id'), 'ALA'])
+        // }), color: ColorNames.greenyellow }], { isHidden: true }),
+    }
+    export type Params = PD.Values<typeof Params>
+
+    export class Behavior implements PluginBehavior<Params> {
+        private currentColorMappings: ColorMappings = [];
+        private repr: StateObjectTracker<PluginStateObject.Molecule.Representation3D>;
+        private structure: StateObjectTracker<PluginStateObject.Molecule.Structure>;
+
+        private updateData() {
+            const reprUpdated = this.repr.update();
+            const strucUpdated = this.structure.update();
+            return reprUpdated || strucUpdated;
+        }
+
+        register(ref: string): void {
+            this.repr.setQuery(StateSelection.Generators.byRef(ref).ancestorOfType([PluginStateObject.Molecule.Representation3D]));
+            this.structure.setQuery(StateSelection.Generators.byRef(ref).ancestorOfType([PluginStateObject.Molecule.Structure]));
+            this.update(this.params);
+        }
+
+        update(params: Params): boolean {
+            const parsed = parseMolScript(params.query.expression);
+            if (parsed.length === 0) throw new Error('No query');
+            const query = transpileMolScript(parsed[0]);
+
+            return this.apply([{ query, color: params.color }])
+        }
+
+        private apply(colorMappings: ColorMappings): boolean {
+            if (!this.updateData() && ColorMappings.areEqual(colorMappings, this.currentColorMappings)) return false;
+            this.currentColorMappings = colorMappings;
+            if (!this.repr.data || !this.structure.data) return true;
+
+            const layers: Overpaint.Layers = [
+                // unsets the overpaint
+                // TODO do smarter by looking at the current color mappings
+                { loci: EveryLoci, color: ColorNames.black, alpha: 0 }
+            ]
+            // console.log('currentColorMappings', this.currentColorMappings)
+            for (let i = 0, il = this.currentColorMappings.length; i < il; ++i) {
+                const { query, color } = this.currentColorMappings[i]
+                const compiled = compile<StructureSelection>(query);
+                const result = compiled(new QueryContext(this.structure.data));
+                const loci = StructureSelection.toLoci2(result)
+                layers.push({ loci, color, alpha: 1 })
+            }
+            this.repr.data.setOverpaint(layers)
+
+            this.ctx.canvas3d.add(this.repr.data);
+            this.ctx.canvas3d.requestDraw(true);
+
+            return true;
+        }
+
+        unregister(): void {
+            this.apply([])
+            this.repr.cell = void 0;
+            this.structure.cell = void 0;
+        }
+
+        constructor(private ctx: PluginContext, private params: Params) {
+            this.repr = new StateObjectTracker(ctx.state.dataState);
+            this.structure = new StateObjectTracker(ctx.state.dataState);
+        }
+    }
+
+    export class Obj extends PluginStateObject.CreateBehavior<Behavior>({ name: 'Color Representation3D Behavior' }) { }
 }

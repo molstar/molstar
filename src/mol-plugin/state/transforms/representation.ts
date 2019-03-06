@@ -7,7 +7,7 @@
 
 import { Structure } from 'mol-model/structure';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
-import { ExplodeRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
+import { ExplodeRepresentation3D, ColorRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
 import { PluginContext } from 'mol-plugin/context';
 import { RepresentationProvider } from 'mol-repr/representation';
 import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
@@ -30,6 +30,7 @@ export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
 export { StructureLabels3D}
 export { ExplodeStructureRepresentation3D }
+export { ColorStructureRepresentation3D }
 export { VolumeRepresentation3D }
 
 namespace StructureRepresentation3DHelpers {
@@ -228,7 +229,6 @@ const StructureLabels3D = PluginStateTransform.BuiltIn({
     }
 });
 
-
 type ExplodeStructureRepresentation3D = typeof ExplodeStructureRepresentation3D
 const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'explode-structure-representation-3d',
@@ -247,6 +247,29 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Update Explosion', async () => {
             const updated = await b.data.update(newParams);
             b.label = `Explosion T = ${newParams.t.toFixed(2)}`;
+            return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
+        });
+    }
+});
+
+type ColorStructureRepresentation3D = typeof ColorStructureRepresentation3D
+const ColorStructureRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'color-structure-representation-3d',
+    display: 'Color 3D Representation',
+    from: SO.Molecule.Representation3D,
+    to: ColorRepresentation3D.Obj,
+    params: ColorRepresentation3D.Params
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ params }, plugin: PluginContext) {
+        return new ColorRepresentation3D.Obj(new ColorRepresentation3D.Behavior(plugin, params), { label: `Coloring` });
+    },
+    update({ b, newParams }) {
+        return Task.create('Update Coloring', async () => {
+            const updated = await b.data.update(newParams);
+            b.label = `Coloring`;
             return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
         });
     }

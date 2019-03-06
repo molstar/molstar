@@ -214,11 +214,11 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
             createOverpaint(layers.length ? groupCount * instanceCount : 0, renderObject.values)
 
             for (let i = 0, il = layers.length; i < il; ++i) {
-                const { loci, color } = layers[i]
+                const { loci, color, alpha } = layers[i]
                 const apply = (interval: Interval) => {
                     const start = Interval.start(interval)
                     const end = Interval.end(interval)
-                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color)
+                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, alpha)
                 }
 
                 if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {

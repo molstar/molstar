@@ -25,7 +25,6 @@ type StructureAnimationProps = PD.Values<typeof StructureAnimationParams>
 /**
  * TODO
  * - animation class is just for testing purposes, needs better API
- * - allow per-unit transform `unitTransform: { [unitId: number]: Mat4 }`
  */
 export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>({
     name: 'structure-animation',
