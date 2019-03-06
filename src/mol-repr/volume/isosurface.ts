@@ -136,8 +136,7 @@ export const IsosurfaceParams = {
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
     const p = PD.clone(IsosurfaceParams)
-    
-    const mean = volume.dataStats.mean;
+    const defaultValue = p.alpha.defaultValue;
     const histogram = volume.dataStats.histogram;
 
     p.isoValue = PD.Conditioned(
@@ -146,7 +145,7 @@ export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeDat
             'absolute': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v).absoluteValue,
                 (v: number) => VolumeIsoValue.absolute(volume.dataStats, v),
-                PD.Histogram(mean, histogram)
+                PD.Histogram(defaultValue, histogram)
             ),
             'relative': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v).relativeValue,

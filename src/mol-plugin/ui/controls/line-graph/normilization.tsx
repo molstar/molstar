@@ -5,7 +5,6 @@ export function normalizeToFitGraph(height:number, width:number, point: Vec2, pa
     const maxX = width+min;
     const maxY = height+min;
     const normalizedX = (point[0]*(maxX-min))+min;
-    console.log(`normalizedX: ${normalizedX}`);
     const normalizedY = (point[1]*(maxY-min))+min;
     
     let reverseY;
