@@ -178,7 +178,7 @@ class PluginStateSnapshotManager extends PluginComponent<{
         const snapshot = this.setCurrent(next)!;
         await this.plugin.state.setSnapshot(snapshot);
         const delay = typeof snapshot.durationInMs !== 'undefined' ? snapshot.durationInMs : this.state.nextSnapshotDelayInMs;
-        this.timeoutHandle = setTimeout(this.next, delay);
+        if (this.state.isPlaying) this.timeoutHandle = setTimeout(this.next, delay);
     };
 
     play() {

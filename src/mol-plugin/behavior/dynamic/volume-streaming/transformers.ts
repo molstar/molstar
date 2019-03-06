@@ -28,10 +28,11 @@ export const InitVolumeStreaming = StateAction.build({
     params(a) {
         return {
             method: PD.Select<VolumeServerInfo.Kind>(getStreamingMethod(a && a.data), [['em', 'EM'], ['x-ray', 'X-Ray']]),
-            id: PD.Text((a && a.data.models[0].label) || ''),
+            id: PD.Text((a && a.data.models.length > 0 && a.data.models[0].label) || ''),
             serverUrl: PD.Text('https://webchem.ncbr.muni.cz/DensityServer')
         };
-    }
+    },
+    isApplicable: (a) => a.data.models.length === 1
 })(({ ref, state, params }, plugin: PluginContext) => Task.create('Volume Streaming', async taskCtx => {
     // TODO: custom react view for this and the VolumeStreamingBehavior transformer
 
