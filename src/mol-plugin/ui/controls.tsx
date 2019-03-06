@@ -14,6 +14,8 @@ import { PluginStateObject } from 'mol-plugin/state/objects';
 import { StateTransforms } from 'mol-plugin/state/transforms';
 import { StateTransformer } from 'mol-state';
 import { ModelFromTrajectory } from 'mol-plugin/state/transforms/model';
+import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
+import { ParamDefinition } from 'mol-util/param-definition';
 
 export class TrajectoryControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
@@ -74,12 +76,26 @@ export class TrajectoryControls extends PluginUIComponent<{}, { show: boolean, l
         action: UpdateTrajectory.create({ action: 'advance', by: 1 })
     });
 
+    stopAnimation = () => {
+        this.plugin.state.animation.stop();
+    }
+
+    playAnimation = () => {
+        const anim = this.plugin.state.animation;
+        if (anim.state.params.current === AnimateModelIndex.name) {
+            anim.start();
+        } else {
+            anim.play(AnimateModelIndex, ParamDefinition.getDefaultValues(AnimateModelIndex.params(this.plugin) as any as ParamDefinition.Params))
+        }
+    }
+
     render() {
         if (!this.state.show) return null;
 
         const isAnimating = this.plugin.behaviors.state.isAnimating.value;
 
         return <div className='msp-traj-controls'>
+            <IconButton icon={isAnimating ? 'stop' : 'play'} title={isAnimating ? 'Stop' : 'Play'} onClick={isAnimating ? this.stopAnimation : this.playAnimation} />
             <IconButton icon='model-first' title='First Model' onClick={this.reset} disabled={isAnimating} />
             <IconButton icon='model-prev' title='Previous Model' onClick={this.prev} disabled={isAnimating} />
             <IconButton icon='model-next' title='Next Model' onClick={this.next} disabled={isAnimating} />
