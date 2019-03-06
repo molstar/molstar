@@ -7,7 +7,7 @@
 
 import { Structure } from 'mol-model/structure';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
-import { ExplodeRepresentation3D, ColorRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
+import { ExplodeRepresentation3D, ColorRepresentation3D, UnwindAssemblyRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
 import { PluginContext } from 'mol-plugin/context';
 import { RepresentationProvider } from 'mol-repr/representation';
 import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
@@ -30,6 +30,7 @@ export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
 export { StructureLabels3D}
 export { ExplodeStructureRepresentation3D }
+export { UnwindStructureAssemblyRepresentation3D }
 export { ColorStructureRepresentation3D }
 export { VolumeRepresentation3D }
 
@@ -225,6 +226,29 @@ const StructureLabels3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Labels', async ctx => {
             await getLabelRepresentation(ctx, a.data, newParams, b.data as ShapeRepresentation<any, any, any>);
             return StateTransformer.UpdateResult.Updated;
+        });
+    }
+});
+
+type UnwindStructureAssemblyRepresentation3D = typeof UnwindStructureAssemblyRepresentation3D
+const UnwindStructureAssemblyRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'unwind-structure-assembly-representation-3d',
+    display: 'Unwind Assembly 3D Representation',
+    from: SO.Molecule.Representation3D,
+    to: UnwindAssemblyRepresentation3D.Obj,
+    params: UnwindAssemblyRepresentation3D.Params
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ params }, plugin: PluginContext) {
+        return new UnwindAssemblyRepresentation3D.Obj(new UnwindAssemblyRepresentation3D.Behavior(plugin, params), { label: `Unwind T = ${params.t.toFixed(2)}` });
+    },
+    update({ b, newParams }) {
+        return Task.create('Update Unwind', async () => {
+            const updated = await b.data.update(newParams);
+            b.label = `Unwind T = ${newParams.t.toFixed(2)}`;
+            return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
         });
     }
 });

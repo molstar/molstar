@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Vec3, Mat4, Mat3 } from '../linear-algebra/3d'
+import { Vec3, Mat4, Mat3, Quat } from '../linear-algebra/3d'
 
 interface SymmetryOperator {
     readonly name: string,
@@ -62,6 +62,26 @@ namespace SymmetryOperator {
         }
         Mat4.setTranslation(t, offset);
         return create(name, t, { id: '', operList: [] }, ncsId);
+    }
+
+    const _q1 = Quat.identity(), _q2 = Quat.zero(), _axis = Vec3.zero();
+    export function lerpFromIdentity(out: Mat4, op: SymmetryOperator, t: number): Mat4 {
+        const m = op.inverse;
+        if (op.isIdentity) return Mat4.copy(out, m);
+
+        const _t = 1 - t;
+        // interpolate rotation
+        Mat4.getRotation(_q2, m);
+        Quat.slerp(_q2, _q1, _q2, _t);
+        const angle = Quat.getAxisAngle(_axis, _q2);
+        Mat4.fromRotation(out, angle, _axis);
+
+        // interpolate translation
+        Mat4.setValue(out, 0, 3, _t * Mat4.getValue(m, 0, 3));
+        Mat4.setValue(out, 1, 3, _t * Mat4.getValue(m, 1, 3));
+        Mat4.setValue(out, 2, 3, _t * Mat4.getValue(m, 2, 3));
+
+        return out;
     }
 
     /**
