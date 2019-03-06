@@ -33,7 +33,8 @@ function textRepr() {
         attachment: 'middle-center',
         fontQuality: 3,
         fontWeight: 'normal',
-        borderWidth: 0.3
+        borderWidth: 0.3,
+        background: true
     }
 
     const textBuilder = TextBuilder.create(props, 1, 1)

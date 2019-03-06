@@ -40,38 +40,40 @@ export namespace TextBuilder {
 
         return {
             add: (str: string, x: number, y: number, z: number, depth: number, group: number) => {
-                let xadvance = 0
+                let bWidth = 0
                 const nChar = str.length
 
                 // calculate width
                 for (let iChar = 0; iChar < nChar; ++iChar) {
                     const c = fontAtlas.get(str[iChar])
-                    xadvance += c.nw - 2 * outline
+                    bWidth += c.nw - 2 * outline
                 }
+
+                const bHeight = 1 / 1.25
 
                 // attachment
                 let yShift: number, xShift: number
                 if (attachment.startsWith('top')) {
-                    yShift = 1 / 1.25
+                    yShift = bHeight
                 } else if (attachment.startsWith('middle')) {
-                    yShift = 1 / 2.5
+                    yShift = bHeight / 2
                 } else {
                     yShift = 0  // "bottom"
                 }
                 if (attachment.endsWith('right')) {
-                    xShift = xadvance
+                    xShift = bWidth
                 } else if (attachment.endsWith('center')) {
-                    xShift = xadvance / 2
+                    xShift = bWidth / 2
                 } else {
                     xShift = 0  // "left"
                 }
 
                 // background
                 if (background) {
-                    ChunkedArray.add2(mappings, -xadvance + xShift - margin - 0.1, yShift + margin) // top left
-                    ChunkedArray.add2(mappings, -xadvance + xShift - margin - 0.1, -yShift - margin) // bottom left
-                    ChunkedArray.add2(mappings, xadvance - xShift + margin + 0.1, yShift + margin) // top right
-                    ChunkedArray.add2(mappings, xadvance - xShift + margin + 0.1, -yShift - margin) // bottom right
+                    ChunkedArray.add2(mappings, -xShift - margin - 0.1, bHeight - yShift + margin) // top left
+                    ChunkedArray.add2(mappings, -xShift - margin - 0.1, -yShift - margin) // bottom left
+                    ChunkedArray.add2(mappings, bWidth - xShift + margin + 0.1, bHeight - yShift + margin) // top right
+                    ChunkedArray.add2(mappings, bWidth - xShift + margin + 0.1, -yShift - margin) // bottom right
 
                     const offset = centers.elementCount
                     for (let i = 0; i < 4; ++i) {
@@ -86,7 +88,7 @@ export namespace TextBuilder {
 
                 xShift += outline
                 yShift += outline
-                xadvance = 0
+                let xadvance = 0
 
                 for (let iChar = 0; iChar < nChar; ++iChar) {
                     const c = fontAtlas.get(str[iChar])
