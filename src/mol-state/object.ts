@@ -69,7 +69,9 @@ interface StateObjectCell<T = StateObject> {
     } | undefined;
 
     errorText?: string,
-    obj?: T
+    obj?: T,
+
+    cache: unknown | undefined
 }
 
 namespace StateObjectCell {

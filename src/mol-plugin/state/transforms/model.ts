@@ -9,13 +9,13 @@ import { parsePDB } from 'mol-io/reader/pdb/parser';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
-import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry } from 'mol-model/structure';
+import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry, QueryFn } from 'mol-model/structure';
 import { Assembly } from 'mol-model/structure/model/properties/symmetry';
 import { PluginContext } from 'mol-plugin/context';
 import { MolScriptBuilder } from 'mol-script/language/builder';
 import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
-import { StateObject } from 'mol-state';
+import { StateObject, StateTransformer } from 'mol-state';
 import { RuntimeContext, Task } from 'mol-task';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { stringToWords } from 'mol-util/string';
@@ -261,14 +261,23 @@ const StructureSelection = PluginStateTransform.BuiltIn({
         label: PD.makeOptional(PD.Text('', { isHidden: true }))
     }
 })({
-    apply({ a, params }) {
-        // TODO: use cache, add "update"
+    apply({ a, params, cache }) {
         const compiled = compile<Sel>(params.query);
+        (cache as { compiled: QueryFn<Sel> }).compiled = compiled;
+
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
         if (s.elementCount === 0) return StateObject.Null;
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
+    },
+    update: ({ a, b, oldParams, newParams, cache }) => {
+        if (oldParams.query !== newParams.query) return StateTransformer.UpdateResult.Recreate;
+
+        if (updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label)) {
+            return StateTransformer.UpdateResult.Updated;
+        }
+        return StateTransformer.UpdateResult.Null;
     }
 });
 
@@ -283,18 +292,40 @@ const UserStructureSelection = PluginStateTransform.BuiltIn({
         label: PD.makeOptional(PD.Text(''))
     }
 })({
-    apply({ a, params }) {
-        // TODO: use cache, add "update"
+    apply({ a, params, cache }) {
         const parsed = parseMolScript(params.query.expression);
         if (parsed.length === 0) throw new Error('No query');
         const query = transpileMolScript(parsed[0]);
         const compiled = compile<Sel>(query);
+        (cache as { compiled: QueryFn<Sel> }).compiled = compiled;
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
+    },
+    update: ({ a, b, oldParams, newParams, cache }) => {
+        if (oldParams.query.language !== newParams.query.language || oldParams.query.expression !== newParams.query.expression) {
+            return StateTransformer.UpdateResult.Recreate;
+        }
+
+        updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label);
+        return StateTransformer.UpdateResult.Updated;
     }
 });
+
+function updateStructureFromQuery(query: QueryFn<Sel>, src: Structure, obj: SO.Molecule.Structure, label?: string) {
+    const result = query(new QueryContext(src));
+    const s = Sel.unionStructure(result);
+    if (s.elementCount === 0) {
+        return false;
+    }
+
+    obj.label = `${label || 'Selection'}`;
+    obj.description = structureDesc(s);
+    obj.data = s;
+    return true;
+}
+
 
 namespace StructureComplexElement {
     export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres'

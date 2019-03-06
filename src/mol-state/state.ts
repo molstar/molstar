@@ -25,7 +25,6 @@ class State {
     private _tree: TransientTree;
 
     protected errorFree = true;
-    private transformCache = new Map<StateTransform.Ref, unknown>();
 
     private ev = RxEventHelper.create();
 
@@ -165,7 +164,6 @@ class State {
             oldTree,
             tree: _tree,
             cells: this.cells as Map<StateTransform.Ref, StateObjectCell>,
-            transformCache: this.transformCache,
 
             results: [],
             stateChanges: [],
@@ -196,7 +194,8 @@ class State {
             params: {
                 definition: {},
                 values: {}
-            }
+            },
+            cache: { }
         });
 
         this.globalContext = params && params.globalContext;
@@ -244,7 +243,6 @@ interface UpdateContext {
     oldTree: StateTree,
     tree: TransientTree,
     cells: Map<StateTransform.Ref, StateObjectCell>,
-    transformCache: Map<Ref, unknown>,
 
     results: UpdateNodeResult[],
     stateChanges: StateTransform.Ref[],
@@ -288,7 +286,6 @@ async function update(ctx: UpdateContext) {
         for (const d of deletes) {
             const obj = ctx.cells.has(d) ? ctx.cells.get(d)!.obj : void 0;
             ctx.cells.delete(d);
-            ctx.transformCache.delete(d);
             deletedObjects.push(obj);
         }
 
@@ -443,7 +440,8 @@ function initCellsVisitor(transform: StateTransform, _: any, { ctx, added }: Ini
         sourceRef: void 0,
         status: 'pending',
         errorText: void 0,
-        params: void 0
+        params: void 0,
+        cache: void 0
     };
     ctx.cells.set(transform.ref, cell);
     added.push(cell);
@@ -516,8 +514,8 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined, si
     if (cell.obj) {
         const obj = cell.obj;
         cell.obj = void 0;
+        cell.cache = void 0;
         ctx.parent.events.object.removed.next({ state: ctx.parent, ref, obj });
-        ctx.transformCache.delete(ref);
     }
 
     // remove the objects in the child nodes if they exist
@@ -608,7 +606,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
 
     if (!oldTree.transforms.has(currentRef) || !current.params) {
         current.params = params;
-        const obj = await createObject(ctx, currentRef, transform.transformer, parent, params.values);
+        const obj = await createObject(ctx, current, transform.transformer, parent, params.values);
         updateTag(obj, transform);
         current.obj = obj;
 
@@ -619,13 +617,13 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         current.params = params;
 
         const updateKind = !!current.obj && current.obj !== StateObject.Null
-            ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, newParams)
+            ? await updateObject(ctx, current, transform.transformer, parent, current.obj!, oldParams, newParams)
             : StateTransformer.UpdateResult.Recreate;
 
         switch (updateKind) {
             case StateTransformer.UpdateResult.Recreate: {
                 const oldObj = current.obj;
-                const newObj = await createObject(ctx, currentRef, transform.transformer, parent, newParams);
+                const newObj = await createObject(ctx, current, transform.transformer, parent, newParams);
                 updateTag(newObj, transform);
                 current.obj = newObj;
                 return { ref: currentRef, action: 'replaced', oldObj, obj: newObj };
@@ -633,6 +631,10 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
             case StateTransformer.UpdateResult.Updated:
                 updateTag(current.obj, transform);
                 return { ref: currentRef, action: 'updated', obj: current.obj! };
+            case StateTransformer.UpdateResult.Null: {
+                current.obj = StateObject.Null;
+                return { ref: currentRef, action: 'updated', obj: current.obj! };
+            }
             default:
                 return { action: 'none' };
         }
@@ -649,20 +651,15 @@ function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {
     return t as T;
 }
 
-function createObject(ctx: UpdateContext, ref: Ref, transformer: StateTransformer, a: StateObject, params: any) {
-    const cache = Object.create(null);
-    ctx.transformCache.set(ref, cache);
-    return runTask(transformer.definition.apply({ a, params, cache }, ctx.parent.globalContext), ctx.taskCtx);
+function createObject(ctx: UpdateContext, cell: StateObjectCell, transformer: StateTransformer, a: StateObject, params: any) {
+    if (!cell.cache) cell.cache = Object.create(null);
+    return runTask(transformer.definition.apply({ a, params, cache: cell.cache }, ctx.parent.globalContext), ctx.taskCtx);
 }
 
-async function updateObject(ctx: UpdateContext, ref: Ref, transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
+async function updateObject(ctx: UpdateContext, cell: StateObjectCell,  transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
     if (!transformer.definition.update) {
         return StateTransformer.UpdateResult.Recreate;
     }
-    let cache = ctx.transformCache.get(ref);
-    if (!cache) {
-        cache = Object.create(null);
-        ctx.transformCache.set(ref, cache);
-    }
-    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache }, ctx.parent.globalContext), ctx.taskCtx);
+    if (!cell.cache) cell.cache = Object.create(null);
+    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache }, ctx.parent.globalContext), ctx.taskCtx);
 }

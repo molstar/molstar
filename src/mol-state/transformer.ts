@@ -55,7 +55,7 @@ namespace Transformer {
         newParams: P
     }
 
-    export enum UpdateResult { Unchanged, Updated, Recreate }
+    export enum UpdateResult { Unchanged, Updated, Recreate, Null }
 
     /** Specify default control descriptors for the parameters */
     // export type ParamsDefinition<A extends StateObject = StateObject, P = any> = (a: A, globalCtx: unknown) => { [K in keyof P]: PD.Any }
