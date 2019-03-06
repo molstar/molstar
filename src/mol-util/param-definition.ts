@@ -189,6 +189,15 @@ export namespace ParamDefinition {
         }, info);
     }
 
+    export interface List<T = any> extends Base<T[]> {
+        type: 'list',
+        element: Any,
+        getLabel(t: T): string
+    }
+    export function List<T extends Any>(element: T, getLabel: (e: T['defaultValue']) => string, info?: Info & { defaultValue?: T['defaultValue'][] }): List<T['defaultValue']> {
+        return setInfo<List<T['defaultValue']>>({ type: 'list', element, getLabel, defaultValue: (info && info.defaultValue) || []  });
+    }
+
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
         converted: Any,
@@ -220,7 +229,9 @@ export namespace ParamDefinition {
         return setInfo<ScriptExpression>({ type: 'script-expression', defaultValue }, info)
     }
 
-    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression
+    export type Any =
+        | Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph
+        | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression | List
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -311,6 +322,14 @@ export namespace ParamDefinition {
         } else if (p.type === 'script-expression') {
             const u = a as ScriptExpression['defaultValue'], v = b as ScriptExpression['defaultValue'];
             return u.language === v.language && u.expression === v.expression;
+        } else if (p.type === 'list') {
+            const u = a as List['defaultValue'], v = b as List['defaultValue'];
+            const l = u.length;
+            if (l !== v.length) return false;
+            for (let i = 0; i < l; i++) {
+                if (!isParamEqual(p.element, u[i], v[i])) return false;
+            }
+            return true;
         } else if (typeof a === 'object' && typeof b === 'object') {
             return shallowEqual(a, b);
         }
