@@ -63,7 +63,7 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
         rotate(rad: number) {
             this.updatedUnitTransforms.clear()
             const state = this.ctx.state.dataState
-            const reprs = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D))
+            const reprs = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure.Representation3D))
             Mat4.rotate(this.rotMat, this.tmpMat, rad, this.rotVec)
             for (const r of reprs) {
                 if (!SO.isRepresentation3D(r.obj)) return
@@ -90,8 +90,8 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
                     this.updatedUnitTransforms.add(structure.obj)
                 }
 
-                r.obj.data.setState({ unitTransforms })
-                this.ctx.canvas3d.add(r.obj.data)
+                r.obj.data.repr.setState({ unitTransforms })
+                this.ctx.canvas3d.add(r.obj.data.repr)
             }
             this.ctx.canvas3d.requestDraw(true)
         }
@@ -111,7 +111,7 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
         explode(p: number) {
             this.updatedUnitTransforms.clear()
             const state = this.ctx.state.dataState
-            const reprs = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Representation3D));
+            const reprs = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure.Representation3D));
             for (const r of reprs) {
                 if (!SO.isRepresentation3D(r.obj)) return
                 const structure = getRootStructure(r, state)
@@ -134,8 +134,8 @@ export const StructureAnimation = PluginBehavior.create<StructureAnimationProps>
                     this.updatedUnitTransforms.add(structure.obj)
                 }
 
-                r.obj.data.setState({ unitTransforms })
-                this.ctx.canvas3d.add(r.obj.data)
+                r.obj.data.repr.setState({ unitTransforms })
+                this.ctx.canvas3d.add(r.obj.data.repr)
             }
             this.ctx.canvas3d.requestDraw(true)
         }

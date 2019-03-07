@@ -10,7 +10,6 @@ import { StateTransforms } from '../transforms';
 import { StateSelection } from 'mol-state';
 import { PluginCommands } from 'mol-plugin/command';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { UnwindAssemblyRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
 
 export const AnimateModelIndex = PluginStateAnimation.create({
     name: 'built-in.animate-model-index',
@@ -93,7 +92,8 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     initialState: () => ({ t: 0 }),
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.dataState;
-        const anims = state.selectQ(q => q.ofType(UnwindAssemblyRepresentation3D.Obj));
+        const anims = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure.Representation3DState)
+            .filter(c => c.transform.transformer === StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D));
 
         if (anims.length === 0) {
             // nothing more to do here

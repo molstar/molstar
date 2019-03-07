@@ -52,7 +52,7 @@ interface Canvas3D {
 
     add: (repr: Representation.Any) => void
     remove: (repr: Representation.Any) => void
-    update: () => void
+    update: (repr?: Representation.Any, keepBoundingSphere?: boolean) => void
     clear: () => void
 
     // draw: (force?: boolean) => void
@@ -357,7 +357,14 @@ namespace Canvas3D {
                     reprCount.next(reprRenderObjects.size)
                 }
             },
-            update: () => scene.update(void 0, false),
+            update: (repr, keepSphere) => {
+                if (repr) {
+                    if (!reprRenderObjects.has(repr)) return;
+                    scene.update(repr.renderObjects, !!keepSphere);
+                } else {
+                    scene.update(void 0, !!keepSphere)
+                }
+            },
             clear: () => {
                 reprRenderObjects.clear()
                 scene.clear()

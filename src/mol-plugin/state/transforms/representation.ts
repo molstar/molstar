@@ -7,7 +7,7 @@
 
 import { Structure } from 'mol-model/structure';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
-import { ExplodeRepresentation3D, ColorRepresentation3D, UnwindAssemblyRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
+import { ExplodeRepresentation3D, ColorRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
 import { PluginContext } from 'mol-plugin/context';
 import { RepresentationProvider } from 'mol-repr/representation';
 import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
@@ -25,6 +25,8 @@ import { Text } from 'mol-geo/geometry/text/text';
 import { ColorNames } from 'mol-util/color/tables';
 import { getLabelRepresentation } from 'mol-plugin/util/structure-labels';
 import { ShapeRepresentation } from 'mol-repr/shape/representation';
+import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
+import { unwindStructureAssebmly } from '../animation/helpers';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -118,7 +120,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'structure-representation-3d',
     display: '3D Representation',
     from: SO.Molecule.Structure,
-    to: SO.Molecule.Representation3D,
+    to: SO.Molecule.Structure.Representation3D,
     params: (a, ctx: PluginContext) => {
         const { registry, themeCtx } = ctx.structureRepresentation
         const type = registry.get(registry.default.name);
@@ -173,15 +175,15 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             repr.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
-            return new SO.Molecule.Representation3D(repr, { label: provider.label });
+            return new SO.Molecule.Structure.Representation3D({ repr, source: a } , { label: provider.label });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
-            const props = { ...b.data.props, ...newParams.type.params }
-            b.data.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
-            await b.data.createOrUpdate(props, a.data).runInContext(ctx);
+            const props = { ...b.data.repr.props, ...newParams.type.params }
+            b.data.repr.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
+            await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             return StateTransformer.UpdateResult.Updated;
         });
     }
@@ -193,7 +195,7 @@ const StructureLabels3D = PluginStateTransform.BuiltIn({
     name: 'structure-labels-3d',
     display: '3D Labels',
     from: SO.Molecule.Structure,
-    to: SO.Molecule.Representation3D,
+    to: SO.Molecule.Structure.Representation3D,
     params: {
         // TODO: other targets
         target: PD.MappedStatic('residues', {
@@ -219,12 +221,12 @@ const StructureLabels3D = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Structure Labels', async ctx => {
             const repr = await getLabelRepresentation(ctx, a.data, params);
-            return new SO.Molecule.Representation3D(repr, { label: `Labels`, description: params.target.name });
+            return new SO.Molecule.Structure.Representation3D({ repr, source: a }, { label: `Labels`, description: params.target.name });
         });
     },
     update({ a, b, newParams }) {
         return Task.create('Structure Labels', async ctx => {
-            await getLabelRepresentation(ctx, a.data, newParams, b.data as ShapeRepresentation<any, any, any>);
+            await getLabelRepresentation(ctx, a.data, newParams, b.data.repr as ShapeRepresentation<any, any, any>);
             return StateTransformer.UpdateResult.Updated;
         });
     }
@@ -234,30 +236,37 @@ type UnwindStructureAssemblyRepresentation3D = typeof UnwindStructureAssemblyRep
 const UnwindStructureAssemblyRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'unwind-structure-assembly-representation-3d',
     display: 'Unwind Assembly 3D Representation',
-    from: SO.Molecule.Representation3D,
-    to: UnwindAssemblyRepresentation3D.Obj,
-    params: UnwindAssemblyRepresentation3D.Params
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: { t: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }) }
 })({
     canAutoUpdate() {
         return true;
     },
-    apply({ params }, plugin: PluginContext) {
-        return new UnwindAssemblyRepresentation3D.Obj(new UnwindAssemblyRepresentation3D.Behavior(plugin, params), { label: `Unwind T = ${params.t.toFixed(2)}` });
+    apply({ a, params }, plugin: PluginContext) {
+        const structure = a.data.source.data;
+        const unitTransforms = new StructureUnitTransforms(structure);
+        unwindStructureAssebmly(structure, unitTransforms, params.t);
+        return new SO.Molecule.Structure.Representation3DState({ state: { unitTransforms }, info: structure, source: a }, { label: `Unwind T = ${params.t.toFixed(2)}` });
     },
-    update({ b, newParams }) {
-        return Task.create('Update Unwind', async () => {
-            const updated = await b.data.update(newParams);
-            b.label = `Unwind T = ${newParams.t.toFixed(2)}`;
-            return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
-        });
+    update({ a, b, newParams, oldParams }) {
+        const structure = b.data.info as Structure;
+        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
+        const unitTransforms = b.data.state.unitTransforms!;
+        unwindStructureAssebmly(structure, unitTransforms, newParams.t);
+        b.label = `Unwind T = ${newParams.t.toFixed(2)}`;
+        b.data.source = a;
+        return StateTransformer.UpdateResult.Updated;
     }
 });
+
 
 type ExplodeStructureRepresentation3D = typeof ExplodeStructureRepresentation3D
 const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'explode-structure-representation-3d',
     display: 'Explode 3D Representation',
-    from: SO.Molecule.Representation3D,
+    from: SO.Molecule.Structure.Representation3D,
     to: ExplodeRepresentation3D.Obj,
     params: ExplodeRepresentation3D.Params
 })({
@@ -280,7 +289,7 @@ type ColorStructureRepresentation3D = typeof ColorStructureRepresentation3D
 const ColorStructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'color-structure-representation-3d',
     display: 'Color 3D Representation',
-    from: SO.Molecule.Representation3D,
+    from: SO.Molecule.Structure.Representation3D,
     to: ColorRepresentation3D.Obj,
     params: ColorRepresentation3D.Params
 })({
@@ -391,15 +400,15 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
-            return new SO.Volume.Representation3D(repr, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
+            return new SO.Volume.Representation3D({ repr, source: a }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
-            const props = { ...b.data.props, ...newParams.type.params }
-            b.data.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
-            await b.data.createOrUpdate(props, a.data).runInContext(ctx);
+            const props = { ...b.data.repr.props, ...newParams.type.params }
+            b.data.repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
+            await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.description = VolumeRepresentation3DHelpers.getDescription(props)
             return StateTransformer.UpdateResult.Updated;
         });

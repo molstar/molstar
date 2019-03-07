@@ -10,7 +10,7 @@ import { Model as _Model, Structure as _Structure } from 'mol-model/structure';
 import { VolumeData } from 'mol-model/volume';
 import { PluginBehavior } from 'mol-plugin/behavior/behavior';
 import { Representation } from 'mol-repr/representation';
-import { StructureRepresentation } from 'mol-repr/structure/representation';
+import { StructureRepresentation, StructureRepresentationState } from 'mol-repr/structure/representation';
 import { VolumeRepresentation } from 'mol-repr/volume/representation';
 import { StateObject, StateTransformer } from 'mol-state';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
@@ -27,7 +27,7 @@ export namespace PluginStateObject {
 
     export const Create = StateObject.factory<TypeInfo>();
 
-    export function isRepresentation3D(o?: Any): o is StateObject<Representation.Any, TypeInfo> {
+    export function isRepresentation3D(o?: Any): o is StateObject<Representation3DData<Representation.Any>, TypeInfo> {
         return !!o && o.type.typeClass === 'Representation3D';
     }
 
@@ -35,8 +35,9 @@ export namespace PluginStateObject {
         return !!o && o.type.typeClass === 'Behavior';
     }
 
-    export function CreateRepresentation3D<T extends Representation.Any>(type: { name: string }) {
-        return Create<T>({ ...type, typeClass: 'Representation3D' })
+    export interface Representation3DData<T extends Representation.Any, S extends StateObject = StateObject> { repr: T, source: S }
+    export function CreateRepresentation3D<T extends Representation.Any, S extends StateObject = StateObject>(type: { name: string }) {
+        return Create<Representation3DData<T, S>>({ ...type, typeClass: 'Representation3D' });
     }
 
     export function CreateBehavior<T extends PluginBehavior>(type: { name: string }) {
@@ -80,8 +81,12 @@ export namespace PluginStateObject {
         export class Trajectory extends Create<ReadonlyArray<_Model>>({ name: 'Trajectory', typeClass: 'Object' }) { }
         export class Model extends Create<_Model>({ name: 'Model', typeClass: 'Object' }) { }
         export class Structure extends Create<_Structure>({ name: 'Structure', typeClass: 'Object' }) { }
-        export class Representation3D extends CreateRepresentation3D<StructureRepresentation<any> | ShapeRepresentation<any, any, any>>({ name: 'Structure 3D' }) { }
-        export class Representation3DState extends Create<{}>({ name: 'Structure 3D State', typeClass: 'Object' }) { }
+
+        export namespace Structure {
+            export class Representation3D extends CreateRepresentation3D<StructureRepresentation<any> | ShapeRepresentation<any, any, any>, Structure>({ name: 'Structure 3D' }) { }
+            export interface Representation3DStateData { source: Representation3D, state: Partial<StructureRepresentationState>, info?: unknown }
+            export class Representation3DState extends Create<Representation3DStateData>({ name: 'Structure 3D State', typeClass: 'Object' }) { }
+        }
     }
 
     export namespace Volume {
