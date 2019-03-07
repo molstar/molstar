@@ -7,21 +7,11 @@
 
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { EmptyLoci } from 'mol-model/loci';
-import { QueryContext, StructureElement, StructureSelection } from 'mol-model/structure';
+import { StructureElement } from 'mol-model/structure';
 import { PluginContext } from 'mol-plugin/context';
-import { PluginStateObject } from 'mol-plugin/state/objects';
 import { Representation } from 'mol-repr/representation';
-import Expression from 'mol-script/language/expression';
-import { parseMolScript } from 'mol-script/language/parser';
-import { compile } from 'mol-script/runtime/query/compiler';
-import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
-import { StateObjectTracker, StateSelection } from 'mol-state';
 import { labelFirst } from 'mol-theme/label';
-import { Overpaint } from 'mol-theme/overpaint';
-import { Color } from 'mol-util/color';
-import { ColorNames } from 'mol-util/color/tables';
 import { ButtonsType } from 'mol-util/input/input-observer';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
 
 export const HighlightLoci = PluginBehavior.create({
@@ -124,105 +114,3 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
     },
     display: { name: 'Provide Default Loci Label' }
 });
-
-type ColorMappings = { query: Expression, color: Color }[]
-namespace ColorMappings {
-    export function areEqual(colorMappingsA: ColorMappings, colorMappingsB: ColorMappings) {
-        return false
-    }
-}
-
-export namespace ColorRepresentation3D {
-    export const Params = {
-        layers: PD.ObjectList({
-            query: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))' }),
-            color: PD.Color(ColorNames.blueviolet)
-        }, e => `${Color.toRgbString(e.color)}`, {
-            defaultValue: [
-                {
-                    query: {
-                        language: 'mol-script',
-                        expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))'
-                    },
-                    color: ColorNames.blueviolet
-                },
-                {
-                    query: {
-                        language: 'mol-script',
-                        expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))'
-                    },
-                    color: ColorNames.chartreuse
-                }
-            ]
-        }),
-        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
-    }
-    export type Params = PD.Values<typeof Params>
-
-    export class Behavior implements PluginBehavior<Params> {
-        private currentColorMappings: ColorMappings = [];
-        private repr: StateObjectTracker<PluginStateObject.Molecule.Structure.Representation3D>;
-        private structure: StateObjectTracker<PluginStateObject.Molecule.Structure>;
-
-        private updateData() {
-            const reprUpdated = this.repr.update();
-            const strucUpdated = this.structure.update();
-            return reprUpdated || strucUpdated;
-        }
-
-        register(ref: string): void {
-            this.repr.setQuery(StateSelection.Generators.byRef(ref).ancestorOfType([PluginStateObject.Molecule.Structure.Representation3D]));
-            this.structure.setQuery(StateSelection.Generators.byRef(ref).ancestorOfType([PluginStateObject.Molecule.Structure]));
-            this.update(this.params);
-        }
-
-        update(params: Params): boolean {
-            const { layers, alpha } = params
-            const colorMappings: ColorMappings = []
-            for (let i = 0, il = params.layers.length; i < il; ++i) {
-                const { query, color } = layers[i]
-                const parsed = parseMolScript(query.expression);
-                if (parsed.length === 0) throw new Error('No query');
-                colorMappings.push({ query: transpileMolScript(parsed[0]), color })
-            }
-            return this.applyMappings(colorMappings, alpha)
-        }
-
-        private applyMappings(colorMappings: ColorMappings, alpha: number): boolean {
-            if (!this.updateData() && ColorMappings.areEqual(colorMappings, this.currentColorMappings)) return false;
-            this.currentColorMappings = colorMappings;
-            if (!this.repr.data || !this.structure.data) return true;
-
-            const layers: Overpaint.Layer[] = []
-            for (let i = 0, il = this.currentColorMappings.length; i < il; ++i) {
-                const { query, color } = this.currentColorMappings[i]
-                const compiled = compile<StructureSelection>(query);
-                const result = compiled(new QueryContext(this.structure.data));
-                const loci = StructureSelection.toLoci2(result)
-                layers.push({ loci, color })
-            }
-            return this.applyLayers({ alpha, layers })
-        }
-
-        private applyLayers(overpaint: Overpaint): boolean {
-            if (!this.repr.data) return true;
-            this.repr.data.repr.setState({ overpaint })
-            this.ctx.canvas3d.add(this.repr.data.repr);
-            this.ctx.canvas3d.requestDraw(true);
-            return true;
-        }
-
-        unregister(): void {
-            this.applyLayers(Overpaint.Empty) // clear
-            this.repr.cell = void 0;
-            this.structure.cell = void 0;
-        }
-
-        constructor(private ctx: PluginContext, private params: Params) {
-            this.repr = new StateObjectTracker(ctx.state.dataState);
-            this.structure = new StateObjectTracker(ctx.state.dataState);
-        }
-    }
-
-    export class Obj extends PluginStateObject.CreateBehavior<Behavior>({ name: 'Color Representation3D Behavior' }) { }
-}

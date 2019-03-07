@@ -7,7 +7,6 @@
 
 import { Structure } from 'mol-model/structure';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
-import { ColorRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
 import { PluginContext } from 'mol-plugin/context';
 import { RepresentationProvider } from 'mol-repr/representation';
 import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
@@ -26,14 +25,16 @@ import { ColorNames } from 'mol-util/color/tables';
 import { getLabelRepresentation } from 'mol-plugin/util/structure-labels';
 import { ShapeRepresentation } from 'mol-repr/shape/representation';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
-import { unwindStructureAssembly, explodeStructure } from '../animation/helpers';
+import { unwindStructureAssembly, explodeStructure, getStructureOverpaint } from '../animation/helpers';
+import { Color } from 'mol-util/color';
+import { Overpaint } from 'mol-theme/overpaint';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
 export { StructureLabels3D}
 export { ExplodeStructureRepresentation3D }
 export { UnwindStructureAssemblyRepresentation3D }
-export { ColorStructureRepresentation3D }
+export { OverpaintStructureRepresentation3D as ColorStructureRepresentation3D }
 export { VolumeRepresentation3D }
 
 namespace StructureRepresentation3DHelpers {
@@ -278,21 +279,20 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     canAutoUpdate() {
         return true;
     },
-    apply({ a, params, spine }) {
-        const rootStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
-        const unitTransforms = new StructureUnitTransforms(rootStructure);
-        explodeStructure(rootStructure, unitTransforms, params.t);
+    apply({ a, params }) {
+        const structure = a.data.source.data;
+        const unitTransforms = new StructureUnitTransforms(structure);
+        explodeStructure(structure, unitTransforms, params.t);
         return new SO.Molecule.Structure.Representation3DState({
             state: { unitTransforms },
-            initialState: { unitTransforms: new StructureUnitTransforms(rootStructure) },
-            info: rootStructure,
+            initialState: { unitTransforms: new StructureUnitTransforms(structure) },
+            info: structure,
             source: a
         }, { label: `Explode T = ${params.t.toFixed(2)}` });
     },
-    update({ a, b, newParams, oldParams, spine }) {
-        const rootStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
+    update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
-        if (rootStructure !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
         explodeStructure(structure, unitTransforms, newParams.t);
@@ -302,26 +302,62 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     }
 });
 
-type ColorStructureRepresentation3D = typeof ColorStructureRepresentation3D
-const ColorStructureRepresentation3D = PluginStateTransform.BuiltIn({
-    name: 'color-structure-representation-3d',
-    display: 'Color 3D Representation',
+type OverpaintStructureRepresentation3D = typeof OverpaintStructureRepresentation3D
+const OverpaintStructureRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'overpaint-structure-representation-3d',
+    display: 'Overpaint 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
-    to: ColorRepresentation3D.Obj,
-    params: ColorRepresentation3D.Params
+    to: SO.Molecule.Structure.Representation3DState,
+    params: {
+        layers: PD.ObjectList({
+            script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))' }),
+            color: PD.Color(ColorNames.blueviolet)
+        }, e => `${Color.toRgbString(e.color)}`, {
+            defaultValue: [
+                {
+                    script: {
+                        language: 'mol-script',
+                        expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))'
+                    },
+                    color: ColorNames.blueviolet
+                },
+                {
+                    script: {
+                        language: 'mol-script',
+                        expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))'
+                    },
+                    color: ColorNames.chartreuse
+                }
+            ]
+        }),
+        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
+    }
 })({
     canAutoUpdate() {
         return true;
     },
-    apply({ params }, plugin: PluginContext) {
-        return new ColorRepresentation3D.Obj(new ColorRepresentation3D.Behavior(plugin, params), { label: `Coloring` });
+    apply({ a, params }) {
+        const structure = a.data.source.data
+        const overpaint = getStructureOverpaint(structure, params.layers, params.alpha)
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { overpaint },
+            initialState: { overpaint: Overpaint.Empty },
+            info: structure,
+            source: a
+        }, { label: `Overpaint (${overpaint.layers.length} Layers)` })
     },
-    update({ b, newParams }) {
-        return Task.create('Update Coloring', async () => {
-            const updated = await b.data.update(newParams);
-            b.label = `Coloring`;
-            return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
-        });
+    update({ a, b, newParams, oldParams }) {
+        const structure = b.data.info as Structure
+        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate
+        const oldOverpaint = b.data.state.overpaint!
+        const newOverpaint = getStructureOverpaint(structure, newParams.layers, newParams.alpha)
+        if (oldParams.alpha === newParams.alpha && Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged
+
+        b.data.state.overpaint = newOverpaint
+        b.data.source = a
+        b.label = `Overpaint (${newOverpaint.layers.length} Layers)`
+        return StateTransformer.UpdateResult.Updated
     }
 });
 
