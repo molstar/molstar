@@ -122,7 +122,6 @@ interface Representation<D, P extends PD.Params = {}, S extends Representation.S
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
     setState: (state: Partial<S>) => void
     setTheme: (theme: Theme) => void
-    setOverpaint: (layers: Overpaint.Layers, clear?: boolean) => void
     getLoci: (pickingId: PickingId) => ModelLoci
     mark: (loci: ModelLoci, action: MarkerAction) => boolean
     destroy: () => void
@@ -145,18 +144,21 @@ namespace Representation {
         alphaFactor: number
         /** Controls if the representation's renderobjects are pickable or not */
         pickable: boolean
+        /** Overpaint applied to the representation's renderobjects */
+        overpaint: Overpaint
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
         transform: Mat4
     }
     export function createState(): State {
-        return { visible: false, alphaFactor: 0, pickable: false, syncManually: false, transform: Mat4.identity() }
+        return { visible: false, alphaFactor: 0, pickable: false, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty }
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible
         if (update.alphaFactor !== undefined) state.alphaFactor = update.alphaFactor
         if (update.pickable !== undefined) state.pickable = update.pickable
+        if (update.overpaint !== undefined) state.overpaint = update.overpaint
         if (update.syncManually !== undefined) state.syncManually = update.syncManually
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
     }
@@ -172,7 +174,6 @@ namespace Representation {
         createOrUpdate: () => Task.constant('', undefined),
         setState: () => {},
         setTheme: () => {},
-        setOverpaint: () => false,
         getLoci: () => EmptyLoci,
         mark: () => false,
         destroy: () => {}
@@ -271,11 +272,6 @@ namespace Representation {
                     reprList[i].setTheme(theme)
                 }
             },
-            setOverpaint: (layers: Overpaint.Layers) => {
-                for (let i = 0, il = reprList.length; i < il; ++i) {
-                    reprList[i].setOverpaint(layers)
-                }
-            },
             destroy() {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     reprList[i].destroy()
@@ -323,12 +319,14 @@ namespace Representation {
                 if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible)
                 if (state.alphaFactor !== undefined) Visual.setAlphaFactor(renderObject, state.alphaFactor)
                 if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable)
+                if (state.overpaint !== undefined) {
+                    // TODO
+                }
                 if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform)
 
                 Representation.updateState(currentState, state)
             },
             setTheme: () => { },
-            setOverpaint: () => false,
             destroy() { }
         }
     }

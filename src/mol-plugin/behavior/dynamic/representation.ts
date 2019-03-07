@@ -193,27 +193,27 @@ export namespace ColorRepresentation3D {
             this.currentColorMappings = colorMappings;
             if (!this.repr.data || !this.structure.data) return true;
 
-            const list: Overpaint.Layer[] = []
+            const layers: Overpaint.Layer[] = []
             for (let i = 0, il = this.currentColorMappings.length; i < il; ++i) {
                 const { query, color } = this.currentColorMappings[i]
                 const compiled = compile<StructureSelection>(query);
                 const result = compiled(new QueryContext(this.structure.data));
                 const loci = StructureSelection.toLoci2(result)
-                list.push({ loci, color })
+                layers.push({ loci, color })
             }
-            return this.applyLayers({ alpha, list }, true)
+            return this.applyLayers({ alpha, layers })
         }
 
-        private applyLayers(layers: Overpaint.Layers, clear: boolean): boolean {
+        private applyLayers(overpaint: Overpaint): boolean {
             if (!this.repr.data) return true;
-            this.repr.data.repr.setOverpaint(layers)
+            this.repr.data.repr.setState({ overpaint })
             this.ctx.canvas3d.add(this.repr.data.repr);
             this.ctx.canvas3d.requestDraw(true);
             return true;
         }
 
         unregister(): void {
-            this.applyLayers(Overpaint.EmptyLayers, true) // clear
+            this.applyLayers(Overpaint.Empty) // clear
             this.repr.cell = void 0;
             this.structure.cell = void 0;
         }

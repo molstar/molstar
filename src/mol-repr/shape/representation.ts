@@ -14,7 +14,7 @@ import { OrderedSet, Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { createTransform, TransformData } from 'mol-geo/geometry/transform-data';
 import { PickingId } from 'mol-geo/geometry/picking';
-import { MarkerAction, applyMarkerAction, createMarkers } from 'mol-geo/geometry/marker-data';
+import { MarkerAction, createMarkers } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createEmptyTheme, Theme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
@@ -26,8 +26,6 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { Visual } from 'mol-repr/visual';
 import { createSizes } from 'mol-geo/geometry/size-data';
 import { ShapeGroupSizeTheme } from 'mol-theme/size/shape-group';
-import { Overpaint } from 'mol-theme/overpaint';
-import { applyOverpaintColor, createOverpaint, clearOverpaint } from 'mol-geo/geometry/overpaint-data';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>> extends Representation<D, P> { }
 
@@ -151,6 +149,14 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         });
     }
 
+    function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
+        if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
+            return apply(Interval.ofBounds(0, _shape.groupCount * _shape.transforms.length))
+        } else {
+            return eachShapeGroup(loci, _shape, apply)
+        }
+    }
+
     return {
         label: 'Shape geometry',
         get groupCount () { return locationIt ? locationIt.count : 0 },
@@ -169,32 +175,16 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!_renderObject) return false
-            const { tMarker } = _renderObject.values
-            const { groupCount, instanceCount } = locationIt
-
-            function apply(interval: Interval) {
-                const start = Interval.start(interval)
-                const end = Interval.end(interval)
-                return applyMarkerAction(tMarker.ref.value.array, start, end, action)
-            }
-
-            let changed = false
-            if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
-                changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
-            } else {
-                changed = eachShapeLocation(loci, _shape, apply)
-            }
-            if (changed) {
-                ValueCell.update(tMarker, tMarker.ref.value)
-            }
-            return changed
+            return Visual.mark(_renderObject, loci, action, lociApply)
         },
         setState(state: Partial<Representation.State>) {
             if (_renderObject) {
                 if (state.visible !== undefined) Visual.setVisibility(_renderObject, state.visible)
                 if (state.alphaFactor !== undefined) Visual.setAlphaFactor(_renderObject, state.alphaFactor)
                 if (state.pickable !== undefined) Visual.setPickable(_renderObject, state.pickable)
+                if (state.overpaint !== undefined) {
+                    Visual.setOverpaint(_renderObject, state.overpaint, lociApply, true)
+                }
                 if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform)
             }
 
@@ -202,33 +192,6 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         },
         setTheme(theme: Theme) {
             console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`')
-        },
-        setOverpaint(layers: Overpaint.Layers, clear?: boolean) {
-            if (!_renderObject) return false
-            const { tOverpaint } = _renderObject.values
-            const count = locationIt.groupCount * locationIt.instanceCount
-
-            // ensure texture has right size
-            createOverpaint(layers.list.length ? count : 0, _renderObject.values)
-
-            // clear if requested
-            if (clear) clearOverpaint(tOverpaint.ref.value.array, 0, count)
-
-            for (let i = 0, il = layers.list.length; i < il; ++i) {
-                const { loci, color } = layers.list[i]
-                const apply = (interval: Interval) => {
-                    const start = Interval.start(interval)
-                    const end = Interval.end(interval)
-                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, layers.alpha)
-                }
-
-                if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
-                    apply(Interval.ofBounds(0, count))
-                } else {
-                    eachShapeLocation(loci, _shape, apply)
-                }
-            }
-            ValueCell.update(tOverpaint, tOverpaint.ref.value)
         },
         destroy() {
             // TODO
@@ -246,7 +209,7 @@ function createShapeTransform(transforms: Mat4[], transformData?: TransformData)
     return createTransform(transformArray, transforms.length, transformData)
 }
 
-function eachShapeLocation(loci: Loci, shape: Shape, apply: (interval: Interval) => boolean) {
+function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) => boolean) {
     if (!Shape.isLoci(loci)) return false
     if (loci.shape !== shape) return false
     let changed = false

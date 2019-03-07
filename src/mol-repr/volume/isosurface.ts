@@ -95,7 +95,7 @@ export function IsosurfaceMeshVisual(): VolumeVisual<IsosurfaceMeshParams> {
         createGeometry: createVolumeIsosurfaceMesh,
         createLocationIterator: (volume: VolumeData) => LocationIterator(1, 1, () => NullLocation),
         getLoci: () => EmptyLoci,
-        mark: () => false,
+        eachLocation: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
             if (newProps.isoValue !== currentProps.isoValue) state.createGeometry = true
         },
@@ -131,7 +131,7 @@ export function IsosurfaceWireframeVisual(): VolumeVisual<IsosurfaceWireframePar
         createGeometry: createVolumeIsosurfaceWireframe,
         createLocationIterator: (volume: VolumeData) => LocationIterator(1, 1, () => NullLocation),
         getLoci: () => EmptyLoci,
-        mark: () => false,
+        eachLocation: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IsosurfaceWireframeParams>, currentProps: PD.Values<IsosurfaceWireframeParams>) => {
             if (newProps.isoValue !== currentProps.isoValue) state.createGeometry = true
         },

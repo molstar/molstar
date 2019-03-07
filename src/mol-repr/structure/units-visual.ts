@@ -16,7 +16,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
-import { createMarkers, MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
+import { createMarkers, MarkerAction } from 'mol-geo/geometry/marker-data';
 import { createSizes } from 'mol-geo/geometry/size-data';
 import { createColors } from 'mol-geo/geometry/color-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -32,7 +32,6 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { Spheres } from 'mol-geo/geometry/spheres/spheres';
 import { createUnitsTransform, includesUnitKind } from './visual/util/common';
 import { Overpaint } from 'mol-theme/overpaint';
-import { applyOverpaintColor, createOverpaint, clearOverpaint } from 'mol-geo/geometry/overpaint-data';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -205,6 +204,14 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
                 : createEmptyGeometry(geometry)
     }
 
+    function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
+        if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructureGroup.structure))) {
+            return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount))
+        } else {
+            return eachLocation(loci, currentStructureGroup, apply)
+        }
+    }
+
     return {
         get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return locationIt && locationIt.count ? renderObject : undefined },
@@ -221,26 +228,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
             return renderObject ? getLoci(pickingId, currentStructureGroup, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!renderObject) return false
-            const { tMarker } = renderObject.values
-            const { groupCount, instanceCount } = locationIt
-
-            function apply(interval: Interval) {
-                const start = Interval.start(interval)
-                const end = Interval.end(interval)
-                return applyMarkerAction(tMarker.ref.value.array, start, end, action)
-            }
-
-            let changed = false
-            if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructureGroup.structure))) {
-                changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
-            } else {
-                changed = eachLocation(loci, currentStructureGroup, apply)
-            }
-            if (changed) {
-                ValueCell.update(tMarker, tMarker.ref.value)
-            }
-            return changed
+            return Visual.mark(renderObject, loci, action, lociApply)
         },
         setVisibility(visible: boolean) {
             Visual.setVisibility(renderObject, visible)
@@ -254,32 +242,8 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
-        setOverpaint(layers: Overpaint.Layers, clear = false) {
-            if (!renderObject) return false
-            const { tOverpaint } = renderObject.values
-            const count = locationIt.groupCount * locationIt.instanceCount
-
-            // ensure texture has right size
-            createOverpaint(layers.list.length ? count : 0, renderObject.values)
-
-            // clear if requested
-            if (clear) clearOverpaint(tOverpaint.ref.value.array, 0, count)
-
-            for (let i = 0, il = layers.list.length; i < il; ++i) {
-                const { loci, color } = layers.list[i]
-                const apply = (interval: Interval) => {
-                    const start = Interval.start(interval)
-                    const end = Interval.end(interval)
-                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, layers.alpha)
-                }
-
-                if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructureGroup.structure))) {
-                    apply(Interval.ofBounds(0, count))
-                } else {
-                    eachLocation(loci, currentStructureGroup, apply)
-                }
-            }
-            ValueCell.update(tOverpaint, tOverpaint.ref.value)
+        setOverpaint(overpaint: Overpaint) {
+            return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
         },
         destroy() {
             // TODO

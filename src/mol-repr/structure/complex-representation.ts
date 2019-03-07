@@ -17,7 +17,6 @@ import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
 import { GraphicsRenderObject } from 'mol-gl/render-object';
-import { Overpaint } from 'mol-theme/overpaint';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0
@@ -66,7 +65,9 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             // hide visual when _unitTransforms is set
             visual.setVisibility(state.visible && _state.unitTransforms === null)
         }
+        if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor)
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
+        if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint)
         if (state.transform !== undefined && visual) visual.setTransform(state.transform)
         if (state.unitTransforms !== undefined && visual) {
             // Since ComplexVisuals always renders geometries between units the application of `unitTransforms`
@@ -77,10 +78,6 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
     function setTheme(theme: Theme) {
         _theme = theme
-    }
-
-    function setOverpaint(layers: Overpaint.Layers, clear?: boolean) {
-        if (visual) visual.setOverpaint(layers, clear)
     }
 
     function destroy() {
@@ -101,7 +98,6 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         createOrUpdate,
         setState,
         setTheme,
-        setOverpaint,
         getLoci,
         mark,
         destroy

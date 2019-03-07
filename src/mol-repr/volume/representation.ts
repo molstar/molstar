@@ -12,7 +12,7 @@ import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PickingId } from 'mol-geo/geometry/picking';
-import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
+import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { GraphicsRenderObject, createRenderObject } from 'mol-gl/render-object';
 import { Interval } from 'mol-data/int';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
@@ -43,7 +43,7 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     createGeometry(ctx: VisualContext, volume: VolumeData, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(volume: VolumeData): LocationIterator
     getLoci(pickingId: PickingId, id: number): Loci
-    mark(loci: Loci, apply: (interval: Interval) => boolean): boolean
+    eachLocation(loci: Loci, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
@@ -52,7 +52,7 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
 }
 
 export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geometry.Params<G>>(builder: VolumeVisualGeometryBuilder<P, G>): VolumeVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder
     const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
@@ -145,6 +145,14 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         if (newGeometry) geometry = newGeometry
     }
 
+    function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
+        if (isEveryLoci(loci)) {
+            return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount))
+        } else {
+            return eachLocation(loci, apply)
+        }
+    }
+
     return {
         get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return renderObject },
@@ -161,26 +169,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             return renderObject ? getLoci(pickingId, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!renderObject) return false
-            const { tMarker } = renderObject.values
-            const { groupCount, instanceCount } = locationIt
-
-            function apply(interval: Interval) {
-                const start = Interval.start(interval)
-                const end = Interval.end(interval)
-                return applyMarkerAction(tMarker.ref.value.array, start, end, action)
-            }
-
-            let changed = false
-            if (isEveryLoci(loci)) {
-                changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
-            } else {
-                changed = mark(loci, apply)
-            }
-            if (changed) {
-                ValueCell.update(tMarker, tMarker.ref.value)
-            }
-            return changed
+            return Visual.mark(renderObject, loci, action, lociApply)
         },
         setVisibility(visible: boolean) {
             Visual.setVisibility(renderObject, visible)
@@ -194,8 +183,8 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
-        setOverpaint(layers: Overpaint.Layers, clear?: boolean) {
-            return false // TODO
+        setOverpaint(overpaint: Overpaint) {
+            return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
         },
         destroy() {
             // TODO
@@ -257,7 +246,9 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
 
     function setState(state: Partial<Representation.State>) {
         if (state.visible !== undefined && visual) visual.setVisibility(state.visible)
+        if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor)
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
+        if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint)
         if (state.transform !== undefined && visual) visual.setTransform(state.transform)
 
         Representation.updateState(_state, state)
@@ -265,10 +256,6 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
 
     function setTheme(theme: Theme) {
         _theme = theme
-    }
-
-    function setOverpaint(layers: Overpaint.Layers) {
-        return visual ? visual.setOverpaint(layers) : false
     }
 
     function destroy() {
@@ -289,7 +276,6 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         createOrUpdate,
         setState,
         setTheme,
-        setOverpaint,
         getLoci,
         mark,
         destroy

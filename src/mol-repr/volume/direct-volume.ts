@@ -169,7 +169,7 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
         createGeometry: createDirectVolume,
         createLocationIterator: (volume: VolumeData) => LocationIterator(1, 1, () => NullLocation),
         getLoci: () => EmptyLoci,
-        mark: () => false,
+        eachLocation: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {
         },
         geometryUtils: DirectVolume.Utils

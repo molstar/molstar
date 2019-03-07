@@ -19,7 +19,6 @@ import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { Subject } from 'rxjs';
-import { Overpaint } from 'mol-theme/overpaint';
 
 export const UnitsParams = {
     ...StructureParams,
@@ -172,9 +171,11 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     }
 
     function setState(state: Partial<StructureRepresentationState>) {
-        const { visible, pickable, transform, unitTransforms } = state
+        const { visible, alphaFactor, pickable, overpaint, transform, unitTransforms } = state
         if (visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(visible))
+        if (alphaFactor !== undefined) visuals.forEach(({ visual }) => visual.setAlphaFactor(alphaFactor))
         if (pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(pickable))
+        if (overpaint !== undefined) visuals.forEach(({ visual }) => visual.setOverpaint(overpaint))
         if (transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(transform))
         if (unitTransforms !== undefined) {
             visuals.forEach(({ visual, group }) => {
@@ -192,10 +193,6 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
 
     function setTheme(theme: Theme) {
         _theme = theme
-    }
-
-    function setOverpaint(layers: Overpaint.Layers, clear?: boolean) {
-        visuals.forEach(({ visual }) => visual.setOverpaint(layers, clear))
     }
 
     function destroy() {
@@ -221,7 +218,6 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         createOrUpdate,
         setState,
         setTheme,
-        setOverpaint,
         getLoci,
         mark,
         destroy
