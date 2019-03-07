@@ -27,7 +27,7 @@ import { Visual } from 'mol-repr/visual';
 import { createSizes } from 'mol-geo/geometry/size-data';
 import { ShapeGroupSizeTheme } from 'mol-theme/size/shape-group';
 import { Overpaint } from 'mol-theme/overpaint';
-import { applyOverpaintColor } from 'mol-geo/geometry/overpaint-data';
+import { applyOverpaintColor, createOverpaint, clearOverpaint } from 'mol-geo/geometry/overpaint-data';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>> extends Representation<D, P> { }
 
@@ -203,21 +203,27 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         setTheme(theme: Theme) {
             console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`')
         },
-        setOverpaint(layers: Overpaint.Layers) {
+        setOverpaint(layers: Overpaint.Layers, clear?: boolean) {
             if (!_renderObject) return false
             const { tOverpaint } = _renderObject.values
-            const { groupCount, instanceCount } = locationIt
+            const count = locationIt.groupCount * locationIt.instanceCount
 
-            for (let i = 0, il = layers.length; i < il; ++i) {
-                const { loci, color, alpha } = layers[i]
+            // ensure texture has right size
+            createOverpaint(layers.list.length ? count : 0, _renderObject.values)
+
+            // clear if requested
+            if (clear) clearOverpaint(tOverpaint.ref.value.array, 0, count)
+
+            for (let i = 0, il = layers.list.length; i < il; ++i) {
+                const { loci, color } = layers.list[i]
                 const apply = (interval: Interval) => {
                     const start = Interval.start(interval)
                     const end = Interval.end(interval)
-                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, alpha)
+                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, layers.alpha)
                 }
 
                 if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
-                    apply(Interval.ofBounds(0, groupCount * instanceCount))
+                    apply(Interval.ofBounds(0, count))
                 } else {
                     eachShapeLocation(loci, _shape, apply)
                 }

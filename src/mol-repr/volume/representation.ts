@@ -194,7 +194,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
-        setOverpaint(layers: Overpaint.Layers) {
+        setOverpaint(layers: Overpaint.Layers, clear?: boolean) {
             return false // TODO
         },
         destroy() {

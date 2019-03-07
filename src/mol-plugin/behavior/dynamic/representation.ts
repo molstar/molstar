@@ -7,7 +7,7 @@
 
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
-import { EmptyLoci, EveryLoci } from 'mol-model/loci';
+import { EmptyLoci } from 'mol-model/loci';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginStateObject } from 'mol-plugin/state/objects';
@@ -216,11 +216,28 @@ namespace ColorMappings {
 
 export namespace ColorRepresentation3D {
     export const Params = {
-        query: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))' }),
-        color: PD.Color(ColorNames.blueviolet)
-        // colorMappings: PD.Value<ColorMappings>([{ query: MS.struct.generator.atomGroups({
-        //     'residue-test': MS.core.rel.eq([MS.ammp('auth_comp_id'), 'ALA'])
-        // }), color: ColorNames.greenyellow }], { isHidden: true }),
+        layers: PD.ObjectList({
+            query: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))' }),
+            color: PD.Color(ColorNames.blueviolet)
+        }, e => `${Color.toRgbString(e.color)}`, {
+            defaultValue: [
+                {
+                    query: {
+                        language: 'mol-script',
+                        expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))'
+                    },
+                    color: ColorNames.blueviolet
+                },
+                {
+                    query: {
+                        language: 'mol-script',
+                        expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))'
+                    },
+                    color: ColorNames.chartreuse
+                }
+            ]
+        }),
+        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
     }
     export type Params = PD.Values<typeof Params>
 
@@ -242,44 +259,43 @@ export namespace ColorRepresentation3D {
         }
 
         update(params: Params): boolean {
-            const parsed = parseMolScript(params.query.expression);
-            if (parsed.length === 0) throw new Error('No query');
-            const query = transpileMolScript(parsed[0]);
-
-            return this.applyMappings([{ query, color: params.color }])
+            const { layers, alpha } = params
+            const colorMappings: ColorMappings = []
+            for (let i = 0, il = params.layers.length; i < il; ++i) {
+                const { query, color } = layers[i]
+                const parsed = parseMolScript(query.expression);
+                if (parsed.length === 0) throw new Error('No query');
+                colorMappings.push({ query: transpileMolScript(parsed[0]), color })
+            }
+            return this.applyMappings(colorMappings, alpha)
         }
 
-        private applyMappings(colorMappings: ColorMappings): boolean {
+        private applyMappings(colorMappings: ColorMappings, alpha: number): boolean {
             if (!this.updateData() && ColorMappings.areEqual(colorMappings, this.currentColorMappings)) return false;
             this.currentColorMappings = colorMappings;
             if (!this.repr.data || !this.structure.data) return true;
 
-            const layers: Overpaint.Layers = [
-                // unsets the overpaint
-                // TODO do smarter by looking at the current color mappings
-                { loci: EveryLoci, color: ColorNames.black, alpha: 0 }
-            ]
-            // console.log('currentColorMappings', this.currentColorMappings)
+            const list: Overpaint.Layer[] = []
             for (let i = 0, il = this.currentColorMappings.length; i < il; ++i) {
                 const { query, color } = this.currentColorMappings[i]
                 const compiled = compile<StructureSelection>(query);
                 const result = compiled(new QueryContext(this.structure.data));
                 const loci = StructureSelection.toLoci2(result)
-                layers.push({ loci, color, alpha: 1 })
+                list.push({ loci, color })
             }
-            return this.applyLayers(layers)
+            return this.applyLayers({ alpha, list }, true)
         }
 
-        private applyLayers(layers: Overpaint.Layers): boolean {
+        private applyLayers(layers: Overpaint.Layers, clear: boolean): boolean {
             if (!this.repr.data) return true;
-            this.repr.data.setOverpaint(layers)
+            this.repr.data.setOverpaint(layers, clear)
             this.ctx.canvas3d.add(this.repr.data);
             this.ctx.canvas3d.requestDraw(true);
             return true;
         }
 
         unregister(): void {
-            this.applyLayers([{ loci: EveryLoci, color: ColorNames.black, alpha: 0 }]) // clear
+            this.applyLayers(Overpaint.EmptyLayers, true) // clear
             this.repr.cell = void 0;
             this.structure.cell = void 0;
         }

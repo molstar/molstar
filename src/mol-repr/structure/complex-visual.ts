@@ -29,7 +29,7 @@ import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { Overpaint } from 'mol-theme/overpaint';
-import { applyOverpaintColor, createOverpaint } from 'mol-geo/geometry/overpaint-data';
+import { applyOverpaintColor, createOverpaint, clearOverpaint } from 'mol-geo/geometry/overpaint-data';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -208,24 +208,27 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
-        setOverpaint(layers: Overpaint.Layers) {
+        setOverpaint(layers: Overpaint.Layers, clear = false) {
             if (!renderObject) return false
             const { tOverpaint } = renderObject.values
-            const { groupCount, instanceCount } = locationIt
+            const count = locationIt.groupCount * locationIt.instanceCount
 
             // ensure texture has right size
-            createOverpaint(layers.length ? groupCount * instanceCount : 0, renderObject.values)
+            createOverpaint(layers.list.length ? count : 0, renderObject.values)
 
-            for (let i = 0, il = layers.length; i < il; ++i) {
-                const { loci, color, alpha } = layers[i]
+            // clear if requested
+            if (clear) clearOverpaint(tOverpaint.ref.value.array, 0, count)
+
+            for (let i = 0, il = layers.list.length; i < il; ++i) {
+                const { loci, color } = layers.list[i]
                 const apply = (interval: Interval) => {
                     const start = Interval.start(interval)
                     const end = Interval.end(interval)
-                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, alpha)
+                    return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, layers.alpha)
                 }
 
                 if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructure))) {
-                    apply(Interval.ofBounds(0, groupCount * instanceCount))
+                    apply(Interval.ofBounds(0, count))
                 } else {
                     eachLocation(loci, currentStructure, apply)
                 }

@@ -194,8 +194,8 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         _theme = theme
     }
 
-    function setOverpaint(layers: Overpaint.Layers) {
-        visuals.forEach(({ visual }) => visual.setOverpaint(layers))
+    function setOverpaint(layers: Overpaint.Layers, clear?: boolean) {
+        visuals.forEach(({ visual }) => visual.setOverpaint(layers, clear))
     }
 
     function destroy() {

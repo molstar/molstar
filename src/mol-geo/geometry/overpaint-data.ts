@@ -23,6 +23,10 @@ export function applyOverpaintColor(array: Uint8Array, start: number, end: numbe
     return true
 }
 
+export function clearOverpaint(array: Uint8Array, start: number, end: number) {
+    array.fill(0, start, end)
+}
+
 export function createOverpaint(count: number, overpaintData?: OverpaintData): OverpaintData {
     const overpaint = createTextureImage(Math.max(1, count), 4, overpaintData && overpaintData.tOverpaint.ref.value.array)
     if (overpaintData) {

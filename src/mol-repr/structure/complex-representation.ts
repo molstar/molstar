@@ -79,8 +79,8 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         _theme = theme
     }
 
-    function setOverpaint(layers: Overpaint.Layers) {
-        if (visual) visual.setOverpaint(layers)
+    function setOverpaint(layers: Overpaint.Layers, clear?: boolean) {
+        if (visual) visual.setOverpaint(layers, clear)
     }
 
     function destroy() {

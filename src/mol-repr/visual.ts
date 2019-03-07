@@ -36,7 +36,7 @@ interface Visual<D, P extends PD.Params> {
     setAlphaFactor: (alphaFactor: number) => void
     setPickable: (pickable: boolean) => void
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
-    setOverpaint: (layers: Overpaint.Layers) => void
+    setOverpaint: (layers: Overpaint.Layers, clear?: boolean) => void
     destroy: () => void
 }
 namespace Visual {
