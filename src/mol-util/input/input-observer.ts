@@ -39,7 +39,8 @@ function getButtons(event: MouseEvent | Touch) {
 
 export const DefaultInputObserverProps = {
     noScroll: true,
-    noContextMenu: true
+    noContextMenu: true,
+    noPinchZoom: true
 }
 export type InputObserverProps = Partial<typeof DefaultInputObserverProps>
 
@@ -160,7 +161,7 @@ interface InputObserver {
 
 namespace InputObserver {
     export function create (element: Element, props: InputObserverProps = {}): InputObserver {
-        let { noScroll, noContextMenu } = { ...DefaultInputObserverProps, ...props }
+        let { noScroll, noContextMenu, noPinchZoom } = { ...DefaultInputObserverProps, ...props }
 
         let lastTouchDistance = 0
         const pointerDown = Vec2.zero()
@@ -336,6 +337,15 @@ namespace InputObserver {
         }
 
         function onTouchMove (ev: TouchEvent) {
+            if (noPinchZoom) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if ((ev as any).originalEvent) {
+                    (ev as any).originalEvent.preventDefault();
+                    (ev as any).originalEvent.stopPropagation();
+                }
+            }
+
             if (ev.touches.length === 1) {
                 buttons = ButtonsType.Flag.Primary
                 onPointerMove(ev.touches[0])

@@ -179,7 +179,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         const repr = provider.factory({ webgl: plugin.canvas3d.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
         repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
         await repr.createOrUpdate(props, channel.data).runInContext(ctx);
-        return new SO.Volume.Representation3D(repr, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });
+        return new SO.Volume.Representation3D({ repr, source: a }, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });
     }),
     update: ({ a, b, oldParams, newParams }, plugin: PluginContext) => Task.create('Volume Representation', async ctx => {
         // TODO : check if params/underlying data/etc have changed; maybe will need to export "data" or some other "tag" in the Representation for this to work
@@ -189,9 +189,9 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         if (!channel) return StateTransformer.UpdateResult.Unchanged;
 
         const params = createVolumeProps(a.data, newParams.channel);
-        const props = { ...b.data.props, ...params.type.params };
-        b.data.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
-        await b.data.createOrUpdate(props, channel.data).runInContext(ctx);
+        const props = { ...b.data.repr.props, ...params.type.params };
+        b.data.repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
+        await b.data.repr.createOrUpdate(props, channel.data).runInContext(ctx);
         return StateTransformer.UpdateResult.Updated;
     })
 });

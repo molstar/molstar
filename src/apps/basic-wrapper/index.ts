@@ -123,7 +123,7 @@ class BasicWrapper {
         applyStripes: async () => {
             const state = this.plugin.state.dataState;
 
-            const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
+            const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Structure.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
             const tree = state.build();
             const colorTheme = { name: StripedResidues.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(StripedResidues.Descriptor.name).defaultValues };
 

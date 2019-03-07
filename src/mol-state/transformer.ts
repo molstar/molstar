@@ -10,6 +10,7 @@ import { StateTransform } from './transform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateAction } from './action';
 import { capitalize } from 'mol-util/string';
+import { StateTreeSpine } from './tree/spine';
 
 export { Transformer as StateTransformer }
 
@@ -36,7 +37,8 @@ namespace Transformer {
         a: A,
         params: P,
         /** A cache object that is purged each time the corresponding StateObject is removed or recreated. */
-        cache: unknown
+        cache: unknown,
+        spine: StateTreeSpine
     }
 
     export interface UpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
@@ -45,7 +47,8 @@ namespace Transformer {
         oldParams: P,
         newParams: P,
         /** A cache object that is purged each time the corresponding StateObject is removed or recreated. */
-        cache: unknown
+        cache: unknown,
+        spine: StateTreeSpine
     }
 
     export interface AutoUpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {

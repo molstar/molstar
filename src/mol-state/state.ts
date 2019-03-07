@@ -18,6 +18,7 @@ import { TransientTree } from './tree/transient';
 import { LogEntry } from 'mol-util/log-entry';
 import { now, formatTimespan } from 'mol-util/now';
 import { ParamDefinition } from 'mol-util/param-definition';
+import { StateTreeSpine } from './tree/spine';
 
 export { State }
 
@@ -59,6 +60,7 @@ class State {
     build() { return new StateBuilder.Root(this._tree); }
 
     readonly cells: State.Cells = new Map();
+    private spine = new StateTreeSpine.Impl(this.cells);
 
     getSnapshot(): State.Snapshot {
         return { tree: StateTree.toJSON(this._tree) };
@@ -140,6 +142,8 @@ class State {
                     return cell && cell.obj;
                 }
             } finally {
+                this.spine.setSurrent();
+
                 if (updated) this.events.changed.next();
                 this.events.isUpdating.next(false);
 
@@ -164,6 +168,7 @@ class State {
             oldTree,
             tree: _tree,
             cells: this.cells as Map<StateTransform.Ref, StateObjectCell>,
+            spine: this.spine,
 
             results: [],
             stateChanges: [],
@@ -243,6 +248,7 @@ interface UpdateContext {
     oldTree: StateTree,
     tree: TransientTree,
     cells: Map<StateTransform.Ref, StateObjectCell>,
+    spine: StateTreeSpine.Impl,
 
     results: UpdateNodeResult[],
     stateChanges: StateTransform.Ref[],
@@ -593,11 +599,13 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     }
 
     let parentCell = transform.transformer.definition.from.length === 0
-        ? ctx.cells.get(current.transform.parent)
-        : StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
+    ? ctx.cells.get(current.transform.parent)
+    : StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
     if (!parentCell) {
         throw new Error(`No suitable parent found for '${currentRef}'`);
     }
+
+    ctx.spine.setSurrent(current);
 
     const parent = parentCell.obj!;
     current.sourceRef = parentCell.transform.ref;
@@ -653,7 +661,7 @@ function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {
 
 function createObject(ctx: UpdateContext, cell: StateObjectCell, transformer: StateTransformer, a: StateObject, params: any) {
     if (!cell.cache) cell.cache = Object.create(null);
-    return runTask(transformer.definition.apply({ a, params, cache: cell.cache }, ctx.parent.globalContext), ctx.taskCtx);
+    return runTask(transformer.definition.apply({ a, params, cache: cell.cache, spine: ctx.spine }, ctx.parent.globalContext), ctx.taskCtx);
 }
 
 async function updateObject(ctx: UpdateContext, cell: StateObjectCell,  transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
@@ -661,5 +669,5 @@ async function updateObject(ctx: UpdateContext, cell: StateObjectCell,  transfor
         return StateTransformer.UpdateResult.Recreate;
     }
     if (!cell.cache) cell.cache = Object.create(null);
-    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache }, ctx.parent.globalContext), ctx.taskCtx);
+    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine }, ctx.parent.globalContext), ctx.taskCtx);
 }

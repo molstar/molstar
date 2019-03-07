@@ -190,7 +190,7 @@ class MolStarProteopediaWrapper {
 
             const state = this.state;
 
-            // const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
+            // const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Structure.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
             const tree = state.build();
             const colorTheme = { name: EvolutionaryConservation.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(EvolutionaryConservation.Descriptor.name).defaultValues };
 
