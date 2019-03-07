@@ -44,7 +44,6 @@ export namespace PluginStateObject {
     }
 
     export class Root extends Create({ name: 'Root', typeClass: 'Root' }) { }
-
     export class Group extends Create({ name: 'Group', typeClass: 'Group' }) { }
 
     export namespace Data {
@@ -82,6 +81,7 @@ export namespace PluginStateObject {
         export class Model extends Create<_Model>({ name: 'Model', typeClass: 'Object' }) { }
         export class Structure extends Create<_Structure>({ name: 'Structure', typeClass: 'Object' }) { }
         export class Representation3D extends CreateRepresentation3D<StructureRepresentation<any> | ShapeRepresentation<any, any, any>>({ name: 'Structure 3D' }) { }
+        export class Representation3DState extends Create<{}>({ name: 'Structure 3D State', typeClass: 'Object' }) { }
     }
 
     export namespace Volume {

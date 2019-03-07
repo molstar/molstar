@@ -26,6 +26,7 @@ import { compile } from 'mol-script/runtime/query/compiler';
 import { Overpaint } from 'mol-theme/overpaint';
 import { parseMolScript } from 'mol-script/language/parser';
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
+import { SymmetryOperator } from 'mol-math/geometry';
 
 export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
@@ -290,4 +291,67 @@ export namespace ColorRepresentation3D {
     }
 
     export class Obj extends PluginStateObject.CreateBehavior<Behavior>({ name: 'Color Representation3D Behavior' }) { }
+}
+
+export namespace UnwindAssemblyRepresentation3D {
+    export const Params = {
+        t: PD.Numeric(0, { min: 0, max: 1, step: 0.01 })
+    }
+    export type Params = PD.Values<typeof Params>
+
+    export class Behavior implements PluginBehavior<Params> {
+        private currentT = 0;
+        private repr: StateObjectTracker<PluginStateObject.Molecule.Representation3D>;
+        private structure: StateObjectTracker<PluginStateObject.Molecule.Structure>;
+        private transforms: StructureUnitTransforms;
+
+        private updateData() {
+            const reprUpdated = this.repr.update();
+            const strUpdated = this.structure.update();
+            if (strUpdated && this.structure.data) {
+                this.transforms = new StructureUnitTransforms(this.structure.data);
+            }
+            return reprUpdated || strUpdated;
+        }
+
+        register(ref: string): void {
+            this.repr.setQuery(StateSelection.Generators.byRef(ref).ancestorOfType([PluginStateObject.Molecule.Representation3D]));
+            this.structure.setQuery(StateSelection.Generators.byRef(ref).rootOfType([PluginStateObject.Molecule.Structure]));
+            this.update(this.params);
+        }
+
+        private transMat = Mat4.zero();
+
+        update(params: Params): boolean | Promise<boolean> {
+            if (!this.updateData() && params.t === this.currentT) return false;
+            this.currentT = params.t;
+            if (!this.structure.data || !this.repr.data) return true;
+
+            const structure = this.structure.data;
+            for (let i = 0, _i = structure.units.length; i < _i; i++) {
+                const u = structure.units[i];
+                SymmetryOperator.lerpFromIdentity(this.transMat, u.conformation.operator, this.currentT);
+                this.transforms.setTransform(this.transMat, u);
+            }
+
+            this.repr.data.setState({ unitTransforms: this.transforms });
+            this.ctx.canvas3d.add(this.repr.data);
+            this.ctx.canvas3d.requestDraw(true);
+
+            return true;
+        }
+
+        unregister(): void {
+            this.update({ t: 0 })
+            this.repr.cell = void 0;
+            this.structure.cell = void 0;
+        }
+
+        constructor(private ctx: PluginContext, private params: Params) {
+            this.repr = new StateObjectTracker(ctx.state.dataState);
+            this.structure = new StateObjectTracker(ctx.state.dataState);
+        }
+    }
+
+    export class Obj extends PluginStateObject.CreateBehavior<Behavior>({ name: 'Explode Representation3D Behavior' }) { }
 }

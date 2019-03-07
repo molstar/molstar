@@ -10,6 +10,7 @@ import { StateTransforms } from '../transforms';
 import { StateSelection } from 'mol-state';
 import { PluginCommands } from 'mol-plugin/command';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { UnwindAssemblyRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
 
 export const AnimateModelIndex = PluginStateAnimation.create({
     name: 'built-in.animate-model-index',
@@ -80,5 +81,36 @@ export const AnimateModelIndex = PluginStateAnimation.create({
         if (params.mode.name === 'once' && isEnd) return { kind: 'finished' };
         if (params.mode.name === 'palindrome') return { kind: 'next', state: { palindromeDirections } };
         return { kind: 'next', state: {} };
+    }
+})
+
+export const AnimateAssemblyUnwind = PluginStateAnimation.create({
+    name: 'built-in.animate-assembly-unwind',
+    display: { name: 'Unwind Assembly' },
+    params: () => ({
+        durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100})
+    }),
+    initialState: () => ({ t: 0 }),
+    async apply(animState, t, ctx) {
+        const state = ctx.plugin.state.dataState;
+        const anims = state.selectQ(q => q.ofType(UnwindAssemblyRepresentation3D.Obj));
+
+        if (anims.length === 0) {
+            // nothing more to do here
+            return { kind: 'finished' };
+        }
+
+        const update = state.build();
+
+        const d = (t.current - t.lastApplied) / ctx.params.durationInMs;
+        const newTime = (animState.t + d) % 1;
+
+        for (const m of anims) {
+            update.to(m.transform.ref).update(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, _ => ({ t: newTime }));
+        }
+
+        await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+
+        return { kind: 'next', state: { t: newTime } };
     }
 })
