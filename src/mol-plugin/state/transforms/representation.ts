@@ -247,7 +247,12 @@ const UnwindStructureAssemblyRepresentation3D = PluginStateTransform.BuiltIn({
         const structure = a.data.source.data;
         const unitTransforms = new StructureUnitTransforms(structure);
         unwindStructureAssembly(structure, unitTransforms, params.t);
-        return new SO.Molecule.Structure.Representation3DState({ state: { unitTransforms }, info: structure, source: a }, { label: `Unwind T = ${params.t.toFixed(2)}` });
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { unitTransforms },
+            initialState: { unitTransforms: new StructureUnitTransforms(structure) },
+            info: structure,
+            source: a
+        }, { label: `Unwind T = ${params.t.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure;
@@ -274,15 +279,20 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params, spine }) {
-        const srcStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
-        const unitTransforms = new StructureUnitTransforms(srcStructure);
-        explodeStructure(srcStructure, unitTransforms, params.t);
-        return new SO.Molecule.Structure.Representation3DState({ state: { unitTransforms }, info: srcStructure, source: a }, { label: `Explode T = ${params.t.toFixed(2)}` });
+        const rootStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
+        const unitTransforms = new StructureUnitTransforms(rootStructure);
+        explodeStructure(rootStructure, unitTransforms, params.t);
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { unitTransforms },
+            initialState: { unitTransforms: new StructureUnitTransforms(rootStructure) },
+            info: rootStructure,
+            source: a
+        }, { label: `Explode T = ${params.t.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams, spine }) {
-        const srcStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
+        const rootStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
         const structure = b.data.info as Structure;
-        if (srcStructure !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (rootStructure !== structure) return StateTransformer.UpdateResult.Recreate;
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
         explodeStructure(structure, unitTransforms, newParams.t);

@@ -84,7 +84,14 @@ export namespace PluginStateObject {
 
         export namespace Structure {
             export class Representation3D extends CreateRepresentation3D<StructureRepresentation<any> | ShapeRepresentation<any, any, any>, Structure>({ name: 'Structure 3D' }) { }
-            export interface Representation3DStateData { source: Representation3D, state: Partial<StructureRepresentationState>, info?: unknown }
+
+            export interface Representation3DStateData {
+                source: Representation3D,
+                /** used to restore state when the obj is removed */
+                initialState: Partial<StructureRepresentationState>,
+                state: Partial<StructureRepresentationState>,
+                info?: unknown
+            }
             export class Representation3DState extends Create<Representation3DStateData>({ name: 'Structure 3D State', typeClass: 'Object' }) { }
         }
     }
