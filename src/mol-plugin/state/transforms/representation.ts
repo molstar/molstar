@@ -216,8 +216,7 @@ const StructureLabels3D = PluginStateTransform.BuiltIn({
     }
 })({
     canAutoUpdate({ a, oldParams, newParams }) {
-        // TODO: find good criteria
-        return false;
+        return newParams.target.name === 'static-text' || newParams.target.name === oldParams.target.name
     },
     apply({ a, params }) {
         return Task.create('Structure Labels', async ctx => {
