@@ -114,3 +114,35 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         return { kind: 'next', state: { t: newTime } };
     }
 })
+
+export const AnimateUnitsExplode = PluginStateAnimation.create({
+    name: 'built-in.animate-units-explode',
+    display: { name: 'Explode Units' },
+    params: () => ({
+        durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100})
+    }),
+    initialState: () => ({ t: 0 }),
+    async apply(animState, t, ctx) {
+        const state = ctx.plugin.state.dataState;
+        const anims = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure.Representation3DState)
+            .filter(c => c.transform.transformer === StateTransforms.Representation.ExplodeStructureRepresentation3D));
+
+        if (anims.length === 0) {
+            // nothing more to do here
+            return { kind: 'finished' };
+        }
+
+        const update = state.build();
+
+        const d = (t.current - t.lastApplied) / ctx.params.durationInMs;
+        const newTime = (animState.t + d) % 1;
+
+        for (const m of anims) {
+            update.to(m.transform.ref).update(StateTransforms.Representation.ExplodeStructureRepresentation3D, _ => ({ t: newTime }));
+        }
+
+        await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+
+        return { kind: 'next', state: { t: newTime } };
+    }
+})

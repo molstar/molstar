@@ -12,7 +12,7 @@ import * as ReactDOM from 'react-dom';
 import { PluginSpec } from './spec';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
-import { AnimateModelIndex, AnimateAssemblyUnwind } from './state/animation/built-in';
+import { AnimateModelIndex, AnimateAssemblyUnwind, AnimateUnitsExplode } from './state/animation/built-in';
 import { StateActions } from './state/actions';
 import { InitVolumeStreaming, BoxifyVolumeStreaming, CreateVolumeStreamingBehavior } from './behavior/dynamic/volume-streaming/transformers';
 import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
@@ -58,7 +58,6 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
         PluginSpec.Behavior(PluginBehaviors.Camera.FocusLociOnSelect, { minRadius: 20, extraRadius: 4 }),
-        PluginSpec.Behavior(PluginBehaviors.Animation.StructureAnimation, { rotate: false, rotateValue: 0, explode: false, explodeValue: 0 }),
         // PluginSpec.Behavior(PluginBehaviors.Labels.SceneLabels),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry, { autoAttach: true }),
@@ -66,7 +65,8 @@ export const DefaultPluginSpec: PluginSpec = {
     ],
     animations: [
         AnimateModelIndex,
-        AnimateAssemblyUnwind
+        AnimateAssemblyUnwind,
+        AnimateUnitsExplode,
     ]
 }
 
