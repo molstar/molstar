@@ -228,6 +228,9 @@ export const BaseSchema = {
      */
     aTransform: AttributeSpec('float32', 16, 1),
 
+    /**
+     * final alpha, calculated as `values.alpha * state.alpha`
+     */
     uAlpha: UniformSpec('f'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
@@ -237,6 +240,9 @@ export const BaseSchema = {
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
+
+    /** base alpha, see uAlpha  */
+    alpha: ValueSpec('number'),
 
     /** global transform, see aTransform */
     matrix: ValueSpec('m4'),

@@ -60,6 +60,7 @@ export namespace BaseGeometry {
 
     export function createValues(props: PD.Values<Params>, counts: Counts) {
         return {
+            alpha: ValueCell.create(props.alpha),
             uAlpha: ValueCell.create(props.alpha),
             uHighlightColor: ValueCell.create(Color.toArrayNormalized(props.highlightColor, Vec3.zero(), 0)),
             uSelectColor: ValueCell.create(Color.toArrayNormalized(props.selectColor, Vec3.zero(), 0)),
@@ -76,19 +77,20 @@ export namespace BaseGeometry {
         if (Color.fromNormalizedArray(values.uSelectColor.ref.value, 0) !== props.selectColor) {
             ValueCell.update(values.uSelectColor, Color.toArrayNormalized(props.selectColor, values.uSelectColor.ref.value, 0))
         }
-        ValueCell.updateIfChanged(values.uAlpha, props.alpha)
+        ValueCell.updateIfChanged(values.alpha, props.alpha) // `uAlpha` is set in renderable.render
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {
         return {
             visible: true,
+            alphaFactor: 1,
             pickable: true,
             opaque: props.alpha === undefined ? true : props.alpha === 1
         }
     }
 
     export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
-        state.opaque = props.alpha === 1
+        state.opaque = props.alpha * state.alphaFactor >= 1
     }
 }

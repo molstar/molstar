@@ -80,6 +80,7 @@ function createPoints() {
         uInstanceCount: ValueCell.create(1),
         uGroupCount: ValueCell.create(3),
 
+        alpha: ValueCell.create(1.0),
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
         matrix: ValueCell.create(m4),
@@ -96,6 +97,7 @@ function createPoints() {
     }
     const state: RenderableState = {
         visible: true,
+        alphaFactor: 1,
         pickable: true,
         opaque: true
     }

@@ -33,6 +33,7 @@ interface Visual<D, P extends PD.Params> {
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (visible: boolean) => void
+    setAlphaFactor: (alphaFactor: number) => void
     setPickable: (pickable: boolean) => void
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
     setOverpaint: (layers: Overpaint.Layers) => void
@@ -41,6 +42,10 @@ interface Visual<D, P extends PD.Params> {
 namespace Visual {
     export function setVisibility(renderObject: GraphicsRenderObject | undefined, visible: boolean) {
         if (renderObject) renderObject.state.visible = visible
+    }
+
+    export function setAlphaFactor(renderObject: GraphicsRenderObject | undefined, alphaFactor: number) {
+        if (renderObject) renderObject.state.alphaFactor = alphaFactor
     }
 
     export function setPickable(renderObject: GraphicsRenderObject | undefined, pickable: boolean) {

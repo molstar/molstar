@@ -199,6 +199,9 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         setVisibility(visible: boolean) {
             Visual.setVisibility(renderObject, visible)
         },
+        setAlphaFactor(alphaFactor: number) {
+            Visual.setAlphaFactor(renderObject, alphaFactor)
+        },
         setPickable(pickable: boolean) {
             Visual.setPickable(renderObject, pickable)
         },

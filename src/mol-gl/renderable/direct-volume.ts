@@ -33,6 +33,8 @@ export const DirectVolumeSchema = {
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
 
+    alpha: ValueSpec('number'),
+
     matrix: ValueSpec('m4'),
     transform: ValueSpec('float32'),
     extraTransform: ValueSpec('float32'),

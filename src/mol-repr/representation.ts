@@ -141,6 +141,8 @@ namespace Representation {
     export interface State {
         /** Controls if the representation's renderobjects are rendered or not */
         visible: boolean
+        /** A factor applied to alpha value of the representation's renderobjects */
+        alphaFactor: number
         /** Controls if the representation's renderobjects are pickable or not */
         pickable: boolean
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
@@ -149,10 +151,11 @@ namespace Representation {
         transform: Mat4
     }
     export function createState(): State {
-        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity(), /* instanceTransforms: new Float32Array(Mat4.identity()) */ }
+        return { visible: false, alphaFactor: 0, pickable: false, syncManually: false, transform: Mat4.identity() }
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible
+        if (update.alphaFactor !== undefined) state.alphaFactor = update.alphaFactor
         if (update.pickable !== undefined) state.pickable = update.pickable
         if (update.syncManually !== undefined) state.syncManually = update.syncManually
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
@@ -318,6 +321,7 @@ namespace Representation {
             },
             setState: (state: Partial<State>) => {
                 if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible)
+                if (state.alphaFactor !== undefined) Visual.setAlphaFactor(renderObject, state.alphaFactor)
                 if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable)
                 if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform)
 
