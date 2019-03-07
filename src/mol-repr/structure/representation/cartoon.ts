@@ -54,7 +54,7 @@ export function CartoonRepresentation(ctx: RepresentationContext, getParams: Rep
 
 export const CartoonRepresentationProvider: StructureRepresentationProvider<CartoonParams> = {
     label: 'Cartoon',
-    description: 'Displays a ribbon smoothly following the trace atoms of polymers.',
+    description: 'Displays ribbons, planks, tubes smoothly following the trace atoms of polymers.',
     factory: CartoonRepresentation,
     getParams: getCartoonParams,
     defaultValues: PD.getDefaultValues(CartoonParams),

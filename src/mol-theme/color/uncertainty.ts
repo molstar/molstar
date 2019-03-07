@@ -36,6 +36,7 @@ export function getUncertainty(unit: Unit, element: ElementIndex): number {
 
 export function UncertaintyColorTheme(ctx: ThemeDataContext, props: PD.Values<UncertaintyColorThemeParams>): ColorTheme<UncertaintyColorThemeParams> {
     const scale = ColorScale.create({
+        reverse: true,
         domain: props.domain,
         listOrName: props.list,
     })

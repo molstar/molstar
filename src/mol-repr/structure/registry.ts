@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,6 +15,7 @@ import { SpacefillRepresentationProvider } from './representation/spacefill';
 import { DistanceRestraintRepresentationProvider } from './representation/distance-restraint';
 import { PointRepresentationProvider } from './representation/point';
 import { StructureRepresentationState } from './representation';
+import { PuttyRepresentationProvider } from './representation/putty';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
@@ -34,6 +35,7 @@ export const BuiltInStructureRepresentations = {
     'molecular-surface': MolecularSurfaceRepresentationProvider,
     'molecular-volume': MolecularVolumeRepresentationProvider,
     'point': PointRepresentationProvider,
+    'putty': PuttyRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,
 }
 export type BuiltInStructureRepresentationsName = keyof typeof BuiltInStructureRepresentations
