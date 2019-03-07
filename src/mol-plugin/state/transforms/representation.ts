@@ -7,7 +7,7 @@
 
 import { Structure } from 'mol-model/structure';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
-import { ExplodeRepresentation3D, ColorRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
+import { ColorRepresentation3D } from 'mol-plugin/behavior/dynamic/representation';
 import { PluginContext } from 'mol-plugin/context';
 import { RepresentationProvider } from 'mol-repr/representation';
 import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
@@ -26,7 +26,7 @@ import { ColorNames } from 'mol-util/color/tables';
 import { getLabelRepresentation } from 'mol-plugin/util/structure-labels';
 import { ShapeRepresentation } from 'mol-repr/shape/representation';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
-import { unwindStructureAssebmly } from '../animation/helpers';
+import { unwindStructureAssembly, explodeStructure } from '../animation/helpers';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -243,10 +243,10 @@ const UnwindStructureAssemblyRepresentation3D = PluginStateTransform.BuiltIn({
     canAutoUpdate() {
         return true;
     },
-    apply({ a, params }, plugin: PluginContext) {
+    apply({ a, params }) {
         const structure = a.data.source.data;
         const unitTransforms = new StructureUnitTransforms(structure);
-        unwindStructureAssebmly(structure, unitTransforms, params.t);
+        unwindStructureAssembly(structure, unitTransforms, params.t);
         return new SO.Molecule.Structure.Representation3DState({ state: { unitTransforms }, info: structure, source: a }, { label: `Unwind T = ${params.t.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
@@ -254,7 +254,7 @@ const UnwindStructureAssemblyRepresentation3D = PluginStateTransform.BuiltIn({
         if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate;
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
-        unwindStructureAssebmly(structure, unitTransforms, newParams.t);
+        unwindStructureAssembly(structure, unitTransforms, newParams.t);
         b.label = `Unwind T = ${newParams.t.toFixed(2)}`;
         b.data.source = a;
         return StateTransformer.UpdateResult.Updated;
@@ -267,21 +267,28 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'explode-structure-representation-3d',
     display: 'Explode 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
-    to: ExplodeRepresentation3D.Obj,
-    params: ExplodeRepresentation3D.Params
+    to: SO.Molecule.Structure.Representation3DState,
+    params: { t: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }) }
 })({
     canAutoUpdate() {
         return true;
     },
-    apply({ params }, plugin: PluginContext) {
-        return new ExplodeRepresentation3D.Obj(new ExplodeRepresentation3D.Behavior(plugin, params), { label: `Explosion T = ${params.t.toFixed(2)}` });
+    apply({ a, params, spine }) {
+        const srcStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
+        const unitTransforms = new StructureUnitTransforms(srcStructure);
+        explodeStructure(srcStructure, unitTransforms, params.t);
+        return new SO.Molecule.Structure.Representation3DState({ state: { unitTransforms }, info: srcStructure, source: a }, { label: `Explode T = ${params.t.toFixed(2)}` });
     },
-    update({ b, newParams }) {
-        return Task.create('Update Explosion', async () => {
-            const updated = await b.data.update(newParams);
-            b.label = `Explosion T = ${newParams.t.toFixed(2)}`;
-            return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
-        });
+    update({ a, b, newParams, oldParams, spine }) {
+        const srcStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
+        const structure = b.data.info as Structure;
+        if (srcStructure !== structure) return StateTransformer.UpdateResult.Recreate;
+        if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
+        const unitTransforms = b.data.state.unitTransforms!;
+        explodeStructure(structure, unitTransforms, newParams.t);
+        b.label = `Explode T = ${newParams.t.toFixed(2)}`;
+        b.data.source = a;
+        return StateTransformer.UpdateResult.Updated;
     }
 });
 
