@@ -91,6 +91,9 @@ export namespace Text {
         backgroundMargin: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
         backgroundColor: PD.Color(ColorNames.grey),
         backgroundOpacity: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        tether: PD.Boolean(false),
+        tetherLength: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }),
+        tetherBaseWidth: PD.Numeric(0.3, { min: 0, max: 1, step: 0.01 }),
 
         attachment: PD.Select('middle-center', [
             ['bottom-left', 'bottom-left'], ['bottom-center', 'bottom-center'], ['bottom-right', 'bottom-right'],

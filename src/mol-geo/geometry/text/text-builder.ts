@@ -32,11 +32,17 @@ export namespace TextBuilder {
         const tcoords = ChunkedArray.create(Float32Array, 2, chunkSize, text ? text.tcoordBuffer.ref.value : initialCount);
 
         const p = { ...PD.getDefaultValues(Text.Params), ...props }
-        const { attachment, background, backgroundMargin } = p
+        const { attachment, background, backgroundMargin, tether, tetherLength, tetherBaseWidth } = p
 
         const fontAtlas = getFontAtlas(p)
         const margin = (1 / 2.5) * backgroundMargin
         const outline = fontAtlas.buffer / fontAtlas.lineHeight
+
+        const add = (x: number, y: number, z: number, depth: number, group: number) => {
+            ChunkedArray.add3(centers, x, y, z);
+            ChunkedArray.add(depths, depth);
+            ChunkedArray.add(groups, group);
+        }
 
         return {
             add: (str: string, x: number, y: number, z: number, depth: number, group: number) => {
@@ -53,6 +59,7 @@ export namespace TextBuilder {
 
                 // attachment
                 let yShift: number, xShift: number
+                // vertical
                 if (attachment.startsWith('top')) {
                     yShift = bHeight
                 } else if (attachment.startsWith('middle')) {
@@ -60,6 +67,7 @@ export namespace TextBuilder {
                 } else {
                     yShift = 0  // "bottom"
                 }
+                // horizontal
                 if (attachment.endsWith('right')) {
                     xShift = bWidth
                 } else if (attachment.endsWith('center')) {
@@ -68,22 +76,150 @@ export namespace TextBuilder {
                     xShift = 0  // "left"
                 }
 
+                if (tether) {
+                    switch (attachment) {
+                        case 'bottom-left':
+                            xShift -= tetherLength / 2 + margin + 0.1
+                            yShift -= tetherLength / 2 + margin
+                            break
+                        case 'bottom-center':
+                            yShift -= tetherLength + margin
+                            break
+                        case 'bottom-right':
+                            xShift += tetherLength / 2 + margin + 0.1
+                            yShift -= tetherLength / 2 + margin
+                            break
+                        case 'middle-left':
+                            xShift -= tetherLength + margin + 0.1
+                            break
+                        case 'middle-center':
+                            break
+                        case 'middle-right':
+                            xShift += tetherLength + margin + 0.1
+                            break
+                        case 'top-left':
+                            xShift -= tetherLength / 2 + margin + 0.1
+                            yShift += tetherLength / 2 + margin
+                            break
+                        case 'top-center':
+                            yShift += tetherLength + margin
+                            break
+                        case 'top-right':
+                            xShift += tetherLength / 2 + margin + 0.1
+                            yShift += tetherLength / 2 + margin
+                            break
+                    }
+                }
+
+                const xLeft = -xShift - margin - 0.1
+                const xRight = bWidth - xShift + margin + 0.1
+                const yTop = bHeight - yShift + margin
+                const yBottom = -yShift - margin
+
                 // background
                 if (background) {
-                    ChunkedArray.add2(mappings, -xShift - margin - 0.1, bHeight - yShift + margin) // top left
-                    ChunkedArray.add2(mappings, -xShift - margin - 0.1, -yShift - margin) // bottom left
-                    ChunkedArray.add2(mappings, bWidth - xShift + margin + 0.1, bHeight - yShift + margin) // top right
-                    ChunkedArray.add2(mappings, bWidth - xShift + margin + 0.1, -yShift - margin) // bottom right
+                    ChunkedArray.add2(mappings, xLeft, yTop) // top left
+                    ChunkedArray.add2(mappings, xLeft, yBottom) // bottom left
+                    ChunkedArray.add2(mappings, xRight, yTop) // top right
+                    ChunkedArray.add2(mappings, xRight, yBottom) // bottom right
 
                     const offset = centers.elementCount
                     for (let i = 0; i < 4; ++i) {
                         ChunkedArray.add2(tcoords, 10, 10)
-                        ChunkedArray.add3(centers, x, y, z);
-                        ChunkedArray.add(depths, depth);
-                        ChunkedArray.add(groups, group);
+                        add(x, y, z, depth, group)
                     }
                     ChunkedArray.add3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2])
                     ChunkedArray.add3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5])
+                }
+
+                if (tether) {
+                    let xTip: number, yTip: number, xBaseA: number, yBaseA: number, xBaseB: number, yBaseB: number
+                    switch (attachment) {
+                        case 'bottom-left':
+                            xTip = xLeft - tetherLength / 2
+                            xBaseA = xLeft + tetherBaseWidth / 2
+                            xBaseB = xLeft
+                            yTip = yBottom - tetherLength / 2
+                            yBaseA = yBottom
+                            yBaseB = yBottom + tetherBaseWidth / 2
+                            break
+                        case 'bottom-center':
+                            xTip = 0
+                            xBaseA = tetherBaseWidth / 2
+                            xBaseB = -tetherBaseWidth / 2
+                            yTip = yBottom - tetherLength
+                            yBaseA = yBottom
+                            yBaseB = yBottom
+                            break
+                        case 'bottom-right':
+                            xTip = xRight + tetherLength / 2
+                            xBaseA = xRight
+                            xBaseB = xRight - tetherBaseWidth / 2
+                            yTip = yBottom - tetherLength / 2
+                            yBaseA = yBottom + tetherBaseWidth / 2
+                            yBaseB = yBottom
+                            break
+                        case 'middle-left':
+                            xTip = xLeft - tetherLength
+                            xBaseA = xLeft
+                            xBaseB = xLeft
+                            yTip = 0
+                            yBaseA = -tetherBaseWidth / 2
+                            yBaseB = tetherBaseWidth / 2
+                            break
+                        case 'middle-center':
+                            xTip = 0
+                            xBaseA = 0
+                            xBaseB = 0
+                            yTip = 0
+                            yBaseA = 0
+                            yBaseB = 0
+                            break
+                        case 'middle-right':
+                            xTip = xRight + tetherLength
+                            xBaseA = xRight
+                            xBaseB = xRight - tetherBaseWidth / 2
+                            yTip = 0
+                            yBaseA = tetherBaseWidth / 2
+                            yBaseB = -tetherBaseWidth / 2
+                            break
+                        case 'top-left':
+                            xTip = xLeft - tetherLength / 2
+                            xBaseA = xLeft + tetherBaseWidth / 2
+                            xBaseB = xLeft
+                            yTip = yTop + tetherLength / 2
+                            yBaseA = yTop
+                            yBaseB = yTop - tetherBaseWidth / 2
+                            break
+                        case 'top-center':
+                            xTip = 0
+                            xBaseA = tetherBaseWidth / 2
+                            xBaseB = -tetherBaseWidth / 2
+                            yTip = yTop + tetherLength
+                            yBaseA = yTop
+                            yBaseB = yTop
+                            break
+                        case 'top-right':
+                            xTip = xRight + tetherLength / 2
+                            xBaseA = xRight
+                            xBaseB = xRight - tetherBaseWidth / 2
+                            yTip = yTop + tetherLength / 2
+                            yBaseA = yTop - tetherBaseWidth / 2
+                            yBaseB = yTop
+                            break
+                        default:
+                            throw new Error('unsupported attachment')
+                    }
+                    ChunkedArray.add2(mappings, xTip, yTip) // tip
+                    ChunkedArray.add2(mappings, xBaseA, yBaseA) // base A
+                    ChunkedArray.add2(mappings, xBaseB, yBaseB) // base B
+
+                    const offset = centers.elementCount
+                    for (let i = 0; i < 3; ++i) {
+                        ChunkedArray.add2(tcoords, 10, 10)
+                        add(x, y, z, depth, group)
+                    }
+                    ChunkedArray.add3(indices, offset, offset + 1, offset + 2)
                 }
 
                 xShift += outline
@@ -109,11 +245,7 @@ export namespace TextBuilder {
                     xadvance += c.nw - 2 * outline
 
                     const offset = centers.elementCount
-                    for (let i = 0; i < 4; ++i) {
-                        ChunkedArray.add3(centers, x, y, z);
-                        ChunkedArray.add(depths, depth);
-                        ChunkedArray.add(groups, group);
-                    }
+                    for (let i = 0; i < 4; ++i) add(x, y, z, depth, group)
                     ChunkedArray.add3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2])
                     ChunkedArray.add3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5])
                 }
