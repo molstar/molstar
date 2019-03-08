@@ -264,6 +264,7 @@ const StructureSelection = PluginStateTransform.BuiltIn({
     apply({ a, params, cache }) {
         const compiled = compile<Sel>(params.query);
         (cache as { compiled: QueryFn<Sel> }).compiled = compiled;
+        (cache as { source: Structure }).source = a.data;
 
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
@@ -273,6 +274,11 @@ const StructureSelection = PluginStateTransform.BuiltIn({
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
         if (oldParams.query !== newParams.query) return StateTransformer.UpdateResult.Recreate;
+
+        if ((cache as { source: Structure }).source === a.data) {
+            return StateTransformer.UpdateResult.Unchanged;
+        }
+        (cache as { source: Structure }).source === a.data;
 
         if (updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label)) {
             return StateTransformer.UpdateResult.Updated;
@@ -298,6 +304,7 @@ const UserStructureSelection = PluginStateTransform.BuiltIn({
         const query = transpileMolScript(parsed[0]);
         const compiled = compile<Sel>(query);
         (cache as { compiled: QueryFn<Sel> }).compiled = compiled;
+        (cache as { source: Structure }).source = a.data;
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
@@ -307,6 +314,11 @@ const UserStructureSelection = PluginStateTransform.BuiltIn({
         if (oldParams.query.language !== newParams.query.language || oldParams.query.expression !== newParams.query.expression) {
             return StateTransformer.UpdateResult.Recreate;
         }
+
+        if ((cache as { source: Structure }).source === a.data) {
+            return StateTransformer.UpdateResult.Unchanged;
+        }
+        (cache as { source: Structure }).source === a.data;
 
         updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label);
         return StateTransformer.UpdateResult.Updated;
