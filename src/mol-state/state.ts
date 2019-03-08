@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -19,6 +19,7 @@ import { LogEntry } from 'mol-util/log-entry';
 import { now, formatTimespan } from 'mol-util/now';
 import { ParamDefinition } from 'mol-util/param-definition';
 import { StateTreeSpine } from './tree/spine';
+import { AsyncQueue } from 'mol-util/async-queue';
 
 export { State }
 
@@ -122,7 +123,7 @@ class State {
     }
 
     /**
-     * Reconcialites the existing state tree with the new version.
+     * Queues up a reconciliation of the existing state tree.
      *
      * If the tree is StateBuilder.To<T>, the corresponding StateObject is returned by the task.
      * @param tree Tree instance or a tree builder instance
@@ -131,27 +132,44 @@ class State {
     updateTree<T extends StateObject>(tree: StateBuilder.To<T>, options?: Partial<State.UpdateOptions>): Task<T>
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<void>
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<any> {
+        const params: UpdateParams = { tree, options };
         return Task.create('Update Tree', async taskCtx => {
-            this.events.isUpdating.next(true);
-            let updated = false;
-            const ctx = this.updateTreeAndCreateCtx(tree, taskCtx, options);
+            const ok = await this.updateQueue.enqueue(params);
+            if (!ok) return;
+
             try {
-                updated = await update(ctx);
-                if (StateBuilder.isTo(tree)) {
-                    const cell = this.select(tree.ref)[0];
-                    return cell && cell.obj;
-                }
+                const ret = await this._updateTree(taskCtx, params);
+                return ret;
             } finally {
-                this.spine.setSurrent();
-
-                if (updated) this.events.changed.next();
-                this.events.isUpdating.next(false);
-
-                for (const ref of ctx.stateChanges) {
-                    this.events.cell.stateUpdated.next({ state: this, ref, cellState: this.tree.cellStates.get(ref) });
-                }
+                this.updateQueue.handled(params);
             }
+        }, () => {
+            this.updateQueue.remove(params);
         });
+    }
+
+    private updateQueue = new AsyncQueue<UpdateParams>();
+
+    private async _updateTree(taskCtx: RuntimeContext, params: UpdateParams) {
+        this.events.isUpdating.next(true);
+        let updated = false;
+        const ctx = this.updateTreeAndCreateCtx(params.tree, taskCtx, params.options);
+        try {
+            updated = await update(ctx);
+            if (StateBuilder.isTo(params.tree)) {
+                const cell = this.select(params.tree.ref)[0];
+                return cell && cell.obj;
+            }
+        } finally {
+            this.spine.setSurrent();
+
+            if (updated) this.events.changed.next();
+            this.events.isUpdating.next(false);
+
+            for (const ref of ctx.stateChanges) {
+                this.events.cell.stateUpdated.next({ state: this, ref, cellState: this.tree.cellStates.get(ref) });
+            }
+        }
     }
 
     private updateTreeAndCreateCtx(tree: StateTree | StateBuilder, taskCtx: RuntimeContext, options: Partial<State.UpdateOptions> | undefined) {
@@ -238,6 +256,8 @@ const StateUpdateDefaultOptions: State.UpdateOptions = {
 };
 
 type Ref = StateTransform.Ref
+
+type UpdateParams = { tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions> }
 
 interface UpdateContext {
     parent: State,

@@ -5,33 +5,30 @@
  */
 
 import { PluginContext } from '../context';
-import { LinkedList } from 'mol-data/generic';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { UUID } from 'mol-util';
 
 export { PluginCommand }
 
 interface PluginCommand<T = unknown> {
     readonly id: UUID,
-    dispatch(ctx: PluginContext, params: T, isChild?: boolean): Promise<void>,
-    subscribe(ctx: PluginContext, action: PluginCommand.Action<T>): PluginCommand.Subscription,
-    params: { isImmediate: boolean }
+    dispatch(ctx: PluginContext, params: T): Promise<void>,
+    subscribe(ctx: PluginContext, action: PluginCommand.Action<T>): PluginCommand.Subscription
 }
 
 /** namespace.id must a globally unique identifier */
-function PluginCommand<T>(params?: Partial<PluginCommand<T>['params']>): PluginCommand<T> {
-    return new Impl({ isImmediate: false, ...params });
+function PluginCommand<T>(): PluginCommand<T> {
+    return new Impl();
 }
 
 class Impl<T> implements PluginCommand<T> {
-    dispatch(ctx: PluginContext, params: T, isChild?: boolean): Promise<void> {
-        return ctx.commands.dispatch(this, params, isChild);
+    dispatch(ctx: PluginContext, params: T): Promise<void> {
+        return ctx.commands.dispatch(this, params);
     }
     subscribe(ctx: PluginContext, action: PluginCommand.Action<T>): PluginCommand.Subscription {
         return ctx.commands.subscribe(this, action);
     }
     id = UUID.create22();
-    constructor(public params: PluginCommand<T>['params']) {
+    constructor() {
     }
 }
 
@@ -43,22 +40,11 @@ namespace PluginCommand {
     }
 
     export type Action<T> = (params: T) => unknown | Promise<unknown>
-    type Instance = { cmd: PluginCommand<any>, params: any, isChild: boolean, resolve: () => void, reject: (e: any) => void }
+    type Instance = { cmd: PluginCommand<any>, params: any, resolve: () => void, reject: (e: any) => void }
 
     export class Manager {
         private subs = new Map<string, Action<any>[]>();
-        private queue = LinkedList<Instance>();
         private disposing = false;
-
-        private ev = RxEventHelper.create();
-
-        readonly behaviour = {
-            locked: this.ev.behavior<boolean>(false)
-        };
-
-        lock(locked: boolean = true) {
-            this.behaviour.locked.next(locked);
-        }
 
         subscribe<T>(cmd: PluginCommand<T>, action: Action<T>): Subscription {
             let actions = this.subs.get(cmd.id);
@@ -84,7 +70,7 @@ namespace PluginCommand {
 
 
         /** Resolves after all actions have completed */
-        dispatch<T>(cmd: PluginCommand<T>, params: T, isChild = false) {
+        dispatch<T>(cmd: PluginCommand<T>, params: T) {
             return new Promise<void>((resolve, reject) => {
                 if (this.disposing) {
                     reject('disposed');
@@ -97,37 +83,22 @@ namespace PluginCommand {
                     return;
                 }
 
-                const instance: Instance = { cmd, params, resolve, reject, isChild };
-
-                if (cmd.params.isImmediate || isChild) {
-                    this.resolve(instance);
-                } else {
-                    this.queue.addLast(instance);
-                    this.next();
-                }
+                this.resolve({ cmd, params, resolve, reject });
             });
         }
 
         dispose() {
             this.subs.clear();
-            while (this.queue.count > 0) {
-                this.queue.removeFirst();
-            }
         }
 
         private async resolve(instance: Instance) {
             const actions = this.subs.get(instance.cmd.id);
             if (!actions) {
-                try {
-                    instance.resolve();
-                } finally {
-                    if (!instance.cmd.params.isImmediate && !this.disposing) this.next();
-                }
+                instance.resolve();
                 return;
             }
 
             try {
-                if (!instance.cmd.params.isImmediate && !instance.isChild) this.executing = true;
                 // TODO: should actions be called "asynchronously" ("setImmediate") instead?
                 for (const a of actions) {
                     await a(instance.params);
@@ -135,19 +106,7 @@ namespace PluginCommand {
                 instance.resolve();
             } catch (e) {
                 instance.reject(e);
-            } finally {
-                if (!instance.cmd.params.isImmediate && !instance.isChild) {
-                    this.executing = false;
-                    if (!this.disposing) this.next();
-                }
             }
-        }
-
-        private executing = false;
-        private async next() {
-            if (this.queue.count === 0 || this.executing) return;
-            const instance = this.queue.removeFirst()!;
-            this.resolve(instance);
         }
     }
 }

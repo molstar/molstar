@@ -31,7 +31,7 @@ export const CreateJoleculeState = StateAction.build({
 
         data.sort((a, b) => a.order - b.order);
 
-        await PluginCommands.State.RemoveObject.dispatch(plugin, { state, ref }, true);
+        await PluginCommands.State.RemoveObject.dispatch(plugin, { state, ref });
         plugin.state.snapshots.clear();
 
         const template = createTemplate(plugin, state.tree, id);
@@ -40,7 +40,7 @@ export const CreateJoleculeState = StateAction.build({
             plugin.state.snapshots.add(s);
         }
 
-        PluginCommands.State.Snapshots.Apply.dispatch(plugin, { id: snapshots[0].snapshot.id }, true);
+        PluginCommands.State.Snapshots.Apply.dispatch(plugin, { id: snapshots[0].snapshot.id });
     } catch (e) {
         plugin.log.error(`Jolecule Failed: ${e}`);
     }

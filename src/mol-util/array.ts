@@ -57,3 +57,21 @@ export function fillSerial<T extends NumberArray> (array: T, n?: number) {
     for (let i = 0, il = n ? Math.min(n, array.length) : array.length; i < il; ++i) array[ i ] = i
     return array
 }
+
+export function arrayRemoveInPlace<T>(xs: T[], x: T) {
+    let i = 0, l = xs.length, found = false;
+    for (; i < l; i++) {
+        if (xs[i] === x) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) return false;
+    i++;
+    for (; i < l; i++) {
+        xs[i] = xs[i - 1];
+    }
+    xs.pop();
+    return true;
+}
+(window as any).arrayRem = arrayRemoveInPlace
