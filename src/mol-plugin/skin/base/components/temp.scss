@@ -179,3 +179,19 @@
         }
     }
 }
+
+.msp-param-object-list-item {
+    margin-top: 1px;
+    position: relative;
+    > button {
+        text-align: left;
+        > span {
+            font-weight: bold;
+        }
+    }
+    > div {
+        position: absolute;
+        right: 0;
+        top: 0
+    }
+}

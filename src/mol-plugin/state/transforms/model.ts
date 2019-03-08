@@ -71,12 +71,12 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     params(a) {
         if (!a) {
             return {
-                blockHeader: PD.makeOptional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
+                blockHeader: PD.asOptional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
             };
         }
         const { blocks } = a.data;
         return {
-            blockHeader: PD.makeOptional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
+            blockHeader: PD.asOptional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
         };
     }
 })({
@@ -181,12 +181,12 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params(a) {
         if (!a) {
-            return { id: PD.makeOptional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. Value \'deposited\' can be used to specify deposited asymmetric unit.' })) };
+            return { id: PD.asOptional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. Value \'deposited\' can be used to specify deposited asymmetric unit.' })) };
         }
         const model = a.data;
         const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
         ids.push(['deposited', 'Deposited']);
-        return { id: PD.makeOptional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
+        return { id: PD.asOptional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
     }
 })({
     apply({ a, params }, plugin: PluginContext) {
@@ -258,7 +258,7 @@ const StructureSelection = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params: {
         query: PD.Value<Expression>(MolScriptBuilder.struct.generator.all, { isHidden: true }),
-        label: PD.makeOptional(PD.Text('', { isHidden: true }))
+        label: PD.asOptional(PD.Text('', { isHidden: true }))
     }
 })({
     apply({ a, params, cache }) {
@@ -289,7 +289,7 @@ const UserStructureSelection = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params: {
         query: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
-        label: PD.makeOptional(PD.Text(''))
+        label: PD.asOptional(PD.Text(''))
     }
 })({
     apply({ a, params, cache }) {

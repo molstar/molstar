@@ -36,7 +36,7 @@ export namespace ParamDefinition {
         type: T['type']
     }
 
-    export function makeOptional<T>(p: Base<T>): Base<T | undefined> {
+    export function asOptional<T>(p: Base<T>): Base<T | undefined> {
         p.isOptional = true;
         return p;
     }
@@ -196,11 +196,13 @@ export namespace ParamDefinition {
     export interface ObjectList<T = any> extends Base<T[]> {
         type: 'object-list',
         element: Params,
+        ctor(): T,
         getLabel(t: T): string
     }
-    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[] }): ObjectList<Normalize<T>> {
-        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, defaultValue: (info && info.defaultValue) || []  });
+    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T }): ObjectList<Normalize<T>> {
+        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info && info.defaultValue) || []  });
     }
+    function _defaultObjectListCtor(this: ObjectList) { return getDefaultValues(this.element) as any; }
 
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',

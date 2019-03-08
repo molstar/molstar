@@ -15,7 +15,7 @@ import { camelCaseToWords } from 'mol-util/string';
 import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
-import { NumericInput } from './common';
+import { NumericInput, IconButton } from './common';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -505,27 +505,162 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
             return select;
         }
 
-        return <div>
+        return <>
             {select}
             <Mapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
-        </div>
+        </>
     }
 }
 
+type _Props<C extends React.Component> = C extends React.Component<infer P> ? P : never
+type _State<C extends React.Component> = C extends React.Component<any, infer S> ? S : never
 
-export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectList>, { isExpanded: boolean }> {
-    // state = { isExpanded: !!this.props.param.isExpanded }
+class ObjectListEditor extends React.PureComponent<{ params: PD.Params, value: object, isUpdate?: boolean, apply: (value: any) => void, isDisabled?: boolean }, { params: PD.Params, value: object, current: object }> {
+    state = { params: {}, value: void 0 as any, current: void 0 as any };
 
-    // change(value: any) {
-    //     this.props.onChange({ name: this.props.name, param: this.props.param, value });
-    // }
+    onChangeParam: ParamOnChange = e => {
+        this.setState({ current: { ...this.state.current, [e.name]: e.value } });
+    }
 
-    // onChangeParam: ParamOnChange = e => {
-    //     this.change({ ...this.props.value, [e.name]: e.value });
-    // }
+    apply = () => {
+        this.props.apply(this.state.current);
+    }
+
+    static getDerivedStateFromProps(props: _Props<ObjectListEditor>, state: _State<ObjectListEditor>): _State<ObjectListEditor> | null {
+        if (props.params === state.params && props.value === state.value) return null;
+        return {
+            params: props.params,
+            value: props.value,
+            current: props.value
+        };
+    }
 
     render() {
-        return <span>TODO</span>;
+        return <>
+            <ParameterControls params={this.props.params} onChange={this.onChangeParam} values={this.state.current} onEnter={this.apply} isDisabled={this.props.isDisabled} />
+            <button className={`msp-btn msp-btn-block msp-form-control msp-control-top-offset`} onClick={this.apply} disabled={this.props.isDisabled}>
+                {this.props.isUpdate ? 'Update' : 'Add'}
+            </button>
+        </>;
+    }
+}
+
+class ObjectListItem extends React.PureComponent<{ param: PD.ObjectList, value: object, index: number, actions: ObjectListControl['actions'], isDisabled?: boolean }, { isExpanded: boolean }> {
+    state = { isExpanded: false };
+
+    update = (v: object) => {
+        this.setState({ isExpanded: false });
+        this.props.actions.update(v, this.props.index);
+    }
+
+    moveUp = () => {
+        this.props.actions.move(this.props.index, -1);
+    };
+
+    moveDown = () => {
+        this.props.actions.move(this.props.index, 1);
+    };
+
+    remove = () => {
+        this.setState({ isExpanded: false });
+        this.props.actions.remove(this.props.index);
+    };
+
+    toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ isExpanded: !this.state.isExpanded });
+        e.currentTarget.blur();
+    };
+
+    static getDerivedStateFromProps(props: _Props<ObjectListEditor>, state: _State<ObjectListEditor>): _State<ObjectListEditor> | null {
+        if (props.params === state.params && props.value === state.value) return null;
+        return {
+            params: props.params,
+            value: props.value,
+            current: props.value
+        };
+    }
+
+    render() {
+        return <>
+            <div className='msp-param-object-list-item'>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.toggleExpanded}>
+                    <span>{`${this.props.index + 1}: `}</span>
+                    {this.props.param.getLabel(this.props.value)}
+                </button>
+                <div>
+                    <IconButton icon='up-thin' title='Move Up' onClick={this.moveUp} isSmall={true} />
+                    <IconButton icon='down-thin' title='Move Down' onClick={this.moveDown} isSmall={true} />
+                    <IconButton icon='remove' title='Remove' onClick={this.remove} isSmall={true} />
+                </div>
+            </div>
+            {this.state.isExpanded && <div className='msp-control-offset'>
+                <ObjectListEditor params={this.props.param.element} apply={this.update} value={this.props.value} isUpdate isDisabled={this.props.isDisabled} />
+            </div>}
+        </>;
+    }
+}
+
+export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectList>, { isExpanded: boolean }> {
+    state = { isExpanded: false }
+
+    change(value: any) {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    add = (v: object) => {
+        this.change([...this.props.value, v]);
+    };
+
+    actions = {
+        update: (v: object, i: number) => {
+            const value = this.props.value.slice(0);
+            value[i] = v;
+            this.change(value);
+        },
+        move: (i: number, dir: -1 | 1) => {
+            let xs = this.props.value;
+            if (xs.length === 1) return;
+
+            let j = (i + dir) % xs.length;
+            if (j < 0) j += xs.length;
+
+            xs = xs.slice(0);
+            const t = xs[i];
+            xs[i] = xs[j];
+            xs[j] = t;
+            this.change(xs);
+        },
+        remove: (i: number) => {
+            const xs = this.props.value;
+            const update: object[] = [];
+            for (let j = 0; j < xs.length; j++) {
+                if (i !== j) update.push(xs[j]);
+            }
+            this.change(update);
+        }
+    }
+
+    toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ isExpanded: !this.state.isExpanded });
+        e.currentTarget.blur();
+    };
+
+    render() {
+        const v = this.props.value;
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
+        const value = `${v.length} item${v.length !== 1 ? 's' : ''}`;
+        return <>
+            <div className='msp-control-row'>
+                <span>{label}</span>
+                <div>
+                    <button onClick={this.toggleExpanded}>{value}</button>
+                </div>
+            </div>
+            {this.state.isExpanded && <div className='msp-control-offset'>
+                {this.props.value.map((v, i) => <ObjectListItem key={i} param={this.props.param} value={v} index={i} actions={this.actions} />)}
+                <ObjectListEditor params={this.props.param.element} apply={this.add} value={this.props.param.ctor()} isDisabled={this.props.isDisabled} />
+            </div>}
+        </>;
     }
 }
 
@@ -557,10 +692,10 @@ export class ConditionedControl extends React.PureComponent<ParamProps<PD.Condit
             return select;
         }
 
-        return <div>
+        return <>
             {select}
             <Conditioned param={param} value={value} name={label} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
-        </div>
+        </>
     }
 }
 

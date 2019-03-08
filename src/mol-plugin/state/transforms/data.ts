@@ -25,8 +25,8 @@ const Download = PluginStateTransform.BuiltIn({
     to: [SO.Data.String, SO.Data.Binary],
     params: {
         url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
-        label: PD.makeOptional(PD.Text('')),
-        isBinary: PD.makeOptional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' }))
+        label: PD.asOptional(PD.Text('')),
+        isBinary: PD.asOptional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' }))
     }
 })({
     apply({ params: p }, globalCtx: PluginContext) {
@@ -58,10 +58,10 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
         sources: PD.ObjectList({
             id: PD.Text('', { label: 'Unique ID' }),
             url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
-            isBinary: PD.makeOptional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' })),
-            canFail: PD.makeOptional(PD.Boolean(false, { description: 'Indicate whether the download can fail and not be included in the blob as a result.' }))
+            isBinary: PD.asOptional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' })),
+            canFail: PD.asOptional(PD.Boolean(false, { description: 'Indicate whether the download can fail and not be included in the blob as a result.' }))
         }, e => `${e.id}: ${e.url}`),
-        maxConcurrency: PD.makeOptional(PD.Numeric(4, { min: 1, max: 12, step: 1 }, { description: 'The maximum number of concurrent downloads.' }))
+        maxConcurrency: PD.asOptional(PD.Numeric(4, { min: 1, max: 12, step: 1 }, { description: 'The maximum number of concurrent downloads.' }))
     }
 })({
     apply({ params }, plugin: PluginContext) {
@@ -102,8 +102,8 @@ const ReadFile = PluginStateTransform.BuiltIn({
     to: [SO.Data.String, SO.Data.Binary],
     params: {
         file: PD.File(),
-        label: PD.makeOptional(PD.Text('')),
-        isBinary: PD.makeOptional(PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)' }))
+        label: PD.asOptional(PD.Text('')),
+        isBinary: PD.asOptional(PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)' }))
     }
 })({
     apply({ params: p }) {
