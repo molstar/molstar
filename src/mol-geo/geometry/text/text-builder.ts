@@ -133,79 +133,100 @@ export namespace TextBuilder {
                 }
 
                 if (tether) {
-                    let xTip: number, yTip: number, xBaseA: number, yBaseA: number, xBaseB: number, yBaseB: number
+                    let xTip: number, yTip: number
+                    let xBaseA: number, yBaseA: number
+                    let xBaseB: number, yBaseB: number
+                    let xBaseCenter: number, yBaseCenter: number
                     switch (attachment) {
                         case 'bottom-left':
                             xTip = xLeft - tetherLength / 2
                             xBaseA = xLeft + tetherBaseWidth / 2
                             xBaseB = xLeft
+                            xBaseCenter = xLeft
                             yTip = yBottom - tetherLength / 2
                             yBaseA = yBottom
                             yBaseB = yBottom + tetherBaseWidth / 2
+                            yBaseCenter = yBottom
                             break
                         case 'bottom-center':
                             xTip = 0
                             xBaseA = tetherBaseWidth / 2
                             xBaseB = -tetherBaseWidth / 2
+                            xBaseCenter = 0
                             yTip = yBottom - tetherLength
                             yBaseA = yBottom
                             yBaseB = yBottom
+                            yBaseCenter = yBottom
                             break
                         case 'bottom-right':
                             xTip = xRight + tetherLength / 2
                             xBaseA = xRight
                             xBaseB = xRight - tetherBaseWidth / 2
+                            xBaseCenter = xRight
                             yTip = yBottom - tetherLength / 2
                             yBaseA = yBottom + tetherBaseWidth / 2
                             yBaseB = yBottom
+                            yBaseCenter = yBottom
                             break
                         case 'middle-left':
                             xTip = xLeft - tetherLength
                             xBaseA = xLeft
                             xBaseB = xLeft
+                            xBaseCenter = xLeft
                             yTip = 0
                             yBaseA = -tetherBaseWidth / 2
                             yBaseB = tetherBaseWidth / 2
+                            yBaseCenter = 0
                             break
                         case 'middle-center':
                             xTip = 0
                             xBaseA = 0
                             xBaseB = 0
+                            xBaseCenter = 0
                             yTip = 0
                             yBaseA = 0
                             yBaseB = 0
+                            yBaseCenter = 0
                             break
                         case 'middle-right':
                             xTip = xRight + tetherLength
                             xBaseA = xRight
-                            xBaseB = xRight - tetherBaseWidth / 2
+                            xBaseB = xRight
+                            xBaseCenter = xRight
                             yTip = 0
                             yBaseA = tetherBaseWidth / 2
                             yBaseB = -tetherBaseWidth / 2
+                            yBaseCenter = 0
                             break
                         case 'top-left':
                             xTip = xLeft - tetherLength / 2
                             xBaseA = xLeft + tetherBaseWidth / 2
                             xBaseB = xLeft
+                            xBaseCenter = xLeft
                             yTip = yTop + tetherLength / 2
                             yBaseA = yTop
                             yBaseB = yTop - tetherBaseWidth / 2
+                            yBaseCenter = yTop
                             break
                         case 'top-center':
                             xTip = 0
                             xBaseA = tetherBaseWidth / 2
                             xBaseB = -tetherBaseWidth / 2
+                            xBaseCenter = 0
                             yTip = yTop + tetherLength
                             yBaseA = yTop
                             yBaseB = yTop
+                            yBaseCenter = yTop
                             break
                         case 'top-right':
                             xTip = xRight + tetherLength / 2
                             xBaseA = xRight
                             xBaseB = xRight - tetherBaseWidth / 2
+                            xBaseCenter = xRight
                             yTip = yTop + tetherLength / 2
                             yBaseA = yTop - tetherBaseWidth / 2
                             yBaseB = yTop
+                            yBaseCenter = yTop
                             break
                         default:
                             throw new Error('unsupported attachment')
@@ -213,13 +234,15 @@ export namespace TextBuilder {
                     ChunkedArray.add2(mappings, xTip, yTip) // tip
                     ChunkedArray.add2(mappings, xBaseA, yBaseA) // base A
                     ChunkedArray.add2(mappings, xBaseB, yBaseB) // base B
+                    ChunkedArray.add2(mappings, xBaseCenter, yBaseCenter) // base center
 
                     const offset = centers.elementCount
-                    for (let i = 0; i < 3; ++i) {
+                    for (let i = 0; i < 4; ++i) {
                         ChunkedArray.add2(tcoords, 10, 10)
                         add(x, y, z, depth, group)
                     }
-                    ChunkedArray.add3(indices, offset, offset + 1, offset + 2)
+                    ChunkedArray.add3(indices, offset, offset + 1, offset + 3)
+                    ChunkedArray.add3(indices, offset, offset + 3, offset + 2)
                 }
 
                 xShift += outline

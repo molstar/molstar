@@ -166,7 +166,7 @@ export namespace Text {
 
     function createValuesSimple(text: Text, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
         const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
-        const p = { ...PD.getDefaultValues(Params), props }
+        const p = { ...PD.getDefaultValues(Params), ...props }
         return createValues(text, s.transform, s.locationIterator, s.theme, p)
     }
 

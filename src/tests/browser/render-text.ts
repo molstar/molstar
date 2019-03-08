@@ -35,8 +35,10 @@ function textRepr() {
         fontWeight: 'normal',
         borderWidth: 0.3,
         background: true,
+        backgroundOpacity: 0.5,
         tether: true,
-        tetherLength: 0.5,
+        tetherLength: 1.5,
+        tetherBaseWidth: 0.5,
     }
 
     const textBuilder = TextBuilder.create(props, 1, 1)
@@ -50,7 +52,7 @@ function textRepr() {
     const values = Text.Utils.createValuesSimple(text, props, Color(0xFFDD00), 1)
     const state = Text.Utils.createRenderableState(props)
     const renderObject = createRenderObject('text', values, state)
-    console.log('text', renderObject)
+    console.log('text', renderObject, props)
     const repr = Representation.fromRenderObject('text', renderObject)
     return repr
 }
