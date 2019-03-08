@@ -278,7 +278,7 @@ const StructureSelection = PluginStateTransform.BuiltIn({
         if ((cache as { source: Structure }).source === a.data) {
             return StateTransformer.UpdateResult.Unchanged;
         }
-        (cache as { source: Structure }).source === a.data;
+        (cache as { source: Structure }).source = a.data;
 
         if (updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label)) {
             return StateTransformer.UpdateResult.Updated;
@@ -318,7 +318,7 @@ const UserStructureSelection = PluginStateTransform.BuiltIn({
         if ((cache as { source: Structure }).source === a.data) {
             return StateTransformer.UpdateResult.Unchanged;
         }
-        (cache as { source: Structure }).source === a.data;
+        (cache as { source: Structure }).source = a.data;
 
         updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label);
         return StateTransformer.UpdateResult.Updated;
