@@ -13,7 +13,7 @@ export { PluginCommand }
 
 interface PluginCommand<T = unknown> {
     readonly id: UUID,
-    dispatch(ctx: PluginContext, params: T): Promise<void>,
+    dispatch(ctx: PluginContext, params: T, isChild?: boolean): Promise<void>,
     subscribe(ctx: PluginContext, action: PluginCommand.Action<T>): PluginCommand.Subscription,
     params: { isImmediate: boolean }
 }
@@ -24,8 +24,8 @@ function PluginCommand<T>(params?: Partial<PluginCommand<T>['params']>): PluginC
 }
 
 class Impl<T> implements PluginCommand<T> {
-    dispatch(ctx: PluginContext, params: T): Promise<void> {
-        return ctx.commands.dispatch(this, params)
+    dispatch(ctx: PluginContext, params: T, isChild?: boolean): Promise<void> {
+        return ctx.commands.dispatch(this, params, isChild);
     }
     subscribe(ctx: PluginContext, action: PluginCommand.Action<T>): PluginCommand.Subscription {
         return ctx.commands.subscribe(this, action);
@@ -43,7 +43,7 @@ namespace PluginCommand {
     }
 
     export type Action<T> = (params: T) => unknown | Promise<unknown>
-    type Instance = { cmd: PluginCommand<any>, params: any, resolve: () => void, reject: (e: any) => void }
+    type Instance = { cmd: PluginCommand<any>, params: any, isChild: boolean, resolve: () => void, reject: (e: any) => void }
 
     export class Manager {
         private subs = new Map<string, Action<any>[]>();
@@ -84,7 +84,7 @@ namespace PluginCommand {
 
 
         /** Resolves after all actions have completed */
-        dispatch<T>(cmd: PluginCommand<T>, params: T) {
+        dispatch<T>(cmd: PluginCommand<T>, params: T, isChild = false) {
             return new Promise<void>((resolve, reject) => {
                 if (this.disposing) {
                     reject('disposed');
@@ -97,12 +97,12 @@ namespace PluginCommand {
                     return;
                 }
 
-                const instance: Instance = { cmd, params, resolve, reject };
+                const instance: Instance = { cmd, params, resolve, reject, isChild };
 
-                if (cmd.params.isImmediate) {
+                if (cmd.params.isImmediate || isChild) {
                     this.resolve(instance);
                 } else {
-                    this.queue.addLast({ cmd, params, resolve, reject });
+                    this.queue.addLast(instance);
                     this.next();
                 }
             });
@@ -127,7 +127,7 @@ namespace PluginCommand {
             }
 
             try {
-                if (!instance.cmd.params.isImmediate) this.executing = true;
+                if (!instance.cmd.params.isImmediate && !instance.isChild) this.executing = true;
                 // TODO: should actions be called "asynchronously" ("setImmediate") instead?
                 for (const a of actions) {
                     await a(instance.params);
@@ -136,7 +136,7 @@ namespace PluginCommand {
             } catch (e) {
                 instance.reject(e);
             } finally {
-                if (!instance.cmd.params.isImmediate) {
+                if (!instance.cmd.params.isImmediate && !instance.isChild) {
                     this.executing = false;
                     if (!this.disposing) this.next();
                 }

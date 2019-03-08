@@ -8,6 +8,8 @@ import { createPlugin, DefaultPluginSpec } from 'mol-plugin';
 import './index.html'
 import { PluginContext } from 'mol-plugin/context';
 import { PluginCommands } from 'mol-plugin/command';
+import { PluginSpec } from 'mol-plugin/spec';
+import { CreateJoleculeState } from './extensions/jolecule';
 require('mol-plugin/skin/light.scss')
 
 function getParam(name: string, regex: string): string {
@@ -18,15 +20,18 @@ function getParam(name: string, regex: string): string {
 const hideControls = getParam('hide-controls', `[^&]+`) === '1';
 
 function init() {
-    const plugin = createPlugin(document.getElementById('app')!, {
-        ...DefaultPluginSpec,
+    const spec: PluginSpec = {
+        actions: [...DefaultPluginSpec.actions, PluginSpec.Action(CreateJoleculeState)],
+        behaviors: [...DefaultPluginSpec.behaviors],
+        animations: [...DefaultPluginSpec.animations || []],
         layout: {
             initial: {
                 isExpanded: true,
                 showControls: !hideControls
             }
         }
-    });
+    };
+    const plugin = createPlugin(document.getElementById('app')!, spec);
     trySetSnapshot(plugin);
 }
 

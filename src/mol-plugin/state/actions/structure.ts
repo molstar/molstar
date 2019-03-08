@@ -101,13 +101,13 @@ const DownloadStructure = StateAction.build({
                 })
             }, { isFlat: true })
         }, {
-            options: [
-                ['pdbe-updated', 'PDBe Updated'],
-                ['rcsb', 'RCSB'],
-                ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
-                ['url', 'URL']
-            ]
-        })
+                options: [
+                    ['pdbe-updated', 'PDBe Updated'],
+                    ['rcsb', 'RCSB'],
+                    ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
+                    ['url', 'URL']
+                ]
+            })
     }
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
@@ -143,7 +143,7 @@ const DownloadStructure = StateAction.build({
         createStructureTree(ctx, traj, supportProps);
     } else {
         for (const download of downloadParams) {
-            const data = b.toRoot().apply(StateTransforms.Data.Download, download, { props: { isGhost: true }});
+            const data = b.toRoot().apply(StateTransforms.Data.Download, download, { props: { isGhost: true } });
             const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
             createStructureTree(ctx, traj, supportProps)
         }
@@ -172,18 +172,18 @@ function createSingleTrajectoryModel(sources: StateTransformer.Params<Download>[
         .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }
 
-function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' | 'gro' = 'cif') {
+export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' | 'gro' = 'cif') {
     let parsed: StateBuilder.To<PluginStateObject.Molecule.Trajectory>
     switch (format) {
         case 'cif':
-            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { props: { isGhost: true }})
-                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { props: { isGhost: true }})
+            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { props: { isGhost: true } })
+                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { props: { isGhost: true } })
             break
         case 'pdb':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { props: { isGhost: true }});
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { props: { isGhost: true } });
             break
         case 'gro':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { props: { isGhost: true }});
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { props: { isGhost: true } });
             break
         default:
             throw new Error('unsupported format')
@@ -203,19 +203,30 @@ function createStructureTree(ctx: PluginContext, b: StateBuilder.To<PluginStateO
     return root;
 }
 
-function complexRepresentation(ctx: PluginContext, root: StateBuilder.To<PluginStateObject.Molecule.Structure>) {
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'cartoon'));
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick'));
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', { alpha: 0.51 }));
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'spacefill'));
+export function complexRepresentation(
+    ctx: PluginContext, root: StateBuilder.To<PluginStateObject.Molecule.Structure>,
+    params?: { hideSequence?: boolean, hideHET?: boolean, hideWater?: boolean, hideCoarse?: boolean; }
+) {
+    if (!params || !params.hideSequence) {
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'cartoon'));
+    }
+    if (!params || !params.hideHET) {
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick'));
+    }
+    if (!params || !params.hideWater) {
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', { alpha: 0.51 }));
+    }
+    if (!params || !params.hideCoarse) {
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'spacefill'));
+    }
 }
 
 export const CreateComplexRepresentation = StateAction.build({
@@ -296,7 +307,7 @@ export const StructureFromSelection = StateAction.build({
 
 
 export const TestBlob = StateAction.build({
-    display: { name: 'Test Blob'},
+    display: { name: 'Test Blob' },
     from: PluginStateObject.Root
 })(({ ref, state }, ctx: PluginContext) => {
 
