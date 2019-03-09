@@ -44,12 +44,12 @@ class PluginState {
 
     getSnapshot(params?: PluginState.GetSnapshotParams): PluginState.Snapshot {
         const p = { ...PluginState.DefaultGetSnapshotParams, ...params };
-        console.log(p.animation, this.animation.getSnapshot());
         return {
             id: UUID.create22(),
             data: p.data ? this.dataState.getSnapshot() : void 0,
             behaviour: p.behavior ? this.behaviorState.getSnapshot() : void 0,
             animation: p.animation ? this.animation.getSnapshot() : void 0,
+            startAnimation: p.startAnimation ? !!p.startAnimation : void 0,
             camera: p.camera ? {
                 current: this.plugin.canvas3d.camera.getSnapshot(),
                 transitionStyle: p.cameraTranstion.name,
@@ -76,12 +76,15 @@ class PluginState {
             this.animation.setSnapshot(snapshot.animation);
         }
         if (snapshot.camera) {
-            await PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, {
+            PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, {
                 snapshot: snapshot.camera.current,
                 durationMs: snapshot.camera.transitionStyle === 'animate'
                     ? snapshot.camera.transitionDurationInMs
                     : void 0
             });
+        }
+        if (snapshot.startAnimation) {
+            this.animation.start();
         }
     }
 
@@ -120,6 +123,7 @@ namespace PluginState {
         data: PD.Boolean(true),
         behavior: PD.Boolean(false),
         animation: PD.Boolean(true),
+        startAnimation: PD.Boolean(false),
         canvas3d: PD.Boolean(true),
         camera: PD.Boolean(true),
         // TODO: make camera snapshots same as the StateSnapshots with "child states?"
@@ -139,6 +143,7 @@ namespace PluginState {
         data?: State.Snapshot,
         behaviour?: State.Snapshot,
         animation?: PluginAnimationManager.Snapshot,
+        startAnimation?: boolean,
         camera?: {
             current: Camera.Snapshot,
             transitionStyle: CameraTransitionStyle,

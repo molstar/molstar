@@ -7,9 +7,10 @@
 import { PluginStateAnimation } from './model';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
-import { StateSelection } from 'mol-state';
+import { StateSelection, StateTransform } from 'mol-state';
 import { PluginCommands } from 'mol-plugin/command';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { PluginContext } from 'mol-plugin/context';
 
 export const AnimateModelIndex = PluginStateAnimation.create({
     name: 'built-in.animate-model-index',
@@ -89,14 +90,25 @@ export const AnimateModelIndex = PluginStateAnimation.create({
 export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     name: 'built-in.animate-assembly-unwind',
     display: { name: 'Unwind Assembly' },
-    params: () => ({
-        durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100}),
-        playOnce: PD.Boolean(false)
-    }),
+    params: (plugin: PluginContext) => {
+        const targets: [string, string][] = [['all', 'All']];
+        const structures = plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure));
+
+        for (const s of structures) {
+            targets.push([s.transform.ref, s.obj!.data.models[0].label]);
+        }
+
+        return {
+            durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100}),
+            playOnce: PD.Boolean(false),
+            target: PD.Select(targets[0][0], targets)
+        };
+    },
     initialState: () => ({ t: 0 }),
-    async setup(_, plugin) {
+    async setup(params, plugin) {
         const state = plugin.state.dataState;
-        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D));
+        const root = !params.target || params.target === 'all' ? StateTransform.RootRef : params.target;
+        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D, root));
 
         const update = state.build();
         let changed = false;
@@ -125,7 +137,8 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     },
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.dataState;
-        const anims = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D));
+        const root = !ctx.params.target || ctx.params.target === 'all' ? StateTransform.RootRef : ctx.params.target;
+        const anims = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, root));
 
         if (anims.length === 0) {
             return { kind: 'finished' };
