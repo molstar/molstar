@@ -174,8 +174,8 @@ export namespace Lines {
 }
 
 function getBoundingSphere(lineStart: Float32Array, lineEnd: Float32Array, lineCount: number, transform: Float32Array, transformCount: number) {
-    const start = calculateBoundingSphere(lineStart, lineCount, transform, transformCount)
-    const end = calculateBoundingSphere(lineEnd, lineCount, transform, transformCount)
+    const start = calculateBoundingSphere(lineStart, lineCount * 4, transform, transformCount)
+    const end = calculateBoundingSphere(lineEnd, lineCount * 4, transform, transformCount)
     return {
         boundingSphere: Sphere3D.addSphere(start.boundingSphere, end.boundingSphere),
         invariantBoundingSphere: Sphere3D.addSphere(start.invariantBoundingSphere, end.invariantBoundingSphere)
