@@ -245,27 +245,24 @@ export const UpdateTrajectory = StateAction.build({
         by: PD.asOptional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
     }
 })(({ params, state }) => {
-    const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)
-        .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
+    const models = state.selectQ(q => q.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
 
     const update = state.build();
 
     if (params.action === 'reset') {
         for (const m of models) {
-            update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
-                () => ({ modelIndex: 0 }));
+            update.to(m).update({ modelIndex: 0 });
         }
     } else {
         for (const m of models) {
             const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
             if (!parent || !parent.obj) continue;
-            const traj = parent.obj as PluginStateObject.Molecule.Trajectory;
-            update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
-                old => {
-                    let modelIndex = (old.modelIndex + params.by!) % traj.data.length;
-                    if (modelIndex < 0) modelIndex += traj.data.length;
-                    return { modelIndex };
-                });
+            const traj = parent.obj;
+            update.to(m).update(old => {
+                let modelIndex = (old.modelIndex + params.by!) % traj.data.length;
+                if (modelIndex < 0) modelIndex += traj.data.length;
+                return { modelIndex };
+            });
         }
     }
 

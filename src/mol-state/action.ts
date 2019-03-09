@@ -46,7 +46,7 @@ namespace StateAction {
         run(params: ApplyParams<A, P>, globalCtx: unknown): T | Task<T>,
 
         /** Test if the transform can be applied to a given node */
-        isApplicable?(a: A, aTransform: StateTransform<any, A, any>, globalCtx: unknown): boolean
+        isApplicable?(a: A, aTransform: StateTransform<StateTransformer<any, A, any>>, globalCtx: unknown): boolean
     }
 
     export interface Definition<A extends StateObject = StateObject, T = any, P extends {} = {}> extends DefinitionBase<A, T, P> {

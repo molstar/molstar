@@ -55,7 +55,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         const refs = StateSelection.findUniqueTagsInSubtree(tree, cell.transform.ref, TagSet);
 
         if (!refs['structure-interaction-group']) {
-            refs['structure-interaction-group'] = builder.to(cell.transform.ref).group(StateTransforms.Misc.CreateGroup,
+            refs['structure-interaction-group'] = builder.to(cell).group(StateTransforms.Misc.CreateGroup,
                 { label: 'Current Interaction' }, { props: { tag: Tags.Group } }).ref;
         }
 

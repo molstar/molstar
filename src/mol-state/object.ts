@@ -8,7 +8,7 @@ import { UUID } from 'mol-util';
 import { StateTransform } from './transform';
 import { ParamDefinition } from 'mol-util/param-definition';
 import { State } from './state';
-import { StateSelection } from 'mol-state';
+import { StateSelection, StateTransformer } from 'mol-state';
 
 export { StateObject, StateObjectCell }
 
@@ -55,8 +55,8 @@ namespace StateObject {
     };
 }
 
-interface StateObjectCell<T = StateObject> {
-    transform: StateTransform,
+interface StateObjectCell<T extends StateObject = StateObject, F extends StateTransform<StateTransformer<any, T, any>> = StateTransform<StateTransformer<any, T, any>>> {
+    transform: F,
 
     // Which object was used as a parent to create data in this cell
     sourceRef: StateTransform.Ref | undefined,
@@ -76,6 +76,9 @@ interface StateObjectCell<T = StateObject> {
 
 namespace StateObjectCell {
     export type Status = 'ok' | 'error' | 'pending' | 'processing'
+
+    export type Obj<C extends StateObjectCell> = C extends StateObjectCell<infer T> ? T : never
+    export type Transform<C extends StateObjectCell> = C extends StateObjectCell<any, infer T> ? T : never
 
     export interface State {
         isHidden: boolean,

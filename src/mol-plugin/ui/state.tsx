@@ -93,7 +93,7 @@ class LocalStateSnapshots extends PluginUIComponent<
             }}/>
 
             <div className='msp-btn-row-group'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}><Icon name='record' /> Save</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}><Icon name='floppy' /> Save</button>
                 {/* <button className='msp-btn msp-btn-block msp-form-control' onClick={this.upload} disabled={this.state.isUploading}>Upload</button> */}
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.clear}>Clear</button>
             </div>

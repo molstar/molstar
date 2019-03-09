@@ -103,7 +103,7 @@ class State {
      * Select Cells by building a query generated on the fly.
      * @example state.select(q => q.byRef('test').subtree())
      */
-    selectQ(selector: (q: typeof StateSelection.Generators) => StateSelection.Selector) {
+    selectQ<C extends StateObjectCell>(selector: (q: typeof StateSelection.Generators) => StateSelection.Selector<C>) {
         if (typeof selector === 'string') return StateSelection.select(selector, this);
         return StateSelection.select(selector(StateSelection.Generators), this)
     }

@@ -30,8 +30,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
         }
 
         const state = ctx.plugin.state.dataState;
-        const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)
-            .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
+        const models = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
 
         if (models.length === 0) {
             // nothing more to do here
@@ -47,37 +46,36 @@ export const AnimateModelIndex = PluginStateAnimation.create({
         for (const m of models) {
             const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
             if (!parent || !parent.obj) continue;
-            const traj = parent.obj as PluginStateObject.Molecule.Trajectory;
-            update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
-                old => {
-                    const len = traj.data.length;
-                    if (len !== 1) {
-                        allSingles = false;
-                    } else {
+            const traj = parent.obj;
+            update.to(m).update(old => {
+                const len = traj.data.length;
+                if (len !== 1) {
+                    allSingles = false;
+                } else {
+                    return old;
+                }
+                let dir: -1 | 1 = 1;
+                if (params.mode.name === 'once') {
+                    dir = params.mode.params.direction === 'backward' ? -1 : 1;
+                    // if we are at start or end already, do nothing.
+                    if ((dir === -1 && old.modelIndex === 0) || (dir === 1 && old.modelIndex === len - 1)) {
+                        isEnd = true;
                         return old;
                     }
-                    let dir: -1 | 1 = 1;
-                    if (params.mode.name === 'once') {
-                        dir = params.mode.params.direction === 'backward' ? -1 : 1;
-                        // if we are at start or end already, do nothing.
-                        if ((dir === -1 && old.modelIndex === 0) || (dir === 1 && old.modelIndex === len - 1)) {
-                            isEnd = true;
-                            return old;
-                        }
-                    } else if (params.mode.name === 'palindrome') {
-                        if (old.modelIndex === 0) dir = 1;
-                        else if (old.modelIndex === len - 1) dir = -1;
-                        else dir = palindromeDirections[m.transform.ref] || 1;
-                    }
-                    palindromeDirections[m.transform.ref] = dir;
+                } else if (params.mode.name === 'palindrome') {
+                    if (old.modelIndex === 0) dir = 1;
+                    else if (old.modelIndex === len - 1) dir = -1;
+                    else dir = palindromeDirections[m.transform.ref] || 1;
+                }
+                palindromeDirections[m.transform.ref] = dir;
 
-                    let modelIndex = (old.modelIndex + dir) % len;
-                    if (modelIndex < 0) modelIndex += len;
+                let modelIndex = (old.modelIndex + dir) % len;
+                if (modelIndex < 0) modelIndex += len;
 
-                    isEnd = isEnd || (dir === -1 && modelIndex === 0) || (dir === 1 && modelIndex === len - 1);
+                isEnd = isEnd || (dir === -1 && modelIndex === 0) || (dir === 1 && modelIndex === len - 1);
 
-                    return { modelIndex };
-                });
+                return { modelIndex };
+            });
         }
 
         await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -102,13 +100,11 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         const update = state.build();
         let changed = false;
         for (const r of reprs) {
-            const unwinds = state.select(StateSelection.Generators.byValue(r)
-                .children()
-                .filter(c => c.transform.transformer === StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D));
+            const unwinds = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, r.transform.ref));
             if (unwinds.length > 0) continue;
 
             changed = true;
-            update.to(r.transform.ref)
+            update.to(r)
                 .apply(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, { t: 0 }, { props: { tag: 'animate-assembly-unwind' } });
         }
 
@@ -128,11 +124,9 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     },
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.dataState;
-        const anims = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
-            .filter(c => c.transform.transformer === StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D));
+        const anims = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D));
 
         if (anims.length === 0) {
-            // nothing more to do here
             return { kind: 'finished' };
         }
 
@@ -142,7 +136,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         const newTime = (animState.t + d) % 1;
 
         for (const m of anims) {
-            update.to(m.transform.ref).update(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, _ => ({ t: newTime }));
+            update.to(m).update({ t: newTime });
         }
 
         await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -165,9 +159,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
         const update = state.build();
         let changed = false;
         for (const r of reprs) {
-            const explodes = state.select(StateSelection.Generators.byValue(r)
-                .children()
-                .filter(c => c.transform.transformer === StateTransforms.Representation.ExplodeStructureRepresentation3D));
+            const explodes = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.ExplodeStructureRepresentation3D, r.transform.ref));
             if (explodes.length > 0) continue;
 
             changed = true;
@@ -191,11 +183,9 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
     },
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.dataState;
-        const anims = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure.Representation3DState)
-            .filter(c => c.transform.transformer === StateTransforms.Representation.ExplodeStructureRepresentation3D));
+        const anims = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.ExplodeStructureRepresentation3D));
 
         if (anims.length === 0) {
-            // nothing more to do here
             return { kind: 'finished' };
         }
 
@@ -205,7 +195,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
         const newTime = (animState.t + d) % 1;
 
         for (const m of anims) {
-            update.to(m.transform.ref).update(StateTransforms.Representation.ExplodeStructureRepresentation3D, _ => ({ t: newTime }));
+            update.to(m).update({ t: newTime });
         }
 
         await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });

@@ -8,6 +8,7 @@ import { StateObject, StateObjectCell } from '../object';
 import { State } from '../state';
 import { StateTree } from '../tree';
 import { StateTransform } from '../transform';
+import { StateTransformer } from '../transformer';
 
 namespace StateSelection {
     export type Selector<C extends StateObjectCell = StateObjectCell> = Query<C> | Builder<C> | string | C;
@@ -48,6 +49,7 @@ namespace StateSelection {
         parent(): Builder<C>;
         first(): Builder<C>;
         filter(p: (n: C) => boolean): Builder<C>;
+        withTransformer<T extends StateTransformer<any, StateObjectCell.Obj<C>, any>>(t: T): Builder<StateObjectCell<StateObjectCell.Obj<C>, StateTransform<T>>>;
         withStatus(s: StateObjectCell.Status): Builder<C>;
         subtree(): Builder;
         children(): Builder;
@@ -89,18 +91,26 @@ namespace StateSelection {
 
         export function byValue<T extends StateObjectCell>(...objects: T[]) { return build(() => (state: State) => objects); }
 
-        export function rootsOfType<T extends StateObject.Ctor>(type: T) {
+        export function rootsOfType<T extends StateObject.Ctor>(type: T, root: StateTransform.Ref = StateTransform.RootRef) {
             return build(() => state => {
                 const ctx = { roots: [] as StateObjectCell<StateObject.From<T>>[], cells: state.cells, type: type.type };
-                StateTree.doPreOrder(state.tree, state.tree.root, ctx, _findRootsOfType);
+                StateTree.doPreOrder(state.tree, state.tree.transforms.get(root), ctx, _findRootsOfType);
                 return ctx.roots;
             });
         }
 
-        export function ofType<T extends StateObject.Ctor>(type: T) {
+        export function ofType<T extends StateObject.Ctor>(type: T, root: StateTransform.Ref = StateTransform.RootRef) {
             return build(() => state => {
                 const ctx = { ret: [] as StateObjectCell<StateObject.From<T>>[], cells: state.cells, type: type.type };
-                StateTree.doPreOrder(state.tree, state.tree.root, ctx, _findOfType);
+                StateTree.doPreOrder(state.tree, state.tree.transforms.get(root), ctx, _findOfType);
+                return ctx.ret;
+            });
+        }
+
+        export function ofTransformer<T extends StateTransformer<any, A, any>, A extends StateObject>(t: T, root: StateTransform.Ref = StateTransform.RootRef) {
+            return build(() => state => {
+                const ctx = { ret: [] as StateObjectCell<A, StateTransform<T>>[], cells: state.cells, t };
+                StateTree.doPreOrder(state.tree, state.tree.transforms.get(root), ctx, _findOfTransformer);
                 return ctx.ret;
             });
         }
@@ -117,6 +127,14 @@ namespace StateSelection {
         function _findOfType(n: StateTransform, _: any, s: { type: StateObject.Type, ret: StateObjectCell[], cells: State.Cells }) {
             const cell = s.cells.get(n.ref);
             if (cell && cell.obj && cell.obj.type === s.type) {
+                s.ret.push(cell);
+            }
+            return true;
+        }
+
+        function _findOfTransformer(n: StateTransform, _: any, s: { t: StateTransformer, ret: StateObjectCell[], cells: State.Cells }) {
+            const cell = s.cells.get(n.ref);
+            if (cell && cell.obj && cell.transform.transformer === s.t) {
                 s.ret.push(cell);
             }
             return true;
@@ -205,6 +223,9 @@ namespace StateSelection {
 
     registerModifier('ancestorOfType', ancestorOfType);
     export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapObject(b, (n, s) => findAncestorOfType(s.tree, s.cells, n.transform.ref, types))); }
+
+    registerModifier('withTransformer', withTransformer);
+    export function withTransformer(b: Selector, t: StateTransformer) { return filter(b, o => o.transform.transformer === t); }
 
     registerModifier('rootOfType', rootOfType);
     export function rootOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapObject(b, (n, s) => findRootOfType(s.tree, s.cells, n.transform.ref, types))); }

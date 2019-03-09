@@ -42,7 +42,12 @@ namespace StateBuilder {
         private state: BuildState;
         get editInfo() { return this.state.editInfo; }
 
-        to<A extends StateObject>(ref: StateTransform.Ref) { return new To<A>(this.state, ref, this); }
+        to<A extends StateObject>(ref: StateTransform.Ref): To<A>
+        to<C extends StateObjectCell>(cell: C): To<StateObjectCell.Obj<C>, StateTransform.Transformer<StateObjectCell.Transform<C>>>
+        to(refOrCell: StateTransform.Ref | StateObjectCell) {
+            const ref = typeof refOrCell === 'string' ? refOrCell : refOrCell.transform.ref;
+            return new To<StateObject, StateTransformer>(this.state, ref, this);
+        }
         toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.root.ref, this); }
         delete(ref: StateTransform.Ref) {
             this.editInfo.count++;
@@ -53,7 +58,7 @@ namespace StateBuilder {
         constructor(tree: StateTree) { this.state = { tree: tree.asTransient(), editInfo: { sourceTree: tree, count: 0, lastUpdate: void 0 } } }
     }
 
-    export class To<A extends StateObject> implements StateBuilder {
+    export class To<A extends StateObject, T extends StateTransformer = StateTransformer> implements StateBuilder {
         get editInfo() { return this.state.editInfo; }
 
         readonly ref: StateTransform.Ref;
@@ -121,14 +126,16 @@ namespace StateBuilder {
         }
 
         update<T extends StateTransformer<any, A, any>>(transformer: T, params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>): Root
-        update<T extends StateTransformer<any, A, any> = StateTransformer<any, A, any>>(params: StateTransformer.Params<T>): Root
-        update<T extends StateTransformer<any, A, any>>(paramsOrTransformer: T, provider?: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>) {
+        update(params: StateTransformer.Params<T> | ((old: StateTransformer.Params<T>) => StateTransformer.Params<T>)): Root
+        update<T extends StateTransformer<any, A, any>>(paramsOrTransformer: T | any, provider?: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>) {
             let params: any;
             if (provider) {
                 const old = this.state.tree.transforms.get(this.ref)!;
                 params = provider(old.params as any);
             } else {
-                params = paramsOrTransformer;
+                params = typeof paramsOrTransformer === 'function'
+                    ? paramsOrTransformer(this.state.tree.transforms.get(this.ref)!.params)
+                    : paramsOrTransformer;
             }
 
             if (this.state.tree.setParams(this.ref, params)) {

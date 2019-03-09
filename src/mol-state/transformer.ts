@@ -14,8 +14,8 @@ import { StateTreeSpine } from './tree/spine';
 
 export { Transformer as StateTransformer }
 
-interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
-    apply(parent: StateTransform.Ref, params?: P, props?: Partial<StateTransform.Options>): StateTransform<A, B, P>,
+interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = any> {
+    apply(parent: StateTransform.Ref, params?: P, props?: Partial<StateTransform.Options>): StateTransform<this>,
     toAction(): StateAction<A, void, P>,
     readonly namespace: string,
     readonly id: Transformer.Id,
@@ -136,7 +136,7 @@ namespace Transformer {
         }
 
         const t: Transformer<A, B, P> = {
-            apply(parent, params, props) { return StateTransform.create<A, B, P>(parent, t, params, props); },
+            apply(parent, params, props) { return StateTransform.create<Transformer<A, B, P>>(parent, t, params, props); },
             toAction() { return StateAction.fromTransformer(t); },
             namespace,
             id,

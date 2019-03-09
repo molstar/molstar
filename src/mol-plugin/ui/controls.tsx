@@ -22,8 +22,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
     private update = () => {
         const state = this.plugin.state.dataState;
 
-        const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)
-            .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
+        const models = state.selectQ(q => q.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
 
         if (models.length === 0) {
             this.setState({ show: false });
