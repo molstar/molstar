@@ -13,11 +13,12 @@ import { StateTransforms } from 'mol-plugin/state/transforms';
 import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
 import { BuiltInStructureRepresentations } from 'mol-repr/structure/registry';
 import { MolScriptBuilder as MS } from 'mol-script/language/builder';
-import { StateObjectCell, StateSelection } from 'mol-state';
+import { StateObjectCell, StateSelection, StateTransform } from 'mol-state';
 import { BuiltInColorThemes } from 'mol-theme/color';
 import { BuiltInSizeThemes } from 'mol-theme/size';
 import { ColorNames } from 'mol-util/color/tables';
 import { ButtonsType } from 'mol-util/input/input-observer';
+import { Representation } from 'mol-repr/representation';
 
 type Params = { }
 
@@ -84,9 +85,9 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         return { state, builder, refs };
     }
 
-    private clear() {
+    private clear(root: StateTransform.Ref) {
         const state = this.plugin.state.dataState;
-        const groups = state.select(StateSelection.Generators.root.subtree().filter(o => o.transform.props.tag === Tags.Group));
+        const groups = state.select(StateSelection.Generators.byRef(root).subtree().filter(o => o.transform.props.tag === Tags.Group));
         if (groups.length === 0) return;
 
         const update = state.build();
@@ -98,22 +99,34 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
             const surr = StateSelection.findTagInSubtree(state.tree, g.transform.ref, Tags.SurrSel);
             if (res) update.to(res).update(StateTransforms.Model.StructureSelection, old => ({ ...old, query }));
             if (surr) update.to(surr).update(StateTransforms.Model.StructureSelection, old => ({ ...old, query }));
-
-            // update.delete(g.transform.ref);
         }
 
         PluginCommands.State.Update.dispatch(this.plugin, { state, tree: update, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
     }
 
     register(ref: string): void {
-        // this.ref = ref;
+        let lastLoci: Representation.Loci = Representation.Loci.Empty;
+
+        this.subscribeObservable(this.plugin.events.state.object.removed, o => {
+            if (!PluginStateObject.Molecule.Structure.is(o.obj) || lastLoci.loci.kind !== 'element-loci') return;
+            if (lastLoci.loci.structure === o.obj.data) {
+                lastLoci = Representation.Loci.Empty;
+            }
+        });
+
+        this.subscribeObservable(this.plugin.events.state.object.updated, o => {
+            if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || lastLoci.loci.kind !== 'element-loci') return;
+            if (lastLoci.loci.structure === o.oldObj.data) {
+                lastLoci = Representation.Loci.Empty;
+            }
+        });
 
         this.subscribeObservable(this.plugin.behaviors.canvas3d.click, ({ current, buttons, modifiers }) => {
             if (buttons !== ButtonsType.Flag.Secondary) return;
 
             if (current.loci.kind === 'empty-loci') {
                 if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
-                    this.clear();
+                    this.clear(StateTransform.RootRef);
                     return;
                 }
             }
@@ -123,6 +136,14 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
             const parent = this.plugin.helpers.substructureParent.get(current.loci.structure);
             if (!parent || !parent.obj) return;
+
+            if (Representation.Loci.areEqual(lastLoci, current)) {
+                lastLoci = Representation.Loci.Empty;
+                this.clear(parent.transform.ref);
+                return;
+            }
+
+            lastLoci = current;
 
             const core = MS.struct.modifier.wholeResidues([
                 StructureElement.Loci.toScriptExpression(current.loci)
