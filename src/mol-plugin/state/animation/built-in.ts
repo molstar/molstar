@@ -114,7 +114,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
 
         if (!changed) return;
 
-        return plugin.runTask(state.updateTree(update));
+        return plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
     },
     async teardown(_, plugin) {
         const state = plugin.state.dataState;
@@ -177,7 +177,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
 
         if (!changed) return;
 
-        return plugin.runTask(state.updateTree(update));
+        return plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
     },
     async teardown(_, plugin) {
         const state = plugin.state.dataState;
