@@ -59,20 +59,20 @@ function createTemplate(plugin: PluginContext, tree: StateTree, id: string) {
     const b = new StateBuilder.Root(tree);
     const data = b.toRoot().apply(StateTransforms.Data.Download, { url: `https://www.ebi.ac.uk/pdbe/static/entry/${id}_updated.cif` }, { props: { isGhost: true }});
     const model = createModelTree(data, 'cif');
-    const structure = model.apply(StateTransforms.Model.StructureFromModel, {}, { ref: 'structure' });
+    const structure = model.apply(StateTransforms.Model.StructureFromModel, {});
     complexRepresentation(plugin, structure, { hideWater: true });
-    return b.getTree();
+    return { tree: b.getTree(), structure: structure.ref };
 }
 
-const labelOptions = {
+const labelOptions: ParamDefinition.Values<Text.Params> = {
     ...ParamDefinition.getDefaultValues(Text.Params),
-    sizeFactor: 1.5,
-    offsetX: 1,
-    offsetY: 1,
+    tether: true,
+    sizeFactor: 1.3,
+    attachment: 'bottom-right',
     offsetZ: 10,
     background: true,
     backgroundMargin: 0.2,
-    backgroundColor: ColorNames.snow,
+    backgroundColor: ColorNames.skyblue,
     backgroundOpacity: 0.9
 }
 
@@ -88,20 +88,29 @@ const labelOptions = {
 //     backgroundOpacity: 0.9
 // }
 
-function buildSnapshot(plugin: PluginContext, template: StateTree, params: { e: JoleculeSnapshot, idx: number, len: number }): PluginStateSnapshotManager.Entry {
-    const b = new StateBuilder.Root(template);
+function buildSnapshot(plugin: PluginContext, template: { tree: StateTree, structure: string }, params: { e: JoleculeSnapshot, idx: number, len: number }): PluginStateSnapshotManager.Entry {
+    const b = new StateBuilder.Root(template.tree);
 
     let i = 0;
     for (const l of params.e.labels) {
-        b.to('structure')
-            .apply(StateTransforms.Model.StructureSelection, { query: createQuery([l.i_atom]), label: `Label ${++i}` })
+        const query = createQuery([l.i_atom]);
+        const group = b.to(template.structure)
+            .group(StateTransforms.Misc.CreateGroup, { label: `Label ${++i}` });
+
+        group
+            .apply(StateTransforms.Model.StructureSelection, { query, label: 'Atom' })
             .apply(StateTransforms.Representation.StructureLabels3D, {
                 target: { name: 'static-text', params: { value: l.text || '' } },
                 options: labelOptions
             });
+
+        group
+            .apply(StateTransforms.Model.StructureSelection, { query: MS.struct.modifier.wholeResidues([query]), label: 'Residue' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'ball-and-stick', {  }));
     }
     if (params.e.selected && params.e.selected.length > 0) {
-        b.to('structure')
+        b.to(template.structure)
             .apply(StateTransforms.Model.StructureSelection, { query: createQuery(params.e.selected), label: `Selected` })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'ball-and-stick'));

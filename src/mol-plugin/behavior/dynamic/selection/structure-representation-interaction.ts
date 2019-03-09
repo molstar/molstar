@@ -149,14 +149,20 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
                 StructureElement.Loci.toScriptExpression(current.loci)
             ]);
 
-            const surroundings = MS.struct.modifier.exceptBy({
-                0: MS.struct.modifier.includeSurroundings({
-                    0: core,
-                    radius: 5,
-                    'as-whole-residues': true
-                }),
-                by: core
+            const surroundings = MS.struct.modifier.includeSurroundings({
+                0: core,
+                radius: 5,
+                'as-whole-residues': true
             });
+
+            // const surroundings = MS.struct.modifier.exceptBy({
+            //     0: MS.struct.modifier.includeSurroundings({
+            //         0: core,
+            //         radius: 5,
+            //         'as-whole-residues': true
+            //     }),
+            //     by: core
+            // });
 
             const { state, builder, refs } = this.ensureShape(parent);
 
