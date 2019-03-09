@@ -7,11 +7,17 @@
 import { ValueCell } from 'mol-util/value-cell'
 import { ChunkedArray } from 'mol-data/util';
 import { Lines } from './lines';
+import { Mat4, Vec3 } from 'mol-math/linear-algebra';
+import { Cage } from 'mol-geo/primitive/cage';
 
 export interface LinesBuilder {
     add(startX: number, startY: number, startZ: number, endX: number, endY: number, endZ: number, group: number): void
+    addCage(t: Mat4, cage: Cage, group: number): void
     getLines(): Lines
 }
+
+const tmpA = Vec3.zero()
+const tmpB = Vec3.zero()
 
 export namespace LinesBuilder {
     export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): LinesBuilder {
@@ -21,20 +27,32 @@ export namespace LinesBuilder {
         const starts = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.startBuffer.ref.value : initialCount);
         const ends = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.endBuffer.ref.value : initialCount);
 
+        const add = (startX: number, startY: number, startZ: number, endX: number, endY: number, endZ: number, group: number) => {
+            const offset = mappings.elementCount
+            for (let i = 0; i < 4; ++i) {
+                ChunkedArray.add3(starts, startX, startY, startZ);
+                ChunkedArray.add3(ends, endX, endY, endZ);
+                ChunkedArray.add(groups, group);
+            }
+            ChunkedArray.add2(mappings, -1, 1);
+            ChunkedArray.add2(mappings, -1, -1);
+            ChunkedArray.add2(mappings, 1, 1);
+            ChunkedArray.add2(mappings, 1, -1);
+            ChunkedArray.add3(indices, offset, offset + 1, offset + 2);
+            ChunkedArray.add3(indices, offset + 1, offset + 3, offset + 2);
+        }
+
         return {
-            add: (startX: number, startY: number, startZ: number, endX: number, endY: number, endZ: number, group: number) => {
-                const offset = mappings.elementCount
-                for (let i = 0; i < 4; ++i) {
-                    ChunkedArray.add3(starts, startX, startY, startZ);
-                    ChunkedArray.add3(ends, endX, endY, endZ);
-                    ChunkedArray.add(groups, group);
+            add,
+            addCage: (t: Mat4, cage: Cage, group: number) => {
+                const { vertices, edges } = cage
+                for (let i = 0, il = edges.length; i < il; i += 2) {
+                    Vec3.fromArray(tmpA, vertices, edges[i] * 3)
+                    Vec3.fromArray(tmpB, vertices, edges[i + 1] * 3)
+                    Vec3.transformMat4(tmpA, tmpA, t)
+                    Vec3.transformMat4(tmpB, tmpB, t)
+                    add(tmpA[0], tmpA[1], tmpA[2], tmpB[0], tmpB[1], tmpB[2], group)
                 }
-                ChunkedArray.add2(mappings, -1, 1);
-                ChunkedArray.add2(mappings, -1, -1);
-                ChunkedArray.add2(mappings, 1, 1);
-                ChunkedArray.add2(mappings, 1, -1);
-                ChunkedArray.add3(indices, offset, offset + 1, offset + 2);
-                ChunkedArray.add3(indices, offset + 1, offset + 3, offset + 2);
             },
             getLines: () => {
                 const mb = ChunkedArray.compact(mappings, true) as Float32Array

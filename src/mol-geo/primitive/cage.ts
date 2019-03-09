@@ -5,6 +5,10 @@
  */
 
 export interface Cage {
-    vertices: ArrayLike<number>
-    edges: ArrayLike<number>
+    readonly vertices: ArrayLike<number>
+    readonly edges: ArrayLike<number>
+}
+
+export function createCage(vertices: ArrayLike<number>, edges: ArrayLike<number>): Cage {
+    return { vertices, edges }
 }

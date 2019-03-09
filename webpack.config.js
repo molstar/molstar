@@ -102,6 +102,7 @@ module.exports = [
     createApp('model-server-query'),
 
     createBrowserTest('font-atlas'),
+    createBrowserTest('render-lines'),
     createBrowserTest('render-mesh'),
     createBrowserTest('render-shape'),
     createBrowserTest('render-spheres'),
