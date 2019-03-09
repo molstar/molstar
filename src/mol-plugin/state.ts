@@ -44,6 +44,7 @@ class PluginState {
 
     getSnapshot(params?: PluginState.GetSnapshotParams): PluginState.Snapshot {
         const p = { ...PluginState.DefaultGetSnapshotParams, ...params };
+        console.log(p.animation, this.animation.getSnapshot());
         return {
             id: UUID.create22(),
             data: p.data ? this.dataState.getSnapshot() : void 0,

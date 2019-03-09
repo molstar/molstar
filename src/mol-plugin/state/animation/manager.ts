@@ -176,9 +176,16 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         }
     }
 
-    private resume() {
+    private async resume() {
         this._current.lastTime = 0;
         this._current.startedTime = -1;
+        const anim = this._current.anim;
+        if (!this.context.behaviors.state.isAnimating.value) {
+            this.context.behaviors.state.isAnimating.next(true);
+        }
+        if (anim.setup) {
+            await anim.setup(this._current.paramValues, this.context);
+        }
         requestAnimationFrame(this.animate);
     }
 
