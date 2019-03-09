@@ -15,6 +15,7 @@ import { ColorNames } from 'mol-util/color/tables';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { labelFirst } from 'mol-theme/label';
 import { RuntimeContext, Progress } from 'mol-task';
+import { Dodecahedron } from 'mol-geo/primitive/dodecahedron';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -56,7 +57,7 @@ async function getSphereMesh(ctx: RuntimeContext, centers: number[], mesh?: Mesh
     const builderState = MeshBuilder.createState(centers.length * 128, centers.length * 128 / 2, mesh)
     const t = Mat4.identity()
     const v = Vec3.zero()
-    const sphere = Sphere(2)
+    const sphere = Dodecahedron() // Sphere(2)
     builderState.currentGroup = 0
     for (let i = 0, il = centers.length / 3; i < il; ++i) {
         // for production, calls to update should be guarded by `if (ctx.shouldUpdate)`

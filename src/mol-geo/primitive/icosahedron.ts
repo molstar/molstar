@@ -6,7 +6,7 @@
 
 import { createPrimitive, Primitive } from './primitive';
 
-const t = ( 1 + Math.sqrt( 5 ) ) / 2;
+const t = (1 + Math.sqrt(5)) / 2;
 
 const icosahedronVertices: ReadonlyArray<number> = [
     -1, t, 0,   1, t, 0,  -1, -t, 0,   1, -t, 0,
@@ -21,6 +21,8 @@ const icosahedronIndices: ReadonlyArray<number> = [
     4, 9, 5,   2, 4, 11,   6, 2, 10,   8, 6, 7,   9, 8, 1
 ];
 
-const icosahedron = createPrimitive(icosahedronVertices, icosahedronIndices)
-
-export function Icosahedron(): Primitive { return icosahedron }
+let icosahedron: Primitive
+export function Icosahedron(): Primitive {
+    if (!icosahedron) icosahedron = createPrimitive(icosahedronVertices, icosahedronIndices)
+    return icosahedron
+}
