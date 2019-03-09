@@ -165,10 +165,10 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
         const update = state.build();
         let changed = false;
         for (const r of reprs) {
-            const unwinds = state.select(StateSelection.Generators.byValue(r)
+            const explodes = state.select(StateSelection.Generators.byValue(r)
                 .children()
-                .filter(c => c.transform.transformer === StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D));
-            if (unwinds.length > 0) continue;
+                .filter(c => c.transform.transformer === StateTransforms.Representation.ExplodeStructureRepresentation3D));
+            if (explodes.length > 0) continue;
 
             changed = true;
             update.to(r.transform.ref)

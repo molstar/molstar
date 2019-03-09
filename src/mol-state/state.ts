@@ -95,7 +95,7 @@ class State {
      * @example state.query(StateSelection.Generators.byRef('test').ancestorOfType([type]))
      * @example state.query('test')
      */
-    select(selector: StateSelection.Selector) {
+    select<C extends StateObjectCell>(selector: StateSelection.Selector<C>) {
         return StateSelection.select(selector, this)
     }
 
