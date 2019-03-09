@@ -8,6 +8,7 @@ import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ApplyActionContol } from './apply-action';
 import { State } from 'mol-state';
+import { Icon } from '../controls/common';
 
 export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRef: string, hideHeader?: boolean, initiallyColapsed?: boolean }> {
     get current() {
@@ -35,9 +36,9 @@ export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRe
         const def = cell.transform.transformer.definition;
         const display = cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name;
 
-        return <>
-            {!this.props.hideHeader && <div className='msp-section-header'>{`Actions (${display})`}</div> }
+        return <div className='msp-state-actions'>
+            {!this.props.hideHeader && <div className='msp-section-header'><Icon name='code' /> {`Actions (${display})`}</div> }
             {actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={state} action={act} nodeRef={ref} initiallyCollapsed={this.props.initiallyColapsed} />)}
-        </>;
+        </div>;
     }
 }

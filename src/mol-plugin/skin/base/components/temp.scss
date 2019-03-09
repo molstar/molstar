@@ -6,12 +6,18 @@
     height: $row-height;
     line-height: $row-height;
     margin-bottom: $control-spacing;
-    text-align: center;
+    text-align: right;
+    padding: 0 $control-spacing;
     font-weight: bold;
     background: $default-background;
     // border-right: $control-spacing solid $entity-color-Group; // TODO separate color
-    border-top: 1px solid $entity-color-Group; // TODO separate color
+    border-bottom: 1px solid $entity-color-Group; // TODO separate color
     // border-bottom: 1px solid $entity-color-Group; // TODO separate color
+
+    > .msp-icon {
+        display: block;
+        float: left;
+    }
 }
 
 .msp-current-header {
@@ -216,5 +222,11 @@
         position: absolute;
         right: 0;
         top: 0
+    }
+}
+
+.msp-state-actions {
+    .msp-transform-wrapper:last-child {
+        margin-bottom: 10px;
     }
 }

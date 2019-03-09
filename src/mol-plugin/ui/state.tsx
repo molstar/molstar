@@ -13,17 +13,33 @@ import { ParameterControls } from './controls/parameters';
 import { ParamDefinition as PD} from 'mol-util/param-definition';
 import { PluginState } from 'mol-plugin/state';
 import { urlCombine } from 'mol-util/url';
-import { IconButton } from './controls/common';
+import { IconButton, Icon } from './controls/common';
 import { formatTimespan } from 'mol-util/now';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
+    downloadToFile = () => {
+        PluginCommands.State.Snapshots.DownloadToFile.dispatch(this.plugin, { });
+    }
+
+    open = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || !e.target.files![0]) return;
+
+        PluginCommands.State.Snapshots.OpenFile.dispatch(this.plugin, { file: e.target.files![0] });
+    }
 
     render() {
         return <div>
-            <div className='msp-section-header'>State</div>
+            <div className='msp-section-header'><Icon name='code' /> State</div>
             <LocalStateSnapshots />
             <LocalStateSnapshotList />
             <RemoteStateSnapshots />
+
+            <div className='msp-btn-row-group' style={{ marginTop: '10px' }}>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.downloadToFile}>Download JSON</button>
+                <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
+                    {'Open JSON'} <input onChange={this.open} type='file' multiple={false} accept='.json' />
+                </div>
+            </div>
         </div>;
     }
 }
@@ -67,26 +83,9 @@ class LocalStateSnapshots extends PluginUIComponent<
         return !shallowEqual(this.props, nextProps) || !shallowEqual(this.state, nextState);
     }
 
-    downloadToFile = () => {
-        PluginCommands.State.Snapshots.DownloadToFile.dispatch(this.plugin, { name: this.state.params.name });
-    }
-
-    open = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || !e.target.files![0]) return;
-
-        PluginCommands.State.Snapshots.OpenFile.dispatch(this.plugin, { file: e.target.files![0] });
-    }
-
     render() {
         // TODO: proper styling
         return <div>
-            <div className='msp-btn-row-group' style={{ marginBottom: '10px' }}>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.downloadToFile}>Download JSON</button>
-                <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
-                    {'Open JSON'} <input onChange={this.open} type='file' multiple={false} accept='.json' />
-                </div>
-            </div>
-
             <ParameterControls params={LocalStateSnapshots.Params} values={this.state.params} onEnter={this.add} onChange={p => {
                 const params = { ...this.state.params, [p.name]: p.value };
                 this.setState({ params } as any);
@@ -94,7 +93,7 @@ class LocalStateSnapshots extends PluginUIComponent<
             }}/>
 
             <div className='msp-btn-row-group'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}>Save</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}><Icon name='record' /> Save</button>
                 {/* <button className='msp-btn msp-btn-block msp-form-control' onClick={this.upload} disabled={this.state.isUploading}>Upload</button> */}
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.clear}>Clear</button>
             </div>
@@ -251,14 +250,14 @@ class RemoteStateSnapshots extends PluginUIComponent<
 
     render() {
         return <div>
-            <div className='msp-section-header'>Remote State</div>
+            <div className='msp-section-header'><Icon name='code' /> Remote State</div>
 
             <ParameterControls params={RemoteStateSnapshots.Params} values={this.state.params} onEnter={this.upload} onChange={p => {
                 this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
             }} isDisabled={this.state.isBusy}/>
 
             <div className='msp-btn-row-group'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.upload} disabled={this.state.isBusy}>Upload</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.upload} disabled={this.state.isBusy}><Icon name='upload' /> Upload</button>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.refresh} disabled={this.state.isBusy}>Refresh</button>
             </div>
 

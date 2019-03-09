@@ -9,11 +9,12 @@ import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
+import { Icon } from './controls/common';
 
 export class CameraSnapshots extends PluginUIComponent<{ }, { }> {
     render() {
         return <div>
-            <div className='msp-section-header'>Camera Snapshots</div>
+            <div className='msp-section-header'><Icon name='code' /> Camera Snapshots</div>
             <CameraSnapshotControls />
             <CameraSnapshotList />
         </div>;
