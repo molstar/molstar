@@ -64,7 +64,7 @@ class PluginState {
     }
 
     async setSnapshot(snapshot: PluginState.Snapshot) {
-        this.animation.stop();
+        await this.animation.stop();
 
         if (snapshot.behaviour) await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
         if (snapshot.data) await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));

@@ -109,7 +109,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         // TODO: this needs to be diabled when the state is updating!
         this.subscribe(this.plugin.state.snapshots.events.changed, () => this.forceUpdate());
         this.subscribe(this.plugin.behaviors.state.isUpdating, isBusy => this.setState({ isBusy }));
-        this.subscribe(this.plugin.behaviors.state.isAnimating, isAnimating => this.setState({ show: !isAnimating }));
+        this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }));
     }
 
     async update(id: string) {

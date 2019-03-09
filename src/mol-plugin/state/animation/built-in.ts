@@ -90,7 +90,8 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     name: 'built-in.animate-assembly-unwind',
     display: { name: 'Unwind Assembly' },
     params: () => ({
-        durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100})
+        durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100}),
+        playOnce: PD.Boolean(false)
     }),
     initialState: () => ({ t: 0 }),
     async setup(_, plugin) {
@@ -133,7 +134,13 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         const update = state.build();
 
         const d = (t.current - t.lastApplied) / ctx.params.durationInMs;
-        const newTime = (animState.t + d) % 1;
+        let newTime = (animState.t + d), finished = false;
+        if (ctx.params.playOnce && newTime >= 1) {
+            finished = true;
+            newTime = 1;
+        } else {
+            newTime = newTime % 1;
+        }
 
         for (const m of anims) {
             update.to(m).update({ t: newTime });
@@ -141,6 +148,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
 
         await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
 
+        if (finished) return { kind: 'finished' };
         return { kind: 'next', state: { t: newTime } };
     }
 })
