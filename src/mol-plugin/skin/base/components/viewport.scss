@@ -65,6 +65,10 @@
 .msp-viewport-controls-scene-options {
     width: 290px;
     background: $control-background;
+
+    .msp-control-group-wrapper:first-child {
+        padding-top: 0;
+    }
 }
 
 /* highlight */

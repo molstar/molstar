@@ -18,7 +18,7 @@ interface ViewportState {
     noWebGl: boolean
 }
 
-export class ViewportControls extends PluginUIComponent {
+export class ViewportControls extends PluginUIComponent<{}, { isSettingsExpanded: boolean }> {
     state = {
         isSettingsExpanded: false
     }
@@ -70,8 +70,7 @@ export class ViewportControls extends PluginUIComponent {
                 {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}<br />
                 {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
             </div>
-            {this.state.isSettingsExpanded &&
-            <div className='msp-viewport-controls-scene-options'>
+            {this.state.isSettingsExpanded && <div className='msp-viewport-controls-scene-options'>
                 <ControlGroup header='Layout' initialExpanded={true}>
                     <ParameterControls params={PluginLayoutStateParams} values={this.plugin.layout.state} onChange={this.setLayout} />
                 </ControlGroup>

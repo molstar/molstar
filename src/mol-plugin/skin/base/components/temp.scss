@@ -159,10 +159,11 @@
         line-height: $row-height;
         float: left;
         margin-right: $control-spacing;
+        background-color: $msp-form-control-background;
 
         > span {
             color: $font-color;
-            padding-top: 1px;
+            margin-right: $control-spacing;
             font-size: 85%;
             display: inline-block;
         }
@@ -172,10 +173,31 @@
         line-height: $row-height;
         float: left;
         margin-right: $control-spacing;
+        background-color: $msp-form-control-background;
 
         > select {
             display: inline-block;
             width: 200px;
+        }
+    }
+
+    .msp-animation-viewport-controls {
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+        position: relative;
+        background-color: $msp-form-control-background;
+
+        .msp-animation-viewport-controls-select {
+            width: 290px;
+            position: absolute;
+            left: 0;
+            top: $row-height + $control-spacing;
+            background: $control-background;
+
+            .msp-control-row:first-child {
+                margin-top: 0;
+            }
         }
     }
 }
