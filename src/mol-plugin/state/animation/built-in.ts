@@ -13,12 +13,12 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export const AnimateModelIndex = PluginStateAnimation.create({
     name: 'built-in.animate-model-index',
-    display: { name: 'Animate Model Index' },
+    display: { name: 'Animate Trajectory' },
     params: () => ({
         mode: PD.MappedStatic('palindrome', {
             palindrome: PD.Group({ }),
             loop: PD.Group({ }),
-            once: PD.Group({ direction: PD.Select('palindrome', [['forward', 'Forward'], ['backward', 'Backward']]) }, { isFlat: true })
+            once: PD.Group({ direction: PD.Select('forward', [['forward', 'Forward'], ['backward', 'Backward']]) }, { isFlat: true })
         }, { options: [['palindrome', 'Palindrome'], ['loop', 'Loop'], ['once', 'Once']] }),
         maxFPS: PD.Numeric(15, { min: 1, max: 30, step: 1 })
     }),
@@ -42,7 +42,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
 
         const params = ctx.params;
         const palindromeDirections = animState.palindromeDirections || { };
-        let isEnd = false;
+        let isEnd = false, allSingles = true;
 
         for (const m of models) {
             const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
@@ -51,6 +51,11 @@ export const AnimateModelIndex = PluginStateAnimation.create({
             update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
                 old => {
                     const len = traj.data.length;
+                    if (len !== 1) {
+                        allSingles = false;
+                    } else {
+                        return old;
+                    }
                     let dir: -1 | 1 = 1;
                     if (params.mode.name === 'once') {
                         dir = params.mode.params.direction === 'backward' ? -1 : 1;
@@ -77,7 +82,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
 
         await PluginCommands.State.Update.dispatch(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
 
-        if (params.mode.name === 'once' && isEnd) return { kind: 'finished' };
+        if (allSingles || (params.mode.name === 'once' && isEnd)) return { kind: 'finished' };
         if (params.mode.name === 'palindrome') return { kind: 'next', state: { palindromeDirections } };
         return { kind: 'next', state: {} };
     }

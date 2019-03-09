@@ -18,7 +18,8 @@ namespace ApplyActionContol {
         plugin: PluginContext,
         nodeRef: StateTransform.Ref,
         state: State,
-        action: StateAction
+        action: StateAction,
+        initiallyCollapsed?: boolean
     }
 
     export interface ComponentState {
@@ -49,7 +50,7 @@ class ApplyActionContol extends TransformContolBase<ApplyActionContol.Props, App
 
     private _getInfo = memoizeLatest((t: StateTransform.Ref, v: string) => StateTransformParameters.infoFromAction(this.plugin, this.props.state, this.props.action, this.props.nodeRef));
 
-    state = { ref: this.props.nodeRef, version: this.props.state.transforms.get(this.props.nodeRef).version, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false };
+    state = { ref: this.props.nodeRef, version: this.props.state.transforms.get(this.props.nodeRef).version, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
 
     static getDerivedStateFromProps(props: ApplyActionContol.Props, state: ApplyActionContol.ComponentState) {
         if (props.nodeRef === state.ref) return null;

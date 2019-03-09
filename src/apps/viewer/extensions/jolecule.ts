@@ -21,7 +21,7 @@ import { Camera } from 'mol-canvas3d/camera';
 import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
 
 export const CreateJoleculeState = StateAction.build({
-    display: { name: 'Jolecule State' },
+    display: { name: 'Jolecule State Import' },
     params: { id: ParamDefinition.Text('1mbo') },
     from: PluginStateObject.Root
 })(async ({ ref, state, params }, plugin: PluginContext) => {

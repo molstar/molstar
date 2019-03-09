@@ -304,24 +304,3 @@ export const StructureFromSelection = StateAction.build({
     const root = state.build().to(ref).apply(StructureSelection, { query, label: params.label });
     return state.updateTree(root);
 });
-
-
-export const TestBlob = StateAction.build({
-    display: { name: 'Test Blob' },
-    from: PluginStateObject.Root
-})(({ ref, state }, ctx: PluginContext) => {
-
-    const ids = '5B6V,5B6W,5H2H,5H2I,5H2J,5B6X,5H2K,5H2L,5H2M,5B6Y,5H2N,5H2O,5H2P,5B6Z'.split(',').map(u => u.toLowerCase());
-
-    const root = state.build().to(ref)
-        .apply(StateTransforms.Data.DownloadBlob, {
-            sources: ids.map(id => ({ id, url: `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${id}`, isBinary: true })),
-            maxConcurrency: 4
-        }).apply(StateTransforms.Data.ParseBlob, {
-            formats: ids.map(id => ({ id, format: 'cif' as 'cif' }))
-        })
-        .apply(StateTransforms.Model.TrajectoryFromBlob)
-        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
-    createStructureTree(ctx, root, false);
-    return state.updateTree(root);
-});

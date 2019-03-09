@@ -194,7 +194,7 @@ export class CurrentObject extends PluginUIComponent {
 
         return <>
             {(cell.status === 'ok' || cell.status === 'error') && <UpdateTransformContol state={current.state} transform={transform} /> }
-            {cell.status === 'ok' && <StateObjectActions state={current.state} nodeRef={ref} />}
+            {cell.status === 'ok' && <StateObjectActions state={current.state} nodeRef={ref} initiallyColapsed />}
         </>;
     }
 }

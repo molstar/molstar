@@ -89,16 +89,16 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
     // }
 
     render() {
-        if (!this.state.show) return null;
-
         const isAnimating = this.plugin.behaviors.state.isAnimating.value;
+
+        if (!this.state.show || (isAnimating && !this.state.label)) return null;
 
         return <div className='msp-traj-controls'>
             {/* <IconButton icon={isAnimating ? 'stop' : 'play'} title={isAnimating ? 'Stop' : 'Play'} onClick={isAnimating ? this.stopAnimation : this.playAnimation} /> */}
-            <IconButton icon='model-first' title='First Model' onClick={this.reset} disabled={isAnimating} />
-            <IconButton icon='model-prev' title='Previous Model' onClick={this.prev} disabled={isAnimating} />
-            <IconButton icon='model-next' title='Next Model' onClick={this.next} disabled={isAnimating} />
-            { !!this.state.label && <span>{this.state.label}</span> }
+            {!isAnimating && <IconButton icon='model-first' title='First Model' onClick={this.reset} disabled={isAnimating} />}
+            {!isAnimating && <IconButton icon='model-prev' title='Previous Model' onClick={this.prev} disabled={isAnimating} />}
+            {!isAnimating && <IconButton icon='model-next' title='Next Model' onClick={this.next} disabled={isAnimating} />}
+            {!!this.state.label && <span>{this.state.label}</span> }
         </div>;
     }
 }
@@ -170,9 +170,18 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
     state = { isEmpty: true, isExpanded: false, isUpdating: false, isAnimating: false, isPlaying: false };
 
     componentDidMount() {
-        this.subscribe(this.plugin.state.snapshots.events.changed, () => this.setState({ isPlaying: this.plugin.state.snapshots.state.isPlaying }));
-        this.subscribe(this.plugin.behaviors.state.isUpdating, isUpdating => this.setState({ isUpdating, isEmpty: this.plugin.state.dataState.tree.transforms.size < 2 }));
-        this.subscribe(this.plugin.behaviors.state.isAnimating, isAnimating => this.setState({ isAnimating }));
+        this.subscribe(this.plugin.state.snapshots.events.changed, () => {
+            if (this.plugin.state.snapshots.state.isPlaying) this.setState({ isPlaying: true, isExpanded: false });
+            else this.setState({ isPlaying: false });
+        });
+        this.subscribe(this.plugin.behaviors.state.isUpdating, isUpdating => {
+            if (isUpdating) this.setState({ isUpdating: true, isExpanded: false, isEmpty: this.plugin.state.dataState.tree.transforms.size < 2 });
+            else this.setState({ isUpdating: false, isEmpty: this.plugin.state.dataState.tree.transforms.size < 2 });
+        });
+        this.subscribe(this.plugin.behaviors.state.isAnimating, isAnimating => {
+            if (isAnimating) this.setState({ isAnimating: true, isExpanded: false });
+            else this.setState({ isAnimating: false });
+        });
     }
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
     stop = () => this.plugin.state.animation.stop();

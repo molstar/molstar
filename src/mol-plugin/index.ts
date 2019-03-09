@@ -25,8 +25,6 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateActions.Structure.CreateComplexRepresentation),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
 
-        PluginSpec.Action(StateActions.Structure.TestBlob),
-
         // Volume streaming
         PluginSpec.Action(InitVolumeStreaming),
         PluginSpec.Action(BoxifyVolumeStreaming),
