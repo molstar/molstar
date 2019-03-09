@@ -38,6 +38,7 @@ export async function getLabelRepresentation(ctx: RuntimeContext, structure: Str
     const repr = prev || ShapeRepresentation(getLabelsShape, Text.Utils);
     const data = getLabelData(structure, params);
     await repr.createOrUpdate(params.options, data).runInContext(ctx);
+    repr.setState({ pickable: false })
     return repr;
 }
 
