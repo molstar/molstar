@@ -88,29 +88,40 @@ class PluginAnimationManager extends PluginComponent<PluginAnimationManager.Stat
         this.start();
     }
 
-    start() {
+    async start() {
         this.updateState({ animationState: 'playing' });
         if (!this.context.behaviors.state.isAnimating.value) {
             this.context.behaviors.state.isAnimating.next(true);
         }
         this.triggerUpdate();
 
+        const anim = this._current.anim;
+        if (anim.setup) {
+            await anim.setup(this._current.paramValues, this.context);
+        }
+
         this._current.lastTime = 0;
         this._current.startedTime = -1;
-        this._current.state = this._current.anim.initialState(this._current.paramValues, this.context);
+        this._current.state = this._current.anim.initialState(anim, this.context);
 
         requestAnimationFrame(this.animate);
     }
 
-    stop() {
+    async stop() {
         if (typeof this._frame !== 'undefined') cancelAnimationFrame(this._frame);
-        if (this.context.behaviors.state.isAnimating.value) {
-            this.context.behaviors.state.isAnimating.next(false);
-        }
 
         if (this.state.animationState !== 'stopped') {
+            const anim = this._current.anim;
+            if (anim.teardown) {
+                await anim.teardown(this._current.paramValues, this.context);
+            }
+
             this.updateState({ animationState: 'stopped' });
             this.triggerUpdate();
+        }
+
+        if (this.context.behaviors.state.isAnimating.value) {
+            this.context.behaviors.state.isAnimating.next(false);
         }
     }
 

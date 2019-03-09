@@ -18,6 +18,10 @@ interface PluginStateAnimation<P = any, S = any> {
     params: (ctx: PluginContext) => PD.For<P>,
     initialState(params: P, ctx: PluginContext): S,
 
+    // TODO: support state in setup/teardown?
+    setup?(params: P, ctx: PluginContext): void | Promise<void>,
+    teardown?(params: P, ctx: PluginContext): void | Promise<void>,
+
     /**
      * Apply the current frame and modify the state.
      * @param t Current absolute time since the animation started.

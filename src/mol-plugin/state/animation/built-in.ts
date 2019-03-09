@@ -95,9 +95,40 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100})
     }),
     initialState: () => ({ t: 0 }),
+    async setup(_, plugin) {
+        const state = plugin.state.dataState;
+        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D));
+
+        const update = state.build();
+        let changed = false;
+        for (const r of reprs) {
+            const unwinds = state.select(StateSelection.Generators.byValue(r)
+                .children()
+                .filter(c => c.transform.transformer === StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D));
+            if (unwinds.length > 0) continue;
+
+            changed = true;
+            update.to(r.transform.ref)
+                .apply(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, { t: 0 }, { props: { tag: 'animate-assembly-unwind' } });
+        }
+
+        if (!changed) return;
+
+        return plugin.runTask(state.updateTree(update));
+    },
+    async teardown(_, plugin) {
+        const state = plugin.state.dataState;
+        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
+            .filter(c => c.transform.props.tag === 'animate-assembly-unwind'));
+        if (reprs.length === 0) return;
+
+        const update = state.build();
+        for (const r of reprs) update.delete(r.transform.ref);
+        return plugin.runTask(state.updateTree(update));
+    },
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.dataState;
-        const anims = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure.Representation3DState)
+        const anims = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
             .filter(c => c.transform.transformer === StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D));
 
         if (anims.length === 0) {
@@ -127,6 +158,37 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
         durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100})
     }),
     initialState: () => ({ t: 0 }),
+    async setup(_, plugin) {
+        const state = plugin.state.dataState;
+        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D));
+
+        const update = state.build();
+        let changed = false;
+        for (const r of reprs) {
+            const unwinds = state.select(StateSelection.Generators.byValue(r)
+                .children()
+                .filter(c => c.transform.transformer === StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D));
+            if (unwinds.length > 0) continue;
+
+            changed = true;
+            update.to(r.transform.ref)
+                .apply(StateTransforms.Representation.ExplodeStructureRepresentation3D, { t: 0 }, { props: { tag: 'animate-units-explode' } });
+        }
+
+        if (!changed) return;
+
+        return plugin.runTask(state.updateTree(update));
+    },
+    async teardown(_, plugin) {
+        const state = plugin.state.dataState;
+        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
+            .filter(c => c.transform.props.tag === 'animate-units-explode'));
+        if (reprs.length === 0) return;
+
+        const update = state.build();
+        for (const r of reprs) update.delete(r.transform.ref);
+        return plugin.runTask(state.updateTree(update));
+    },
     async apply(animState, t, ctx) {
         const state = ctx.plugin.state.dataState;
         const anims = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure.Representation3DState)
