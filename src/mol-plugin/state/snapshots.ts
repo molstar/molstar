@@ -194,7 +194,10 @@ class PluginStateSnapshotManager extends PluginComponent<{
     }
 
     togglePlay() {
-        if (this.state.isPlaying) this.stop();
+        if (this.state.isPlaying) {
+            this.stop();
+            this.plugin.state.animation.stop();
+        }
         else this.play();
     }
 

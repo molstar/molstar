@@ -183,7 +183,10 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
         });
     }
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
-    stop = () => this.plugin.state.animation.stop();
+    stop = () => {
+        this.plugin.state.animation.stop();
+        this.plugin.state.snapshots.stop();
+    }
 
     render() {
         // if (!this.state.show) return null;
