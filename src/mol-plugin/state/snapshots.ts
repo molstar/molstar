@@ -148,11 +148,11 @@ class PluginStateSnapshotManager extends PluginComponent<{
         const next = entry && entry.snapshot;
         if (!next) return;
         await this.plugin.state.setSnapshot(next);
-        if (snapshot.playback &&  snapshot.playback.isPlaying) this.play();
+        if (snapshot.playback && snapshot.playback.isPlaying) this.play(true);
         return next;
     }
 
-    getRemoteSnapshot(options?: { name?: string, description?: string }): PluginStateSnapshotManager.RemoteSnapshot {
+    getRemoteSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean }): PluginStateSnapshotManager.RemoteSnapshot {
         // TODO: diffing and all that fancy stuff
         return {
             timestamp: +new Date(),
@@ -160,7 +160,7 @@ class PluginStateSnapshotManager extends PluginComponent<{
             description: options && options.description,
             current: this.state.current,
             playback: {
-                isPlaying: this.state.isPlaying,
+                isPlaying: !!(options && options.playOnLoad),
                 nextSnapshotDelayInMs: this.state.nextSnapshotDelayInMs
             },
             entries: this.state.entries.valueSeq().toArray()
@@ -181,9 +181,21 @@ class PluginStateSnapshotManager extends PluginComponent<{
         if (this.state.isPlaying) this.timeoutHandle = setTimeout(this.next, delay);
     };
 
-    play() {
+    play(delayFirst: boolean = false) {
         this.updateState({ isPlaying: true });
-        this.next();
+
+        if (delayFirst) {
+            const e = this.getEntry(this.state.current);
+            if (!e) {
+                this.next();
+                return;
+            }
+            const snapshot = e.snapshot;
+            const delay = typeof snapshot.durationInMs !== 'undefined' ? snapshot.durationInMs : this.state.nextSnapshotDelayInMs;
+            this.timeoutHandle = setTimeout(this.next, delay);
+        } else {
+            this.next();
+        }
     }
 
     stop() {

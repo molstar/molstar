@@ -168,6 +168,7 @@ class RemoteStateSnapshots extends PluginUIComponent<
         name: PD.Text(),
         options: PD.Group({
             description: PD.Text(),
+            playOnLoad: PD.Boolean(false),
             serverUrl: PD.Text('https://webchem.ncbr.muni.cz/molstar-state')
         })
     };
@@ -215,6 +216,7 @@ class RemoteStateSnapshots extends PluginUIComponent<
         await PluginCommands.State.Snapshots.Upload.dispatch(this.plugin, {
             name: this.state.params.name,
             description: this.state.params.options.description,
+            playOnLoad: this.state.params.options.playOnLoad,
             serverUrl: this.state.params.options.serverUrl
         });
         this.setState({ isBusy: false });
