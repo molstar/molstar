@@ -76,7 +76,7 @@ export function RemoveObject(ctx: PluginContext) {
                 curr = parent;
             }
         } else {
-            remove(state, ref);
+            return remove(state, ref);
         }
     });
 }

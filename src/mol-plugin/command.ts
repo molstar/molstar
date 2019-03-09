@@ -22,46 +22,46 @@ export const PluginCommands = {
 
         RemoveObject: PluginCommand<{ state: State, ref: StateTransform.Ref, removeParentGhosts?: boolean }>(),
 
-        ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
-        ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
-        Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
-        ClearHighlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>({ isImmediate: true }),
+        ToggleExpanded: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
+        ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
+        Highlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
+        ClearHighlight: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
 
         Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>({ isImmediate: true }),
-            Replace: PluginCommand<{ id: string, params?: PluginState.GetSnapshotParams }>({ isImmediate: true }),
-            Move: PluginCommand<{ id: string, dir: -1 | 1 }>({ isImmediate: true }),
-            Remove: PluginCommand<{ id: string }>({ isImmediate: true }),
-            Apply: PluginCommand<{ id: string }>({ isImmediate: true }),
-            Clear: PluginCommand<{}>({ isImmediate: true }),
+            Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.GetSnapshotParams }>(),
+            Replace: PluginCommand<{ id: string, params?: PluginState.GetSnapshotParams }>(),
+            Move: PluginCommand<{ id: string, dir: -1 | 1 }>(),
+            Remove: PluginCommand<{ id: string }>(),
+            Apply: PluginCommand<{ id: string }>(),
+            Clear: PluginCommand<{}>(),
 
-            Upload: PluginCommand<{ name?: string, description?: string, serverUrl: string }>({ isImmediate: true }),
+            Upload: PluginCommand<{ name?: string, description?: string, serverUrl: string }>(),
             Fetch: PluginCommand<{ url: string }>(),
 
-            DownloadToFile: PluginCommand<{ name?: string }>({ isImmediate: true }),
-            OpenFile: PluginCommand<{ file: File }>({ isImmediate: true }),
+            DownloadToFile: PluginCommand<{ name?: string }>(),
+            OpenFile: PluginCommand<{ file: File }>(),
         }
     },
     Interactivity: {
         Structure: {
-            Highlight: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>({ isImmediate: true }),
-            Select: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>({ isImmediate: true })
+            Highlight: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>(),
+            Select: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>()
         }
     },
     Layout: {
-        Update: PluginCommand<{ state: Partial<PluginLayoutStateProps> }>({ isImmediate: true })
+        Update: PluginCommand<{ state: Partial<PluginLayoutStateProps> }>()
     },
     Camera: {
-        Reset: PluginCommand<{}>({ isImmediate: true }),
-        SetSnapshot: PluginCommand<{ snapshot: Camera.Snapshot, durationMs?: number }>({ isImmediate: true }),
+        Reset: PluginCommand<{}>(),
+        SetSnapshot: PluginCommand<{ snapshot: Camera.Snapshot, durationMs?: number }>(),
         Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string }>({ isImmediate: true }),
-            Remove: PluginCommand<{ id: string }>({ isImmediate: true }),
-            Apply: PluginCommand<{ id: string }>({ isImmediate: true }),
-            Clear: PluginCommand<{}>({ isImmediate: true }),
+            Add: PluginCommand<{ name?: string, description?: string }>(),
+            Remove: PluginCommand<{ id: string }>(),
+            Apply: PluginCommand<{ id: string }>(),
+            Clear: PluginCommand<{}>(),
         }
     },
     Canvas3D: {
-        SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> }>({ isImmediate: true })
+        SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> }>()
     }
 }
