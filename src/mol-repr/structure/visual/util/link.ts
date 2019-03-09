@@ -78,7 +78,13 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
     const va = Vec3.zero()
     const vb = Vec3.zero()
     const vShift = Vec3.zero()
-    const cylinderProps: CylinderProps = { radiusTop: 1, radiusBottom: 1, radialSegments }
+    const cylinderProps: CylinderProps = {
+        radiusTop: 1,
+        radiusBottom: 1,
+        radialSegments,
+        topCap: false,
+        bottomCap: false
+    }
 
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         position(va, vb, edgeIndex)
@@ -91,6 +97,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
         if (LinkType.is(f, LinkType.Flag.MetallicCoordination) || LinkType.is(f, LinkType.Flag.Hydrogen)) {
             // show metall coordinations and hydrogen bonds with dashed cylinders
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3
+            cylinderProps.topCap = cylinderProps.bottomCap = true
             addFixedCountDashedCylinder(builderState, va, vb, 0.5, 7, cylinderProps)
         } else if (o === 2 || o === 3) {
             // show bonds with order 2 or 3 using 2 or 3 parallel cylinders
@@ -101,11 +108,13 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
             Vec3.setMagnitude(vShift, vShift, absOffset)
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius
+            cylinderProps.topCap = cylinderProps.bottomCap = false
 
             if (o === 3) addCylinder(builderState, va, vb, 0.5, cylinderProps)
             addDoubleCylinder(builderState, va, vb, 0.5, vShift, cylinderProps)
         } else {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius
+            cylinderProps.topCap = cylinderProps.bottomCap = false
             addCylinder(builderState, va, vb, 0.5, cylinderProps)
         }
     }
