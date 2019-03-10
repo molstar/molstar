@@ -1,4 +1,5 @@
 import { Primitive } from './primitive';
+import { Cage } from './cage';
 
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
@@ -25,6 +26,15 @@ const plane: Primitive = {
     ])
 }
 
+const planeCage: Cage = {
+    vertices: plane.vertices,
+    edges: new Uint32Array([ 0, 1,  2, 3,  3, 1,  2, 0 ])
+}
+
 export function Plane(): Primitive {
     return plane
+}
+
+export function PlaneCage(): Cage {
+    return planeCage
 }
