@@ -7,6 +7,7 @@
 import { Vec3 } from 'mol-math/linear-algebra'
 import { Primitive, PrimitiveBuilder } from './primitive';
 import { polygon } from './polygon'
+import { Cage, createCage } from './cage';
 
 const a = Vec3.zero(), b = Vec3.zero(), c = Vec3.zero(), d = Vec3.zero()
 const points = polygon(4, true)
@@ -55,4 +56,28 @@ let perforatedBox: Primitive
 export function PerforatedBox() {
     if (!perforatedBox) perforatedBox = createBox(true)
     return perforatedBox
+}
+
+let boxCage: Cage
+export function BoxCage() {
+    if (!boxCage) {
+        boxCage = createCage(
+            [
+                 0.5,  0.5, -0.5, // bottom
+                -0.5,  0.5, -0.5,
+                -0.5, -0.5, -0.5,
+                 0.5, -0.5, -0.5,
+                 0.5,  0.5, 0.5,  // top
+                -0.5,  0.5, 0.5,
+                -0.5, -0.5, 0.5,
+                 0.5, -0.5, 0.5
+            ],
+            [
+                0, 4,  1, 5,  2, 6,  3, 7, // sides
+                0, 1,  1, 2,  2, 3,  3, 0,  // bottom base
+                4, 5,  5, 6,  6, 7,  7, 4   // top base
+            ]
+        )
+    }
+    return boxCage
 }

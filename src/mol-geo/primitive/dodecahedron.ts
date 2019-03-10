@@ -35,7 +35,7 @@ const dodecahedronIndices: ReadonlyArray<number> = [  // pentagonal faces
      7, 1, 2,     2, 17, 18,   7, 2, 18,   // 7, 1, 2, 17, 18
 ];
 
-const dodecahedronEdgeIndices: ReadonlyArray<number> = [
+const dodecahedronEdges: ReadonlyArray<number> = [
      0, 1,   0, 4,    0, 5,    1, 2,    1, 7,    2, 3,    2, 17,   3, 4,    3, 14,   4, 16,
      5, 6,   5, 19,   6, 7,    6, 11,   7, 18,   8, 9,    8, 12,   8, 13,   9, 10,   9, 15,
     10, 11, 10, 18,  11, 12,  12, 19,  13, 14,  13, 16,  14, 15,  15, 17,  16, 19,  17, 18,
@@ -47,7 +47,7 @@ export function Dodecahedron(): Primitive {
     return dodecahedron
 }
 
-const dodecahedronCage = createCage(dodecahedronVertices, dodecahedronEdgeIndices)
+const dodecahedronCage = createCage(dodecahedronVertices, dodecahedronEdges)
 export function DodecahedronCage(): Cage {
     return dodecahedronCage
 }
