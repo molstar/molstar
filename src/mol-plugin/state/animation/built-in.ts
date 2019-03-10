@@ -113,6 +113,9 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         const update = state.build();
         let changed = false;
         for (const r of reprs) {
+            // TODO: find a better way to handle this, perhaps add a different state object??
+            if (r.transform.transformer === StateTransforms.Representation.StructureLabels3D) continue;
+
             const unwinds = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, r.transform.ref));
             if (unwinds.length > 0) continue;
 
@@ -180,6 +183,9 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
         const update = state.build();
         let changed = false;
         for (const r of reprs) {
+            // TODO: find a better way to handle this, perhaps add a different state object??
+            if (r.transform.transformer === StateTransforms.Representation.StructureLabels3D) continue;
+
             const explodes = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.ExplodeStructureRepresentation3D, r.transform.ref));
             if (explodes.length > 0) continue;
 

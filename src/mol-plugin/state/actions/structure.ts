@@ -69,8 +69,8 @@ export const GroProvider: DataFormatProvider<any> = {
 //
 
 const DownloadStructurePdbIdSourceOptions = PD.Group({
-    supportProps: PD.asOptional(PD.Boolean(false)),
-    asTrajectory: PD.asOptional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
+    supportProps: PD.Optional(PD.Boolean(false)),
+    asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
 });
 
 export { DownloadStructure };
@@ -97,7 +97,7 @@ const DownloadStructure = StateAction.build({
                 format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']]),
                 isBinary: PD.Boolean(false),
                 options: PD.Group({
-                    supportProps: PD.asOptional(PD.Boolean(false))
+                    supportProps: PD.Optional(PD.Boolean(false))
                 })
             }, { isFlat: true })
         }, {
@@ -242,7 +242,7 @@ export const UpdateTrajectory = StateAction.build({
     display: { name: 'Update Trajectory' },
     params: {
         action: PD.Select<'advance' | 'reset'>('advance', [['advance', 'Advance'], ['reset', 'Reset']]),
-        by: PD.asOptional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
+        by: PD.Optional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
     }
 })(({ params, state }) => {
     const models = state.selectQ(q => q.ofTransformer(StateTransforms.Model.ModelFromTrajectory));

@@ -181,7 +181,8 @@ export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeri
 export class NumberRangeControl extends SimpleParam<PD.Numeric> {
     onChange = (v: number) => { this.update(v); }
     renderControl() {
-        return <Slider value={this.props.value} min={this.props.param.min!} max={this.props.param.max!}
+        const value = typeof this.props.value === 'undefined' ? this.props.param.defaultValue : this.props.value;
+        return <Slider value={value} min={this.props.param.min!} max={this.props.param.max!}
             step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} onEnter={this.props.onEnter} />
     }
 }

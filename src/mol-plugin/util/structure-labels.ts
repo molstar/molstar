@@ -50,20 +50,25 @@ function getLabelsShape(ctx: RuntimeContext, data: LabelsData, props: PD.Values<
 const boundaryHelper = new BoundaryHelper();
 function getLabelData(structure: Structure, params: StateTransformer.Params<StructureLabels3D>): LabelsData {
     if (params.target.name === 'static-text') {
-        return getLabelDataStatic(structure, params.target.params.value);
+        return getLabelDataStatic(structure, params.target.params.value, params.target.params.size || 1, params.target.params.position || 'middle-center');
     } else {
         return getLabelDataComputed(structure, params.target.name);
     }
 
 }
 
-function getLabelDataStatic(structure: Structure, text: string): LabelsData {
+function getLabelDataStatic(structure: Structure, text: string, size: number, position: Text.Params['attachment']['defaultValue']): LabelsData {
     const boundary = structure.boundary.sphere;
+    let oX = 0, oY = 0;
+    if (position.indexOf('left') >= 0) oX = -boundary.radius;
+    if (position.indexOf('right') >= 0) oX = boundary.radius;
+    if (position.indexOf('top') >= 0) oY = boundary.radius;
+    if (position.indexOf('bottom') >= 0) oY = -boundary.radius;
     return {
         texts: [text],
-        positions: [boundary.center],
-        sizes: [1],
-        depths: [boundary.radius]
+        positions: [Vec3.add(Vec3.zero(), boundary.center, Vec3.create(oX, oY, 0))],
+        sizes: [size],
+        depths: [boundary.radius + Math.sqrt(oX * oX + oY * oY)]
     };
 }
 

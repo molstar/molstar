@@ -202,9 +202,13 @@ const StructureLabels3D = PluginStateTransform.BuiltIn({
         target: PD.MappedStatic('residues', {
             'elements': PD.Group({ }),
             'residues': PD.Group({ }),
-            'static-text': PD.Group({ value: PD.Text('') }, { isFlat: true })
+            'static-text': PD.Group({
+                value: PD.Text(''),
+                size: PD.Optional(PD.Numeric(1, { min: 1, max: 1000, step: 0.1 })),
+                // TODO: this changes the position while rotated etc... fix
+                position: PD.Optional(Text.Params.attachment)
+            }, { isFlat: true })
         }),
-         // PD.Select<'elements' | 'residues'>('residues', [['residues', 'Residues'], ['elements', 'Elements']]),
         options: PD.Group({
             ...Text.Params,
 
@@ -215,8 +219,9 @@ const StructureLabels3D = PluginStateTransform.BuiltIn({
         })
     }
 })({
-    canAutoUpdate({ a, oldParams, newParams }) {
-        return newParams.target.name === 'static-text' || newParams.target.name === oldParams.target.name
+    canAutoUpdate({ oldParams, newParams }) {
+        return (oldParams.target.name === 'static-text' && newParams.target.name === 'static-text' && oldParams.target.params.value === newParams.target.params.value)
+            || newParams.target.name === oldParams.target.name;
     },
     apply({ a, params }) {
         return Task.create('Structure Labels', async ctx => {

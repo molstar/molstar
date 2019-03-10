@@ -36,9 +36,10 @@ export namespace ParamDefinition {
         type: T['type']
     }
 
-    export function asOptional<T>(p: Base<T>): Base<T | undefined> {
-        p.isOptional = true;
-        return p;
+    export function Optional<T>(p: Base<T>): Base<T | undefined> {
+        const ret = { ...p };
+        ret.isOptional = true;
+        return ret;
     }
 
     export interface Value<T> extends Base<T> {
