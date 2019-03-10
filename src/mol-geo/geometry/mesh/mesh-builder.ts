@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,9 +10,14 @@ import { ChunkedArray } from 'mol-data/util';
 import { Mesh } from './mesh';
 import { getNormalMatrix } from '../../util';
 import { Primitive } from '../../primitive/primitive';
+import { Cage } from 'mol-geo/primitive/cage';
+import { addSphere } from './builder/sphere';
+import { addCylinder } from './builder/cylinder';
 
 const tmpV = Vec3.zero()
 const tmpMat3 = Mat3.zero()
+const tmpVecA = Vec3.zero()
+const tmpVecB = Vec3.zero()
 
 export namespace MeshBuilder {
     export interface State {
@@ -52,6 +57,20 @@ export namespace MeshBuilder {
         }
         for (let i = 0, il = ia.length; i < il; i += 3) {
             ChunkedArray.add3(indices, ia[i] + offset, ia[i + 1] + offset, ia[i + 2] + offset);
+        }
+    }
+
+    export function addCage(state: State, t: Mat4, cage: Cage, radius: number, detail: number) {
+        const { vertices: va, edges: ea } = cage
+        const cylinderProps = { radiusTop: radius, radiusBottom: radius }
+        for (let i = 0, il = ea.length; i < il; i += 2) {
+            Vec3.fromArray(tmpVecA, va, ea[i] * 3)
+            Vec3.fromArray(tmpVecB, va, ea[i + 1] * 3)
+            Vec3.transformMat4(tmpVecA, tmpVecA, t)
+            Vec3.transformMat4(tmpVecB, tmpVecB, t)
+            addSphere(state, tmpVecA, radius, detail)
+            addSphere(state, tmpVecB, radius, detail)
+            addCylinder(state, tmpVecA, tmpVecB, 1, cylinderProps)
         }
     }
 

@@ -16,8 +16,8 @@ export interface LinesBuilder {
     getLines(): Lines
 }
 
-const tmpA = Vec3.zero()
-const tmpB = Vec3.zero()
+const tmpVecA = Vec3.zero()
+const tmpVecB = Vec3.zero()
 
 export namespace LinesBuilder {
     export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): LinesBuilder {
@@ -47,11 +47,11 @@ export namespace LinesBuilder {
             addCage: (t: Mat4, cage: Cage, group: number) => {
                 const { vertices, edges } = cage
                 for (let i = 0, il = edges.length; i < il; i += 2) {
-                    Vec3.fromArray(tmpA, vertices, edges[i] * 3)
-                    Vec3.fromArray(tmpB, vertices, edges[i + 1] * 3)
-                    Vec3.transformMat4(tmpA, tmpA, t)
-                    Vec3.transformMat4(tmpB, tmpB, t)
-                    add(tmpA[0], tmpA[1], tmpA[2], tmpB[0], tmpB[1], tmpB[2], group)
+                    Vec3.fromArray(tmpVecA, vertices, edges[i] * 3)
+                    Vec3.fromArray(tmpVecB, vertices, edges[i + 1] * 3)
+                    Vec3.transformMat4(tmpVecA, tmpVecA, t)
+                    Vec3.transformMat4(tmpVecB, tmpVecB, t)
+                    add(tmpVecA[0], tmpVecA[1], tmpVecA[2], tmpVecB[0], tmpVecB[1], tmpVecB[2], group)
                 }
             },
             getLines: () => {
