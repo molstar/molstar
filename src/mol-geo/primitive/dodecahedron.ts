@@ -13,11 +13,27 @@ const a = 1;
 const b = 1 / t;
 const c = 2 - t;
 
-const dodecahedronVertices: ReadonlyArray<number> = [
+export const dodecahedronVertices: ReadonlyArray<number> = [
      c, 0, a,    -c, 0, a,    -b, b, b,    0, a, c,     b, b, b,
      b, -b, b,    0, -a, c,   -b, -b, b,   c, 0, -a,   -c, 0, -a,
     -b, -b, -b,   0, -a, -c,   b, -b, -b,  b,  b, -b,   0, a, -c,
     -b, b, -b,    a, c, 0,    -a, c, 0,   -a, -c, 0,    a, -c, 0
+];
+
+/** indices of pentagonal faces, groups of five  */
+export const dodecahedronFaces: ReadonlyArray<number> = [
+     4, 3, 2, 1, 0,
+     7, 6, 5, 0, 1,
+    12, 11, 10, 9, 8,
+    15, 14, 13, 8, 9,
+    14, 3, 4, 16, 13,
+     3, 14, 15, 17, 2,
+    11, 6, 7, 18, 10,
+     6, 11, 12, 19, 5,
+     4, 0, 5, 19, 16,
+    12, 8, 13, 16, 19,
+    15, 9, 10, 18, 17,
+     7, 1, 2, 17, 18
 ];
 
 const dodecahedronIndices: ReadonlyArray<number> = [  // pentagonal faces
