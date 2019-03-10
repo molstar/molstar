@@ -47,7 +47,7 @@ export namespace VolumeStreaming {
         const box = (data && data.structure.boundary.box) || Box3D.empty();
 
         return {
-            view: PD.MappedStatic('selection-box', {
+            view: PD.MappedStatic(info.kind === 'em' ? 'cell' : 'selection-box', {
                 'box': PD.Group({
                     bottomLeft: PD.Vec3(box.min),
                     topRight: PD.Vec3(box.max),
@@ -60,7 +60,7 @@ export namespace VolumeStreaming {
                 'cell': PD.Group({}),
                 // 'auto': PD.Group({  }), // based on camera distance/active selection/whatever, show whole structure or slice.
             }, { options: [['box', 'Bounded Box'], ['selection-box', 'Selection'], ['cell', 'Whole Structure']] }),
-            detailLevel: PD.Select<number>(Math.min(1, info.header.availablePrecisions.length - 1),
+            detailLevel: PD.Select<number>(Math.min(3, info.header.availablePrecisions.length - 1),
                 info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string])),
             channels: info.kind === 'em'
                 ? PD.Group({

@@ -38,8 +38,13 @@ function init() {
 async function trySetSnapshot(ctx: PluginContext) {
     try {
         const snapshotUrl = getParam('snapshot-url', `[^&]+`);
-        if (!snapshotUrl) return;
-        await PluginCommands.State.Snapshots.Fetch.dispatch(ctx, { url: snapshotUrl })
+        const snapshotId = getParam('snapshot-id', `[^&]+`);
+        if (!snapshotUrl && !snapshotId) return;
+        // TODO parametrize the server
+        const url = snapshotId
+            ? `https://webchem.ncbr.muni.cz/molstar-state/get/${snapshotId}`
+            : snapshotUrl;
+        await PluginCommands.State.Snapshots.Fetch.dispatch(ctx, { url })
     } catch (e) {
         ctx.log.error('Failed to load snapshot.');
         console.warn('Failed to load snapshot', e);

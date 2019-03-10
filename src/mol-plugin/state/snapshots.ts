@@ -190,6 +190,7 @@ class PluginStateSnapshotManager extends PluginComponent<{
                 this.next();
                 return;
             }
+            this.events.changed.next();
             const snapshot = e.snapshot;
             const delay = typeof snapshot.durationInMs !== 'undefined' ? snapshot.durationInMs : this.state.nextSnapshotDelayInMs;
             this.timeoutHandle = setTimeout(this.next, delay);

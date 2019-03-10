@@ -109,8 +109,37 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         // TODO: this needs to be diabled when the state is updating!
         this.subscribe(this.plugin.state.snapshots.events.changed, () => this.forceUpdate());
         this.subscribe(this.plugin.behaviors.state.isUpdating, isBusy => this.setState({ isBusy }));
-        this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }));
+        this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }))
+
+        window.addEventListener('keyup', this.keyUp, false);
     }
+
+    componentWillUnmount() {
+        super.componentWillUnmount();
+        window.removeEventListener('keyup', this.keyUp, false);
+    }
+
+    keyUp = (e: KeyboardEvent) => {
+        if (!e.ctrlKey || this.state.isBusy || e.target !== document.body) return;
+        const snapshots = this.plugin.state.snapshots;
+        if (e.keyCode === 37) { // left
+            if (snapshots.state.isPlaying) snapshots.stop();
+            this.prev();
+        } else if (e.keyCode === 38) { // up
+            if (snapshots.state.isPlaying) snapshots.stop();
+            if (snapshots.state.entries.size === 0) return;
+            const e = snapshots.state.entries.get(0);
+            this.update(e.snapshot.id);
+        } else if (e.keyCode === 39) { // right
+            if (snapshots.state.isPlaying) snapshots.stop();
+            this.next();
+        } else if (e.keyCode === 40) { // down
+            if (snapshots.state.isPlaying) snapshots.stop();
+            if (snapshots.state.entries.size === 0) return;
+            const e = snapshots.state.entries.get(snapshots.state.entries.size - 1);
+            this.update(e.snapshot.id);
+        }
+    };
 
     async update(id: string) {
         this.setState({ isBusy: true });
@@ -155,7 +184,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
                 {!current && <option key='none' value='none'></option>}
                 {snapshots.state.entries.valueSeq().map((e, i) => <option key={e!.snapshot.id} value={e!.snapshot.id}>{`[${i! + 1}/${count}]`} {e!.name || new Date(e!.timestamp).toLocaleString()}</option>)}
             </select>
-            <IconButton icon={isPlaying ? 'pause' : 'play'} title={isPlaying ? 'Pause' : 'Cycle States'} onClick={this.togglePlay}
+            <IconButton icon={isPlaying ? 'stop' : 'play'} title={isPlaying ? 'Pause' : 'Cycle States'} onClick={this.togglePlay}
                 disabled={isPlaying ? false : this.state.isBusy} />
             {!isPlaying && <>
                 <IconButton icon='left-open' title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
@@ -190,12 +219,15 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
 
     render() {
         // if (!this.state.show) return null;
+        const isPlaying = this.plugin.state.snapshots.state.isPlaying;
+        if (isPlaying) return null;
+
         const isAnimating = this.state.isAnimating;
 
         return <div className='msp-animation-viewport-controls'>
-            <IconButton icon={isAnimating ? 'stop' : 'play'} title={isAnimating ? 'Stop' : 'Select Animation'}
-                onClick={isAnimating ? this.stop : this.toggleExpanded}
-                disabled={isAnimating ? false : this.state.isUpdating || this.state.isPlaying || this.state.isEmpty} />
+            <IconButton icon={isAnimating || isPlaying ? 'stop' : 'play'} title={isAnimating ? 'Stop' : 'Select Animation'}
+                onClick={isAnimating || isPlaying ? this.stop : this.toggleExpanded}
+                disabled={isAnimating|| isPlaying ? false : this.state.isUpdating || this.state.isPlaying || this.state.isEmpty} />
             {(this.state.isExpanded && !this.state.isUpdating) && <div className='msp-animation-viewport-controls-select'>
                 <AnimationControls onStart={this.toggleExpanded} />
             </div>}

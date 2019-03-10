@@ -157,7 +157,7 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
     }
 }
 
-type RemoteEntry = { url: string, removeUrl: string, timestamp: number, id: string, name: string, description: string }
+type RemoteEntry = { url: string, removeUrl: string, timestamp: number, id: string, name: string, description: string, isSticky?: boolean }
 class RemoteStateSnapshots extends PluginUIComponent<
     { },
     { params: PD.Values<typeof RemoteStateSnapshots.Params>, entries: OrderedMap<string, RemoteEntry>, isBusy: boolean }> {
@@ -186,7 +186,13 @@ class RemoteStateSnapshots extends PluginUIComponent<
     refresh = async () => {
         try {
             this.setState({ isBusy: true });
-            const json = await this.plugin.runTask<RemoteEntry[]>(this.plugin.fetch({ url: this.serverUrl('list'), type: 'json'  }));
+            const json = (await this.plugin.runTask<RemoteEntry[]>(this.plugin.fetch({ url: this.serverUrl('list'), type: 'json'  }))) || [];
+
+            json.sort((a, b) => {
+                if (a.isSticky === b.isSticky) return a.timestamp - b.timestamp;
+                return a.isSticky ? -1 : 1;
+            });
+
             const entries = OrderedMap<string, RemoteEntry>().asMutable();
             for (const e of json) {
                 entries.set(e.id, {
@@ -293,9 +299,9 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
                     disabled={this.props.isBusy} onContextMenu={this.open} title='Click to download, right-click to open in a new tab.'>
                     {e!.name || new Date(e!.timestamp).toLocaleString()} <small>{e!.description}</small>
                 </button>
-                <div>
+                {!e!.isSticky && <div>
                     <IconButton data-id={e!.id} icon='remove' title='Remove' onClick={this.props.remove} disabled={this.props.isBusy} />
-                </div>
+                </div>}
             </li>)}
         </ul>;
     }
