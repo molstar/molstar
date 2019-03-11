@@ -87,7 +87,7 @@ export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: Set<strin
         trace: new Set(['N4\'', 'N4*']),
         direction: new Set(['C7\'', 'C7*']),
         backboneStart: new Set(['N1\'', 'N1*']),
-        backboneEnd: new Set(['C1\'', 'C1*']),
+        backboneEnd: new Set(['C\'', 'C*']),
         coarseBackbone: new Set(['P'])
     }
 }
