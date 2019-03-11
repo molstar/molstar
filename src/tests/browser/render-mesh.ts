@@ -13,6 +13,7 @@ import { Representation } from 'mol-repr/representation';
 import { Color } from 'mol-util/color';
 import { createRenderObject } from 'mol-gl/render-object';
 import { SpikedBall } from 'mol-geo/primitive/spiked-ball';
+import { HexagonalPrismCage } from 'mol-geo/primitive/prism';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -28,8 +29,14 @@ canvas3d.animate()
 
 function meshRepr() {
     const builderState = MeshBuilder.createState()
+    
     const t = Mat4.identity()
-    MeshBuilder.addPrimitive(builderState, t, SpikedBall(3))
+    MeshBuilder.addCage(builderState, t, HexagonalPrismCage(), 0.005, 2)
+
+    const t2 = Mat4.identity()
+    Mat4.scaleUniformly(t2, t2, 0.1)
+    MeshBuilder.addPrimitive(builderState, t2, SpikedBall(3))
+
     const mesh = MeshBuilder.getMesh(builderState)
 
     const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0xFF0000), 1)

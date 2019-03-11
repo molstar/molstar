@@ -7,6 +7,7 @@
 import { Vec3 } from 'mol-math/linear-algebra'
 import { Primitive, PrimitiveBuilder, createPrimitive } from './primitive';
 import { polygon } from './polygon'
+import { Cage } from './cage';
 
 const on = Vec3.create(0, 0, -0.5), op = Vec3.create(0, 0, 0.5)
 const a = Vec3.zero(), b = Vec3.zero(), c = Vec3.zero(), d = Vec3.zero()
@@ -59,8 +60,6 @@ export function OctagonalPyramid() {
     return octagonalPyramid
 }
 
-//
-
 let perforatedOctagonalPyramid: Primitive
 export function PerforatedOctagonalPyramid() {
     if (!perforatedOctagonalPyramid) {
@@ -84,4 +83,41 @@ export function PerforatedOctagonalPyramid() {
         perforatedOctagonalPyramid = createPrimitive(vertices, indices)
     }
     return perforatedOctagonalPyramid
+}
+
+//
+
+/**
+ * Create a prism cage
+ */
+export function PyramidCage(points: ArrayLike<number>): Cage {
+    const sideCount = points.length / 3
+
+    // const count = 4 * sideCount
+    const vertices: number[] = []
+    const edges: number[] = []
+
+    let offset = 1
+    vertices.push(op[0], op[1], op[2])
+
+    // vertices and side edges
+    for (let i = 0; i < sideCount; ++i) {
+        vertices.push(points[i * 3], points[i * 3 + 1], -0.5)
+        edges.push(0, offset)
+        offset += 1
+    }
+
+    // bases edges
+    for (let i = 0; i < sideCount; ++i) {
+        const ni = (i + 1) % sideCount
+        edges.push(i + 1, ni + 1)
+    }
+
+    return { vertices, edges }
+}
+
+let octagonalPyramidCage: Cage
+export function OctagonalPyramidCage() {
+    if (!octagonalPyramidCage) octagonalPyramidCage = PyramidCage(polygon(8, true))
+    return octagonalPyramidCage
 }

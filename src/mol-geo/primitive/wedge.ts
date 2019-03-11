@@ -7,6 +7,8 @@
 import { Vec3 } from 'mol-math/linear-algebra'
 import { Primitive, PrimitiveBuilder } from './primitive';
 import { polygon } from './polygon'
+import { PrismCage } from './prism';
+import { Cage } from './cage';
 
 const a = Vec3.zero(), b = Vec3.zero(), c = Vec3.zero(), d = Vec3.zero()
 const points = polygon(3, false)
@@ -45,4 +47,10 @@ let wedge: Primitive
 export function Wedge() {
     if (!wedge) wedge = createWedge()
     return wedge
+}
+
+let wedgeCage: Cage
+export function WedgeCage() {
+    if (!wedgeCage) wedgeCage = PrismCage(points)
+    return wedgeCage
 }
