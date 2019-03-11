@@ -44,7 +44,7 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
     createLocationIterator(volume: VolumeData): LocationIterator
     getLoci(pickingId: PickingId, id: number): Loci
     eachLocation(loci: Loci, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
+    setUpdateState(state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
 interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
@@ -91,7 +91,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             return
         }
 
-        setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState(updateState, volume, newProps, currentProps, newTheme, currentTheme)
 
         if (!ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
 

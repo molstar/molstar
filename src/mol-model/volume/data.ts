@@ -6,7 +6,6 @@
 
 import { SpacegroupCell, Box3D } from 'mol-math/geometry'
 import { Tensor, Mat4, Vec3 } from 'mol-math/linear-algebra'
-import { shallowEqual } from 'mol-util/object';
 
 /** The basic unit cell that contains the data. */
 interface VolumeData {
@@ -48,9 +47,8 @@ namespace VolumeIsoValue {
     export type Relative = Readonly<{ kind: 'relative', relativeValue: number }>
     export type Absolute = Readonly<{ kind: 'absolute', absoluteValue: number }>
 
-    export function areSame(a: VolumeIsoValue, b: VolumeIsoValue) {
-        // TODO: this should compare values converted to absolute value
-        return shallowEqual(a, b);
+    export function areSame(a: VolumeIsoValue, b: VolumeIsoValue, stats: VolumeData['dataStats']) {
+        return toAbsolute(a, stats).absoluteValue === toAbsolute(b, stats).absoluteValue
     }
 
     export function absolute(value: number): Absolute { return { kind: 'absolute', absoluteValue: value }; }
