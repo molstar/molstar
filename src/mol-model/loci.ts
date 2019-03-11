@@ -81,25 +81,7 @@ namespace Loci {
         if (loci.kind === 'structure-loci') {
             return Sphere3D.copy(boundingSphere, loci.structure.boundary.sphere)
         } else if (loci.kind === 'element-loci') {
-            for (const e of loci.elements) {
-                const { indices } = e;
-                const pos = e.unit.conformation.position;
-                const { elements } = e.unit;
-                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
-                    pos(elements[OrderedSet.getAt(indices, i)], tempPos);
-                    sphereHelper.includeStep(tempPos);
-                }
-            }
-            sphereHelper.finishedIncludeStep();
-            for (const e of loci.elements) {
-                const { indices } = e;
-                const pos = e.unit.conformation.position;
-                const { elements } = e.unit;
-                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
-                    pos(elements[OrderedSet.getAt(indices, i)], tempPos);
-                    sphereHelper.radiusStep(tempPos);
-                }
-            }
+            return StructureElement.Loci.getBoundary(loci).sphere;
         } else if (loci.kind === 'link-loci') {
             for (const e of loci.links) {
                 e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tempPos);

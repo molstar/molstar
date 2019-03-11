@@ -18,6 +18,7 @@ import { Sphere3D } from 'mol-math/geometry';
 import { createSizes, getMaxSize } from '../size-data';
 import { Color } from 'mol-util/color';
 import { BaseGeometry } from '../base';
+import { createEmptyOverpaint } from '../overpaint-data';
 
 /** Spheres */
 export interface Spheres {
@@ -79,6 +80,7 @@ export namespace Spheres {
         const color = createColors(locationIt, theme.color)
         const size = createSizes(locationIt, theme.size)
         const marker = createMarkers(instanceCount * groupCount)
+        const overpaint = createEmptyOverpaint()
 
         const counts = { drawCount: spheres.sphereCount * 2 * 3, groupCount, instanceCount }
 
@@ -98,6 +100,7 @@ export namespace Spheres {
             ...color,
             ...size,
             ...marker,
+            ...overpaint,
             ...transform,
 
             padding: ValueCell.create(padding),

@@ -4,27 +4,36 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { List } from 'immutable';
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { EmptyLoci, Loci } from 'mol-model/loci';
-import { Representation } from 'mol-repr/representation';
+import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
 import { StructureRepresentationRegistry } from 'mol-repr/structure/registry';
-import { State, Transform, Transformer } from 'mol-state';
+import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
+import { State, StateTransform, StateTransformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { ThemeRegistryContext } from 'mol-theme/theme';
+import { Color } from 'mol-util/color';
+import { ajaxGet } from 'mol-util/data-source';
 import { LogEntry } from 'mol-util/log-entry';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { merge } from 'rxjs';
 import { BuiltInPluginBehaviors } from './behavior';
+import { PluginBehavior } from './behavior/behavior';
 import { PluginCommand, PluginCommands } from './command';
+import { PluginLayout } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
-import { TaskManager } from './util/task-manager';
-import { Color } from 'mol-util/color';
+import { DataFormatRegistry } from './state/actions/data-format';
+import { StateTransformParameters } from './ui/state/common';
 import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
-import { ajaxGet } from 'mol-util/data-source';
-import { CustomPropertyRegistry } from './util/custom-prop-registry';
+import { TaskManager } from './util/task-manager';
+import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
+import { StructureElementSelectionManager } from './util/structure-element-selection';
+import { SubstructureParentHelper } from './util/substructure-parent-helper';
+import { Representation } from 'mol-repr/representation';
+import { ModifiersKeys } from 'mol-util/input/input-observer';
 
 export class PluginContext {
     private disposed = false;
@@ -51,23 +60,27 @@ export class PluginContext {
         },
         log: this.ev<LogEntry>(),
         task: this.tasks.events,
-        labels: {
-            highlight: this.ev<{ entries: ReadonlyArray<LociLabelEntry> }>()
-        },
-        canvad3d: {
+        canvas3d: {
             settingsUpdated: this.ev()
         }
     };
 
     readonly behaviors = {
-        canvas: {
-            highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
-            selectLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
+        state: {
+            isAnimating: this.ev.behavior<boolean>(false),
+            isUpdating: this.ev.behavior<boolean>(false)
         },
-        command: this.commands.behaviour
+        canvas3d: {
+            highlight: this.ev.behavior<Canvas3D.HighlightEvent>({ current: Representation.Loci.Empty, prev: Representation.Loci.Empty }),
+            click: this.ev.behavior<Canvas3D.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
+        },
+        labels: {
+            highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
+        }
     };
 
     readonly canvas3d: Canvas3D;
+    readonly layout: PluginLayout = new PluginLayout(this);
 
     readonly lociLabels: LociLabelManager;
 
@@ -76,10 +89,27 @@ export class PluginContext {
         themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
     }
 
+    readonly volumeRepresentation = {
+        registry: new VolumeRepresentationRegistry(),
+        themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
+    }
+
+    readonly dataFormat = {
+        registry: new DataFormatRegistry()
+    }
+
     readonly customModelProperties = new CustomPropertyRegistry();
+    readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
+
+    readonly helpers = {
+        structureSelection: new StructureElementSelectionManager(this),
+        substructureParent: new SubstructureParentHelper(this)
+    };
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
+            this.layout.setRoot(container);
+            if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
             (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
             PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { backgroundColor: Color(0xFCFBF9) } });
             this.canvas3d.animate();
@@ -92,6 +122,7 @@ export class PluginContext {
     }
 
     readonly log = {
+        entries: List<LogEntry>(),
         entry: (e: LogEntry) => this.events.log.next(e),
         error: (msg: string) => this.events.log.next(LogEntry.error(msg)),
         message: (msg: string) => this.events.log.next(LogEntry.message(msg)),
@@ -103,11 +134,7 @@ export class PluginContext {
      * This should be used in all transform related request so that it could be "spoofed" to allow
      * "static" access to resources.
      */
-    fetch(url: string, type: 'string' | 'binary' = 'string', body?: string): Task<string | Uint8Array> {
-        return ajaxGet({ url, type, body });
-        // const req = await fetch(url, { referrerPolicy: 'origin-when-cross-origin' });
-        // return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
-    }
+    readonly fetch = ajaxGet
 
     runTask<T>(task: Task<T>) {
         return this.tasks.run(task);
@@ -120,7 +147,24 @@ export class PluginContext {
         this.ev.dispose();
         this.state.dispose();
         this.tasks.dispose();
+        this.layout.dispose();
         this.disposed = true;
+    }
+
+    applyTransform(state: State, a: StateTransform.Ref, transformer: StateTransformer, params: any) {
+        const tree = state.build().to(a).apply(transformer, params);
+        return PluginCommands.State.Update.dispatch(this, { state, tree });
+    }
+
+    updateTransform(state: State, a: StateTransform.Ref, params: any) {
+        const tree = state.build().to(a).update(params);
+        return PluginCommands.State.Update.dispatch(this, { state, tree });
+    }
+
+    private initBehaviorEvents() {
+        merge(this.state.dataState.events.isUpdating, this.state.behaviorState.events.isUpdating).subscribe(u => {
+            this.behaviors.state.isUpdating.next(u);
+        });
     }
 
     private initBuiltInBehavior() {
@@ -132,40 +176,54 @@ export class PluginContext {
         merge(this.state.dataState.events.log, this.state.behaviorState.events.log).subscribe(e => this.events.log.next(e));
     }
 
-    async initBehaviors() {
-        const tree = this.state.behaviorState.tree.build();
+    private async initBehaviors() {
+        const tree = this.state.behaviorState.build();
 
-        for (const b of this.spec.behaviors) {
-            tree.toRoot().apply(b.transformer, b.defaultParams || { }, { ref: b.transformer.id });
+        for (const cat of Object.keys(PluginBehavior.Categories)) {
+            tree.toRoot().apply(PluginBehavior.CreateCategory, { label: (PluginBehavior.Categories as any)[cat] }, { ref: cat, props: { isLocked: true } });
         }
 
-        await this.runTask(this.state.behaviorState.update(tree));
+        for (const b of this.spec.behaviors) {
+            tree.to(PluginBehavior.getCategoryId(b.transformer)).apply(b.transformer, b.defaultParams, { ref: b.transformer.id });
+        }
+
+        await this.runTask(this.state.behaviorState.updateTree(tree, { doNotUpdateCurrent: true, doNotLogTiming: true }));
     }
 
-    initDataActions() {
+    private initDataActions() {
         for (const a of this.spec.actions) {
             this.state.dataState.actions.add(a.action);
         }
     }
 
-    applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {
-        const tree = state.tree.build().to(a).apply(transformer, params);
-        return PluginCommands.State.Update.dispatch(this, { state, tree });
+    private initAnimations() {
+        if (!this.spec.animations) return;
+        for (const anim of this.spec.animations) {
+            this.state.animation.register(anim);
+        }
     }
 
-    updateTransform(state: State, a: Transform.Ref, params: any) {
-        const tree = state.build().to(a).update(params);
-        return PluginCommands.State.Update.dispatch(this, { state, tree });
+    private initCustomParamEditors() {
+        if (!this.spec.customParamEditors) return;
+
+        for (const [t, e] of this.spec.customParamEditors) {
+            this.customParamEditors.set(t.id, e);
+        }
     }
 
     constructor(public spec: PluginSpec) {
+        this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e));
+
+        this.initBehaviorEvents();
         this.initBuiltInBehavior();
 
         this.initBehaviors();
         this.initDataActions();
+        this.initAnimations();
+        this.initCustomParamEditors();
 
         this.lociLabels = new LociLabelManager(this);
-    }
 
-    // settings = ;
+        this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
+    }
 }

@@ -6,8 +6,7 @@
 
 import { PluginCommands } from 'mol-plugin/command';
 import { PluginContext } from 'mol-plugin/context';
-import { State, Transform } from 'mol-state';
-import { StateAction } from 'mol-state/action';
+import { State, StateTransform, StateAction } from 'mol-state';
 import { memoizeLatest } from 'mol-util/memoize';
 import { StateTransformParameters, TransformContolBase } from './common';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -17,13 +16,14 @@ export { ApplyActionContol };
 namespace ApplyActionContol {
     export interface Props {
         plugin: PluginContext,
-        nodeRef: Transform.Ref,
+        nodeRef: StateTransform.Ref,
         state: State,
-        action: StateAction
+        action: StateAction,
+        initiallyCollapsed?: boolean
     }
 
     export interface ComponentState {
-        ref: Transform.Ref,
+        ref: StateTransform.Ref,
         version: string,
         params: any,
         error?: string,
@@ -41,15 +41,16 @@ class ApplyActionContol extends TransformContolBase<ApplyActionContol.Props, App
         });
     }
     getInfo() { return this._getInfo(this.props.nodeRef, this.props.state.transforms.get(this.props.nodeRef).version); }
+    getTransformerId() { return this.props.state.transforms.get(this.props.nodeRef).transformer.id; }
     getHeader() { return this.props.action.definition.display; }
     canApply() { return !this.state.error && !this.state.busy; }
     canAutoApply() { return false; }
     applyText() { return 'Apply'; }
     isUpdate() { return false; }
 
-    private _getInfo = memoizeLatest((t: Transform.Ref, v: string) => StateTransformParameters.infoFromAction(this.plugin, this.props.state, this.props.action, this.props.nodeRef));
+    private _getInfo = memoizeLatest((t: StateTransform.Ref, v: string) => StateTransformParameters.infoFromAction(this.plugin, this.props.state, this.props.action, this.props.nodeRef));
 
-    state = { ref: this.props.nodeRef, version: this.props.state.transforms.get(this.props.nodeRef).version, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false };
+    state = { ref: this.props.nodeRef, version: this.props.state.transforms.get(this.props.nodeRef).version, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
 
     static getDerivedStateFromProps(props: ApplyActionContol.Props, state: ApplyActionContol.ComponentState) {
         if (props.nodeRef === state.ref) return null;

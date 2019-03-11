@@ -9,14 +9,15 @@ import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-r
 import { StructureQualityReportColorTheme } from 'mol-model-props/pdbe/themes/structure-quality-report';
 import { Loci } from 'mol-model/loci';
 import { StructureElement } from 'mol-model/structure';
-import { CustomPropertyRegistry } from 'mol-plugin/util/custom-prop-registry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginBehavior } from '../../../behavior';
 import { ThemeDataContext } from 'mol-theme/theme';
+import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
 
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'pdbe-structure-quality-report-prop',
-    display: { name: 'PDBe Structure Quality Report', group: 'Custom Props' },
+    category: 'custom-props',
+    display: { name: 'PDBe Structure Quality Report' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private attach = StructureQualityReport.createAttachTask(
             m => `https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${m.label.toLowerCase()}`,
@@ -40,7 +41,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
                 factory: StructureQualityReportColorTheme,
                 getParams: () => ({}),
                 defaultValues: {},
-                isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models[0].customProperties.has(StructureQualityReport.Descriptor)
+                isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(StructureQualityReport.Descriptor)
             })
         }
 

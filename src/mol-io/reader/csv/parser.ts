@@ -8,7 +8,7 @@
 import { Tokens, TokenBuilder, Tokenizer } from '../common/text/tokenizer'
 import * as Data from './data-model'
 import Field from './field'
-import Result from '../result'
+import { ReaderResult as Result } from '../result'
 import { Task, RuntimeContext, chunkedSubtask, } from 'mol-task'
 
 const enum CsvTokenType {
@@ -231,7 +231,7 @@ function readRecordsChunks(state: State) {
 
 function addColumn (state: State) {
     state.columnNames.push(Tokenizer.getTokenString(state.tokenizer))
-    state.tokens.push(TokenBuilder.create(state.tokenizer, state.data.length / 80))
+    state.tokens.push(TokenBuilder.create(state.tokenizer.data, state.data.length / 80))
 }
 
 function init(state: State) {
@@ -254,7 +254,7 @@ async function handleRecords(state: State): Promise<Data.CsvTable> {
 
     const columns: Data.CsvColumns = Object.create(null);
     for (let i = 0; i < state.columnCount; ++i) {
-        columns[state.columnNames[i]] = Field(state.tokens[i], state.recordCount);
+        columns[state.columnNames[i]] = Field(state.tokens[i]);
     }
 
     return Data.CsvTable(state.recordCount, state.columnNames, columns)

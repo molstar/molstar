@@ -7,12 +7,13 @@
 import './index.html'
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { Sphere } from 'mol-geo/primitive/sphere';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Representation } from 'mol-repr/representation';
 import { Color } from 'mol-util/color';
 import { createRenderObject } from 'mol-gl/render-object';
+import { SpikedBall } from 'mol-geo/primitive/spiked-ball';
+import { HexagonalPrismCage } from 'mol-geo/primitive/prism';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -28,15 +29,20 @@ canvas3d.animate()
 
 function meshRepr() {
     const builderState = MeshBuilder.createState()
+    
     const t = Mat4.identity()
-    const sphere = Sphere(2)
-    MeshBuilder.addPrimitive(builderState, t, sphere)
+    MeshBuilder.addCage(builderState, t, HexagonalPrismCage(), 0.005, 2)
+
+    const t2 = Mat4.identity()
+    Mat4.scaleUniformly(t2, t2, 0.1)
+    MeshBuilder.addPrimitive(builderState, t2, SpikedBall(3))
+
     const mesh = MeshBuilder.getMesh(builderState)
 
     const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0xFF0000), 1)
     const state = Mesh.Utils.createRenderableState({})
     const renderObject = createRenderObject('mesh', values, state)
-    const repr = Representation.fromRenderObject('sphere-mesh', renderObject)
+    const repr = Representation.fromRenderObject('mesh', renderObject)
     return repr
 }
 

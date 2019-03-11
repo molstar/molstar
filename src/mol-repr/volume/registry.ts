@@ -6,7 +6,7 @@
 
 import { RepresentationProvider, RepresentationRegistry, Representation } from '../representation';
 import { VolumeData } from 'mol-model/volume';
-import { IsosurfaceRepresentationProvider } from './isosurface-mesh';
+import { IsosurfaceRepresentationProvider } from './isosurface';
 import { DirectVolumeRepresentationProvider } from './direct-volume';
 
 export class VolumeRepresentationRegistry extends RepresentationRegistry<VolumeData, Representation.State> {

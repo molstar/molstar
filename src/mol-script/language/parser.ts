@@ -163,7 +163,7 @@ namespace Language {
     }
 
     function isNumber(value: string) {
-        return /-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/.test(value);
+        return /-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/.test(value) && !isNaN(+value);
     }
 
     export function parse(input: string): Expression[] {

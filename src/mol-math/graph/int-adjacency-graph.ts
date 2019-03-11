@@ -160,6 +160,75 @@ export namespace IntAdjacencyGraph {
         }
     }
 
+    export class DirectedEdgeBuilder {
+        private bucketFill: Int32Array;
+        private current = 0;
+        private curA: number = 0;
+
+        offsets: Int32Array;
+        edgeCount: number;
+        /** the size of the A and B arrays */
+        slotCount: number;
+        a: Int32Array;
+        b: Int32Array;
+
+        createGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}>(edgeProps?: EdgeProps) {
+            return create(this.offsets, this.a, this.b, this.edgeCount, edgeProps);
+        }
+
+        /**
+         * @example
+         *   const property = new Int32Array(builder.slotCount);
+         *   for (let i = 0; i < builder.edgeCount; i++) {
+         *     builder.addNextEdge();
+         *     builder.assignProperty(property, srcProp[i]);
+         *   }
+         *   return builder.createGraph({ property });
+         */
+        addNextEdge() {
+            const a = this.xs[this.current], b = this.ys[this.current];
+
+            const oa = this.offsets[a] + this.bucketFill[a];
+
+            this.a[oa] = a;
+            this.b[oa] = b;
+            this.bucketFill[a]++;
+
+            this.current++;
+            this.curA = oa;
+        }
+
+        /** Builds property-less graph */
+        addAllEdges() {
+            for (let i = 0; i < this.edgeCount; i++) {
+                this.addNextEdge();
+            }
+        }
+
+        assignProperty<T>(prop: { [i: number]: T }, value: T) {
+            prop[this.curA] = value;
+        }
+
+        constructor(public vertexCount: number, public xs: ArrayLike<number>, public ys: ArrayLike<number>) {
+            this.edgeCount = xs.length;
+            this.offsets = new Int32Array(this.vertexCount + 1);
+            this.bucketFill = new Int32Array(this.vertexCount);
+
+            const bucketSizes = new Int32Array(this.vertexCount);
+            for (let i = 0, _i = this.xs.length; i < _i; i++) bucketSizes[this.xs[i]]++;
+
+            let offset = 0;
+            for (let i = 0; i < this.vertexCount; i++) {
+                this.offsets[i] = offset;
+                offset += bucketSizes[i];
+            }
+            this.offsets[this.vertexCount] = offset;
+            this.slotCount = offset;
+            this.a = new Int32Array(offset);
+            this.b = new Int32Array(offset);
+        }
+    }
+
     export class UniqueEdgeBuilder {
         private xs: number[] = [];
         private ys: number[] = [];

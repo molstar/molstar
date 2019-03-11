@@ -9,16 +9,16 @@
 import { Task, RuntimeContext } from 'mol-task';
 import { utf8Read } from 'mol-io/common/utf8';
 
-export enum DataCompressionMethod {
-    None,
-    Gzip
-}
+// export enum DataCompressionMethod {
+//     None,
+//     Gzip
+// }
 
-export interface AjaxGetParams {
+export interface AjaxGetParams<T extends 'string' | 'binary' | 'json' = 'string'> {
     url: string,
-    type: 'string' | 'binary',
+    type?: T,
     title?: string,
-    compression?: DataCompressionMethod
+    // compression?: DataCompressionMethod
     body?: string
 }
 
@@ -34,19 +34,18 @@ export function readFromFile(file: File, type: 'string' | 'binary') {
     return <Task<Uint8Array | string>>readFromFileInternal(file, type === 'binary');
 }
 
-export function ajaxGetString(url: string, title?: string) {
-    return <Task<string>>ajaxGetInternal(title, url, false, false);
+// TODO: support for no-referrer
+export function ajaxGet(url: string): Task<string>
+export function ajaxGet(params: AjaxGetParams<'string'>): Task<string>
+export function ajaxGet(params: AjaxGetParams<'binary'>): Task<Uint8Array>
+export function ajaxGet<T = any>(params: AjaxGetParams<'json'>): Task<T>
+export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json'>): Task<string | Uint8Array | object>
+export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json'> | string) {
+    if (typeof params === 'string') return ajaxGetInternal(params, params, 'string', false);
+    return ajaxGetInternal(params.title, params.url, params.type || 'string', false /* params.compression === DataCompressionMethod.Gzip */, params.body);
 }
 
-export function ajaxGetUint8Array(url: string, title?: string) {
-    return <Task<Uint8Array>>ajaxGetInternal(title, url, true, false);
-}
-
-export function ajaxGet(params: AjaxGetParams) {
-    return <Task<string | Uint8Array>>ajaxGetInternal(params.title, params.url, params.type === 'binary', params.compression === DataCompressionMethod.Gzip, params.body);
-}
-
-export type AjaxTask = (url: string, type: 'string' | 'binary') => Task<string | Uint8Array>
+export type AjaxTask = typeof ajaxGet
 
 function decompress(buffer: Uint8Array): Uint8Array {
     // TODO
@@ -163,10 +162,11 @@ async function processAjax(ctx: RuntimeContext, asUint8Array: boolean, decompres
     }
 }
 
-function ajaxGetInternal(title: string | undefined, url: string, asUint8Array: boolean, decompressGzip: boolean, body?: string): Task<string | Uint8Array> {
+function ajaxGetInternal(title: string | undefined, url: string, type: 'json' | 'string' | 'binary', decompressGzip: boolean, body?: string): Task<string | Uint8Array> {
     let xhttp: XMLHttpRequest | undefined = void 0;
     return Task.create(title ? title : 'Download', async ctx => {
         try {
+            const asUint8Array = type === 'binary';
             if (!asUint8Array && decompressGzip) {
                 throw 'Decompress is only available when downloading binary data.';
             }
@@ -180,6 +180,13 @@ function ajaxGetInternal(title: string | undefined, url: string, asUint8Array: b
             ctx.update({ message: 'Waiting for server...', canAbort: true });
             const e = await readData(ctx, 'Downloading...', xhttp, asUint8Array);
             const result = await processAjax(ctx, asUint8Array, decompressGzip, e)
+
+            if (type === 'json') {
+                ctx.update({ message: 'Parsing JSON...', canAbort: false });
+                const data = JSON.parse(result);
+                return data;
+            }
+
             return result;
         } finally {
             xhttp = void 0;
@@ -187,4 +194,58 @@ function ajaxGetInternal(title: string | undefined, url: string, asUint8Array: b
     }, () => {
         if (xhttp) xhttp.abort();
     });
+}
+
+export type AjaxGetManyEntry<T> = { kind: 'ok', id: string, result: T } | { kind: 'error', id: string, error: any }
+export async function ajaxGetMany(ctx: RuntimeContext, sources: { id: string, url: string, isBinary?: boolean, canFail?: boolean }[], maxConcurrency: number) {
+    const len = sources.length;
+    const slots: AjaxGetManyEntry<string | Uint8Array>[] = new Array(sources.length);
+
+    await ctx.update({ message: 'Downloading...', current: 0, max: len });
+    let promises: Promise<AjaxGetManyEntry<any> & { index: number }>[] = [], promiseKeys: number[] = [];
+    let currentSrc = 0;
+    for (let _i = Math.min(len, maxConcurrency); currentSrc < _i; currentSrc++) {
+        const current = sources[currentSrc];
+        promises.push(wrapPromise(currentSrc, current.id, ajaxGet({ url: current.url, type: current.isBinary ? 'binary' : 'string' }).runAsChild(ctx)));
+        promiseKeys.push(currentSrc);
+    }
+
+    let done = 0;
+    while (promises.length > 0) {
+        const r = await Promise.race(promises);
+        const src = sources[r.index];
+        const idx = promiseKeys.indexOf(r.index);
+        done++;
+        if (r.kind === 'error' && !src.canFail) {
+            // TODO: cancel other downloads
+            throw new Error(`${src.url}: ${r.error}`);
+        }
+        if (ctx.shouldUpdate) {
+            await ctx.update({ message: 'Downloading...', current: done, max: len });
+        }
+        slots[r.index] = r;
+        promises = promises.filter(_filterRemoveIndex, idx);
+        promiseKeys = promiseKeys.filter(_filterRemoveIndex, idx);
+        if (currentSrc < len) {
+            const current = sources[currentSrc];
+            promises.push(wrapPromise(currentSrc, current.id, ajaxGet({ url: current.url, type: current.isBinary ? 'binary' : 'string' }).runAsChild(ctx)));
+            promiseKeys.push(currentSrc);
+            currentSrc++;
+        }
+    }
+
+    return slots;
+}
+
+function _filterRemoveIndex(this: number, _: any, i: number) {
+    return this !== i;
+}
+
+async function wrapPromise<T>(index: number, id: string, p: Promise<T>): Promise<AjaxGetManyEntry<T> & { index: number }> {
+    try {
+        const result = await p;
+        return { kind: 'ok', result, index, id };
+    } catch (error) {
+        return { kind: 'error', error, index, id }
+    }
 }

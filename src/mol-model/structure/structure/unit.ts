@@ -7,7 +7,7 @@
 
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model } from '../model'
-import { GridLookup3D, Lookup3D, DensityData } from 'mol-math/geometry'
+import { GridLookup3D, Lookup3D } from 'mol-math/geometry'
 import { IntraUnitLinks, computeIntraUnitBonds } from './unit/links'
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { ValueRef } from 'mol-util';
@@ -18,9 +18,6 @@ import { IntMap, SortedArray } from 'mol-data/int';
 import { hash2, hashFnv32a } from 'mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements } from './util/polymer';
 import { getNucleotideElements } from './util/nucleotide';
-import { GaussianDensityProps, computeUnitGaussianDensityCached } from './unit/gaussian-density';
-import { RuntimeContext } from 'mol-task';
-import { WebGLContext } from 'mol-gl/webgl/context';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -79,6 +76,13 @@ namespace Unit {
             },
             hashCode: hashUnit(units[0]),
             transformHash: hashFnv32a(units.map(u => u.id))
+        }
+    }
+
+    export namespace SymmetryGroup {
+        export function areInvariantElementsEqual(a: SymmetryGroup, b: SymmetryGroup) {
+            if (a.hashCode !== b.hashCode) return false;
+            return SortedArray.areEqual(a.elements, b.elements);
         }
     }
 
@@ -191,10 +195,6 @@ namespace Unit {
             return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
         }
 
-        async computeGaussianDensity(props: GaussianDensityProps, ctx: RuntimeContext, webgl?: WebGLContext) {
-            return computeUnitGaussianDensityCached(this, props, this.props.gaussianDensities, ctx, webgl);
-        }
-
         constructor(id: number, invariantId: number, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: AtomicProperties) {
             this.id = id;
             this.invariantId = invariantId;
@@ -215,7 +215,6 @@ namespace Unit {
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
         nucleotideElements: ValueRef<SortedArray<ElementIndex> | undefined>
-        gaussianDensities: Map<string, DensityData>
     }
 
     function AtomicProperties(): AtomicProperties {
@@ -226,7 +225,6 @@ namespace Unit {
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),
             nucleotideElements: ValueRef.create(void 0),
-            gaussianDensities: new Map()
         };
     }
 
@@ -280,10 +278,6 @@ namespace Unit {
             return this.kind === Kind.Spheres ? this.model.coarseConformation.spheres : this.model.coarseConformation.gaussians;
         }
 
-        async computeGaussianDensity(props: GaussianDensityProps, ctx: RuntimeContext, webgl?: WebGLContext): Promise<DensityData> {
-            return computeUnitGaussianDensityCached(this as Unit.Spheres | Unit.Gaussians, props, this.props.gaussianDensities, ctx, webgl); // TODO get rid of casting
-        }
-
         constructor(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties) {
             this.kind = kind;
             this.id = id;
@@ -299,7 +293,6 @@ namespace Unit {
 
     interface CoarseProperties {
         lookup3d: ValueRef<Lookup3D | undefined>,
-        gaussianDensities: Map<string, DensityData>
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
     }
@@ -307,7 +300,6 @@ namespace Unit {
     function CoarseProperties(): CoarseProperties {
         return {
             lookup3d: ValueRef.create(void 0),
-            gaussianDensities: new Map(),
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),
         };

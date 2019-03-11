@@ -4,28 +4,31 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject } from './object';
-import { Transformer } from './transformer';
+import { StateTransformer } from './transformer';
 import { UUID } from 'mol-util';
 
-export interface Transform<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
+export { Transform as StateTransform }
+
+interface Transform<T extends StateTransformer = StateTransformer> {
     readonly parent: Transform.Ref,
-    readonly transformer: Transformer<A, B, P>,
+    readonly transformer: T,
     readonly props: Transform.Props,
     readonly ref: Transform.Ref,
-    readonly params?: P,
+    readonly params?: StateTransformer.Params<T>,
     readonly version: string
 }
 
-export namespace Transform {
+namespace Transform {
     export type Ref = string
+    export type Transformer<T extends Transform> = T extends Transform<infer S> ? S : never
 
     export const RootRef = '-=root=-' as Ref;
 
     export interface Props {
         tag?: string
         isGhost?: boolean,
-        isBinding?: boolean
+        // determine if the corresponding cell can be deleted by the user.
+        isLocked?: boolean
     }
 
     export interface Options {
@@ -33,7 +36,7 @@ export namespace Transform {
         props?: Props
     }
 
-    export function create<A extends StateObject, B extends StateObject, P extends {} = {}>(parent: Ref, transformer: Transformer<A, B, P>, params?: P, options?: Options): Transform<A, B, P> {
+    export function create<T extends StateTransformer>(parent: Ref, transformer: T, params?: StateTransformer.Params<T>, options?: Options): Transform<T> {
         const ref = options && options.ref ? options.ref : UUID.create22() as string as Ref;
         return {
             parent,
@@ -45,12 +48,20 @@ export namespace Transform {
         }
     }
 
-    export function withParams<T>(t: Transform, params: any): Transform {
+    export function withParams(t: Transform, params: any): Transform {
         return { ...t, params, version: UUID.create22() };
     }
 
-    export function createRoot(): Transform {
-        return create(RootRef, Transformer.ROOT, {}, { ref: RootRef });
+    export function withParent(t: Transform, parent: Ref): Transform {
+        return { ...t, parent, version: UUID.create22() };
+    }
+
+    export function withNewVersion(t: Transform): Transform {
+        return { ...t, version: UUID.create22() };
+    }
+
+    export function createRoot(props?: Props): Transform {
+        return create(RootRef, StateTransformer.ROOT, {}, { ref: RootRef, props });
     }
 
     export interface Serialized {
@@ -78,7 +89,7 @@ export namespace Transform {
     }
 
     export function fromJSON(t: Serialized): Transform {
-        const transformer = Transformer.get(t.transformer);
+        const transformer = StateTransformer.get(t.transformer);
         const pFromJson = transformer.definition.customSerialization
             ? transformer.definition.customSerialization.toJSON
             : _id;

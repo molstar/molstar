@@ -279,11 +279,10 @@ export function expandProperty(query: StructureQuery, property: QueryFn): Struct
                 ctx.element.element = elements[i];
                 const p = property(ctx);
                 if (!propertyToStructureIndexMap.has(p)) continue;
-
                 const indices = propertyToStructureIndexMap.get(p)!.array;
 
                 for (let _sI = 0, __sI = indices.length; _sI < __sI; _sI++) {
-                    builders[indices[i]].addToUnit(unit.id, elements[i]);
+                    builders[indices[_sI]].addToUnit(unit.id, elements[i]);
                 }
             }
         }

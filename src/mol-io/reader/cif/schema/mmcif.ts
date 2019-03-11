@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.304, IHM 0.139, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.305, IHM 0.139, CARB draft.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -850,7 +850,7 @@ export const mmCIF_Schema = {
          * This data item is a pointer to _struct_conn_type.id in the
          * STRUCT_CONN_TYPE category.
          */
-        conn_type_id: Aliased<'covale' | 'disulf' | 'hydrog' | 'metalc' | 'mismat' | 'saltbr' | 'modres' | 'covale_base' | 'covale_sugar' | 'covale_phosphate'>(str),
+        conn_type_id: Aliased<'covale' | 'disulf' | 'metalc' | 'hydrog'>(str),
         /**
          * A description of special aspects of the connection.
          */

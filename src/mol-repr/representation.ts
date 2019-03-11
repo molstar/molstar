@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { Task } from 'mol-task'
 import { GraphicsRenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
-import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
+import { Loci as ModelLoci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { WebGLContext } from 'mol-gl/webgl/context';
@@ -19,6 +19,7 @@ import { Subject } from 'rxjs';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { BaseGeometry } from 'mol-geo/geometry/base';
 import { Visual } from './visual';
+import { Overpaint } from 'mol-theme/overpaint';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -46,6 +47,14 @@ export interface RepresentationProvider<D, P extends PD.Params, S extends Repres
     readonly defaultSizeTheme: string
 }
 
+export namespace RepresentationProvider {
+    export type ParamValues<R extends RepresentationProvider<any, any, any>> = R extends RepresentationProvider<any, infer P, any> ? PD.Values<P> : never;
+
+    export function getDetaultParams<R extends RepresentationProvider<D, any, any>, D>(r: R, ctx: ThemeRegistryContext, data: D) {
+        return PD.getDefaultValues(r.getParams(ctx, data));
+    }
+}
+
 export type AnyRepresentationProvider = RepresentationProvider<any, {}, Representation.State>
 
 export const EmptyRepresentationProvider = {
@@ -59,6 +68,7 @@ export const EmptyRepresentationProvider = {
 export class RepresentationRegistry<D, S extends Representation.State> {
     private _list: { name: string, provider: RepresentationProvider<D, any, any> }[] = []
     private _map = new Map<string, RepresentationProvider<D, any, any>>()
+    private _name = new Map<RepresentationProvider<D, any, any>, string>()
 
     get default() { return this._list[0]; }
     get types(): [string, string][] {
@@ -70,11 +80,21 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     add<P extends PD.Params>(name: string, provider: RepresentationProvider<D, P, S>) {
         this._list.push({ name, provider })
         this._map.set(name, provider)
+        this._name.set(provider, name)
+    }
+
+    getName(provider: RepresentationProvider<D, any, S>): string {
+        if (!this._name.has(provider)) throw new Error(`'${provider.label}' is not a registered represenatation provider.`);
+        return this._name.get(provider)!;
     }
 
     remove(name: string) {
         this._list.splice(this._list.findIndex(e => e.name === name), 1)
-        this._map.delete(name)
+        const p = this._map.get(name);
+        if (p) {
+            this._map.delete(name);
+            this._name.delete(p);
+        }
     }
 
     get<P extends PD.Params>(name: string): RepresentationProvider<D, P, S> {
@@ -102,27 +122,43 @@ interface Representation<D, P extends PD.Params = {}, S extends Representation.S
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
     setState: (state: Partial<S>) => void
     setTheme: (theme: Theme) => void
-    getLoci: (pickingId: PickingId) => Loci
-    mark: (loci: Loci, action: MarkerAction) => boolean
+    getLoci: (pickingId: PickingId) => ModelLoci
+    mark: (loci: ModelLoci, action: MarkerAction) => boolean
     destroy: () => void
 }
 namespace Representation {
+    export interface Loci<T extends ModelLoci = ModelLoci> { loci: T, repr?: Representation.Any }
+
+    export namespace Loci {
+        export function areEqual(a: Loci, b: Loci) {
+            return a.repr === b.repr && ModelLoci.areEqual(a.loci, b.loci);
+        }
+
+        export const Empty: Loci = { loci: EmptyLoci };
+    }
+
     export interface State {
         /** Controls if the representation's renderobjects are rendered or not */
         visible: boolean
+        /** A factor applied to alpha value of the representation's renderobjects */
+        alphaFactor: number
         /** Controls if the representation's renderobjects are pickable or not */
         pickable: boolean
+        /** Overpaint applied to the representation's renderobjects */
+        overpaint: Overpaint
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
         transform: Mat4
     }
     export function createState(): State {
-        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity(), /* instanceTransforms: new Float32Array(Mat4.identity()) */ }
+        return { visible: false, alphaFactor: 0, pickable: false, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty }
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible
+        if (update.alphaFactor !== undefined) state.alphaFactor = update.alphaFactor
         if (update.pickable !== undefined) state.pickable = update.pickable
+        if (update.overpaint !== undefined) state.overpaint = update.overpaint
         if (update.syncManually !== undefined) state.syncManually = update.syncManually
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
     }
@@ -130,6 +166,7 @@ namespace Representation {
         create(): S
         update(state: S, update: Partial<S>): void
     }
+    export const StateBuilder: StateBuilder<State> = { create: createState, update: updateState }
 
     export type Any = Representation<any, any, any>
     export const Empty: Any = {
@@ -187,11 +224,7 @@ namespace Representation {
                 }
                 return renderObjects
             },
-            get props() {
-                const props = {}
-                reprList.forEach(r => Object.assign(props, r.props))
-                return props as P
-            },
+            get props() { return currentProps },
             get params() { return currentParams },
             createOrUpdate: (props: Partial<P> = {}, data?: D) => {
                 if (data && data !== currentData) {
@@ -221,7 +254,7 @@ namespace Representation {
                 }
                 return EmptyLoci
             },
-            mark: (loci: Loci, action: MarkerAction) => {
+            mark: (loci: ModelLoci, action: MarkerAction) => {
                 let marked = false
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     marked = reprList[i].mark(loci, action) || marked
@@ -278,13 +311,17 @@ namespace Representation {
                 // TODO
                 return EmptyLoci
             },
-            mark: (loci: Loci, action: MarkerAction) => {
+            mark: (loci: ModelLoci, action: MarkerAction) => {
                 // TODO
                 return false
             },
             setState: (state: Partial<State>) => {
                 if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible)
+                if (state.alphaFactor !== undefined) Visual.setAlphaFactor(renderObject, state.alphaFactor)
                 if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable)
+                if (state.overpaint !== undefined) {
+                    // TODO
+                }
                 if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform)
 
                 Representation.updateState(currentState, state)

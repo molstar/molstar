@@ -38,12 +38,14 @@ export function applyMarkerAction(array: Uint8Array, start: number, end: number,
                 }
                 break
             case MarkerAction.Select:
-                v += 2
+                if (v < 2) v += 2
+                // v += 2
                 break
             case MarkerAction.Deselect:
-                if (v >= 2) {
-                    v -= 2
-                }
+                // if (v >= 2) {
+                //     v -= 2
+                // }
+                v = v % 2
                 break
             case MarkerAction.Toggle:
                 if (v >= 2) {
@@ -63,9 +65,7 @@ export function applyMarkerAction(array: Uint8Array, start: number, end: number,
 }
 
 export function createMarkers(count: number, markerData?: MarkerData): MarkerData {
-    const markers = markerData && markerData.tMarker.ref.value.array.length >= count
-        ? markerData.tMarker.ref.value
-        : createTextureImage(count, 1)
+    const markers = createTextureImage(Math.max(1, count), 1, markerData && markerData.tMarker.ref.value.array)
     if (markerData) {
         ValueCell.update(markerData.tMarker, markers)
         ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height))

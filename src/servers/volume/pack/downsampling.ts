@@ -7,10 +7,10 @@
  */
 
 import * as Data from './data-model'
-import * as DataFormat from '../common/data-format'
+import { TypedArrayValueArray } from 'mol-io/common/typed-array';
 
-/** 
- * Downsamples each slice of input data and checks if there is enough data to perform 
+/**
+ * Downsamples each slice of input data and checks if there is enough data to perform
  * higher rate downsampling.
  */
 export function downsampleLayer(ctx: Data.Context) {
@@ -25,8 +25,8 @@ export function downsampleLayer(ctx: Data.Context) {
     }
 }
 
-/** 
- * When the "native" (rate = 1) sampling is finished, there might still 
+/**
+ * When the "native" (rate = 1) sampling is finished, there might still
  * be some data left to be processed for the higher rate samplings.
  */
 export function finalize(ctx: Data.Context) {
@@ -46,7 +46,7 @@ export function finalize(ctx: Data.Context) {
 /**
  * The functions downsampleH and downsampleHK both essentially do the
  * same thing: downsample along H (1st axis in axis order) and K (2nd axis in axis order) axes respectively.
- * 
+ *
  * The reason there are two copies of almost the same code is performance:
  * Both functions use a different memory layout to improve cache coherency
  *  - downsampleU uses the H axis as the fastest moving one
@@ -54,7 +54,7 @@ export function finalize(ctx: Data.Context) {
  */
 
 
-function conv(w: number, c: number[], src: DataFormat.ValueArray, b: number, i0: number, i1: number, i2: number, i3: number, i4: number) {
+function conv(w: number, c: number[], src: TypedArrayValueArray, b: number, i0: number, i1: number, i2: number, i3: number, i4: number) {
     return w * (c[0] * src[b + i0] + c[1] * src[b + i1] + c[2] * src[b + i2] + c[3] * src[b + i3] + c[4] * src[b + i4]);
 }
 
@@ -63,7 +63,7 @@ function conv(w: number, c: number[], src: DataFormat.ValueArray, b: number, i0:
  * flipping the 1st and 2nd axis in the process to optimize cache coherency for downsampleUV call
  * (i.e. use (K, H, L) axis order).
  */
-function downsampleH(kernel: Data.Kernel, srcDims: number[], src: DataFormat.ValueArray, srcLOffset: number, buffer: Data.DownsamplingBuffer) {
+function downsampleH(kernel: Data.Kernel, srcDims: number[], src: TypedArrayValueArray, srcLOffset: number, buffer: Data.DownsamplingBuffer) {
     const target = buffer.downsampleH;
     const sizeH = srcDims[0], sizeK = srcDims[1], srcBaseOffset = srcLOffset * sizeH * sizeK;
     const targetH = Math.floor((sizeH + 1) / 2);
@@ -87,9 +87,9 @@ function downsampleH(kernel: Data.Kernel, srcDims: number[], src: DataFormat.Val
     }
 }
 
-/** 
- * Downsample first axis in the slice present in buffer.downsampleH 
- * The result is written into the "cyclical" downsampleHk buffer 
+/**
+ * Downsample first axis in the slice present in buffer.downsampleH
+ * The result is written into the "cyclical" downsampleHk buffer
  * in the (L, H, K) axis order.
  */
 function downsampleHK(kernel: Data.Kernel, dimsX: number[], buffer: Data.DownsamplingBuffer) {

@@ -81,7 +81,7 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
     }
 
     constructor(private unit: Unit.Atomic) {
-        this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex
+        this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex as ArrayLike<ElementIndex> // can assume it won't be -1 for polymer residues
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)
         this.residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements)
         this.value = createPolymerBackbonePair(unit)

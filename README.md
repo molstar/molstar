@@ -17,6 +17,7 @@ The core of Mol* currently consists of these modules:
 - `mol-math` Math related (loosely) algorithms and data structures.
 - `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it. Support for common coordinate, experimental/map, and annotation data formats.
 - `mol-model` Data structures and algorithms (such as querying) for representing molecular data (including coordinate, experimental/map, and annotation data).
+- `mol-model-formats` Data format parsers for `mol-model`.
 - `mol-model-props` Common "custom properties".
 - `mol-script` A scriting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
 - `mol-geo` Creating (molecular) geometries.
@@ -116,6 +117,16 @@ Run the image
 **Test model server**
 
     export NODE_PATH="build/src"; node build/src/servers/model/test.js
+
+**State Transformer Docs**
+
+    export NODE_PATH="build/src"; node build/state-docs
+
+**Convert any CIF to BinaryCIF**
+
+    node build/model-server/preprocess -i file.cif -ob file.bcif
+
+To see all available commands, use ``node build/model-server/preprocess -h``.
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.

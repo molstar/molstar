@@ -64,6 +64,7 @@ function getTypes(list: { name: string, provider: ThemeProvider<any, any> }[]) {
 export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     private _list: { name: string, provider: ThemeProvider<T, any> }[] = []
     private _map = new Map<string, ThemeProvider<T, any>>()
+    private _name = new Map<ThemeProvider<T, any>, string>()
 
     get default() { return this._list[0]; }
     get list() { return this._list }
@@ -76,17 +77,27 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     add<P extends PD.Params>(name: string, provider: ThemeProvider<T, P>) {
         this._list.push({ name, provider })
         this._map.set(name, provider)
+        this._name.set(provider, name)
     }
 
     remove(name: string) {
         this._list.splice(this._list.findIndex(e => e.name === name), 1)
-        this._map.delete(name)
-        console.log('removed', name, this._list, this._map)
+        const p = this._map.get(name);
+        if (p) {
+            this._map.delete(name);
+            this._name.delete(p);
+        }
     }
 
     get<P extends PD.Params>(name: string): ThemeProvider<T, P> {
         return this._map.get(name) || this.emptyProvider
     }
+
+    getName(provider: ThemeProvider<T, any>): string {
+        if (!this._name.has(provider)) throw new Error(`'${provider.label}' is not a registered represenatation provider.`);
+        return this._name.get(provider)!;
+    }
+
 
     create(name: string, ctx: ThemeDataContext, props = {}) {
         const provider = this.get(name)

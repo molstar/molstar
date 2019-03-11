@@ -200,8 +200,25 @@ export const SizeSchema = {
 export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>
 
+export const MarkerSchema = {
+    uMarkerTexDim: UniformSpec('v2'),
+    tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+}
+export type MarkerSchema = typeof MarkerSchema
+export type MarkerValues = Values<MarkerSchema>
+
+export const OverpaintSchema = {
+    uOverpaintTexDim: UniformSpec('v2'),
+    tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+    dOverpaint: DefineSpec('boolean'),
+}
+export type OverpaintSchema = typeof OverpaintSchema
+export type OverpaintValues = Values<OverpaintSchema>
+
 export const BaseSchema = {
     ...ColorSchema,
+    ...MarkerSchema,
+    ...OverpaintSchema,
 
     aInstance: AttributeSpec('float32', 1, 1),
     aGroup: AttributeSpec('float32', 1, 0),
@@ -211,17 +228,21 @@ export const BaseSchema = {
      */
     aTransform: AttributeSpec('float32', 16, 1),
 
+    /**
+     * final alpha, calculated as `values.alpha * state.alpha`
+     */
     uAlpha: UniformSpec('f'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
-    uMarkerTexDim: UniformSpec('v2'),
+
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
 
-    tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
-
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
+
+    /** base alpha, see uAlpha  */
+    alpha: ValueSpec('number'),
 
     /** global transform, see aTransform */
     matrix: ValueSpec('m4'),

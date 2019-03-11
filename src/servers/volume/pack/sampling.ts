@@ -6,30 +6,33 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as CCP4 from './ccp4'
+import * as Format from './format'
 import * as Data from './data-model'
 import * as File from '../common/file'
 import * as Downsampling from './downsampling'
 import * as Writer from './writer'
 import * as DataFormat from '../common/data-format'
+import { FileHandle } from 'mol-io/common/file-handle';
+import { getElementByteSize, createTypedArray, TypedArrayValueType } from 'mol-io/common/typed-array';
+import { SimpleBuffer } from 'mol-io/common/simple-buffer';
 
-export async function createContext(filename: string, channels: CCP4.Data[], blockSize: number, isPeriodic: boolean): Promise<Data.Context> {
-    const header = channels[0].header;
-    const samplingCounts = getSamplingCounts(channels[0].header.extent, blockSize);
-    const valueType = CCP4.getValueType(header);
-    const cubeBuffer = new Buffer(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * DataFormat.getValueByteSize(valueType)));
+export async function createContext(filename: string, channels: Format.Context[], blockSize: number, isPeriodic: boolean): Promise<Data.Context> {
+    const { extent, valueType, grid, origin } = channels[0].data.header;
 
-    const litteEndianCubeBuffer = File.IsNativeEndianLittle
+    const samplingCounts = getSamplingCounts(extent, blockSize);
+    const cubeBuffer = Buffer.from(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * getElementByteSize(valueType)));
+
+    const litteEndianCubeBuffer = SimpleBuffer.IsNativeEndianLittle
         ? cubeBuffer
-        : new Buffer(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * DataFormat.getValueByteSize(valueType)));
+        : Buffer.from(new ArrayBuffer(channels.length * blockSize * blockSize * blockSize * getElementByteSize(valueType)));
 
     // The data can be periodic iff the extent is the same as the grid and origin is 0.
-    if (header.grid.some((v, i) => v !== header.extent[i]) || header.origin.some(v => v !== 0)) {
+    if (grid.some((v, i) => v !== extent[i]) || origin.some(v => v !== 0)) {
         isPeriodic = false;
     }
 
     const ctx: Data.Context = {
-        file: await File.createFile(filename),
+        file: FileHandle.fromDescriptor(await File.createFile(filename)),
         isPeriodic,
         channels,
         valueType,
@@ -60,9 +63,9 @@ export async function createContext(filename: string, channels: CCP4.Data[], blo
 
 export async function processData(ctx: Data.Context) {
     const channel = ctx.channels[0];
-    while (!channel.slices.isFinished) {
+    while (!channel.data.slices.isFinished) {
         for (const src of ctx.channels) {
-            await CCP4.readSlices(src);
+            await src.provider.readSlices(src.data);
         }
         await processSlices(ctx);
     }
@@ -92,22 +95,22 @@ function getSamplingCounts(baseSampleCount: number[], blockSize: number) {
     }
 }
 
-function createBlockBuffer(sampleCount: number[], blockSize: number, valueType: DataFormat.ValueType, numChannels: number): Data.BlockBuffer {
+function createBlockBuffer(sampleCount: number[], blockSize: number, valueType: TypedArrayValueType, numChannels: number): Data.BlockBuffer {
     const values = [];
-    for (let i = 0; i < numChannels; i++) values[i] = DataFormat.createValueArray(valueType, sampleCount[0] * sampleCount[1] * blockSize);
+    for (let i = 0; i < numChannels; i++) values[i] = createTypedArray(valueType, sampleCount[0] * sampleCount[1] * blockSize);
     return {
         values,
-        buffers: values.map(xs => new Buffer(xs.buffer)),
+        buffers: values.map(xs => Buffer.from(xs.buffer)),
         slicesWritten: 0
     };
 }
 
-function createDownsamplingBuffer(valueType: DataFormat.ValueType, sourceSampleCount: number[], targetSampleCount: number[], numChannels: number): Data.DownsamplingBuffer[] {
+function createDownsamplingBuffer(valueType: TypedArrayValueType, sourceSampleCount: number[], targetSampleCount: number[], numChannels: number): Data.DownsamplingBuffer[] {
     const ret = [];
     for (let i = 0; i < numChannels; i++) {
         ret[ret.length] = {
-            downsampleH: DataFormat.createValueArray(valueType, sourceSampleCount[1] * targetSampleCount[0]),
-            downsampleHK: DataFormat.createValueArray(valueType, 5 * targetSampleCount[0] * targetSampleCount[1]),
+            downsampleH: createTypedArray(valueType, sourceSampleCount[1] * targetSampleCount[0]),
+            downsampleHK: createTypedArray(valueType, 5 * targetSampleCount[0] * targetSampleCount[1]),
             slicesWritten: 0,
             startSliceIndex: 0
         }
@@ -115,7 +118,7 @@ function createDownsamplingBuffer(valueType: DataFormat.ValueType, sourceSampleC
     return ret;
 }
 
-function createSampling(index: number, valueType: DataFormat.ValueType, numChannels: number, sampleCounts: number[][], blockSize: number): Data.Sampling {
+function createSampling(index: number, valueType: TypedArrayValueType, numChannels: number, sampleCounts: number[][], blockSize: number): Data.Sampling {
     const sampleCount = sampleCounts[index];
     const valuesInfo: Data.ValuesInfo[] = [];
     for (let i = 0; i < numChannels; i++) {
@@ -134,7 +137,7 @@ function createSampling(index: number, valueType: DataFormat.ValueType, numChann
         downsampling: index < sampleCounts.length - 1 ? createDownsamplingBuffer(valueType, sampleCount, sampleCounts[index + 1], numChannels) : void 0,
 
         byteOffset: 0,
-        byteSize: numChannels * sampleCount[0] * sampleCount[1] * sampleCount[2] * DataFormat.getValueByteSize(valueType),
+        byteSize: numChannels * sampleCount[0] * sampleCount[1] * sampleCount[2] * getElementByteSize(valueType),
         writeByteOffset: 0
     }
 }
@@ -148,7 +151,7 @@ function copyLayer(ctx: Data.Context, sliceIndex: number) {
     const targetOffset = blocks.slicesWritten * size;
 
     for (let channelIndex = 0; channelIndex < channels.length; channelIndex++) {
-        const src = channels[channelIndex].slices.values;
+        const src = channels[channelIndex].data.slices.values;
         const target = blocks.values[channelIndex];
         for (let i = 0; i < size; i++) {
             const v = src[srcOffset + i];
@@ -197,14 +200,14 @@ async function writeBlocks(ctx: Data.Context, isDataFinished: boolean) {
 
 async function processSlices(ctx: Data.Context) {
     const channel = ctx.channels[0];
-    const sliceCount = channel.slices.sliceCount;
+    const sliceCount = channel.data.slices.sliceCount;
     for (let i = 0; i < sliceCount; i++) {
         copyLayer(ctx, i);
         Downsampling.downsampleLayer(ctx);
 
         await writeBlocks(ctx, false);
 
-        const isDataFinished = i === sliceCount - 1 && channel.slices.isFinished;
+        const isDataFinished = i === sliceCount - 1 && channel.data.slices.isFinished;
         if (isDataFinished) {
             Downsampling.finalize(ctx);
             await writeBlocks(ctx, true);

@@ -6,10 +6,10 @@
  */
 
 import { Column } from 'mol-data/db'
-import Tokenizer from '../common/text/tokenizer'
+import { Tokenizer } from '../common/text/tokenizer'
 import FixedColumn from '../common/text/column/fixed'
 import * as Schema from './schema'
-import Result from '../result'
+import { ReaderResult as Result } from '../result'
 import { Task, RuntimeContext } from 'mol-task'
 
 interface State {
@@ -155,10 +155,8 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parse(data: string) {
+export function parseGRO(data: string) {
     return Task.create<Result<Schema.GroFile>>('Parse GRO', async ctx => {
         return await parseInternal(data, ctx);
     });
 }
-
-export default parse;

@@ -24,6 +24,7 @@ import { RenderableState } from 'mol-gl/renderable';
 import { clamp } from 'mol-math/interpolate';
 import { createRenderObject as _createRenderObject } from 'mol-gl/render-object';
 import { BaseGeometry } from '../base';
+import { createEmptyOverpaint } from '../overpaint-data';
 
 type TextAttachment = (
     'bottom-left' | 'bottom-center' | 'bottom-right' |
@@ -90,6 +91,9 @@ export namespace Text {
         backgroundMargin: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
         backgroundColor: PD.Color(ColorNames.grey),
         backgroundOpacity: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        tether: PD.Boolean(false),
+        tetherLength: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }),
+        tetherBaseWidth: PD.Numeric(0.3, { min: 0, max: 1, step: 0.01 }),
 
         attachment: PD.Select('middle-center', [
             ['bottom-left', 'bottom-left'], ['bottom-center', 'bottom-center'], ['bottom-right', 'bottom-right'],
@@ -119,6 +123,7 @@ export namespace Text {
         const color = createColors(locationIt, theme.color)
         const size = createSizes(locationIt, theme.size)
         const marker = createMarkers(instanceCount * groupCount)
+        const overpaint = createEmptyOverpaint()
 
         const counts = { drawCount: text.charCount * 2 * 3, groupCount, instanceCount }
 
@@ -139,6 +144,7 @@ export namespace Text {
             ...color,
             ...size,
             ...marker,
+            ...overpaint,
             ...transform,
 
             aTexCoord: text.tcoordBuffer,
@@ -160,7 +166,7 @@ export namespace Text {
 
     function createValuesSimple(text: Text, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
         const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
-        const p = { ...PD.getDefaultValues(Params), props }
+        const p = { ...PD.getDefaultValues(Params), ...props }
         return createValues(text, s.transform, s.locationIterator, s.theme, p)
     }
 

@@ -9,7 +9,8 @@ import { UUID } from 'mol-util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateObject, StateObjectCell } from './object';
 import { State } from './state';
-import { Transformer } from './transformer';
+import { StateTransformer } from './transformer';
+import { StateTransform } from './transform';
 
 export { StateAction };
 
@@ -45,7 +46,7 @@ namespace StateAction {
         run(params: ApplyParams<A, P>, globalCtx: unknown): T | Task<T>,
 
         /** Test if the transform can be applied to a given node */
-        isApplicable?(a: A, globalCtx: unknown): boolean
+        isApplicable?(a: A, aTransform: StateTransform<StateTransformer<any, A, any>>, globalCtx: unknown): boolean
     }
 
     export interface Definition<A extends StateObject = StateObject, T = any, P extends {} = {}> extends DefinitionBase<A, T, P> {
@@ -63,15 +64,18 @@ namespace StateAction {
         return action;
     }
 
-    export function fromTransformer<T extends Transformer>(transformer: T) {
+    export function fromTransformer<T extends StateTransformer>(transformer: T) {
         const def = transformer.definition;
-        return create<Transformer.From<T>, void, Transformer.Params<T>>({
+        return create<StateTransformer.From<T>, void, StateTransformer.Params<T>>({
             from: def.from,
             display: def.display,
-            params: def.params as Transformer.Definition<Transformer.From<T>, any, Transformer.Params<T>>['params'],
+            params: def.params as StateTransformer.Definition<StateTransformer.From<T>, any, StateTransformer.Params<T>>['params'],
+            isApplicable: transformer.definition.isApplicable
+                ? (a, t, ctx) => transformer.definition.isApplicable!(a, ctx)
+                : void 0,
             run({ cell, state, params }) {
                 const tree = state.build().to(cell.transform.ref).apply(transformer, params);
-                return state.update(tree);
+                return state.updateTree(tree) as Task<void>;
             }
         })
     }
@@ -80,7 +84,8 @@ namespace StateAction {
         export interface Type<A extends StateObject.Ctor, P extends { }> {
             from?: A | A[],
             params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>),
-            display?: string | { name: string, description?: string }
+            display?: string | { name: string, description?: string },
+            isApplicable?: DefinitionBase<StateObject.From<A>, any, P>['isApplicable']
         }
 
         export interface Root {
@@ -106,6 +111,7 @@ namespace StateAction {
                     : !!info.params
                     ? info.params as any
                     : void 0,
+                isApplicable: info.isApplicable,
                 ...(typeof def === 'function'
                     ? { run: def }
                     : def)

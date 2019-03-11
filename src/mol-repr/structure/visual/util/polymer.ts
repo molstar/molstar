@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, ElementIndex, StructureElement, Link } from 'mol-model/structure';
+import { Unit, ElementIndex, StructureElement, Link, Structure } from 'mol-model/structure';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
@@ -78,11 +78,11 @@ export function getPolymerElementLoci(pickingId: PickingId, structureGroup: Stru
 }
 
 /** Mark a polymer element (e.g. part of a cartoon trace) when all its residue's elements are in a loci. */
-export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
-    if (loci.structure !== structure) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
     const { polymerElements, model, elements } = group.units[0]
     const { index, offsets } = model.atomicHierarchy.residueAtomSegments
     const { traceElementIndex } = model.atomicHierarchy.derived.residue
@@ -126,11 +126,11 @@ export function getPolymerGapElementLoci(pickingId: PickingId, structureGroup: S
     return EmptyLoci
 }
 
-export function markPolymerGapElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!Link.isLoci(loci)) return false
     const { structure, group } = structureGroup
-    if (loci.structure !== structure) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
     const groupCount = group.units[0].gapElements.length
     for (const b of loci.links) {
         const unitIdx = group.unitIndexMap.get(b.aUnit.id)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,11 +9,13 @@ import { RenderableValues, Values, RenderableSchema } from './renderable/schema'
 import { RenderVariant, RenderItem } from './webgl/render-item';
 import { ValueCell } from 'mol-util';
 import { idFactory } from 'mol-util/id-factory';
+import { clamp } from 'mol-math/interpolate';
 
 const getNextRenderableId = idFactory()
 
 export type RenderableState = {
     visible: boolean
+    alphaFactor: number
     pickable: boolean
     opaque: boolean
 }
@@ -36,6 +38,9 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
         state,
 
         render: (variant: RenderVariant) => {
+            if (values.uAlpha && values.alpha) {
+                ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1))
+            }
             if (values.uPickable) {
                 ValueCell.updateIfChanged(values.uPickable, state.pickable ? 1 : 0)
             }

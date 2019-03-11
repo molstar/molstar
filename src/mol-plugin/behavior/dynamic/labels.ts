@@ -9,8 +9,7 @@ import { PluginBehavior } from '../behavior';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
-import { StateSelection } from 'mol-state/state/selection';
-import { StateObjectCell, State } from 'mol-state';
+import { StateObjectCell, State, StateSelection } from 'mol-state';
 import { RuntimeContext } from 'mol-task';
 import { Shape } from 'mol-model/shape';
 import { Text } from 'mol-geo/geometry/text/text';
@@ -21,6 +20,7 @@ import { Unit, StructureElement, StructureProperties } from 'mol-model/structure
 import { SetUtils } from 'mol-util/set';
 import { arrayEqual } from 'mol-util';
 import { MoleculeType } from 'mol-model/structure/model/types';
+import { getElementMoleculeType } from 'mol-model/structure/util';
 
 // TODO
 // - support more object types than structures
@@ -73,7 +73,9 @@ function getLabelsText(data: LabelsData, props: PD.Values<Text.Params>, text?: T
 
 export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
     name: 'scene-labels',
-    display: { name: 'Scene Labels', group: 'Labels' },
+    category: 'representation',
+    display: { name: 'Scene Labels' },
+    canAutoUpdate: () => true,
     ctor: class extends PluginBehavior.Handler<SceneLabelsProps> {
         private data: LabelsData = {
             transforms: [Mat4.identity()],
@@ -111,7 +113,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
         /** Update structures to be labeled, returns true if changed */
         private updateStructures(p: SceneLabelsProps) {
             const state = this.ctx.state.dataState
-            const structures = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Structure));
+            const structures = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure));
             const rootStructures = new Set<SO.Molecule.Structure>()
             for (const s of structures) {
                 const rootStructure = getRootStructure(s, state)
@@ -156,9 +158,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
                     }
 
                     if (p.levels.includes('ligand') && !u.polymerElements.length) {
-                        const compId = StructureProperties.residue.label_comp_id(l)
-                        const chemComp = u.model.properties.chemicalComponentMap.get(compId)
-                        const moleculeType = chemComp ? chemComp.moleculeType : MoleculeType.unknown
+                        const moleculeType = getElementMoleculeType(u, u.elements[0])
                         if (moleculeType === MoleculeType.other || moleculeType === MoleculeType.saccharide) {
                             label = `${StructureProperties.entity.pdbx_description(l).join(', ')} (${getAsymId(u)(l)})`
                         }

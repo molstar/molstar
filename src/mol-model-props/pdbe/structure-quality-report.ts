@@ -83,7 +83,7 @@ export namespace StructureQualityReport {
         }
     }
 
-    export function createAttachTask(mapUrl: (model: Model) => string, fetch: (url: string, type: 'string' | 'binary') => Task<string | Uint8Array>) {
+    export function createAttachTask(mapUrl: (model: Model) => string, fetch: import('mol-util/data-source').AjaxTask) {
         return (model: Model) => Task.create('PDBe Structure Quality Report', async ctx => {
             if (get(model)) return true;
 
@@ -97,7 +97,7 @@ export namespace StructureQualityReport {
             // } else
             {
                 const url = mapUrl(model);
-                const dataStr = await fetch(url, 'string').runInContext(ctx) as string;
+                const dataStr = await fetch({ url }).runInContext(ctx) as string;
                 const data = JSON.parse(dataStr)[model.label.toLowerCase()];
                 if (!data) return false;
                 info = PropertyWrapper.createInfo();
