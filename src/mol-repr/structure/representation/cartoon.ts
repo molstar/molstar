@@ -14,11 +14,13 @@ import { Representation, RepresentationParamsGetter, RepresentationContext } fro
 import { PolymerDirectionVisual, PolymerDirectionParams } from '../visual/polymer-direction-wedge';
 import { Structure, Unit } from 'mol-model/structure';
 import { ThemeRegistryContext } from 'mol-theme/theme';
+import { NucleotideRingParams, NucleotideRingVisual } from '../visual/nucleotide-ring-mesh';
 
 const CartoonVisuals = {
     'polymer-trace': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTraceParams>) => UnitsRepresentation('Polymer trace mesh', ctx, getParams, PolymerTraceVisual),
     'polymer-gap': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerGapParams>) => UnitsRepresentation('Polymer gap cylinder', ctx, getParams, PolymerGapVisual),
     'nucleotide-block': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideBlockParams>) => UnitsRepresentation('Nucleotide block mesh', ctx, getParams, NucleotideBlockVisual),
+    'nucleotide-ring': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideRingParams>) => UnitsRepresentation('Nucleotide ring mesh', ctx, getParams, NucleotideRingVisual),
     'direction-wedge': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerDirectionParams>) => UnitsRepresentation('Polymer direction wedge', ctx, getParams, PolymerDirectionVisual)
 }
 type CartoonVisualName = keyof typeof CartoonVisuals
@@ -28,6 +30,7 @@ export const CartoonParams = {
     ...PolymerTraceParams,
     ...PolymerGapParams,
     ...NucleotideBlockParams,
+    ...NucleotideRingParams,
     ...PolymerDirectionParams,
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
     visuals: PD.MultiSelect<CartoonVisualName>(['polymer-trace', 'polymer-gap', 'nucleotide-block'], CartoonVisualOptions),
