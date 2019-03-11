@@ -58,7 +58,7 @@ class State {
     get cellStates() { return (this._tree as StateTree).cellStates; }
     get current() { return this.behaviors.currentObject.value.ref; }
 
-    build() { return new StateBuilder.Root(this._tree); }
+    build() { return new StateBuilder.Root(this.tree, this); }
 
     readonly cells: State.Cells = new Map();
     private spine = new StateTreeSpine.Impl(this.cells);
@@ -134,8 +134,8 @@ class State {
     updateTree(tree: StateTree | StateBuilder, options?: Partial<State.UpdateOptions>): Task<any> {
         const params: UpdateParams = { tree, options };
         return Task.create('Update Tree', async taskCtx => {
-            const ok = await this.updateQueue.enqueue(params);
-            if (!ok) return;
+            const removed = await this.updateQueue.enqueue(params);
+            if (!removed) return;
 
             try {
                 const ret = await this._updateTree(taskCtx, params);

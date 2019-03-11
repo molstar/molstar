@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTree, StateBuilder, StateAction } from 'mol-state';
+import { StateTree, StateBuilder, StateAction, State } from 'mol-state';
 import { StateTransforms } from 'mol-plugin/state/transforms';
 import { createModelTree, complexRepresentation } from 'mol-plugin/state/actions/structure';
 import { PluginContext } from 'mol-plugin/context';
@@ -34,7 +34,7 @@ export const CreateJoleculeState = StateAction.build({
         await PluginCommands.State.RemoveObject.dispatch(plugin, { state, ref });
         plugin.state.snapshots.clear();
 
-        const template = createTemplate(plugin, state.tree, id);
+        const template = createTemplate(plugin, state, id);
         const snapshots = data.map((e, idx) => buildSnapshot(plugin, template, { e, idx, len: data.length }));
         for (const s of snapshots) {
             plugin.state.snapshots.add(s);
@@ -55,8 +55,8 @@ interface JoleculeSnapshot {
     text: string
 }
 
-function createTemplate(plugin: PluginContext, tree: StateTree, id: string) {
-    const b = new StateBuilder.Root(tree);
+function createTemplate(plugin: PluginContext, state: State, id: string) {
+    const b = new StateBuilder.Root(state.tree);
     const data = b.toRoot().apply(StateTransforms.Data.Download, { url: `https://www.ebi.ac.uk/pdbe/static/entry/${id}_updated.cif` }, { props: { isGhost: true }});
     const model = createModelTree(data, 'cif');
     const structure = model.apply(StateTransforms.Model.StructureFromModel, {});

@@ -69,9 +69,8 @@ export function arrayRemoveInPlace<T>(xs: T[], x: T) {
     if (!found) return false;
     i++;
     for (; i < l; i++) {
-        xs[i] = xs[i - 1];
+        xs[i - 1] = xs[i];
     }
     xs.pop();
     return true;
 }
-(window as any).arrayRem = arrayRemoveInPlace

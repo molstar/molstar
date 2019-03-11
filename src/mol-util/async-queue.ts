@@ -9,7 +9,7 @@ import { Subject } from 'rxjs';
 
 export class AsyncQueue<T> {
     private queue: T[] = [];
-    private signal = new Subject<{ v: T, removed: boolean }>();
+    private signal = new Subject<{ v: T, stillPresent: boolean }>();
 
     enqueue(v: T) {
         this.queue.push(v);
@@ -19,19 +19,21 @@ export class AsyncQueue<T> {
 
     handled(v: T) {
         arrayRemoveInPlace(this.queue, v);
-        if (this.queue.length > 0) this.signal.next({ v: this.queue[0], removed: false });
+        if (this.queue.length > 0) {
+            this.signal.next({ v: this.queue[0], stillPresent: true });
+        }
     }
 
     remove(v: T) {
         const rem = arrayRemoveInPlace(this.queue, v);
         if (rem)
-        this.signal.next({ v, removed: true })
+        this.signal.next({ v, stillPresent: false })
         return rem;
     }
 
     private waitFor(t: T): Promise<boolean> {
         return new Promise(res => {
-            const sub = this.signal.subscribe(({ v, removed }) => {
+            const sub = this.signal.subscribe(({ v, stillPresent: removed }) => {
                 if (v === t) {
                     sub.unsubscribe();
                     res(removed);
