@@ -18,6 +18,8 @@ const tmpV = Vec3.zero()
 const tmpMat3 = Mat3.zero()
 const tmpVecA = Vec3.zero()
 const tmpVecB = Vec3.zero()
+const tmpVecC = Vec3.zero()
+const tmpVecD = Vec3.zero()
 
 export namespace MeshBuilder {
     export interface State {
@@ -37,6 +39,45 @@ export namespace MeshBuilder {
             indices: ChunkedArray.create(Uint32Array, 3, chunkSize * 3, mesh ? mesh.indexBuffer.ref.value : initialCount * 3),
             groups: ChunkedArray.create(Float32Array, 1, chunkSize, mesh ? mesh.groupBuffer.ref.value : initialCount),
             mesh
+        }
+    }
+
+    export function addTriangle(state: State, a: Vec3, b: Vec3, c: Vec3) {
+        const { vertices, normals, indices, groups, currentGroup } = state
+        const offset = vertices.elementCount
+        
+        // positions
+        ChunkedArray.add3(vertices, a[0], a[1], a[2]);
+        ChunkedArray.add3(vertices, b[0], b[1], b[2]);
+        ChunkedArray.add3(vertices, c[0], c[1], c[2]);
+
+        Vec3.triangleNormal(tmpV, a, b, c)
+        for (let i = 0; i < 3; ++i) {
+            ChunkedArray.add3(normals, tmpV[0], tmpV[1], tmpV[2]);  // normal
+            ChunkedArray.add(groups, currentGroup);  // group
+        }
+        ChunkedArray.add3(indices, offset, offset + 1, offset + 2);
+    }
+
+    export function addTriangleStrip(state: State, vertices: ArrayLike<number>, indices: ArrayLike<number>) {
+        Vec3.fromArray(tmpVecC, vertices, indices[0] * 3)
+        Vec3.fromArray(tmpVecD, vertices, indices[1] * 3)
+        for (let i = 2, il = indices.length; i < il; i += 2) {
+            Vec3.copy(tmpVecA, tmpVecC)
+            Vec3.copy(tmpVecB, tmpVecD)
+            Vec3.fromArray(tmpVecC, vertices, indices[i] * 3)
+            Vec3.fromArray(tmpVecD, vertices, indices[i + 1] * 3)
+            addTriangle(state, tmpVecA, tmpVecB, tmpVecC)
+            addTriangle(state, tmpVecB, tmpVecD, tmpVecC)
+        }
+    }
+
+    export function addTriangleFan(state: State, vertices: ArrayLike<number>, indices: ArrayLike<number>) {
+        Vec3.fromArray(tmpVecA, vertices, indices[0] * 3)
+        for (let i = 2, il = indices.length; i < il; ++i) {
+            Vec3.fromArray(tmpVecB, vertices, indices[i - 1] * 3)
+            Vec3.fromArray(tmpVecC, vertices, indices[i] * 3)
+            addTriangle(state, tmpVecA, tmpVecC, tmpVecB)
         }
     }
 
