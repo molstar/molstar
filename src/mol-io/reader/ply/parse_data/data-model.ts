@@ -1,6 +1,7 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * @author Schäfer, Marco <marco.schaefer@uni-tuebingen.de>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
@@ -27,7 +28,7 @@ export interface ply_form {
     readonly vertices: number[],
     readonly colors: number[],
     readonly normals: number[],
-    readonly  faces: number[],
+    readonly faces: number[],
 }
 
 export function PlyStructure(vertexCount: number, faceCount: number, propertyCount: number, initialHead: string[], propertyNames: string[],  properties: number[],  vertices: number[],  colors: number[],  normals: number[], faces: number[]): ply_form {
@@ -35,9 +36,3 @@ export function PlyStructure(vertexCount: number, faceCount: number, propertyCou
 }
 
 export type PlyColumns = { [name: string]: PlyColumn }
-
-// export namespace CsvTable {
-//     export function empty(name: string): Table {
-//         return { rowCount: 0, name, fieldNames: [], getColumn(name: string) { return void 0; } };
-//     };
-// }

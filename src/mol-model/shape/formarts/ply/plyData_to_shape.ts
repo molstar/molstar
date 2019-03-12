@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Schäfer, Marco <marco.schaefer@uni-tuebingen.de>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
 import {ply_form, PlyFile} from '../../../../mol-io/reader/ply/parse_data/data-model';
 import {RuntimeContext, Task} from 'mol-task';
 import {Mesh} from '../../../../mol-geo/geometry/mesh/mesh';
@@ -13,7 +20,6 @@ export interface MyData {
     faces: number[],
     colors: Color[],
     labels: string[],
-    transforms: number[]
 }
 
 function collectData_for_Shape(parsedData: ply_form): MyData {
@@ -26,13 +32,12 @@ function collectData_for_Shape(parsedData: ply_form): MyData {
         faces: faces,
         colors: [],
         labels: [],
-        transforms: []
     }
 
     for (let i = 0; i<parsedData.faceCount; i++) {
         data.colors[i] = Color.fromRgb(colors[faces[4*i+1]*3+0], colors[faces[4*i+1]*3+1], colors[faces[4*i+1]*3+2]);
         data.labels[i] = parsedData.properties[parsedData.propertyCount * faces[4*i+1] + 10].toString();
-            //i.toString();
+        // i.toString();
         // data.transforms[i] = 0;
     }
     console.log('data', data);
@@ -55,8 +60,8 @@ async function getSphereMesh(ctx: RuntimeContext, centers: number[], normals: nu
         triangle_normals = [ normals[faces[4*i+1]*3], normals[faces[4*i+1]*3+1], normals[faces[4*i+1]*3+2],
                              normals[faces[4*i+2]*3], normals[faces[4*i+2]*3+1], normals[faces[4*i+2]*3+2],
                              normals[faces[4*i+3]*3], normals[faces[4*i+3]*3+1], normals[faces[4*i+3]*3+2]];
-        triangle_indices = [0,1,2];
-        //console.log(triangle_vertices)
+        triangle_indices = [0, 1, 2];
+        // console.log(triangle_vertices)
         addTriangle(builderState, triangle_vertices, triangle_normals, triangle_indices)
     }
     let a = MeshBuilder.getMesh(builderState);
