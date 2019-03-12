@@ -1,14 +1,15 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * @author Schäfer, Marco <marco.schaefer@uni-tuebingen.de>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Tokens, TokenBuilder, Tokenizer } from '../../common/text/tokenizer'
 import * as Data from './data-model'
-
 import{ ReaderResult } from '../../result'
 import {Task, RuntimeContext, chunkedSubtask } from 'mol-task'
+import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../common/text/number-parser'
 
 const enum PlyTokenType {
     Value = 0,
@@ -17,7 +18,6 @@ const enum PlyTokenType {
     property = 3,
     element = 4
 }
-
 
 interface State {
     data: string;
@@ -54,7 +54,6 @@ interface State {
 }
 
 function State(data: string, runtimeCtx: RuntimeContext, opts: PlyOptions): State {
-
     const tokenizer = Tokenizer(data)
     return {
         data,
@@ -134,7 +133,6 @@ function eatLine (state: Tokenizer) {
 
 }
 
-
 function skipLine(state: Tokenizer) {
     while (state.position < state.length) {
         const c = state.data.charCodeAt(state.position);
@@ -143,13 +141,12 @@ function skipLine(state: Tokenizer) {
     }
 }
 
-function getColumns(state: State, NumberofColumns: number){
+function getColumns(state: State, numberOfColumns: number) {
     eatLine(state.tokenizer);
-    let tmp = (Tokenizer.getTokenString(state.tokenizer))
-    let split = tmp.split(" ", NumberofColumns);
+    let tmp = Tokenizer.getTokenString(state.tokenizer)
+    let split = tmp.split(' ', numberOfColumns);
     return split;
 }
-
 
 /**
  * Move to the next token.
@@ -172,8 +169,8 @@ function moveNextInternal(state: State) {
             skipLine(tokenizer);
             break;
         case state.propertyCharCode: // checks all line beginning with 'p'
-            state.check = getColumns(state,3);
-            if(state.check[0] !== 'ply' && state.faceCount === 0){
+            state.check = getColumns(state, 3);
+            if (state.check[0] !== 'ply' && state.faceCount === 0) {
                 state.propertyNames.push(state.check[1]);
                 state.propertyNames.push(state.check[2]);
                 state.propertyCount++;
@@ -181,38 +178,38 @@ function moveNextInternal(state: State) {
             return;
         case state.elementCharCode: // checks all line beginning with 'e'
             state.check = getColumns(state, 3);
-            if(state.check[1] === 'vertex')  state.vertexCount= Number(state.check[2]);
-            if(state.check[1] === 'face')  state.faceCount = Number(state.check[2]);
-            if(state.check[0] === 'end_header')  state.endHeader = 1;
+            if (state.check[1] === 'vertex') state.vertexCount= Number(state.check[2]);
+            if (state.check[1] === 'face') state.faceCount = Number(state.check[2]);
+            if (state.check[0] === 'end_header') state.endHeader = 1;
             return;
         default:                    // for all the other lines
             state.tokenType = PlyTokenType.Value;
             let return_value = eatValue(tokenizer);
 
-            if(state.endHeader === 1)
-            {
-                if(state.currentVertex < state.vertexCount){
+            if (state.endHeader === 1) {
+                if (state.currentVertex < state.vertexCount) {
+                    // TODO the numbers are parsed twice
                     state.properties[state.currentVertex * state.propertyCount + state.currentProperty] = Number(Tokenizer.getTokenString(state.tokenizer));
-                    if(state.currentProperty < 3){
-                        state.vertices[state.currentVertex * 3 + state.currentProperty] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    if (state.currentProperty < 3) {
+                        state.vertices[state.currentVertex * 3 + state.currentProperty] = fastParseFloat(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
                     }
-                    if(state.currentProperty >= 3 && state.currentProperty <6){
-                        state.colors[state.currentVertex * 3 + state.currentProperty-3] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    if (state.currentProperty >= 3 && state.currentProperty < 6) {
+                        state.colors[state.currentVertex * 3 + state.currentProperty - 3] = fastParseInt(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
                     }
-                    if(state.currentProperty >= 6 && state.currentProperty <9){
-                        state.normals[state.currentVertex * 3 + state.currentProperty-6] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    if (state.currentProperty >= 6 && state.currentProperty < 9) {
+                        state.normals[state.currentVertex * 3 + state.currentProperty - 6] = fastParseFloat(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
                     }
                     state.currentProperty++;
-                    if(state.currentProperty === state.propertyCount){
+                    if (state.currentProperty === state.propertyCount) {
                         state.currentProperty = 0;
                         state.currentVertex++;
                     }
                     return return_value;
                 }
-                if(state.currentFace < state.faceCount && state.currentVertex === state.vertexCount){
-                    state.faces[state.currentFace * 4 + state.currentFaceElement] = Number(Tokenizer.getTokenString(state.tokenizer));
+                if (state.currentFace < state.faceCount && state.currentVertex === state.vertexCount) {
+                    state.faces[state.currentFace * 4 + state.currentFaceElement] = fastParseInt(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
                     state.currentFaceElement++;
-                    if(state.currentProperty === 4){
+                    if (state.currentProperty === 4) {
                         state.currentFaceElement = 0;
                         state.currentFace++;
                     }
@@ -233,8 +230,6 @@ function moveNext(state: State) {
     }
     return newRecord
 }
-
-
 
 function readRecordsChunk(chunkSize: number, state: State) {
     if (state.tokenType === PlyTokenType.End) return 0
@@ -258,12 +253,9 @@ function readRecordsChunks(state: State) {
 
 function addHeadEntry (state: State) {
     const head = Tokenizer.getTokenString(state.tokenizer)
-    console.log(head)
     state.initialHead.push(head)
     state.tokens.push(TokenBuilder.create(head, state.data.length / 80))
 }
-
-
 
 function init(state: State) { // only for first two lines to get the format and the coding! (marco)
     let newRecord = moveNext(state)
@@ -278,12 +270,12 @@ function init(state: State) { // only for first two lines to get the format and 
         newRecord = moveNext(state);
     }
     addHeadEntry(state)
-    if(state.initialHead[0] !== 'ply'){
+    if (state.initialHead[0] !== 'ply') {
         console.log('ERROR: this is not a .ply file!')
         throw new Error('this is not a .ply file!');
         return 0;
     }
-    if(state.initialHead[2] !== 'ascii'){
+    if (state.initialHead[2] !== 'ascii') {
         console.log('ERROR: only ASCII-DECODING is supported!');
         throw new Error('only ASCII-DECODING is supported!');
         return 0;
@@ -293,7 +285,7 @@ function init(state: State) { // only for first two lines to get the format and 
 }
 
 async function handleRecords(state: State): Promise<Data.ply_form> {
-    if(!init(state)){
+    if (!init(state)) {
         console.log('ERROR: parsing file (PLY) failed!')
         throw new Error('arsing file (PLY) failed!');
     }
@@ -308,15 +300,6 @@ async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
     const PLYdata = await handleRecords(state)
     const result = Data.PlyFile(PLYdata)
-    console.log(result);
-
-    // let Data_for_Shape = plyToShape.collectData_for_Shape(table, datas);
-    // console.log(plyToShape.getShape(state.runtimeCtx, table));
-    // let shape  = plyToShape.init_ren(PLYdata);
-    // console.log("shape"+shape);
-    // const script = document.createElement('script');
-    // script.src = "../../build/src/mol-model/shape/formarts/ply/plyData_to_shape.js";
-    // document.body.appendChild(script);
 
     return ReaderResult.success(result);
 }
