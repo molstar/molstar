@@ -19,12 +19,12 @@ import { StateObject, StateTransformer } from 'mol-state';
 import { RuntimeContext, Task } from 'mol-task';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { stringToWords } from 'mol-util/string';
-import { shapeFromPly } from 'mol-model/shape/formarts/ply/plyData_to_shape';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { trajectoryFromGRO } from 'mol-model-formats/structure/gro';
 import { parseGRO } from 'mol-io/reader/gro/parser';
 import { parseMolScript } from 'mol-script/language/parser';
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
+import { shapeFromPly } from 'mol-model-formats/shape/ply';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };

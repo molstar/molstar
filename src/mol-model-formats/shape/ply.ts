@@ -5,16 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import {ply_form, PlyFile} from '../../../../mol-io/reader/ply/parse_data/data-model';
-import {RuntimeContext, Task} from 'mol-task';
-import {Mesh} from '../../../../mol-geo/geometry/mesh/mesh';
-import {MeshBuilder} from '../../../../mol-geo/geometry/mesh/mesh-builder';
+import { RuntimeContext, Task } from 'mol-task';
 import { addTriangle } from 'mol-geo/geometry/mesh/builder/triangle';
-import {Shape} from '../../shape';
-import {Color} from '../../../../mol-util/color';
 import { ShapeProvider } from 'mol-model/shape/provider';
+import { Color } from 'mol-util/color';
+import { ply_form, PlyFile } from 'mol-io/reader/ply/parse_data/data-model';
+import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
+import { Mesh } from 'mol-geo/geometry/mesh/mesh';
+import { Shape } from 'mol-model/shape';
 
-export interface MyData {
+interface PlyShapeData {
     centers: number[],
     normals: number[],
     faces: number[],
@@ -22,11 +22,11 @@ export interface MyData {
     labels: string[],
 }
 
-function collectData_for_Shape(parsedData: ply_form): MyData {
+function collectData_for_Shape(parsedData: ply_form): PlyShapeData {
     // parsedData.data.PLY_File. to access So.format.Ply
     console.log('parsedData', parsedData)
     const { vertices, colors, faces, normals } = parsedData
-    const data: MyData = {
+    const data: PlyShapeData = {
         centers: vertices,
         normals: normals,
         faces: faces,
@@ -44,7 +44,7 @@ function collectData_for_Shape(parsedData: ply_form): MyData {
     return data;
 }
 
-async function getSphereMesh(ctx: RuntimeContext, centers: number[], normals: number[], faces: number[], mesh?: Mesh) {
+async function getPlyMesh(ctx: RuntimeContext, centers: number[], normals: number[], faces: number[], mesh?: Mesh) {
     const builderState = MeshBuilder.createState(faces.length, faces.length, mesh)
     builderState.currentGroup = 0
     for (let i = 0, il = faces.length/4; i < il; ++i) {
@@ -65,19 +65,15 @@ async function getSphereMesh(ctx: RuntimeContext, centers: number[], normals: nu
         addTriangle(builderState, triangle_vertices, triangle_normals, triangle_indices)
     }
     let a = MeshBuilder.getMesh(builderState);
-    // a.normalsComputed = false
-    // Mesh.computeNormalsImmediate(a)
     console.log(a);
     return a
 }
 
-
-
-export async function getShape(ctx: RuntimeContext, parsedData: ply_form, props: {}, shape?: Shape<Mesh>) {
+async function getShape(ctx: RuntimeContext, parsedData: ply_form, props: {}, shape?: Shape<Mesh>) {
     const data = collectData_for_Shape(parsedData)
     await ctx.update('async creation of shape from  myData')
     const { centers, normals, faces, colors, labels } = data
-    const mesh = await getSphereMesh(ctx, centers, normals, faces, shape && shape.geometry)
+    const mesh = await getPlyMesh(ctx, centers, normals, faces, shape && shape.geometry)
     const groupCount = centers.length / 3
     return shape || Shape.create(
         'test', mesh,
