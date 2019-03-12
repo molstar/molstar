@@ -13,6 +13,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Ccp4Provider, Dsn6Provider, DscifProvider } from './volume';
 import { StateTransforms } from '../transforms';
 import { MmcifProvider, PdbProvider, GroProvider } from './structure';
+import msgpackDecode from 'mol-io/common/msgpack/decode'
 
 export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String> {
     private _list: { name: string, provider: DataFormatProvider<D> }[] = []
@@ -140,3 +141,17 @@ export const OpenFile = StateAction.build({
     // need to await the 2nd update the so that the enclosing Task finishes after the update is done.
     await provider.getDefaultBuilder(ctx, b, state).runInContext(taskCtx)
 }));
+
+//
+
+type cifVariants = 'dscif' | -1
+export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifVariants {
+    if (info.ext === 'bcif') {
+        try {
+            if (msgpackDecode(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif'
+        } catch { }
+    } else if (info.ext === 'cif') {
+        if ((data as string).startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif'
+    }
+    return -1
+}

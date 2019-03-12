@@ -13,7 +13,7 @@ import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
 import { CustomModelProperties, StructureSelection } from '../transforms/model';
-import { DataFormatProvider } from './data-format';
+import { DataFormatProvider, guessCifVariant } from './data-format';
 import { FileInfo } from 'mol-util/file-info';
 import { Task } from 'mol-task';
 import { StructureElement } from 'mol-model/structure';
@@ -24,7 +24,10 @@ export const MmcifProvider: DataFormatProvider<any> = {
     stringExtensions: ['cif', 'mmcif', 'mcif'],
     binaryExtensions: ['bcif'],
     isApplicable: (info: FileInfo, data: Uint8Array | string) => {
-        return info.ext === 'cif' || info.ext === 'mmcif' || info.ext === 'mcif' || info.ext === 'bcif'
+        if (info.ext === 'mmcif' || info.ext === 'mcif') return true
+        // assume cif/bcif files that are not DensityServer CIF are mmCIF
+        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) !== 'dscif'
+        return false
     },
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, state: State) => {
         return Task.create('mmCIF default builder', async taskCtx => {
