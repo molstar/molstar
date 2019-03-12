@@ -196,11 +196,11 @@ function moveNextInternal(state: State) {
                     if(state.currentProperty < 3){
                         state.vertices[state.currentVertex * 3 + state.currentProperty] = Number(Tokenizer.getTokenString(state.tokenizer));
                     }
-                    if(state.currentProperty >= 3 && state.currentProperty <6){
+                    if(state.currentProperty >= 3 && state.currentProperty <7){
                         state.colors[state.currentVertex * 3 + state.currentProperty-3] = Number(Tokenizer.getTokenString(state.tokenizer));
                     }
-                    if(state.currentProperty >= 6 && state.currentProperty <9){
-                        state.normals[state.currentVertex * 3 + state.currentProperty-6] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    if(state.currentProperty >= 7 && state.currentProperty <10){
+                        state.normals[state.currentVertex * 3 + state.currentProperty-7] = Number(Tokenizer.getTokenString(state.tokenizer));
                     }
                     state.currentProperty++;
                     if(state.currentProperty === state.propertyCount){

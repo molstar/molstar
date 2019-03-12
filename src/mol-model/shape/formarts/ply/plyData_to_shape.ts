@@ -2,14 +2,15 @@ import {ply_form, PlyFile} from '../../../../mol-io/reader/ply/parse_data/data-m
 import {RuntimeContext, Task} from 'mol-task';
 import {Mesh} from '../../../../mol-geo/geometry/mesh/mesh';
 import {MeshBuilder} from '../../../../mol-geo/geometry/mesh/mesh-builder';
-import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
-import {Vec3} from '../../../../mol-math/linear-algebra/3d';
+import { addTriangle } from 'mol-geo/geometry/mesh/builder/triangle';
 import {Shape} from '../../shape';
 import {Color} from '../../../../mol-util/color';
 import { ShapeProvider } from 'mol-model/shape/provider';
 
 export interface MyData {
     centers: number[],
+    normals: number[],
+    faces: number[],
     colors: Color[],
     labels: string[],
     transforms: number[]
@@ -18,43 +19,58 @@ export interface MyData {
 function collectData_for_Shape(parsedData: ply_form): MyData {
     // parsedData.data.PLY_File. to access So.format.Ply
     console.log('parsedData', parsedData)
-    const { vertices, colors } = parsedData
+    const { vertices, colors, faces, normals } = parsedData
     const data: MyData = {
         centers: vertices,
+        normals: normals,
+        faces: faces,
         colors: [],
         labels: [],
         transforms: []
     }
 
-    for (let i = 0; i<parsedData.vertexCount; i++) {
-        data.colors[i] = Color.fromRgb(colors[i*3+0], colors[i*3+1], colors[i*3+2]);
-        data.labels[i] = '';
+    for (let i = 0; i<parsedData.faceCount; i++) {
+        data.colors[i] = Color.fromRgb(colors[faces[4*i+1]*3+0], colors[faces[4*i+1]*3+1], colors[faces[4*i+1]*3+2]);
+        data.labels[i] = parsedData.properties[parsedData.propertyCount * faces[4*i+1] + 10].toString();
+            //i.toString();
         data.transforms[i] = 0;
     }
     console.log('data', data);
     return data;
 }
 
-async function getSphereMesh(ctx: RuntimeContext, centers: number[], mesh?: Mesh) {
-    const builderState = MeshBuilder.createState(centers.length * 128, centers.length * 128 / 2, mesh)
-    const v = Vec3.zero()
+async function getSphereMesh(ctx: RuntimeContext, centers: number[], normals: number[], faces: number[], mesh?: Mesh) {
+    const builderState = MeshBuilder.createState(faces.length, faces.length, mesh)
     builderState.currentGroup = 0
-    for (let i = 0, il = centers.length / 3; i < il; ++i) {
-        if (i % 10000 === 0 && ctx.shouldUpdate) await ctx.update({ current: i, max: il, message: `adding sphere ${i}` })
+    for (let i = 0, il = faces.length/4; i < il; ++i) {
+        if (i % 10000 === 0 && ctx.shouldUpdate) await ctx.update({ current: i, max: il, message: `adding triangle ${i}` })
         builderState.currentGroup = i
-        addSphere(builderState, Vec3.fromArray(v, centers, i * 3), 0.2, 1)
+
+        let triangle_vertices: number[];
+        let triangle_normals: number[];
+        let triangle_indices: number[];
+        triangle_vertices = [centers[faces[4*i+1]*3], centers[faces[4*i+1]*3+1], centers[faces[4*i+1]*3+2],
+                             centers[faces[4*i+2]*3], centers[faces[4*i+2]*3+1], centers[faces[4*i+2]*3+2],
+                             centers[faces[4*i+3]*3], centers[faces[4*i+3]*3+1], centers[faces[4*i+3]*3+2]];
+        triangle_normals = [ normals[faces[4*i+1]*3], normals[faces[4*i+1]*3+1], normals[faces[4*i+1]*3+2],
+                             normals[faces[4*i+2]*3], normals[faces[4*i+2]*3+1], normals[faces[4*i+2]*3+2],
+                             normals[faces[4*i+3]*3], normals[faces[4*i+3]*3+1], normals[faces[4*i+3]*3+2]];
+        triangle_indices = [0,1,2];
+        //console.log(triangle_vertices)
+        addTriangle(builderState, triangle_vertices, triangle_normals, triangle_indices)
     }
     let a = MeshBuilder.getMesh(builderState);
-    // console.log(a);
+    console.log(a);
     return a
 }
+
 
 
 export async function getShape(ctx: RuntimeContext, parsedData: ply_form, props: {}, shape?: Shape<Mesh>) {
     const data = collectData_for_Shape(parsedData)
     await ctx.update('async creation of shape from  myData')
-    const { centers , colors, labels } = data
-    const mesh = await getSphereMesh(ctx, centers, shape && shape.geometry)
+    const { centers, normals, faces, colors, labels } = data
+    const mesh = await getSphereMesh(ctx, centers, normals, faces, shape && shape.geometry)
     const groupCount = centers.length / 3
     return shape || Shape.create(
         'test', mesh,
