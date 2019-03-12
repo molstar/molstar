@@ -11,14 +11,14 @@ export { PlyColumn }
 
 export interface PlyFile {
     readonly name?: string,
-    readonly PLY_File: ply_form
+    readonly PLY_File: PlyData
 }
 
-export function PlyFile(PLY_File: ply_form, name?: string): PlyFile {
+export function PlyFile(PLY_File: PlyData, name?: string): PlyFile {
     return { name, PLY_File };
 }
 
-export interface ply_form {
+export interface PlyData {
     readonly vertexCount: number,
     readonly faceCount: number,
     readonly propertyCount: number,
@@ -31,8 +31,18 @@ export interface ply_form {
     readonly faces: number[],
 }
 
-export function PlyStructure(vertexCount: number, faceCount: number, propertyCount: number, initialHead: string[], propertyNames: string[],  properties: number[],  vertices: number[],  colors: number[],  normals: number[], faces: number[]): ply_form {
-    return {vertexCount, faceCount, propertyCount, initialHead: [...initialHead], propertyNames: [...propertyNames], properties: [...properties], vertices: [...vertices], colors: [...colors], normals: [...normals], faces: [...faces]};
+// TODO note, removed `faces: [...faces]` pattern as that copies the data which I assume was not intentional (alex)
+export function PlyData(vertexCount: number, faceCount: number, propertyCount: number, initialHead: string[], propertyNames: string[],  properties: number[],  vertices: number[],  colors: number[],  normals: number[], faces: number[]): PlyData {
+    return {
+        vertexCount,
+        faceCount,
+        propertyCount,
+        initialHead,
+        propertyNames,
+        properties,
+        vertices,
+        colors,
+        normals,
+        faces
+    };
 }
-
-export type PlyColumns = { [name: string]: PlyColumn }

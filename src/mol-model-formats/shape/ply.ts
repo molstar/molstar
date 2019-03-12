@@ -9,7 +9,7 @@ import { RuntimeContext, Task } from 'mol-task';
 import { addTriangle } from 'mol-geo/geometry/mesh/builder/triangle';
 import { ShapeProvider } from 'mol-model/shape/provider';
 import { Color } from 'mol-util/color';
-import { ply_form, PlyFile } from 'mol-io/reader/ply/parse_data/data-model';
+import { PlyData, PlyFile } from 'mol-io/reader/ply/parse_data/data-model';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Shape } from 'mol-model/shape';
@@ -22,7 +22,7 @@ interface PlyShapeData {
     labels: string[],
 }
 
-function collectData_for_Shape(parsedData: ply_form): PlyShapeData {
+function collectData_for_Shape(parsedData: PlyData): PlyShapeData {
     // parsedData.data.PLY_File. to access So.format.Ply
     console.log('parsedData', parsedData)
     const { vertices, colors, faces, normals } = parsedData
@@ -69,7 +69,7 @@ async function getPlyMesh(ctx: RuntimeContext, centers: number[], normals: numbe
     return a
 }
 
-async function getShape(ctx: RuntimeContext, parsedData: ply_form, props: {}, shape?: Shape<Mesh>) {
+async function getShape(ctx: RuntimeContext, parsedData: PlyData, props: {}, shape?: Shape<Mesh>) {
     const data = collectData_for_Shape(parsedData)
     await ctx.update('async creation of shape from  myData')
     const { centers, normals, faces, colors, labels } = data
@@ -89,7 +89,7 @@ export const PlyShapeParams = {
 export type PlyShapeParams = typeof PlyShapeParams
 
 export function shapeFromPly(source: PlyFile, params?: {}) {
-    return Task.create<ShapeProvider<ply_form, Mesh, PlyShapeParams>>('Parse Shape Data', async ctx => {
+    return Task.create<ShapeProvider<PlyData, Mesh, PlyShapeParams>>('Parse Shape Data', async ctx => {
         console.log('source', source)
         return {
             label: 'Mesh',

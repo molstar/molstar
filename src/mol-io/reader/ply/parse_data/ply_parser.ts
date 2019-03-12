@@ -284,14 +284,14 @@ function init(state: State) { // only for first two lines to get the format and 
     return 1;
 }
 
-async function handleRecords(state: State): Promise<Data.ply_form> {
+async function handleRecords(state: State): Promise<Data.PlyData> {
     if (!init(state)) {
         console.log('ERROR: parsing file (PLY) failed!')
         throw new Error('arsing file (PLY) failed!');
     }
     await readRecordsChunks(state)
 
-    return Data.PlyStructure(state.vertexCount, state.faceCount, state.propertyCount, state.initialHead, state.propertyNames, state.properties, state.vertices, state.colors, state.normals, state.faces)
+    return Data.PlyData(state.vertexCount, state.faceCount, state.propertyCount, state.initialHead, state.propertyNames, state.properties, state.vertices, state.colors, state.normals, state.faces)
 }
 
 async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions): Promise<ReaderResult<Data.PlyFile>> {
