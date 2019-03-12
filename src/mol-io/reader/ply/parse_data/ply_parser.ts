@@ -7,7 +7,7 @@
 import { Tokens, TokenBuilder, Tokenizer } from '../../common/text/tokenizer'
 import * as Data from './data-model'
 
-import Result from '../../result'
+import{ ReaderResult } from '../../result'
 import {Task, RuntimeContext, chunkedSubtask } from 'mol-task'
 
 const enum PlyTokenType {
@@ -196,11 +196,11 @@ function moveNextInternal(state: State) {
                     if(state.currentProperty < 3){
                         state.vertices[state.currentVertex * 3 + state.currentProperty] = Number(Tokenizer.getTokenString(state.tokenizer));
                     }
-                    if(state.currentProperty >= 3 && state.currentProperty <7){
+                    if(state.currentProperty >= 3 && state.currentProperty <6){
                         state.colors[state.currentVertex * 3 + state.currentProperty-3] = Number(Tokenizer.getTokenString(state.tokenizer));
                     }
-                    if(state.currentProperty >= 7 && state.currentProperty <10){
-                        state.normals[state.currentVertex * 3 + state.currentProperty-7] = Number(Tokenizer.getTokenString(state.tokenizer));
+                    if(state.currentProperty >= 6 && state.currentProperty <9){
+                        state.normals[state.currentVertex * 3 + state.currentProperty-6] = Number(Tokenizer.getTokenString(state.tokenizer));
                     }
                     state.currentProperty++;
                     if(state.currentProperty === state.propertyCount){
@@ -257,8 +257,10 @@ function readRecordsChunks(state: State) {
 }
 
 function addHeadEntry (state: State) {
-    state.initialHead.push(Tokenizer.getTokenString(state.tokenizer))
-    state.tokens.push(TokenBuilder.create(state.tokenizer, state.data.length / 80))
+    const head = Tokenizer.getTokenString(state.tokenizer)
+    console.log(head)
+    state.initialHead.push(head)
+    state.tokens.push(TokenBuilder.create(head, state.data.length / 80))
 }
 
 
@@ -300,7 +302,7 @@ async function handleRecords(state: State): Promise<Data.ply_form> {
     return Data.PlyStructure(state.vertexCount, state.faceCount, state.propertyCount, state.initialHead, state.propertyNames, state.properties, state.vertices, state.colors, state.normals, state.faces)
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions): Promise<Result<Data.PlyFile>> {
+async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions): Promise<ReaderResult<Data.PlyFile>> {
     const state = State(data, ctx, opts);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
@@ -316,7 +318,7 @@ async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions
     // script.src = "../../build/src/mol-model/shape/formarts/ply/plyData_to_shape.js";
     // document.body.appendChild(script);
 
-    return Result.success(result);
+    return ReaderResult.success(result);
 }
 
 interface PlyOptions {
@@ -327,7 +329,7 @@ interface PlyOptions {
 
 export function parse(data: string, opts?: Partial<PlyOptions>) {
     const completeOpts = Object.assign({}, { comment: 'c', property: 'p', element: 'e' }, opts)
-    return Task.create<Result<Data.PlyFile>>('Parse PLY', async ctx => {
+    return Task.create<ReaderResult<Data.PlyFile>>('Parse PLY', async ctx => {
         return await parseInternal(data, ctx, completeOpts);
     });
 }

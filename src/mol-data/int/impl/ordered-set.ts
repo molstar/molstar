@@ -169,7 +169,7 @@ function unionSI(a: S, b: I) {
     let offset = 0;
     for (let i = 0; i < start; i++) indices[offset++] = a[i];
     for (let i = min; i <= max; i++) indices[offset++] = i;
-    for (let i = end, _i = a.length; i < _i; i++) indices[offset] = a[i];
+    for (let i = end, _i = a.length; i < _i; i++) indices[offset++] = a[i];
 
     return ofSortedArray(indices);
 }

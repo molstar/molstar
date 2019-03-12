@@ -19,8 +19,8 @@ export type ValueKindType = {
     'boolean': string
     'any': any
 
+    'm4': Mat4,
     'float32': Float32Array
-
     'sphere': Sphere3D
 }
 export type ValueKind = keyof ValueKindType
@@ -75,6 +75,20 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
         if (schema[k].type === 'uniform') uniformValues[k] = values[k]
     })
     return { attributeValues, defineValues, textureValues, uniformValues }
+}
+
+export function splitKeys(schema: RenderableSchema) {
+    const attributeKeys: string[] = []
+    const defineKeys: string[] = []
+    const textureKeys: string[] = []
+    const uniformKeys: string[] = []
+    Object.keys(schema).forEach(k => {
+        if (schema[k].type === 'attribute') attributeKeys.push(k)
+        if (schema[k].type === 'define') defineKeys.push(k)
+        if (schema[k].type === 'texture') textureKeys.push(k)
+        if (schema[k].type === 'uniform') uniformKeys.push(k)
+    })
+    return { attributeKeys, defineKeys, textureKeys, uniformKeys }
 }
 
 export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
@@ -186,26 +200,60 @@ export const SizeSchema = {
 export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>
 
+export const MarkerSchema = {
+    uMarkerTexDim: UniformSpec('v2'),
+    tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+}
+export type MarkerSchema = typeof MarkerSchema
+export type MarkerValues = Values<MarkerSchema>
+
+export const OverpaintSchema = {
+    uOverpaintTexDim: UniformSpec('v2'),
+    tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+    dOverpaint: DefineSpec('boolean'),
+}
+export type OverpaintSchema = typeof OverpaintSchema
+export type OverpaintValues = Values<OverpaintSchema>
+
 export const BaseSchema = {
     ...ColorSchema,
+    ...MarkerSchema,
+    ...OverpaintSchema,
 
     aInstance: AttributeSpec('float32', 1, 1),
     aGroup: AttributeSpec('float32', 1, 0),
+    /**
+     * final per-instance transform calculated for instance `i` as
+     * `aTransform[i] = matrix * transform[i] * extraTransform[i]`
+     */
     aTransform: AttributeSpec('float32', 16, 1),
 
+    /**
+     * final alpha, calculated as `values.alpha * state.alpha`
+     */
     uAlpha: UniformSpec('f'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
-    uMarkerTexDim: UniformSpec('v2'),
+
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
 
-    tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
-
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
+
+    /** base alpha, see uAlpha  */
+    alpha: ValueSpec('number'),
+
+    /** global transform, see aTransform */
+    matrix: ValueSpec('m4'),
+    /** base per-instance transform, see aTransform */
     transform: ValueSpec('float32'),
+    /** additional per-instance transform, see aTransform */
+    extraTransform: ValueSpec('float32'),
+
+    /** bounding sphere taking aTransform into account */
     boundingSphere: ValueSpec('sphere'),
+    /** bounding sphere NOT taking aTransform into account */
     invariantBoundingSphere: ValueSpec('sphere'),
 
     dUseFog: DefineSpec('boolean'),

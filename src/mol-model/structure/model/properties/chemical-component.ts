@@ -4,16 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { MoleculeType, ComponentType } from '../types'
+import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
+import { Table } from 'mol-data/db';
 
-export interface ChemicalComponent {
-    id: string
-    type: ComponentType
-    moleculeType: MoleculeType
-    name: string
-    synonyms: string[]
-    formula: string
-    formulaWeight: number
-}
-
+export type ChemicalComponent = Table.Row<mmCIF_Schema['chem_comp']>
 export type ChemicalComponentMap = ReadonlyMap<string, ChemicalComponent>
+
+// TODO add data for common chemical components

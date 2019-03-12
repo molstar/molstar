@@ -14,7 +14,7 @@ import { OrderedSet, Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { createTransform, TransformData } from 'mol-geo/geometry/transform-data';
 import { PickingId } from 'mol-geo/geometry/picking';
-import { MarkerAction, applyMarkerAction, createMarkers } from 'mol-geo/geometry/marker-data';
+import { MarkerAction, createMarkers } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createEmptyTheme, Theme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
@@ -95,14 +95,14 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             }
 
             if (updateState.createNew) {
-                renderObjects.length = 0
+                renderObjects.length = 0 // clear list o renderObjects
                 locationIt = ShapeGroupIterator.fromShape(_shape)
                 const transform = createShapeTransform(_shape.transforms)
                 const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps)
                 const state = geometryUtils.createRenderableState(newProps)
 
                 _renderObject = createRenderObject(_shape.geometry.kind, values, state)
-                if (_renderObject) renderObjects.push(_renderObject)
+                if (_renderObject) renderObjects.push(_renderObject) // add new renderObject to list
             } else {
                 if (!_renderObject) {
                     throw new Error('expected renderObject to be available')
@@ -144,18 +144,27 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             }
 
             currentProps = newProps
+            // increment version
             updated.next(version++)
         });
+    }
+
+    function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
+        if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
+            return apply(Interval.ofBounds(0, _shape.groupCount * _shape.transforms.length))
+        } else {
+            return eachShapeGroup(loci, _shape, apply)
+        }
     }
 
     return {
         label: 'Shape geometry',
         get groupCount () { return locationIt ? locationIt.count : 0 },
-        get renderObjects () { return renderObjects },
         get props () { return currentProps },
         get params () { return currentParams },
         get state() { return _state },
         get theme() { return _theme },
+        renderObjects,
         updated,
         createOrUpdate,
         getLoci(pickingId: PickingId) {
@@ -166,36 +175,16 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!_renderObject) return false
-            const { tMarker } = _renderObject.values
-            let changed = false
-            const { groupCount, count } = locationIt
-            if (isEveryLoci(loci)) {
-                if (applyMarkerAction(tMarker.ref.value.array, 0, count, action)) changed = true
-            } else if (Shape.isLoci(loci)) {
-                const { instance, groups } = loci
-                for (const g of groups) {
-                    if (Interval.is(g.ids)) {
-                        const start = instance * groupCount + Interval.start(g.ids)
-                        const end = instance * groupCount + Interval.end(g.ids)
-                        if (applyMarkerAction(tMarker.ref.value.array, start, end, action)) changed = true
-                    } else {
-                        for (let i = 0, _i = g.ids.length; i < _i; i++) {
-                            const idx = instance * groupCount + g.ids[i];
-                            if (applyMarkerAction(tMarker.ref.value.array, idx, idx + 1, action)) changed = true
-                        }
-                    }
-                }
-            }
-            if (changed) {
-                ValueCell.update(tMarker, tMarker.ref.value)
-            }
-            return changed
+            return Visual.mark(_renderObject, loci, action, lociApply)
         },
         setState(state: Partial<Representation.State>) {
             if (_renderObject) {
                 if (state.visible !== undefined) Visual.setVisibility(_renderObject, state.visible)
+                if (state.alphaFactor !== undefined) Visual.setAlphaFactor(_renderObject, state.alphaFactor)
                 if (state.pickable !== undefined) Visual.setPickable(_renderObject, state.pickable)
+                if (state.overpaint !== undefined) {
+                    Visual.setOverpaint(_renderObject, state.overpaint, lociApply, true)
+                }
                 if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform)
             }
 
@@ -218,6 +207,27 @@ function createShapeTransform(transforms: Mat4[], transformData?: TransformData)
         Mat4.toArray(transforms[i], transformArray, i * 16)
     }
     return createTransform(transformArray, transforms.length, transformData)
+}
+
+function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) => boolean) {
+    if (!Shape.isLoci(loci)) return false
+    if (loci.shape !== shape) return false
+    let changed = false
+    const { groupCount } = shape
+    const { instance, groups } = loci
+    for (const g of groups) {
+        if (Interval.is(g.ids)) {
+            const start = instance * groupCount + Interval.start(g.ids)
+            const end = instance * groupCount + Interval.end(g.ids)
+            if (apply(Interval.ofBounds(start, end))) changed = true
+        } else {
+            for (let i = 0, _i = g.ids.length; i < _i; i++) {
+                const idx = instance * groupCount + g.ids[i];
+                if (apply(Interval.ofSingleton(idx))) changed = true
+            }
+        }
+    }
+    return changed
 }
 
 export namespace ShapeGroupIterator {

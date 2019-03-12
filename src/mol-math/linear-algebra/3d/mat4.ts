@@ -22,6 +22,7 @@ import Vec3 from './vec3';
 import Quat from './quat';
 import { degToRad } from '../../misc';
 import { NumberArray } from 'mol-util/type-helpers';
+import Mat3 from './mat3';
 
 interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }
 interface ReadonlyMat4 extends Array<number> { readonly [d: number]: number, '@type': 'mat4', length: 16 }
@@ -117,6 +118,10 @@ namespace Mat4 {
 
     export function setValue(a: Mat4, i: number, j: number, value: number) {
         a[4 * j + i] = value;
+    }
+
+    export function getValue(a: Mat4, i: number, j: number) {
+        return a[4 * j + i];
     }
 
     export function toArray(a: Mat4, out: NumberArray, offset: number) {
@@ -654,6 +659,22 @@ namespace Mat4 {
         out[13] = 0;
         out[14] = 0;
         out[15] = 1;
+        return out;
+    }
+
+    /**
+     * Copies the mat3 into upper-left 3x3 values.
+     */
+    export function fromMat3(out: Mat4, a: Mat3) {
+        out[0] = a[0];
+        out[1] = a[1];
+        out[2] = a[2];
+        out[4] = a[3];
+        out[5] = a[4];
+        out[6] = a[5];
+        out[8] = a[6];
+        out[9] = a[7];
+        out[10] = a[8];
         return out;
     }
 

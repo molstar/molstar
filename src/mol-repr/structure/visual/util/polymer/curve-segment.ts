@@ -6,12 +6,15 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { NumberArray } from 'mol-util/type-helpers';
+import { lerp } from 'mol-math/interpolate';
 
 export interface CurveSegmentState {
     curvePoints: NumberArray,
     tangentVectors: NumberArray,
     normalVectors: NumberArray,
     binormalVectors: NumberArray,
+    widthValues: NumberArray,
+    heightValues: NumberArray,
     linearSegments: number
 }
 
@@ -21,12 +24,15 @@ export interface CurveSegmentControls {
 }
 
 export function createCurveSegmentState(linearSegments: number): CurveSegmentState {
-    const pn = (linearSegments + 1) * 3
+    const n = linearSegments + 1
+    const pn = n * 3
     return {
         curvePoints: new Float32Array(pn),
         tangentVectors: new Float32Array(pn),
         normalVectors: new Float32Array(pn),
         binormalVectors: new Float32Array(pn),
+        widthValues: new Float32Array(n),
+        heightValues: new Float32Array(n),
         linearSegments
     }
 }
@@ -111,5 +117,22 @@ export function interpolateNormals(state: CurveSegmentState, controls: CurveSegm
 
         Vec3.normalize(binormalVec, Vec3.cross(binormalVec, tangentVec, normalVec))
         Vec3.toArray(binormalVec, binormalVectors, i * 3)
+    }
+}
+
+export function interpolateSizes(state: CurveSegmentState, w0: number, w1: number, w2: number, h0: number, h1: number, h2: number, shift: number) {
+    const { widthValues, heightValues, linearSegments } = state
+
+    const shift1 = 1 - shift
+
+    for (let i = 0; i <= linearSegments; ++i) {
+        const t = i * 1.0 / linearSegments;
+        if (t < shift1) {
+            widthValues[i] = lerp(w0, w1, t + shift)
+            heightValues[i] = lerp(h0, h1, t + shift)
+        } else {
+            widthValues[i] = lerp(w1, w2, t - shift1)
+            heightValues[i] = lerp(h1, h2, t - shift1)
+        }
     }
 }

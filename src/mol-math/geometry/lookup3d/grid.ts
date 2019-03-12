@@ -17,8 +17,8 @@ interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
 }
 
-function GridLookup3D(data: PositionData, cellSize?: Vec3): GridLookup3D {
-    return new GridLookup3DImpl(data, cellSize);
+function GridLookup3D(data: PositionData, cellSizeOrCount?: Vec3 | number): GridLookup3D {
+    return new GridLookup3DImpl(data, cellSizeOrCount);
 }
 
 export { GridLookup3D }
@@ -47,8 +47,8 @@ class GridLookup3DImpl implements GridLookup3D<number> {
         return query(this.ctx);
     }
 
-    constructor(data: PositionData, cellSize?: Vec3) {
-        const structure = build(data, cellSize);
+    constructor(data: PositionData, cellSizeOrCount?: Vec3 | number) {
+        const structure = build(data, cellSizeOrCount);
         this.ctx = createContext(structure);
         this.boundary = { box: structure.boundingBox, sphere: structure.boundingSphere };
         this.buckets = { offset: structure.bucketOffset, count: structure.bucketCounts, array: structure.bucketArray };
@@ -184,7 +184,7 @@ function getBoundary(data: PositionData) {
     return { boundingBox: boundaryHelper.getBox(), boundingSphere: boundaryHelper.getSphere() };
 }
 
-function build(data: PositionData, cellSize?: Vec3) {
+function build(data: PositionData, cellSizeOrCount?: Vec3 | number) {
     const { boundingBox, boundingSphere } = getBoundary(data);
     // need to expand the grid bounds to avoid rounding errors
     const expandedBox = Box3D.expand(Box3D.empty(), boundingBox, Vec3.create(0.5, 0.5, 0.5));
@@ -195,13 +195,16 @@ function build(data: PositionData, cellSize?: Vec3) {
 
     const elementCount = OrderedSet.size(indices);
 
+    const cellCount = typeof cellSizeOrCount === 'number' ? cellSizeOrCount : 32
+    const cellSize = Array.isArray(cellSizeOrCount) && cellSizeOrCount
+
     if (cellSize) {
         size = [Math.ceil(S[0] / cellSize[0]), Math.ceil(S[1] / cellSize[1]), Math.ceil(S[2] / cellSize[2])];
         delta = cellSize;
     } else if (elementCount > 0) {
         // size of the box
-        // required "grid volume" so that each cell contains on average 32 elements.
-        const V = Math.ceil(elementCount / 32);
+        // required "grid volume" so that each cell contains on average 'cellCount' elements.
+        const V = Math.ceil(elementCount / cellCount);
         const f = Math.pow(V / (S[0] * S[1] * S[2]), 1 / 3);
         size = [Math.ceil(S[0] * f), Math.ceil(S[1] * f), Math.ceil(S[2] * f)];
         delta = [S[0] / size[0], S[1] / size[1], S[2] / size[2]];

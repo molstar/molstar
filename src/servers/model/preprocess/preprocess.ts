@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { readStructureWrapper, resolveStructures } from '../server/structure-wrapper';
+import { readStructureWrapper, resolveStructures, readDataAndFrame } from '../server/structure-wrapper';
 import { classifyCif } from './converter';
 import { Structure } from 'mol-model/structure';
 import { CifWriter } from 'mol-io/writer/cif';
@@ -15,7 +15,14 @@ import { ModelPropertiesProvider } from '../property-provider';
 
 // TODO: error handling
 
-export async function preprocessFile(filename: string, propertyProvider?: ModelPropertiesProvider, outputCif?: string, outputBcif?: string) {
+export function preprocessFile(filename: string, propertyProvider?: ModelPropertiesProvider, outputCif?: string, outputBcif?: string) {
+    return propertyProvider
+        ? preprocess(filename, propertyProvider, outputCif, outputBcif)
+        : convert(filename, outputCif, outputBcif);
+}
+
+
+async function preprocess(filename: string, propertyProvider?: ModelPropertiesProvider, outputCif?: string, outputBcif?: string) {
     const input = await readStructureWrapper('entry', '_local_', filename, propertyProvider);
     const categories = await classifyCif(input.cifFrame);
     const inputStructures = (await resolveStructures(input))!;
@@ -34,6 +41,34 @@ export async function preprocessFile(filename: string, propertyProvider?: ModelP
         encode(inputStructures[0], input.cifFrame.header, categories, encoder, exportCtx, writer);
         writer.end();
     }
+}
+
+async function convert(filename: string, outputCif?: string, outputBcif?: string) {
+    const { frame } = await readDataAndFrame(filename);
+    const categories = await classifyCif(frame);
+
+    if (outputCif) {
+        const writer = wrapFileToWriter(outputCif);
+        const encoder = CifWriter.createEncoder({ binary: false });
+        encodeConvert(frame.header, categories, encoder, writer);
+        writer.end();
+    }
+
+    if (outputBcif) {
+        const writer = wrapFileToWriter(outputBcif);
+        const encoder = CifWriter.createEncoder({ binary: true, binaryAutoClassifyEncoding: true });
+        encodeConvert(frame.header, categories, encoder, writer);
+        writer.end();
+    }
+}
+
+function encodeConvert(header: string, categories: CifWriter.Category[], encoder: CifWriter.Encoder, writer: Writer) {
+    encoder.startDataBlock(header);
+    for (const cat of categories) {
+        encoder.writeCategory(cat);
+    }
+    encoder.encode();
+    encoder.writeTo(writer);
 }
 
 function encode(structure: Structure, header: string, categories: CifWriter.Category[], encoder: CifWriter.Encoder, exportCtx: CifExportContext, writer: Writer) {

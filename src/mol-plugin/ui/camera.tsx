@@ -6,21 +6,22 @@
 
 import { PluginCommands } from 'mol-plugin/command';
 import * as React from 'react';
-import { PluginComponent } from './base';
+import { PluginUIComponent } from './base';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
+import { Icon } from './controls/common';
 
-export class CameraSnapshots extends PluginComponent<{ }, { }> {
+export class CameraSnapshots extends PluginUIComponent<{ }, { }> {
     render() {
         return <div>
-            <div className='msp-section-header'>Camera Snapshots</div>
+            <div className='msp-section-header'><Icon name='code' /> Camera Snapshots</div>
             <CameraSnapshotControls />
             <CameraSnapshotList />
         </div>;
     }
 }
 
-class CameraSnapshotControls extends PluginComponent<{ }, { name: string, description: string }> {
+class CameraSnapshotControls extends PluginUIComponent<{ }, { name: string, description: string }> {
     static Params = {
         name: PD.Text(),
         description: PD.Text()
@@ -48,7 +49,7 @@ class CameraSnapshotControls extends PluginComponent<{ }, { name: string, descri
     }
 }
 
-class CameraSnapshotList extends PluginComponent<{ }, { }> {
+class CameraSnapshotList extends PluginUIComponent<{ }, { }> {
     componentDidMount() {
         this.subscribe(this.plugin.events.state.cameraSnapshots.changed, () => this.forceUpdate());
     }
@@ -65,7 +66,7 @@ class CameraSnapshotList extends PluginComponent<{ }, { }> {
 
     render() {
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
-            {this.plugin.state.cameraSnapshots.entries.valueSeq().map(e =><li key={e!.id}>
+            {this.plugin.state.cameraSnapshots.state.entries.valueSeq().map(e =><li key={e!.id}>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></button>
                 <button onClick={this.remove(e!.id)} className='msp-btn msp-btn-link msp-state-list-remove-button'>
                     <span className='msp-icon msp-icon-remove' />

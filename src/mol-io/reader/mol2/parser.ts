@@ -15,7 +15,7 @@ import { Column } from 'mol-data/db'
 import { TokenBuilder, Tokenizer } from '../common/text/tokenizer'
 import TokenColumn from '../common/text/column/token'
 import * as Schema from './schema'
-import Result from '../result'
+import { ReaderResult as Result } from '../result'
 import { Task, RuntimeContext, chunkedSubtask } from 'mol-task'
 
 const { skipWhitespace, eatValue, markLine, getTokenString, readLine } = Tokenizer;
@@ -130,12 +130,12 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     }
 
     // required columns
-    const atom_idTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
-    const atom_nameTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
-    const xTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
-    const yTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
-    const zTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
-    const atom_typeTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
+    const atom_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
+    const atom_nameTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
+    const xTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
+    const yTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
+    const zTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
+    const atom_typeTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
 
     const atom_idTokenColumn = TokenColumn(atom_idTokens);
     const atom_nameTokenColumn = TokenColumn(atom_nameTokens);
@@ -145,10 +145,10 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     const atom_typeColumn = TokenColumn(atom_typeTokens);
 
     // optional columns
-    const subst_idTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
-    const subst_nameTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
-    const chargeTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
-    const status_bitTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
+    const subst_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
+    const subst_nameTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
+    const chargeTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
+    const status_bitTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
 
     const subst_idTokenColumn = TokenColumn(subst_idTokens);
     const subst_nameTokenColumn = TokenColumn(subst_nameTokens);
@@ -257,10 +257,10 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     }
 
     // required columns
-    const bond_idTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
-    const origin_bond_idTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
-    const target_bond_idTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
-    const bondTypeTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
+    const bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
+    const origin_bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
+    const target_bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
+    const bondTypeTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
 
     const bond_idTokenColumn = TokenColumn(bond_idTokens);
     const origin_bond_idTokenColumn = TokenColumn(origin_bond_idTokens);
@@ -268,7 +268,7 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     const bondTypeTokenColumn = TokenColumn(bondTypeTokens);
 
     // optional columns
-    const status_bitTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
+    const status_bitTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
     const status_bitTokenColumn = TokenColumn(status_bitTokens);
     const undefStr = Column.Undefined(molecule.num_bonds, Column.Schema.str);
 

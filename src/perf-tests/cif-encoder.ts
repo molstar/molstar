@@ -60,7 +60,7 @@ function testBinary() {
     enc.writeCategory(getCat('cat2'), [{ rowCount: 1, fields: category2fields }]);
     enc.encode();
     const data = enc.getData() as Uint8Array;
-    fs.writeFileSync('e:/test/mol-star/test.bcif', new Buffer(data));
+    fs.writeFileSync('e:/test/mol-star/test.bcif', Buffer.from(data));
     console.log('written binary');
 }
 

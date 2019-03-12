@@ -62,7 +62,7 @@ describe('csv reader', () => {
     });
 
     it('tabs', async () => {
-        const parsed = await Csv(tabString, { delimiter: '\t' }).run();;
+        const parsed = await Csv(tabString, { delimiter: '\t' }).run();
         if (parsed.isError) return;
         const csvFile = parsed.result;
 

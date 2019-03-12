@@ -7,7 +7,7 @@
 import { getElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
 import { UnitsRepresentation } from '../units-representation';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
+import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
 import { RepresentationParamsGetter, RepresentationContext, Representation } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
@@ -28,7 +28,7 @@ export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structu
 
 export type SpacefillRepresentation = StructureRepresentation<SpacefillParams>
 export function SpacefillRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SpacefillParams>): SpacefillRepresentation {
-    return Representation.createMulti('Spacefill', ctx, getParams, SpacefillVisuals as unknown as Representation.Def<Structure, SpacefillParams>)
+    return Representation.createMulti('Spacefill', ctx, getParams, StructureRepresentationStateBuilder, SpacefillVisuals as unknown as Representation.Def<Structure, SpacefillParams>)
 }
 
 export const SpacefillRepresentationProvider: StructureRepresentationProvider<SpacefillParams> = {

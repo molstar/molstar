@@ -158,6 +158,10 @@ class Index implements AtomicIndex {
         return findAtomByNameAndAltLoc(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.label_atom_id, this.map.label_alt_id, label_atom_id, label_alt_id);
     }
 
+    findAtomsOnResidue(rI: ResidueIndex, label_atom_ids: Set<string>) {
+        return findAtomByNames(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.label_atom_id, label_atom_ids)
+    }
+
     constructor(private map: Mapping) {
         this.entityIndex = map.entities.getEntityIndex;
         this.residueOffsets = this.map.segments.residueAtomSegments.offsets;
@@ -167,6 +171,13 @@ class Index implements AtomicIndex {
 function findAtomByName(start: ElementIndex, end: ElementIndex, data: Column<string>, atomName: string): ElementIndex {
     for (let i = start; i < end; i++) {
         if (data.value(i) === atomName) return i;
+    }
+    return -1 as ElementIndex;
+}
+
+function findAtomByNames(start: ElementIndex, end: ElementIndex, data: Column<string>, atomNames: Set<string>): ElementIndex {
+    for (let i = start; i < end; i++) {
+        if (atomNames.has(data.value(i))) return i;
     }
     return -1 as ElementIndex;
 }

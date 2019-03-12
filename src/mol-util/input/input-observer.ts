@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Subject } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 
 import { Vec2 } from 'mol-math/linear-algebra';
 
@@ -39,7 +39,8 @@ function getButtons(event: MouseEvent | Touch) {
 
 export const DefaultInputObserverProps = {
     noScroll: true,
-    noContextMenu: true
+    noContextMenu: true,
+    noPinchZoom: true
 }
 export type InputObserverProps = Partial<typeof DefaultInputObserverProps>
 
@@ -49,11 +50,18 @@ export type ModifiersKeys = {
     control: boolean,
     meta: boolean
 }
+export namespace ModifiersKeys {
+    export const None: ModifiersKeys = { shift: false, alt: false, control: false, meta: false };
 
-export interface ButtonsType extends BitFlags<ButtonsType.Flag> { }
+    export function areEqual(a: ModifiersKeys, b: ModifiersKeys) {
+        return a.shift === b.shift && a.alt === b.alt && a.control === b.control && a.meta === b.meta;
+    }
+}
+
+export type ButtonsType = BitFlags<ButtonsType.Flag>
 
 export namespace ButtonsType {
-    export const has: (ss: ButtonsType, f: Flag) => boolean = BitFlags.has
+    export const has: (btn: ButtonsType, f: Flag) => boolean = BitFlags.has
     export const create: (fs: Flag) => ButtonsType = BitFlags.create
 
     export const enum Flag {
@@ -73,7 +81,7 @@ export namespace ButtonsType {
 }
 
 type BaseInput = {
-    buttons: number
+    buttons: ButtonsType
     modifiers: ModifiersKeys
 }
 
@@ -110,6 +118,7 @@ export type MoveInput = {
 
 export type PinchInput = {
     delta: number,
+    fraction: number,
     distance: number,
     isStart: boolean
 }
@@ -135,21 +144,24 @@ interface InputObserver {
     noScroll: boolean
     noContextMenu: boolean
 
-    drag: Subject<DragInput>,
-    wheel: Subject<WheelInput>,
-    pinch: Subject<PinchInput>,
-    click: Subject<ClickInput>,
-    move: Subject<MoveInput>,
-    leave: Subject<undefined>,
-    enter: Subject<undefined>,
-    resize: Subject<ResizeInput>,
+    drag: Observable<DragInput>,
+    // Equivalent to mouseUp and touchEnd
+    interactionEnd: Observable<undefined>,
+    wheel: Observable<WheelInput>,
+    pinch: Observable<PinchInput>,
+    click: Observable<ClickInput>,
+    move: Observable<MoveInput>,
+    leave: Observable<undefined>,
+    enter: Observable<undefined>,
+    resize: Observable<ResizeInput>,
+    modifiers: Observable<ModifiersKeys>
 
     dispose: () => void
 }
 
 namespace InputObserver {
     export function create (element: Element, props: InputObserverProps = {}): InputObserver {
-        let { noScroll, noContextMenu } = { ...DefaultInputObserverProps, ...props }
+        let { noScroll, noContextMenu, noPinchZoom } = { ...DefaultInputObserverProps, ...props }
 
         let lastTouchDistance = 0
         const pointerDown = Vec2.zero()
@@ -164,11 +176,17 @@ namespace InputObserver {
             meta: false
         }
 
+        function getModifiers(): ModifiersKeys {
+            return { ...modifiers };
+        }
+
         let dragging: DraggingState = DraggingState.Stopped
         let disposed = false
-        let buttons = 0
+        let buttons = 0 as ButtonsType
+        let isInside = false
 
         const drag = new Subject<DragInput>()
+        const interactionEnd = new Subject<undefined>();
         const click = new Subject<ClickInput>()
         const move = new Subject<MoveInput>()
         const wheel = new Subject<WheelInput>()
@@ -176,6 +194,7 @@ namespace InputObserver {
         const resize = new Subject<ResizeInput>()
         const leave = new Subject<undefined>()
         const enter = new Subject<undefined>()
+        const modifiersEvent = new Subject<ModifiersKeys>()
 
         attach()
 
@@ -186,6 +205,7 @@ namespace InputObserver {
             set noContextMenu (value: boolean) { noContextMenu = value },
 
             drag,
+            interactionEnd,
             wheel,
             pinch,
             click,
@@ -193,6 +213,7 @@ namespace InputObserver {
             leave,
             enter,
             resize,
+            modifiers: modifiersEvent,
 
             dispose
         }
@@ -215,9 +236,8 @@ namespace InputObserver {
             element.addEventListener('touchend', onTouchEnd as any, false)
 
             element.addEventListener('blur', handleBlur)
-            element.addEventListener('keyup', handleMods as EventListener)
-            element.addEventListener('keydown', handleMods as EventListener)
-            element.addEventListener('keypress', handleMods as EventListener)
+            window.addEventListener('keyup', handleKeyUp as EventListener, false)
+            window.addEventListener('keydown', handleKeyDown as EventListener, false)
 
             window.addEventListener('resize', onResize, false)
         }
@@ -241,9 +261,8 @@ namespace InputObserver {
             element.removeEventListener('touchend', onTouchEnd as any, false)
 
             element.removeEventListener('blur', handleBlur)
-            element.removeEventListener('keyup', handleMods as EventListener)
-            element.removeEventListener('keydown', handleMods as EventListener)
-            element.removeEventListener('keypress', handleMods as EventListener)
+            window.removeEventListener('keyup', handleKeyUp as EventListener, false)
+            window.removeEventListener('keydown', handleKeyDown as EventListener, false)
 
             window.removeEventListener('resize', onResize, false)
         }
@@ -256,16 +275,30 @@ namespace InputObserver {
 
         function handleBlur () {
             if (buttons || modifiers.shift || modifiers.alt || modifiers.meta || modifiers.control) {
-                buttons = 0
+                buttons = 0 as ButtonsType
                 modifiers.shift = modifiers.alt = modifiers.control = modifiers.meta = false
             }
         }
 
-        function handleMods (event: MouseEvent | KeyboardEvent) {
-            if ('altKey' in event) modifiers.alt = !!event.altKey
-            if ('shiftKey' in event) modifiers.shift = !!event.shiftKey
-            if ('ctrlKey' in event) modifiers.control = !!event.ctrlKey
-            if ('metaKey' in event) modifiers.meta = !!event.metaKey
+        function handleKeyDown (event: KeyboardEvent) {
+            let changed = false;
+            if (!modifiers.alt && event.altKey) { changed = true; modifiers.alt = true; }
+            if (!modifiers.shift && event.shiftKey) { changed = true; modifiers.shift = true; }
+            if (!modifiers.control && event.ctrlKey) { changed = true; modifiers.control = true; }
+            if (!modifiers.meta && event.metaKey) { changed = true; modifiers.meta = true; }
+
+            if (changed && isInside) modifiersEvent.next(getModifiers());
+        }
+
+        function handleKeyUp (event: KeyboardEvent) {
+            let changed = false;
+
+            if (modifiers.alt && !event.altKey) { changed = true; modifiers.alt = false; }
+            if (modifiers.shift && !event.shiftKey) { changed = true; modifiers.shift = false; }
+            if (modifiers.control && !event.ctrlKey) { changed = true; modifiers.control = false; }
+            if (modifiers.meta && !event.metaKey) { changed = true; modifiers.meta = false; }
+
+            if (changed && isInside) modifiersEvent.next(getModifiers());
         }
 
         function getCenterTouch (ev: TouchEvent): PointerEvent {
@@ -293,24 +326,39 @@ namespace InputObserver {
                 buttons = ButtonsType.Flag.Secondary
                 onPointerDown(getCenterTouch(ev))
 
-                pinch.next({ distance: lastTouchDistance, delta: 0, isStart: true })
+                const touchDistance = getTouchDistance(ev)
+                lastTouchDistance = touchDistance
+                pinch.next({ distance: touchDistance, fraction: 1, delta: 0, isStart: true })
             }
         }
 
-        function onTouchEnd (ev: TouchEvent) {}
+        function onTouchEnd (ev: TouchEvent) {
+            endDrag()
+        }
 
         function onTouchMove (ev: TouchEvent) {
+            if (noPinchZoom) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if ((ev as any).originalEvent) {
+                    (ev as any).originalEvent.preventDefault();
+                    (ev as any).originalEvent.stopPropagation();
+                }
+            }
+
             if (ev.touches.length === 1) {
                 buttons = ButtonsType.Flag.Primary
                 onPointerMove(ev.touches[0])
             } else if (ev.touches.length >= 2) {
                 const touchDistance = getTouchDistance(ev)
-                if (lastTouchDistance - touchDistance < 4) {
+                const touchDelta = lastTouchDistance - touchDistance
+                if (Math.abs(touchDelta) < 4) {
                     buttons = ButtonsType.Flag.Secondary
                     onPointerMove(getCenterTouch(ev))
                 } else {
                     pinch.next({
-                        delta: lastTouchDistance - touchDistance,
+                        delta: touchDelta,
+                        fraction: lastTouchDistance / touchDistance,
                         distance: touchDistance,
                         isStart: false
                     })
@@ -331,6 +379,11 @@ namespace InputObserver {
 
         function onMouseUp (ev: MouseEvent) {
             onPointerUp(ev)
+            endDrag()
+        }
+
+        function endDrag() {
+            interactionEnd.next()
         }
 
         function onPointerDown (ev: PointerEvent) {
@@ -350,7 +403,7 @@ namespace InputObserver {
                 const { pageX, pageY } = ev
                 const [ x, y ] = pointerEnd
 
-                click.next({ x, y, pageX, pageY, buttons, modifiers })
+                click.next({ x, y, pageX, pageY, buttons, modifiers: getModifiers() })
             }
         }
 
@@ -359,7 +412,7 @@ namespace InputObserver {
             const { pageX, pageY } = ev
             const [ x, y ] = pointerEnd
             const inside = insideBounds(pointerEnd)
-            move.next({ x, y, pageX, pageY, buttons, modifiers, inside })
+            move.next({ x, y, pageX, pageY, buttons, modifiers: getModifiers(), inside })
 
             if (dragging === DraggingState.Stopped) return
 
@@ -367,7 +420,7 @@ namespace InputObserver {
 
             const isStart = dragging === DraggingState.Started
             const [ dx, dy ] = pointerDelta
-            drag.next({ x, y, dx, dy, pageX, pageY, buttons, modifiers, isStart })
+            drag.next({ x, y, dx, dy, pageX, pageY, buttons, modifiers: getModifiers(), isStart })
 
             Vec2.copy(pointerStart, pointerEnd)
             dragging = DraggingState.Moving
@@ -390,15 +443,17 @@ namespace InputObserver {
             const dz = (ev.deltaZ || 0) * scale
 
             if (dx || dy || dz) {
-                wheel.next({ dx, dy, dz, buttons, modifiers })
+                wheel.next({ dx, dy, dz, buttons, modifiers: getModifiers() })
             }
         }
 
         function onMouseEnter (ev: Event) {
+            isInside = true;
             enter.next();
         }
 
         function onMouseLeave (ev: Event) {
+            isInside = false;
             leave.next();
         }
 

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Result from '../result'
+import { ReaderResult as Result } from '../result'
 import { Task, RuntimeContext } from 'mol-task'
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 

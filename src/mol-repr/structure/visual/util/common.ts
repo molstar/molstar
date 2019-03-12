@@ -11,7 +11,7 @@ import { OrderedSet, SortedArray } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
-export function getResidueLoci(structure: Structure, unit: Unit, elementIndex: ElementIndex): Loci {
+export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
     const { elements, model } = unit
     if (OrderedSet.indexOf(elements, elementIndex) !== -1) {
         const { index, offsets } = model.atomicHierarchy.residueAtomSegments

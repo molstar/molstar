@@ -32,7 +32,7 @@ export function hashCode(xs: Nums) {
     // hash of tuple (size, min, max, mid)
     const s = xs.length;
     if (!s) return 0;
-    if (s > 2) return hash4(s, xs[0], xs[s - 1], xs[s << 1]);
+    if (s > 2) return hash4(s, xs[0], xs[s - 1], xs[s >> 1]);
     return hash3(s, xs[0], xs[s - 1]);
 }
 

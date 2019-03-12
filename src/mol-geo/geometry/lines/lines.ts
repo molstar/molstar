@@ -22,6 +22,7 @@ import { Sphere3D } from 'mol-math/geometry';
 import { Theme } from 'mol-theme/theme';
 import { Color } from 'mol-util/color';
 import { BaseGeometry } from '../base';
+import { createEmptyOverpaint } from '../overpaint-data';
 
 /** Wide line */
 export interface Lines {
@@ -117,6 +118,7 @@ export namespace Lines {
         const color = createColors(locationIt, theme.color)
         const size = createSizes(locationIt, theme.size)
         const marker = createMarkers(instanceCount * groupCount)
+        const overpaint = createEmptyOverpaint()
 
         const counts = { drawCount: lines.lineCount * 2 * 3, groupCount, instanceCount }
 
@@ -134,6 +136,7 @@ export namespace Lines {
             ...color,
             ...size,
             ...marker,
+            ...overpaint,
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),
@@ -171,8 +174,8 @@ export namespace Lines {
 }
 
 function getBoundingSphere(lineStart: Float32Array, lineEnd: Float32Array, lineCount: number, transform: Float32Array, transformCount: number) {
-    const start = calculateBoundingSphere(lineStart, lineCount, transform, transformCount)
-    const end = calculateBoundingSphere(lineEnd, lineCount, transform, transformCount)
+    const start = calculateBoundingSphere(lineStart, lineCount * 4, transform, transformCount)
+    const end = calculateBoundingSphere(lineEnd, lineCount * 4, transform, transformCount)
     return {
         boundingSphere: Sphere3D.addSphere(start.boundingSphere, end.boundingSphere),
         invariantBoundingSphere: Sphere3D.addSphere(start.invariantBoundingSphere, end.invariantBoundingSphere)

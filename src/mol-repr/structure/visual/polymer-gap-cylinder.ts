@@ -7,7 +7,7 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
-import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
+import { PolymerGapIterator, PolymerGapLocationIterator, eachPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -91,7 +91,7 @@ export function PolymerGapVisual(): UnitsVisual<PolymerGapParams> {
         createGeometry: createPolymerGapCylinderMesh,
         createLocationIterator: PolymerGapLocationIterator.fromGroup,
         getLoci: getPolymerGapElementLoci,
-        mark: markPolymerGapElement,
+        eachLocation: eachPolymerGapElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerGapParams>, currentProps: PD.Values<PolymerGapParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||

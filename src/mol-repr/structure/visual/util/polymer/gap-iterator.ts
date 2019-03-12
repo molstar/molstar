@@ -47,7 +47,7 @@ export class AtomicPolymerGapIterator implements Iterator<PolymerGapPair> {
     }
 
     constructor(private unit: Unit.Atomic) {
-        this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex
+        this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex as ArrayLike<ElementIndex> // can assume it won't be -1 for polymer residues
         this.gapIt = SortedRanges.transientSegments(getGapRanges(unit), unit.elements);
         this.value = createPolymerGapPair(unit)
         this.hasNext = this.gapIt.hasNext

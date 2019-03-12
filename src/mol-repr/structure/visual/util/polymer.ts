@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, ElementIndex, StructureElement, Link } from 'mol-model/structure';
+import { Unit, ElementIndex, StructureElement, Link, Structure } from 'mol-model/structure';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
@@ -72,17 +72,30 @@ export function getPolymerElementLoci(pickingId: PickingId, structureGroup: Stru
     if (id === objectId) {
         const { structure, group } = structureGroup
         const unit = group.units[instanceId]
-        return getResidueLoci(structure, unit, unit.polymerElements[groupId])
+        if (Unit.isAtomic(unit)) {
+            return getResidueLoci(structure, unit, unit.polymerElements[groupId])
+        } else {
+            const { elements } = unit
+            const elementIndex = unit.polymerElements[groupId]
+            const unitIndex = OrderedSet.indexOf(elements, elementIndex) as StructureElement.UnitIndex | -1
+            if (unitIndex !== -1) {
+                const indices = OrderedSet.ofSingleton(unitIndex)
+                return StructureElement.Loci(structure, [{ unit, indices }])
+            }
+        }
     }
     return EmptyLoci
 }
 
-/** Mark a polymer element (e.g. part of a cartoon trace) when all its residue's elements are in a loci. */
-export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+/**
+ * Mark a polymer element (e.g. part of a cartoon trace)
+ * - for atomic units mark only when all its residue's elements are in a loci
+ */
+export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
-    if (loci.structure !== structure) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
     const { polymerElements, model, elements } = group.units[0]
     const { index, offsets } = model.atomicHierarchy.residueAtomSegments
     const { traceElementIndex } = model.atomicHierarchy.derived.residue
@@ -90,19 +103,32 @@ export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, a
     for (const e of loci.elements) {
         const unitIdx = group.unitIndexMap.get(e.unit.id)
         if (unitIdx !== undefined) {
-            // TODO optimized implementation for intervals
-            OrderedSet.forEach(e.indices, v => {
-                const rI = index[elements[v]]
-                const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
-                const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
-                const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
-                if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
-                const eI = traceElementIndex[rI]
-                const idx = OrderedSet.indexOf(e.unit.polymerElements, eI)
-                if (idx !== -1) {
-                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
+            if (Unit.isAtomic(e.unit)) {
+                // TODO optimized implementation for intervals
+                OrderedSet.forEach(e.indices, v => {
+                    const rI = index[elements[v]]
+                    const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
+                    const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
+                    const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
+                    if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+                    const eI = traceElementIndex[rI]
+                    const idx = OrderedSet.indexOf(e.unit.polymerElements, eI)
+                    if (idx !== -1) {
+                        if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
+                    }
+                })
+            } else {
+                if (Interval.is(e.indices)) {
+                    const start = unitIdx * groupCount + Interval.start(e.indices);
+                    const end = unitIdx * groupCount + Interval.end(e.indices);
+                    if (apply(Interval.ofBounds(start, end))) changed = true
+                } else {
+                    for (let i = 0, _i = e.indices.length; i < _i; i++) {
+                        const idx = unitIdx * groupCount + e.indices[i];
+                        if (apply(Interval.ofSingleton(idx))) changed = true
+                    }
                 }
-            })
+            }
         }
     }
     return changed
@@ -126,11 +152,11 @@ export function getPolymerGapElementLoci(pickingId: PickingId, structureGroup: S
     return EmptyLoci
 }
 
-export function markPolymerGapElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!Link.isLoci(loci)) return false
     const { structure, group } = structureGroup
-    if (loci.structure !== structure) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
     const groupCount = group.units[0].gapElements.length
     for (const b of loci.links) {
         const unitIdx = group.unitIndexMap.get(b.aUnit.id)

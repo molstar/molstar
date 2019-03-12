@@ -4,17 +4,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Vec3, Mat4, Mat3 } from '../linear-algebra/3d'
+import { Vec3, Mat4, Mat3, Quat } from '../linear-algebra/3d'
 
 interface SymmetryOperator {
     readonly name: string,
 
     readonly assembly: {
-        /** pointer to `pdbx_struct_assembly.id` */
+        /** pointer to `pdbx_struct_assembly.id` or empty string */
         readonly id: string
-        /** pointers to `pdbx_struct_oper_list_id` */
+        /** pointers to `pdbx_struct_oper_list.id` or empty list */
         readonly operList: string[]
     }
+
+    /** pointer to `struct_ncs_oper.id` or empty string */
+    readonly ncsId: string,
 
     readonly hkl: Vec3,
 
@@ -31,11 +34,12 @@ namespace SymmetryOperator {
 
     const RotationEpsilon = 0.0001;
 
-    export function create(name: string, matrix: Mat4, assembly: SymmetryOperator['assembly'], hkl?: Vec3): SymmetryOperator {
+    export function create(name: string, matrix: Mat4, assembly: SymmetryOperator['assembly'], ncsId?: string, hkl?: Vec3): SymmetryOperator {
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3.zero();
-        if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl };
+        ncsId = ncsId || ''
+        if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, ncsId };
         if (!Mat4.isRotationAndTranslation(matrix, RotationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
-        return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl };
+        return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl, ncsId };
     }
 
     export function checkIfRotationAndTranslation(rot: Mat3, offset: Vec3) {
@@ -49,7 +53,7 @@ namespace SymmetryOperator {
         return Mat4.isRotationAndTranslation(matrix, RotationEpsilon);
     }
 
-    export function ofRotationAndOffset(name: string, rot: Mat3, offset: Vec3) {
+    export function ofRotationAndOffset(name: string, rot: Mat3, offset: Vec3, ncsId?: string) {
         const t = Mat4.identity();
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
@@ -57,16 +61,36 @@ namespace SymmetryOperator {
             }
         }
         Mat4.setTranslation(t, offset);
-        return create(name, t, { id: '', operList: [] });
+        return create(name, t, { id: '', operList: [] }, ncsId);
+    }
+
+    const _q1 = Quat.identity(), _q2 = Quat.zero(), _axis = Vec3.zero();
+    export function lerpFromIdentity(out: Mat4, op: SymmetryOperator, t: number): Mat4 {
+        const m = op.inverse;
+        if (op.isIdentity) return Mat4.copy(out, m);
+
+        const _t = 1 - t;
+        // interpolate rotation
+        Mat4.getRotation(_q2, m);
+        Quat.slerp(_q2, _q1, _q2, _t);
+        const angle = Quat.getAxisAngle(_axis, _q2);
+        Mat4.fromRotation(out, angle, _axis);
+
+        // interpolate translation
+        Mat4.setValue(out, 0, 3, _t * Mat4.getValue(m, 0, 3));
+        Mat4.setValue(out, 1, 3, _t * Mat4.getValue(m, 1, 3));
+        Mat4.setValue(out, 2, 3, _t * Mat4.getValue(m, 2, 3));
+
+        return out;
     }
 
     /**
      * Apply the 1st and then 2nd operator. ( = second.matrix * first.matrix).
-     * Keep `name`, `assembly` and `hkl` properties from second.
+     * Keep `name`, `assembly`, `ncsId` and `hkl` properties from second.
      */
     export function compose(first: SymmetryOperator, second: SymmetryOperator) {
         const matrix = Mat4.mul(Mat4.zero(), second.matrix, first.matrix);
-        return create(second.name, matrix, second.assembly, second.hkl);
+        return create(second.name, matrix, second.assembly, second.ncsId, second.hkl);
     }
 
     export interface CoordinateMapper<T extends number> { (index: T, slot: Vec3): Vec3 }

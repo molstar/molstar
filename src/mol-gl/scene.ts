@@ -7,7 +7,7 @@
 import { Renderable } from './renderable'
 import { WebGLContext } from './webgl/context';
 import { RenderableValues, BaseValues } from './renderable/schema';
-import { RenderObject, createRenderable } from './render-object';
+import { RenderObject, createRenderable, GraphicsRenderObject } from './render-object';
 import { Object3D } from './object3d';
 import { Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
@@ -57,8 +57,8 @@ interface Scene extends Object3D {
     readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
     readonly boundingSphere: Sphere3D
 
-    update: (keepBoundingSphere?: boolean) => void
-    add: (o: RenderObject) => void
+    update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void
+    add: (o: RenderObject) => Renderable<any>
     remove: (o: RenderObject) => void
     has: (o: RenderObject) => boolean
     clear: () => void
@@ -80,10 +80,18 @@ namespace Scene {
             get direction () { return object3d.direction },
             get up () { return object3d.up },
 
-            update: (keepBoundingSphere?: boolean) => {
+            update(objects, keepBoundingSphere) {
                 Object3D.update(object3d)
-                for (let i = 0, il = renderables.length; i < il; ++i) {
-                    renderables[i].update()
+                if (objects) {
+                    for (let i = 0, il = objects.length; i < il; ++i) {
+                        const o = renderableMap.get(objects[i]);
+                        if (!o) continue;
+                        o.update();
+                    }
+                } else {
+                    for (let i = 0, il = renderables.length; i < il; ++i) {
+                        renderables[i].update()
+                    }
                 }
                 if (!keepBoundingSphere) boundingSphereDirty = true
             },
@@ -94,8 +102,10 @@ namespace Scene {
                     renderables.sort(renderableSort)
                     renderableMap.set(o, renderable)
                     boundingSphereDirty = true
+                    return renderable;
                 } else {
                     console.warn(`RenderObject with id '${o.id}' already present`)
+                    return renderableMap.get(o)!
                 }
             },
             remove: (o: RenderObject) => {

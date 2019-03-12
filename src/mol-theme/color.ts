@@ -26,10 +26,9 @@ import { ShapeGroupColorThemeProvider } from './color/shape-group';
 import { UnitIndexColorThemeProvider } from './color/unit-index';
 import { ScaleLegend } from 'mol-util/color/scale';
 import { TableLegend } from 'mol-util/color/tables';
+import { UncertaintyColorThemeProvider } from './color/uncertainty';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
-
-export type ColorThemeProps = { [k: string]: any }
 
 export { ColorTheme }
 interface ColorTheme<P extends PD.Params> {
@@ -58,6 +57,8 @@ namespace ColorTheme {
     export function createRegistry() {
         return new ThemeRegistry(BuiltInColorThemes as { [k: string]: Provider<any> }, EmptyProvider)
     }
+
+    export type ParamValues<C extends ColorTheme.Provider<any>> = C extends ColorTheme.Provider<infer P> ? PD.Values<P> : never
 }
 
 export const BuiltInColorThemes = {
@@ -73,6 +74,8 @@ export const BuiltInColorThemes = {
     'secondary-structure': SecondaryStructureColorThemeProvider,
     'sequence-id': SequenceIdColorThemeProvider,
     'shape-group': ShapeGroupColorThemeProvider,
+    'uncertainty': UncertaintyColorThemeProvider,
     'unit-index': UnitIndexColorThemeProvider,
     'uniform': UniformColorThemeProvider,
 }
+export type BuiltInColorThemeName = keyof typeof BuiltInColorThemes

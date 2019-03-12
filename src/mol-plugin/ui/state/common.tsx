@@ -4,18 +4,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State, Transform, Transformer } from 'mol-state';
+import { State, StateTransform, StateTransformer, StateAction } from 'mol-state';
 import * as React from 'react';
-import { PurePluginComponent } from '../base';
+import { PurePluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
-import { StateAction } from 'mol-state/action';
 import { PluginContext } from 'mol-plugin/context';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
+import { Icon } from '../controls/common';
 
 export { StateTransformParameters, TransformContolBase };
 
-class StateTransformParameters extends PurePluginComponent<StateTransformParameters.Props> {
+class StateTransformParameters extends PurePluginUIComponent<StateTransformParameters.Props> {
     validate(params: any) {
         // TODO
         return void 0;
@@ -61,7 +61,7 @@ namespace StateTransformParameters {
         return true;
     }
 
-    export function infoFromAction(plugin: PluginContext, state: State, action: StateAction, nodeRef: Transform.Ref): Props['info'] {
+    export function infoFromAction(plugin: PluginContext, state: State, action: StateAction, nodeRef: StateTransform.Ref): Props['info'] {
         const source = state.cells.get(nodeRef)!.obj!;
         const params = action.definition.params ? action.definition.params(source, plugin) : { };
         const initialValues = PD.getDefaultValues(params);
@@ -72,7 +72,7 @@ namespace StateTransformParameters {
         };
     }
 
-    export function infoFromTransform(plugin: PluginContext, state: State, transform: Transform): Props['info'] {
+    export function infoFromTransform(plugin: PluginContext, state: State, transform: StateTransform): Props['info'] {
         const cell = state.cells.get(transform.ref)!;
         // const source: StateObjectCell | undefined = (cell.sourceRef && state.cells.get(cell.sourceRef)!) || void 0;
         // const create = transform.transformer.definition.params;
@@ -88,7 +88,7 @@ namespace StateTransformParameters {
 }
 
 namespace TransformContolBase {
-    export interface ControlState {
+    export interface ComponentState {
         params: any,
         error?: string,
         busy: boolean,
@@ -97,11 +97,12 @@ namespace TransformContolBase {
     }
 }
 
-abstract class TransformContolBase<P, S extends TransformContolBase.ControlState> extends PurePluginComponent<P, S> {
+abstract class TransformContolBase<P, S extends TransformContolBase.ComponentState> extends PurePluginUIComponent<P, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
-    abstract getHeader(): Transformer.Definition['display'];
+    abstract getHeader(): StateTransformer.Definition['display'];
     abstract canApply(): boolean;
+    abstract getTransformerId(): string;
     abstract canAutoApply(newParams: any): boolean;
     abstract applyText(): string;
     abstract isUpdate(): boolean;
@@ -166,24 +167,42 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
 
     render() {
         const info = this.getInfo();
-        if (info.isEmpty && this.isUpdate()) return null;
+        const isEmpty = info.isEmpty && this.isUpdate();
 
         const display = this.getHeader();
 
-        return <div className='msp-transform-wrapper'>
+        const tId = this.getTransformerId();
+        const ParamEditor: StateTransformParameters.Class = this.plugin.customParamEditors.has(tId)
+            ? this.plugin.customParamEditors.get(tId)!
+            : StateTransformParameters;
+
+        const wrapClass = this.state.isCollapsed
+            ? 'msp-transform-wrapper msp-transform-wrapper-collapsed'
+            : 'msp-transform-wrapper';
+        // this.isUpdate()
+        //     ? !isEmpty && !this.state.isCollapsed
+        //     ? 'msp-transform-update-wrapper'
+        //     : 'msp-transform-update-wrapper-collapsed'
+        //     : 'msp-transform-wrapper';
+
+        return <div className={wrapClass}>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>{display.name}</button>
-                {!this.state.isCollapsed && <button className='msp-btn msp-btn-link msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>}
+                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded} title={display.description}>
+                    {display.name}
+                    {/* {!isEmpty && this.state.isCollapsed && this.isUpdate() && <small>Click to Edit</small>} */}
+                </button>
             </div>
-            {!this.state.isCollapsed && <>
-                <StateTransformParameters info={info} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
+            {!isEmpty && !this.state.isCollapsed && <>
+                <ParamEditor info={info} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
 
                 <div className='msp-transform-apply-wrap'>
+                    <button className='msp-btn msp-btn-block msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
                     <button className='msp-btn msp-btn-block msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
-                        ↶ Reset
+                        <Icon name='back' /> Back
                     </button>
                     <div className='msp-transform-apply'>
                         <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-${this.canApply() ? 'on' : 'off'}`} onClick={this.apply} disabled={!this.canApply()}>
+                            {this.canApply() && <Icon name='ok' />}
                             {this.applyText()}
                         </button>
                     </div>

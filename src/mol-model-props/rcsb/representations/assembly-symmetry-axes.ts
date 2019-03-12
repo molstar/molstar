@@ -65,7 +65,7 @@ export function AssemblySymmetryAxesVisual(): ComplexVisual<AssemblySymmetryAxes
         createGeometry: createAssemblySymmetryAxesMesh,
         createLocationIterator,
         getLoci,
-        mark,
+        eachLocation: eachAxisLocation,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<AssemblySymmetryAxesParams>, currentProps: PD.Values<AssemblySymmetryAxesParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
@@ -93,7 +93,7 @@ function getLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-function mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+function eachAxisLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!isDataLoci(loci) || loci.tag !== 'axes') return false
     const assemblySymmetry = AssemblySymmetry.get(structure.models[0])

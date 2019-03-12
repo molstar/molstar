@@ -33,7 +33,7 @@ function collectData_for_Shape(parsedData: ply_form): MyData {
         data.colors[i] = Color.fromRgb(colors[faces[4*i+1]*3+0], colors[faces[4*i+1]*3+1], colors[faces[4*i+1]*3+2]);
         data.labels[i] = parsedData.properties[parsedData.propertyCount * faces[4*i+1] + 10].toString();
             //i.toString();
-        data.transforms[i] = 0;
+        // data.transforms[i] = 0;
     }
     console.log('data', data);
     return data;
@@ -60,6 +60,8 @@ async function getSphereMesh(ctx: RuntimeContext, centers: number[], normals: nu
         addTriangle(builderState, triangle_vertices, triangle_normals, triangle_indices)
     }
     let a = MeshBuilder.getMesh(builderState);
+    // a.normalsComputed = false
+    // Mesh.computeNormalsImmediate(a)
     console.log(a);
     return a
 }

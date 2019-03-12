@@ -10,7 +10,7 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation } from 'mol-data/int';
 import { isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { NucleotideLocationIterator, markNucleotideElement, getNucleotideElementLoci } from './util/nucleotide';
+import { NucleotideLocationIterator, eachNucleotideElement, getNucleotideElementLoci } from './util/nucleotide';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Box } from 'mol-geo/primitive/box';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -134,7 +134,7 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockParams> {
         createGeometry: createNucleotideBlockMesh,
         createLocationIterator: NucleotideLocationIterator.fromGroup,
         getLoci: getNucleotideElementLoci,
-        mark: markNucleotideElement,
+        eachLocation: eachNucleotideElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideBlockParams>, currentProps: PD.Values<NucleotideBlockParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
