@@ -16,7 +16,7 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { VolumeRepresentation3DHelpers } from '../transforms/representation';
-import { DataFormatProvider } from './data-format';
+import { DataFormatProvider, guessCifVariant } from './data-format';
 
 export const Ccp4Provider: DataFormatProvider<any> = {
     label: 'CCP4/MRC/BRIX',
@@ -59,10 +59,10 @@ export const DscifProvider: DataFormatProvider<any> = {
     description: 'DensityServer CIF',
     stringExtensions: ['cif'],
     binaryExtensions: ['bcif'],
-    isApplicable: (info: FileInfo, data: Uint8Array) => {
-        return info.ext === 'cif' || info.ext === 'bcif'
+    isApplicable: (info: FileInfo, data: Uint8Array | string) => {
+        return guessCifVariant(info, data) === 'dscif' ? true : false
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, state: State) => {
         return Task.create('DensityServer CIF default builder', async taskCtx => {
             const cifBuilder = data.apply(StateTransforms.Data.ParseCif)
             const cifStateObject = await state.updateTree(cifBuilder).runInContext(taskCtx)
