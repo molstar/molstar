@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Tokens, TokenBuilder, Tokenizer } from '../../common/text/tokenizer'
-import * as Data from './data-model'
-import{ ReaderResult } from '../../result'
+import { Tokens, TokenBuilder, Tokenizer } from '../common/text/tokenizer'
+import * as Data from './schema'
+import{ ReaderResult } from '../result'
 import {Task, RuntimeContext, chunkedSubtask } from 'mol-task'
-import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../common/text/number-parser'
+import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser'
 
 const enum PlyTokenType {
     Value = 0,

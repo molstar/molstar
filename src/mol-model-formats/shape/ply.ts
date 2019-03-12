@@ -9,7 +9,7 @@ import { RuntimeContext, Task } from 'mol-task';
 import { addTriangle } from 'mol-geo/geometry/mesh/builder/triangle';
 import { ShapeProvider } from 'mol-model/shape/provider';
 import { Color } from 'mol-util/color';
-import { PlyData, PlyFile } from 'mol-io/reader/ply/parse_data/data-model';
+import { PlyData, PlyFile } from 'mol-io/reader/ply/schema';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Shape } from 'mol-model/shape';

@@ -15,7 +15,7 @@ import { StateTransformer } from 'mol-state';
 import { readFromFile, ajaxGetMany } from 'mol-util/data-source';
 import * as CCP4 from 'mol-io/reader/ccp4/parser'
 import * as DSN6 from 'mol-io/reader/dsn6/parser'
-import * as PLY from 'mol-io/reader/ply/parse_data/ply_parser'
+import * as PLY from 'mol-io/reader/ply/parser'
 
 export { Download }
 type Download = typeof Download

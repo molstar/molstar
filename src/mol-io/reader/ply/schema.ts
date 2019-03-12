@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CifField as PlyColumn } from '../../cif/data-model'
+import { CifField as PlyColumn } from '../cif/data-model'
 
 export { PlyColumn }
 

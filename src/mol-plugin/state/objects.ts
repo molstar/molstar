@@ -6,7 +6,7 @@
  */
 
 import { CifFile } from 'mol-io/reader/cif';
-import { PlyFile } from 'mol-io/reader/ply/parse_data/data-model';
+import { PlyFile } from 'mol-io/reader/ply/schema';
 import { Model as _Model, Structure as _Structure } from 'mol-model/structure';
 import { VolumeData } from 'mol-model/volume';
 import { PluginBehavior } from 'mol-plugin/behavior/behavior';
