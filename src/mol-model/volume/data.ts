@@ -1,11 +1,13 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { SpacegroupCell, Box3D } from 'mol-math/geometry'
 import { Tensor, Mat4, Vec3 } from 'mol-math/linear-algebra'
+import { equalEps } from 'mol-math/linear-algebra/3d/common';
 
 /** The basic unit cell that contains the data. */
 interface VolumeData {
@@ -48,7 +50,7 @@ namespace VolumeIsoValue {
     export type Absolute = Readonly<{ kind: 'absolute', absoluteValue: number }>
 
     export function areSame(a: VolumeIsoValue, b: VolumeIsoValue, stats: VolumeData['dataStats']) {
-        return toAbsolute(a, stats).absoluteValue === toAbsolute(b, stats).absoluteValue
+        return equalEps(toAbsolute(a, stats).absoluteValue, toAbsolute(b, stats).absoluteValue, stats.sigma / 100)
     }
 
     export function absolute(value: number): Absolute { return { kind: 'absolute', absoluteValue: value }; }
