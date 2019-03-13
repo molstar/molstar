@@ -28,6 +28,7 @@ import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit
 import { unwindStructureAssembly, explodeStructure, getStructureOverpaint } from '../animation/helpers';
 import { Color } from 'mol-util/color';
 import { Overpaint } from 'mol-theme/overpaint';
+import { BaseGeometry } from 'mol-geo/geometry/base';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -481,9 +482,12 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
     from: SO.Shape.Provider,
     to: SO.Shape.Representation3D,
     params: (a, ctx: PluginContext) => {
-        return { }
+        return BaseGeometry.Params
     }
 })({
+    canAutoUpdate() {
+        return true;
+    },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Shape Representation', async ctx => {
             const props = { ...PD.getDefaultValues(a.data.geometryUtils.Params), params }
@@ -491,6 +495,13 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
             return new SO.Shape.Representation3D({ repr, source: a }, { label: a.data.label });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Shape Representation', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams }
+            await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
+            return StateTransformer.UpdateResult.Updated;
         });
     }
 });
