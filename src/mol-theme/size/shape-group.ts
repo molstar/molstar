@@ -5,7 +5,7 @@
  */
 
 import { Location } from 'mol-model/location';
-import { Shape } from 'mol-model/shape';
+import { ShapeGroup } from 'mol-model/shape';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from 'mol-theme/theme';
 import { SizeTheme } from 'mol-theme/size';
@@ -24,7 +24,7 @@ export function ShapeGroupSizeTheme(ctx: ThemeDataContext, props: PD.Values<Shap
         factory: ShapeGroupSizeTheme,
         granularity: 'groupInstance',
         size: (location: Location): number => {
-            if (Shape.isLocation(location)) {
+            if (ShapeGroup.isLocation(location)) {
                 return location.shape.getSize(location.group, location.instance)
             }
             return DefaultSize

@@ -15,6 +15,9 @@ import { ColorNames } from 'mol-util/color/tables';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { labelFirst } from 'mol-theme/label';
 import { RuntimeContext, Progress } from 'mol-task';
+import { Representation } from 'mol-repr/representation';
+import { MarkerAction } from 'mol-geo/geometry/marker-data';
+import { EveryLoci } from 'mol-model/loci';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -34,14 +37,23 @@ info.style.right = '20px'
 info.style.color = 'white'
 parent.appendChild(info)
 
+let prevReprLoci = Representation.Loci.Empty
 const canvas3d = Canvas3D.create(canvas, parent)
 canvas3d.animate()
 canvas3d.input.move.subscribe(async ({x, y}) => {
     const pickingId = await canvas3d.identify(x, y)
     let label = ''
     if (pickingId) {
-        const { loci } = canvas3d.getLoci(pickingId)
-        label = labelFirst(loci)
+        const reprLoci = canvas3d.getLoci(pickingId)
+        label = labelFirst(reprLoci.loci)
+        if (!Representation.Loci.areEqual(prevReprLoci, reprLoci)) {
+            canvas3d.mark(prevReprLoci, MarkerAction.RemoveHighlight)
+            canvas3d.mark(reprLoci, MarkerAction.Highlight)
+            prevReprLoci = reprLoci
+        }
+    } else {
+        canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight)
+        prevReprLoci = Representation.Loci.Empty
     }
     info.innerText = label
 })

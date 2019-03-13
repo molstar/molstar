@@ -180,11 +180,15 @@
         line-height: $row-height;
         float: left;
         margin-right: $control-spacing;
-        background-color: $msp-form-control-background;
+
+        > button {
+            background-color: $msp-form-control-background;
+        }
 
         > select {
             display: inline-block;
             width: 200px;
+            margin-right: $control-spacing;
         }
     }
 
