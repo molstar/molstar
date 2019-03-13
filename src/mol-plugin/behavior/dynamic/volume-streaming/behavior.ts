@@ -22,6 +22,7 @@ import { VolumeServerHeader, VolumeServerInfo } from './model';
 import { ButtonsType } from 'mol-util/input/input-observer';
 import { PluginCommands } from 'mol-plugin/command';
 import { StateSelection } from 'mol-state';
+import { Representation } from 'mol-repr/representation';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -172,7 +173,21 @@ export namespace VolumeStreaming {
         }
 
         register(ref: string): void {
-            // this.ref = ref;
+            let lastLoci: Representation.Loci = Representation.Loci.Empty;
+
+            this.subscribeObservable(this.plugin.events.state.object.removed, o => {
+                if (!PluginStateObject.Molecule.Structure.is(o.obj) || lastLoci.loci.kind !== 'element-loci') return;
+                if (lastLoci.loci.structure === o.obj.data) {
+                    lastLoci = Representation.Loci.Empty;
+                }
+            });
+
+            this.subscribeObservable(this.plugin.events.state.object.updated, o => {
+                if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || lastLoci.loci.kind !== 'element-loci') return;
+                if (lastLoci.loci.structure === o.oldObj.data) {
+                    lastLoci = Representation.Loci.Empty;
+                }
+            });
 
             this.subscribeObservable(this.plugin.behaviors.canvas3d.click, ({ current, buttons, modifiers }) => {
                 if (buttons !== ButtonsType.Flag.Secondary || this.params.view.name !== 'selection-box') return;
@@ -192,6 +207,13 @@ export namespace VolumeStreaming {
                 if (!parent) return;
                 const root = this.getStructureRoot(ref);
                 if (!root || !root.obj || root.obj !== parent.obj) return;
+
+                if (Representation.Loci.areEqual(lastLoci, current)) {
+                    lastLoci = Representation.Loci.Empty;
+                    this.updateDynamicBox(ref, Box3D.empty());
+                    return;
+                }
+                lastLoci = current;
 
                 const loci = StructureElement.Loci.extendToWholeResidues(current.loci);
                 const box = StructureElement.Loci.getBoundary(loci).box;
