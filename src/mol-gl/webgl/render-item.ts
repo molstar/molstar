@@ -9,7 +9,7 @@ import { createTextures } from './texture';
 import { WebGLContext } from './context';
 import { ShaderCode } from '../shader-code';
 import { Program } from './program';
-import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values, splitKeys } from '../renderable/schema';
+import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { deleteVertexArray, createVertexArray } from './vertex-array';
 import { ValueCell } from 'mol-util';
@@ -58,7 +58,6 @@ interface ValueChanges {
     defines: boolean
     elements: boolean
     textures: boolean
-    // uniforms: boolean
 }
 function createValueChanges() {
     return {
@@ -88,7 +87,11 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
     const { instancedArrays, vertexArrayObject } = ctx.extensions
 
     const { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues } = splitValues(schema, values)
-    const { attributeKeys, defineKeys, textureKeys } = splitKeys(schema)
+
+    const uniformValueEntries = Object.entries(uniformValues)
+    const materialUniformValueEntries = Object.entries(materialUniformValues)
+    const defineValueEntries = Object.entries(defineValues)
+
     const versions = getValueVersions(values)
 
     const glDrawMode = getDrawMode(ctx, drawMode)
@@ -136,10 +139,10 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
             if (drawCount === 0 || instanceCount === 0) return
             const program = programs[variant].value
             const vertexArray = vertexArrays[variant]
-            program.setUniforms(uniformValues)
+            program.setUniforms(uniformValueEntries)
             if (materialId === -1 || materialId !== ctx.currentMaterialId) {
                 // console.log('materialId changed or -1', materialId)
-                program.setUniforms(materialUniformValues)
+                program.setUniforms(materialUniformValueEntries)
                 ctx.currentMaterialId = materialId
             }
             program.bindTextures(textures)
@@ -160,9 +163,8 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
         update: () => {
             resetValueChanges(valueChanges)
 
-            for (let i = 0, il = defineKeys.length; i < il; ++i) {
-                const k = defineKeys[i]
-                const value = defineValues[k]
+            for (let i = 0, il = defineValueEntries.length; i < il; ++i) {
+                const [k, value] = defineValueEntries[i]
                 if (value.ref.version !== versions[k]) {
                     // console.log('define version changed', k)
                     valueChanges.defines = true
@@ -198,11 +200,10 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                 versions.instanceCount = values.instanceCount.ref.version
             }
 
-            for (let i = 0, il = attributeKeys.length; i < il; ++i) {
-                const k = attributeKeys[i]
+            for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
+                const [k, buffer] = attributeBuffers[i]
                 const value = attributeValues[k]
                 if (value.ref.version !== versions[k]) {
-                    const buffer = attributeBuffers[k]
                     if (buffer.length >= value.ref.value.length) {
                         // console.log('attribute array large enough to update', k, value.ref.id, value.ref.version)
                         buffer.updateData(value.ref.value)
@@ -210,7 +211,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                         // console.log('attribute array to small, need to create new attribute', k, value.ref.id, value.ref.version)
                         buffer.destroy()
                         const { itemSize, divisor } = schema[k] as AttributeSpec<ArrayKind>
-                        attributeBuffers[k] = createAttributeBuffer(ctx, value.ref.value, itemSize, divisor)
+                        attributeBuffers[i] = [k, createAttributeBuffer(ctx, value.ref.value, itemSize, divisor)]
                         valueChanges.attributes = true
                     }
                     versions[k] = value.ref.version
@@ -247,14 +248,14 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                 }
             }
 
-            for (let i = 0, il = textureKeys.length; i < il; ++i) {
-                const k = textureKeys[i]
+            for (let i = 0, il = textures.length; i < il; ++i) {
+                const [k, texture] = textures[i]
                 const value = textureValues[k]
                 if (value.ref.version !== versions[k]) {
                     // update of textures with kind 'texture' is done externally
                     if (schema[k].kind !== 'texture') {
                         // console.log('texture version changed, uploading image', k)
-                        textures[k].load(value.ref.value as TextureImage<any> | TextureVolume<any>)
+                        texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>)
                         versions[k] = value.ref.version
                         valueChanges.textures = true
                     }
@@ -269,13 +270,13 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                     programs[k].free()
                     deleteVertexArray(ctx, vertexArrays[k])
                 })
-                Object.keys(textures).forEach(k => {
+                textures.forEach(([k, texture]) => {
                     // lifetime of textures with kind 'texture' is defined externally
                     if (schema[k].kind !== 'texture') {
-                        textures[k].destroy()
+                        texture.destroy()
                     }
                 })
-                Object.keys(attributeBuffers).forEach(k => attributeBuffers[k].destroy())
+                attributeBuffers.forEach(([_, buffer]) => buffer.destroy())
                 if (elementsBuffer) elementsBuffer.destroy()
                 destroyed = true
             }

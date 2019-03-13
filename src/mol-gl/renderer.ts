@@ -105,6 +105,7 @@ namespace Renderer {
 
             uPickingAlphaThreshold: ValueCell.create(pickingAlphaThreshold),
         }
+        const globalUniformList = Object.entries(globalUniforms)
 
         let globalUniformsNeedUpdate = true
         const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
@@ -118,7 +119,7 @@ namespace Renderer {
                 program.use()
                 if (globalUniformsNeedUpdate) {
                     // console.log('globalUniformsNeedUpdate')
-                    program.setUniforms(globalUniforms)
+                    program.setUniforms(globalUniformList)
                     globalUniformsNeedUpdate = false
                 }
 

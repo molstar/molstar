@@ -152,7 +152,7 @@ export type AttributeDefs = {
     [k: string]: { kind: ArrayKind, itemSize: AttributeItemSize, divisor: number }
 }
 export type AttributeValues = { [k: string]: ValueCell<ArrayType> }
-export type AttributeBuffers = { [k: string]: AttributeBuffer }
+export type AttributeBuffers = [string, AttributeBuffer][]
 
 export interface AttributeBuffer extends Buffer {
     bind: (location: number) => void
@@ -185,14 +185,14 @@ export function createAttributeBuffer<T extends ArrayType, S extends AttributeIt
 }
 
 export function createAttributeBuffers(ctx: WebGLContext, schema: RenderableSchema, values: AttributeValues) {
-    const buffers: AttributeBuffers = {}
+    const buffers: AttributeBuffers = []
     Object.keys(schema).forEach(k => {
         const spec = schema[k]
         if (spec.type === 'attribute') {
-            buffers[k] = createAttributeBuffer(ctx, values[k].ref.value, spec.itemSize, spec.divisor)
+            buffers[buffers.length] = [k, createAttributeBuffer(ctx, values[k].ref.value, spec.itemSize, spec.divisor)]
         }
     })
-    return buffers as AttributeBuffers
+    return buffers
 }
 
 //

@@ -1,15 +1,14 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
 import { WebGLContext } from './context';
-import { UniformValues, getUniformSetters } from './uniform';
+import { getUniformSetters, UniformsList } from './uniform';
 import { AttributeBuffers } from './buffer';
-// import { AttributeBuffers, UniformBuffers, createUniformBuffer } from './buffer';
-import { Textures, TextureId } from './texture';
+import { TextureId, Textures } from './texture';
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 import { idFactory } from 'mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
@@ -21,7 +20,7 @@ export interface Program {
     readonly id: number
 
     use: () => void
-    setUniforms: (uniformValues: UniformValues) => void
+    setUniforms: (uniformValues: UniformsList) => void
     bindAttributes: (attribueBuffers: AttributeBuffers) => void
     bindTextures: (textures: Textures) => void
 
@@ -88,32 +87,26 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
             ctx.currentProgramId = programId
             gl.useProgram(program)
         },
-        setUniforms: (uniformValues: UniformValues) => {
-            const uniformKeys = Object.keys(uniformValues)
-            for (let i = 0, il = uniformKeys.length; i < il; ++i) {
-                const k = uniformKeys[i]
-                const l = locations[k]
-                const v = uniformValues[k]
-                if (v) uniformSetters[k](gl, l, v.ref.value)
+        setUniforms: (uniformValues: UniformsList) => {
+            for (let i = 0, il = uniformValues.length; i < il; ++i) {
+                const [k, v] = uniformValues[i]
+                if (v) uniformSetters[k](gl, locations[k], v.ref.value)
             }
         },
         bindAttributes: (attribueBuffers: AttributeBuffers) => {
-            const attributeKeys = Object.keys(attribueBuffers)
-            for (let i = 0, il = attributeKeys.length; i < il; ++i) {
-                const k = attributeKeys[i]
+            for (let i = 0, il = attribueBuffers.length; i < il; ++i) {
+                const [k, buffer] = attribueBuffers[i]
                 const l = locations[k]
-                if (l !== -1) attribueBuffers[k].bind(l)
+                if (l !== -1) buffer.bind(l)
             }
         },
         bindTextures: (textures: Textures) => {
-            const textureKeys = Object.keys(textures)
-            for (let i = 0, il = textureKeys.length; i < il; ++i) {
-                const k = textureKeys[i]
-                const l = locations[k]
-                textures[k].bind(i as TextureId)
+            for (let i = 0, il = textures.length; i < il; ++i) {
+                const [k, texture] = textures[i]
+                texture.bind(i as TextureId)
                 // TODO if the order and count of textures in a material can be made invariant
                 //      this needs to be set only when the material changes
-                uniformSetters[k](gl, l, i as TextureId)
+                uniformSetters[k](gl, locations[k], i as TextureId)
             }
         },
 

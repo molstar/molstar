@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -139,7 +139,7 @@ export interface Texture {
 export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
 
 export type TextureValues = { [k: string]: ValueCell<TextureValueType> }
-export type Textures = { [k: string]: Texture }
+export type Textures = [string, Texture][]
 
 export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
     const id = getNextTextureId()
@@ -244,16 +244,16 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
 }
 
 export function createTextures(ctx: WebGLContext, schema: RenderableSchema, values: TextureValues) {
-    const textures: Textures = {}
+    const textures: Textures = []
     Object.keys(schema).forEach((k, i) => {
         const spec = schema[k]
         if (spec.type === 'texture') {
             if (spec.kind === 'texture') {
-                textures[k] = values[k].ref.value as Texture
+                textures[textures.length] = [k, values[k].ref.value as Texture]
             } else {
                 const texture = createTexture(ctx, spec.kind, spec.format, spec.dataType, spec.filter)
                 texture.load(values[k].ref.value as TextureImage<any> | TextureVolume<any>)
-                textures[k] = texture
+                textures[textures.length] = [k, texture]
             }
         }
     })
