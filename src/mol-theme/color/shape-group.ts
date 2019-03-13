@@ -7,7 +7,7 @@
 import { ColorTheme } from '../color';
 import { Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { Shape } from 'mol-model/shape';
+import { ShapeGroup } from 'mol-model/shape';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from 'mol-theme/theme';
 
@@ -25,7 +25,7 @@ export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: PD.Values<Sha
         factory: ShapeGroupColorTheme,
         granularity: 'groupInstance',
         color: (location: Location): Color => {
-            if (Shape.isLocation(location)) {
+            if (ShapeGroup.isLocation(location)) {
                 return location.shape.getColor(location.group, location.instance)
             }
             return DefaultColor

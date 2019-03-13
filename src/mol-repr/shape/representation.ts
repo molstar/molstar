@@ -9,7 +9,7 @@ import { createRenderObject, GraphicsRenderObject } from 'mol-gl/render-object';
 import { Representation } from '../representation';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { ValueCell } from 'mol-util';
-import { Shape } from 'mol-model/shape';
+import { Shape, ShapeGroup } from 'mol-model/shape';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { createTransform, TransformData } from 'mol-geo/geometry/transform-data';
@@ -170,7 +170,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         getLoci(pickingId: PickingId) {
             const { objectId, groupId, instanceId } = pickingId
             if (_renderObject && _renderObject.id === objectId) {
-                return Shape.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId) }], instanceId)
+                return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId) }], instanceId)
             }
             return EmptyLoci
         },
@@ -210,7 +210,7 @@ function createShapeTransform(transforms: Mat4[], transformData?: TransformData)
 }
 
 function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) => boolean) {
-    if (!Shape.isLoci(loci)) return false
+    if (!ShapeGroup.isLoci(loci)) return false
     if (loci.shape !== shape) return false
     let changed = false
     const { groupCount } = shape
@@ -233,7 +233,7 @@ function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) =>
 export namespace ShapeGroupIterator {
     export function fromShape(shape: Shape): LocationIterator {
         const instanceCount = shape.transforms.length
-        const location = Shape.Location(shape)
+        const location = ShapeGroup.Location(shape)
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             location.group = groupIndex
             location.instance = instanceIndex

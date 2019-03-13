@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -43,6 +43,13 @@ export namespace Shape {
         }
     }
 
+    export interface Loci { readonly kind: 'shape-loci', readonly shape: Shape }
+    export function Loci(shape: Shape): Loci { return { kind: 'shape-loci', shape } }
+    export function isLoci(x: any): x is Loci { return !!x && x.kind === 'shape-loci' }
+    export function areLociEqual(a: Loci, b: Loci) { return a.shape === b.shape }
+}
+
+export namespace ShapeGroup {
     export interface Location {
         readonly kind: 'group-location'
         shape: Shape
