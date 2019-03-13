@@ -13,18 +13,21 @@ export { TaskManager }
 class TaskManager {
     private ev = RxEventHelper.create();
     private id = 0;
+    private abortRequests = new Map<number, string | undefined>();
 
     readonly events = {
         progress: this.ev<TaskManager.ProgressEvent>(),
         finished: this.ev<{ id: number }>()
     };
 
-    private track(id: number) {
+    private track(internalId: number, taskId: number) {
         return (progress: Progress) => {
+            if (progress.canAbort && progress.requestAbort && this.abortRequests.has(taskId)) {
+                progress.requestAbort(this.abortRequests.get(taskId));
+            }
             const elapsed = now() - progress.root.progress.startedTime;
-            progress.root.progress.startedTime
             this.events.progress.next({
-                id,
+                id: internalId,
                 level: elapsed < 250 ? 'none' : elapsed < 1500 ? 'background' : 'overlay',
                 progress
             });
@@ -34,11 +37,16 @@ class TaskManager {
     async run<T>(task: Task<T>): Promise<T> {
         const id = this.id++;
         try {
-            const ret = await task.run(this.track(id), 100);
+            const ret = await task.run(this.track(id, task.id), 100);
             return ret;
         } finally {
             this.events.finished.next({ id });
+            this.abortRequests.delete(task.id);
         }
+    }
+
+    requestAbort(task: Task<any> | number, reason?: string) {
+        this.abortRequests.set(typeof task === 'number' ? task : task.id, reason);
     }
 
     dispose() {

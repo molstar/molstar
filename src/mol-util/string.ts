@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -37,4 +37,19 @@ export function snakeCaseToWords(str: string) {
 
 export function stringToWords(str: string) {
     return capitalize(splitCamelCase(splitSnakeCase(str)))
+}
+
+export function substringStartsWith(str: string, start: number, end: number, target: string) {
+    let len = target.length;
+    if (len > end - start) return false;
+    for (let i = 0; i < len; i++) {
+        if (str.charCodeAt(start + i) !== target.charCodeAt(i)) return false;
+    }
+    return true;
+}
+
+export function interpolate(str: string, params: { [k: string]: any }) {
+    const names = Object.keys(params);
+    const values = Object.values(params);
+    return new Function(...names, `return \`${str}\`;`)(...values);
 }

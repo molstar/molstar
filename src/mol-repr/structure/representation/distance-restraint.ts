@@ -7,7 +7,7 @@
 import { CrossLinkRestraintVisual, CrossLinkRestraintParams } from '../visual/cross-link-restraint-cylinder';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ComplexRepresentation } from '../complex-representation';
-import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
+import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
@@ -28,7 +28,7 @@ export function getDistanceRestraintParams(ctx: ThemeRegistryContext, structure:
 
 export type DistanceRestraintRepresentation = StructureRepresentation<DistanceRestraintParams>
 export function DistanceRestraintRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, DistanceRestraintParams>): DistanceRestraintRepresentation {
-    return Representation.createMulti('DistanceRestraint', ctx, getParams, DistanceRestraintVisuals as unknown as Representation.Def<Structure, DistanceRestraintParams>)
+    return Representation.createMulti('DistanceRestraint', ctx, getParams, StructureRepresentationStateBuilder, DistanceRestraintVisuals as unknown as Representation.Def<Structure, DistanceRestraintParams>)
 }
 
 export const DistanceRestraintRepresentationProvider: StructureRepresentationProvider<DistanceRestraintParams> = {

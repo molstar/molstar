@@ -5,8 +5,11 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
-import * as CCP4 from './ccp4'
+import * as Format from './format'
 import * as DataFormat from '../common/data-format'
+import { FileHandle } from 'mol-io/common/file-handle';
+import { SimpleBuffer } from 'mol-io/common/simple-buffer';
+import { TypedArrayValueArray, TypedArrayValueType } from 'mol-io/common/typed-array';
 
 const FORMAT_VERSION = '1.0.0';
 
@@ -23,16 +26,16 @@ export interface ValuesInfo {
 }
 
 export interface BlockBuffer {
-    values: DataFormat.ValueArray[],
-    buffers: Buffer[],
+    values: TypedArrayValueArray[],
+    buffers: SimpleBuffer[],
     slicesWritten: number
 }
 
 export interface DownsamplingBuffer {
     /** dimensions (sampleCount[1], sampleCount[0] / 2, 1), axis order (K, H, L) */
-    downsampleH: DataFormat.ValueArray,
+    downsampleH: TypedArrayValueArray,
     /** "Cyclic" (in the 1st dimensions) buffer with dimensions (5, sampleCount[0] / 2, sampleCount[1] / 2), axis order (L, H, K),  */
-    downsampleHK: DataFormat.ValueArray,
+    downsampleHK: TypedArrayValueArray,
 
     slicesWritten: number,
     startSliceIndex: number
@@ -68,18 +71,18 @@ export interface Kernel {
 
 export interface Context {
     /** Output file handle  */
-    file: number,
+    file: FileHandle,
 
     /** Periodic are x-ray density files that cover the entire grid and have [0,0,0] origin */
     isPeriodic: boolean,
 
-    channels: CCP4.Data[],
-    valueType: DataFormat.ValueType,
+    channels: Format.Context[],
+    valueType: TypedArrayValueType,
     blockSize: number,
     /** Able to store channels.length * blockSize^3 values. */
-    cubeBuffer: Buffer,
+    cubeBuffer: SimpleBuffer,
     /** All values are stored in little endian format which might not be the native endian of the system  */
-    litteEndianCubeBuffer: Buffer,
+    litteEndianCubeBuffer: SimpleBuffer,
 
     kernel: Kernel,
     sampling: Sampling[],
@@ -90,7 +93,7 @@ export interface Context {
 }
 
 export function createHeader(ctx: Context): DataFormat.Header {
-    const header = ctx.channels[0].header;
+    const header = ctx.channels[0].data.header;
     const grid = header.grid;
 
     function normalize(data: number[]) {
@@ -99,13 +102,13 @@ export function createHeader(ctx: Context): DataFormat.Header {
 
     return {
         formatVersion: FORMAT_VERSION,
-        valueType: CCP4.getValueType(header),
+        valueType: header.valueType,
         blockSize: ctx.blockSize,
         axisOrder: header.axisOrder,
         origin: normalize(header.origin),
         dimensions: normalize(header.extent),
         spacegroup: { number: header.spacegroupNumber, size: header.cellSize, angles: header.cellAngles, isPeriodic: ctx.isPeriodic },
-        channels: ctx.channels.map(c => c.header.name),
+        channels: ctx.channels.map(c => c.data.header.name),
         sampling: ctx.sampling.map(s => {
             const N = s.sampleCount[0] * s.sampleCount[1] * s.sampleCount[2];
             const valuesInfo = [];

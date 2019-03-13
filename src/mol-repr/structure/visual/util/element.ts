@@ -55,15 +55,12 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
 
     const { elements } = unit;
     const elementCount = elements.length;
-    const builder = SpheresBuilder.create(elementCount, elementCount / 2)
+    const builder = SpheresBuilder.create(elementCount, elementCount / 2, spheres)
 
     const v = Vec3.zero()
     const pos = unit.conformation.invariantPosition
-    const l = StructureElement.create()
-    l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {
-        l.element = elements[i]
         pos(elements[i], v)
         builder.add(v[0], v[1], v[2], i)
     }
@@ -71,11 +68,11 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     return builder.getSpheres()
 }
 
-export function markElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
-    if (loci.structure !== structure) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
     const elementCount = group.elements.length
     for (const e of loci.elements) {
         const unitIdx = group.unitIndexMap.get(e.unit.id)

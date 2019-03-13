@@ -15,6 +15,10 @@ import { ColorNames } from 'mol-util/color/tables';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { labelFirst } from 'mol-theme/label';
 import { RuntimeContext, Progress } from 'mol-task';
+import { Representation } from 'mol-repr/representation';
+import { MarkerAction } from 'mol-geo/geometry/marker-data';
+import { EveryLoci } from 'mol-model/loci';
+
 
 
 
@@ -36,14 +40,23 @@ info.style.right = '20px'
 info.style.color = 'white'
 parent.appendChild(info)
 
+let prevReprLoci = Representation.Loci.Empty
 const canvas3d = Canvas3D.create(canvas, parent)
 canvas3d.animate()
 canvas3d.input.move.subscribe(async ({x, y}) => {
     const pickingId = await canvas3d.identify(x, y)
     let label = ''
     if (pickingId) {
-        const { loci } = canvas3d.getLoci(pickingId)
-        label = labelFirst(loci)
+        const reprLoci = canvas3d.getLoci(pickingId)
+        label = labelFirst(reprLoci.loci)
+        if (!Representation.Loci.areEqual(prevReprLoci, reprLoci)) {
+            canvas3d.mark(prevReprLoci, MarkerAction.RemoveHighlight)
+            canvas3d.mark(reprLoci, MarkerAction.Highlight)
+            prevReprLoci = reprLoci
+        }
+    } else {
+        canvas3d.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight)
+        prevReprLoci = Representation.Loci.Empty
     }
     info.innerText = label
 })
@@ -101,7 +114,6 @@ const repr = ShapeRepresentation(getShape, Mesh.Utils)
 export async function init() {
     // Create shape from myData and add to canvas3d
     await repr.createOrUpdate({}, myData).run((p: Progress) => console.log(Progress.format(p)))
-    console.log(repr)
     canvas3d.add(repr)
     canvas3d.resetCamera()
 

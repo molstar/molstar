@@ -8,7 +8,7 @@ import { GaussianSurfaceVisual, GaussianSurfaceParams } from '../visual/gaussian
 import { UnitsRepresentation } from '../units-representation';
 import { GaussianWireframeVisual, GaussianWireframeParams } from '../visual/gaussian-surface-wireframe';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
+import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
@@ -32,7 +32,7 @@ export function getMolecularSurfaceParams(ctx: ThemeRegistryContext, structure: 
 
 export type MolecularSurfaceRepresentation = StructureRepresentation<MolecularSurfaceParams>
 export function MolecularSurfaceRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceParams>): MolecularSurfaceRepresentation {
-    return Representation.createMulti('Molecular Surface', ctx, getParams, MolecularSurfaceVisuals as unknown as Representation.Def<Structure, MolecularSurfaceParams>)
+    return Representation.createMulti('Molecular Surface', ctx, getParams, StructureRepresentationStateBuilder, MolecularSurfaceVisuals as unknown as Representation.Def<Structure, MolecularSurfaceParams>)
 }
 
 export const MolecularSurfaceRepresentationProvider: StructureRepresentationProvider<MolecularSurfaceParams> = {

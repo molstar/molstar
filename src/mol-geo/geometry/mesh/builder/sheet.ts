@@ -47,12 +47,21 @@ function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLi
     Vec3.sub(p3, Vec3.sub(p3, positionVector, horizontalVector), verticalLeftVector)
     Vec3.add(p4, Vec3.sub(p4, positionVector, horizontalVector), verticalRightVector)
 
-    ChunkedArray.add3(vertices, p1[0], p1[1], p1[2])
-    ChunkedArray.add3(vertices, p2[0], p2[1], p2[2])
-    ChunkedArray.add3(vertices, p3[0], p3[1], p3[2])
-    ChunkedArray.add3(vertices, p4[0], p4[1], p4[2])
+    if (leftHeight < rightHeight) {
+        ChunkedArray.add3(vertices, p4[0], p4[1], p4[2])
+        ChunkedArray.add3(vertices, p3[0], p3[1], p3[2])
+        ChunkedArray.add3(vertices, p2[0], p2[1], p2[2])
+        ChunkedArray.add3(vertices, p1[0], p1[1], p1[2])
+        Vec3.copy(verticalVector, verticalRightVector)
+    } else {
+        ChunkedArray.add3(vertices, p1[0], p1[1], p1[2])
+        ChunkedArray.add3(vertices, p2[0], p2[1], p2[2])
+        ChunkedArray.add3(vertices, p3[0], p3[1], p3[2])
+        ChunkedArray.add3(vertices, p4[0], p4[1], p4[2])
+        Vec3.copy(verticalVector, verticalLeftVector)
+    }
 
-    Vec3.cross(normalVector, horizontalVector, verticalLeftVector)
+    Vec3.cross(normalVector, horizontalVector, verticalVector)
 
     for (let i = 0; i < 4; ++i) {
         ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2])
@@ -152,8 +161,8 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         const h = arrowHeight === 0 ? height : arrowHeight
         addCap(0, state, controlPoints, normalVectors, binormalVectors, width, h, h)
     } else if (arrowHeight > 0) {
-        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, -arrowHeight, height)
         addCap(0, state, controlPoints, normalVectors, binormalVectors, width, arrowHeight, -height)
+        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, -arrowHeight, height)
     }
 
     if (endCap && arrowHeight === 0) {

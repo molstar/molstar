@@ -44,18 +44,17 @@ function createDatabaseFromJson(assemblies: ReadonlyArray<AssemblySymmetryGraphQ
     let id = 1 // start feature ids at 1
     let clusterCount = 0
     for (let i = 0, il = assemblies.length; i < il; ++i) {
-        const { pdbx_struct_assembly, rcsb_struct_symmetry, rcsb_struct_symmetry_provenance } = assemblies[i]
-        if (!pdbx_struct_assembly || !rcsb_struct_symmetry ||!rcsb_struct_symmetry_provenance) continue
+        const { pdbx_struct_assembly, rcsb_struct_symmetry } = assemblies[i]
+        if (!pdbx_struct_assembly || !rcsb_struct_symmetry) continue
         const assembly_id = pdbx_struct_assembly.id
         for (let j = 0, jl = rcsb_struct_symmetry.length; j < jl; ++j) {
             const rss = rcsb_struct_symmetry[j]! // TODO upstream, array members should not be nullable
             featureRows.push({
                 id,
                 assembly_id,
-                provenance: rcsb_struct_symmetry_provenance,
-                type: rss.type,
+                type: rss.type as SymmetryType,
                 stoichiometry: rss.stoichiometry as string[],  // TODO upstream, array members should not be nullable
-                kind: rss.kind,
+                kind: rss.kind as SymmetryKind,
                 symbol: rss.symbol,
                 oligomeric_state: rss.oligomeric_state
             })
@@ -181,7 +180,10 @@ export function AssemblySymmetry(db: AssemblySymmetry.Database): AssemblySymmetr
     }
 }
 
-const Client = new GraphQLClient(AssemblySymmetry.GraphQLEndpointURL, (url: string, type: 'string' | 'binary', body?: string) => ajaxGet({ url, type, body }) )
+type SymmetryKind = 'GLOBAL' | 'LOCAL' | 'PSEUDO'
+type SymmetryType = 'ASYMMETRIC' | 'CYCLIC' | 'DIHEDRAL' | 'HELICAL' | 'ICOSAHEDRAL' | 'OCTAHEDRAL' | 'TETRAHEDRAL'
+
+const Client = new GraphQLClient(AssemblySymmetry.GraphQLEndpointURL, ajaxGet)
 
 export namespace AssemblySymmetry {
     export function is(x: any): x is AssemblySymmetry {
@@ -200,10 +202,8 @@ export namespace AssemblySymmetry {
              * The value 'deposited' refers to the coordinates as given in the file.
              * */
             assembly_id: str,
-            /** Name and version of software used to calculate assembly symmetry */
-            provenance: str,
             /** Type of protein symmetry */
-            kind: Aliased<'GLOBAL' | 'LOCAL' | 'PSEUDO'>(str),
+            kind: Aliased<SymmetryKind>(str),
             /** Quantitative description of every individual subunit in a given protein */
             stoichiometry: List(',', x => x),
             /**
@@ -212,7 +212,7 @@ export namespace AssemblySymmetry {
              */
             symbol: str,
             /** Point group or helical symmetry */
-            type: Aliased<'ASYMMETRIC' | 'CYCLIC' | 'DIHEDRAL' | 'HELICAL' | 'ICOSAHEDRAL' | 'OCTAHEDRAL' | 'TETRAHEDRAL'>(str),
+            type: Aliased<SymmetryType>(str),
             /**
              * Oligomeric state refers to a composition of subunits in quaternary structure.
              * Quaternary structure may be composed either exclusively of several copies of identical
@@ -283,7 +283,7 @@ export namespace AssemblySymmetry {
         return true;
     }
 
-    export function createAttachTask(fetch: (url: string, type: 'string' | 'binary') => Task<string | Uint8Array>) {
+    export function createAttachTask(fetch: import('mol-util/data-source').AjaxTask) {
         return (model: Model) => Task.create('RCSB Assembly Symmetry', async ctx => {
             if (get(model)) return true;
 

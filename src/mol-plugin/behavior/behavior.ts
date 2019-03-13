@@ -5,7 +5,7 @@
  */
 
 import { PluginStateTransform, PluginStateObject } from '../state/objects';
-import { Transformer, Transform } from 'mol-state';
+import { StateTransformer, StateTransform } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginCommand } from '../command';
@@ -16,7 +16,7 @@ import { shallowEqual } from 'mol-util';
 export { PluginBehavior }
 
 interface PluginBehavior<P = unknown> {
-    register(ref: Transform.Ref): void,
+    register(ref: StateTransform.Ref): void,
     unregister(): void,
 
     /** Update params in place. Optionally return a promise if it depends on an async action. */
@@ -25,25 +25,54 @@ interface PluginBehavior<P = unknown> {
 
 namespace PluginBehavior {
     export class Root extends PluginStateObject.Create({ name: 'Root', typeClass: 'Root' }) { }
+    export class Category extends PluginStateObject.Create({ name: 'Category', typeClass: 'Object' }) { }
     export class Behavior extends PluginStateObject.CreateBehavior<PluginBehavior>({ name: 'Behavior' }) { }
 
     export interface Ctor<P = undefined> { new(ctx: PluginContext, params: P): PluginBehavior<P> }
 
+    export const Categories = {
+        'common': 'Common',
+        'representation': 'Representation',
+        'interaction': 'Interaction',
+        'custom-props': 'Custom Properties',
+        'misc': 'Miscellaneous'
+    };
+
     export interface CreateParams<P> {
         name: string,
+        category: keyof typeof Categories,
         ctor: Ctor<P>,
+        canAutoUpdate?: StateTransformer.Definition<Root, Behavior, P>['canAutoUpdate'],
         label?: (params: P) => { label: string, description?: string },
         display: {
             name: string,
-            group: string,
             description?: string
         },
         params?(a: Root, globalCtx: PluginContext): { [K in keyof P]: ParamDefinition.Any }
     }
 
+    export type CreateCategory = typeof CreateCategory
+    export const CreateCategory = PluginStateTransform.BuiltIn({
+        name: 'create-behavior-category',
+        display: { name: 'Behavior Category' },
+        from: Root,
+        to: Category,
+        params: {
+            label: ParamDefinition.Text('', { isHidden: true }),
+        }
+    })({
+        apply({ params }) {
+            return new Category({}, { label: params.label });
+        }
+    });
+
+    const categoryMap = new Map<string, string>();
+    export function getCategoryId(t: StateTransformer) {
+        return categoryMap.get(t.id)!;
+    }
+
     export function create<P>(params: CreateParams<P>) {
-        // TODO: cache groups etc
-        return PluginStateTransform.CreateBuiltIn<Root, Behavior, P>({
+        const t = PluginStateTransform.CreateBuiltIn<Category, Behavior, P>({
             name: params.name,
             display: params.display,
             from: [Root],
@@ -55,12 +84,15 @@ namespace PluginBehavior {
             },
             update({ b, newParams }) {
                 return Task.create('Update Behavior', async () => {
-                    if (!b.data.update) return Transformer.UpdateResult.Unchanged;
+                    if (!b.data.update) return StateTransformer.UpdateResult.Unchanged;
                     const updated = await b.data.update(newParams);
-                    return updated ? Transformer.UpdateResult.Updated : Transformer.UpdateResult.Unchanged;
+                    return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
                 })
-            }
+            },
+            canAutoUpdate: params.canAutoUpdate
         });
+        categoryMap.set(t.id, params.category);
+        return t;
     }
 
     export function simpleCommandHandler<T>(cmd: PluginCommand<T>, action: (data: T, ctx: PluginContext) => void | Promise<void>) {
@@ -95,12 +127,32 @@ namespace PluginBehavior {
             for (const s of this.subs) s.unsubscribe();
             this.subs = [];
         }
-        update(params: P): boolean {
+        update(params: P): boolean | Promise<boolean> {
             if (shallowEqual(params, this.params)) return false;
             this.params = params;
             return true;
         }
         constructor(protected ctx: PluginContext, protected params: P) {
+        }
+    }
+
+    export abstract class WithSubscribers<P = { }> implements PluginBehavior<P> {
+        abstract register(ref: string): void;
+
+        private subs: PluginCommand.Subscription[] = [];
+        protected subscribeCommand<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>) {
+            this.subs.push(cmd.subscribe(this.plugin, action));
+        }
+        protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void) {
+            this.subs.push(o.subscribe(action));
+        }
+
+        unregister() {
+            for (const s of this.subs) s.unsubscribe();
+            this.subs = [];
+        }
+
+        constructor(protected plugin: PluginContext) {
         }
     }
 }

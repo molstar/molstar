@@ -57,7 +57,9 @@ export class BoundingSphereHelper {
                 const instanceData = this.instancesData.get(ro)
                 const newInstanceData = updateBoundingSphereData(this.scene, r.values.invariantBoundingSphere.ref.value, instanceData, ColorNames.skyblue, {
                     aTransform: ro.values.aTransform,
+                    matrix: ro.values.matrix,
                     transform: ro.values.transform,
+                    extraTransform: ro.values.extraTransform,
                     uInstanceCount: ro.values.uInstanceCount,
                     instanceCount: ro.values.instanceCount,
                     aInstance: ro.values.aInstance,
@@ -79,7 +81,7 @@ export class BoundingSphereHelper {
             }
         })
 
-        this.scene.update()
+        this.scene.update(void 0, false);
     }
 
     syncVisibility() {
@@ -136,5 +138,5 @@ function createBoundingSphereMesh(boundingSphere: Sphere3D, mesh?: Mesh) {
 
 function createBoundingSphereRenderObject(mesh: Mesh, color: Color, transform?: TransformData) {
     const values = Mesh.Utils.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color, 1, transform)
-    return createRenderObject('mesh', values, { visible: true, pickable: false, opaque: false })
+    return createRenderObject('mesh', values, { visible: true, alphaFactor: 1, pickable: false, opaque: false })
 }

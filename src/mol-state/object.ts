@@ -5,8 +5,10 @@
  */
 
 import { UUID } from 'mol-util';
-import { Transform } from './transform';
+import { StateTransform } from './transform';
 import { ParamDefinition } from 'mol-util/param-definition';
+import { State } from './state';
+import { StateSelection, StateTransformer } from 'mol-state';
 
 export { StateObject, StateObjectCell }
 
@@ -16,6 +18,8 @@ interface StateObject<D = any, T extends StateObject.Type = StateObject.Type<any
     readonly data: D,
     readonly label: string,
     readonly description?: string,
+    // assigned by reconciler to be StateTransform.props.tag
+    readonly tag?: string
 }
 
 namespace StateObject {
@@ -51,13 +55,12 @@ namespace StateObject {
     };
 }
 
-interface StateObjectCell {
-    transform: Transform,
+interface StateObjectCell<T extends StateObject = StateObject, F extends StateTransform<StateTransformer<any, T, any>> = StateTransform<StateTransformer<any, T, any>>> {
+    transform: F,
 
     // Which object was used as a parent to create data in this cell
-    sourceRef: Transform.Ref | undefined,
+    sourceRef: StateTransform.Ref | undefined,
 
-    version: string
     status: StateObjectCell.Status,
 
     params: {
@@ -66,11 +69,16 @@ interface StateObjectCell {
     } | undefined;
 
     errorText?: string,
-    obj?: StateObject
+    obj?: T,
+
+    cache: unknown | undefined
 }
 
 namespace StateObjectCell {
     export type Status = 'ok' | 'error' | 'pending' | 'processing'
+
+    export type Obj<C extends StateObjectCell> = C extends StateObjectCell<infer T> ? T : never
+    export type Transform<C extends StateObjectCell> = C extends StateObjectCell<any, infer T> ? T : never
 
     export interface State {
         isHidden: boolean,
@@ -89,4 +97,28 @@ namespace StateObjectCell {
         if (typeof b.isHidden !== 'undefined' && a.isHidden !== b.isHidden) return true;
         return false;
     }
+}
+
+// TODO: improve the API?
+export class StateObjectTracker<T extends StateObject> {
+    private query: StateSelection.Query;
+    private version: string = '';
+    cell: StateObjectCell | undefined;
+    data: T['data'] | undefined;
+
+    setQuery(sel: StateSelection.Selector) {
+        this.query = StateSelection.compile(sel);
+    }
+
+    update() {
+        const cell = this.state.select(this.query)[0];
+        const version = cell ? cell.transform.version : void 0;
+        const changed = this.cell !== cell || this.version !== version;
+        this.cell = cell;
+        this.version = version || '';
+        this.data = cell && cell.obj ? cell.obj.data as T : void 0 as any;
+        return changed;
+    }
+
+    constructor(private state: State) { }
 }

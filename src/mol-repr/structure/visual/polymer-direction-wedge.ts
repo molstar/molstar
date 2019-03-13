@@ -6,7 +6,7 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../representation';
-import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
+import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
@@ -98,7 +98,7 @@ export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionParams> {
         createGeometry: createPolymerDirectionWedgeMesh,
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
-        mark: markPolymerElement,
+        eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerDirectionParams>, currentProps: PD.Values<PolymerDirectionParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor

@@ -33,6 +33,8 @@ export function labelFirst(loci: Loci): string {
         case 'link-loci':
             const link = loci.links[0]
             return link ? linkLabel(link) : 'Unknown'
+        case 'shape-loci':
+            return loci.shape.name
         case 'group-loci':
             const g = loci.groups[0]
             if (g) {

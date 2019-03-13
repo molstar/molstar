@@ -6,22 +6,21 @@
  */
 
 import * as React from 'react';
-import { ButtonsType } from 'mol-util/input/input-observer';
-import { Canvas3dIdentifyHelper } from 'mol-plugin/util/canvas3d-identify';
-import { PluginComponent } from './base';
+import { PluginUIComponent } from './base';
 import { PluginCommands } from 'mol-plugin/command';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
 import { Canvas3DParams } from 'mol-canvas3d/canvas3d';
+import { PluginLayoutStateParams } from 'mol-plugin/layout';
+import { ControlGroup, IconButton } from './controls/common';
 
 interface ViewportState {
     noWebGl: boolean
 }
 
-export class ViewportControls extends PluginComponent {
+export class ViewportControls extends PluginUIComponent<{}, { isSettingsExpanded: boolean }> {
     state = {
-        isSettingsExpanded: false,
-        settings: PD.getDefaultValues(Canvas3DParams)
+        isSettingsExpanded: false
     }
 
     resetCamera = () => {
@@ -33,40 +32,57 @@ export class ViewportControls extends PluginComponent {
         e.currentTarget.blur();
     }
 
-    // hideSettings = () => {
-    //     this.setState({ isSettingsExpanded: false });
-    // }
+    toggleControls = () => {
+        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { showControls: !this.plugin.layout.state.showControls } });
+    }
+
+    toggleExpanded = () => {
+        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { isExpanded: !this.plugin.layout.state.isExpanded } });
+    }
 
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { [p.name]: p.value } });
     }
 
-    componentDidMount() {
-        if (this.plugin.canvas3d) {
-            this.setState({ settings: this.plugin.canvas3d.props });
-        }
+    setLayout = (p: { param: PD.Base<any>, name: string, value: any }) => {
+        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { [p.name]: p.value } });
+    }
 
-        this.subscribe(this.plugin.events.canvad3d.settingsUpdated, e => {
-            this.setState({ settings: this.plugin.canvas3d.props });
+    componentDidMount() {
+        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, e => {
+            this.forceUpdate();
+        });
+
+        this.subscribe(this.plugin.layout.events.updated, () => {
+            this.forceUpdate();
         });
     }
 
+    icon(name: string, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
+        return <IconButton icon={name} toggleState={isOn} onClick={onClick} title={title} />;
+    }
+
     render() {
-        // TODO: show some icons dimmed etc..
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
-                <button className='msp-btn msp-btn-link' onClick={this.toggleSettingsExpanded}><span className='msp-icon msp-icon-settings'/></button>
-                <button className='msp-btn msp-btn-link' title='Reset Camera' onClick={this.resetCamera}><span className='msp-icon msp-icon-reset-scene'/></button>
+                {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}<br/>
+                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}<br/>
+                {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}<br />
+                {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
             </div>
-            {this.state.isSettingsExpanded &&
-            <div className='msp-viewport-controls-scene-options'>
-                <ParameterControls params={Canvas3DParams} values={this.state.settings} onChange={this.setSettings} />
+            {this.state.isSettingsExpanded && <div className='msp-viewport-controls-scene-options'>
+                <ControlGroup header='Layout' initialExpanded={true}>
+                    <ParameterControls params={PluginLayoutStateParams} values={this.plugin.layout.state} onChange={this.setLayout} />
+                </ControlGroup>
+                <ControlGroup header='Viewport' initialExpanded={true}>
+                    <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
+                </ControlGroup>
             </div>}
         </div>
     }
 }
 
-export class Viewport extends PluginComponent<{ }, ViewportState> {
+export class Viewport extends PluginUIComponent<{ }, ViewportState> {
     private container = React.createRef<HTMLDivElement>();
     private canvas = React.createRef<HTMLCanvasElement>();
 
@@ -75,7 +91,7 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
     };
 
     private handleResize = () => {
-         this.plugin.canvas3d.handleResize();
+        this.plugin.canvas3d.handleResize();
     }
 
     componentDidMount() {
@@ -87,20 +103,10 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
         const canvas3d = this.plugin.canvas3d;
         this.subscribe(canvas3d.input.resize, this.handleResize);
 
-        const idHelper = new Canvas3dIdentifyHelper(this.plugin, 15);
-
-        this.subscribe(canvas3d.input.move, ({x, y, inside, buttons}) => {
-            if (!inside || buttons) { return; }
-            idHelper.move(x, y);
-        });
-
-        this.subscribe(canvas3d.input.leave, () => {
-            idHelper.leave();
-        });
-
-        this.subscribe(canvas3d.input.click, ({x, y, buttons}) => {
-            if (buttons !== ButtonsType.Flag.Primary) return;
-            idHelper.select(x, y);
+        this.subscribe(canvas3d.interaction.click, e => this.plugin.behaviors.canvas3d.click.next(e));
+        this.subscribe(canvas3d.interaction.highlight, e => this.plugin.behaviors.canvas3d.highlight.next(e));
+        this.subscribe(this.plugin.layout.events.updated, () => {
+            setTimeout(this.handleResize, 50);
         });
     }
 

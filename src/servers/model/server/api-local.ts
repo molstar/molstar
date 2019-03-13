@@ -84,7 +84,7 @@ export function wrapFileToWriter(fn: string) {
         },
         writeBinary(this: any, data: Uint8Array) {
             this.open();
-            fs.writeSync(this.file, new Buffer(data.buffer));
+            fs.writeSync(this.file, Buffer.from(data.buffer));
             return true;
         },
         writeString(this: any, data: string) {

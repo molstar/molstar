@@ -9,11 +9,12 @@ import * as argparse from 'argparse'
 require('util.promisify').shim();
 
 import { CifFrame } from 'mol-io/reader/cif'
-import { Model, Structure, StructureElement, Unit, Format, StructureProperties, UnitRing } from 'mol-model/structure'
+import { Model, Structure, StructureElement, Unit, StructureProperties, UnitRing } from 'mol-model/structure'
 // import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { openCif, downloadCif } from './helpers';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -198,7 +199,7 @@ export function printModelStats(models: ReadonlyArray<Model>) {
 }
 
 export async function getModelsAndStructure(frame: CifFrame) {
-    const models = await Model.create(Format.mmCIF(frame)).run();
+    const models = await trajectoryFromMmCIF(frame).run();
     const structure = Structure.ofModel(models[0]);
     return { models, structure };
 }
@@ -247,7 +248,7 @@ interface Args {
     download?: string,
     file?: string,
 
-    models?:boolean,
+    models?: boolean,
     seq?: boolean,
     ihm?: boolean,
     units?: boolean,

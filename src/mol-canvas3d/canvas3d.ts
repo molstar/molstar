@@ -8,10 +8,9 @@ import { BehaviorSubject, Subscription } from 'rxjs';
 import { now } from 'mol-util/now';
 
 import { Vec3 } from 'mol-math/linear-algebra'
-import InputObserver from 'mol-util/input/input-observer'
-import * as SetUtils from 'mol-util/set'
+import InputObserver, { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
-import { RenderObject } from 'mol-gl/render-object'
+import { GraphicsRenderObject } from 'mol-gl/render-object'
 
 import { TrackballControls, TrackballControlsParams } from './controls/trackball'
 import { Viewport } from './camera/util'
@@ -29,6 +28,8 @@ import { Camera } from './camera';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-sphere-helper';
 import { decodeFloatRGB } from 'mol-util/float-packing';
+import { SetUtils } from 'mol-util/set';
+import { Canvas3dInteractionHelper } from './helper/interaction-events';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -51,7 +52,7 @@ interface Canvas3D {
 
     add: (repr: Representation.Any) => void
     remove: (repr: Representation.Any) => void
-    update: () => void
+    update: (repr?: Representation.Any, keepBoundingSphere?: boolean) => void
     clear: () => void
 
     // draw: (force?: boolean) => void
@@ -59,8 +60,8 @@ interface Canvas3D {
     animate: () => void
     pick: () => void
     identify: (x: number, y: number) => Promise<PickingId | undefined>
-    mark: (loci: Loci, action: MarkerAction, repr?: Representation.Any) => void
-    getLoci: (pickingId: PickingId) => { loci: Loci, repr?: Representation.Any }
+    mark: (loci: Representation.Loci, action: MarkerAction) => void
+    getLoci: (pickingId: PickingId) => Representation.Loci
 
     readonly didDraw: BehaviorSubject<now.Timestamp>
 
@@ -76,14 +77,19 @@ interface Canvas3D {
     readonly props: Canvas3DProps
     readonly input: InputObserver
     readonly stats: RendererStats
+    readonly interaction: Canvas3dInteractionHelper['events']
+
     dispose: () => void
 }
 
 namespace Canvas3D {
+    export interface HighlightEvent { current: Representation.Loci, prev: Representation.Loci, modifiers?: ModifiersKeys }
+    export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
+
     export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
-        const reprRenderObjects = new Map<Representation.Any, Set<RenderObject>>()
+        const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>()
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>()
         const reprCount = new BehaviorSubject(0)
 
@@ -125,7 +131,8 @@ namespace Canvas3D {
         let isUpdating = false
         let drawPending = false
 
-        const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug)
+        const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
+        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -141,7 +148,8 @@ namespace Canvas3D {
             return { loci, repr }
         }
 
-        function mark(loci: Loci, action: MarkerAction, repr?: Representation.Any) {
+        function mark(reprLoci: Representation.Loci, action: MarkerAction) {
+            const { repr, loci } = reprLoci
             let changed = false
             if (repr) {
                 changed = repr.mark(loci, action)
@@ -149,7 +157,7 @@ namespace Canvas3D {
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed })
             }
             if (changed) {
-                scene.update(true)
+                scene.update(void 0, true)
                 const prevPickDirty = pickDirty
                 draw(true)
                 pickDirty = prevPickDirty // marking does not change picking buffers
@@ -192,7 +200,7 @@ namespace Canvas3D {
             if (isIdentifying || isUpdating) return false
 
             let didRender = false
-            controls.update()
+            controls.update(currentTime);
             // TODO: is this a good fix? Also, setClipping does not work if the user has manually set a clipping plane.
             if (!camera.transition.inTransition) setClipping();
             const cameraChanged = camera.updateMatrices();
@@ -230,6 +238,7 @@ namespace Canvas3D {
         }
 
         let forceNextDraw = false;
+        let currentTime = 0;
 
         function draw(force?: boolean) {
             if (render('draw', !!force || forceNextDraw)) {
@@ -246,9 +255,10 @@ namespace Canvas3D {
         }
 
         function animate() {
-            const t = now();
-            camera.transition.tick(t);
-            draw(false)
+            currentTime = now();
+            camera.transition.tick(currentTime);
+            draw(false);
+            if (!camera.transition.inTransition) interactionHelper.tick(currentTime);
             window.requestAnimationFrame(animate)
         }
 
@@ -300,16 +310,19 @@ namespace Canvas3D {
         function add(repr: Representation.Any) {
             isUpdating = true
             const oldRO = reprRenderObjects.get(repr)
-            const newRO = new Set<RenderObject>()
+            const newRO = new Set<GraphicsRenderObject>()
             repr.renderObjects.forEach(o => newRO.add(o))
+
             if (oldRO) {
-                SetUtils.difference(newRO, oldRO).forEach(o => scene.add(o))
-                SetUtils.difference(oldRO, newRO).forEach(o => scene.remove(o))
+                if (!SetUtils.areEqual(newRO, oldRO)) {
+                    for (const o of Array.from(newRO)) { if (!oldRO.has(o)) scene.add(o); }
+                    for (const o of Array.from(oldRO)) { if (!newRO.has(o)) scene.remove(o) }
+                }
             } else {
                 repr.renderObjects.forEach(o => scene.add(o))
             }
             reprRenderObjects.set(repr, newRO)
-            scene.update()
+            scene.update(repr.renderObjects, false)
             if (debugHelper.isEnabled) debugHelper.update()
             isUpdating = false
             requestDraw(true)
@@ -337,14 +350,21 @@ namespace Canvas3D {
                     isUpdating = true
                     renderObjects.forEach(o => scene.remove(o))
                     reprRenderObjects.delete(repr)
-                    scene.update()
+                    scene.update(void 0, false)
                     if (debugHelper.isEnabled) debugHelper.update()
                     isUpdating = false
                     requestDraw(true)
                     reprCount.next(reprRenderObjects.size)
                 }
             },
-            update: () => scene.update(),
+            update: (repr, keepSphere) => {
+                if (repr) {
+                    if (!reprRenderObjects.has(repr)) return;
+                    scene.update(repr.renderObjects, !!keepSphere);
+                } else {
+                    scene.update(void 0, !!keepSphere)
+                }
+            },
             clear: () => {
                 reprRenderObjects.clear()
                 scene.clear()
@@ -415,6 +435,9 @@ namespace Canvas3D {
             get stats() {
                 return renderer.stats
             },
+            get interaction() {
+                return interactionHelper.events
+            },
             dispose: () => {
                 scene.clear()
                 debugHelper.clear()
@@ -422,6 +445,7 @@ namespace Canvas3D {
                 controls.dispose()
                 renderer.dispose()
                 camera.dispose()
+                interactionHelper.dispose()
             }
         }
 

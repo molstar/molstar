@@ -71,7 +71,7 @@ export function CarbohydrateTerminalLinkVisual(): ComplexVisual<CarbohydrateTerm
         createGeometry: createCarbohydrateTerminalLinkCylinderMesh,
         createLocationIterator: CarbohydrateTerminalLinkIterator,
         getLoci: getTerminalLinkLoci,
-        mark: markTerminalLink,
+        eachLocation: eachTerminalLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateTerminalLinkParams>, currentProps: PD.Values<CarbohydrateTerminalLinkParams>) => {
             state.createGeometry = (
                 newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
@@ -128,12 +128,12 @@ function getTerminalLinkLoci(pickingId: PickingId, structure: Structure, id: num
     return EmptyLoci
 }
 
-// TODO mark link when both of the link elements are in a StructureElement.Loci
-function markTerminalLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+// TODO for each link when both of the link elements are in a StructureElement.Loci
+function eachTerminalLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getTerminalLinkIndex } = structure.carbohydrates
-
     let changed = false
     if (Link.isLoci(loci)) {
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         for (const l of loci.links) {
             const idx = getTerminalLinkIndex(l.aUnit, l.aUnit.elements[l.aIndex], l.bUnit, l.bUnit.elements[l.bIndex])
             if (idx !== undefined) {
@@ -141,7 +141,7 @@ function markTerminalLink(loci: Loci, structure: Structure, apply: (interval: In
             }
         }
     } else if (StructureElement.isLoci(loci)) {
-        if (loci.structure !== structure) return false
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         // TODO mark link only when both of the link elements are in a StructureElement.Loci
         const { getElementIndex, getTerminalLinkIndices, elements } = structure.carbohydrates
         for (const e of loci.elements) {

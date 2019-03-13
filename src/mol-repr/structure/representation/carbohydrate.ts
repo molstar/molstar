@@ -9,7 +9,7 @@ import { CarbohydrateLinkVisual, CarbohydrateLinkParams } from '../visual/carboh
 import { CarbohydrateTerminalLinkParams, CarbohydrateTerminalLinkVisual } from '../visual/carbohydrate-terminal-link-cylinder';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ComplexRepresentation } from '../complex-representation';
-import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
+import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
@@ -35,7 +35,7 @@ export function getCarbohydrateParams(ctx: ThemeRegistryContext, structure: Stru
 
 export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateParams>
 export function CarbohydrateRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateParams>): CarbohydrateRepresentation {
-    return Representation.createMulti('Carbohydrate', ctx, getParams, CarbohydrateVisuals as unknown as Representation.Def<Structure, CarbohydrateParams>)
+    return Representation.createMulti('Carbohydrate', ctx, getParams, StructureRepresentationStateBuilder, CarbohydrateVisuals as unknown as Representation.Def<Structure, CarbohydrateParams>)
 }
 
 export const CarbohydrateRepresentationProvider: StructureRepresentationProvider<CarbohydrateParams> = {

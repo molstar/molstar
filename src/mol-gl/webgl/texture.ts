@@ -183,8 +183,7 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
             width = _width, height = _height, depth = _depth || 0
             gl.bindTexture(target, texture)
             if (target === gl.TEXTURE_2D) {
-                // TODO remove cast when webgl2 types are fixed
-                (gl as WebGLRenderingContext).texImage2D(target, 0, internalFormat, width, height, 0, format, type, null)
+                gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, null)
             } else if (target === (gl as WebGL2RenderingContext).TEXTURE_3D && depth !== undefined) {
                 (gl as WebGL2RenderingContext).texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, null)
             } else {
@@ -200,8 +199,7 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
             if (target === gl.TEXTURE_2D) {
                 const { array, width: _width, height: _height } = data as TextureImage<any>
                 width = _width, height = _height;
-                // TODO remove cast when webgl2 types are fixed
-                (gl as WebGLRenderingContext).texImage2D(target, 0, internalFormat, width, height, 0, format, type, array)
+                gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, array)
             } else if (target === (gl as WebGL2RenderingContext).TEXTURE_3D) {
                 const { array, width: _width, height: _height, depth: _depth } = data as TextureVolume<any>
                 width = _width, height = _height, depth = _depth;

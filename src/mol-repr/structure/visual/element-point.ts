@@ -7,7 +7,7 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
-import { getElementLoci, StructureElementIterator, markElement } from './util/element';
+import { getElementLoci, StructureElementIterator, eachElement } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -48,7 +48,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointParams> {
         createGeometry: createElementPoint,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
-        mark: markElement,
+        eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementPointParams>, currentProps: PD.Values<ElementPointParams>) => {
 
         }

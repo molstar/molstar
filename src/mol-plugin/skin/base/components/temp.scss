@@ -6,12 +6,27 @@
     height: $row-height;
     line-height: $row-height;
     margin-bottom: $control-spacing;
-    text-align: center;
+    text-align: right;
+    padding: 0 $control-spacing;
     font-weight: bold;
     background: $default-background;
     // border-right: $control-spacing solid $entity-color-Group; // TODO separate color
-    border-top: 1px solid $entity-color-Group; // TODO separate color
+    border-bottom: 1px solid $entity-color-Group; // TODO separate color
     // border-bottom: 1px solid $entity-color-Group; // TODO separate color
+
+    > .msp-icon {
+        display: block;
+        float: left;
+    }
+}
+
+.msp-current-header {
+    height: $row-height;
+    line-height: $row-height;
+    margin-bottom: $control-spacing;
+    text-align: center;
+    font-weight: bold;
+    background: $default-background;
 }
 
 .msp-btn-row-group {
@@ -43,19 +58,18 @@
         > button:first-child {
             border-left: $control-spacing solid color-increase-contrast($default-background, 12%) !important;
         }
+
+        > div {
+            position: absolute;
+            right: 0;
+            top: 0;        
+        }
     }
 
     button {
         margin-bottom: 1px;
         text-align: left;
     }
-}
-
-.msp-state-list-remove-button {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: $row-height;
 }
 
 .msp-tree-row {
@@ -69,10 +83,32 @@
     margin-bottom: 1px;
     padding-left: $row-height;
     padding-right: 2 * $row-height + $control-spacing;
-    border-bottom-left-radius: $control-spacing;
+    border-left: 1px solid $entity-color-Group; // TODO custom color
+    // border-bottom-left-radius: $control-spacing;
 
     &-current {
-        background: $control-background
+        // background: $control-background;
+        
+        a {
+            color: $font-color;
+        }
+
+        a:hover, a:hover > small {
+            color: color-lower-contrast($font-color, 24%);
+        }
+    }
+
+    a {
+        display: block;
+    }
+
+    a > small {
+        color: $font-color;
+    }
+
+    a:hover {
+        font-weight: bold;
+        text-decoration: none;
     }
 }
 
@@ -90,6 +126,7 @@
     left: 0;
     top: 0;
     width: $row-height;
+    padding: 0;
     color: color-lower-contrast($font-color, 24%);
 }
 
@@ -116,5 +153,80 @@
         background: $msp-form-control-background;
         margin-bottom: 1px;
         padding: 3px 6px;
+    }
+}
+
+.msp-viewport-top-left-controls {
+    position: absolute;
+    left: $control-spacing;
+    top: $control-spacing;
+
+    .msp-traj-controls {        
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+        background-color: $msp-form-control-background;
+
+        > span {
+            color: $font-color;
+            margin-left: $control-spacing;
+            margin-right: $control-spacing;
+            font-size: 85%;
+            display: inline-block;
+        }
+    }
+
+    .msp-state-snapshot-viewport-controls {
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+        background-color: $msp-form-control-background;
+
+        > select {
+            display: inline-block;
+            width: 200px;
+        }
+    }
+
+    .msp-animation-viewport-controls {
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+        position: relative;
+        background-color: $msp-form-control-background;
+
+        .msp-animation-viewport-controls-select {
+            width: 290px;
+            position: absolute;
+            left: 0;
+            top: $row-height + $control-spacing;
+            background: $control-background;
+
+            .msp-control-row:first-child {
+                margin-top: 0;
+            }
+        }
+    }
+}
+
+.msp-param-object-list-item {
+    margin-top: 1px;
+    position: relative;
+    > button {
+        text-align: left;
+        > span {
+            font-weight: bold;
+        }
+    }
+    > div {
+        position: absolute;
+        right: 0;
+        top: 0
+    }
+}
+
+.msp-state-actions {
+    .msp-transform-wrapper:last-child {
+        margin-bottom: 10px;
     }
 }

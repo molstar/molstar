@@ -18,7 +18,7 @@ import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { createColors } from 'mol-geo/geometry/color-data';
-import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
+import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { VisualUpdateState } from 'mol-repr/util';
 import { Theme, createEmptyTheme } from 'mol-theme/theme';
@@ -28,6 +28,7 @@ import { UnitsParams } from './units-representation';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
+import { Overpaint } from 'mol-theme/overpaint';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -50,7 +51,7 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
     createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
-    mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
+    eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
@@ -59,7 +60,7 @@ interface ComplexVisualGeometryBuilder<P extends UnitsParams, G extends Geometry
 }
 
 export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geometry.Params<G>>(builder: ComplexVisualGeometryBuilder<P, G>): ComplexVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder
     const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
@@ -157,6 +158,14 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         if (newGeometry) geometry = newGeometry
     }
 
+    function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
+        if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructure))) {
+            return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount))
+        } else {
+            return eachLocation(loci, currentStructure, apply)
+        }
+    }
+
     return {
         get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return locationIt && locationIt.count ? renderObject : undefined },
@@ -173,35 +182,22 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
             return renderObject ? getLoci(pickingId, currentStructure, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!renderObject) return false
-            const { tMarker } = renderObject.values
-            const { groupCount, instanceCount } = locationIt
-
-            function apply(interval: Interval) {
-                const start = Interval.start(interval)
-                const end = Interval.end(interval)
-                return applyMarkerAction(tMarker.ref.value.array, start, end, action)
-            }
-
-            let changed = false
-            if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {
-                changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
-            } else {
-                changed = mark(loci, currentStructure, apply)
-            }
-            if (changed) {
-                ValueCell.update(tMarker, tMarker.ref.value)
-            }
-            return changed
+            return Visual.mark(renderObject, loci, action, lociApply)
         },
-        setVisibility(value: boolean) {
-            Visual.setVisibility(renderObject, value)
+        setVisibility(visible: boolean) {
+            Visual.setVisibility(renderObject, visible)
         },
-        setPickable(value: boolean) {
-            Visual.setPickable(renderObject, value)
+        setAlphaFactor(alphaFactor: number) {
+            Visual.setAlphaFactor(renderObject, alphaFactor)
         },
-        setTransform(value: Mat4) {
-            Visual.setTransform(renderObject, value)
+        setPickable(pickable: boolean) {
+            Visual.setPickable(renderObject, pickable)
+        },
+        setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
+            Visual.setTransform(renderObject, matrix, instanceMatrices)
+        },
+        setOverpaint(overpaint: Overpaint, clear = false) {
+            return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
         },
         destroy() {
             // TODO

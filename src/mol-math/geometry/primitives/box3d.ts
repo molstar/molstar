@@ -44,6 +44,13 @@ namespace Box3D {
         return Vec3.sub(size, box.max, box.min);
     }
 
+    const tmpSizeV = Vec3.zero()
+    /** Get size of the box */
+    export function volume(box: Box3D): number {
+        size(tmpSizeV, box)
+        return tmpSizeV[0] * tmpSizeV[1] * tmpSizeV[2]
+    }
+
     export function setEmpty(box: Box3D): Box3D {
         Vec3.set(box.min, Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
         Vec3.set(box.max, -Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)

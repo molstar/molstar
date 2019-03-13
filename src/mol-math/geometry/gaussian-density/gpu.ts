@@ -232,6 +232,7 @@ function getGaussianDensityRenderObject(webgl: WebGLContext, drawCount: number, 
     }
     const state: RenderableState = {
         visible: true,
+        alphaFactor: 1,
         pickable: false,
         opaque: true
     }

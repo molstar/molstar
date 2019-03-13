@@ -9,7 +9,7 @@ import { createTextures } from './texture';
 import { WebGLContext } from './context';
 import { ShaderCode } from '../shader-code';
 import { Program } from './program';
-import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values } from '../renderable/schema';
+import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values, splitKeys } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { deleteVertexArray, createVertexArray } from './vertex-array';
 import { ValueCell } from 'mol-util';
@@ -60,6 +60,22 @@ interface ValueChanges {
     textures: boolean
     uniforms: boolean
 }
+function createValueChanges() {
+    return {
+        attributes: false,
+        defines: false,
+        elements: false,
+        textures: false,
+        uniforms: false,
+    }
+}
+function resetValueChanges(valueChanges: ValueChanges) {
+    valueChanges.attributes = false
+    valueChanges.defines = false
+    valueChanges.elements = false
+    valueChanges.textures = false
+    valueChanges.uniforms = false
+}
 
 // TODO make `RenderVariantDefines` a parameter for `createRenderItem`
 
@@ -74,6 +90,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
     const { instancedArrays, vertexArrayObject } = ctx.extensions
 
     const { attributeValues, defineValues, textureValues, uniformValues } = splitValues(schema, values)
+    const { attributeKeys, defineKeys, textureKeys } = splitKeys(schema)
     const versions = getValueVersions(values)
 
     const glDrawMode = getDrawMode(ctx, drawMode)
@@ -109,13 +126,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
     ctx.instanceCount += instanceCount
     ctx.instancedDrawCount += instanceCount * drawCount
 
-    const valueChanges: ValueChanges = {
-        attributes: false,
-        defines: false,
-        elements: false,
-        textures: false,
-        uniforms: false
-    }
+    const valueChanges = createValueChanges()
 
     let destroyed = false
 
@@ -130,7 +141,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
             program.setUniforms(uniformValues)
             if (vertexArrayObject && vertexArray) {
                 vertexArrayObject.bindVertexArray(vertexArray)
-                // need to bind elements buffer explicitely since it is not always recorded in the VAO
+                // need to bind elements buffer explicitly since it is not always recorded in the VAO
                 if (elementsBuffer) elementsBuffer.bind()
             } else {
                 if (elementsBuffer) elementsBuffer.bind()
@@ -144,15 +155,17 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
             }
         },
         update: () => {
-            valueChanges.defines = false
-            Object.keys(defineValues).forEach(k => {
+            resetValueChanges(valueChanges)
+
+            for (let i = 0, il = defineKeys.length; i < il; ++i) {
+                const k = defineKeys[i]
                 const value = defineValues[k]
                 if (value.ref.version !== versions[k]) {
                     // console.log('define version changed', k)
                     valueChanges.defines = true
                     versions[k] = value.ref.version
                 }
-            })
+            }
 
             if (valueChanges.defines) {
                 // console.log('some defines changed, need to rebuild programs')
@@ -182,26 +195,25 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                 versions.instanceCount = values.instanceCount.ref.version
             }
 
-            valueChanges.attributes = false
-            Object.keys(attributeValues).forEach(k => {
+            for (let i = 0, il = attributeKeys.length; i < il; ++i) {
+                const k = attributeKeys[i]
                 const value = attributeValues[k]
                 if (value.ref.version !== versions[k]) {
                     const buffer = attributeBuffers[k]
                     if (buffer.length >= value.ref.value.length) {
                         // console.log('attribute array large enough to update', k, value.ref.id, value.ref.version)
-                        attributeBuffers[k].updateData(value.ref.value)
+                        buffer.updateData(value.ref.value)
                     } else {
                         // console.log('attribute array to small, need to create new attribute', k, value.ref.id, value.ref.version)
-                        attributeBuffers[k].destroy()
+                        buffer.destroy()
                         const { itemSize, divisor } = schema[k] as AttributeSpec<ArrayKind>
                         attributeBuffers[k] = createAttributeBuffer(ctx, value.ref.value, itemSize, divisor)
                         valueChanges.attributes = true
                     }
                     versions[k] = value.ref.version
                 }
-            })
+            }
 
-            valueChanges.elements = false
             if (elementsBuffer && values.elements.ref.version !== versions.elements) {
                 if (elementsBuffer.length >= values.elements.ref.value.length) {
                     // console.log('elements array large enough to update', values.elements.ref.id, values.elements.ref.version)
@@ -232,8 +244,8 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                 }
             }
 
-            valueChanges.textures = false
-            Object.keys(textureValues).forEach(k => {
+            for (let i = 0, il = textureKeys.length; i < il; ++i) {
+                const k = textureKeys[i]
                 const value = textureValues[k]
                 if (value.ref.version !== versions[k]) {
                     // update of textures with kind 'texture' is done externally
@@ -244,7 +256,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                         valueChanges.textures = true
                     }
                 }
-            })
+            }
 
             return valueChanges
         },

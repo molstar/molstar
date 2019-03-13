@@ -10,7 +10,7 @@ import { PluginContext } from '../context';
 
 export const PluginReactContext = React.createContext(void 0 as any as PluginContext);
 
-export abstract class PluginComponent<P = {}, S = {}, SS = {}> extends React.Component<P, S, SS> {
+export abstract class PluginUIComponent<P = {}, S = {}, SS = {}> extends React.Component<P, S, SS> {
     static contextType = PluginReactContext;
     readonly plugin: PluginContext;
 
@@ -35,7 +35,7 @@ export abstract class PluginComponent<P = {}, S = {}, SS = {}> extends React.Com
     }
 }
 
-export abstract class PurePluginComponent<P = {}, S = {}, SS = {}> extends React.PureComponent<P, S, SS> {
+export abstract class PurePluginUIComponent<P = {}, S = {}, SS = {}> extends React.PureComponent<P, S, SS> {
     static contextType = PluginReactContext;
     readonly plugin: PluginContext;
 

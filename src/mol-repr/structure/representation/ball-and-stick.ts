@@ -10,7 +10,7 @@ import { InterUnitLinkVisual, InterUnitLinkParams } from '../visual/inter-unit-l
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { ComplexRepresentation } from '../complex-representation';
-import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
+import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
@@ -40,7 +40,7 @@ export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Stru
 
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickParams>
 export function BallAndStickRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, BallAndStickParams>): BallAndStickRepresentation {
-    return Representation.createMulti('Ball & Stick', ctx, getParams, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickParams>)
+    return Representation.createMulti('Ball & Stick', ctx, getParams, StructureRepresentationStateBuilder, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickParams>)
 }
 
 export const BallAndStickRepresentationProvider: StructureRepresentationProvider<BallAndStickParams> = {

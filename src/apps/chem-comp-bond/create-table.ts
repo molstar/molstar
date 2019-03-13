@@ -19,7 +19,7 @@ import { Database, Table, DatabaseCollection, Column } from 'mol-data/db'
 import CIF from 'mol-io/reader/cif'
 import { CifWriter } from 'mol-io/writer/cif'
 import { CCD_Schema } from 'mol-io/reader/cif/schema/ccd'
-import { difference } from 'mol-util/set'
+import { SetUtils } from 'mol-util/set'
 import { DefaultMap } from 'mol-util/map'
 
 export async function ensureAvailable(path: string, url: string) {
@@ -130,7 +130,7 @@ function checkAddingBondsFromPVCD(pvcd: DatabaseCollection<CCD_Schema>) {
                 for (let i = 0, il = parentIds.length; i < il; ++i) {
                     const entryBonds = addChemCompBondToSet(new Set<string>(), chem_comp_bond)
                     const entryAtoms = addChemCompAtomToSet(new Set<string>(), chem_comp_atom)
-                    const extraBonds = difference(ccbSetByParent.get(parentIds[i])!, entryBonds)
+                    const extraBonds = SetUtils.difference(ccbSetByParent.get(parentIds[i])!, entryBonds)
                     extraBonds.forEach(bk => {
                         const [a1, a2] = bk.split('|')
                         if (entryAtoms.has(a1) && entryAtoms.has(a2)) {

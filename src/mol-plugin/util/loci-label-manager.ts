@@ -24,7 +24,7 @@ export class LociLabelManager {
     }
 
     private empty: any[] = [];
-    private getInfo(loci: Loci, repr?: Representation<any>) {
+    private getInfo({ loci, repr }: Representation.Loci) {
         if (!loci || loci.kind === 'empty-loci') return this.empty;
         const info: LociLabelEntry[] = [];
         for (let p of this.providers) {
@@ -35,6 +35,6 @@ export class LociLabelManager {
     }
 
     constructor(public ctx: PluginContext) {
-        ctx.behaviors.canvas.highlightLoci.subscribe(ev => ctx.events.labels.highlight.next({ entries: this.getInfo(ev.loci, ev.repr) }));
+        ctx.behaviors.canvas3d.highlight.subscribe(ev => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(ev.current) }));
     }
 }

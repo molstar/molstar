@@ -8,11 +8,11 @@
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { GraphicsRenderObject } from 'mol-gl/render-object';
-import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
+import { RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Visual } from '../visual';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { StructureGroup } from './units-visual';
-import { StructureRepresentation, StructureParams } from './representation';
+import { StructureRepresentation, StructureParams, StructureRepresentationState, StructureRepresentationStateBuilder } from './representation';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Theme, createEmptyTheme } from 'mol-theme/theme';
@@ -31,7 +31,8 @@ export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGrou
 export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
-    const _state = Representation.createState()
+    const renderObjects: GraphicsRenderObject[] = []
+    const _state = StructureRepresentationStateBuilder.create()
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _structure: Structure
@@ -140,7 +141,14 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: il })
                 }
             }
+            // update list of renderObjects
+            renderObjects.length = 0
+            visuals.forEach(({ visual }) => {
+                if (visual.renderObject) renderObjects.push(visual.renderObject)
+            })
+            // set new structure
             if (structure) _structure = structure
+            // increment version
             updated.next(version++)
         });
     }
@@ -162,12 +170,25 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         return changed
     }
 
-    function setState(state: Partial<Representation.State>) {
-        if (state.visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(state.visible!))
-        if (state.pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(state.pickable!))
-        if (state.transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(state.transform!))
+    function setState(state: Partial<StructureRepresentationState>) {
+        const { visible, alphaFactor, pickable, overpaint, transform, unitTransforms } = state
+        if (visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(visible))
+        if (alphaFactor !== undefined) visuals.forEach(({ visual }) => visual.setAlphaFactor(alphaFactor))
+        if (pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(pickable))
+        if (overpaint !== undefined) visuals.forEach(({ visual }) => visual.setOverpaint(overpaint))
+        if (transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(transform))
+        if (unitTransforms !== undefined) {
+            visuals.forEach(({ visual, group }) => {
+                if (unitTransforms) {
+                    // console.log(group.hashCode, unitTransforms.getSymmetryGroupTransforms(group))
+                    visual.setTransform(undefined, unitTransforms.getSymmetryGroupTransforms(group))
+                } else {
+                    visual.setTransform(undefined, null)
+                }
+            })
+        }
 
-        Representation.updateState(_state, state)
+        StructureRepresentationStateBuilder.update(_state, state)
     }
 
     function setTheme(theme: Theme) {
@@ -188,17 +209,11 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
             })
             return groupCount
         },
-        get renderObjects() {
-            const renderObjects: GraphicsRenderObject[] = []
-            visuals.forEach(({ visual }) => {
-                if (visual.renderObject) renderObjects.push(visual.renderObject)
-            })
-            return renderObjects
-        },
         get props() { return _props },
         get params() { return _params },
         get state() { return _state },
         get theme() { return _theme },
+        renderObjects,
         updated,
         createOrUpdate,
         setState,
