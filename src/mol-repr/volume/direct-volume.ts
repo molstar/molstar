@@ -163,7 +163,7 @@ export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: VolumeD
     return PD.clone(DirectVolumeParams)
 }
 
-export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
+export function DirectVolumeVisual(materialId: number): VolumeVisual<DirectVolumeParams> {
     return VolumeVisual<DirectVolume, DirectVolumeParams>({
         defaultProps: PD.getDefaultValues(DirectVolumeParams),
         createGeometry: createDirectVolume,
@@ -173,7 +173,7 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
         setUpdateState: (state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {
         },
         geometryUtils: DirectVolume.Utils
-    })
+    }, materialId)
 }
 
 export function DirectVolumeRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, DirectVolumeParams>): VolumeRepresentation<DirectVolumeParams> {

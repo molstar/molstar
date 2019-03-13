@@ -23,14 +23,14 @@ export const MeshSchema = {
 export type MeshSchema = typeof MeshSchema
 export type MeshValues = Values<MeshSchema>
 
-export function MeshRenderable(ctx: WebGLContext, id: number, values: MeshValues, state: RenderableState): Renderable<MeshValues> {
+export function MeshRenderable(ctx: WebGLContext, id: number, values: MeshValues, state: RenderableState, materialId: number): Renderable<MeshValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...MeshSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
         uPickable: ValueCell.create(state.pickable ? 1 : 0)
     }
     const shaderCode = MeshShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
+    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
 
     return createRenderable(renderItem, values, state)
 }

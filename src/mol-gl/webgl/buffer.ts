@@ -216,32 +216,3 @@ export function createElementsBuffer(ctx: WebGLContext, array: ElementsType, usa
         }
     }
 }
-
-//
-
-export type UniformType = Float32Array
-export type UniformKind = 'float32'
-
-// export type AttributeDefs = {
-//     [k: string]: { kind: ArrayKind, itemSize: BufferItemSize, divisor: number }
-// }
-// export type AttributeValues = { [k: string]: ValueCell<ArrayType> }
-export type UniformBuffers = { [k: string]: UniformBuffer }
-
-export interface UniformBuffer extends Buffer {
-    bind: (location: number) => void
-}
-
-export function createUniformBuffer(ctx: WebGLContext, array: UniformType, usageHint: UsageHint = 'dynamic'): UniformBuffer {
-    const gl = ctx.gl as WebGL2RenderingContext
-    const buffer = createBuffer(ctx, array, usageHint, 'uniform')
-    const { _buffer } = buffer
-
-    return {
-        ...buffer,
-        bind: (location: number) => {
-            gl.bindBuffer(gl.UNIFORM_BUFFER, _buffer)
-            gl.bindBufferBase(gl.UNIFORM_BUFFER, location, _buffer)
-        }
-    }
-}

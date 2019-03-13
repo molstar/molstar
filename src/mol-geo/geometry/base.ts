@@ -64,9 +64,10 @@ export namespace BaseGeometry {
             uAlpha: ValueCell.create(props.alpha),
             uHighlightColor: ValueCell.create(Color.toArrayNormalized(props.highlightColor, Vec3.zero(), 0)),
             uSelectColor: ValueCell.create(Color.toArrayNormalized(props.selectColor, Vec3.zero(), 0)),
+            dUseFog: ValueCell.create(props.useFog),
+
             uGroupCount: ValueCell.create(counts.groupCount),
             drawCount: ValueCell.create(counts.drawCount),
-            dUseFog: ValueCell.create(props.useFog),
         }
     }
 

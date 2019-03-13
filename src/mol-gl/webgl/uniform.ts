@@ -8,7 +8,6 @@ import { Mat3, Mat4, Vec2, Vec3, Vec4 } from 'mol-math/linear-algebra'
 import { ValueCell } from 'mol-util';
 import { GLRenderingContext } from './compat';
 import { RenderableSchema } from 'mol-gl/renderable/schema';
-import { WebGLContext } from './context';
 
 export type UniformKindValue = {
     'f': number
@@ -73,18 +72,4 @@ export function getUniformSetters(schema: RenderableSchema) {
         }
     })
     return setters
-}
-
-//
-
-export interface UniformBlock {
-    update(): void
-    bind(): void
-}
-
-export function createUniformBlock(ctx: WebGLContext, ) {
-
-    return {
-        
-    }
 }

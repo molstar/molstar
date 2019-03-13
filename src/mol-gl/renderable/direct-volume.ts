@@ -67,13 +67,13 @@ export const DirectVolumeSchema = {
 export type DirectVolumeSchema = typeof DirectVolumeSchema
 export type DirectVolumeValues = Values<DirectVolumeSchema>
 
-export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState): Renderable<DirectVolumeValues> {
+export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState, materialId: number): Renderable<DirectVolumeValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
-        uPickable: ValueCell.create(state.pickable ? 1 : 0)
+        uPickable: ValueCell.create(state.pickable ? 1 : 0),
     }
     const shaderCode = DirectVolumeShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
+    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
     return createRenderable(renderItem, values, state);
 }

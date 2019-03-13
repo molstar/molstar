@@ -102,7 +102,7 @@ function createPoints() {
         opaque: true
     }
 
-    return createRenderObject('points', values, state)
+    return createRenderObject('points', values, state, -1)
 }
 
 describe('renderer', () => {

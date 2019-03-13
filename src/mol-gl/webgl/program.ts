@@ -7,7 +7,8 @@
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
 import { WebGLContext } from './context';
 import { UniformValues, getUniformSetters } from './uniform';
-import { AttributeBuffers, UniformBuffers, createUniformBuffer } from './buffer';
+import { AttributeBuffers } from './buffer';
+// import { AttributeBuffers, UniformBuffers, createUniformBuffer } from './buffer';
 import { Textures, TextureId } from './texture';
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 import { idFactory } from 'mol-util/id-factory';
@@ -21,8 +22,6 @@ export interface Program {
 
     use: () => void
     setUniforms: (uniformValues: UniformValues) => void
-    setUniformBuffers: (uniformBuffers: UniformBuffers, uniformValues: UniformValues) => void
-    bindUniformBuffers: (/* uniformBuffers: UniformBuffers */) => void
     bindAttributes: (attribueBuffers: AttributeBuffers) => void
     bindTextures: (textures: Textures) => void
 
@@ -79,32 +78,6 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
     const locations = getLocations(ctx, program, schema)
     const uniformSetters = getUniformSetters(schema)
 
-    interface UniformBufferInfo {
-        blockIndex: number,
-        blockSize: number,
-        uniformIndices: number[],
-        uniformOffsets: number[]
-    }
-    function getUniformBufferInfo(gl: WebGL2RenderingContext, program: WebGLProgram, name: string, uniformNames: string[]): UniformBufferInfo {
-        const blockIndex = gl.getUniformBlockIndex(program, name)
-        const blockSize = gl.getActiveUniformBlockParameter(program, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE)
-        const uniformIndices = gl.getUniformIndices(program, uniformNames)
-        if (uniformIndices === null) throw new Error(`Could not get uniform indices`)
-        const uniformOffsets = gl.getActiveUniforms(program, uniformIndices, gl.UNIFORM_OFFSET)
-        return { blockIndex, blockSize, uniformIndices, uniformOffsets }
-    }
-
-    const uniformBufferInfos: { [k: string]: UniformBufferInfo } = {
-        'Common': getUniformBufferInfo(gl as WebGL2RenderingContext, program, 'Common', [
-            'Common.uProjection', 'Common.uObjectId', 'Common.uInstanceCount'
-        ])
-    }
-    console.log(uniformBufferInfos)
-
-    const uniformBuffers: UniformBuffers = {
-        'Common': createUniformBuffer(ctx, new Float32Array(uniformBufferInfos['Common'].blockSize))
-    }
-
     let destroyed = false
 
     return {
@@ -124,23 +97,6 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
                 if (v) uniformSetters[k](gl, l, v.ref.value)
             }
         },
-        setUniformBuffers: (uniformBuffers: UniformBuffers, uniformValues: UniformValues) => {
-            const uniformBufferKeys = Object.keys(uniformBuffers)
-            for (let i = 0, il = uniformBufferKeys.length; i < il; ++i) {
-                // const k = uniformBufferKeys[i]
-                // const info = uniformBufferInfos[k]
-                // uniformBuffers[k].updateData()
-            }
-        },
-        bindUniformBuffers: (/* uniformBuffers: UniformBuffers */) => {
-            const uniformBufferKeys = Object.keys(uniformBuffers)
-            for (let i = 0, il = uniformBufferKeys.length; i < il; ++i) {
-                const k = uniformBufferKeys[i]
-                const info = uniformBufferInfos[k]
-                uniformBuffers[k].bind(i)
-                ;(gl as WebGL2RenderingContext).uniformBlockBinding(program, info.blockIndex, i)
-            }
-        },
         bindAttributes: (attribueBuffers: AttributeBuffers) => {
             const attributeKeys = Object.keys(attribueBuffers)
             for (let i = 0, il = attributeKeys.length; i < il; ++i) {
@@ -155,6 +111,8 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
                 const k = textureKeys[i]
                 const l = locations[k]
                 textures[k].bind(i as TextureId)
+                // TODO if the order and count of textures in a material can be made invariant
+                //      this needs to be set only when the material changes
                 uniformSetters[k](gl, l, i as TextureId)
             }
         },

@@ -25,14 +25,14 @@ export const LinesSchema = {
 export type LinesSchema = typeof LinesSchema
 export type LinesValues = Values<LinesSchema>
 
-export function LinesRenderable(ctx: WebGLContext, id: number, values: LinesValues, state: RenderableState): Renderable<LinesValues> {
+export function LinesRenderable(ctx: WebGLContext, id: number, values: LinesValues, state: RenderableState, materialId: number): Renderable<LinesValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...LinesSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
         uPickable: ValueCell.create(state.pickable ? 1 : 0)
     }
     const shaderCode = LinesShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
+    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
 
     return createRenderable(renderItem, values, state);
 }

@@ -128,7 +128,7 @@ export const NucleotideBlockParams = {
 }
 export type NucleotideBlockParams = typeof NucleotideBlockParams
 
-export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockParams> {
+export function NucleotideBlockVisual(materialId: number): UnitsVisual<NucleotideBlockParams> {
     return UnitsMeshVisual<NucleotideBlockParams>({
         defaultProps: PD.getDefaultValues(NucleotideBlockParams),
         createGeometry: createNucleotideBlockMesh,
@@ -141,5 +141,5 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockParams> {
                 newProps.radialSegments !== currentProps.radialSegments
             )
         }
-    })
+    }, materialId)
 }

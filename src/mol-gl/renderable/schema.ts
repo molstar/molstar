@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -68,27 +68,32 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
     const defineValues: DefineValues = {}
     const textureValues: TextureValues = {}
     const uniformValues: UniformValues = {}
+    const materialUniformValues: UniformValues = {}
     Object.keys(schema).forEach(k => {
-        if (schema[k].type === 'attribute') attributeValues[k] = values[k]
-        if (schema[k].type === 'define') defineValues[k] = values[k]
-        if (schema[k].type === 'texture') textureValues[k] = values[k]
-        if (schema[k].type === 'uniform') uniformValues[k] = values[k]
+        const spec = schema[k]
+        if (spec.type === 'attribute') attributeValues[k] = values[k]
+        if (spec.type === 'define') defineValues[k] = values[k]
+        if (spec.type === 'texture') textureValues[k] = values[k]
+        // check if k exists in values so that global uniforms are excluded here
+        if (spec.type === 'uniform' && values[k] !== undefined) {
+            if (spec.isMaterial) materialUniformValues[k] = values[k]
+            else uniformValues[k] = values[k]
+        }
     })
-    return { attributeValues, defineValues, textureValues, uniformValues }
+    return { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues }
 }
 
 export function splitKeys(schema: RenderableSchema) {
     const attributeKeys: string[] = []
     const defineKeys: string[] = []
     const textureKeys: string[] = []
-    const uniformKeys: string[] = []
     Object.keys(schema).forEach(k => {
-        if (schema[k].type === 'attribute') attributeKeys.push(k)
-        if (schema[k].type === 'define') defineKeys.push(k)
-        if (schema[k].type === 'texture') textureKeys.push(k)
-        if (schema[k].type === 'uniform') uniformKeys.push(k)
+        const spec = schema[k]
+        if (spec.type === 'attribute') attributeKeys.push(k)
+        if (spec.type === 'define') defineKeys.push(k)
+        if (spec.type === 'texture') textureKeys.push(k)
     })
-    return { attributeKeys, defineKeys, textureKeys, uniformKeys }
+    return { attributeKeys, defineKeys, textureKeys }
 }
 
 export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
@@ -107,9 +112,9 @@ export function AttributeSpec<K extends ArrayKind>(kind: K, itemSize: AttributeI
     return { type: 'attribute', kind, itemSize, divisor }
 }
 
-export type UniformSpec<K extends UniformKind> = { type: 'uniform', kind: K }
-export function UniformSpec<K extends UniformKind>(kind: K): UniformSpec<K> {
-    return { type: 'uniform', kind }
+export type UniformSpec<K extends UniformKind> = { type: 'uniform', kind: K, isMaterial: boolean }
+export function UniformSpec<K extends UniformKind>(kind: K, isMaterial = false): UniformSpec<K> {
+    return { type: 'uniform', kind, isMaterial }
 }
 
 export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter }
@@ -174,14 +179,14 @@ export type GlobalUniformValues = { [k in keyof GlobalUniformSchema]: ValueCell<
 
 export const InternalSchema = {
     uObjectId: UniformSpec('i'),
-    uPickable: UniformSpec('i'),
+    uPickable: UniformSpec('i', true),
 }
 export type InternalSchema = typeof InternalSchema
 export type InternalValues = { [k in keyof InternalSchema]: ValueCell<any> }
 
 export const ColorSchema = {
     // aColor: AttributeSpec('float32', 3, 0), // TODO
-    uColor: UniformSpec('v3'),
+    uColor: UniformSpec('v3', true),
     uColorTexDim: UniformSpec('v2'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
@@ -191,7 +196,7 @@ export type ColorValues = Values<ColorSchema>
 
 export const SizeSchema = {
     // aSize: AttributeSpec('float32', 1, 0), // TODO
-    uSize: UniformSpec('f'),
+    uSize: UniformSpec('f', true),
     uSizeTexDim: UniformSpec('v2'),
     tSize: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
@@ -231,12 +236,12 @@ export const BaseSchema = {
     /**
      * final alpha, calculated as `values.alpha * state.alpha`
      */
-    uAlpha: UniformSpec('f'),
+    uAlpha: UniformSpec('f', true),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
 
-    uHighlightColor: UniformSpec('v3'),
-    uSelectColor: UniformSpec('v3'),
+    uHighlightColor: UniformSpec('v3', true),
+    uSelectColor: UniformSpec('v3', true),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),

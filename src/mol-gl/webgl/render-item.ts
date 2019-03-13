@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -58,7 +58,7 @@ interface ValueChanges {
     defines: boolean
     elements: boolean
     textures: boolean
-    uniforms: boolean
+    // uniforms: boolean
 }
 function createValueChanges() {
     return {
@@ -66,7 +66,6 @@ function createValueChanges() {
         defines: false,
         elements: false,
         textures: false,
-        uniforms: false,
     }
 }
 function resetValueChanges(valueChanges: ValueChanges) {
@@ -74,7 +73,6 @@ function resetValueChanges(valueChanges: ValueChanges) {
     valueChanges.defines = false
     valueChanges.elements = false
     valueChanges.textures = false
-    valueChanges.uniforms = false
 }
 
 // TODO make `RenderVariantDefines` a parameter for `createRenderItem`
@@ -84,12 +82,12 @@ function resetValueChanges(valueChanges: ValueChanges) {
  *
  * - assumes that `values.drawCount` and `values.instanceCount` exist
  */
-export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues): RenderItem {
+export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number): RenderItem {
     const id = getNextRenderItemId()
     const { programCache } = ctx
     const { instancedArrays, vertexArrayObject } = ctx.extensions
 
-    const { attributeValues, defineValues, textureValues, uniformValues } = splitValues(schema, values)
+    const { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues } = splitValues(schema, values)
     const { attributeKeys, defineKeys, textureKeys } = splitKeys(schema)
     const versions = getValueVersions(values)
 
@@ -139,7 +137,12 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
             const program = programs[variant].value
             const vertexArray = vertexArrays[variant]
             program.setUniforms(uniformValues)
-            program.bindUniformBuffers()
+            if (materialId === -1 || materialId !== ctx.currentMaterialId) {
+                // console.log('materialId changed or -1', materialId)
+                program.setUniforms(materialUniformValues)
+                ctx.currentMaterialId = materialId
+            }
+            program.bindTextures(textures)
             if (vertexArrayObject && vertexArray) {
                 vertexArrayObject.bindVertexArray(vertexArray)
                 // need to bind elements buffer explicitly since it is not always recorded in the VAO
@@ -148,7 +151,6 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                 if (elementsBuffer) elementsBuffer.bind()
                 program.bindAttributes(attributeBuffers)
             }
-            program.bindTextures(textures)
             if (elementsBuffer) {
                 instancedArrays.drawElementsInstanced(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
             } else {

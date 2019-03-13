@@ -148,7 +148,7 @@ export const CarbohydrateSymbolParams = {
 }
 export type CarbohydrateSymbolParams = typeof CarbohydrateSymbolParams
 
-export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolParams> {
+export function CarbohydrateSymbolVisual(materialId: number): ComplexVisual<CarbohydrateSymbolParams> {
     return ComplexMeshVisual<CarbohydrateSymbolParams>({
         defaultProps: PD.getDefaultValues(CarbohydrateSymbolParams),
         createGeometry: createCarbohydrateSymbolMesh,
@@ -161,7 +161,7 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolPara
                 newProps.detail !== currentProps.detail
             )
         }
-    })
+    }, materialId)
 }
 
 function CarbohydrateElementIterator(structure: Structure): LocationIterator {

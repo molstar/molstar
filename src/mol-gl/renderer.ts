@@ -1,10 +1,9 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Viewport } from 'mol-canvas3d/camera/util';
 import { Camera } from 'mol-canvas3d/camera';
 
@@ -112,11 +111,13 @@ namespace Renderer {
             const program = r.getProgram(variant)
             if (r.state.visible) {
                 if (ctx.currentProgramId !== program.id) {
+                    // console.log('new program')
                     globalUniformsNeedUpdate = true
                 }
 
                 program.use()
                 if (globalUniformsNeedUpdate) {
+                    // console.log('globalUniformsNeedUpdate')
                     program.setUniforms(globalUniforms)
                     globalUniformsNeedUpdate = false
                 }

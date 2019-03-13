@@ -34,13 +34,13 @@ export const TextSchema = {
 export type TextSchema = typeof TextSchema
 export type TextValues = Values<TextSchema>
 
-export function TextRenderable(ctx: WebGLContext, id: number, values: TextValues, state: RenderableState): Renderable<TextValues> {
+export function TextRenderable(ctx: WebGLContext, id: number, values: TextValues, state: RenderableState, materialId: number): Renderable<TextValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...TextSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
         uPickable: ValueCell.create(state.pickable ? 1 : 0)
     }
     const shaderCode = TextShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
+    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
     return createRenderable(renderItem, values, state);
 }

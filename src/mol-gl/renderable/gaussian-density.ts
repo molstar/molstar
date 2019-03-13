@@ -38,7 +38,7 @@ export type GaussianDensityValues = Values<GaussianDensitySchema>
 export function GaussianDensityRenderable(ctx: WebGLContext, id: number, values: GaussianDensityValues, state: RenderableState): Renderable<GaussianDensityValues> {
     const schema = { ...GaussianDensitySchema }
     const shaderCode = GaussianDensityShaderCode
-    const renderItem = createRenderItem(ctx, 'points', shaderCode, schema, values)
+    const renderItem = createRenderItem(ctx, 'points', shaderCode, schema, values, -1)
 
     return createRenderable(renderItem, values, state);
 }

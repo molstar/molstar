@@ -1,12 +1,6 @@
 uniform mat4 uProjection, uModel, uView;
 uniform vec3 uCameraPosition;
 
-uniform Common {
-    mat4 uProjection;
-    int uObjectId;
-    int uInstanceCount;
-} uboCommon;
-
 uniform int uObjectId;
 uniform int uInstanceCount;
 uniform int uGroupCount;

@@ -92,7 +92,7 @@ export const PolymerDirectionParams = {
 }
 export type PolymerDirectionParams = typeof PolymerDirectionParams
 
-export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionParams> {
+export function PolymerDirectionVisual(materialId: number): UnitsVisual<PolymerDirectionParams> {
     return UnitsMeshVisual<PolymerDirectionParams>({
         defaultProps: PD.getDefaultValues(PolymerDirectionParams),
         createGeometry: createPolymerDirectionWedgeMesh,
@@ -104,5 +104,5 @@ export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionParams> {
                 newProps.sizeFactor !== currentProps.sizeFactor
             )
         }
-    })
+    }, materialId)
 }

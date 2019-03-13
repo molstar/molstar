@@ -51,7 +51,7 @@ function textRepr() {
 
     const values = Text.Utils.createValuesSimple(text, props, Color(0xFFDD00), 1)
     const state = Text.Utils.createRenderableState(props)
-    const renderObject = createRenderObject('text', values, state)
+    const renderObject = createRenderObject('text', values, state, -1)
     console.log('text', renderObject, props)
     const repr = Representation.fromRenderObject('text', renderObject)
     return repr
@@ -66,7 +66,7 @@ function spheresRepr() {
 
     const values = Spheres.Utils.createValuesSimple(spheres, {}, Color(0xFF0000), 0.2)
     const state = Spheres.Utils.createRenderableState({})
-    const renderObject = createRenderObject('spheres', values, state)
+    const renderObject = createRenderObject('spheres', values, state, -1)
     console.log('spheres', renderObject)
     const repr = Representation.fromRenderObject('spheres', renderObject)
     return repr

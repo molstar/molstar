@@ -78,7 +78,7 @@ export const IntraUnitLinkParams = {
 }
 export type IntraUnitLinkParams = typeof IntraUnitLinkParams
 
-export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkParams> {
+export function IntraUnitLinkVisual(materialId: number): UnitsVisual<IntraUnitLinkParams> {
     return UnitsMeshVisual<IntraUnitLinkParams>({
         defaultProps: PD.getDefaultValues(IntraUnitLinkParams),
         createGeometry: createIntraUnitLinkCylinderMesh,
@@ -94,7 +94,7 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkParams> {
                 newProps.linkSpacing !== currentProps.linkSpacing
             )
         }
-    })
+    }, materialId)
 }
 
 function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {

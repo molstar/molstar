@@ -16,11 +16,12 @@ import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/repr
 import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
-import { GraphicsRenderObject } from 'mol-gl/render-object';
+import { GraphicsRenderObject, getNextMaterialId } from 'mol-gl/render-object';
 
-export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const materialId = getNextMaterialId()
     const renderObjects: GraphicsRenderObject[] = []
     const _state = StructureRepresentationStateBuilder.create()
     let visual: ComplexVisual<P> | undefined
@@ -39,7 +40,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         _props = Object.assign({}, _props, props)
 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
-            if (!visual) visual = visualCtor()
+            if (!visual) visual = visualCtor(materialId)
             const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, structure)
             if (promise) await promise
             // update list of renderObjects

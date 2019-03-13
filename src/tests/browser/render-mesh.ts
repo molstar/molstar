@@ -29,7 +29,7 @@ canvas3d.animate()
 
 function meshRepr() {
     const builderState = MeshBuilder.createState()
-    
+
     const t = Mat4.identity()
     MeshBuilder.addCage(builderState, t, HexagonalPrismCage(), 0.005, 2)
 
@@ -41,7 +41,7 @@ function meshRepr() {
 
     const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0xFF0000), 1)
     const state = Mesh.Utils.createRenderableState({})
-    const renderObject = createRenderObject('mesh', values, state)
+    const renderObject = createRenderObject('mesh', values, state, -1)
     const repr = Representation.fromRenderObject('mesh', renderObject)
     return repr
 }
