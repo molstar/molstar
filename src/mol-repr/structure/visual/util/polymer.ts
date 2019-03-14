@@ -154,17 +154,33 @@ export function getPolymerGapElementLoci(pickingId: PickingId, structureGroup: S
 
 export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (!Link.isLoci(loci)) return false
-    const { structure, group } = structureGroup
-    if (!Structure.areEquivalent(loci.structure, structure)) return false
-    const groupCount = group.units[0].gapElements.length
-    for (const b of loci.links) {
-        const unitIdx = group.unitIndexMap.get(b.aUnit.id)
-        if (unitIdx !== undefined) {
-            const idxA = OrderedSet.indexOf(b.aUnit.gapElements, b.aUnit.elements[b.aIndex])
-            const idxB = OrderedSet.indexOf(b.bUnit.gapElements, b.bUnit.elements[b.bIndex])
-            if (idxA !== -1 && idxB !== -1) {
-                if (apply(Interval.ofSingleton(unitIdx * groupCount + idxA))) changed = true
+    if (Link.isLoci(loci)) {
+        const { structure, group } = structureGroup
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
+        const groupCount = group.units[0].gapElements.length
+        for (const b of loci.links) {
+            const unitIdx = group.unitIndexMap.get(b.aUnit.id)
+            if (unitIdx !== undefined) {
+                const idxA = OrderedSet.indexOf(b.aUnit.gapElements, b.aUnit.elements[b.aIndex])
+                const idxB = OrderedSet.indexOf(b.bUnit.gapElements, b.bUnit.elements[b.bIndex])
+                if (idxA !== -1 && idxB !== -1) {
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idxA))) changed = true
+                }
+            }
+        }
+    } else if (StructureElement.isLoci(loci)) {
+        const { structure, group } = structureGroup
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
+        const groupCount = group.units[0].gapElements.length
+        for (const e of loci.elements) {
+            const unitIdx = group.unitIndexMap.get(e.unit.id)
+            if (unitIdx !== undefined) {
+                OrderedSet.forEach(e.indices, v => {
+                    const idx = OrderedSet.indexOf(e.unit.gapElements, e.unit.elements[v])
+                    if (idx !== -1) {
+                        if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
+                    }
+                })
             }
         }
     }
