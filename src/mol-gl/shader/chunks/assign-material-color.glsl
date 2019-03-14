@@ -10,3 +10,8 @@
 #if defined(dOverpaint) && (defined(dColorType_uniform) || defined(dColorType_attribute) || defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance))
     material.rgb = mix(material.rgb, vOverpaint.rgb, vOverpaint.a);
 #endif
+
+// apply transparency
+#if defined(dTransparency) && (defined(dColorType_uniform) || defined(dColorType_attribute) || defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance))
+    material.a *= 1 - vTransparency;
+#endif

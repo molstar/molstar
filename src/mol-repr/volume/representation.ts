@@ -27,6 +27,7 @@ import { ColorTheme } from 'mol-theme/color';
 import { createColors } from 'mol-geo/geometry/color-data';
 import { createSizes } from 'mol-geo/geometry/size-data';
 import { Overpaint } from 'mol-theme/overpaint';
+import { Transparency } from 'mol-theme/transparency';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
@@ -185,6 +186,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         },
         setOverpaint(overpaint: Overpaint) {
             return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
+        },
+        setTransparency(transparency: Transparency) {
+            return Visual.setTransparency(renderObject, transparency, lociApply, true)
         },
         destroy() {
             // TODO

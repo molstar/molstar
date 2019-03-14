@@ -29,6 +29,7 @@ import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { Overpaint } from 'mol-theme/overpaint';
+import { Transparency } from 'mol-theme/transparency';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -198,6 +199,9 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         },
         setOverpaint(overpaint: Overpaint, clear = false) {
             return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
+        },
+        setTransparency(transparency: Transparency) {
+            return Visual.setTransparency(renderObject, transparency, lociApply, true)
         },
         destroy() {
             // TODO

@@ -207,10 +207,19 @@ export const OverpaintSchema = {
 export type OverpaintSchema = typeof OverpaintSchema
 export type OverpaintValues = Values<OverpaintSchema>
 
+export const TransparencySchema = {
+    uTransparencyTexDim: UniformSpec('v2'),
+    tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    dTransparency: DefineSpec('boolean'),
+}
+export type TransparencySchema = typeof TransparencySchema
+export type TransparencyValues = Values<TransparencySchema>
+
 export const BaseSchema = {
     ...ColorSchema,
     ...MarkerSchema,
     ...OverpaintSchema,
+    ...TransparencySchema,
 
     aInstance: AttributeSpec('float32', 1, 1),
     aGroup: AttributeSpec('float32', 1, 0),

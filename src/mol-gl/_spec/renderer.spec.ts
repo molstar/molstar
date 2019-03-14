@@ -23,6 +23,7 @@ import { fillSerial } from 'mol-util/array';
 import { Color } from 'mol-util/color';
 import { Sphere3D } from 'mol-math/geometry';
 import { createEmptyOverpaint } from 'mol-geo/geometry/overpaint-data';
+import { createEmptyTransparency } from 'mol-geo/geometry/transparency-data';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)
@@ -54,6 +55,7 @@ function createPoints() {
     const size = createValueSize(1)
     const marker = createEmptyMarkers()
     const overpaint = createEmptyOverpaint()
+    const transparency = createEmptyTransparency()
 
     const aTransform = ValueCell.create(new Float32Array(16))
     const m4 = Mat4.identity()
@@ -73,6 +75,7 @@ function createPoints() {
         ...marker,
         ...size,
         ...overpaint,
+        ...transparency,
 
         uAlpha: ValueCell.create(1.0),
         uHighlightColor: ValueCell.create(Vec3.create(1.0, 0.4, 0.6)),

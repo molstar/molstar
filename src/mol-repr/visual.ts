@@ -19,6 +19,8 @@ import { ValueCell } from 'mol-util';
 import { Overpaint } from 'mol-theme/overpaint';
 import { createOverpaint, clearOverpaint, applyOverpaintColor } from 'mol-geo/geometry/overpaint-data';
 import { Interval } from 'mol-data/int';
+import { Transparency } from 'mol-theme/transparency';
+import { createTransparency, clearTransparency, applyTransparencyValue } from 'mol-geo/geometry/transparency-data';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -39,6 +41,7 @@ interface Visual<D, P extends PD.Params> {
     setPickable: (pickable: boolean) => void
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
     setOverpaint: (overpaint: Overpaint) => void
+    setTransparency: (transparency: Transparency) => void
     destroy: () => void
 }
 namespace Visual {
@@ -94,6 +97,30 @@ namespace Visual {
             lociApply(loci, apply)
         }
         ValueCell.update(tOverpaint, tOverpaint.ref.value)
+    }
+
+    export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean) {
+        if (!renderObject) return
+
+        const { tTransparency, uGroupCount, instanceCount } = renderObject.values
+        const count = uGroupCount.ref.value * instanceCount.ref.value
+
+        // ensure texture has right size
+        createTransparency(transparency.layers.length ? count : 0, renderObject.values)
+
+        // clear if requested
+        if (clear) clearTransparency(tTransparency.ref.value.array, 0, count)
+
+        for (let i = 0, il = transparency.layers.length; i < il; ++i) {
+            const { loci, value } = transparency.layers[i]
+            const apply = (interval: Interval) => {
+                const start = Interval.start(interval)
+                const end = Interval.end(interval)
+                return applyTransparencyValue(tTransparency.ref.value.array, start, end, value)
+            }
+            lociApply(loci, apply)
+        }
+        ValueCell.update(tTransparency, tTransparency.ref.value)
     }
 
     export function setTransform(renderObject: GraphicsRenderObject | undefined, transform?: Mat4, instanceTransforms?: Float32Array | null) {

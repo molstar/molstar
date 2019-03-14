@@ -24,6 +24,10 @@ export const DirectVolumeSchema = {
     tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
     dOverpaint: DefineSpec('boolean'),
 
+    uTransparencyTexDim: UniformSpec('v2'),
+    tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    dTransparency: DefineSpec('boolean'),
+
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
 

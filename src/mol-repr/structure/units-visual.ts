@@ -32,6 +32,7 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { Spheres } from 'mol-geo/geometry/spheres/spheres';
 import { createUnitsTransform, includesUnitKind } from './visual/util/common';
 import { Overpaint } from 'mol-theme/overpaint';
+import { Transparency } from 'mol-theme/transparency';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -244,6 +245,9 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
         },
         setOverpaint(overpaint: Overpaint) {
             return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
+        },
+        setTransparency(transparency: Transparency) {
+            return Visual.setTransparency(renderObject, transparency, lociApply, true)
         },
         destroy() {
             // TODO
