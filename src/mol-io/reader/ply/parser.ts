@@ -196,8 +196,8 @@ function moveNextInternal(state: State) {
                     if (state.currentProperty >= 3 && state.currentProperty < 6) {
                         state.colors[state.currentVertex * 3 + state.currentProperty - 3] = fastParseInt(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
                     }
-                    if (state.currentProperty >= 6 && state.currentProperty < 9) {
-                        state.normals[state.currentVertex * 3 + state.currentProperty - 6] = fastParseFloat(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
+                    if (state.currentProperty >= 7 && state.currentProperty < 10) {
+                        state.normals[state.currentVertex * 3 + state.currentProperty - 7] = fastParseFloat(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
                     }
                     state.currentProperty++;
                     if (state.currentProperty === state.propertyCount) {

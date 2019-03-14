@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* PLY Wrapper</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #app {
+                position: absolute;
+                left: 160px;
+                top: 100px;
+                width: 600px;
+                height: 400px;
+                border: 1px solid #ccc;
+            }
+
+            #controls {
+                position: absolute;
+                width: 130px;
+                top: 10px;
+                left: 10px;
+            }
+
+            #controls > button {
+                display: block;
+                width: 100%;
+                text-align: left;
+            }
+
+            #controls > hr {
+                margin: 5px 0;
+            }
+
+            #controls > input, #controls > select {
+                width: 100%;
+                display: block;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="app.css" />
+        <script type="text/javascript" src="./index.js"></script>
+    </head>
+    <body>
+        <div id='controls'>
+            <h3>Source</h3>
+            <input type='text' id='plyurl' placeholder='plyurl' style='width: 400px' />
+            <input type='text' id='url' placeholder='url' style='width: 400px' />
+            <input type='text' id='assemblyId' placeholder='assembly id' />
+            <select id='format'>
+                <option value='cif' selected>CIF</option>
+                <option value='pdb'>PDB</option>
+            </select>
+        </div>
+        <div id="app"></div>
+        <script>  
+            // create an instance of the plugin
+            var PluginWrapper = new MolStarPLYWrapper();
+
+            console.log('Wrapper version', MolStarPLYWrapper.VERSION_MAJOR);
+
+            function $(id) { return document.getElementById(id); }
+        
+            var pdbId = '1rwe', assemblyId= 'preferred';
+            var url = '/test-data/' + pdbId + '_updated.cif';
+            var format = 'cif';
+
+            var plyName = 'run_0_mesh';
+            var plyurl = '/test-data/' + plyName + '.ply';
+
+            $('plyurl').value = plyurl;
+            $('plyurl').onchange = function (e) { url = e.target.value; }
+            $('url').value = url;
+            $('url').onchange = function (e) { url = e.target.value; }
+            $('assemblyId').value = assemblyId;
+            $('assemblyId').onchange = function (e) { assemblyId = e.target.value; }
+            $('format').value = format;
+            $('format').onchange = function (e) { format = e.target.value; }
+
+            // var url = 'https://www.ebi.ac.uk/pdbe/entry-files/pdb' + pdbId + '.ent';
+            // var format = 'pdb';
+            // var assemblyId = 'deposited';
+
+            PluginWrapper.init('app' /** or document.getElementById('app') */);
+            PluginWrapper.setBackground(0xffffff);
+            PluginWrapper.load({ plyurl: plyurl, url: url, format: format, assemblyId: assemblyId });
+            PluginWrapper.toggleSpin();
+
+            PluginWrapper.events.modelInfo.subscribe(function (info) {
+                console.log('Model Info', info);
+            });
+
+            addControl('Load Asym Unit', () => PluginWrapper.load({ plyurl: plyurl, url: url, format: format }));
+            addControl('Load Assembly', () => PluginWrapper.load({ plyurl: plyurl, url: url, format: format, assemblyId: assemblyId }));
+
+            addSeparator();
+
+            addHeader('Camera');
+            addControl('Toggle Spin', () => PluginWrapper.toggleSpin());
+            
+            addSeparator();
+
+            addHeader('Animation');
+
+            // adjust this number to make the animation faster or slower
+            // requires to "restart" the animation if changed
+            PluginWrapper.animate.modelIndex.maxFPS = 30;
+
+            addControl('Play To End', () => PluginWrapper.animate.modelIndex.onceForward());
+            addControl('Play To Start', () => PluginWrapper.animate.modelIndex.onceBackward());
+            addControl('Play Palindrome', () => PluginWrapper.animate.modelIndex.palindrome());
+            addControl('Play Loop', () => PluginWrapper.animate.modelIndex.loop());
+            addControl('Stop', () => PluginWrapper.animate.modelIndex.stop());
+
+            addSeparator();
+            addHeader('Misc');
+
+            addControl('Apply Evo Cons', () => PluginWrapper.coloring.evolutionaryConservation());
+            addControl('Default Visuals', () => PluginWrapper.updateStyle());
+
+            addSeparator();
+            addHeader('State');
+
+            var snapshot;
+            addControl('Create Snapshot', () => {
+                snapshot = PluginWrapper.snapshot.get();
+                // could use JSON.stringify(snapshot) and upload the data
+            });
+            addControl('Apply Snapshot', () => {
+                if (!snapshot) return;
+                PluginWrapper.snapshot.set(snapshot);
+
+                // or download snapshot using fetch or ajax or whatever
+                // or PluginWrapper.snapshot.download(url);
+            });
+
+            ////////////////////////////////////////////////////////
+
+            function addControl(label, action) {
+                var btn = document.createElement('button');
+                btn.onclick = action;
+                btn.innerText = label;
+                $('controls').appendChild(btn);
+            }
+
+            function addSeparator() {
+                var hr = document.createElement('hr');
+                $('controls').appendChild(hr);
+            }
+
+            function addHeader(header) {
+                var h = document.createElement('h3');
+                h.innerText = header;
+                $('controls').appendChild(h);
+            }
+        </script>
+    </body>
+</html>
