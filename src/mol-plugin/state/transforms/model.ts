@@ -9,13 +9,13 @@ import { parsePDB } from 'mol-io/reader/pdb/parser';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
-import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry } from 'mol-model/structure';
+import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry, QueryFn } from 'mol-model/structure';
 import { Assembly } from 'mol-model/structure/model/properties/symmetry';
 import { PluginContext } from 'mol-plugin/context';
 import { MolScriptBuilder } from 'mol-script/language/builder';
 import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
-import { StateObject } from 'mol-state';
+import { StateObject, StateTransformer } from 'mol-state';
 import { RuntimeContext, Task } from 'mol-task';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { stringToWords } from 'mol-util/string';
@@ -25,6 +25,7 @@ import { parseGRO } from 'mol-io/reader/gro/parser';
 import { parseMolScript } from 'mol-script/language/parser';
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 
+export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
@@ -37,6 +38,30 @@ export { UserStructureSelection };
 export { StructureComplexElement };
 export { CustomModelProperties };
 
+type TrajectoryFromBlob = typeof TrajectoryFromBlob
+const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-blob',
+    display: { name: 'Parse Blob', description: 'Parse format blob into a single trajectory.' },
+    from: SO.Format.Blob,
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse Format Blob', async ctx => {
+            const models: Model[] = [];
+            for (const e of a.data) {
+                if (e.kind !== 'cif') continue;
+                const block = e.data.blocks[0];
+                const xs = await trajectoryFromMmCIF(block).runInContext(ctx);
+                if (xs.length === 0) throw new Error('No models found.');
+                for (const x of xs) models.push(x);
+            }
+
+            const props = { label: `Trajectory`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
 const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-mmcif',
@@ -46,12 +71,12 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     params(a) {
         if (!a) {
             return {
-                blockHeader: PD.makeOptional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
+                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
             };
         }
         const { blocks } = a.data;
         return {
-            blockHeader: PD.makeOptional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
+            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
         };
     }
 })({
@@ -125,7 +150,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
         const model = a.data[params.modelIndex];
         const props = a.data.length === 1
             ? { label: `${model.label}` }
-            : { label: `${model.label}:${model.modelNum}`, description: `Model ${model.modelNum} of ${a.data.length}` };
+            : { label: `${model.label}:${model.modelNum}`, description: `Model ${params.modelIndex + 1} of ${a.data.length}` };
         return new SO.Molecule.Model(model, props);
     }
 });
@@ -156,12 +181,12 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params(a) {
         if (!a) {
-            return { id: PD.makeOptional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. Value \'deposited\' can be used to specify deposited asymmetric unit.' })) };
+            return { id: PD.Optional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. Value \'deposited\' can be used to specify deposited asymmetric unit.' })) };
         }
         const model = a.data;
         const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
         ids.push(['deposited', 'Deposited']);
-        return { id: PD.makeOptional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
+        return { id: PD.Optional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
     }
 })({
     apply({ a, params }, plugin: PluginContext) {
@@ -233,17 +258,32 @@ const StructureSelection = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params: {
         query: PD.Value<Expression>(MolScriptBuilder.struct.generator.all, { isHidden: true }),
-        label: PD.makeOptional(PD.Text('', { isHidden: true }))
+        label: PD.Optional(PD.Text('', { isHidden: true }))
     }
 })({
-    apply({ a, params }) {
-        // TODO: use cache, add "update"
+    apply({ a, params, cache }) {
         const compiled = compile<Sel>(params.query);
+        (cache as { compiled: QueryFn<Sel> }).compiled = compiled;
+        (cache as { source: Structure }).source = a.data;
+
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
         if (s.elementCount === 0) return StateObject.Null;
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
+    },
+    update: ({ a, b, oldParams, newParams, cache }) => {
+        if (oldParams.query !== newParams.query) return StateTransformer.UpdateResult.Recreate;
+
+        if ((cache as { source: Structure }).source === a.data) {
+            return StateTransformer.UpdateResult.Unchanged;
+        }
+        (cache as { source: Structure }).source = a.data;
+
+        if (updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label)) {
+            return StateTransformer.UpdateResult.Updated;
+        }
+        return StateTransformer.UpdateResult.Null;
     }
 });
 
@@ -255,21 +295,49 @@ const UserStructureSelection = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure,
     params: {
         query: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
-        label: PD.makeOptional(PD.Text(''))
+        label: PD.Optional(PD.Text(''))
     }
 })({
-    apply({ a, params }) {
-        // TODO: use cache, add "update"
+    apply({ a, params, cache }) {
         const parsed = parseMolScript(params.query.expression);
         if (parsed.length === 0) throw new Error('No query');
         const query = transpileMolScript(parsed[0]);
         const compiled = compile<Sel>(query);
+        (cache as { compiled: QueryFn<Sel> }).compiled = compiled;
+        (cache as { source: Structure }).source = a.data;
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
+    },
+    update: ({ a, b, oldParams, newParams, cache }) => {
+        if (oldParams.query.language !== newParams.query.language || oldParams.query.expression !== newParams.query.expression) {
+            return StateTransformer.UpdateResult.Recreate;
+        }
+
+        if ((cache as { source: Structure }).source === a.data) {
+            return StateTransformer.UpdateResult.Unchanged;
+        }
+        (cache as { source: Structure }).source = a.data;
+
+        updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label);
+        return StateTransformer.UpdateResult.Updated;
     }
 });
+
+function updateStructureFromQuery(query: QueryFn<Sel>, src: Structure, obj: SO.Molecule.Structure, label?: string) {
+    const result = query(new QueryContext(src));
+    const s = Sel.unionStructure(result);
+    if (s.elementCount === 0) {
+        return false;
+    }
+
+    obj.label = `${label || 'Selection'}`;
+    obj.description = structureDesc(s);
+    obj.data = s;
+    return true;
+}
+
 
 namespace StructureComplexElement {
     export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres'

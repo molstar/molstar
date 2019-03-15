@@ -61,7 +61,7 @@ export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkParams> 
         createGeometry: createCarbohydrateLinkCylinderMesh,
         createLocationIterator: CarbohydrateLinkIterator,
         getLoci: getLinkLoci,
-        mark: markLink,
+        eachLocation: eachCarbohydrateLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateLinkParams>, currentProps: PD.Values<CarbohydrateLinkParams>) => {
             state.createGeometry = (
                 newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
@@ -116,10 +116,10 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+function eachCarbohydrateLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
     if (Link.isLoci(loci)) {
-        if (loci.structure !== structure) return false
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         const { getLinkIndex } = structure.carbohydrates
         for (const l of loci.links) {
             const idx = getLinkIndex(l.aUnit, l.aUnit.elements[l.aIndex], l.bUnit, l.bUnit.elements[l.bIndex])
@@ -128,7 +128,7 @@ function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) 
             }
         }
     } else if (StructureElement.isLoci(loci)) {
-        if (loci.structure !== structure) return false
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         // TODO mark link only when both of the link elements are in a StructureElement.Loci
         const { getElementIndex, getLinkIndices, elements } = structure.carbohydrates
         for (const e of loci.elements) {

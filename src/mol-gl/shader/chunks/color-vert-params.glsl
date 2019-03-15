@@ -15,3 +15,9 @@
     #endif
     #pragma glslify: encodeFloatRGB = require(../utils/encode-float-rgb.glsl)
 #endif
+
+#ifdef dOverpaint
+    varying vec4 vOverpaint;
+    uniform vec2 uOverpaintTexDim;
+    uniform sampler2D tOverpaint;
+#endif

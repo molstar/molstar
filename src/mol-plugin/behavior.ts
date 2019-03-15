@@ -14,7 +14,6 @@ import * as StaticMisc from './behavior/static/misc'
 import * as DynamicRepresentation from './behavior/dynamic/representation'
 import * as DynamicCamera from './behavior/dynamic/camera'
 import * as DynamicCustomProps from './behavior/dynamic/custom-props'
-import * as DynamicAnimation from './behavior/dynamic/animation'
 import * as DynamicLabels from './behavior/dynamic/labels'
 
 export const BuiltInPluginBehaviors = {
@@ -28,6 +27,5 @@ export const PluginBehaviors = {
     Representation: DynamicRepresentation,
     Camera: DynamicCamera,
     CustomProps: DynamicCustomProps,
-    Animation: DynamicAnimation,
     Labels: DynamicLabels
 }

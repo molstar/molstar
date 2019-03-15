@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,7 @@ import { ThemeDataContext, ThemeRegistry, ThemeProvider } from 'mol-theme/theme'
 import { PhysicalSizeThemeProvider } from './size/physical';
 import { deepEqual } from 'mol-util';
 import { ShapeGroupSizeThemeProvider } from './size/shape-group';
+import { UncertaintySizeThemeProvider } from './size/uncertainty';
 
 export { SizeTheme }
 interface SizeTheme<P extends PD.Params> {
@@ -44,6 +45,7 @@ namespace SizeTheme {
 export const BuiltInSizeThemes = {
     'physical': PhysicalSizeThemeProvider,
     'shape-group': ShapeGroupSizeThemeProvider,
+    'uncertainty': UncertaintySizeThemeProvider,
     'uniform': UniformSizeThemeProvider
 }
 export type BuiltInSizeThemeName = keyof typeof BuiltInSizeThemes

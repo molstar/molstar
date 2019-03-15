@@ -49,6 +49,10 @@ class TransientTree implements StateTree {
 
     get root() { return this.transforms.get(StateTransform.RootRef)! }
 
+    cellStatesSnapshot() {
+        return this.cellStates.asImmutable();
+    }
+
     asTransient() {
         return this.asImmutable().asTransient();
     }

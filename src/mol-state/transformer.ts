@@ -10,11 +10,12 @@ import { StateTransform } from './transform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateAction } from './action';
 import { capitalize } from 'mol-util/string';
+import { StateTreeSpine } from './tree/spine';
 
 export { Transformer as StateTransformer }
 
-interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
-    apply(parent: StateTransform.Ref, params?: P, props?: Partial<StateTransform.Options>): StateTransform<A, B, P>,
+interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = any> {
+    apply(parent: StateTransform.Ref, params?: P, props?: Partial<StateTransform.Options>): StateTransform<this>,
     toAction(): StateAction<A, void, P>,
     readonly namespace: string,
     readonly id: Transformer.Id,
@@ -36,7 +37,8 @@ namespace Transformer {
         a: A,
         params: P,
         /** A cache object that is purged each time the corresponding StateObject is removed or recreated. */
-        cache: unknown
+        cache: unknown,
+        spine: StateTreeSpine
     }
 
     export interface UpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
@@ -45,7 +47,8 @@ namespace Transformer {
         oldParams: P,
         newParams: P,
         /** A cache object that is purged each time the corresponding StateObject is removed or recreated. */
-        cache: unknown
+        cache: unknown,
+        spine: StateTreeSpine
     }
 
     export interface AutoUpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
@@ -55,7 +58,7 @@ namespace Transformer {
         newParams: P
     }
 
-    export enum UpdateResult { Unchanged, Updated, Recreate }
+    export enum UpdateResult { Unchanged, Updated, Recreate, Null }
 
     /** Specify default control descriptors for the parameters */
     // export type ParamsDefinition<A extends StateObject = StateObject, P = any> = (a: A, globalCtx: unknown) => { [K in keyof P]: PD.Any }
@@ -133,7 +136,7 @@ namespace Transformer {
         }
 
         const t: Transformer<A, B, P> = {
-            apply(parent, params, props) { return StateTransform.create<A, B, P>(parent, t, params, props); },
+            apply(parent, params, props) { return StateTransform.create<Transformer<A, B, P>>(parent, t, params, props); },
             toAction() { return StateAction.fromTransformer(t); },
             namespace,
             id,

@@ -52,7 +52,7 @@ interface Canvas3D {
 
     add: (repr: Representation.Any) => void
     remove: (repr: Representation.Any) => void
-    update: () => void
+    update: (repr?: Representation.Any, keepBoundingSphere?: boolean) => void
     clear: () => void
 
     // draw: (force?: boolean) => void
@@ -78,9 +78,6 @@ interface Canvas3D {
     readonly input: InputObserver
     readonly stats: RendererStats
     readonly interaction: Canvas3dInteractionHelper['events']
-
-    // TODO: is this a good solution?
-    setSceneAnimating(animating: boolean): void
 
     dispose: () => void
 }
@@ -137,8 +134,6 @@ namespace Canvas3D {
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
 
-        let isSceneAnimating = false
-
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
             let repr: Representation.Any = Representation.Empty
@@ -153,13 +148,13 @@ namespace Canvas3D {
             return { loci, repr }
         }
 
-        function mark(loci: Representation.Loci, action: MarkerAction) {
-            const repr = loci.repr
+        function mark(reprLoci: Representation.Loci, action: MarkerAction) {
+            const { repr, loci } = reprLoci
             let changed = false
             if (repr) {
-                changed = repr.mark(loci.loci, action)
+                changed = repr.mark(loci, action)
             } else {
-                reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci.loci, action) || changed })
+                reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed })
             }
             if (changed) {
                 scene.update(void 0, true)
@@ -263,7 +258,7 @@ namespace Canvas3D {
             currentTime = now();
             camera.transition.tick(currentTime);
             draw(false);
-            if (!camera.transition.inTransition && !isSceneAnimating) interactionHelper.tick(currentTime);
+            if (!camera.transition.inTransition) interactionHelper.tick(currentTime);
             window.requestAnimationFrame(animate)
         }
 
@@ -362,7 +357,14 @@ namespace Canvas3D {
                     reprCount.next(reprRenderObjects.size)
                 }
             },
-            update: () => scene.update(void 0, false),
+            update: (repr, keepSphere) => {
+                if (repr) {
+                    if (!reprRenderObjects.has(repr)) return;
+                    scene.update(repr.renderObjects, !!keepSphere);
+                } else {
+                    scene.update(void 0, !!keepSphere)
+                }
+            },
             clear: () => {
                 reprRenderObjects.clear()
                 scene.clear()
@@ -435,9 +437,6 @@ namespace Canvas3D {
             },
             get interaction() {
                 return interactionHelper.events
-            },
-            setSceneAnimating(animating) {
-                isSceneAnimating = animating;
             },
             dispose: () => {
                 scene.clear()

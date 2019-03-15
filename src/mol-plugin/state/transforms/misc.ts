@@ -18,7 +18,7 @@ const CreateGroup = PluginStateTransform.BuiltIn({
     to: SO.Group,
     params: {
         label: PD.Text('Group'),
-        description: PD.makeOptional(PD.Text(''))
+        description: PD.Optional(PD.Text(''))
     }
 })({
     apply({ params }) {

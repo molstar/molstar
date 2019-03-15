@@ -4,23 +4,23 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject } from './object';
 import { StateTransformer } from './transformer';
 import { UUID } from 'mol-util';
 
 export { Transform as StateTransform }
 
-interface Transform<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
+interface Transform<T extends StateTransformer = StateTransformer> {
     readonly parent: Transform.Ref,
-    readonly transformer: StateTransformer<A, B, P>,
+    readonly transformer: T,
     readonly props: Transform.Props,
     readonly ref: Transform.Ref,
-    readonly params?: P,
+    readonly params?: StateTransformer.Params<T>,
     readonly version: string
 }
 
 namespace Transform {
     export type Ref = string
+    export type Transformer<T extends Transform> = T extends Transform<infer S> ? S : never
 
     export const RootRef = '-=root=-' as Ref;
 
@@ -36,7 +36,7 @@ namespace Transform {
         props?: Props
     }
 
-    export function create<A extends StateObject, B extends StateObject, P extends {} = {}>(parent: Ref, transformer: StateTransformer<A, B, P>, params?: P, options?: Options): Transform<A, B, P> {
+    export function create<T extends StateTransformer>(parent: Ref, transformer: T, params?: StateTransformer.Params<T>, options?: Options): Transform<T> {
         const ref = options && options.ref ? options.ref : UUID.create22() as string as Ref;
         return {
             parent,

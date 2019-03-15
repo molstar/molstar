@@ -13,7 +13,7 @@ import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
 import { CustomModelProperties, StructureSelection } from '../transforms/model';
-import { DataFormatProvider } from './data-format';
+import { DataFormatProvider, guessCifVariant } from './data-format';
 import { FileInfo } from 'mol-util/file-info';
 import { Task } from 'mol-task';
 import { StructureElement } from 'mol-model/structure';
@@ -24,7 +24,10 @@ export const MmcifProvider: DataFormatProvider<any> = {
     stringExtensions: ['cif', 'mmcif', 'mcif'],
     binaryExtensions: ['bcif'],
     isApplicable: (info: FileInfo, data: Uint8Array | string) => {
-        return info.ext === 'cif' || info.ext === 'mmcif' || info.ext === 'mcif' || info.ext === 'bcif'
+        if (info.ext === 'mmcif' || info.ext === 'mcif') return true
+        // assume cif/bcif files that are not DensityServer CIF are mmCIF
+        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) !== 'dscif'
+        return false
     },
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, state: State) => {
         return Task.create('mmCIF default builder', async taskCtx => {
@@ -68,6 +71,11 @@ export const GroProvider: DataFormatProvider<any> = {
 
 //
 
+const DownloadStructurePdbIdSourceOptions = PD.Group({
+    supportProps: PD.Optional(PD.Boolean(false)),
+    asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
+});
+
 export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure
 const DownloadStructure = StateAction.build({
@@ -77,56 +85,71 @@ const DownloadStructure = StateAction.build({
         source: PD.MappedStatic('bcif-static', {
             'pdbe-updated': PD.Group({
                 id: PD.Text('1cbs', { label: 'Id' }),
-                supportProps: PD.Boolean(false)
+                options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'rcsb': PD.Group({
                 id: PD.Text('1tqn', { label: 'Id' }),
-                supportProps: PD.Boolean(false)
+                options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'bcif-static': PD.Group({
                 id: PD.Text('1tqn', { label: 'Id' }),
-                supportProps: PD.Boolean(false)
+                options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'url': PD.Group({
                 url: PD.Text(''),
                 format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']]),
                 isBinary: PD.Boolean(false),
-                supportProps: PD.Boolean(false)
+                options: PD.Group({
+                    supportProps: PD.Optional(PD.Boolean(false))
+                })
             }, { isFlat: true })
         }, {
-            options: [
-                ['pdbe-updated', 'PDBe Updated'],
-                ['rcsb', 'RCSB'],
-                ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
-                ['url', 'URL']
-            ]
-        })
+                options: [
+                    ['pdbe-updated', 'PDBe Updated'],
+                    ['rcsb', 'RCSB'],
+                    ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
+                    ['url', 'URL']
+                ]
+            })
     }
 })(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
+    let supportProps = false, asTrajectory = false;
 
     switch (src.name) {
         case 'url':
             downloadParams = [{ url: src.params.url, isBinary: src.params.isBinary }];
+            supportProps = !!src.params.options.supportProps;
             break;
         case 'pdbe-updated':
             downloadParams = getDownloadParams(src.params.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id}`, false);
+            supportProps = !!src.params.options.supportProps;
+            asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'rcsb':
             downloadParams = getDownloadParams(src.params.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB: ${id}`, false);
+            supportProps = !!src.params.options.supportProps;
+            asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'bcif-static':
             downloadParams = getDownloadParams(src.params.id, id => `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${id.toLowerCase()}`, id => `BinaryCIF: ${id}`, true);
+            supportProps = !!src.params.options.supportProps;
+            asTrajectory = !!src.params.options.asTrajectory;
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    for (const download of downloadParams) {
-        const data = b.toRoot().apply(StateTransforms.Data.Download, download, { props: { isGhost: true }});
-        const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
-        createStructureTree(ctx, traj, params.source.params.supportProps)
+    if (downloadParams.length > 0 && asTrajectory) {
+        const traj = createSingleTrajectoryModel(downloadParams, b);
+        createStructureTree(ctx, traj, supportProps);
+    } else {
+        for (const download of downloadParams) {
+            const data = b.toRoot().apply(StateTransforms.Data.Download, download, { props: { isGhost: true } });
+            const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
+            createStructureTree(ctx, traj, supportProps)
+        }
     }
     return state.updateTree(b);
 });
@@ -140,18 +163,30 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
     return ret;
 }
 
-function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' | 'gro' = 'cif') {
+function createSingleTrajectoryModel(sources: StateTransformer.Params<Download>[], b: StateBuilder.Root) {
+    return b.toRoot()
+        .apply(StateTransforms.Data.DownloadBlob, {
+            sources: sources.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
+            maxConcurrency: 6
+        }).apply(StateTransforms.Data.ParseBlob, {
+            formats: sources.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' }))
+        })
+        .apply(StateTransforms.Model.TrajectoryFromBlob)
+        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+}
+
+export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' | 'gro' = 'cif') {
     let parsed: StateBuilder.To<PluginStateObject.Molecule.Trajectory>
     switch (format) {
         case 'cif':
-            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { props: { isGhost: true }})
-                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { props: { isGhost: true }})
+            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { props: { isGhost: true } })
+                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { props: { isGhost: true } })
             break
         case 'pdb':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { props: { isGhost: true }});
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { props: { isGhost: true } });
             break
         case 'gro':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { props: { isGhost: true }});
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { props: { isGhost: true } });
             break
         default:
             throw new Error('unsupported format')
@@ -171,19 +206,30 @@ function createStructureTree(ctx: PluginContext, b: StateBuilder.To<PluginStateO
     return root;
 }
 
-function complexRepresentation(ctx: PluginContext, root: StateBuilder.To<PluginStateObject.Molecule.Structure>) {
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'cartoon'));
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick'));
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', { alpha: 0.51 }));
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D,
-            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'spacefill'));
+export function complexRepresentation(
+    ctx: PluginContext, root: StateBuilder.To<PluginStateObject.Molecule.Structure>,
+    params?: { hideSequence?: boolean, hideHET?: boolean, hideWater?: boolean, hideCoarse?: boolean; }
+) {
+    if (!params || !params.hideSequence) {
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'cartoon'));
+    }
+    if (!params || !params.hideHET) {
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick'));
+    }
+    if (!params || !params.hideWater) {
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', { alpha: 0.51 }));
+    }
+    if (!params || !params.hideCoarse) {
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'spacefill'));
+    }
 }
 
 export const CreateComplexRepresentation = StateAction.build({
@@ -199,30 +245,27 @@ export const UpdateTrajectory = StateAction.build({
     display: { name: 'Update Trajectory' },
     params: {
         action: PD.Select<'advance' | 'reset'>('advance', [['advance', 'Advance'], ['reset', 'Reset']]),
-        by: PD.makeOptional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
+        by: PD.Optional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
     }
 })(({ params, state }) => {
-    const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)
-        .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
+    const models = state.selectQ(q => q.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
 
     const update = state.build();
 
     if (params.action === 'reset') {
         for (const m of models) {
-            update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
-                () => ({ modelIndex: 0 }));
+            update.to(m).update({ modelIndex: 0 });
         }
     } else {
         for (const m of models) {
             const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
             if (!parent || !parent.obj) continue;
-            const traj = parent.obj as PluginStateObject.Molecule.Trajectory;
-            update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
-                old => {
-                    let modelIndex = (old.modelIndex + params.by!) % traj.data.length;
-                    if (modelIndex < 0) modelIndex += traj.data.length;
-                    return { modelIndex };
-                });
+            const traj = parent.obj;
+            update.to(m).update(old => {
+                let modelIndex = (old.modelIndex + params.by!) % traj.data.length;
+                if (modelIndex < 0) modelIndex += traj.data.length;
+                return { modelIndex };
+            });
         }
     }
 

@@ -11,7 +11,7 @@ import { PluginCommands } from 'mol-plugin/command';
 import { StateTransforms } from 'mol-plugin/state/transforms';
 import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
 import { Color } from 'mol-util/color';
-import { PluginStateObject as PSO, PluginStateObject } from 'mol-plugin/state/objects';
+import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
 import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
 import { StateBuilder } from 'mol-state';
 import { StripedResidues } from './coloring';
@@ -123,12 +123,12 @@ class BasicWrapper {
         applyStripes: async () => {
             const state = this.plugin.state.dataState;
 
-            const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
+            const visuals = state.selectQ(q => q.ofTransformer(StateTransforms.Representation.StructureRepresentation3D));
             const tree = state.build();
             const colorTheme = { name: StripedResidues.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(StripedResidues.Descriptor.name).defaultValues };
 
             for (const v of visuals) {
-                tree.to(v.transform.ref).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
+                tree.to(v).update(old => ({ ...old, colorTheme }));
             }
 
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });

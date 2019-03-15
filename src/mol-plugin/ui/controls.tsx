@@ -14,15 +14,15 @@ import { PluginStateObject } from 'mol-plugin/state/objects';
 import { StateTransforms } from 'mol-plugin/state/transforms';
 import { StateTransformer } from 'mol-state';
 import { ModelFromTrajectory } from 'mol-plugin/state/transforms/model';
+import { AnimationControls } from './state/animation';
 
-export class TrajectoryControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
+export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
 
     private update = () => {
         const state = this.plugin.state.dataState;
 
-        const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)
-            .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
+        const models = state.selectQ(q => q.ofTransformer(StateTransforms.Model.ModelFromTrajectory));
 
         if (models.length === 0) {
             this.setState({ show: false });
@@ -74,16 +74,30 @@ export class TrajectoryControls extends PluginUIComponent<{}, { show: boolean, l
         action: UpdateTrajectory.create({ action: 'advance', by: 1 })
     });
 
-    render() {
-        if (!this.state.show) return null;
+    // stopAnimation = () => {
+    //     this.plugin.state.animation.stop();
+    // }
 
+    // playAnimation = () => {
+    //     const anim = this.plugin.state.animation;
+    //     if (anim.state.params.current === AnimateModelIndex.name) {
+    //         anim.start();
+    //     } else {
+    //         anim.play(AnimateModelIndex, ParamDefinition.getDefaultValues(AnimateModelIndex.params(this.plugin) as any as ParamDefinition.Params))
+    //     }
+    // }
+
+    render() {
         const isAnimating = this.plugin.behaviors.state.isAnimating.value;
 
+        if (!this.state.show || (isAnimating && !this.state.label)) return null;
+
         return <div className='msp-traj-controls'>
-            <IconButton icon='model-first' title='First Model' onClick={this.reset} disabled={isAnimating} />
-            <IconButton icon='model-prev' title='Previous Model' onClick={this.prev} disabled={isAnimating} />
-            <IconButton icon='model-next' title='Next Model' onClick={this.next} disabled={isAnimating} />
-            { !!this.state.label && <span>{this.state.label}</span> }
+            {/* <IconButton icon={isAnimating ? 'stop' : 'play'} title={isAnimating ? 'Stop' : 'Play'} onClick={isAnimating ? this.stopAnimation : this.playAnimation} /> */}
+            {!isAnimating && <IconButton icon='model-first' title='First Model' onClick={this.reset} disabled={isAnimating} />}
+            {!isAnimating && <IconButton icon='model-prev' title='Previous Model' onClick={this.prev} disabled={isAnimating} />}
+            {!isAnimating && <IconButton icon='model-next' title='Next Model' onClick={this.next} disabled={isAnimating} />}
+            {!!this.state.label && <span>{this.state.label}</span> }
         </div>;
     }
 }
@@ -95,8 +109,37 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         // TODO: this needs to be diabled when the state is updating!
         this.subscribe(this.plugin.state.snapshots.events.changed, () => this.forceUpdate());
         this.subscribe(this.plugin.behaviors.state.isUpdating, isBusy => this.setState({ isBusy }));
-        this.subscribe(this.plugin.behaviors.state.isAnimating, isAnimating => this.setState({ show: !isAnimating }));
+        this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }))
+
+        window.addEventListener('keyup', this.keyUp, false);
     }
+
+    componentWillUnmount() {
+        super.componentWillUnmount();
+        window.removeEventListener('keyup', this.keyUp, false);
+    }
+
+    keyUp = (e: KeyboardEvent) => {
+        if (!e.ctrlKey || this.state.isBusy || e.target !== document.body) return;
+        const snapshots = this.plugin.state.snapshots;
+        if (e.keyCode === 37) { // left
+            if (snapshots.state.isPlaying) snapshots.stop();
+            this.prev();
+        } else if (e.keyCode === 38) { // up
+            if (snapshots.state.isPlaying) snapshots.stop();
+            if (snapshots.state.entries.size === 0) return;
+            const e = snapshots.state.entries.get(0);
+            this.update(e.snapshot.id);
+        } else if (e.keyCode === 39) { // right
+            if (snapshots.state.isPlaying) snapshots.stop();
+            this.next();
+        } else if (e.keyCode === 40) { // down
+            if (snapshots.state.isPlaying) snapshots.stop();
+            if (snapshots.state.entries.size === 0) return;
+            const e = snapshots.state.entries.get(snapshots.state.entries.size - 1);
+            this.update(e.snapshot.id);
+        }
+    };
 
     async update(id: string) {
         this.setState({ isBusy: true });
@@ -136,16 +179,58 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         const current = snapshots.state.current;
         const isPlaying = snapshots.state.isPlaying;
 
-        // TODO: better handle disabled state
-
         return <div className='msp-state-snapshot-viewport-controls'>
             <select className='msp-form-control' value={current || 'none'} onChange={this.change} disabled={this.state.isBusy || isPlaying}>
                 {!current && <option key='none' value='none'></option>}
                 {snapshots.state.entries.valueSeq().map((e, i) => <option key={e!.snapshot.id} value={e!.snapshot.id}>{`[${i! + 1}/${count}]`} {e!.name || new Date(e!.timestamp).toLocaleString()}</option>)}
             </select>
-            <IconButton icon='left-open' title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
-            <IconButton icon='right-open' title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />
-            <IconButton icon={isPlaying ? 'pause' : 'play'} title={isPlaying ? 'Pause' : 'Play'} onClick={this.togglePlay} />
+            <IconButton icon={isPlaying ? 'stop' : 'play'} title={isPlaying ? 'Pause' : 'Cycle States'} onClick={this.togglePlay}
+                disabled={isPlaying ? false : this.state.isBusy} />
+            {!isPlaying && <>
+                <IconButton icon='left-open' title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
+                <IconButton icon='right-open' title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />
+            </>}
+        </div>;
+    }
+}
+
+export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: boolean, isExpanded: boolean, isUpdating: boolean, isAnimating: boolean, isPlaying: boolean }> {
+    state = { isEmpty: true, isExpanded: false, isUpdating: false, isAnimating: false, isPlaying: false };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.state.snapshots.events.changed, () => {
+            if (this.plugin.state.snapshots.state.isPlaying) this.setState({ isPlaying: true, isExpanded: false });
+            else this.setState({ isPlaying: false });
+        });
+        this.subscribe(this.plugin.behaviors.state.isUpdating, isUpdating => {
+            if (isUpdating) this.setState({ isUpdating: true, isExpanded: false, isEmpty: this.plugin.state.dataState.tree.transforms.size < 2 });
+            else this.setState({ isUpdating: false, isEmpty: this.plugin.state.dataState.tree.transforms.size < 2 });
+        });
+        this.subscribe(this.plugin.behaviors.state.isAnimating, isAnimating => {
+            if (isAnimating) this.setState({ isAnimating: true, isExpanded: false });
+            else this.setState({ isAnimating: false });
+        });
+    }
+    toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
+    stop = () => {
+        this.plugin.state.animation.stop();
+        this.plugin.state.snapshots.stop();
+    }
+
+    render() {
+        // if (!this.state.show) return null;
+        const isPlaying = this.plugin.state.snapshots.state.isPlaying;
+        if (isPlaying) return null;
+
+        const isAnimating = this.state.isAnimating;
+
+        return <div className='msp-animation-viewport-controls'>
+            <IconButton icon={isAnimating || isPlaying ? 'stop' : 'play'} title={isAnimating ? 'Stop' : 'Select Animation'}
+                onClick={isAnimating || isPlaying ? this.stop : this.toggleExpanded}
+                disabled={isAnimating|| isPlaying ? false : this.state.isUpdating || this.state.isPlaying || this.state.isEmpty} />
+            {(this.state.isExpanded && !this.state.isUpdating) && <div className='msp-animation-viewport-controls-select'>
+                <AnimationControls onStart={this.toggleExpanded} />
+            </div>}
         </div>;
     }
 }

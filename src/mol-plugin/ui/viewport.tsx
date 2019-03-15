@@ -12,13 +12,13 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
 import { Canvas3DParams } from 'mol-canvas3d/canvas3d';
 import { PluginLayoutStateParams } from 'mol-plugin/layout';
-import { ControlGroup } from './controls/common';
+import { ControlGroup, IconButton } from './controls/common';
 
 interface ViewportState {
     noWebGl: boolean
 }
 
-export class ViewportControls extends PluginUIComponent {
+export class ViewportControls extends PluginUIComponent<{}, { isSettingsExpanded: boolean }> {
     state = {
         isSettingsExpanded: false
     }
@@ -59,25 +59,18 @@ export class ViewportControls extends PluginUIComponent {
     }
 
     icon(name: string, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
-        return <button
-            className={`msp-btn msp-btn-link msp-btn-link-toggle-${isOn ? 'on' : 'off'}`}
-            onClick={onClick}
-            title={title}>
-                <span className={`msp-icon msp-icon-${name}`}/>
-            </button>
+        return <IconButton icon={name} toggleState={isOn} onClick={onClick} title={title} />;
     }
 
     render() {
-        // TODO: show some icons dimmed etc..
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
-                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
-                {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
+                {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}<br/>
+                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}<br/>
+                {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}<br />
                 {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
-                {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
             </div>
-            {this.state.isSettingsExpanded &&
-            <div className='msp-viewport-controls-scene-options'>
+            {this.state.isSettingsExpanded && <div className='msp-viewport-controls-scene-options'>
                 <ControlGroup header='Layout' initialExpanded={true}>
                     <ParameterControls params={PluginLayoutStateParams} values={this.plugin.layout.state} onChange={this.setLayout} />
                 </ControlGroup>

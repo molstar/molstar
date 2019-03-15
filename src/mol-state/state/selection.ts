@@ -8,24 +8,25 @@ import { StateObject, StateObjectCell } from '../object';
 import { State } from '../state';
 import { StateTree } from '../tree';
 import { StateTransform } from '../transform';
+import { StateTransformer } from '../transformer';
 
 namespace StateSelection {
-    export type Selector = Query | Builder | string | StateObjectCell;
-    export type CellSeq = StateObjectCell[]
-    export type Query = (state: State) => CellSeq;
+    export type Selector<C extends StateObjectCell = StateObjectCell> = Query<C> | Builder<C> | string | C;
+    export type CellSeq<C extends StateObjectCell = StateObjectCell> = C[]
+    export type Query<C extends StateObjectCell = StateObjectCell> = (state: State) => CellSeq<C>;
 
-    export function select(s: Selector, state: State) {
+    export function select<C extends StateObjectCell>(s: Selector<C>, state: State) {
         return compile(s)(state);
     }
 
-    export function compile(s: Selector): Query {
+    export function compile<C extends StateObjectCell>(s: Selector<C>): Query<C> {
         const selector = s ? s : Generators.root;
         let query: Query;
         if (isBuilder(selector)) query = (selector as any).compile();
         else if (isObj(selector)) query = (Generators.byValue(selector) as any).compile();
         else if (isQuery(selector)) query = selector;
         else query = (Generators.byRef(selector as string) as any).compile();
-        return query;
+        return query as Query<C>;
     }
 
     function isObj(arg: any): arg is StateObjectCell {
@@ -40,22 +41,23 @@ namespace StateSelection {
         return typeof arg === 'function';
     }
 
-    export interface Builder {
-        flatMap(f: (n: StateObjectCell) => StateObjectCell[]): Builder;
-        mapEntity(f: (n: StateObjectCell) => StateObjectCell): Builder;
-        unique(): Builder;
+    export interface Builder<C extends StateObjectCell = StateObjectCell> {
+        flatMap<D extends StateObjectCell>(f: (n: C) => D[]): Builder<D>;
+        mapObject<D extends StateObjectCell>(f: (n: C) => D): Builder<D>;
+        unique(): Builder<C>;
 
-        parent(): Builder;
-        first(): Builder;
-        filter(p: (n: StateObjectCell) => boolean): Builder;
-        withStatus(s: StateObjectCell.Status): Builder;
+        parent(): Builder<C>;
+        first(): Builder<C>;
+        filter(p: (n: C) => boolean): Builder<C>;
+        withTransformer<T extends StateTransformer<any, StateObjectCell.Obj<C>, any>>(t: T): Builder<StateObjectCell<StateObjectCell.Obj<C>, StateTransform<T>>>;
+        withStatus(s: StateObjectCell.Status): Builder<C>;
         subtree(): Builder;
         children(): Builder;
-        ofType(t: StateObject.Ctor): Builder;
-        ancestorOfType(t: StateObject.Ctor[]): Builder;
+        ofType<T extends StateObject.Ctor>(t: T): Builder<StateObjectCell<StateObject.From<T>>>;
+        ancestorOfType<T extends StateObject.Ctor>(t: T[]): Builder<StateObjectCell<StateObject.From<T>>>;
         rootOfType(t: StateObject.Ctor[]): Builder;
 
-        select(state: State): CellSeq
+        select(state: State): CellSeq<C>
     }
 
     const BuilderPrototype: any = {
@@ -68,39 +70,47 @@ namespace StateSelection {
         BuilderPrototype[name] = function (this: any, ...args: any[]) { return f.call(void 0, this, ...args) };
     }
 
-    function build(compile: () => Query): Builder {
+    function build<C extends StateObjectCell>(compile: () => Query<C>): Builder<C> {
         return Object.create(BuilderPrototype, { compile: { writable: false, configurable: false, value: compile } });
     }
 
     export namespace Generators {
         export const root = build(() => (state: State) => [state.cells.get(state.tree.root.ref)!]);
 
-        export function byRef(...refs: StateTransform.Ref[]) {
+        export function byRef<T extends StateObject.Ctor>(...refs: StateTransform.Ref[]) {
             return build(() => (state: State) => {
-                const ret: StateObjectCell[] = [];
+                const ret: StateObjectCell<StateObject.From<T>>[] = [];
                 for (const ref of refs) {
                     const n = state.cells.get(ref);
                     if (!n) continue;
-                    ret.push(n);
+                    ret.push(n as any);
                 }
                 return ret;
             });
         }
 
-        export function byValue(...objects: StateObjectCell[]) { return build(() => (state: State) => objects); }
+        export function byValue<T extends StateObjectCell>(...objects: T[]) { return build(() => (state: State) => objects); }
 
-        export function rootsOfType(type: StateObject.Ctor) {
+        export function rootsOfType<T extends StateObject.Ctor>(type: T, root: StateTransform.Ref = StateTransform.RootRef) {
             return build(() => state => {
-                const ctx = { roots: [] as StateObjectCell[], cells: state.cells, type: type.type };
-                StateTree.doPreOrder(state.tree, state.tree.root, ctx, _findRootsOfType);
+                const ctx = { roots: [] as StateObjectCell<StateObject.From<T>>[], cells: state.cells, type: type.type };
+                StateTree.doPreOrder(state.tree, state.tree.transforms.get(root), ctx, _findRootsOfType);
                 return ctx.roots;
             });
         }
 
-        export function ofType(type: StateObject.Ctor) {
+        export function ofType<T extends StateObject.Ctor>(type: T, root: StateTransform.Ref = StateTransform.RootRef) {
             return build(() => state => {
-                const ctx = { ret: [] as StateObjectCell[], cells: state.cells, type: type.type };
-                StateTree.doPreOrder(state.tree, state.tree.root, ctx, _findOfType);
+                const ctx = { ret: [] as StateObjectCell<StateObject.From<T>>[], cells: state.cells, type: type.type };
+                StateTree.doPreOrder(state.tree, state.tree.transforms.get(root), ctx, _findOfType);
+                return ctx.ret;
+            });
+        }
+
+        export function ofTransformer<T extends StateTransformer<any, A, any>, A extends StateObject>(t: T, root: StateTransform.Ref = StateTransform.RootRef) {
+            return build(() => state => {
+                const ctx = { ret: [] as StateObjectCell<A, StateTransform<T>>[], cells: state.cells, t };
+                StateTree.doPreOrder(state.tree, state.tree.transforms.get(root), ctx, _findOfTransformer);
                 return ctx.ret;
             });
         }
@@ -121,6 +131,14 @@ namespace StateSelection {
             }
             return true;
         }
+
+        function _findOfTransformer(n: StateTransform, _: any, s: { t: StateTransformer, ret: StateObjectCell[], cells: State.Cells }) {
+            const cell = s.cells.get(n.ref);
+            if (cell && cell.obj && cell.transform.transformer === s.t) {
+                s.ret.push(cell);
+            }
+            return true;
+        }
     }
 
     registerModifier('flatMap', flatMap);
@@ -137,8 +155,8 @@ namespace StateSelection {
         });
     }
 
-    registerModifier('mapEntity', mapEntity);
-    export function mapEntity(b: Selector, f: (n: StateObjectCell, state: State) => StateObjectCell | undefined) {
+    registerModifier('mapObject', mapObject);
+    export function mapObject(b: Selector, f: (n: StateObjectCell, state: State) => StateObjectCell | undefined) {
         const q = compile(b);
         return build(() => (state: State) => {
             const ret: StateObjectCell[] = [];
@@ -204,13 +222,16 @@ namespace StateSelection {
     export function ofType(b: Selector, t: StateObject.Ctor) { return filter(b, n => n.obj ? n.obj.type === t.type : false); }
 
     registerModifier('ancestorOfType', ancestorOfType);
-    export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s.tree, s.cells, n.transform.ref, types))); }
+    export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapObject(b, (n, s) => findAncestorOfType(s.tree, s.cells, n.transform.ref, types))); }
+
+    registerModifier('withTransformer', withTransformer);
+    export function withTransformer(b: Selector, t: StateTransformer) { return filter(b, o => o.transform.transformer === t); }
 
     registerModifier('rootOfType', rootOfType);
-    export function rootOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findRootOfType(s.tree, s.cells, n.transform.ref, types))); }
+    export function rootOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapObject(b, (n, s) => findRootOfType(s.tree, s.cells, n.transform.ref, types))); }
 
     registerModifier('parent', parent);
-    export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.transforms.get(n.transform.ref)!.parent))); }
+    export function parent(b: Selector) { return unique(mapObject(b, (n, s) => s.cells.get(s.tree.transforms.get(n.transform.ref)!.parent))); }
 
     export function findAncestorOfType<T extends StateObject.Ctor>(tree: StateTree, cells: State.Cells, root: StateTransform.Ref, types: T[]): StateObjectCell<StateObject.From<T>> | undefined {
         let current = tree.transforms.get(root)!, len = types.length;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -65,7 +65,9 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             // hide visual when _unitTransforms is set
             visual.setVisibility(state.visible && _state.unitTransforms === null)
         }
+        if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor)
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
+        if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint)
         if (state.transform !== undefined && visual) visual.setTransform(state.transform)
         if (state.unitTransforms !== undefined && visual) {
             // Since ComplexVisuals always renders geometries between units the application of `unitTransforms`

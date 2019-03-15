@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,7 @@ import { Subject } from 'rxjs';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { BaseGeometry } from 'mol-geo/geometry/base';
 import { Visual } from './visual';
+import { Overpaint } from 'mol-theme/overpaint';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -139,19 +140,25 @@ namespace Representation {
     export interface State {
         /** Controls if the representation's renderobjects are rendered or not */
         visible: boolean
+        /** A factor applied to alpha value of the representation's renderobjects */
+        alphaFactor: number
         /** Controls if the representation's renderobjects are pickable or not */
         pickable: boolean
+        /** Overpaint applied to the representation's renderobjects */
+        overpaint: Overpaint
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
         transform: Mat4
     }
     export function createState(): State {
-        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity(), /* instanceTransforms: new Float32Array(Mat4.identity()) */ }
+        return { visible: false, alphaFactor: 0, pickable: false, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty }
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible
+        if (update.alphaFactor !== undefined) state.alphaFactor = update.alphaFactor
         if (update.pickable !== undefined) state.pickable = update.pickable
+        if (update.overpaint !== undefined) state.overpaint = update.overpaint
         if (update.syncManually !== undefined) state.syncManually = update.syncManually
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
     }
@@ -310,7 +317,11 @@ namespace Representation {
             },
             setState: (state: Partial<State>) => {
                 if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible)
+                if (state.alphaFactor !== undefined) Visual.setAlphaFactor(renderObject, state.alphaFactor)
                 if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable)
+                if (state.overpaint !== undefined) {
+                    // TODO
+                }
                 if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform)
 
                 Representation.updateState(currentState, state)

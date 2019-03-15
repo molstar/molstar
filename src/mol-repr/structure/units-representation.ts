@@ -171,9 +171,11 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     }
 
     function setState(state: Partial<StructureRepresentationState>) {
-        const { visible, pickable, transform, unitTransforms } = state
+        const { visible, alphaFactor, pickable, overpaint, transform, unitTransforms } = state
         if (visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(visible))
+        if (alphaFactor !== undefined) visuals.forEach(({ visual }) => visual.setAlphaFactor(alphaFactor))
         if (pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(pickable))
+        if (overpaint !== undefined) visuals.forEach(({ visual }) => visual.setOverpaint(overpaint))
         if (transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(transform))
         if (unitTransforms !== undefined) {
             visuals.forEach(({ visual, group }) => {

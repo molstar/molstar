@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -39,7 +39,8 @@ function getButtons(event: MouseEvent | Touch) {
 
 export const DefaultInputObserverProps = {
     noScroll: true,
-    noContextMenu: true
+    noContextMenu: true,
+    noPinchZoom: true
 }
 export type InputObserverProps = Partial<typeof DefaultInputObserverProps>
 
@@ -117,6 +118,7 @@ export type MoveInput = {
 
 export type PinchInput = {
     delta: number,
+    fraction: number,
     distance: number,
     isStart: boolean
 }
@@ -159,7 +161,7 @@ interface InputObserver {
 
 namespace InputObserver {
     export function create (element: Element, props: InputObserverProps = {}): InputObserver {
-        let { noScroll, noContextMenu } = { ...DefaultInputObserverProps, ...props }
+        let { noScroll, noContextMenu, noPinchZoom } = { ...DefaultInputObserverProps, ...props }
 
         let lastTouchDistance = 0
         const pointerDown = Vec2.zero()
@@ -324,7 +326,9 @@ namespace InputObserver {
                 buttons = ButtonsType.Flag.Secondary
                 onPointerDown(getCenterTouch(ev))
 
-                pinch.next({ distance: lastTouchDistance, delta: 0, isStart: true })
+                const touchDistance = getTouchDistance(ev)
+                lastTouchDistance = touchDistance
+                pinch.next({ distance: touchDistance, fraction: 1, delta: 0, isStart: true })
             }
         }
 
@@ -333,17 +337,28 @@ namespace InputObserver {
         }
 
         function onTouchMove (ev: TouchEvent) {
+            if (noPinchZoom) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if ((ev as any).originalEvent) {
+                    (ev as any).originalEvent.preventDefault();
+                    (ev as any).originalEvent.stopPropagation();
+                }
+            }
+
             if (ev.touches.length === 1) {
                 buttons = ButtonsType.Flag.Primary
                 onPointerMove(ev.touches[0])
             } else if (ev.touches.length >= 2) {
                 const touchDistance = getTouchDistance(ev)
-                if (lastTouchDistance - touchDistance < 4) {
+                const touchDelta = lastTouchDistance - touchDistance
+                if (Math.abs(touchDelta) < 4) {
                     buttons = ButtonsType.Flag.Secondary
                     onPointerMove(getCenterTouch(ev))
                 } else {
                     pinch.next({
-                        delta: lastTouchDistance - touchDistance,
+                        delta: touchDelta,
+                        fraction: lastTouchDistance / touchDistance,
                         distance: touchDistance,
                         isStart: false
                     })

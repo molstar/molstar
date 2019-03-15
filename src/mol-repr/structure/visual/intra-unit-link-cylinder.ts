@@ -40,12 +40,18 @@ function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structu
         linkCount: edgeCount * 2,
         referencePosition: (edgeIndex: number) => {
             let aI = a[edgeIndex], bI = b[edgeIndex];
+
             if (aI > bI) [aI, bI] = [bI, aI]
+            if (offset[aI + 1] - offset[aI] === 1) [aI, bI] = [bI, aI]
+            // TODO prefer reference atoms in rings
+
             for (let i = offset[aI], il = offset[aI + 1]; i < il; ++i) {
-                if (b[i] !== bI) return pos(elements[b[i]], vRef)
+                const _bI = b[i]
+                if (_bI !== bI && _bI !== aI) return pos(elements[_bI], vRef)
             }
             for (let i = offset[bI], il = offset[bI + 1]; i < il; ++i) {
-                if (a[i] !== aI) return pos(elements[a[i]], vRef)
+                const _aI = a[i]
+                if (_aI !== aI && _aI !== bI) return pos(elements[_aI], vRef)
             }
             return null
         },
@@ -78,7 +84,7 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkParams> {
         createGeometry: createIntraUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromGroup,
         getLoci: getLinkLoci,
-        mark: markLink,
+        eachLocation: eachLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitLinkParams>, currentProps: PD.Values<IntraUnitLinkParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
@@ -112,11 +118,11 @@ function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
     return EmptyLoci
 }
 
-function markLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+function eachLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (Link.isLoci(loci)) {
         const { structure, group } = structureGroup
-        if (loci.structure !== structure) return false
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         const unit = group.units[0]
         if (!Unit.isAtomic(unit)) return false
         const groupCount = unit.links.edgeCount * 2
@@ -131,7 +137,7 @@ function markLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: 
         }
     } else if (StructureElement.isLoci(loci)) {
         const { structure, group } = structureGroup
-        if (loci.structure !== structure) return false
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         const unit = group.units[0]
         if (!Unit.isAtomic(unit)) return false
         const groupCount = unit.links.edgeCount * 2

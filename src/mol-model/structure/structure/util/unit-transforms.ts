@@ -15,9 +15,11 @@ export class StructureUnitTransforms {
     /** maps unit.id to offset of transform in unitTransforms */
     private unitOffsetMap = IntMap.Mutable<number>();
     private groupIndexMap = IntMap.Mutable<number>();
+    private size: number;
 
     constructor(readonly structure: Structure) {
         this.unitTransforms = new Float32Array(structure.units.length * 16)
+        this.size = structure.units.length
         fillIdentityTransform(this.unitTransforms, structure.units.length)
         let groupOffset = 0
         for (let i = 0, il = structure.unitSymmetryGroups.length; i <il; ++i) {
@@ -30,6 +32,10 @@ export class StructureUnitTransforms {
             }
             groupOffset += g.units.length * 16
         }
+    }
+
+    reset() {
+        fillIdentityTransform(this.unitTransforms, this.size);
     }
 
     setTransform(matrix: Mat4, unit: Unit) {

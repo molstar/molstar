@@ -6,12 +6,18 @@
     height: $row-height;
     line-height: $row-height;
     margin-bottom: $control-spacing;
-    text-align: center;
+    text-align: right;
+    padding: 0 $control-spacing;
     font-weight: bold;
     background: $default-background;
     // border-right: $control-spacing solid $entity-color-Group; // TODO separate color
-    border-top: 1px solid $entity-color-Group; // TODO separate color
+    border-bottom: 1px solid $entity-color-Group; // TODO separate color
     // border-bottom: 1px solid $entity-color-Group; // TODO separate color
+
+    > .msp-icon {
+        display: block;
+        float: left;
+    }
 }
 
 .msp-current-header {
@@ -159,10 +165,12 @@
         line-height: $row-height;
         float: left;
         margin-right: $control-spacing;
+        background-color: $msp-form-control-background;
 
         > span {
             color: $font-color;
-            padding-top: 1px;
+            margin-left: $control-spacing;
+            margin-right: $control-spacing;
             font-size: 85%;
             display: inline-block;
         }
@@ -173,9 +181,56 @@
         float: left;
         margin-right: $control-spacing;
 
+        > button {
+            background-color: $msp-form-control-background;
+        }
+
         > select {
             display: inline-block;
             width: 200px;
+            margin-right: $control-spacing;
         }
+    }
+
+    .msp-animation-viewport-controls {
+        line-height: $row-height;
+        float: left;
+        margin-right: $control-spacing;
+        position: relative;
+        background-color: $msp-form-control-background;
+
+        .msp-animation-viewport-controls-select {
+            width: 290px;
+            position: absolute;
+            left: 0;
+            top: $row-height + $control-spacing;
+            background: $control-background;
+
+            .msp-control-row:first-child {
+                margin-top: 0;
+            }
+        }
+    }
+}
+
+.msp-param-object-list-item {
+    margin-top: 1px;
+    position: relative;
+    > button {
+        text-align: left;
+        > span {
+            font-weight: bold;
+        }
+    }
+    > div {
+        position: absolute;
+        right: 0;
+        top: 0
+    }
+}
+
+.msp-state-actions {
+    .msp-transform-wrapper:last-child {
+        margin-bottom: 10px;
     }
 }

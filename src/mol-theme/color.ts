@@ -26,6 +26,7 @@ import { ShapeGroupColorThemeProvider } from './color/shape-group';
 import { UnitIndexColorThemeProvider } from './color/unit-index';
 import { ScaleLegend } from 'mol-util/color/scale';
 import { TableLegend } from 'mol-util/color/tables';
+import { UncertaintyColorThemeProvider } from './color/uncertainty';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -73,6 +74,7 @@ export const BuiltInColorThemes = {
     'secondary-structure': SecondaryStructureColorThemeProvider,
     'sequence-id': SequenceIdColorThemeProvider,
     'shape-group': ShapeGroupColorThemeProvider,
+    'uncertainty': UncertaintyColorThemeProvider,
     'unit-index': UnitIndexColorThemeProvider,
     'uniform': UniformColorThemeProvider,
 }

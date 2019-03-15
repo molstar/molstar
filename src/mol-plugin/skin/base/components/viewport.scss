@@ -26,6 +26,7 @@
     -webkit-user-select: none;
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     -webkit-touch-callout: none;
+    touch-action: manipulation;
 }
 
 .msp-viewport-controls {
@@ -64,6 +65,10 @@
 .msp-viewport-controls-scene-options {
     width: 290px;
     background: $control-background;
+
+    .msp-control-group-wrapper:first-child {
+        padding-top: 0;
+    }
 }
 
 /* highlight */

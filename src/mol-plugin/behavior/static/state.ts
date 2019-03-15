@@ -76,7 +76,7 @@ export function RemoveObject(ctx: PluginContext) {
                 curr = parent;
             }
         } else {
-            remove(state, ref);
+            return remove(state, ref);
         }
     });
 }
@@ -146,13 +146,13 @@ export function Snapshots(ctx: PluginContext) {
         return ctx.state.setSnapshot(snapshot);
     });
 
-    PluginCommands.State.Snapshots.Upload.subscribe(ctx, ({ name, description, serverUrl }) => {
+    PluginCommands.State.Snapshots.Upload.subscribe(ctx, ({ name, description, playOnLoad, serverUrl }) => {
         return fetch(`${serverUrl}/set?name=${encodeURIComponent(name || '')}&description=${encodeURIComponent(description || '')}`, {
             method: 'POST',
             mode: 'cors',
             referrer: 'no-referrer',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(ctx.state.snapshots.getRemoteSnapshot())
+            body: JSON.stringify(ctx.state.snapshots.getRemoteSnapshot({ name, description, playOnLoad }))
         }) as any as Promise<void>;
     });
 

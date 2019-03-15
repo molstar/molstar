@@ -7,8 +7,20 @@
 import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
+import { Icon } from '../controls/common';
 
-export class AnimationControls extends PluginUIComponent<{ }> {
+export class AnimationControlsWrapper extends PluginUIComponent<{ }> {
+    render() {
+        const anim = this.plugin.state.animation;
+        if (anim.isEmpty) return null;
+        return <div className='msp-contols-section'>
+            <div className='msp-section-header'><Icon name='code' /> Animations</div>
+            <AnimationControls />
+        </div>
+    }
+}
+
+export class AnimationControls extends PluginUIComponent<{ onStart?: () => void }> {
     componentDidMount() {
         this.subscribe(this.plugin.state.animation.events.updated, () => this.forceUpdate());
     }
@@ -24,7 +36,10 @@ export class AnimationControls extends PluginUIComponent<{ }> {
     startOrStop = () => {
         const anim = this.plugin.state.animation;
         if (anim.state.animationState === 'playing') anim.stop();
-        else anim.start();
+        else {
+            if (this.props.onStart) this.props.onStart();
+            anim.start();
+        }
     }
 
     render() {
@@ -33,17 +48,16 @@ export class AnimationControls extends PluginUIComponent<{ }> {
 
         const isDisabled = anim.state.animationState === 'playing';
 
-        return <div className='msp-animation-section'>
-            <div className='msp-section-header'>Animations</div>
-
+        return <>
             <ParameterControls params={anim.getParams()} values={anim.state.params} onChange={this.updateParams} isDisabled={isDisabled} />
             <ParameterControls params={anim.current.params} values={anim.current.paramValues} onChange={this.updateCurrentParams} isDisabled={isDisabled} />
 
             <div className='msp-btn-row-group'>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.startOrStop}>
+                    {anim.state.animationState !== 'playing' && <Icon name='play' />}
                     {anim.state.animationState === 'playing' ? 'Stop' : 'Start'}
                 </button>
             </div>
-        </div>
+        </>;
     }
 }

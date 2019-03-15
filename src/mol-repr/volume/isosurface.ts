@@ -95,9 +95,9 @@ export function IsosurfaceMeshVisual(): VolumeVisual<IsosurfaceMeshParams> {
         createGeometry: createVolumeIsosurfaceMesh,
         createLocationIterator: (volume: VolumeData) => LocationIterator(1, 1, () => NullLocation),
         getLoci: () => EmptyLoci,
-        mark: () => false,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
-            if (newProps.isoValue !== currentProps.isoValue) state.createGeometry = true
+        eachLocation: () => false,
+        setUpdateState: (state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
+            if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true
         },
         geometryUtils: Mesh.Utils
     })
@@ -131,9 +131,9 @@ export function IsosurfaceWireframeVisual(): VolumeVisual<IsosurfaceWireframePar
         createGeometry: createVolumeIsosurfaceWireframe,
         createLocationIterator: (volume: VolumeData) => LocationIterator(1, 1, () => NullLocation),
         getLoci: () => EmptyLoci,
-        mark: () => false,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IsosurfaceWireframeParams>, currentProps: PD.Values<IsosurfaceWireframeParams>) => {
-            if (newProps.isoValue !== currentProps.isoValue) state.createGeometry = true
+        eachLocation: () => false,
+        setUpdateState: (state: VisualUpdateState, volume: VolumeData, newProps: PD.Values<IsosurfaceWireframeParams>, currentProps: PD.Values<IsosurfaceWireframeParams>) => {
+            if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true
         },
         geometryUtils: Lines.Utils
     })

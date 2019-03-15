@@ -22,6 +22,7 @@ import { VolumeServerHeader, VolumeServerInfo } from './model';
 import { ButtonsType } from 'mol-util/input/input-observer';
 import { PluginCommands } from 'mol-plugin/command';
 import { StateSelection } from 'mol-state';
+import { Representation } from 'mol-repr/representation';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -47,7 +48,7 @@ export namespace VolumeStreaming {
         const box = (data && data.structure.boundary.box) || Box3D.empty();
 
         return {
-            view: PD.MappedStatic('selection-box', {
+            view: PD.MappedStatic(info.kind === 'em' ? 'cell' : 'selection-box', {
                 'box': PD.Group({
                     bottomLeft: PD.Vec3(box.min),
                     topRight: PD.Vec3(box.max),
@@ -60,7 +61,7 @@ export namespace VolumeStreaming {
                 'cell': PD.Group({}),
                 // 'auto': PD.Group({  }), // based on camera distance/active selection/whatever, show whole structure or slice.
             }, { options: [['box', 'Bounded Box'], ['selection-box', 'Selection'], ['cell', 'Whole Structure']] }),
-            detailLevel: PD.Select<number>(Math.min(1, info.header.availablePrecisions.length - 1),
+            detailLevel: PD.Select<number>(Math.min(3, info.header.availablePrecisions.length - 1),
                 info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string])),
             channels: info.kind === 'em'
                 ? PD.Group({
@@ -172,7 +173,21 @@ export namespace VolumeStreaming {
         }
 
         register(ref: string): void {
-            // this.ref = ref;
+            let lastLoci: Representation.Loci = Representation.Loci.Empty;
+
+            this.subscribeObservable(this.plugin.events.state.object.removed, o => {
+                if (!PluginStateObject.Molecule.Structure.is(o.obj) || lastLoci.loci.kind !== 'element-loci') return;
+                if (lastLoci.loci.structure === o.obj.data) {
+                    lastLoci = Representation.Loci.Empty;
+                }
+            });
+
+            this.subscribeObservable(this.plugin.events.state.object.updated, o => {
+                if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || lastLoci.loci.kind !== 'element-loci') return;
+                if (lastLoci.loci.structure === o.oldObj.data) {
+                    lastLoci = Representation.Loci.Empty;
+                }
+            });
 
             this.subscribeObservable(this.plugin.behaviors.canvas3d.click, ({ current, buttons, modifiers }) => {
                 if (buttons !== ButtonsType.Flag.Secondary || this.params.view.name !== 'selection-box') return;
@@ -192,6 +207,13 @@ export namespace VolumeStreaming {
                 if (!parent) return;
                 const root = this.getStructureRoot(ref);
                 if (!root || !root.obj || root.obj !== parent.obj) return;
+
+                if (Representation.Loci.areEqual(lastLoci, current)) {
+                    lastLoci = Representation.Loci.Empty;
+                    this.updateDynamicBox(ref, Box3D.empty());
+                    return;
+                }
+                lastLoci = current;
 
                 const loci = StructureElement.Loci.extendToWholeResidues(current.loci);
                 const box = StructureElement.Loci.getBoundary(loci).box;

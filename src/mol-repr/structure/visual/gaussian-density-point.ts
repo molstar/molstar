@@ -61,7 +61,7 @@ export function GaussianDensityPointVisual(): UnitsVisual<GaussianDensityPointPa
         createGeometry: createGaussianDensityPoint,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: () => EmptyLoci,
-        mark: () => false,
+        eachLocation: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianDensityPointParams>, currentProps: PD.Values<GaussianDensityPointParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true

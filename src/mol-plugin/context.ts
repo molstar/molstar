@@ -76,9 +76,7 @@ export class PluginContext {
         },
         labels: {
             highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
-        },
-
-        command: this.commands.behaviour
+        }
     };
 
     readonly canvas3d: Canvas3D;

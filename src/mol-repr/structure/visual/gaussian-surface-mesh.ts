@@ -8,7 +8,7 @@ import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { StructureElementIterator, getElementLoci, markElement } from './util/element';
+import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
@@ -46,7 +46,7 @@ export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceParams> {
         createGeometry: createGaussianSurfaceMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
-        mark: markElement,
+        eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianSurfaceParams>, currentProps: PD.Values<GaussianSurfaceParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true

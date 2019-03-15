@@ -11,10 +11,9 @@ import { LogEntry } from 'mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
-import { LociLabelControl, TrajectoryControls, StateSnapshotViewportControls } from './controls';
+import { LociLabelControl, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls } from './controls';
 import { StateSnapshots } from './state';
 import { StateObjectActions } from './state/actions';
-import { AnimationControls } from './state/animation';
 import { StateTree } from './state/tree';
 import { BackgroundTaskProgress } from './task';
 import { Viewport, ViewportControls } from './viewport';
@@ -73,7 +72,7 @@ export class ControlsWrapper extends PluginUIComponent {
     render() {
         return <div className='msp-scrollable-container msp-right-controls'>
             <CurrentObject />
-            <AnimationControls />
+            {/* <AnimationControlsWrapper /> */}
             {/* <CameraSnapshots /> */}
             <StateSnapshots />
         </div>;
@@ -85,7 +84,8 @@ export class ViewportWrapper extends PluginUIComponent {
         return <>
             <Viewport />
             <div className='msp-viewport-top-left-controls'>
-                <TrajectoryControls />
+                <AnimationViewportControls />
+                <TrajectoryViewportControls />
                 <StateSnapshotViewportControls />
             </div>
             <ViewportControls />
@@ -111,8 +111,12 @@ export class State extends PluginUIComponent {
         const kind = this.plugin.state.behavior.kind.value;
         return <div className='msp-scrollable-container'>
             <div className='msp-btn-row-group msp-data-beh'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal' }}>Data</button>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal' }}>Behavior</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal' }}>
+                    <span className='msp-icon msp-icon-database' /> Data
+                </button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal' }}>
+                    <span className='msp-icon msp-icon-tools' /> Behavior
+                </button>
             </div>
             <StateTree state={kind === 'data' ? this.plugin.state.dataState : this.plugin.state.behaviorState} />
         </div>
@@ -190,7 +194,7 @@ export class CurrentObject extends PluginUIComponent {
 
         return <>
             {(cell.status === 'ok' || cell.status === 'error') && <UpdateTransformContol state={current.state} transform={transform} /> }
-            {cell.status === 'ok' && <StateObjectActions state={current.state} nodeRef={ref} />}
+            {cell.status === 'ok' && <StateObjectActions state={current.state} nodeRef={ref} initiallyColapsed />}
         </>;
     }
 }
