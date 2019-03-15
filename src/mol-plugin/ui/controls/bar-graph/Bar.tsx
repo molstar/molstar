@@ -11,15 +11,11 @@ export default class Bar extends React.Component<any, any> {
   private onHover = (event: any) => {
     if(!this.props.onHover) { return; }
     this.props.onHover(this.value);
-    if(!this.props.setHover) { return; }
-    this.props.setHover(true);
   };
 
   private offHover = (event: any) => {
     if(!this.props.onMouseLeave) { return; }
     this.props.onMouseLeave();
-    if(!this.props.setHover) { return; }
-    this.props.setHover(false);
   }
 
   private onClick = (event: any) => {

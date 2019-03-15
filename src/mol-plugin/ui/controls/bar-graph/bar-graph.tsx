@@ -58,10 +58,6 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
     this.props.onMouseLeave();
   };
 
-  private setHover = (value: boolean) => {
-    this.setState({ hovering: value});
-  }
-
   private handleMouseMove = (event: any) => {
     const pt = this.state.myRef.createSVGPoint();
     pt.x = event.clientX;
@@ -110,7 +106,6 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
           onHover={this.handleHover}
           onMouseLeave={this.handleLeave}
           onClick={this.handleClick}
-          setHover={this.setHover}
         />
       );
       this.setState({ bars });
@@ -128,7 +123,6 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
         >
           <g className="cursor">
             <rect
-            style={{display: this.state.hovering ? "block" : "none"}}
               x={this.state.currentX}
               y={this.padding / 2}
               width={6}
