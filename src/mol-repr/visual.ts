@@ -97,7 +97,6 @@ namespace Visual {
             lociApply(loci, apply)
         }
         ValueCell.update(tOverpaint, tOverpaint.ref.value)
-        console.log(renderObject)
     }
 
     export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean) {

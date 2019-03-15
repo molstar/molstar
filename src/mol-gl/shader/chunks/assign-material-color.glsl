@@ -17,14 +17,13 @@
     float at = 0.0;
 
     #if defined(dTransparencyVariant_single)
-        ivec2 pixelCoord = ivec2(gl_FragCoord.xy);
         const mat4 thresholdMatrix = mat4(
             1.0 / 17.0,  9.0 / 17.0,  3.0 / 17.0, 11.0 / 17.0,
             13.0 / 17.0,  5.0 / 17.0, 15.0 / 17.0,  7.0 / 17.0,
             4.0 / 17.0, 12.0 / 17.0,  2.0 / 17.0, 10.0 / 17.0,
             16.0 / 17.0,  8.0 / 17.0, 14.0 / 17.0,  6.0 / 17.0
         );
-        at = thresholdMatrix[pixelCoord.x % 4][pixelCoord.y % 4];
+        at = thresholdMatrix[int(intMod(gl_FragCoord.x, 4.0))][int(intMod(gl_FragCoord.y, 4.0))];
     #elif defined(dTransparencyVariant_multi)
         at = fract(dot(vec3(gl_FragCoord.xy, vGroup + 0.5), vec3(2.0, 7.0, 23.0) / 17.0f));
     #endif
