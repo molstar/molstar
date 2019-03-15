@@ -69,6 +69,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor)
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
         if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint)
+        if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency)
         if (state.transform !== undefined && visual) visual.setTransform(state.transform)
         if (state.unitTransforms !== undefined && visual) {
             // Since ComplexVisuals always renders geometries between units the application of `unitTransforms`

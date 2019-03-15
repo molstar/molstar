@@ -1,6 +1,14 @@
 float intDiv(float a, float b) { return float(int(a) / int(b)); }
 float intMod(float a, float b) { return a - b * float(int(a) / int(b)); }
 
+float hash2d(vec2 coord2d) {
+    return fract(1.0e4 * sin(17.0 * coord2d.x + 0.1 * coord2d.y) * (0.1 + abs(sin(13.0 * coord2d.y + coord2d.x))));
+}
+
+float hash3d(vec3 coord3d) {
+    return hash2d(vec2(hash2d(coord3d.xy), coord3d.z));
+}
+
 #if __VERSION__ != 300
     // transpose
 

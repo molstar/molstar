@@ -19,5 +19,5 @@
 #endif
 
 #ifdef dTransparency
-    vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + aGroup, uTransparencyTexDim);
+    vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + aGroup, uTransparencyTexDim).a;
 #endif

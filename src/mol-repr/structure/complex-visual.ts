@@ -197,7 +197,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
-        setOverpaint(overpaint: Overpaint, clear = false) {
+        setOverpaint(overpaint: Overpaint) {
             return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
         },
         setTransparency(transparency: Transparency) {

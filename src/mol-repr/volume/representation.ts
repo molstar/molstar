@@ -254,6 +254,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor)
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
         if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint)
+        if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency)
         if (state.transform !== undefined && visual) visual.setTransform(state.transform)
 
         Representation.updateState(_state, state)
