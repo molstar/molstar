@@ -14,36 +14,25 @@ import { Transparency } from 'mol-theme/transparency';
 
 type Script = { language: string, expression: string }
 
+function scriptToLoci(structure: Structure, script: Script) {
+    const parsed = parseMolScript(script.expression)
+    if (parsed.length === 0) throw new Error('No query')
+    const query = transpileMolScript(parsed[0])
+
+    const compiled = compile<StructureSelection>(query)
+    const result = compiled(new QueryContext(structure))
+    return StructureSelection.toLoci2(result)
+}
+
 export function getStructureOverpaint(structure: Structure, scriptLayers: { script: Script, color: Color }[], alpha: number): Overpaint {
     const layers: Overpaint.Layer[] = []
     for (let i = 0, il = scriptLayers.length; i < il; ++i) {
         const { script, color } = scriptLayers[i]
-        const parsed = parseMolScript(script.expression)
-        if (parsed.length === 0) throw new Error('No query')
-        const query = transpileMolScript(parsed[0])
-
-        const compiled = compile<StructureSelection>(query)
-        const result = compiled(new QueryContext(structure))
-        const loci = StructureSelection.toLoci2(result)
-
-        layers.push({ loci, color })
+        layers.push({ loci: scriptToLoci(structure, script), color })
     }
     return { layers, alpha }
 }
 
-export function getStructureTransparency(structure: Structure, scriptLayers: { script: Script, value: number }[]): Transparency {
-    const layers: Transparency.Layer[] = []
-    for (let i = 0, il = scriptLayers.length; i < il; ++i) {
-        const { script, value } = scriptLayers[i]
-        const parsed = parseMolScript(script.expression)
-        if (parsed.length === 0) throw new Error('No query')
-        const query = transpileMolScript(parsed[0])
-
-        const compiled = compile<StructureSelection>(query)
-        const result = compiled(new QueryContext(structure))
-        const loci = StructureSelection.toLoci2(result)
-
-        layers.push({ loci, value })
-    }
-    return { layers }
+export function getStructureTransparency(structure: Structure, script: Script, value: number, variant: Transparency.Variant): Transparency {
+    return { loci: scriptToLoci(structure, script), value, variant }
 }

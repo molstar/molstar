@@ -4,23 +4,24 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Loci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 
 export { Transparency }
 
-type Transparency = { layers: ReadonlyArray<Transparency.Layer> }
+interface Transparency {
+    readonly loci: Loci
+    readonly value: number
+    readonly variant: Transparency.Variant
+}
 
 namespace Transparency {
-    export type Layer = { readonly loci: Loci, readonly value: number }
-    export const Empty: Transparency = { layers: [] }
+    export type Variant = 'single' | 'multi'
+    export const Empty: Transparency = { loci: EmptyLoci, value: 0, variant: 'single' }
 
     export function areEqual(tA: Transparency, tB: Transparency) {
-        if (tA.layers.length === 0 && tB.layers.length === 0) return true
-        if (tA.layers.length !== tB.layers.length) return false
-        for (let i = 0, il = tA.layers.length; i < il; ++i) {
-            if (tA.layers[i].value !== tB.layers[i].value) return false
-            if (!Loci.areEqual(tA.layers[i].loci, tB.layers[i].loci)) return false
-        }
+        if (tA.value !== tB.value) return false
+        if (tA.variant !== tB.variant) return false
+        if (!Loci.areEqual(tA.loci, tB.loci)) return false
         return true
     }
 }

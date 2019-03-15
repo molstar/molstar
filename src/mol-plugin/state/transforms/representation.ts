@@ -376,20 +376,9 @@ const TransparencyStructureRepresentation3D = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
     params: {
-        layers: PD.ObjectList({
-            script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :chain-test (= atom.label_asym_id A))' }),
-            value: PD.Numeric(0.5)
-        }, e => `Transparency ${e.value}`, {
-            defaultValue: [
-                {
-                    script: {
-                        language: 'mol-script',
-                        expression: '(sel.atom.atom-groups :chain-test (= atom.label_asym_id A))'
-                    },
-                    value: 0.5
-                }
-            ]
-        }),
+        script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :chain-test (= atom.label_asym_id A))' }),
+        value: PD.Numeric(0.75, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
+        variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']])
     }
 })({
     canAutoUpdate() {
@@ -397,25 +386,25 @@ const TransparencyStructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         const structure = a.data.source.data
-        const transparency = getStructureTransparency(structure, params.layers)
+        const transparency = getStructureTransparency(structure, params.script, params.value, params.variant)
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { transparency },
             initialState: { transparency: Transparency.Empty },
             info: structure,
             source: a
-        }, { label: `Transparency (${transparency.layers.length} Layers)` })
+        }, { label: `Transparency (${transparency.value})` })
     },
     update({ a, b, newParams, oldParams }) {
         const structure = b.data.info as Structure
         if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate
         const oldTransparency = b.data.state.transparency!
-        const newTransparency = getStructureTransparency(structure, newParams.layers)
+        const newTransparency = getStructureTransparency(structure, newParams.script, newParams.value, newParams.variant)
         if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged
 
         b.data.state.transparency = newTransparency
         b.data.source = a
-        b.label = `Transparency (${newTransparency.layers.length} Layers)`
+        b.label = `Transparency (${newTransparency.value})`
         return StateTransformer.UpdateResult.Updated
     }
 });
