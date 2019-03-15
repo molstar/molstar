@@ -15,5 +15,6 @@
 #endif
 
 #ifdef dTransparency
+    varying float vGroup;
     varying float vTransparency;
 #endif

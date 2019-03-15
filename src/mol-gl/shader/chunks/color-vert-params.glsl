@@ -23,6 +23,7 @@
 #endif
 
 #ifdef dTransparency
+    varying float vGroup;
     varying float vTransparency;
     uniform vec2 uTransparencyTexDim;
     uniform sampler2D tTransparency;

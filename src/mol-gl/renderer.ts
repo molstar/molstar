@@ -177,7 +177,7 @@ namespace Renderer {
                 gl.depthMask(true)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
-                    if (r.state.opaque && !r.values.dTransparency.ref.value) renderObject(r, variant)
+                    if (r.state.opaque) renderObject(r, variant)
                 }
 
                 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
@@ -185,7 +185,7 @@ namespace Renderer {
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
                     gl.depthMask(r.values.uAlpha.ref.value === 1.0)
-                    if (!r.state.opaque || r.values.dTransparency.ref.value) renderObject(r, variant)
+                    if (!r.state.opaque) renderObject(r, variant)
                 }
             } else {
                 // picking

@@ -24,29 +24,31 @@
     // );
     // float at = thresholdMatrix[pixelCoord.x % 4][pixelCoord.y % 4];
 
-    // https://research.nvidia.com/publication/hashed-alpha-testing
-    // Find the discretized derivatives of our coordinates
-    float maxDeriv = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition)));
-    float pixScale = 1.0 / maxDeriv;
-    // Find two nearest log-discretized noise scales
-    vec2 pixScales = vec2(exp2(floor(log2(pixScale))), exp2(ceil(log2(pixScale))));
-    // Compute alpha thresholds at our two noise scales
-    vec2 alpha = vec2(hash3d(floor(pixScales.x * vViewPosition)), hash3d(floor(pixScales.y * vViewPosition)));
-    // Factor to interpolate lerp with
-    float lerpFactor = fract(log2(pixScale));
-    // Interpolate alpha threshold from noise at two scales
-    float x = (1.0 - lerpFactor) * alpha.x + lerpFactor * alpha.y;
-    // Pass into CDF to compute uniformly distrib threshold
-    float a = min(lerpFactor, 1.0 - lerpFactor);
-    vec3 cases = vec3(
-        x * x / (2.0 * a * (1.0 - a)),
-        (x - 0.5 * a) / (1.0 - a),
-        1.0 - ((1.0 - x) * (1.0 - x) / (2.0 * a * (1.0 - a)))
-    );
-    // Find our final, uniformly distributed alpha threshold
-    float at = (x < (1.0 - a)) ? ((x < a) ? cases.x : cases.y) : cases.z;
-    // Avoids ατ == 0. Could also do
-    at = clamp(at, 1.0e-6, 1.0);
+    // // https://research.nvidia.com/publication/hashed-alpha-testing
+    // // Find the discretized derivatives of our coordinates
+    // float maxDeriv = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition)));
+    // float pixScale = 1.0 / maxDeriv;
+    // // Find two nearest log-discretized noise scales
+    // vec2 pixScales = vec2(exp2(floor(log2(pixScale))), exp2(ceil(log2(pixScale))));
+    // // Compute alpha thresholds at our two noise scales
+    // vec2 alpha = vec2(hash3d(floor(pixScales.x * vViewPosition)), hash3d(floor(pixScales.y * vViewPosition)));
+    // // Factor to interpolate lerp with
+    // float lerpFactor = fract(log2(pixScale));
+    // // Interpolate alpha threshold from noise at two scales
+    // float x = (1.0 - lerpFactor) * alpha.x + lerpFactor * alpha.y;
+    // // Pass into CDF to compute uniformly distrib threshold
+    // float a = min(lerpFactor, 1.0 - lerpFactor);
+    // vec3 cases = vec3(
+    //     x * x / (2.0 * a * (1.0 - a)),
+    //     (x - 0.5 * a) / (1.0 - a),
+    //     1.0 - ((1.0 - x) * (1.0 - x) / (2.0 * a * (1.0 - a)))
+    // );
+    // // Find our final, uniformly distributed alpha threshold
+    // float at = (x < (1.0 - a)) ? ((x < a) ? cases.x : cases.y) : cases.z;
+    // // Avoids ατ == 0. Could also do
+    // at = clamp(at, 1.0e-6, 1.0);
+
+    float at = fract(dot(vec3(gl_FragCoord.xy, vGroup + 0.5), vec3(2.0, 7.0, 23.0) / 17.0f));
 
     if (ma < 0.99 && (ma < 0.01 || ma < at)) discard;
 #endif
