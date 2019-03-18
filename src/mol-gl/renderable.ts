@@ -51,3 +51,27 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
         dispose: () => renderItem.destroy()
     }
 }
+
+//
+
+export interface ComputeRenderable<T extends RenderableValues> {
+    readonly id: number
+    readonly values: T
+
+    render: () => void
+    getProgram: () => Program
+    update: () => void
+    dispose: () => void
+}
+
+export function createComputeRenderable<T extends Values<RenderableSchema>>(renderItem: RenderItem, values: T): ComputeRenderable<T> {
+    return {
+        id: getNextRenderableId(),
+        values,
+
+        render: () => renderItem.render('draw'),
+        getProgram: () => renderItem.getProgram('draw'),
+        update: () => renderItem.update(),
+        dispose: () => renderItem.destroy()
+    }
+}

@@ -60,12 +60,6 @@ export const MeshShaderCode = ShaderCode(
     { standardDerivatives: true, fragDepth: false }
 )
 
-export const GaussianDensityShaderCode = ShaderCode(
-    require('mol-gl/shader/gaussian-density.vert'),
-    require('mol-gl/shader/gaussian-density.frag'),
-    { standardDerivatives: false, fragDepth: false }
-)
-
 export const DirectVolumeShaderCode = ShaderCode(
     require('mol-gl/shader/direct-volume.vert'),
     require('mol-gl/shader/direct-volume.frag'),

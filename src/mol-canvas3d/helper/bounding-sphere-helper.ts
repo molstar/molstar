@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createRenderObject, RenderObject, getNextMaterialId } from 'mol-gl/render-object'
+import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from 'mol-gl/render-object'
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -27,15 +27,15 @@ export const DebugHelperParams = {
 export type DebugHelperParams = typeof DebugHelperParams
 export type DebugHelperProps = PD.Values<DebugHelperParams>
 
-type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: RenderObject, mesh: Mesh }
+type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: GraphicsRenderObject, mesh: Mesh }
 
 export class BoundingSphereHelper {
     readonly scene: Scene
 
     private readonly parent: Scene
     private _props: DebugHelperProps
-    private objectsData = new Map<RenderObject, BoundingSphereData>()
-    private instancesData = new Map<RenderObject, BoundingSphereData>()
+    private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>()
+    private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>()
     private sceneData: BoundingSphereData | undefined
 
     constructor(ctx: WebGLContext, parent: Scene, props: Partial<DebugHelperProps>) {

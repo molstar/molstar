@@ -7,7 +7,7 @@
 import { Renderable } from './renderable'
 import { WebGLContext } from './webgl/context';
 import { RenderableValues, BaseValues } from './renderable/schema';
-import { RenderObject, createRenderable, GraphicsRenderObject } from './render-object';
+import { GraphicsRenderObject, createRenderable } from './render-object';
 import { Object3D } from './object3d';
 import { Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
@@ -58,16 +58,16 @@ interface Scene extends Object3D {
     readonly boundingSphere: Sphere3D
 
     update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void
-    add: (o: RenderObject) => Renderable<any>
-    remove: (o: RenderObject) => void
-    has: (o: RenderObject) => boolean
+    add: (o: GraphicsRenderObject) => Renderable<any>
+    remove: (o: GraphicsRenderObject) => void
+    has: (o: GraphicsRenderObject) => boolean
     clear: () => void
-    forEach: (callbackFn: (value: Renderable<RenderableValues & BaseValues>, key: RenderObject) => void) => void
+    forEach: (callbackFn: (value: Renderable<RenderableValues & BaseValues>, key: GraphicsRenderObject) => void) => void
 }
 
 namespace Scene {
     export function create(ctx: WebGLContext): Scene {
-        const renderableMap = new Map<RenderObject, Renderable<RenderableValues & BaseValues>>()
+        const renderableMap = new Map<GraphicsRenderObject, Renderable<RenderableValues & BaseValues>>()
         const renderables: Renderable<RenderableValues & BaseValues>[] = []
         const boundingSphere = Sphere3D.zero()
         let boundingSphereDirty = true
@@ -95,7 +95,7 @@ namespace Scene {
                 }
                 if (!keepBoundingSphere) boundingSphereDirty = true
             },
-            add: (o: RenderObject) => {
+            add: (o: GraphicsRenderObject) => {
                 if (!renderableMap.has(o)) {
                     const renderable = createRenderable(ctx, o)
                     renderables.push(renderable)
@@ -108,7 +108,7 @@ namespace Scene {
                     return renderableMap.get(o)!
                 }
             },
-            remove: (o: RenderObject) => {
+            remove: (o: GraphicsRenderObject) => {
                 const renderable = renderableMap.get(o)
                 if (renderable) {
                     renderable.dispose()
@@ -118,7 +118,7 @@ namespace Scene {
                     boundingSphereDirty = true
                 }
             },
-            has: (o: RenderObject) => {
+            has: (o: GraphicsRenderObject) => {
                 return renderableMap.has(o)
             },
             clear: () => {
@@ -129,7 +129,7 @@ namespace Scene {
                 renderableMap.clear()
                 boundingSphereDirty = true
             },
-            forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
+            forEach: (callbackFn: (value: Renderable<any>, key: GraphicsRenderObject) => void) => {
                 renderableMap.forEach(callbackFn)
             },
             get count() {
