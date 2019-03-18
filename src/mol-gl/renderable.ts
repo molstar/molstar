@@ -22,6 +22,7 @@ export type RenderableState = {
 
 export interface Renderable<T extends RenderableValues> {
     readonly id: number
+    readonly materialId: number
     readonly values: T
     readonly state: RenderableState
 
@@ -34,6 +35,7 @@ export interface Renderable<T extends RenderableValues> {
 export function createRenderable<T extends Values<RenderableSchema>>(renderItem: RenderItem, values: T, state: RenderableState): Renderable<T> {
     return {
         id: getNextRenderableId(),
+        materialId: renderItem.materialId,
         values,
         state,
 

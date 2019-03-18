@@ -35,6 +35,7 @@ export function getDrawMode(ctx: WebGLContext, drawMode: DrawMode) {
 
 export interface RenderItem {
     readonly id: number
+    readonly materialId: number
     getProgram: (variant: RenderVariant) => Program
 
     render: (variant: RenderVariant) => void
@@ -133,6 +134,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
 
     return {
         id,
+        materialId,
         getProgram: (variant: RenderVariant) => programs[variant].value,
 
         render: (variant: RenderVariant) => {
