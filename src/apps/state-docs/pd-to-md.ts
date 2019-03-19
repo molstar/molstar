@@ -15,6 +15,7 @@ function paramInfo(param: PD.Any, offset: number): string {
         case 'value': return 'Value';
         case 'boolean': return 'true/false';
         case 'number': return 'Numeric value';
+        case 'histogram': return 'Numeric value from histogram';
         case 'converted': return paramInfo(param.converted, offset);
         case 'conditioned': return getParams(param.conditionParams, offset);
         case 'multi-select': return `Array of ${oToS(param.options)}`;

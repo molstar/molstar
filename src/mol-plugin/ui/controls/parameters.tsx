@@ -14,6 +14,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { camelCaseToWords } from 'mol-util/string';
 import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
+import BarGraph from './bar-graph/bar-graph';
 import { Slider, Slider2 } from './slider';
 import { NumericInput, IconButton } from './common';
 
@@ -65,6 +66,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'line-graph': return LineGraphControl;
         case 'script-expression': return ScriptExpressionControl;
         case 'object-list': return ObjectListControl;
+        case 'histogram': return HistogramControl;
         default:
             const _: never = param;
             console.warn(`${_} has no associated UI component`);
@@ -158,6 +160,49 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
                     onDrag={this.onDrag} />
             </div>
         </>;
+    }
+}
+
+export class HistogramControl extends React.PureComponent<ParamProps<PD.Histogram>, {isExpanded: boolean, message: any}> {
+    state = {
+        isExpanded: false,
+        message: this.props.param.defaultValue.toPrecision(),
+    }
+
+    onClick = (value: number) => {
+        this.props.onChange({name: this.props.name, param: this.props.param, value: value});
+    }
+
+    toggleExpanded = (e:React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ isExpanded: !this.state.isExpanded });
+        e.currentTarget.blur();
+    }
+
+    onHover = (value: any) => {
+        this.setState({ message: value });
+    }
+
+    render() {
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
+        return (<>
+                    <div className='msp-control-row'>
+                        <span>{label}</span>
+                        <div>
+                            <button onClick={this.toggleExpanded}>
+                                {this.state.message}
+                            </button>
+                        </div>
+                    </div>
+                    <div className='msp-control-offset' style={{display: this.state.isExpanded ? 'block' : 'none'}}>
+                        <BarGraph 
+                            onHover={this.onHover} 
+                            onClick={this.onClick}
+                            height={400} 
+                            padding={70} 
+                            bins={this.props.param.histogram.bins} 
+                            counts={this.props.param.histogram.counts} />
+                    </div>
+                </>)
     }
 }
 
@@ -501,7 +546,6 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
         const param = this.props.param.map(value.name);
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         const Mapped = controlFor(param);
-
         const select = <SelectControl param={this.props.param.select}
             isDisabled={this.props.isDisabled} onChange={this.onChangeName} onEnter={this.props.onEnter}
             name={label} value={value.name} />

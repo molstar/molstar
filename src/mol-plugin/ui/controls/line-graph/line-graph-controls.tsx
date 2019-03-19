@@ -1,7 +1,7 @@
 // import * as React from 'react';
 
 import { Vec2 } from 'mol-math/linear-algebra';
-import { unNormalize, normalize } from './normilization';
+import { unNormalize, normalizeToFitGraph } from './normilization';
 
 export function getEventListener(event:any, state:any) {
     switch(event.type) {
@@ -146,7 +146,7 @@ function mouseUp(event: any, state: any) {
         let lowerBound = upperBound + parseInt(rect.getAttribute('height') as string);
         for(i = 1; i < points.length-1; i++){
             let size;
-            let point = normalize(state.height, state.width, Vec2.create(points[i][0], points[i][1]), state.padding);
+            let point = normalizeToFitGraph(state.height, state.width, Vec2.create(points[i][0], points[i][1]), state.padding);
             
             if(point[0] >= leftBound && point[0] <= rightBound && point[1] >= upperBound && point[1] <= lowerBound) {
                 selected.push(i);

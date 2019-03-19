@@ -9,7 +9,7 @@ import { Task } from 'mol-task';
 import { SpacegroupCell, Box3D } from 'mol-math/geometry';
 import { Tensor, Vec3 } from 'mol-math/linear-algebra';
 import { Ccp4File, Ccp4Header } from 'mol-io/reader/ccp4/schema';
-import { degToRad } from 'mol-math/misc';
+import { degToRad, calcHistogram } from 'mol-math/misc';
 import { getCcp4ValueType } from 'mol-io/reader/ccp4/parser';
 import { TypedArrayValueType } from 'mol-io/common/typed-array';
 
@@ -68,7 +68,8 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3 }):
                 min: header.AMIN,
                 max: header.AMAX,
                 mean: header.AMEAN,
-                sigma: header.ARMS
+                sigma: header.ARMS,
+                histogram: calcHistogram(values, header.AMIN, header.AMAX)
             }
         };
     });

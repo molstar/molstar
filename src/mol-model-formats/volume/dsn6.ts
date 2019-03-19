@@ -8,7 +8,7 @@ import { VolumeData } from 'mol-model/volume/data'
 import { Task } from 'mol-task';
 import { SpacegroupCell, Box3D } from 'mol-math/geometry';
 import { Tensor, Vec3 } from 'mol-math/linear-algebra';
-import { degToRad } from 'mol-math/misc';
+import { degToRad, calcHistogram } from 'mol-math/misc';
 import { Dsn6File } from 'mol-io/reader/dsn6/schema';
 import { arrayMin, arrayMax, arrayMean, arrayRms } from 'mol-util/array';
 
@@ -39,7 +39,8 @@ function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3 }): Task<V
                 min: arrayMin(values),
                 max: arrayMax(values),
                 mean: arrayMean(values),
-                sigma: header.sigma !== undefined ? header.sigma : arrayRms(values)
+                sigma: header.sigma !== undefined ? header.sigma : arrayRms(values),
+                histogram: calcHistogram(values, arrayMin(values), arrayMax(values))
             }
         };
     });

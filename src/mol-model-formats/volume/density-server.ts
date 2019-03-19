@@ -9,6 +9,7 @@ import { VolumeData } from 'mol-model/volume/data'
 import { Task } from 'mol-task';
 import { SpacegroupCell, Box3D } from 'mol-math/geometry';
 import { Tensor, Vec3 } from 'mol-math/linear-algebra';
+import { calcHistogram } from 'mol-math/misc';
 
 function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async ctx => {
@@ -41,7 +42,8 @@ function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<
                 min: info.min_sampled.value(0),
                 max: info.max_sampled.value(0),
                 mean: info.mean_sampled.value(0),
-                sigma: info.sigma_sampled.value(0)
+                sigma: info.sigma_sampled.value(0),
+                histogram: calcHistogram(data.data, info.min_sampled.value(0), info.max_sampled.value(0))
             }
         };
     });

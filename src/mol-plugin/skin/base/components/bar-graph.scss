@@ -1,0 +1,26 @@
+.msp-bar-graph {
+  width: 100%;
+  height: 100%;
+  background-color: #f3f2ee;
+}
+
+.msp-bar-graph:focus {
+  outline: none;
+}
+
+.bars {
+  fill: black;
+  stroke-width: 3px;
+  stroke: #f3f2ee;
+}
+
+.bar:hover {
+    fill: #ae5d04;
+    stroke-width: 3px;
+}
+
+.bar:focus {
+  fill: #ae5d04;
+  stroke-width: 3px;
+  outline: none;
+}

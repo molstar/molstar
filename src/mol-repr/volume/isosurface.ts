@@ -19,10 +19,10 @@ import { VisualContext } from 'mol-repr/visual';
 import { NullLocation } from 'mol-model/location';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 
-const defaultStats: VolumeData['dataStats'] = { min: -1, max: 1, mean: 0, sigma: 0.1  };
+const defaultStats: VolumeData['dataStats'] = { min: -1, max: 1, mean: 0, sigma: 0.1, histogram: { bins: [-1, 1], counts: [1] }  };
 export function createIsoValueParam(defaultValue: VolumeIsoValue, stats?: VolumeData['dataStats']) {
     const sts = stats || defaultStats;
-    const { min, max, mean, sigma } = sts;
+    const { min, max, mean, sigma, histogram } = sts;
 
     // using ceil/floor could lead to "ouf of bounds" when converting
     const relMin = (min - mean) / sigma;
@@ -43,7 +43,7 @@ export function createIsoValueParam(defaultValue: VolumeIsoValue, stats?: Volume
             'absolute': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v, VolumeData.One.dataStats).absoluteValue,
                 (v: number) => VolumeIsoValue.absolute(v),
-                PD.Numeric(mean, { min, max, step: sigma / 100 })
+                histogram ? PD.Histogram(mean, histogram) : PD.Numeric(mean, { min, max, step: sigma / 100 })
             ),
             'relative': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v, VolumeData.One.dataStats).relativeValue,

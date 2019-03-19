@@ -8,6 +8,7 @@
 import { SpacegroupCell, Box3D } from 'mol-math/geometry'
 import { Tensor, Mat4, Vec3 } from 'mol-math/linear-algebra'
 import { equalEps } from 'mol-math/linear-algebra/3d/common';
+import { Histogram } from 'mol-math/misc';
 
 /** The basic unit cell that contains the data. */
 interface VolumeData {
@@ -18,7 +19,8 @@ interface VolumeData {
         min: number,
         max: number,
         mean: number,
-        sigma: number
+        sigma: number,
+        histogram?: Histogram
     }>
 }
 
@@ -27,7 +29,7 @@ namespace VolumeData {
         cell: SpacegroupCell.Zero,
         fractionalBox: Box3D.empty(),
         data: Tensor.create(Tensor.Space([1, 1, 1], [0, 1, 2]), Tensor.Data1([0])),
-        dataStats: { min: 0, max: 0, mean: 0, sigma: 0 }
+        dataStats: { min: 0, max: 0, mean: 0, sigma: 0, histogram: { bins: [0, 0], counts: [1] } }
     }
 
     const _scale = Mat4.zero(), _translate = Mat4.zero();
