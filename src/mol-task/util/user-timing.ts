@@ -5,14 +5,10 @@
  */
 
 import { Task } from '../task'
+import { isProductionMode } from 'mol-util/debug';
 
 const hasPerformance = typeof performance !== 'undefined'
-/**
- * on node `process.env.NODE_ENV` is available, in webpack build it is automatically set
- * by the DefinePlugin to the webpack `mode` value
- */
-const productionMode = process.env.NODE_ENV === 'production'
-const timingEnabled = hasPerformance && !productionMode
+const timingEnabled = hasPerformance && !isProductionMode
 
 export namespace UserTiming {
     function startMarkName(task: Task<any>) { return `startTask${task.id}` }
