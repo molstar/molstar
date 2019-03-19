@@ -147,9 +147,34 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, usageHint: Usa
 //
 
 export type AttributeItemSize = 1 | 2 | 3 | 4 | 16
+export type AttributeKind = 'float32' | 'int32'
+
+export function getAttribType(ctx: WebGLContext, kind: AttributeKind, itemSize: AttributeItemSize) {
+    const { gl } = ctx
+    switch (kind) {
+        case 'int32':
+            switch (itemSize) {
+                case 1: return gl.INT
+                case 2: return gl.INT_VEC2
+                case 3: return gl.INT_VEC3
+                case 4: return gl.INT_VEC4
+            }
+            break
+        case 'float32':
+            switch (itemSize) {
+                case 1: return gl.FLOAT
+                case 2: return gl.FLOAT_VEC2
+                case 3: return gl.FLOAT_VEC3
+                case 4: return gl.FLOAT_VEC4
+                case 16: return gl.FLOAT_MAT4
+            }
+            break
+    }
+    throw new Error(`unknown attribute type for kind '${kind}' and itemSize '${itemSize}'`)
+}
 
 export type AttributeDefs = {
-    [k: string]: { kind: ArrayKind, itemSize: AttributeItemSize, divisor: number }
+    [k: string]: { kind: AttributeKind, itemSize: AttributeItemSize, divisor: number }
 }
 export type AttributeValues = { [k: string]: ValueCell<ArrayType> }
 export type AttributeBuffers = [string, AttributeBuffer][]

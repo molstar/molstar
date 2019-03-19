@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, ArrayKind } from './buffer';
+import { createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, AttributeKind } from './buffer';
 import { createTextures } from './texture';
 import { WebGLContext } from './context';
 import { ShaderCode } from '../shader-code';
@@ -212,7 +212,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                     } else {
                         // console.log('attribute array to small, need to create new attribute', k, value.ref.id, value.ref.version)
                         buffer.destroy()
-                        const { itemSize, divisor } = schema[k] as AttributeSpec<ArrayKind>
+                        const { itemSize, divisor } = schema[k] as AttributeSpec<AttributeKind>
                         attributeBuffers[i] = [k, createAttributeBuffer(ctx, value.ref.value, itemSize, divisor)]
                         valueChanges.attributes = true
                     }

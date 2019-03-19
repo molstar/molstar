@@ -6,13 +6,14 @@
 
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
 import { WebGLContext } from './context';
-import { getUniformSetters, UniformsList } from './uniform';
-import { AttributeBuffers } from './buffer';
+import { getUniformSetters, UniformsList, getUniformType } from './uniform';
+import { AttributeBuffers, getAttribType } from './buffer';
 import { TextureId, Textures } from './texture';
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 import { idFactory } from 'mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
 import { hashFnv32a, hashString } from 'mol-data/util';
+import { isProductionMode } from 'mol-util/debug';
 
 const getNextProgramId = idFactory()
 
@@ -47,6 +48,63 @@ function getLocations(ctx: WebGLContext, program: WebGLProgram, schema: Renderab
     return locations
 }
 
+function checkActiveAttributes(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
+    const { gl } = ctx
+    const attribCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    for (let i = 0; i < attribCount; ++i) {
+        const info = gl.getActiveAttrib(program, i);
+        if (info) {
+            const { name, type } = info
+            const spec = schema[name]
+            if (spec === undefined) {
+                throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`)
+            }
+            if (spec.type !== 'attribute') {
+                throw new Error(`'${name}' must be of type 'attribute' but is '${spec.type}'`)
+            }
+            const attribType = getAttribType(ctx, spec.kind, spec.itemSize)
+            if (attribType !== type) {
+                throw new Error(`unexpected attribute type for ${name}`)
+            }
+        }
+    }
+}
+
+function checkActiveUniforms(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
+    const { gl } = ctx
+    const attribCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < attribCount; ++i) {
+        const info = gl.getActiveUniform(program, i);
+        if (info) {
+            const { name, type } = info
+            const spec = schema[name]
+            if (spec === undefined) {
+                throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`)
+            }
+            if (spec.type === 'uniform') {
+                const uniformType = getUniformType(gl, spec.kind)
+                if (uniformType !== type) {
+                    throw new Error(`unexpected uniform type for ${name}`)
+                }
+            } else if (spec.type === 'texture') {
+                if (spec.kind === 'image-float32' || spec.kind === 'image-uint8') {
+                    if (type !== gl.SAMPLER_2D) {
+                        throw new Error(`unexpected sampler type for '${name}'`)
+                    }
+                } else if (spec.kind === 'volume-float32' || spec.kind === 'volume-uint8') {
+                    if (type !== (gl as WebGL2RenderingContext).SAMPLER_3D) {
+                        throw new Error(`unexpected sampler type for '${name}'`)
+                    }
+                } else {
+                    // TODO
+                }
+            } else {
+                throw new Error(`'${name}' must be of type 'uniform' or 'texture' but is '${spec.type}'`)
+            }
+        }
+    }
+}
+
 export interface ProgramProps {
     defineValues: DefineValues,
     shaderCode: ShaderCode,
@@ -76,6 +134,11 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
 
     const locations = getLocations(ctx, program, schema)
     const uniformSetters = getUniformSetters(schema)
+
+    if (!isProductionMode) {
+        checkActiveAttributes(ctx, program, schema)
+        checkActiveUniforms(ctx, program, schema)
+    }
 
     let destroyed = false
 
