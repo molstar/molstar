@@ -57,34 +57,43 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     // always use texture2d when the gaussian density needs to be downloaded from the GPU,
     // it's faster than texture3d
     // console.time('GaussianDensityTexture2d')
-    const { scale, bbox, texture, dim } = await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props)
+    const { scale, bbox, texture, dim } = await calcGaussianDensityTexture2d(ctx, webgl, position, box, radius, props)
     // console.timeEnd('GaussianDensityTexture2d')
     const { field, idField } = await fieldFromTexture2d(webgl, texture, dim)
 
-    const transform = Mat4.identity()
-    Mat4.fromScaling(transform, scale)
-    Mat4.setTranslation(transform, bbox.min)
-
-    return { field, idField, transform }
+    return { field, idField, transform: getTransform(scale, bbox) }
 }
 
 export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, oldTexture?: Texture): Promise<DensityTextureData> {
-    // console.time(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
-    const { texture, scale, bbox, dim } = webgl.isWebGL2 ?
+    return webgl.isWebGL2 ?
         await GaussianDensityTexture3d(ctx, webgl, position, box, radius, props, oldTexture) :
         await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props, oldTexture)
-    // console.timeEnd(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
+}
 
+export async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, oldTexture?: Texture): Promise<DensityTextureData> {
+    return finalizeGaussianDensityTexture(await calcGaussianDensityTexture2d(ctx, webgl, position, box, radius, props, oldTexture))
+}
+
+export async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, oldTexture?: Texture): Promise<DensityTextureData> {
+    return finalizeGaussianDensityTexture(await calcGaussianDensityTexture3d(ctx, webgl, position, box, radius, props, oldTexture))
+}
+
+function finalizeGaussianDensityTexture({ texture, scale, bbox, dim }: GaussianDensityTextureData): DensityTextureData {
+    return { transform: getTransform(scale, bbox), texture, bbox, gridDimension: dim }
+}
+
+function getTransform(scale: Vec3, bbox: Box3D) {
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, scale)
     Mat4.setTranslation(transform, bbox.min)
-
-    return { transform, texture, bbox, gridDimension: dim }
+    return transform
 }
 
 //
 
-async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture) {
+type GaussianDensityTextureData = { texture: Texture, scale: Vec3, bbox: Box3D, dim: Vec3}
+
+async function calcGaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture): Promise<GaussianDensityTextureData> {
     const { smoothness } = props
 
     const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
@@ -144,7 +153,7 @@ async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
 
-async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture) {
+async function calcGaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, texture?: Texture): Promise<GaussianDensityTextureData> {
     const { smoothness } = props
 
     const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
@@ -340,7 +349,7 @@ async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3
     // await ctx.readPixelsAsync(0, 0, width, height, image)
     ctx.readPixels(0, 0, width, height, image)
 
-    // debugTexture(createImageData(image, width, height), 1/3)
+    // printImageData(createImageData(image, width, height), 1/3)
 
     let j = 0
     let tmpCol = 0

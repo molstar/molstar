@@ -11,6 +11,7 @@ import { PositionData, DensityData } from './common';
 import { GaussianDensityCPU } from './gaussian-density/cpu';
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { Texture } from 'mol-gl/webgl/texture';
+import { GaussianDensityTexture2d, GaussianDensityTexture3d } from './gaussian-density/gpu';
 
 // import { GaussianDensityGPU, GaussianDensityTexture } from './gaussian-density/gpu';
 const GaussianDensityGPU = typeof document !== 'undefined'
@@ -58,8 +59,22 @@ export async function GaussianDensity(ctx: RuntimeContext, position: PositionDat
 }
 
 export function computeGaussianDensityTexture(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, webgl: WebGLContext, texture?: Texture) {
+    return _computeGaussianDensityTexture(webgl.isWebGL2 ? '3d' : '2d', position, box, radius, props, webgl, texture)
+}
+
+export function computeGaussianDensityTexture2d(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, webgl: WebGLContext, texture?: Texture) {
+    return _computeGaussianDensityTexture('2d', position, box, radius, props, webgl, texture)
+}
+
+export function computeGaussianDensityTexture3d(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, webgl: WebGLContext, texture?: Texture) {
+    return _computeGaussianDensityTexture('2d', position, box, radius, props, webgl, texture)
+}
+
+function _computeGaussianDensityTexture(type: '2d' | '3d', position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityGPUProps, webgl: WebGLContext, texture?: Texture) {
     if (!GaussianDensityTexture) throw 'GPU computation not supported on this platform';
     return Task.create('Gaussian Density', async ctx => {
-        return await GaussianDensityTexture(ctx, webgl, position, box, radius, props, texture);
+        return type === '2d' ?
+            await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props, texture) :
+            await GaussianDensityTexture3d(ctx, webgl, position, box, radius, props, texture);
     });
 }
