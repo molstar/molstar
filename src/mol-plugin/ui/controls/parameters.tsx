@@ -163,23 +163,44 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
     }
 }
 
-export class HistogramControl extends React.PureComponent<ParamProps<PD.Histogram>, {isExpanded: boolean, message: any}> {
+export class HistogramControl extends React.PureComponent<ParamProps<PD.Histogram>, {selected: string , isExpanded: boolean, message: any, userInput: number}> {
     state = {
         isExpanded: false,
-        message: this.props.param.defaultValue.toPrecision(),
+        selected: this.props.param.defaultValue.toPrecision(4),
+        message: this.props.param.defaultValue.toPrecision(4),
+        userInput: -Infinity
     }
 
     onClick = (value: number) => {
-        this.props.onChange({name: this.props.name, param: this.props.param, value: value});
+        this.props.onChange({name: this.props.name, param: this.props.param, value});
+        this.setState({selected: value.toPrecision(4)})
     }
 
-    toggleExpanded = (e:React.MouseEvent<HTMLButtonElement>) => {
+    onEnter = () => {
+        //TODO: Get user input and put it in its respecful bin 
+    }
+
+    update = (value: number) => {
+        this.props.onChange({ param: this.props.param, name: this.props.name, value});
+    }
+
+    onChange = (event: any) => {
+        const value = parseInt(event.target.value);
+        this.props.onChange({ param: this.props.param, name: this.props.name, value });
+        this.setState({message: value.toPrecision(4)});
+    }
+
+    toggleExpanded = (e:React.MouseEvent<HTMLElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
     }
 
+    displaySelected = (value: number) => {
+        this.setState({message: this.state.selected});
+    }
+
     onHover = (value: any) => {
-        this.setState({ message: value });
+        this.setState({ message: value.toPrecision(4)});
     }
 
     render() {
@@ -187,10 +208,12 @@ export class HistogramControl extends React.PureComponent<ParamProps<PD.Histogra
         return (<>
                     <div className='msp-control-row'>
                         <span>{label}</span>
-                        <div>
-                            <button onClick={this.toggleExpanded}>
-                                {this.state.message}
-                            </button>
+                        <div className="msp-two-columns">   
+                            <div className={this.state.isExpanded ? "msp-down-arrow" : "msp-right-arrow"}
+                                onClick={this.toggleExpanded}></div>
+                            <NumericInput
+                                    value={Number(this.state.message)} onEnter={this.onEnter} placeholder={this.state.selected}
+                                    isDisabled={this.props.isDisabled} onChange={this.update} />
                         </div>
                     </div>
                     <div className='msp-control-offset' style={{display: this.state.isExpanded ? 'block' : 'none'}}>
@@ -199,6 +222,7 @@ export class HistogramControl extends React.PureComponent<ParamProps<PD.Histogra
                             onClick={this.onClick}
                             height={400} 
                             padding={70} 
+                            onMouseLeave={this.displaySelected}
                             bins={this.props.param.histogram.bins} 
                             counts={this.props.param.histogram.counts} />
                     </div>

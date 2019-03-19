@@ -10,8 +10,11 @@ import { scale } from "../line-graph/normilization";
 import Bar from "./Bar";
 
 interface BarGraphState {
-  bars: any[]
+  bars: any[];
   selected: number;
+  currentX: number;
+  myRef: any;
+  hovering: boolean;
 }
 
 export default class BarGraph extends React.Component<any, BarGraphState> {
@@ -22,6 +25,9 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
     this.state = {
       bars: [],
       selected: this.props.mean,
+      currentX: -1,
+      myRef: React.createRef,
+      hovering: false,
     };
 
     this.height = this.props.height;
@@ -32,13 +38,31 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
     this.setHeightOfBars();
   }
 
+  private refCallBack = (element: any) => {
+    if(element) {
+      this.setState({myRef: element});
+    }
+  }
+
   private handleHover = (value: any) => {
     this.props.onHover(value);
   };
 
   private handleClick = (value: number) => {
     this.props.onClick(value);
-    this.setState({ selected: value});
+    this.setState({ selected: value });
+  };
+
+  private handleLeave = () => {
+    this.props.onMouseLeave();
+  };
+
+  private handleMouseMove = (event: any) => {
+    const pt = this.state.myRef.createSVGPoint();
+    pt.x = event.clientX;
+    pt.y = event.clientY;
+    let svgP = pt.matrixTransform(this.state.myRef.getScreenCTM().inverse());
+    this.setState({ currentX: svgP.x});
   }
 
   private setHeightOfBars() {
@@ -51,17 +75,23 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
       }
     }
 
-    for (let i = 0; i < this.props.bins.length-1; i++) {
+    for (let i = 0; i < this.props.bins.length - 1; i++) {
       let position = Vec2.create(0, 0);
       position[0] = scale(
         parseFloat(this.props.bins[i]),
         this.props.bins[0],
-        this.props.bins[this.props.bins.length-1],
+        this.props.bins[this.props.bins.length - 1],
         this.padding / 2,
         600 + this.padding / 2
       );
-      position[1] = scale(this.props.counts[i], 0, max, this.padding/2, this.height+this.padding/2);
-      position[1] = this.height+(this.padding) - position[1];
+      position[1] = scale(
+        this.props.counts[i],
+        0,
+        max,
+        this.padding / 2,
+        this.height + this.padding / 2
+      );
+      position[1] = this.height + this.padding - position[1];
 
       bars.push(
         <Bar
@@ -71,8 +101,9 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
           x={position[0]}
           y={position[1]}
           width={6}
-          height={this.height + (this.padding) - position[1]}
+          height={this.height + this.padding - position[1]}
           onHover={this.handleHover}
+          onMouseLeave={this.handleLeave}
           onClick={this.handleClick}
         />
       );
@@ -86,7 +117,18 @@ export default class BarGraph extends React.Component<any, BarGraphState> {
         <svg
           className="msp-bar-graph"
           viewBox={`0 0 670 ${this.height + this.padding}`}
+          onMouseMove={this.handleMouseMove}
+          ref={this.refCallBack}
         >
+          <g className="cursor">
+            <rect
+              x={this.state.currentX}
+              y={this.padding / 2}
+              width={6}
+              height={this.height + this.padding / 2}
+              fillOpacity={0.4}
+            />
+          </g>
           <g className="bars">{this.state.bars}</g>
         </svg>
       </div>
