@@ -25,16 +25,19 @@ import { ColorNames } from 'mol-util/color/tables';
 import { getLabelRepresentation } from 'mol-plugin/util/structure-labels';
 import { ShapeRepresentation } from 'mol-repr/shape/representation';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
-import { unwindStructureAssembly, explodeStructure, getStructureOverpaint } from '../animation/helpers';
+import { unwindStructureAssembly, explodeStructure } from '../animation/helpers';
 import { Color } from 'mol-util/color';
 import { Overpaint } from 'mol-theme/overpaint';
+import { Transparency } from 'mol-theme/transparency';
+import { getStructureOverpaint, getStructureTransparency } from './helpers';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
 export { StructureLabels3D}
 export { ExplodeStructureRepresentation3D }
 export { UnwindStructureAssemblyRepresentation3D }
-export { OverpaintStructureRepresentation3D as ColorStructureRepresentation3D }
+export { OverpaintStructureRepresentation3D }
+export { TransparencyStructureRepresentation3D }
 export { VolumeRepresentation3D }
 
 namespace StructureRepresentation3DHelpers {
@@ -362,6 +365,46 @@ const OverpaintStructureRepresentation3D = PluginStateTransform.BuiltIn({
         b.data.state.overpaint = newOverpaint
         b.data.source = a
         b.label = `Overpaint (${newOverpaint.layers.length} Layers)`
+        return StateTransformer.UpdateResult.Updated
+    }
+});
+
+type TransparencyStructureRepresentation3D = typeof TransparencyStructureRepresentation3D
+const TransparencyStructureRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'transparency-structure-representation-3d',
+    display: 'Transparency 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: {
+        script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :chain-test (= atom.label_asym_id A))' }),
+        value: PD.Numeric(0.75, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
+        variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']])
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.source.data
+        const transparency = getStructureTransparency(structure, params.script, params.value, params.variant)
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { transparency },
+            initialState: { transparency: Transparency.Empty },
+            info: structure,
+            source: a
+        }, { label: `Transparency (${transparency.value})` })
+    },
+    update({ a, b, newParams, oldParams }) {
+        const structure = b.data.info as Structure
+        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate
+        const oldTransparency = b.data.state.transparency!
+        const newTransparency = getStructureTransparency(structure, newParams.script, newParams.value, newParams.variant)
+        if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged
+
+        b.data.state.transparency = newTransparency
+        b.data.source = a
+        b.label = `Transparency (${newTransparency.value})`
         return StateTransformer.UpdateResult.Updated
     }
 });

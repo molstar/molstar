@@ -6,7 +6,7 @@
 
 import { WebGLContext } from './context';
 import { Program } from './program';
-import { AttributeBuffers, ElementsBuffer } from './buffer';
+import { ElementsBuffer, AttributeBuffers } from './buffer';
 
 export function createVertexArray(ctx: WebGLContext, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) {
     const { vertexArrayObject } = ctx.extensions

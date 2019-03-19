@@ -34,7 +34,7 @@ export const GaussianDensityVolumeParams = {
 }
 export type GaussianDensityVolumeParams = typeof GaussianDensityVolumeParams
 
-export function GaussianDensityVolumeVisual(): ComplexVisual<GaussianDensityVolumeParams> {
+export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<GaussianDensityVolumeParams> {
     return ComplexDirectVolumeVisual<GaussianDensityVolumeParams>({
         defaultProps: PD.getDefaultValues(GaussianDensityVolumeParams),
         createGeometry: createGaussianDensityVolume,
@@ -49,5 +49,5 @@ export function GaussianDensityVolumeVisual(): ComplexVisual<GaussianDensityVolu
                 newProps.isoValueNorm = Math.exp(-newProps.smoothness)
             }
         }
-    })
+    }, materialId)
 }

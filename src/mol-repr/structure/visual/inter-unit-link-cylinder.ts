@@ -58,7 +58,7 @@ export const InterUnitLinkParams = {
 }
 export type InterUnitLinkParams = typeof InterUnitLinkParams
 
-export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkParams> {
+export function InterUnitLinkVisual(materialId: number): ComplexVisual<InterUnitLinkParams> {
     return ComplexMeshVisual<InterUnitLinkParams>({
         defaultProps: PD.getDefaultValues(InterUnitLinkParams),
         createGeometry: createInterUnitLinkCylinderMesh,
@@ -74,7 +74,7 @@ export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkParams> {
                 newProps.linkSpacing !== currentProps.linkSpacing
             )
         }
-    })
+    }, materialId)
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {

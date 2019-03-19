@@ -22,6 +22,7 @@ import { MeshValues } from 'mol-gl/renderable/mesh';
 import { Color } from 'mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
+import { createEmptyTransparency } from '../transparency-data';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -383,6 +384,7 @@ export namespace Mesh {
         const color = createColors(locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
         const overpaint = createEmptyOverpaint()
+        const transparency = createEmptyTransparency()
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
 
@@ -401,6 +403,7 @@ export namespace Mesh {
             ...color,
             ...marker,
             ...overpaint,
+            ...transparency,
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),

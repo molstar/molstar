@@ -33,7 +33,7 @@ function spheresRepr() {
 
     const values = Spheres.Utils.createValuesSimple(spheres, {}, Color(0xFF0000), 1)
     const state = Spheres.Utils.createRenderableState({})
-    const renderObject = createRenderObject('spheres', values, state)
+    const renderObject = createRenderObject('spheres', values, state, -1)
     console.log(renderObject)
     const repr = Representation.fromRenderObject('spheres', renderObject)
     return repr

@@ -19,6 +19,7 @@ import { createSizes, getMaxSize } from '../size-data';
 import { Color } from 'mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
+import { createEmptyTransparency } from '../transparency-data';
 
 /** Spheres */
 export interface Spheres {
@@ -81,6 +82,7 @@ export namespace Spheres {
         const size = createSizes(locationIt, theme.size)
         const marker = createMarkers(instanceCount * groupCount)
         const overpaint = createEmptyOverpaint()
+        const transparency = createEmptyTransparency()
 
         const counts = { drawCount: spheres.sphereCount * 2 * 3, groupCount, instanceCount }
 
@@ -101,6 +103,7 @@ export namespace Spheres {
             ...size,
             ...marker,
             ...overpaint,
+            ...transparency,
             ...transform,
 
             padding: ValueCell.create(padding),

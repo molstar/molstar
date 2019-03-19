@@ -20,6 +20,7 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { BaseGeometry } from 'mol-geo/geometry/base';
 import { Visual } from './visual';
 import { Overpaint } from 'mol-theme/overpaint';
+import { Transparency } from 'mol-theme/transparency';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -146,19 +147,22 @@ namespace Representation {
         pickable: boolean
         /** Overpaint applied to the representation's renderobjects */
         overpaint: Overpaint
+        /** Per group transparency applied to the representation's renderobjects */
+        transparency: Transparency
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
         transform: Mat4
     }
     export function createState(): State {
-        return { visible: false, alphaFactor: 0, pickable: false, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty }
+        return { visible: false, alphaFactor: 0, pickable: false, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty }
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible
         if (update.alphaFactor !== undefined) state.alphaFactor = update.alphaFactor
         if (update.pickable !== undefined) state.pickable = update.pickable
         if (update.overpaint !== undefined) state.overpaint = update.overpaint
+        if (update.transparency !== undefined) state.transparency = update.transparency
         if (update.syncManually !== undefined) state.syncManually = update.syncManually
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
     }
@@ -320,6 +324,9 @@ namespace Representation {
                 if (state.alphaFactor !== undefined) Visual.setAlphaFactor(renderObject, state.alphaFactor)
                 if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable)
                 if (state.overpaint !== undefined) {
+                    // TODO
+                }
+                if (state.transparency !== undefined) {
                     // TODO
                 }
                 if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform)

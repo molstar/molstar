@@ -5,7 +5,7 @@
  */
 
 import { Task, RuntimeContext } from 'mol-task'
-import { createRenderObject, GraphicsRenderObject } from 'mol-gl/render-object';
+import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from 'mol-gl/render-object';
 import { Representation } from '../representation';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { ValueCell } from 'mol-util';
@@ -35,6 +35,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     let version = 0
     const updated = new Subject<number>()
     const _state = Representation.createState()
+    const materialId = getNextMaterialId()
     const renderObjects: GraphicsRenderObject[] = []
     let _renderObject: GraphicsRenderObject | undefined
     let _shape: Shape<G>
@@ -101,7 +102,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                 const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps)
                 const state = geometryUtils.createRenderableState(newProps)
 
-                _renderObject = createRenderObject(_shape.geometry.kind, values, state)
+                _renderObject = createRenderObject(_shape.geometry.kind, values, state, materialId)
                 if (_renderObject) renderObjects.push(_renderObject) // add new renderObject to list
             } else {
                 if (!_renderObject) {
@@ -184,6 +185,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                 if (state.pickable !== undefined) Visual.setPickable(_renderObject, state.pickable)
                 if (state.overpaint !== undefined) {
                     Visual.setOverpaint(_renderObject, state.overpaint, lociApply, true)
+                }
+                if (state.transparency !== undefined) {
+                    Visual.setTransparency(_renderObject, state.transparency, lociApply, true)
                 }
                 if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform)
             }

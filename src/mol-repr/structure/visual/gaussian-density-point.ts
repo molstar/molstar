@@ -55,7 +55,7 @@ export async function createGaussianDensityPoint(ctx: VisualContext, unit: Unit,
     return builder.getPoints()
 }
 
-export function GaussianDensityPointVisual(): UnitsVisual<GaussianDensityPointParams> {
+export function GaussianDensityPointVisual(materialId: number): UnitsVisual<GaussianDensityPointParams> {
     return UnitsPointsVisual<GaussianDensityPointParams>({
         defaultProps: PD.getDefaultValues(GaussianDensityPointParams),
         createGeometry: createGaussianDensityPoint,
@@ -68,5 +68,5 @@ export function GaussianDensityPointVisual(): UnitsVisual<GaussianDensityPointPa
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
         }
-    })
+    }, materialId)
 }

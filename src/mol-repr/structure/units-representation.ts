@@ -7,7 +7,7 @@
 
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
-import { GraphicsRenderObject } from 'mol-gl/render-object';
+import { GraphicsRenderObject, getNextMaterialId } from 'mol-gl/render-object';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Visual } from '../visual';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
@@ -28,9 +28,10 @@ export type UnitsParams = typeof UnitsParams
 
 export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGroup, P> { }
 
-export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
+export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const materialId = getNextMaterialId()
     const renderObjects: GraphicsRenderObject[] = []
     const _state = StructureRepresentationStateBuilder.create()
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
@@ -57,7 +58,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                 _groups = structure.unitSymmetryGroups;
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
-                    const visual = visualCtor()
+                    const visual = visualCtor(materialId)
                     const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                     if (promise) await promise
                     visuals.set(group.hashCode, { visual, group })
@@ -86,7 +87,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                     } else {
                         // console.log(label, 'not found visualGroup to reuse, creating new')
                         // newGroups.push(group)
-                        const visual = visualCtor()
+                        const visual = visualCtor(materialId)
                         const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                         if (promise) await promise
                         visuals.set(group.hashCode, { visual, group })
@@ -171,11 +172,12 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     }
 
     function setState(state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transform, unitTransforms } = state
+        const { visible, alphaFactor, pickable, overpaint, transparency, transform, unitTransforms } = state
         if (visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(visible))
         if (alphaFactor !== undefined) visuals.forEach(({ visual }) => visual.setAlphaFactor(alphaFactor))
         if (pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(pickable))
         if (overpaint !== undefined) visuals.forEach(({ visual }) => visual.setOverpaint(overpaint))
+        if (transparency !== undefined) visuals.forEach(({ visual }) => visual.setTransparency(transparency))
         if (transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(transform))
         if (unitTransforms !== undefined) {
             visuals.forEach(({ visual, group }) => {

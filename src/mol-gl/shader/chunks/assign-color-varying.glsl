@@ -17,3 +17,8 @@
 #ifdef dOverpaint
     vOverpaint = readFromTexture(tOverpaint, aInstance * float(uGroupCount) + aGroup, uOverpaintTexDim);
 #endif
+
+#ifdef dTransparency
+    vGroup = aGroup;
+    vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + aGroup, uTransparencyTexDim).a;
+#endif

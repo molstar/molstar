@@ -40,7 +40,7 @@ export const GaussianSurfaceParams = {
 }
 export type GaussianSurfaceParams = typeof GaussianSurfaceParams
 
-export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceParams> {
+export function GaussianSurfaceVisual(materialId: number): UnitsVisual<GaussianSurfaceParams> {
     return UnitsMeshVisual<GaussianSurfaceParams>({
         defaultProps: PD.getDefaultValues(GaussianSurfaceParams),
         createGeometry: createGaussianSurfaceMesh,
@@ -53,5 +53,5 @@ export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceParams> {
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
         }
-    })
+    }, materialId)
 }

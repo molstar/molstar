@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,7 +14,7 @@ const getNextBufferId = idFactory()
 
 export type UsageHint = 'static' | 'dynamic' | 'stream'
 export type DataType = 'uint8' | 'int8' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'float32'
-export type BufferType = 'attribute' | 'elements'
+export type BufferType = 'attribute' | 'elements' | 'uniform'
 
 export type DataTypeArrayType = {
     'uint8': Uint8Array
@@ -27,8 +27,6 @@ export type DataTypeArrayType = {
 }
 export type ArrayType = ValueOf<DataTypeArrayType>
 export type ArrayKind = keyof DataTypeArrayType
-
-export type BufferItemSize = 1 | 2 | 3 | 4 | 16
 
 export function getUsageHint(ctx: WebGLContext, usageHint: UsageHint) {
     const { gl } = ctx
@@ -78,6 +76,7 @@ export function getBufferType(ctx: WebGLContext, bufferType: BufferType) {
     switch (bufferType) {
         case 'attribute': return gl.ARRAY_BUFFER
         case 'elements': return gl.ELEMENT_ARRAY_BUFFER
+        case 'uniform': return (gl as WebGL2RenderingContext).UNIFORM_BUFFER
     }
 }
 
@@ -90,8 +89,6 @@ export interface Buffer {
     readonly _dataType: number
     readonly _bpe: number
 
-    readonly itemSize: number
-    readonly itemCount: number
     readonly length: number
 
     updateData: (array: ArrayType) => void
@@ -99,7 +96,7 @@ export interface Buffer {
     destroy: () => void
 }
 
-export function createBuffer(ctx: WebGLContext, array: ArrayType, itemSize: BufferItemSize, usageHint: UsageHint, bufferType: BufferType): Buffer {
+export function createBuffer(ctx: WebGLContext, array: ArrayType, usageHint: UsageHint, bufferType: BufferType): Buffer {
     const { gl } = ctx
     const _buffer = gl.createBuffer()
     if (_buffer === null) {
@@ -111,11 +108,10 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, itemSize: Buff
     const _dataType = dataTypeFromArray(ctx, array)
     const _bpe = array.BYTES_PER_ELEMENT
     const _length = array.length
-    const _itemCount = Math.floor(_length / itemSize)
 
     function updateData(array: ArrayType) {
         gl.bindBuffer(_bufferType, _buffer);
-        (gl as WebGLRenderingContext).bufferData(_bufferType, array, _usageHint) // TODO remove cast when webgl2 types are fixed
+        gl.bufferData(_bufferType, array, _usageHint)
     }
     updateData(array)
 
@@ -131,14 +127,12 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, itemSize: Buff
         _dataType,
         _bpe,
 
-        get itemSize () { return itemSize },
-        get itemCount () { return _itemCount },
-        get length () { return _length },
+        length: _length,
 
         updateData,
         updateSubData: (array: ArrayType, offset: number, count: number) => {
             gl.bindBuffer(_bufferType, _buffer);
-            (gl as WebGLRenderingContext).bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count)) // TODO remove cast when webgl2 types are fixed
+            gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count))
         },
 
         destroy: () => {
@@ -150,21 +144,25 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, itemSize: Buff
     }
 }
 
+//
+
+export type AttributeItemSize = 1 | 2 | 3 | 4 | 16
+
 export type AttributeDefs = {
-    [k: string]: { kind: ArrayKind, itemSize: BufferItemSize, divisor: number }
+    [k: string]: { kind: ArrayKind, itemSize: AttributeItemSize, divisor: number }
 }
 export type AttributeValues = { [k: string]: ValueCell<ArrayType> }
-export type AttributeBuffers = { [k: string]: AttributeBuffer }
+export type AttributeBuffers = [string, AttributeBuffer][]
 
 export interface AttributeBuffer extends Buffer {
     bind: (location: number) => void
 }
 
-export function createAttributeBuffer<T extends ArrayType, S extends BufferItemSize>(ctx: WebGLContext, array: ArrayType, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
+export function createAttributeBuffer<T extends ArrayType, S extends AttributeItemSize>(ctx: WebGLContext, array: T, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
     const { gl } = ctx
     const { instancedArrays } = ctx.extensions
 
-    const buffer = createBuffer(ctx, array, itemSize, usageHint, 'attribute')
+    const buffer = createBuffer(ctx, array, usageHint, 'attribute')
     const { _buffer, _bufferType, _dataType, _bpe } = buffer
 
     return {
@@ -187,15 +185,17 @@ export function createAttributeBuffer<T extends ArrayType, S extends BufferItemS
 }
 
 export function createAttributeBuffers(ctx: WebGLContext, schema: RenderableSchema, values: AttributeValues) {
-    const buffers: AttributeBuffers = {}
+    const buffers: AttributeBuffers = []
     Object.keys(schema).forEach(k => {
         const spec = schema[k]
         if (spec.type === 'attribute') {
-            buffers[k] = createAttributeBuffer(ctx, values[k].ref.value, spec.itemSize, spec.divisor)
+            buffers[buffers.length] = [k, createAttributeBuffer(ctx, values[k].ref.value, spec.itemSize, spec.divisor)]
         }
     })
-    return buffers as AttributeBuffers
+    return buffers
 }
+
+//
 
 export type ElementsType = Uint16Array | Uint32Array
 export type ElementsKind = 'uint16' | 'uint32'
@@ -206,7 +206,7 @@ export interface ElementsBuffer extends Buffer {
 
 export function createElementsBuffer(ctx: WebGLContext, array: ElementsType, usageHint: UsageHint = 'static'): ElementsBuffer {
     const { gl } = ctx
-    const buffer = createBuffer(ctx, array, 1, usageHint, 'elements')
+    const buffer = createBuffer(ctx, array, usageHint, 'elements')
     const { _buffer } = buffer
 
     return {

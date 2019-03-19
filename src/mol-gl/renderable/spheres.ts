@@ -24,13 +24,13 @@ export const SpheresSchema = {
 export type SpheresSchema = typeof SpheresSchema
 export type SpheresValues = Values<SpheresSchema>
 
-export function SpheresRenderable(ctx: WebGLContext, id: number, values: SpheresValues, state: RenderableState): Renderable<SpheresValues> {
+export function SpheresRenderable(ctx: WebGLContext, id: number, values: SpheresValues, state: RenderableState, materialId: number): Renderable<SpheresValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...SpheresSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
         uPickable: ValueCell.create(state.pickable ? 1 : 0)
     }
     const shaderCode = SpheresShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
+    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
     return createRenderable(renderItem, values, state);
 }

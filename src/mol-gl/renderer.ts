@@ -1,10 +1,9 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Viewport } from 'mol-canvas3d/camera/util';
 import { Camera } from 'mol-canvas3d/camera';
 
@@ -106,18 +105,21 @@ namespace Renderer {
 
             uPickingAlphaThreshold: ValueCell.create(pickingAlphaThreshold),
         }
+        const globalUniformList = Object.entries(globalUniforms)
 
         let globalUniformsNeedUpdate = true
         const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
             const program = r.getProgram(variant)
             if (r.state.visible) {
                 if (ctx.currentProgramId !== program.id) {
+                    // console.log('new program')
                     globalUniformsNeedUpdate = true
                 }
 
                 program.use()
                 if (globalUniformsNeedUpdate) {
-                    program.setUniforms(globalUniforms)
+                    // console.log('globalUniformsNeedUpdate')
+                    program.setUniforms(globalUniformList)
                     globalUniformsNeedUpdate = false
                 }
 

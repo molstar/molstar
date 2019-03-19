@@ -46,7 +46,8 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Representation.StructureLabels3D),
         PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
-        PluginSpec.Action(StateTransforms.Representation.ColorStructureRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
 
         PluginSpec.Action(StateActions.Structure.StructureFromSelection),

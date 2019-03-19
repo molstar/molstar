@@ -25,6 +25,7 @@ import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
 import { Color } from 'mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
+import { createEmptyTransparency } from '../transparency-data';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]
@@ -103,6 +104,7 @@ export namespace DirectVolume {
         const color = createColors(locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
         const overpaint = createEmptyOverpaint()
+        const transparency = createEmptyTransparency()
 
         const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount }
 
@@ -117,6 +119,7 @@ export namespace DirectVolume {
             ...color,
             ...marker,
             ...overpaint,
+            ...transparency,
             ...transform,
             ...BaseGeometry.createValues(props, counts),
 

@@ -66,8 +66,8 @@ async function init() {
     const models = await getModels(cif)
     console.time('computeModelDSSP')
     const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy, models[0].atomicConformation)
-    console.timeEnd('computeModelDSSP')
-    ;(models[0].properties as any).secondaryStructure = secondaryStructure
+    console.timeEnd('computeModelDSSP');
+    (models[0].properties as any).secondaryStructure = secondaryStructure
     const structure = await getStructure(models[0])
     const cartoonRepr = getCartoonRepr()
 
@@ -76,7 +76,7 @@ async function init() {
         size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
     })
     await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
-    
+
     canvas3d.add(cartoonRepr)
     canvas3d.resetCamera()
 }

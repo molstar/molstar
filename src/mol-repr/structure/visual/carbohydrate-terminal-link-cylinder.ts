@@ -65,7 +65,7 @@ export const CarbohydrateTerminalLinkParams = {
 }
 export type CarbohydrateTerminalLinkParams = typeof CarbohydrateTerminalLinkParams
 
-export function CarbohydrateTerminalLinkVisual(): ComplexVisual<CarbohydrateTerminalLinkParams> {
+export function CarbohydrateTerminalLinkVisual(materialId: number): ComplexVisual<CarbohydrateTerminalLinkParams> {
     return ComplexMeshVisual<CarbohydrateTerminalLinkParams>({
         defaultProps: PD.getDefaultValues(CarbohydrateTerminalLinkParams),
         createGeometry: createCarbohydrateTerminalLinkCylinderMesh,
@@ -78,7 +78,7 @@ export function CarbohydrateTerminalLinkVisual(): ComplexVisual<CarbohydrateTerm
                 newProps.radialSegments !== currentProps.radialSegments
             )
         }
-    })
+    }, materialId)
 }
 
 function CarbohydrateTerminalLinkIterator(structure: Structure): LocationIterator {

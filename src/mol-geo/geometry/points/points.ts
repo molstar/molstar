@@ -22,6 +22,7 @@ import { RenderableState } from 'mol-gl/renderable';
 import { Color } from 'mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
+import { createEmptyTransparency } from '../transparency-data';
 
 /** Point cloud */
 export interface Points {
@@ -84,6 +85,7 @@ export namespace Points {
         const size = createSizes(locationIt, theme.size)
         const marker = createMarkers(instanceCount * groupCount)
         const overpaint = createEmptyOverpaint()
+        const transparency = createEmptyTransparency()
 
         const counts = { drawCount: points.pointCount, groupCount, instanceCount }
 
@@ -101,6 +103,7 @@ export namespace Points {
             ...size,
             ...marker,
             ...overpaint,
+            ...transparency,
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),

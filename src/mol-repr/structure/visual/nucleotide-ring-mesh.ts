@@ -175,7 +175,7 @@ export const NucleotideRingParams = {
 }
 export type NucleotideRingParams = typeof NucleotideRingParams
 
-export function NucleotideRingVisual(): UnitsVisual<NucleotideRingParams> {
+export function NucleotideRingVisual(materialId: number): UnitsVisual<NucleotideRingParams> {
     return UnitsMeshVisual<NucleotideRingParams>({
         defaultProps: PD.getDefaultValues(NucleotideRingParams),
         createGeometry: createNucleotideRingMesh,
@@ -188,5 +188,5 @@ export function NucleotideRingVisual(): UnitsVisual<NucleotideRingParams> {
                 newProps.radialSegments !== currentProps.radialSegments
             )
         }
-    })
+    }, materialId)
 }

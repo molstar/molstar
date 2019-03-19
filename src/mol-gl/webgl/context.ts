@@ -136,6 +136,7 @@ export interface WebGLContext {
     readonly framebufferCache: FramebufferCache
 
     currentProgramId: number
+    currentMaterialId: number
 
     bufferCount: number
     framebufferCount: number
@@ -263,6 +264,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         framebufferCache,
 
         currentProgramId: -1,
+        currentMaterialId: -1,
 
         bufferCount: 0,
         framebufferCount: 0,
