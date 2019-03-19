@@ -61,7 +61,7 @@ export interface ComputeRenderable<T extends RenderableValues> {
     readonly values: T
 
     render: () => void
-    getProgram: () => Program
+    use: () => void
     update: () => void
     dispose: () => void
 }
@@ -72,7 +72,7 @@ export function createComputeRenderable<T extends Values<RenderableSchema>>(rend
         values,
 
         render: () => renderItem.render('draw'),
-        getProgram: () => renderItem.getProgram('draw'),
+        use: () => renderItem.getProgram('draw').use(),
         update: () => renderItem.update(),
         dispose: () => renderItem.destroy()
     }
