@@ -1,320 +1,258 @@
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author Schäfer, Marco <marco.schaefer@uni-tuebingen.de>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Tokens, TokenBuilder, Tokenizer } from '../common/text/tokenizer'
-import * as Data from './schema'
-import{ ReaderResult } from '../result'
-import {Task, RuntimeContext, chunkedSubtask } from 'mol-task'
-import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser'
-
-const enum PlyTokenType {
-    Value = 0,
-    Comment = 1,
-    End = 2,
-    property = 3,
-    element = 4
-}
+import { ReaderResult as Result } from '../result'
+import { Task, RuntimeContext } from 'mol-task'
+import { PlyFile, PlyType, PlyElement } from './schema';
+import { Tokenizer, TokenBuilder, Tokens } from '../common/text/tokenizer';
+import { Column } from 'mol-data/db';
+import { TokenColumn } from '../common/text/column/token';
 
 interface State {
-    data: string;
-    tokenizer: Tokenizer,
+    data: string
+    tokenizer: Tokenizer
+    runtimeCtx: RuntimeContext
 
-    tokenType: PlyTokenType;
-    runtimeCtx: RuntimeContext,
-    tokens: Tokens[],
-
-    fieldCount: number,
-
-    columnCount: number,
-    propertyCount: number,
-    vertexCount: number,
-    currentVertex: number,
-    currentProperty: number,
-    currentFace: number,
-    currentFaceElement: number,
-    faceCount: number,
-    endHeader: number,
-
-    initialHead: string[],
-    properties: number[],
-    vertices: number[],
-    colors: number[],
-    normals: number[],
-    faces: number[],
-    propertyNames: string[],
-    check: string[],
-
-    commentCharCode: number,
-    propertyCharCode: number,
-    elementCharCode: number
+    comments: string[]
+    elementSpecs: ElementSpec[]
+    elements: PlyElement[]
 }
 
-function State(data: string, runtimeCtx: RuntimeContext, opts: PlyOptions): State {
+function State(data: string, runtimeCtx: RuntimeContext): State {
     const tokenizer = Tokenizer(data)
     return {
         data,
         tokenizer,
-
-        tokenType: PlyTokenType.End,
         runtimeCtx,
-        tokens: [],
 
-        fieldCount: 0,
-
-        columnCount: 0,
-        propertyCount: 0,
-        vertexCount: 0,
-        currentVertex: 0,
-        currentProperty: 0,
-        currentFace: 0,
-        currentFaceElement: 0,
-        faceCount: 0,
-        endHeader: 0,
-
-        initialHead: [],
-        properties: [],
-        vertices: [],
-        colors: [],
-        normals: [],
-        faces: [],
-        propertyNames: [],
-        check: [],
-
-        commentCharCode: opts.comment.charCodeAt(0),
-        propertyCharCode: opts.property.charCodeAt(0),
-        elementCharCode: opts.element.charCodeAt(0)
-    };
+        comments: [],
+        elementSpecs: [],
+        elements: []
+    }
 }
 
-/**
- * Eat everything until a delimiter (whitespace) or newline occurs.
- * Ignores whitespace at the end of the value, i.e. trim right.
- * Returns true when a newline occurs after the value.
- */
-function eatValue(state: Tokenizer) {
-    while (state.position < state.length) {
-        const c = state.data.charCodeAt(state.position);
-        ++state.position
-        switch (c) {
-            case 10:  // \n
-            case 13:  // \r
-                return true;
-            case 32: // ' ' Delimeter of ply is space (Unicode 32)
-                return true;
-            case 9:  // \t
-            case 32:  // ' '
-                break;
-            default:
-                ++state.tokenEnd;
-                break;
+type ColumnProperty = { kind: 'column', type: PlyType, name: string }
+type ListProperty = { kind: 'list', countType: PlyType, dataType: PlyType, name: string }
+type Property = ColumnProperty | ListProperty
+
+type TableElementSpec = { kind: 'table', name: string, count: number, properties: ColumnProperty[] }
+type ListElementSpec = { kind: 'list', name: string, count: number, property: ListProperty }
+type ElementSpec = TableElementSpec | ListElementSpec
+
+function markHeader(tokenizer: Tokenizer) {
+    const endHeaderIndex = tokenizer.data.indexOf('end_header', tokenizer.position)
+    if (endHeaderIndex === -1) throw new Error(`no 'end_header' record found`)
+    // TODO set `tokenizer.lineNumber` correctly
+    tokenizer.tokenStart = tokenizer.position
+    tokenizer.tokenEnd = endHeaderIndex
+    tokenizer.position = endHeaderIndex
+    Tokenizer.eatLine(tokenizer)
+}
+
+function parseHeader(state: State) {
+    const { tokenizer, comments, elementSpecs } = state
+
+    markHeader(tokenizer)
+    const headerLines = Tokenizer.getTokenString(tokenizer).split(/\r?\n/)
+
+    if (headerLines[0] !== 'ply') throw new Error(`data not starting with 'ply'`)
+    if (headerLines[1] !== 'format ascii 1.0') throw new Error(`format not 'ascii 1.0'`)
+
+    let currentName: string | undefined
+    let currentCount: number | undefined
+    let currentProperties: Property[] | undefined
+
+    function addCurrentElementSchema() {
+        if (currentName !== undefined && currentCount !== undefined && currentProperties !== undefined) {
+            let isList = false
+            for (let i = 0, il = currentProperties.length; i < il; ++i) {
+                const p = currentProperties[i]
+                if (p.kind === 'list') {
+                    isList = true
+                    break
+                }
+            }
+            if (isList && currentProperties.length !== 1) throw new Error('expected single list property')
+            if (isList) {
+                elementSpecs.push({
+                    kind: 'list',
+                    name: currentName,
+                    count: currentCount,
+                    property: currentProperties[0] as ListProperty
+                })
+            } else {
+                elementSpecs.push({
+                    kind: 'table',
+                    name: currentName,
+                    count: currentCount,
+                    properties: currentProperties as ColumnProperty[]
+                })
+            }
+        }
+    }
+
+    for (let i = 2, il = headerLines.length; i < il; ++i) {
+        const l = headerLines[i]
+        const ls = l.split(' ')
+        if (l.startsWith('comment')) {
+            comments.push(l.substr(8))
+        } else if (l.startsWith('element')) {
+            addCurrentElementSchema()
+            currentProperties = []
+            currentName = ls[1]
+            currentCount = parseInt(ls[2])
+        } else if (l.startsWith('property')) {
+            if (currentProperties === undefined) throw new Error(`properties outside of element`)
+            if (ls[1] === 'list') {
+                currentProperties.push({
+                    kind: 'list',
+                    countType: PlyType(ls[2]),
+                    dataType: PlyType(ls[3]),
+                    name: ls[4]
+                })
+            } else {
+                currentProperties.push({
+                    kind: 'column',
+                    type: PlyType(ls[1]),
+                    name: ls[2]
+                })
+            }
+        } else if (l.startsWith('end_header')) {
+            addCurrentElementSchema()
+        } else {
+            console.warn('unknown header line')
         }
     }
 }
 
-function eatLine (state: Tokenizer) {
-    while (state.position < state.length) {
-        const c = state.data.charCodeAt(state.position);
-        ++state.position
-        switch (c) {
-            case 10:  // \n
-            case 13:  // \r
-                return true;
-            case 9:  // \t
-                break;
-            default:
-                ++state.tokenEnd;
-                break;
+function parseElements(state: State) {
+    const { elementSpecs } = state
+    for (let i = 0, il = elementSpecs.length; i < il; ++i) {
+        const spec = elementSpecs[i]
+        if (spec.kind === 'table') parseTableElement(state, spec)
+        else if (spec.kind === 'list') parseListElement(state, spec)
+    }
+}
+
+function getColumnSchema(type: PlyType): Column.Schema {
+    switch (type) {
+        case 'char': case 'uchar':
+        case 'short': case 'ushort':
+        case 'int': case 'uint':
+            return Column.Schema.int
+        case 'float': case 'double':
+            return Column.Schema.float
+    }
+}
+
+function parseTableElement(state: State, spec: TableElementSpec) {
+    const { elements, tokenizer } = state
+    const { count, properties } = spec
+    const propertyCount = properties.length
+    const propertyNames: string[] = []
+    const propertyTokens: Tokens[] = []
+    const propertyColumns = new Map<string, Column<number>>()
+
+    for (let i = 0, il = propertyCount; i < il; ++i) {
+        const tokens = TokenBuilder.create(tokenizer.data, count * 2)
+        propertyTokens.push(tokens)
+    }
+
+    for (let i = 0, il = count; i < il; ++i) {
+        for (let j = 0, jl = propertyCount; j < jl; ++j) {
+            Tokenizer.skipWhitespace(tokenizer)
+            Tokenizer.markStart(tokenizer)
+            Tokenizer.eatValue(tokenizer)
+            TokenBuilder.addUnchecked(propertyTokens[j], tokenizer.tokenStart, tokenizer.tokenEnd)
         }
     }
 
-}
-
-function skipLine(state: Tokenizer) {
-    while (state.position < state.length) {
-        const c = state.data.charCodeAt(state.position);
-        if (c === 10 || c === 13) return  // \n or \r
-        ++state.position
-    }
-}
-
-function getColumns(state: State, numberOfColumns: number) {
-    eatLine(state.tokenizer);
-    let tmp = Tokenizer.getTokenString(state.tokenizer)
-    let split = tmp.split(' ', numberOfColumns);
-    return split;
-}
-
-/**
- * Move to the next token.
- * Returns true when the current char is a newline, i.e. indicating a full record.
- */
-function moveNextInternal(state: State) {
-    const tokenizer = state.tokenizer
-
-    if (tokenizer.position >= tokenizer.length) {
-        state.tokenType = PlyTokenType.End;
-        return true;
+    for (let i = 0, il = propertyCount; i < il; ++i) {
+        const { type, name } = properties[i]
+        const column = TokenColumn(propertyTokens[i], getColumnSchema(type))
+        propertyNames.push(name)
+        propertyColumns.set(name, column)
     }
 
-    tokenizer.tokenStart = tokenizer.position;
-    tokenizer.tokenEnd = tokenizer.position;
-    const c = state.data.charCodeAt(tokenizer.position);
-    switch (c) {
-        case state.commentCharCode:
-            state.tokenType = PlyTokenType.Comment;
-            skipLine(tokenizer);
-            break;
-        case state.propertyCharCode: // checks all line beginning with 'p'
-            state.check = getColumns(state, 3);
-            if (state.check[0] !== 'ply' && state.faceCount === 0) {
-                state.propertyNames.push(state.check[1]);
-                state.propertyNames.push(state.check[2]);
-                state.propertyCount++;
+    elements.push({
+        kind: 'table',
+        rowCount: count,
+        propertyNames,
+        getProperty: (name: string) => propertyColumns.get(name)
+    })
+}
+
+function parseListElement(state: State, spec: ListElementSpec) {
+    const { elements, tokenizer } = state
+    const { count, property } = spec
+
+    // initial tokens size assumes triangle index data
+    const tokens = TokenBuilder.create(tokenizer.data, count * 2 * 3)
+
+    const offsets = new Uint32Array(count + 1)
+    let entryCount = 0
+
+    for (let i = 0, il = count; i < il; ++i) {
+        // skip over row entry count as it is determined by line break
+        Tokenizer.skipWhitespace(tokenizer)
+        Tokenizer.eatValue(tokenizer)
+
+        while (Tokenizer.skipWhitespace(tokenizer) !== 10) {
+            ++entryCount
+            Tokenizer.markStart(tokenizer)
+            Tokenizer.eatValue(tokenizer)
+            TokenBuilder.addToken(tokens, tokenizer)
+        }
+        offsets[i + 1] = entryCount
+    }
+
+    // console.log(tokens.indices)
+    // console.log(offsets)
+
+    /** holds row value entries transiently */
+    const listValue = {
+        entries: [] as number[],
+        count: 0
+    }
+
+    const column = TokenColumn(tokens, getColumnSchema(property.dataType))
+
+    elements.push({
+        kind: 'list',
+        rowCount: count,
+        name: property.name,
+        value: (row: number) => {
+            const start = offsets[row]
+            const end = offsets[row + 1]
+            for (let i = start; i < end; ++i) {
+                listValue.entries[i - start] = column.value(i)
             }
-            return;
-        case state.elementCharCode: // checks all line beginning with 'e'
-            state.check = getColumns(state, 3);
-            if (state.check[1] === 'vertex') state.vertexCount= Number(state.check[2]);
-            if (state.check[1] === 'face') state.faceCount = Number(state.check[2]);
-            if (state.check[0] === 'end_header') state.endHeader = 1;
-            return;
-        default:                    // for all the other lines
-            state.tokenType = PlyTokenType.Value;
-            let return_value = eatValue(tokenizer);
-
-            if (state.endHeader === 1) {
-                if (state.currentVertex < state.vertexCount) {
-                    // TODO the numbers are parsed twice
-                    state.properties[state.currentVertex * state.propertyCount + state.currentProperty] = Number(Tokenizer.getTokenString(state.tokenizer));
-                    if (state.currentProperty < 3) {
-                        state.vertices[state.currentVertex * 3 + state.currentProperty] = fastParseFloat(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
-                    }
-                    if (state.currentProperty >= 3 && state.currentProperty < 6) {
-                        state.colors[state.currentVertex * 3 + state.currentProperty - 3] = fastParseInt(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
-                    }
-                    if (state.currentProperty >= 6 && state.currentProperty < 9) {
-                        state.normals[state.currentVertex * 3 + state.currentProperty - 6] = fastParseFloat(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
-                    }
-                    state.currentProperty++;
-                    if (state.currentProperty === state.propertyCount) {
-                        state.currentProperty = 0;
-                        state.currentVertex++;
-                    }
-                    return return_value;
-                }
-                if (state.currentFace < state.faceCount && state.currentVertex === state.vertexCount) {
-                    state.faces[state.currentFace * 4 + state.currentFaceElement] = fastParseInt(state.tokenizer.data, state.tokenizer.tokenStart, state.tokenizer.tokenEnd);
-                    state.currentFaceElement++;
-                    if (state.currentProperty === 4) {
-                        state.currentFaceElement = 0;
-                        state.currentFace++;
-                    }
-                }
-            }
-            return return_value;
-    }
+            listValue.count = end - start
+            return listValue
+        }
+    })
 }
 
-/**
- * Moves to the next non-comment token/line.
- * Returns true when the current char is a newline, i.e. indicating a full record.
- */
-function moveNext(state: State) {
-    let newRecord = moveNextInternal(state);
-    while (state.tokenType === PlyTokenType.Comment) { // skip comment lines (marco)
-        newRecord = moveNextInternal(state);
-    }
-    return newRecord
-}
-
-function readRecordsChunk(chunkSize: number, state: State) {
-    if (state.tokenType === PlyTokenType.End) return 0
-
-    moveNext(state);
-    const { tokens, tokenizer } = state;
-    let counter = 0;
-    while (state.tokenType === PlyTokenType.Value && counter < chunkSize) {
-        TokenBuilder.add(tokens[state.fieldCount % state.columnCount], tokenizer.tokenStart, tokenizer.tokenEnd);
-        ++state.fieldCount
-        moveNext(state);
-        ++counter;
-    }
-    return counter;
-}
-
-function readRecordsChunks(state: State) {
-    return chunkedSubtask(state.runtimeCtx, 100000, state, readRecordsChunk,
-        (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.data.length }));
-}
-
-function addHeadEntry (state: State) {
-    const head = Tokenizer.getTokenString(state.tokenizer)
-    state.initialHead.push(head)
-    state.tokens.push(TokenBuilder.create(head, state.data.length / 80))
-}
-
-function init(state: State) { // only for first two lines to get the format and the coding! (marco)
-    let newRecord = moveNext(state)
-    while (!newRecord) {  // newRecord is only true when a newline occurs (marco)
-        addHeadEntry(state)
-        newRecord = moveNext(state);
-    }
-    addHeadEntry(state)
-    newRecord = moveNext(state);
-    while (!newRecord) {
-        addHeadEntry(state)
-        newRecord = moveNext(state);
-    }
-    addHeadEntry(state)
-    if (state.initialHead[0] !== 'ply') {
-        console.log('ERROR: this is not a .ply file!')
-        throw new Error('this is not a .ply file!');
-        return 0;
-    }
-    if (state.initialHead[2] !== 'ascii') {
-        console.log('ERROR: only ASCII-DECODING is supported!');
-        throw new Error('only ASCII-DECODING is supported!');
-        return 0;
-    }
-    state.columnCount = state.initialHead.length
-    return 1;
-}
-
-async function handleRecords(state: State): Promise<Data.PlyData> {
-    if (!init(state)) {
-        console.log('ERROR: parsing file (PLY) failed!')
-        throw new Error('arsing file (PLY) failed!');
-    }
-    await readRecordsChunks(state)
-
-    return Data.PlyData(state.vertexCount, state.faceCount, state.propertyCount, state.initialHead, state.propertyNames, state.properties, state.vertices, state.colors, state.normals, state.faces)
-}
-
-async function parseInternal(data: string, ctx: RuntimeContext, opts: PlyOptions): Promise<ReaderResult<Data.PlyFile>> {
-    const state = State(data, ctx, opts);
-
+async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<PlyFile>> {
+    const state = State(data, ctx);
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
-    const PLYdata = await handleRecords(state)
-    const result = Data.PlyFile(PLYdata)
-
-    return ReaderResult.success(result);
+    parseHeader(state)
+    // console.log(state.comments)
+    // console.log(JSON.stringify(state.elementSpecs, undefined, 4))
+    parseElements(state)
+    const { elements, elementSpecs, comments } = state
+    const elementNames = elementSpecs.map(s => s.name)
+    const result = PlyFile(elements, elementNames, comments)
+    return Result.success(result);
 }
 
-interface PlyOptions {
-    comment: string;
-    property: string;
-    element: string;
-}
-
-export function parse(data: string, opts?: Partial<PlyOptions>) {
-    const completeOpts = Object.assign({}, { comment: 'c', property: 'p', element: 'e' }, opts)
-    return Task.create<ReaderResult<Data.PlyFile>>('Parse PLY', async ctx => {
-        return await parseInternal(data, ctx, completeOpts);
-    });
+export function parse(data: string) {
+    return Task.create<Result<PlyFile>>('Parse PLY', async ctx => {
+        return await parseInternal(data, ctx)
+    })
 }
 
 export default parse;

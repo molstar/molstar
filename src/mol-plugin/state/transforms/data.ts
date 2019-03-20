@@ -198,7 +198,7 @@ const ParsePly = PluginStateTransform.BuiltIn({
         return Task.create('Parse PLY', async ctx => {
             const parsed = await PLY.parse(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            return new SO.Format.Ply(parsed.result, { label: parsed.result.name || 'PLY Data' });
+            return new SO.Format.Ply(parsed.result, { label: parsed.result.comments[0] || 'PLY Data' });
         });
     }
 });
