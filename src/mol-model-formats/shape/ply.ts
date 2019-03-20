@@ -42,7 +42,7 @@ async function getShape(ctx: RuntimeContext, parsedData: PlyData, props: {}, sha
     const { vertices, normals, faces, colors, properties } = parsedData
     const mesh = await getPlyMesh(ctx, vertices, normals, faces, shape && shape.geometry)
     return shape || Shape.create(
-        'test', mesh,
+        'ply-mesh', mesh,
         (groupId: number) => {
             return Color.fromRgb(
                 colors[faces[4 * groupId + 1] * 3 + 0],
@@ -72,4 +72,5 @@ export function shapeFromPly(source: PlyFile, params?: {}) {
             geometryUtils: Mesh.Utils
         }
     })
+
 }

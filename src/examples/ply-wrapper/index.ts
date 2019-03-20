@@ -19,7 +19,10 @@ import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo } from './
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { ControlsWrapper } from './ui/controls';
 import { PluginState } from 'mol-plugin/state';
+import { Canvas3D } from 'mol-canvas3d/canvas3d';
 require('mol-plugin/skin/light.scss')
+
+
 
 class MolStarPLYWrapper {
     static VERSION_MAJOR = 2;
@@ -30,6 +33,7 @@ class MolStarPLYWrapper {
     readonly events = {
         modelInfo: this._ev<ModelInfo>()
     };
+
 
     plugin: PluginContext;
 
@@ -55,6 +59,15 @@ class MolStarPLYWrapper {
     get state() {
         return this.plugin.state.dataState;
     }
+
+    get klick(){
+    this.plugin.canvas3d.interaction.click.subscribe(e =>{
+          console.log('atomID', e)
+            aminoAcid = 169;
+        })
+        return 0
+    }
+
 
     private download(b: StateBuilder.To<PSO.Root>, url: string) {
         return b.apply(StateTransforms.Data.Download, { url, isBinary: false })

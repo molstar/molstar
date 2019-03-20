@@ -18,6 +18,19 @@
                 height: 400px;
                 border: 1px solid #ccc;
             }
+            #select {
+                position: absolute;
+                left: 10px;
+                top: 480px;
+            }
+            #diagram {
+                position: absolute;
+                left: 10px;
+                top: 520px;
+                width: 1210px;
+                height: 510px;
+                border: 1px solid #ccc;
+            }
 
             #controls {
                 position: absolute;
@@ -43,8 +56,11 @@
         </style>
         <link rel="stylesheet" type="text/css" href="app.css" />
         <script type="text/javascript" src="./index.js"></script>
+        <link rel="stylesheet" type="text/css" href="/FProject5.3/style.css">
+        <!--<link rel="stylesheet" type="text/css" href="/FProject5.3/dist/slimselect.css" />-->
     </head>
     <body>
+    <script>var aminoAcid = 68</script>
         <div id='controls'>
             <h3>Source</h3>
             <input type='text' id='plyurl' placeholder='plyurl' style='width: 400px' />
@@ -64,7 +80,7 @@
 
             function $(id) { return document.getElementById(id); }
         
-            var pdbId = '1rwe', assemblyId= 'preferred';
+            var pdbId = '1tca', assemblyId= 'preferred';
             var url = '/test-data/' + pdbId + '_updated.cif';
             var format = 'cif';
 
@@ -92,6 +108,8 @@
             PluginWrapper.events.modelInfo.subscribe(function (info) {
                 console.log('Model Info', info);
             });
+
+
 
             addControl('Load Asym Unit', () => PluginWrapper.load({ plyurl: plyurl, url: url, format: format }));
             addControl('Load Assembly', () => PluginWrapper.load({ plyurl: plyurl, url: url, format: format, assemblyId: assemblyId }));
@@ -156,6 +174,45 @@
                 h.innerText = header;
                 $('controls').appendChild(h);
             }
+    PluginWrapper.klick;
         </script>
+
+        <!-- --------- FProject start --------- -->
+        <select id="select" onchange="iniciar()">
+            <option value="/FProject5.3/Contact_density/run_0.json">Run 0</option>
+            <option value="/FProject5.3/Contact_density/run_1.json">Run 1</option>
+            <option value="/FProject5.3/Contact_density/run_2.json">Run 2</option>
+            <option value="/FProject5.3/Contact_density/run_3.json">Run 3</option>
+            <option value="/FProject5.3/Contact_density/run_4.json">Run 4</option>
+            <option value="/FProject5.3/Contact_density/run_5.json">Run 5</option>
+            <option value="/FProject5.3/Contact_density/run_6.json">Run 6</option>
+            <option value="/FProject5.3/Contact_density/run_7.json">Run 7</option>
+            <option value="/FProject5.3/Contact_density/run_8.json">Run 8</option>
+            <option value="/FProject5.3/Contact_density/run_9.json">Run 9</option>
+            <option value="/FProject5.3/Contact_density/run_total.json">Run total</option>
+        </select>
+        <div id="diagram">
+        </div>
+        <!--
+        <script>
+            setTimeout(function() {
+                new SlimSelect({
+                    select: '#select'
+                })
+            }, 300)
+        </script>
+        <script src="/FProject5.3/dist/slimselect.min.js"></script>
+        -->
+
+        <!-- load the d3.js library -->
+        <script src="/FProject5.3/d3.v4.min.js"></script>
+        <script src="/FProject5.3/jquery-3.3.1.min.js"></script>
+        <script src="https://d3js.org/d3-path.v1.min.js"></script>
+        <script src="https://d3js.org/d3-shape.v1.min.js"></script>
+
+        <script src="/FProject5.3/scriptv2.js">
+        </script>
+        <!-- --------- FProject end --------- -->
+
     </body>
 </html>
