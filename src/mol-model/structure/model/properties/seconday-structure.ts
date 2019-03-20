@@ -20,7 +20,8 @@ namespace SecondaryStructure {
     export type Element = None | Helix | Sheet
 
     export interface None {
-        kind: 'none'
+        kind: 'none',
+        flags?: SecondaryStructureType // TODO should this level of detail be added to non-defined secondary structure elements?
     }
 
     export interface Helix {

@@ -414,6 +414,7 @@ namespace Vec3 {
     }
 
     const angleTempA = zero(), angleTempB = zero();
+    /** Computes the angle between 2 vectors, reports in rad. */
     export function angle(a: Vec3, b: Vec3) {
         copy(angleTempA, a);
         copy(angleTempB, b);

@@ -275,41 +275,42 @@ export namespace SecondaryStructureType {
         DoubleHelix = 0x1,
         Helix = 0x2,
         Beta = 0x4,
-        Turn = 0x8,
+        Bend = 0x8,
+        Turn = 0x10,
 
         // category variant
-        LeftHanded = 0x10,  // helix
-        RightHanded = 0x20,
+        LeftHanded = 0x20,  // helix
+        RightHanded = 0x40,
 
-        ClassicTurn = 0x40,  // turn
-        InverseTurn = 0x80,
+        ClassicTurn = 0x80,  // turn
+        InverseTurn = 0x100,
 
         // sub-category
-        HelixOther = 0x100,  // protein
-        Helix27 = 0x200,
-        Helix3Ten = 0x400,
-        HelixAlpha = 0x800,
-        HelixGamma = 0x1000,
-        HelixOmega = 0x2000,
-        HelixPi = 0x4000,
-        HelixPolyproline = 0x8000,
+        HelixOther = 0x200,  // protein
+        Helix27 = 0x400,
+        Helix3Ten = 0x800,
+        HelixAlpha = 0x1000,
+        HelixGamma = 0x2000,
+        HelixOmega = 0x4000,
+        HelixPi = 0x8000,
+        HelixPolyproline = 0x10000,
 
-        DoubleHelixOther = 0x10000,  // nucleic
-        DoubleHelixZ = 0x20000,
-        DoubleHelixA = 0x40000,
-        DoubleHelixB = 0x80000,
+        DoubleHelixOther = 0x20000,  // nucleic
+        DoubleHelixZ = 0x40000,
+        DoubleHelixA = 0x80000,
+        DoubleHelixB = 0x100000,
 
-        BetaOther = 0x100000,  // protein
-        BetaStrand = 0x200000,  // single strand
-        BetaSheet = 0x400000,  // multiple hydrogen bonded strands
-        BetaBarell = 0x800000,  // closed series of sheets
+        BetaOther = 0x200000,  // protein
+        BetaStrand = 0x400000,  // single strand
+        BetaSheet = 0x800000,  // multiple hydrogen bonded strands
+        BetaBarell = 0x1000000,  // closed series of sheets
 
-        TurnOther = 0x1000000,  // protein
-        Turn1 = 0x2000000,
-        Turn2 = 0x4000000,
-        Turn3 = 0x8000000,
+        TurnOther = 0x2000000,  // protein
+        Turn1 = 0x4000000,
+        Turn2 = 0x8000000,
+        Turn3 = 0x10000000,
 
-        NA = 0x10000000,  // not applicable/available
+        NA = 0x20000000,  // not applicable/available
     }
 
     export const SecondaryStructureMmcif: { [value: string]: number } = {
@@ -386,7 +387,7 @@ export namespace SecondaryStructureType {
         G: Flag.Helix | Flag.Helix3Ten,  // 3-helix (310 helix)
         I: Flag.Helix | Flag.HelixPi,  // 5 helix (pi-helix)
         T: Flag.Turn,  // hydrogen bonded turn
-        S: Flag.Turn,  // bend
+        S: Flag.Bend,  // bend
     }
 }
 
