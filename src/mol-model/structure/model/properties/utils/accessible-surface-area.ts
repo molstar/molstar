@@ -1,9 +1,6 @@
 import { Vec3 } from 'mol-math/linear-algebra';
 import { AtomicHierarchy, AtomicConformation } from '../atomic';
 import { ElementSymbol, VdwRadii } from '../../types';
-import { skipUntil } from 'rxjs/operators';
-import { atomicHet } from 'mol-model/structure/query/queries/internal';
-import { compile } from 'mol-script/runtime/query/compiler';
 
 const defaultNumberOfPoints = 960;
 const defaultProbeSize = 1.4;
@@ -31,21 +28,12 @@ export function computeModelASA(hierarchy: AtomicHierarchy, conformation: Atomic
 }
 
 function calculateASA(ctx: ASAContext) {
-    console.log(ctx.hierarchy)
-    // 1. extract all heavy atoms
-    // 2. assign radius to all heavy atoms - depends on element
-    // 3. for each residue
-    // 3a. calculate the individual ASA of each atom
-    // 3b. sum up
-    // 3c. (optionally) normalize by maximum value expected for a particular amino acid - needs lookup of max values
-
-    // const { type_symbol } = ctx.hierarchy.atoms;
-    // console.log(type_symbol.value(0));
-
     const { atoms, residues, residueAtomSegments, derived } = ctx.hierarchy;
     const { type_symbol } = atoms;
     const radii: number[] = [];
+    const asa: number[] = [];
 
+    // 1. extract all heavy atoms
     // TODO can be more elegant by obtaining residue info once and then using offset to navigate to next residue
     for (let i = 0; i < type_symbol.rowCount; ++i) {
         // skip hydrogen atoms
@@ -62,8 +50,15 @@ function calculateASA(ctx: ASAContext) {
         const atomId = atoms.label_atom_id.value(i);
         const compId = residues.label_comp_id.value(groupIndex);
         const element = type_symbol.value(i);
+        // 2. assign radius to all heavy atoms - depends on element and bonding patterns
         radii[radii.length] = determineRadius(atomId, element, compId);
     }
+
+    // 3. for each residue
+    // 3a. calculate the individual ASA of each atom
+    // 3b. sum up
+    // 3c. (optionally) normalize by maximum value expected for a particular amino acid - needs lookup of max values
+
 }
 
 /**
@@ -80,24 +75,24 @@ function determineRadius(atomId: string, element: ElementSymbol, compId: string)
         case 'N':
         return atomId === 'NZ' ? tetrahedralNitrogenVdw : trigonalNitrogenVdw;
         case 'C':
-        if (atomId === 'C' || atomId === 'CE1' || atomId === 'CE2' || atomId === 'CE3' ||
-            atomId === 'CH2' || atomId === 'CZ' || atomId === 'CZ2' || atomId === 'CZ3') {
+        switch (atomId) {
+            case 'C': case 'CE1': case'CE2': case 'CE3': case 'CH2': case 'CZ': case 'CZ2': case 'CZ3':
             return trigonalCarbonVdw;
-        } else if (atomId === 'CA' || atomId === 'CB' || atomId === 'CE' || atomId === 'CG1' ||
-            atomId === 'CG2') {
+            case 'CA': case 'CB': case 'CE': case 'CG1': case 'CG2':
             return tetrahedralCarbonVdw;
-        } else if (compId === 'PHE' || compId === 'TRP' || compId === 'TYR' || compId === 'HIS' ||
-            compId === 'ASP' || compId === 'ASN') {
-            return trigonalCarbonVdw;
-        } else if (compId === 'PRO' || compId === 'LYS' || compId === 'ARG' || compId === 'MET' ||
-            compId === 'ILE' || compId === 'LEU') {
-            return tetrahedralCarbonVdw;
-        } else if (compId === 'GLU' || compId === 'GLN') {
-            return atomId === 'CD' ? trigonalCarbonVdw : tetrahedralCarbonVdw;
+            default:
+            switch (compId) {
+                case 'PHE': case 'TRP': case 'TYR': case 'HIS': case 'ASP': case 'ASN':
+                return trigonalCarbonVdw;
+                case 'PRO': case 'LYS': case 'ARG': case 'MET': case 'ILE': case 'LEU':
+                return tetrahedralCarbonVdw;
+                case 'GLU': case 'GLN':
+                return atomId === 'CD' ? trigonalCarbonVdw : tetrahedralCarbonVdw;
+            }
         }
-        default:
-        return (VdwRadii as any)[atomId];
     }
+    // TODO could potentially use logging or error thrown
+    return (VdwRadii as any)[atomId];
 }
 
 /** Creates a collection of points on a sphere by the Golden Section Spiral algorithm. */
