@@ -162,7 +162,7 @@ interface DSSPContext {
     flags: Uint32Array
     hbonds: DsspHbonds,
 
-    torsionAngles: { phi: number[], psi: number[], omega: number[] },
+    torsionAngles: { phi: number[], psi: number[]/*, omega: number[]*/ },
     backboneIndices: BackboneAtomIndices,
     conformation: AtomicConformation,
     ladders: Ladder[],
@@ -184,10 +184,16 @@ const enum BridgeType {
     ANTI_PARALLEL = 0x1
 }
 
-interface Bridge {
-    partner1: number,
-    partner2: number,
-    type: BridgeType
+class Bridge {
+    partner1: number;
+    partner2: number;
+    type: BridgeType;
+
+    constructor(p1: number, p2: number, type: BridgeType) {
+        this.partner1 = Math.min(p1, p2)
+        this.partner2 = Math.max(p1, p2)
+        this.type = type
+    }
 }
 
 type DSSPType = BitFlags<DSSPType.Flag>
@@ -331,7 +337,7 @@ function assignBends(ctx: DSSPContext) {
     // console.log(bends + ' bends')
 }
 
-function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: AtomicConformation, proteinResidues: SortedArray<ResidueIndex>, backboneIndices: BackboneAtomIndices): { phi: number[], psi: number[], omega: number[] } {
+function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: AtomicConformation, proteinResidues: SortedArray<ResidueIndex>, backboneIndices: BackboneAtomIndices): { phi: number[], psi: number[]/*, omega: number[]*/ } {
     const { cIndices, nIndices } = backboneIndices
     const { x, y, z } = conformation
     const { traceElementIndex } = hierarchy.derived.residue
@@ -351,7 +357,7 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
 
     const phi: number[] = []
     const psi: number[] = []
-    const omega: number[] = []
+    // const omega: number[] = []
 
     for (let i = 0; i < residueCount - 1; ++i) {
         const oPIprev = i - 1
@@ -384,22 +390,22 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
         position(caAtomNext, caPosNext)
         position(nAtomNext, nPosNext)
 
-        const tPhi = calculatePhi(cPosPrev, nPos, caPos, cPos)
-        const tPsi = calculatePsi(nPos, caPos, cPos, nPosNext)
-        const tOmega = calculateOmega(caPos, cPos, nPosNext, caPosNext)
+        // const tPhi = calculatePhi(cPosPrev, nPos, caPos, cPos)
+        // const tPsi = calculatePsi(nPos, caPos, cPos, nPosNext)
+        // const tOmega = calculateOmega(caPos, cPos, nPosNext, caPosNext)
 
         // console.log(`phi:  ${ tPhi }, psi: ${ tPsi }, omega: ${ tOmega }`)
 
-        phi[phi.length] = tPhi
-        psi[psi.length] = tPsi
-        omega[omega.length] = tOmega
+        phi[phi.length] = calculatePhi(cPosPrev, nPos, caPos, cPos)
+        psi[psi.length] = calculatePsi(nPos, caPos, cPos, nPosNext)
+        // omega[omega.length] = calculateOmega(caPos, cPos, nPosNext, caPosNext)
     }
 
-    return { phi, psi, omega };
+    return { phi, psi/*, omega*/ };
 }
 
 // angle calculations return NaN upon missing atoms
-
+// TODO would be nice to be provided elsewhere, omega is related but not needed here
 function calculatePhi(c: Vec3, nNext: Vec3, caNext: Vec3, cNext: Vec3) {
     return angle(c, nNext, caNext, cNext);
 }
@@ -408,9 +414,9 @@ function calculatePsi(n: Vec3, ca: Vec3, c: Vec3, nNext: Vec3) {
     return angle(n, ca, c, nNext);
 }
 
-function calculateOmega(ca: Vec3, c: Vec3, nNext: Vec3, caNext: Vec3) {
-    return angle(ca, c, nNext, caNext);
-}
+// function calculateOmega(ca: Vec3, c: Vec3, nNext: Vec3, caNext: Vec3) {
+//     return angle(ca, c, nNext, caNext);
+// }
 
 function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConformation, proteinResidues: SortedArray<ResidueIndex>, backboneIndices: BackboneAtomIndices, lookup3d: GridLookup3D): DsspHbonds {
     const { cIndices, hIndices, nIndices, oIndices } = backboneIndices
@@ -695,7 +701,7 @@ function assignBridges(ctx: DSSPContext) {
                 flags[i] |= DSSPType.Flag.B
                 flags[j] |= DSSPType.Flag.B
                 // TODO move to constructor, actually omit object all together
-                bridges[bridges.length] = { partner1: Math.min(i, j), partner2: Math.max(i, j), type: BridgeType.PARALLEL }
+                bridges[bridges.length] = new Bridge(i, j, BridgeType.PARALLEL)
             }
 
             // Parallel Bridge(i, j) =: [Hbond(j - 1, i) and Hbond(i, j + 1)]
@@ -704,7 +710,7 @@ function assignBridges(ctx: DSSPContext) {
             if (i !== j && hbonds.getDirectedEdgeIndex(j - 1, i) !== -1) {
                 flags[i] |= DSSPType.Flag.B
                 flags[j] |= DSSPType.Flag.B
-                bridges[bridges.length] = { partner1: Math.min(j, i), partner2: Math.max(j, i), type: BridgeType.PARALLEL }
+                bridges[bridges.length] = new Bridge(j, i, BridgeType.PARALLEL)
             }
 
             // Antiparallel Bridge(i, j) =: [Hbond(i, j) and Hbond(j, i)]
@@ -713,7 +719,7 @@ function assignBridges(ctx: DSSPContext) {
             if (i !== j && hbonds.getDirectedEdgeIndex(j, i) !== -1) {
                 flags[i] |= DSSPType.Flag.B
                 flags[j] |= DSSPType.Flag.B
-                bridges[bridges.length] = { partner1: Math.min(j, i), partner2: Math.max(j, i), type: BridgeType.ANTI_PARALLEL }
+                bridges[bridges.length] = new Bridge(j, i, BridgeType.ANTI_PARALLEL)
             }
 
             // Antiparallel Bridge(i, j) =: [Hbond(i - 1, j + 1) and Hbond(j - 1, i + l)]
@@ -722,7 +728,7 @@ function assignBridges(ctx: DSSPContext) {
             if (i !== j && hbonds.getDirectedEdgeIndex(j - 1, i + 1) !== -1) {
                 flags[i] |= DSSPType.Flag.B
                 flags[j] |= DSSPType.Flag.B
-                bridges[bridges.length] = { partner1: Math.min(j, i), partner2: Math.max(j, i), type: BridgeType.ANTI_PARALLEL }
+                bridges[bridges.length] = new Bridge(j, i, BridgeType.ANTI_PARALLEL)
             }
         }
     }
@@ -814,9 +820,8 @@ function angle(a: Vec3, b: Vec3, c: Vec3, d: Vec3) {
     const angle = Vec3.angle(abc, bcd) * 360.0 / (2 * Math.PI);
     const cross = Vec3.zero();
     Vec3.cross(cross, abc, bcd);
-    const value = Vec3.dot(cb, cross);
 
-    return value > 0 ? angle : -angle;
+    return Vec3.dot(cb, cross) > 0 ? angle : -angle;
 }
 
 /**
