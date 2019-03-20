@@ -7,6 +7,7 @@
 import { Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { ColorType } from 'mol-geo/geometry/color-data';
+import { AccessibleSurfaceAreaColorThemeProvider } from './color/accessible-surface-area'
 import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbol';
 import { UniformColorThemeProvider } from './color/uniform';
 import { deepEqual } from 'mol-util';
@@ -62,6 +63,7 @@ namespace ColorTheme {
 }
 
 export const BuiltInColorThemes = {
+    'accessible-surface-area': AccessibleSurfaceAreaColorThemeProvider,
     'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,
     'chain-id': ChainIdColorThemeProvider,
     'cross-link': CrossLinkColorThemeProvider,

@@ -12,7 +12,7 @@ import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { CartoonRepresentationProvider } from 'mol-repr/structure/representation/cartoon';
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
-import { computeModelDSSP } from 'mol-model/structure/model/properties/utils/secondary-structure';
+import { computeModelASA } from 'mol-model/structure/model/properties/utils/accessible-surface-area';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -62,21 +62,21 @@ function getCartoonRepr() {
 }
 
 async function init() {
-    const cif = await downloadFromPdb('3j3q')
+    const cif = await downloadFromPdb('1acj')
     const models = await getModels(cif)
-    console.time('computeModelDSSP')
-    const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy, models[0].atomicConformation)
-    console.timeEnd('computeModelDSSP')
-    ;(models[0].properties as any).secondaryStructure = secondaryStructure
+    console.time('computeModelASA')
+    const asa = computeModelASA(models[0].atomicHierarchy, models[0].atomicConformation)
+    console.timeEnd('computeModelASA');
+    (models[0].properties as any).asa = asa
     const structure = await getStructure(models[0])
     const cartoonRepr = getCartoonRepr()
 
     cartoonRepr.setTheme({
-        color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
+        color: reprCtx.colorThemeRegistry.create('accessible-surface-area', { structure }),
         size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
     })
     await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
-    
+
     canvas3d.add(cartoonRepr)
     canvas3d.resetCamera()
 }
