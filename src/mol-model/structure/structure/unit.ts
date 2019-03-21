@@ -18,6 +18,8 @@ import { IntMap, SortedArray } from 'mol-data/int';
 import { hash2, hashFnv32a } from 'mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements } from './util/polymer';
 import { getNucleotideElements } from './util/nucleotide';
+import { computeAccessibleSurfaceArea } from './unit/accessible-surface-area/compute';
+import { AccessibleSurfaceArea } from './unit/accessible-surface-area/data';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -191,6 +193,12 @@ namespace Unit {
             return this.props.nucleotideElements.ref;
         }
 
+        get accessibleSurfaceArea() {
+            if (this.props.accessibleSurfaceArea.ref) return this.props.accessibleSurfaceArea.ref;
+            this.props.accessibleSurfaceArea.ref = computeAccessibleSurfaceArea(this);
+            return this.props.accessibleSurfaceArea.ref;
+        }
+
         getResidueIndex(elementIndex: StructureElement.UnitIndex) {
             return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
         }
@@ -215,6 +223,7 @@ namespace Unit {
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
         nucleotideElements: ValueRef<SortedArray<ElementIndex> | undefined>
+        accessibleSurfaceArea: ValueRef<AccessibleSurfaceArea | undefined>
     }
 
     function AtomicProperties(): AtomicProperties {
@@ -225,6 +234,7 @@ namespace Unit {
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),
             nucleotideElements: ValueRef.create(void 0),
+            accessibleSurfaceArea: ValueRef.create(void 0)
         };
     }
 
