@@ -14,6 +14,8 @@ import { Progress } from 'mol-task';
 export * from './value-cell'
 export { BitFlags, StringBuilder, UUID, Mask }
 
+export const noop = function () { };
+
 export function round(n: number, d: number) {
     let f = Math.pow(10, d)
     return Math.round(f * n) / f

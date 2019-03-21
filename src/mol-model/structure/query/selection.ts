@@ -36,21 +36,47 @@ namespace StructureSelection {
     }
 
     export function toLoci(sel: StructureSelection): StructureElement.Loci {
-        const loci: { unit: Unit, indices: OrderedSet<StructureElement.UnitIndex> }[] = [];
+        const elements: { unit: Unit, indices: OrderedSet<StructureElement.UnitIndex> }[] = [];
         const { unitMap } = sel.source;
 
         for (const unit of unionStructure(sel).units) {
             if (unit === unitMap.get(unit.id)) {
-                loci[loci.length] = { unit, indices: OrderedSet.ofBounds(0 as StructureElement.UnitIndex, unit.elements.length as StructureElement.UnitIndex) };
-            } else {
-                loci[loci.length] = {
+                elements[elements.length] = {
                     unit,
-                    indices: OrderedSet.ofSortedArray(SortedArray.indicesOf(sel.source.unitMap.get(unit.id).elements, unit.elements))
+                    indices: OrderedSet.ofBounds(0 as StructureElement.UnitIndex, unit.elements.length as StructureElement.UnitIndex)
+                };
+            } else {
+                elements[elements.length] = {
+                    unit,
+                    indices: OrderedSet.ofSortedArray(SortedArray.indicesOf(unitMap.get(unit.id).elements, unit.elements))
                 };
             }
         }
 
-        return StructureElement.Loci(sel.source, loci);
+        return StructureElement.Loci(sel.source, elements);
+    }
+
+    /** use source unit in loci.elements */
+    export function toLoci2(sel: StructureSelection): StructureElement.Loci {
+        const elements: { unit: Unit, indices: OrderedSet<StructureElement.UnitIndex> }[] = [];
+        const { unitMap } = sel.source;
+
+        for (const _unit of unionStructure(sel).units) {
+            const unit = unitMap.get(_unit.id)
+            if (unit === _unit) {
+                elements[elements.length] = {
+                    unit,
+                    indices: OrderedSet.ofBounds(0 as StructureElement.UnitIndex, unit.elements.length as StructureElement.UnitIndex)
+                };
+            } else {
+                elements[elements.length] = {
+                    unit,
+                    indices: OrderedSet.ofSortedArray(SortedArray.indicesOf(unit.elements, _unit.elements))
+                };
+            }
+        }
+
+        return StructureElement.Loci(sel.source, elements);
     }
 
     export interface Builder {
@@ -84,7 +110,7 @@ namespace StructureSelection {
     class HashBuilderImpl implements Builder {
         private structures: Structure[] = [];
         private allSingletons = true;
-        private uniqueSets = HashSet(Structure.hashCode, Structure.areEqual);
+        private uniqueSets = HashSet(Structure.hashCode, Structure.areUnitAndIndicesEqual);
 
         add(structure: Structure) {
             const atomCount = structure.elementCount;

@@ -150,6 +150,10 @@ const modifier = {
         'as-whole-residues': Argument(Type.Bool, { isOptional: true })
     }), Types.ElementSelectionQuery, 'Pick all atom sets that are connected to the target.'),
 
+    wholeResidues: symbol(Arguments.Dictionary({
+        0: Argument(Types.ElementSelectionQuery),
+    }), Types.ElementSelectionQuery, 'Expand the selection to whole residues.'),
+
     expandProperty: symbol(Arguments.Dictionary({
         0: Argument(Types.ElementSelectionQuery),
         property: Argument(Type.AnyValue)
@@ -242,7 +246,10 @@ const atomProperty = {
         bondCount: symbol(Arguments.Dictionary({
             0: Argument(Types.ElementReference, { isOptional: true, defaultValue: 'slot.current-atom' }),
             flags: Argument(Types.BondFlags, { isOptional: true, defaultValue: 'covalent' as any }),
-        }), Type.Num, 'Number of bonds (by default only covalent bonds are counted).')
+        }), Type.Num, 'Number of bonds (by default only covalent bonds are counted).'),
+
+        sourceIndex: atomProp(Type.Num, 'Index of the atom/element in the input file.'),
+        operatorName: atomProp(Type.Str, 'Name of the symmetry operator applied to this element.'),
     },
 
     topology: {

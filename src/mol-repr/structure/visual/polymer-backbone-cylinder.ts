@@ -8,7 +8,7 @@ import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { PolymerBackboneIterator } from './util/polymer';
-import { getElementLoci, markElement, StructureElementIterator } from './util/element';
+import { getElementLoci, eachElement, StructureElementIterator } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { OrderedSet } from 'mol-data/int';
@@ -74,7 +74,7 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneParams> {
         // TODO create a specialized location iterator
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
-        mark: markElement,
+        eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneParams>, currentProps: PD.Values<PolymerBackboneParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||

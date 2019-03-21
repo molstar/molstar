@@ -140,6 +140,8 @@ describe('ordered set', () => {
     testEq('union AA3', OrderedSet.union(OrderedSet.ofSortedArray([1, 3]), OrderedSet.ofSortedArray([2, 4])), [1, 2, 3, 4]);
     testEq('union AA4', OrderedSet.union(OrderedSet.ofSortedArray([1, 3]), OrderedSet.ofSortedArray([1, 3, 4])), [1, 3, 4]);
     testEq('union AA5', OrderedSet.union(OrderedSet.ofSortedArray([1, 3, 4]), OrderedSet.ofSortedArray([1, 3])), [1, 3, 4]);
+    testEq('union AR', OrderedSet.union(OrderedSet.ofSortedArray([1, 2, 5, 6]), OrderedSet.ofRange(3, 4)), [1, 2, 3, 4, 5, 6]);
+    testEq('union AR1', OrderedSet.union(OrderedSet.ofSortedArray([1, 2, 6, 7]), OrderedSet.ofRange(3, 4)), [1, 2, 3, 4, 6, 7]);
     it('union AA6', () => expect(OrderedSet.union(arr136, OrderedSet.ofSortedArray([1, 3, 6]))).toBe(arr136));
 
     testEq('intersect ES', OrderedSet.intersect(empty, singleton10), []);
@@ -164,6 +166,7 @@ describe('ordered set', () => {
     testEq('subtract SR2', OrderedSet.subtract(range1_4, OrderedSet.ofSingleton(3)), [1, 2, 4]);
     testEq('subtract RR', OrderedSet.subtract(range1_4, range1_4), []);
     testEq('subtract RR1', OrderedSet.subtract(range1_4, OrderedSet.ofRange(3, 5)), [1, 2]);
+    testEq('subtract RR2', OrderedSet.subtract(range1_4, OrderedSet.ofRange(2, 3)), [1, 4]);
 
     testEq('subtract RA', OrderedSet.subtract(range1_4, arr136), [2, 4]);
     testEq('subtract RA1', OrderedSet.subtract(range1_4, OrderedSet.ofSortedArray([0, 1, 2, 3, 4, 7])), []);

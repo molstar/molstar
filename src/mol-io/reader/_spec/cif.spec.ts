@@ -6,17 +6,16 @@
  */
 
 import * as Data from '../cif/data-model'
-import TextField from '../cif/text/field'
 import * as Schema from '../cif/schema'
 import { Column } from 'mol-data/db'
 
 const columnData = `123abc d,e,f '4 5 6'`;
 // 123abc d,e,f '4 5 6'
 
-const intField = TextField({ data: columnData, indices: [0, 1, 1, 2, 2, 3], count: 3 }, 3);
-const strField = TextField({ data: columnData, indices: [3, 4, 4, 5, 5, 6], count: 3 }, 3);
-const strListField = TextField({ data: columnData, indices: [7, 12], count: 1 }, 1);
-const intListField = TextField({ data: columnData, indices: [14, 19], count: 1 }, 1);
+const intField = Data.CifField.ofTokens({ data: columnData, indices: [0, 1, 1, 2, 2, 3], count: 3 });
+const strField = Data.CifField.ofTokens({ data: columnData, indices: [3, 4, 4, 5, 5, 6], count: 3 });
+const strListField = Data.CifField.ofTokens({ data: columnData, indices: [7, 12], count: 1 });
+const intListField = Data.CifField.ofTokens({ data: columnData, indices: [14, 19], count: 1 });
 
 const testBlock = Data.CifBlock(['test'], {
     test: Data.CifCategory('test', 3, ['int', 'str', 'strList', 'intList'], {

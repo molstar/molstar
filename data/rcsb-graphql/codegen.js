@@ -5,17 +5,16 @@ const basePath = path.join(__dirname, '..', '..', 'src', 'mol-model-props', 'rcs
 
 generate({
     schema: 'http://rest-dev.rcsb.org/graphql',
-    documents: [
-        path.join(basePath, 'symmetry.gql.ts')
-    ],
+    documents: {
+        [path.join(basePath, 'symmetry.gql.ts')]: {
+            loader: path.join(__dirname, 'loader.js')
+        },
+    },
     generates: {
         [path.join(basePath, 'types.ts')]: {
             plugins: ['time', 'typescript-common', 'typescript-client']
         }
     },
-    // template: 'graphql-codegen-typescript-template',
-    // out: path.join(basePath),
-    // skipSchema: true,
     overwrite: true,
     config: path.join(__dirname, 'codegen.json')
 }, true).then(

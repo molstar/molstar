@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,9 +10,16 @@ import { ChunkedArray } from 'mol-data/util';
 import { Mesh } from './mesh';
 import { getNormalMatrix } from '../../util';
 import { Primitive } from '../../primitive/primitive';
+import { Cage } from 'mol-geo/primitive/cage';
+import { addSphere } from './builder/sphere';
+import { addCylinder } from './builder/cylinder';
 
 const tmpV = Vec3.zero()
 const tmpMat3 = Mat3.zero()
+const tmpVecA = Vec3.zero()
+const tmpVecB = Vec3.zero()
+const tmpVecC = Vec3.zero()
+const tmpVecD = Vec3.zero()
 
 export namespace MeshBuilder {
     export interface State {
@@ -35,6 +42,45 @@ export namespace MeshBuilder {
         }
     }
 
+    export function addTriangle(state: State, a: Vec3, b: Vec3, c: Vec3) {
+        const { vertices, normals, indices, groups, currentGroup } = state
+        const offset = vertices.elementCount
+
+        // positions
+        ChunkedArray.add3(vertices, a[0], a[1], a[2]);
+        ChunkedArray.add3(vertices, b[0], b[1], b[2]);
+        ChunkedArray.add3(vertices, c[0], c[1], c[2]);
+
+        Vec3.triangleNormal(tmpV, a, b, c)
+        for (let i = 0; i < 3; ++i) {
+            ChunkedArray.add3(normals, tmpV[0], tmpV[1], tmpV[2]);  // normal
+            ChunkedArray.add(groups, currentGroup);  // group
+        }
+        ChunkedArray.add3(indices, offset, offset + 1, offset + 2);
+    }
+
+    export function addTriangleStrip(state: State, vertices: ArrayLike<number>, indices: ArrayLike<number>) {
+        Vec3.fromArray(tmpVecC, vertices, indices[0] * 3)
+        Vec3.fromArray(tmpVecD, vertices, indices[1] * 3)
+        for (let i = 2, il = indices.length; i < il; i += 2) {
+            Vec3.copy(tmpVecA, tmpVecC)
+            Vec3.copy(tmpVecB, tmpVecD)
+            Vec3.fromArray(tmpVecC, vertices, indices[i] * 3)
+            Vec3.fromArray(tmpVecD, vertices, indices[i + 1] * 3)
+            addTriangle(state, tmpVecA, tmpVecB, tmpVecC)
+            addTriangle(state, tmpVecB, tmpVecD, tmpVecC)
+        }
+    }
+
+    export function addTriangleFan(state: State, vertices: ArrayLike<number>, indices: ArrayLike<number>) {
+        Vec3.fromArray(tmpVecA, vertices, indices[0] * 3)
+        for (let i = 2, il = indices.length; i < il; ++i) {
+            Vec3.fromArray(tmpVecB, vertices, indices[i - 1] * 3)
+            Vec3.fromArray(tmpVecC, vertices, indices[i] * 3)
+            addTriangle(state, tmpVecA, tmpVecC, tmpVecB)
+        }
+    }
+
     export function addPrimitive(state: State, t: Mat4, primitive: Primitive) {
         const { vertices: va, normals: na, indices: ia } = primitive
         const { vertices, normals, indices, groups, currentGroup } = state
@@ -52,6 +98,20 @@ export namespace MeshBuilder {
         }
         for (let i = 0, il = ia.length; i < il; i += 3) {
             ChunkedArray.add3(indices, ia[i] + offset, ia[i + 1] + offset, ia[i + 2] + offset);
+        }
+    }
+
+    export function addCage(state: State, t: Mat4, cage: Cage, radius: number, detail: number) {
+        const { vertices: va, edges: ea } = cage
+        const cylinderProps = { radiusTop: radius, radiusBottom: radius }
+        for (let i = 0, il = ea.length; i < il; i += 2) {
+            Vec3.fromArray(tmpVecA, va, ea[i] * 3)
+            Vec3.fromArray(tmpVecB, va, ea[i + 1] * 3)
+            Vec3.transformMat4(tmpVecA, tmpVecA, t)
+            Vec3.transformMat4(tmpVecB, tmpVecB, t)
+            addSphere(state, tmpVecA, radius, detail)
+            addSphere(state, tmpVecB, radius, detail)
+            addCylinder(state, tmpVecA, tmpVecB, 1, cylinderProps)
         }
     }
 

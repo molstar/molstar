@@ -7,7 +7,7 @@
 import * as Data from '../data-model'
 import { EncodedCategory, EncodedFile } from '../../../common/binary-cif'
 import Field from './field'
-import Result from '../../result'
+import { ReaderResult as Result } from '../../result'
 import decodeMsgPack from '../../../common/msgpack/decode'
 import { Task } from 'mol-task'
 

@@ -5,10 +5,9 @@
  */
 
 import { AtomicSegments } from '../atomic';
-import { AtomicData, AtomicRanges } from '../atomic/hierarchy';
+import { AtomicData, AtomicRanges, AtomicIndex } from '../atomic/hierarchy';
 import { Segmentation, Interval } from 'mol-data/int';
 import SortedRanges from 'mol-data/int/sorted-ranges';
-import { ChemicalComponentMap } from '../chemical-component';
 import { MoleculeType, isPolymer } from '../../types';
 import { ElementIndex, ResidueIndex } from '../../indexing';
 import { getAtomIdForAtomRole } from '../../../util';
@@ -17,45 +16,32 @@ import { Vec3 } from 'mol-math/linear-algebra';
 
 // TODO add gaps at the ends of the chains by comparing to the polymer sequence data
 
-function getMoleculeType(compId: string, chemicalComponentMap: ChemicalComponentMap) {
-    const cc = chemicalComponentMap.get(compId)
-    return cc ? cc.moleculeType : MoleculeType.unknown
-}
-
-function getElementIndexForAtomId(rI: ResidueIndex, atomId: string, data: AtomicData, segments: AtomicSegments): ElementIndex {
-    const { offsets } = segments.residueAtomSegments
-    const { label_atom_id } = data.atoms
-    for (let j = offsets[rI], _j = offsets[rI + 1]; j < _j; j++) {
-        if (label_atom_id.value(j) === atomId) return j
-    }
-    return offsets[rI]
-}
-
-function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, data: AtomicData, segments: AtomicSegments, conformation: AtomicConformation, chemicalComponentMap: ChemicalComponentMap) {
-    const { label_comp_id } = data.residues
-    const mtStart = getMoleculeType(label_comp_id.value(riStart), chemicalComponentMap)
-    const mtEnd = getMoleculeType(label_comp_id.value(riEnd), chemicalComponentMap)
+function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, data: AtomicData, segments: AtomicSegments, conformation: AtomicConformation, index: AtomicIndex, moleculeType: ArrayLike<MoleculeType>) {
+    const mtStart = moleculeType[riStart]
+    const mtEnd = moleculeType[riEnd]
     if (!isPolymer(mtStart) || !isPolymer(mtEnd)) return false
 
-    const startId = getAtomIdForAtomRole(mtStart, 'backboneStart')
-    const endId = getAtomIdForAtomRole(mtEnd, 'backboneEnd')
+    let eiStart = index.findAtomsOnResidue(riStart, getAtomIdForAtomRole(mtStart, 'backboneStart'))
+    let eiEnd = index.findAtomsOnResidue(riEnd, getAtomIdForAtomRole(mtEnd, 'backboneEnd'))
 
-    const eiStart = getElementIndexForAtomId(riStart, startId, data, segments)
-    const eiEnd = getElementIndexForAtomId(riEnd, endId, data, segments)
+    if (eiStart === -1 || eiEnd === -1) {
+        eiStart = index.findAtomsOnResidue(riStart, getAtomIdForAtomRole(mtStart, 'coarseBackbone'))
+        eiEnd = index.findAtomsOnResidue(riEnd, getAtomIdForAtomRole(mtEnd, 'coarseBackbone'))
+    }
 
     const { x, y, z } = conformation
     const pStart = Vec3.create(x[eiStart], y[eiStart], z[eiStart])
     const pEnd = Vec3.create(x[eiEnd], y[eiEnd], z[eiEnd])
-    return Vec3.distance(pStart, pEnd) < 10
+    return Vec3.distance(pStart, pEnd) < 10 // TODO better distance check, take into account if protein/nucleic and if coarse
 }
 
-export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conformation: AtomicConformation, chemicalComponentMap: ChemicalComponentMap): AtomicRanges {
+export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conformation: AtomicConformation, index: AtomicIndex, moleculeType: ArrayLike<MoleculeType>): AtomicRanges {
     const polymerRanges: number[] = []
     const gapRanges: number[] = []
     const cyclicPolymerMap = new Map<ResidueIndex, ResidueIndex>()
     const chainIt = Segmentation.transientSegments(segments.chainAtomSegments, Interval.ofBounds(0, data.atoms._rowCount))
     const residueIt = Segmentation.transientSegments(segments.residueAtomSegments, Interval.ofBounds(0, data.atoms._rowCount))
-    const { label_seq_id, label_comp_id } = data.residues
+    const { label_seq_id } = data.residues
 
     let prevSeqId: number
     let prevStart: number
@@ -72,7 +58,7 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conf
 
         const riStart = segments.residueAtomSegments.index[chainSegment.start]
         const riEnd = segments.residueAtomSegments.index[chainSegment.end - 1]
-        if (areBackboneConnected(riStart, riEnd, data, segments, conformation, chemicalComponentMap)) {
+        if (areBackboneConnected(riStart, riEnd, data, segments, conformation, index, moleculeType)) {
             cyclicPolymerMap.set(riStart, riEnd)
             cyclicPolymerMap.set(riEnd, riStart)
         }
@@ -80,9 +66,8 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conf
         while (residueIt.hasNext) {
             const residueSegment = residueIt.move();
             const residueIndex = residueSegment.index
-            const moleculeType = getMoleculeType(label_comp_id.value(residueIndex), chemicalComponentMap)
             const seqId = label_seq_id.value(residueIndex)
-            if (isPolymer(moleculeType)) {
+            if (isPolymer(moleculeType[residueIndex])) {
                 if (startIndex !== -1) {
                     if (seqId !== prevSeqId + 1) {
                         polymerRanges.push(startIndex, prevEnd - 1)
@@ -93,7 +78,7 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conf
                     } else {
                         const riStart = segments.residueAtomSegments.index[residueSegment.start]
                         const riEnd = segments.residueAtomSegments.index[prevEnd - 1]
-                        if (!areBackboneConnected(riStart, riEnd, data, segments, conformation, chemicalComponentMap)) {
+                        if (!areBackboneConnected(riStart, riEnd, data, segments, conformation, index, moleculeType)) {
                             polymerRanges.push(startIndex, prevEnd - 1)
                             startIndex = residueSegment.start
                         }

@@ -7,7 +7,7 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
-import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
+import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, interpolateSizes } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -41,7 +41,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
 
     const isCoarse = Unit.isCoarse(unit)
     const state = createCurveSegmentState(linearSegments)
-    const { curvePoints, normalVectors, binormalVectors } = state
+    const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = state
 
     let i = 0
     const polymerTraceIt = PolymerTraceIterator(unit)
@@ -57,24 +57,39 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
 
         interpolateCurveSegment(state, v, tension, shift)
 
-        let width = theme.size.size(v.center) * sizeFactor
-        if (isCoarse) width *= aspectRatio / 2
+        let w0 = theme.size.size(v.centerPrev) * sizeFactor
+        let w1 = theme.size.size(v.center) * sizeFactor
+        let w2 = theme.size.size(v.centerNext) * sizeFactor
+        if (isCoarse) {
+            w0 *= aspectRatio / 2
+            w1 *= aspectRatio / 2
+            w2 *= aspectRatio / 2
+        }
 
         if (isSheet) {
-            const height = width * aspectRatio
-            const arrowHeight = v.secStrucLast ? height * arrowFactor : 0
-            addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, v.secStrucFirst, v.secStrucLast)
+            const h1 = w1 * aspectRatio
+            const arrowHeight = v.secStrucLast ? h1 * arrowFactor : 0
+            addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, w1, h1, arrowHeight, v.secStrucFirst, v.secStrucLast)
         } else {
-            let height: number
-            if (isHelix) {
-                height = width * aspectRatio
-            } else if (isNucleicType) {
-                height = width * aspectRatio;
-                [width, height] = [height, width]
+            let h0: number, h1: number, h2: number
+            if (isHelix && !v.isCoarseBackbone) {
+                h0 = w0 * aspectRatio
+                h1 = w1 * aspectRatio
+                h2 = w2 * aspectRatio
+            } else if (isNucleicType && !v.isCoarseBackbone) {
+                h0 = w0 * aspectRatio;
+                [w0, h0] = [h0, w0]
+                h1 = w1 * aspectRatio;
+                [w1, h1] = [h1, w1]
+                h2 = w2 * aspectRatio;
+                [w2, h2] = [h2, w2]
             } else {
-                height = width
+                h0 = w0
+                h1 = w1
+                h2 = w2
             }
-            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, v.secStrucFirst, v.secStrucLast)
+            interpolateSizes(state, w0, w1, w2, h0, h1, h2, shift)
+            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, v.secStrucFirst || v.coarseBackboneFirst, v.secStrucLast || v.coarseBackboneLast)
         }
 
         ++i
@@ -95,7 +110,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceParams> {
         createGeometry: createPolymerTraceMesh,
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
-        mark: markPolymerElement,
+        eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTraceParams>, currentProps: PD.Values<PolymerTraceParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||

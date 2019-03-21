@@ -101,7 +101,7 @@ export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeTyp
 /** Creates size texture with size for each instance/unit */
 export function createInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
     const { instanceCount} = locationIt
-    const sizes = sizeData && sizeData.tSize.ref.value.array.length >= instanceCount ? sizeData.tSize.ref.value : createTextureImage(instanceCount, 1)
+    const sizes = createTextureImage(Math.max(1, instanceCount), 1, sizeData && sizeData.tSize.ref.value.array)
     locationIt.reset()
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
@@ -114,7 +114,7 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
 /** Creates size texture with size for each group (i.e. shared across instances/units) */
 export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
     const { groupCount } = locationIt
-    const sizes = sizeData && sizeData.tSize.ref.value.array.length >= groupCount ? sizeData.tSize.ref.value : createTextureImage(groupCount, 1)
+    const sizes = createTextureImage(Math.max(1, groupCount), 1, sizeData && sizeData.tSize.ref.value.array)
     locationIt.reset()
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
@@ -127,7 +127,7 @@ export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSi
 export function createGroupInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
     const { groupCount, instanceCount } = locationIt
     const count = instanceCount * groupCount
-    const sizes = sizeData && sizeData.tSize.ref.value.array.length >= count ? sizeData.tSize.ref.value : createTextureImage(count, 1)
+    const sizes = createTextureImage(Math.max(1, count), 1, sizeData && sizeData.tSize.ref.value.array)
     locationIt.reset()
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()

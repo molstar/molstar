@@ -9,11 +9,6 @@
             "problemMatcher": [
                 "$tsc"
             ]
-        },
-        {
-            "type": "npm",
-            "script": "app-render-test",
-            "problemMatcher": []
         }
     ]
 }

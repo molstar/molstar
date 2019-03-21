@@ -1,0 +1,564 @@
+{
+  "data": {
+    "tree": {
+      "transforms": [
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "build-in.root",
+            "params": {},
+            "props": {},
+            "ref": "-=root=-",
+            "version": "mzgKPzL3KrSARixuuQPCIQ"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "ms-plugin.download",
+            "params": {
+              "url": "https://webchem.ncbr.muni.cz/ModelServer/static/bcif/1tqn",
+              "isBinary": true,
+              "label": "BinaryCIF: 1tqn"
+            },
+            "props": {},
+            "ref": "OV8KkYn5g27qN191asD6CA",
+            "version": "1FyKSTffbKL7OJumHR7wEA"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "OV8KkYn5g27qN191asD6CA",
+            "transformer": "ms-plugin.parse-cif",
+            "props": {},
+            "ref": "SXZ2y1ywkdn-rF4J6yVtKw",
+            "version": "459vIHyqOSKrvNFJUyCgNA"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "SXZ2y1ywkdn-rF4J6yVtKw",
+            "transformer": "ms-plugin.trajectory-from-mmcif",
+            "props": {},
+            "ref": "gOuSu4Fnrokcj2q6K15cBw",
+            "version": "lBYS-wawjgY_HkvRr_N3_g"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "gOuSu4Fnrokcj2q6K15cBw",
+            "transformer": "ms-plugin.model-from-trajectory",
+            "params": {
+              "modelIndex": 0
+            },
+            "props": {},
+            "ref": "smMTjktic5g0ZHWpp5ONQg",
+            "version": "cPXInj4lXxoOvarcihICOw"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "smMTjktic5g0ZHWpp5ONQg",
+            "transformer": "ms-plugin.structure-assembly-from-model",
+            "props": {},
+            "ref": "Md3saiWEqsJYXifvMiW3Pg",
+            "version": "jFOatV4JJryP2RGqmhKuCQ"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "Md3saiWEqsJYXifvMiW3Pg",
+            "transformer": "ms-plugin.structure-complex-element",
+            "params": {
+              "type": "atomic-sequence"
+            },
+            "props": {},
+            "ref": "wfofDbgdMllp3ACC4D8geQ",
+            "version": "eL018xqw_Qa2p0Lbn5S0pA"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "wfofDbgdMllp3ACC4D8geQ",
+            "transformer": "ms-plugin.structure-representation-3d",
+            "params": {
+              "type": {
+                "name": "cartoon",
+                "params": {
+                  "alpha": 1,
+                  "useFog": true,
+                  "highlightColor": 16737945,
+                  "selectColor": 3407641,
+                  "quality": "auto",
+                  "doubleSided": false,
+                  "flipSided": false,
+                  "flatShaded": false,
+                  "unitKinds": [
+                    "atomic",
+                    "spheres"
+                  ],
+                  "sizeFactor": 0.2,
+                  "linearSegments": 8,
+                  "radialSegments": 16,
+                  "aspectRatio": 5,
+                  "arrowFactor": 1.5,
+                  "visuals": [
+                    "polymer-trace",
+                    "polymer-gap",
+                    "nucleotide-block"
+                  ]
+                }
+              },
+              "colorTheme": {
+                "name": "polymer-id",
+                "params": {
+                  "list": "RedYellowBlue"
+                }
+              },
+              "sizeTheme": {
+                "name": "uniform",
+                "params": {
+                  "value": 1
+                }
+              }
+            },
+            "props": {},
+            "ref": "1nhs1yOSXXGKYl9m0fo6OQ",
+            "version": "2fnNcBIrZE-1Nz-MK-OmIQ"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "Md3saiWEqsJYXifvMiW3Pg",
+            "transformer": "ms-plugin.structure-complex-element",
+            "params": {
+              "type": "atomic-het"
+            },
+            "props": {},
+            "ref": "u50nXO1GHQAropjVQ7krqQ",
+            "version": "rlsAA6L34NY5zDZqpzYOiA"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "u50nXO1GHQAropjVQ7krqQ",
+            "transformer": "ms-plugin.structure-representation-3d",
+            "params": {
+              "type": {
+                "name": "ball-and-stick",
+                "params": {
+                  "alpha": 1,
+                  "useFog": true,
+                  "highlightColor": 16737945,
+                  "selectColor": 3407641,
+                  "quality": "auto",
+                  "doubleSided": false,
+                  "flipSided": false,
+                  "flatShaded": false,
+                  "unitKinds": [
+                    "atomic"
+                  ],
+                  "sizeFactor": 0.3,
+                  "detail": 0,
+                  "linkScale": 0.4,
+                  "linkSpacing": 1,
+                  "radialSegments": 16,
+                  "sizeAspectRatio": 0.6666666666666666,
+                  "visuals": [
+                    "element-sphere",
+                    "intra-link",
+                    "inter-link"
+                  ]
+                }
+              },
+              "colorTheme": {
+                "name": "element-symbol",
+                "params": {}
+              },
+              "sizeTheme": {
+                "name": "uniform",
+                "params": {
+                  "value": 1
+                }
+              }
+            },
+            "props": {},
+            "ref": "PpDdNcH48Zgc8ezoAUodCQ",
+            "version": "EWyZJzX4S-F04f3YHXviXA"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "Md3saiWEqsJYXifvMiW3Pg",
+            "transformer": "ms-plugin.structure-complex-element",
+            "params": {
+              "type": "water"
+            },
+            "props": {},
+            "ref": "ewximnxuhkX3AUj1oRvEOQ",
+            "version": "ejhvuA9YmwGzk-sa2lqpZQ"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "ewximnxuhkX3AUj1oRvEOQ",
+            "transformer": "ms-plugin.structure-representation-3d",
+            "params": {
+              "type": {
+                "name": "ball-and-stick",
+                "params": {
+                  "alpha": 0.51,
+                  "useFog": true,
+                  "highlightColor": 16737945,
+                  "selectColor": 3407641,
+                  "quality": "auto",
+                  "doubleSided": false,
+                  "flipSided": false,
+                  "flatShaded": false,
+                  "unitKinds": [
+                    "atomic"
+                  ],
+                  "sizeFactor": 0.3,
+                  "detail": 0,
+                  "linkScale": 0.4,
+                  "linkSpacing": 1,
+                  "radialSegments": 16,
+                  "sizeAspectRatio": 0.6666666666666666,
+                  "visuals": [
+                    "element-sphere",
+                    "intra-link",
+                    "inter-link"
+                  ]
+                }
+              },
+              "colorTheme": {
+                "name": "element-symbol",
+                "params": {}
+              },
+              "sizeTheme": {
+                "name": "uniform",
+                "params": {
+                  "value": 1
+                }
+              }
+            },
+            "props": {},
+            "ref": "Hxy9RPnjdttpe012E76EKA",
+            "version": "Zdyr_ux94ld0ZwlS9PC0Hg"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "Md3saiWEqsJYXifvMiW3Pg",
+            "transformer": "ms-plugin.structure-complex-element",
+            "params": {
+              "type": "spheres"
+            },
+            "props": {},
+            "ref": "vapkcyYj-YZRiU6yXMRDqg",
+            "version": "uwxGVj7daumXxR4emr_Wtg"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "vapkcyYj-YZRiU6yXMRDqg",
+            "transformer": "ms-plugin.structure-representation-3d",
+            "params": {
+              "type": {
+                "name": "spacefill",
+                "params": {
+                  "alpha": 1,
+                  "useFog": true,
+                  "highlightColor": 16737945,
+                  "selectColor": 3407641,
+                  "quality": "auto",
+                  "doubleSided": false,
+                  "flipSided": false,
+                  "flatShaded": false,
+                  "unitKinds": [
+                    "atomic",
+                    "spheres"
+                  ],
+                  "sizeFactor": 1,
+                  "detail": 0
+                }
+              },
+              "colorTheme": {
+                "name": "element-symbol",
+                "params": {}
+              },
+              "sizeTheme": {
+                "name": "physical",
+                "params": {}
+              }
+            },
+            "props": {},
+            "ref": "QpCCFEvPS0cF0yTeDhO9Zg",
+            "version": "n6UGlNqXLX3vgaU8hYfyGQ"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ]
+      ]
+    }
+  },
+  "behaviour": {
+    "tree": {
+      "transforms": [
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "build-in.root",
+            "params": {},
+            "props": {},
+            "ref": "-=root=-",
+            "version": "_nQeC9QaAh9q6OITzdzrIA"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "ms-plugin.representation-highlight-loci",
+            "props": {},
+            "ref": "ms-plugin.representation-highlight-loci",
+            "version": "ATUn8B_HnbqTgl24tHA8og"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "ms-plugin.representation-select-loci",
+            "props": {},
+            "ref": "ms-plugin.representation-select-loci",
+            "version": "4zLbjE8cn7XZGvS1b6ICKQ"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "ms-plugin.default-loci-label-provider",
+            "props": {},
+            "ref": "ms-plugin.default-loci-label-provider",
+            "version": "CAynbi7XFxc8YVo8uZuGnQ"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "ms-plugin.focus-loci-on-select",
+            "params": {
+              "minRadius": 20,
+              "extraRadius": 4
+            },
+            "props": {},
+            "ref": "ms-plugin.focus-loci-on-select",
+            "version": "lDDOcNcU6pTvO_U1xwR7-w"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "ms-plugin.structure-animation",
+            "params": {
+              "rotate": false,
+              "rotateValue": 0,
+              "explode": false,
+              "explodeValue": 0
+            },
+            "props": {},
+            "ref": "ms-plugin.structure-animation",
+            "version": "xVHPb06oYJg14-PAb8c7Ng"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "ms-plugin.scene-labels",
+            "props": {},
+            "ref": "ms-plugin.scene-labels",
+            "version": "lWoU9ybKTGzbJBhBR5McFg"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "ms-plugin.pdbe-structure-quality-report-prop",
+            "params": {
+              "autoAttach": true
+            },
+            "props": {},
+            "ref": "ms-plugin.pdbe-structure-quality-report-prop",
+            "version": "oNuidegmrNmDom4UXjLAqg"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ],
+        [
+          {
+            "parent": "-=root=-",
+            "transformer": "ms-plugin.rcsb-assembly-symmetry-prop",
+            "params": {
+              "autoAttach": true
+            },
+            "props": {},
+            "ref": "ms-plugin.rcsb-assembly-symmetry-prop",
+            "version": "ca1Ihym2CC0KgwRtZWQKbQ"
+          },
+          {
+            "isHidden": false,
+            "isCollapsed": false
+          }
+        ]
+      ]
+    }
+  },
+  "cameraSnapshots": {
+    "entries": []
+  },
+  "canvas3d": {
+    "camera": {
+      "mode": "perspective",
+      "position": [
+        0,
+        0,
+        93.5120150707393
+      ],
+      "direction": [
+        -0.17921613100638745,
+        -0.1768933191370578,
+        -0.9677759720264687
+      ],
+      "up": [
+        -0.0322100883560256,
+        0.9842300308589832,
+        -0.1739360703345399
+      ],
+      "target": [
+        -20.84341143463866,
+        -20.57326095652141,
+        -19.043437656817368
+      ],
+      "near": 72.49875551585009,
+      "far": 161.0016342373897,
+      "fogNear": 116.30321064065254,
+      "fogFar": 161.0016342373897,
+      "fov": 0.7853981633974483,
+      "zoom": 8.988182413445411
+    },
+    "viewport": {
+      "cameraMode": "perspective",
+      "backgroundColor": 16579577,
+      "cameraClipDistance": 0,
+      "clip": [
+        1,
+        100
+      ],
+      "fog": [
+        50,
+        100
+      ],
+      "pickingAlphaThreshold": 0.5,
+      "trackball": {
+        "noScroll": true,
+        "rotateSpeed": 5,
+        "zoomSpeed": 6,
+        "panSpeed": 0.8,
+        "spin": false,
+        "spinSpeed": 1,
+        "staticMoving": true,
+        "dynamicDampingFactor": 0.2,
+        "minDistance": 0.01,
+        "maxDistance": 1e+150
+      },
+      "debug": {
+        "sceneBoundingSpheres": false,
+        "objectBoundingSpheres": false,
+        "instanceBoundingSpheres": false
+      }
+    }
+  }
+}

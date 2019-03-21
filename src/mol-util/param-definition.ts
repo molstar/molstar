@@ -14,13 +14,15 @@ export namespace ParamDefinition {
     export interface Info {
         label?: string,
         description?: string,
+        fieldLabels?: { [name: string]: string },
         isHidden?: boolean,
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
         if (!info) return param;
-        if (info.description) param.description = info.description;
         if (info.label) param.label = info.label;
+        if (info.description) param.description = info.description;
+        if (info.fieldLabels) param.fieldLabels = info.fieldLabels;
         if (info.isHidden) param.isHidden = info.isHidden;
         return param;
     }
@@ -30,9 +32,14 @@ export namespace ParamDefinition {
         defaultValue: T
     }
 
-    export function makeOptional<T>(p: Base<T>): Base<T | undefined> {
-        p.isOptional = true;
-        return p;
+    export interface Optional<T extends Any = Any> extends Base<T['defaultValue'] | undefined> {
+        type: T['type']
+    }
+
+    export function Optional<T>(p: Base<T>): Base<T | undefined> {
+        const ret = { ...p };
+        ret.isOptional = true;
+        return ret;
     }
 
     export interface Value<T> extends Base<T> {
@@ -153,8 +160,8 @@ export namespace ParamDefinition {
         isExpanded?: boolean,
         isFlat?: boolean
     }
-    export function Group<P extends Params>(params: P, info?: Info & { isExpanded?: boolean, isFlat?: boolean }): Group<Values<P>> {
-        const ret = setInfo<Group<Values<P>>>({ type: 'group', defaultValue: getDefaultValues(params) as any, params }, info);
+    export function Group<T>(params: For<T>, info?: Info & { isExpanded?: boolean, isFlat?: boolean }): Group<Normalize<T>> {
+        const ret = setInfo<Group<Normalize<T>>>({ type: 'group', defaultValue: getDefaultValues(params as any as Params) as any, params: params as any as Params }, info);
         if (info && info.isExpanded) ret.isExpanded = info.isExpanded;
         if (info && info.isFlat) ret.isFlat = info.isFlat;
         return ret;
@@ -187,10 +194,21 @@ export namespace ParamDefinition {
         }, info);
     }
 
+    export interface ObjectList<T = any> extends Base<T[]> {
+        type: 'object-list',
+        element: Params,
+        ctor(): T,
+        getLabel(t: T): string
+    }
+    export function ObjectList<T>(element: For<T>, getLabel: (e: T) => string, info?: Info & { defaultValue?: T[], ctor?: () => T }): ObjectList<Normalize<T>> {
+        return setInfo<ObjectList<Normalize<T>>>({ type: 'object-list', element: element as any as Params, getLabel, ctor: _defaultObjectListCtor, defaultValue: (info && info.defaultValue) || []  });
+    }
+    function _defaultObjectListCtor(this: ObjectList) { return getDefaultValues(this.element) as any; }
+
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
         converted: Any,
-        /** converts from props value to display value */
+        /** converts from prop value to display value */
         fromValue(v: T): C,
         /** converts from display value to prop value */
         toValue(v: C): T
@@ -199,7 +217,28 @@ export namespace ParamDefinition {
         return { type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue };
     }
 
-    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any>
+    export interface Conditioned<T, P extends Base<T>, C = { [k: string]: P }> extends Base<T> {
+        type: 'conditioned',
+        select: Select<string>,
+        conditionParams: C
+        conditionForValue(v: T): keyof C
+        conditionedValue(v: T, condition: keyof C): T,
+    }
+    export function Conditioned<T, P extends Base<T>, C = { [k: string]: P }>(defaultValue: T, conditionParams: C, conditionForValue: (v: T) => keyof C, conditionedValue: (v: T, condition: keyof C) => T): Conditioned<T, P, C> {
+        const options = Object.keys(conditionParams).map(k => [k, k]) as [string, string][];
+        return { type: 'conditioned', select: Select<string>(conditionForValue(defaultValue) as string, options), defaultValue, conditionParams, conditionForValue, conditionedValue };
+    }
+
+    export interface ScriptExpression extends Base<{ language: 'mol-script', expression: string }> {
+        type: 'script-expression'
+    }
+    export function ScriptExpression(defaultValue: ScriptExpression['defaultValue'], info?: Info): ScriptExpression {
+        return setInfo<ScriptExpression>({ type: 'script-expression', defaultValue }, info)
+    }
+
+    export type Any =
+        | Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph
+        | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression | ObjectList
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -287,6 +326,17 @@ export namespace ParamDefinition {
             return true;
         } else if (p.type === 'vec3') {
             return Vec3Data.equals(a, b);
+        } else if (p.type === 'script-expression') {
+            const u = a as ScriptExpression['defaultValue'], v = b as ScriptExpression['defaultValue'];
+            return u.language === v.language && u.expression === v.expression;
+        } else if (p.type === 'object-list') {
+            const u = a as ObjectList['defaultValue'], v = b as ObjectList['defaultValue'];
+            const l = u.length;
+            if (l !== v.length) return false;
+            for (let i = 0; i < l; i++) {
+                if (!areEqual(p.element, u[i], v[i])) return false;
+            }
+            return true;
         } else if (typeof a === 'object' && typeof b === 'object') {
             return shallowEqual(a, b);
         }

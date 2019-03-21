@@ -1,17 +1,19 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Taken/adapted from DensityServer (https://github.com/dsehnal/DensityServer)
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import * as argparse from 'argparse'
 import * as LocalApi from './server/local-api'
 import VERSION from './server/version'
-
 import * as fs from 'fs'
+import { LimitsConfig, addLimitsArgs, setLimitsConfig } from './config';
 
-console.log(`VolumeServer ${VERSION}, (c) 2016 - now, David Sehnal`);
+console.log(`VolumeServer Local ${VERSION}, (c) 2018-2019, Mol* contributors`);
 console.log();
 
 function help() {
@@ -48,21 +50,25 @@ function help() {
         outputFolder: 'g:/test/local-test'
     }];
 
-    console.log('Usage: node local jobs.json');
-    console.log();
-    console.log('Example jobs.json:');
-    console.log(JSON.stringify(exampleJobs, null, 2));
+    return `Usage: node local jobs.json\n\nExample jobs.json: ${JSON.stringify(exampleJobs, null, 2)}`
 }
 
-async function run() {
-    if (process.argv.length !== 3) {
-        help();
-        return;
-    }
+const parser = new argparse.ArgumentParser({
+    addHelp: true,
+    description: help()
+});
+addLimitsArgs(parser)
+parser.addArgument(['jobs'], {
+    help: `Path to jobs JSON file.`
+})
 
+const config: LimitsConfig & { jobs: string } = parser.parseArgs()
+setLimitsConfig(config) // sets the config for global use
+
+async function run() {
     let jobs: LocalApi.JobEntry[];
     try {
-        jobs = JSON.parse(fs.readFileSync(process.argv[2], 'utf-8'));
+        jobs = JSON.parse(fs.readFileSync(config.jobs, 'utf-8'));
     } catch (e) {
         console.log('Error:');
         console.error(e);

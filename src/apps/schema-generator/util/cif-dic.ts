@@ -160,6 +160,7 @@ const COMMA_SEPARATED_LIST_FIELDS = [
     '_diffrn_source.pdbx_wavelength_list',
     '_em_diffraction.tilt_angle_list', // 20,40,50,55
     '_em_entity_assembly.entity_id_list',
+    '_entity.pdbx_description', // Endolysin,Beta-2 adrenergic receptor
     '_entity.pdbx_ec',
     '_entity_poly.pdbx_strand_id', // A,B
     '_pdbx_depui_entry_details.experimental_methods',

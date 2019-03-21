@@ -7,6 +7,7 @@
  */
 
 import * as UTF8 from 'mol-io/common/utf8'
+import { SimpleBuffer } from 'mol-io/common/simple-buffer';
 
 export type Bool = { kind: 'bool' }
 export type Int = { kind: 'int' }
@@ -96,7 +97,7 @@ function writeElement(e: Element, buffer: Buffer, src: any, offset: number) {
 
 function write(element: Element, src: any) {
     const size = byteCount(element, src);
-    const buffer = new Buffer(size);
+    const buffer = Buffer.alloc(size);
     writeElement(element, buffer, src, 0);
     return buffer;
 }
@@ -105,7 +106,7 @@ export function encode(element: Element, src: any): Buffer {
     return write(element, src);
 }
 
-function decodeElement(e: Element, buffer: Buffer, offset: number, target: { value: any }) {
+function decodeElement(e: Element, buffer: SimpleBuffer, offset: number, target: { value: any }) {
     switch (e.kind) {
         case 'bool': target.value = !!buffer.readInt8(offset); offset += 1; break;
         case 'int': target.value = buffer.readInt32LE(offset); offset += 4; break;
@@ -147,7 +148,7 @@ function decodeElement(e: Element, buffer: Buffer, offset: number, target: { val
     return offset;
 }
 
-export function decode<T>(element: Element, buffer: Buffer, offset?: number) {
+export function decode<T>(element: Element, buffer: SimpleBuffer, offset?: number) {
     const target = { value: void 0 as any };
     decodeElement(element, buffer, offset! | 0, target);
     return target.value as T;

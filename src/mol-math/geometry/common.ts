@@ -14,9 +14,9 @@ export interface PositionData {
     x: ArrayLike<number>,
     y: ArrayLike<number>,
     z: ArrayLike<number>,
-    // subset indices into the x/y/z/radius arrays
+    /** subset of indices into the x/y/z/radius arrays */
     indices: OrderedSet,
-    // optional element radius
+    /** optional element radius */
     radius?: ArrayLike<number>
 }
 

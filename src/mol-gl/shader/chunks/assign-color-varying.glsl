@@ -13,3 +13,7 @@
 #elif defined(dColorType_groupPicking)
     vColor = vec4(encodeFloatRGB(aGroup), 1.0);
 #endif
+
+#ifdef dOverpaint
+    vOverpaint = readFromTexture(tOverpaint, aInstance * float(uGroupCount) + aGroup, uOverpaintTexDim);
+#endif

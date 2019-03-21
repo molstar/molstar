@@ -1,19 +1,19 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Structure from './structure'
-import { StructureSelection, QueryContext } from '../query'
-import { ModelSymmetry } from '../model'
-import { Task, RuntimeContext } from 'mol-task';
 import { SortedArray } from 'mol-data/int';
-import Unit from './unit';
 import { EquivalenceClasses } from 'mol-data/util';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { SymmetryOperator, Spacegroup, SpacegroupCell } from 'mol-math/geometry';
+import { Spacegroup, SpacegroupCell, SymmetryOperator } from 'mol-math/geometry';
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
+import { RuntimeContext, Task } from 'mol-task';
+import { ModelSymmetry } from '../model';
+import { QueryContext, StructureSelection } from '../query';
+import Structure from './structure';
+import Unit from './unit';
 
 namespace StructureSymmetry {
     export function buildAssembly(structure: Structure, asmName: string) {
@@ -90,24 +90,45 @@ namespace StructureSymmetry {
 }
 
 function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
-    const operators: SymmetryOperator[] = symmetry._operators_333 || [];
+    const operators: SymmetryOperator[] = [];
     const { spacegroup } = symmetry;
-    if (operators.length === 0) {
+    if (ijkMin[0] <= 0 && ijkMax[0] >= 0 &&
+        ijkMin[1] <= 0 && ijkMax[1] >= 0 &&
+        ijkMin[2] <= 0 && ijkMax[2] >= 0) {
         operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
-        for (let op = 0; op < spacegroup.operators.length; op++) {
-            for (let i = ijkMin[0]; i < ijkMax[0]; i++) {
-                for (let j = ijkMin[1]; j < ijkMax[1]; j++) {
-                    for (let k = ijkMin[2]; k < ijkMax[2]; k++) {
-                        // we have added identity as the 1st operator.
-                        if (op === 0 && i === 0 && j === 0 && k === 0) continue;
-                        operators[operators.length] = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
+    }
+
+    const { ncsOperators } = symmetry
+    const ncsCount = (ncsOperators && ncsOperators.length) || 0
+
+    for (let op = 0; op < spacegroup.operators.length; op++) {
+        for (let i = ijkMin[0]; i <= ijkMax[0]; i++) {
+            for (let j = ijkMin[1]; j <= ijkMax[1]; j++) {
+                for (let k = ijkMin[2]; k <= ijkMax[2]; k++) {
+                    // we have added identity as the 1st operator.
+                    if (op === 0 && i === 0 && j === 0 && k === 0) continue;
+                    const symOp = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
+                    if (ncsCount) {
+                        for (let u = 0; u < ncsCount; ++u) {
+                            const ncsOp = ncsOperators![u]
+                            const matrix = Mat4.mul(Mat4.zero(), symOp.matrix, ncsOp.matrix)
+                            const operator = SymmetryOperator.create(`${symOp.name} ${ncsOp.name}`, matrix, symOp.assembly, ncsOp.ncsId, symOp.hkl);
+                            operators[operators.length] = operator;
+                        }
+                    } else {
+                        operators[operators.length] = symOp;
                     }
                 }
             }
         }
-        symmetry._operators_333 = operators;
     }
     return operators;
+}
+
+function getOperatorsCached333(symmetry: ModelSymmetry) {
+    if (typeof symmetry._operators_333 !== 'undefined') return symmetry._operators_333;
+    symmetry._operators_333 = getOperators(symmetry, Vec3.create(-3, -3, -3), Vec3.create(3, 3, 3));
+    return symmetry._operators_333;
 }
 
 function assembleOperators(structure: Structure, operators: ReadonlyArray<SymmetryOperator>) {
@@ -150,7 +171,7 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 
     if (ctx.shouldUpdate) await ctx.update('Initialing...');
-    const operators = getOperators(symmetry, Vec3.create(-3, -3, -3), Vec3.create(3, 3, 3));
+    const operators = getOperatorsCached333(symmetry);
     const lookup = structure.lookup3d;
 
     const assembler = Structure.Builder();

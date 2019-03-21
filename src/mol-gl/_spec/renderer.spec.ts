@@ -22,6 +22,7 @@ import { createEmptyMarkers } from 'mol-geo/geometry/marker-data';
 import { fillSerial } from 'mol-util/array';
 import { Color } from 'mol-util/color';
 import { Sphere3D } from 'mol-math/geometry';
+import { createEmptyOverpaint } from 'mol-geo/geometry/overpaint-data';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)
@@ -52,11 +53,13 @@ function createPoints() {
     const color = createValueColor(Color(0xFF0000))
     const size = createValueSize(1)
     const marker = createEmptyMarkers()
+    const overpaint = createEmptyOverpaint()
 
     const aTransform = ValueCell.create(new Float32Array(16))
     const m4 = Mat4.identity()
     Mat4.toArray(m4, aTransform.ref.value, 0)
     const transform = ValueCell.create(new Float32Array(aTransform.ref.value))
+    const extraTransform = ValueCell.create(new Float32Array(aTransform.ref.value))
 
     const boundingSphere = ValueCell.create(Sphere3D.create(Vec3.zero(), 2))
     const invariantBoundingSphere = ValueCell.create(Sphere3D.create(Vec3.zero(), 2))
@@ -69,6 +72,7 @@ function createPoints() {
         ...color,
         ...marker,
         ...size,
+        ...overpaint,
 
         uAlpha: ValueCell.create(1.0),
         uHighlightColor: ValueCell.create(Vec3.create(1.0, 0.4, 0.6)),
@@ -76,9 +80,12 @@ function createPoints() {
         uInstanceCount: ValueCell.create(1),
         uGroupCount: ValueCell.create(3),
 
+        alpha: ValueCell.create(1.0),
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
+        matrix: ValueCell.create(m4),
         transform,
+        extraTransform,
         boundingSphere,
         invariantBoundingSphere,
 
@@ -90,6 +97,7 @@ function createPoints() {
     }
     const state: RenderableState = {
         visible: true,
+        alphaFactor: 1,
         pickable: true,
         opaque: true
     }
@@ -127,7 +135,7 @@ describe('renderer', () => {
 
         scene.add(points)
         expect(ctx.bufferCount).toBe(4);
-        expect(ctx.textureCount).toBe(3);
+        expect(ctx.textureCount).toBe(4);
         expect(ctx.vaoCount).toBe(4);
         expect(ctx.programCache.count).toBe(4);
         expect(ctx.shaderCache.count).toBe(8);

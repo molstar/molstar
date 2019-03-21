@@ -1,23 +1,24 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 /**
- * Create points for a polygon:
+ * Create 3d points for a polygon:
  * 3 for a triangle, 4 for a rectangle, 5 for a pentagon, 6 for a hexagon...
  */
 export function polygon(sideCount: number, shift: boolean) {
-    const points = new Float32Array(sideCount * 2)
+    const points = new Float32Array(sideCount * 3)
     const radius = sideCount <= 4 ? Math.sqrt(2) / 2 : 0.6
 
     const offset = shift ? 1 : 0
 
-    for (let i = 0, il = 2 * sideCount; i < il; i += 2) {
-        const c = (i + offset) / sideCount * Math.PI
-        points[i] = Math.cos(c) * radius
-        points[i + 1] = Math.sin(c) * radius
+    for (let i = 0, il = sideCount; i < il; ++i) {
+        const c = (i * 2 + offset) / sideCount * Math.PI
+        points[i * 3] = Math.cos(c) * radius
+        points[i * 3 + 1] = Math.sin(c) * radius
+        points[i * 3 + 2] = 0
     }
     return points
 }

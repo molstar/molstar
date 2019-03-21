@@ -21,6 +21,7 @@ import { Theme } from 'mol-theme/theme';
 import { MeshValues } from 'mol-gl/renderable/mesh';
 import { Color } from 'mol-util/color';
 import { BaseGeometry } from '../base';
+import { createEmptyOverpaint } from '../overpaint-data';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -381,6 +382,7 @@ export namespace Mesh {
 
         const color = createColors(locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
+        const overpaint = createEmptyOverpaint()
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
 
@@ -398,6 +400,7 @@ export namespace Mesh {
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             ...color,
             ...marker,
+            ...overpaint,
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),

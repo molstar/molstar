@@ -72,6 +72,10 @@ class Structure {
         return prc && ec ? ec / prc < 2 : false
     }
 
+    get isEmpty() {
+        return this.units.length === 0;
+    }
+
     get hashCode() {
         if (this._props.hashCode !== -1) return this._props.hashCode;
         return this.computeHash();
@@ -377,7 +381,7 @@ namespace Structure {
         const units: Unit[] = [];
         for (const u of s.units) {
             const old = u.conformation.operator;
-            const op = SymmetryOperator.create(old.name, transform, { id: '', operList: [] }, old.hkl);
+            const op = SymmetryOperator.create(old.name, transform, { id: '', operList: [] }, old.ncsId, old.hkl);
             units.push(u.applyOperator(u.id, op));
         }
 
@@ -420,7 +424,7 @@ namespace Structure {
         return hashString(s.units.map(u => Unit.conformationId(u)).join('|'))
     }
 
-    export function areEqual(a: Structure, b: Structure) {
+    export function areUnitAndIndicesEqual(a: Structure, b: Structure) {
         if (a.elementCount !== b.elementCount) return false;
         const len = a.units.length;
         if (len !== b.units.length) return false;

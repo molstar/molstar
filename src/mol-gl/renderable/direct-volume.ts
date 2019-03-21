@@ -20,6 +20,10 @@ export const DirectVolumeSchema = {
     uMarkerTexDim: UniformSpec('v2'),
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
 
+    uOverpaintTexDim: UniformSpec('v2'),
+    tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+    dOverpaint: DefineSpec('boolean'),
+
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
 
@@ -28,7 +32,13 @@ export const DirectVolumeSchema = {
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
-    transform: AttributeSpec('float32', 16, 1),
+
+    alpha: ValueSpec('number'),
+
+    matrix: ValueSpec('m4'),
+    transform: ValueSpec('float32'),
+    extraTransform: ValueSpec('float32'),
+
     boundingSphere: ValueSpec('sphere'),
     invariantBoundingSphere: ValueSpec('sphere'),
 

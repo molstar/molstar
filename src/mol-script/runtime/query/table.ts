@@ -8,7 +8,7 @@ import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
 import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './compiler';
 import { Queries, StructureProperties, StructureElement, QueryContext } from 'mol-model/structure';
 import { ElementSymbol } from 'mol-model/structure/model/types';
-import { isSuperset } from 'mol-util/set';
+import { SetUtils } from 'mol-util/set';
 import toUpperCase from 'mol-util/upper-case';
 import { VdwRadius, AtomWeight, AtomNumber } from 'mol-model/structure/model/properties/atomic';
 import { cantorPairing } from 'mol-data/util';
@@ -150,7 +150,7 @@ const symbols = [
 
     // ============= SET ================
     C(MolScript.core.set.has, (ctx, v) => v[0](ctx).has(v[1](ctx))),
-    C(MolScript.core.set.isSubset, (ctx, v) => isSuperset(v[1](ctx) as Set<any>, v[0](ctx) as Set<any>)),
+    C(MolScript.core.set.isSubset, (ctx, v) => SetUtils.isSuperset(v[1](ctx) as Set<any>, v[0](ctx) as Set<any>)),
 
     // ============= FLAGS ================
     C(MolScript.core.flags.hasAny, (ctx, v) => {
@@ -195,6 +195,25 @@ const symbols = [
         groupBy: xs['group-by']
     })(ctx)),
 
+    D(MolScript.structureQuery.generator.all, (ctx) => Queries.generators.all(ctx)),
+    D(MolScript.structureQuery.generator.empty, (ctx) => Queries.generators.none(ctx)),
+
+    // ============= MODIFIERS ================
+
+    D(MolScript.structureQuery.modifier.includeSurroundings, (ctx, xs) => Queries.modifiers.includeSurroundings(xs[0] as any, {
+        radius: xs['radius'](ctx),
+        wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
+        elementRadius: xs['atom-radius']
+    })(ctx)),
+    D(MolScript.structureQuery.modifier.wholeResidues, (ctx, xs) => Queries.modifiers.wholeResidues(xs[0] as any)(ctx)),
+    D(MolScript.structureQuery.modifier.union, (ctx, xs) => Queries.modifiers.union(xs[0] as any)(ctx)),
+    D(MolScript.structureQuery.modifier.expandProperty, (ctx, xs) => Queries.modifiers.expandProperty(xs[0] as any, xs['property'])(ctx)),
+    D(MolScript.structureQuery.modifier.exceptBy, (ctx, xs) => Queries.modifiers.exceptBy(xs[0] as any, xs['by'] as any)(ctx)),
+
+    // ============= COMBINATORS ================
+
+    D(MolScript.structureQuery.combinator.merge, (ctx, xs) => Queries.combinators.merge(xs as any)(ctx)),
+
     // ============= ATOM PROPERTIES ================
 
     // ~~~ CORE ~~~
@@ -205,6 +224,8 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.core.x, atomProp(StructureProperties.atom.x)),
     D(MolScript.structureQuery.atomProperty.core.y, atomProp(StructureProperties.atom.y)),
     D(MolScript.structureQuery.atomProperty.core.z, atomProp(StructureProperties.atom.z)),
+    D(MolScript.structureQuery.atomProperty.core.sourceIndex, atomProp(StructureProperties.atom.sourceIndex)),
+    D(MolScript.structureQuery.atomProperty.core.operatorName, atomProp(StructureProperties.unit.operator_name)),
     D(MolScript.structureQuery.atomProperty.core.atomKey, (ctx, _) => cantorPairing(ctx.element.unit.id, ctx.element.element)),
 
     // TODO:

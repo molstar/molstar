@@ -30,24 +30,29 @@ canvas3d.animate()
 function textRepr() {
     const props: PD.Values<Text.Params> = {
         ...PD.getDefaultValues(Text.Params),
-        attachment: 'middle-center',
+        attachment: 'top-right',
         fontQuality: 3,
         fontWeight: 'normal',
-        borderWidth: 0.3
+        borderWidth: 0.3,
+        background: true,
+        backgroundOpacity: 0.5,
+        tether: true,
+        tetherLength: 1.5,
+        tetherBaseWidth: 0.5,
     }
 
     const textBuilder = TextBuilder.create(props, 1, 1)
-    textBuilder.add('Hello world', 0, 0, 0, 0)
-    textBuilder.add('Добрый день', 0, 1, 0, 0)
-    textBuilder.add('美好的一天', 0, 2, 0, 0)
-    textBuilder.add('¿Cómo estás?', 0, -1, 0, 0)
-    textBuilder.add('αβγ Å', 0, -2, 0, 0)
+    textBuilder.add('Hello world', 0, 0, 0, 1, 0)
+    // textBuilder.add('Добрый день', 0, 1, 0, 0, 0)
+    // textBuilder.add('美好的一天', 0, 2, 0, 0, 0)
+    // textBuilder.add('¿Cómo estás?', 0, -1, 0, 0, 0)
+    // textBuilder.add('αβγ Å', 0, -2, 0, 0, 0)
     const text = textBuilder.getText()
 
     const values = Text.Utils.createValuesSimple(text, props, Color(0xFFDD00), 1)
     const state = Text.Utils.createRenderableState(props)
     const renderObject = createRenderObject('text', values, state)
-    console.log('text', renderObject)
+    console.log('text', renderObject, props)
     const repr = Representation.fromRenderObject('text', renderObject)
     return repr
 }

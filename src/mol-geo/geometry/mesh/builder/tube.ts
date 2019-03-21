@@ -27,7 +27,7 @@ function add3AndScale2(out: Vec3, a: Vec3, b: Vec3, c: Vec3, sa: number, sb: num
     out[2] = (a[2] * sa) + (b[2] * sb) + c[2];
 }
 
-export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) {
+export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, widthValues: ArrayLike<number>, heightValues: ArrayLike<number>, waveFactor: number, startCap: boolean, endCap: boolean) {
     const { currentGroup, vertices, normals, indices, groups } = state
 
     let vertexCount = vertices.elementCount
@@ -38,6 +38,9 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
         Vec3.fromArray(u, normalVectors, i3)
         Vec3.fromArray(v, binormalVectors, i3)
         Vec3.fromArray(controlPoint, controlPoints, i3)
+
+        const width = widthValues[i]
+        const height = heightValues[i]
 
         const tt = di * i - 0.5;
         const ff = 1 + (waveFactor - 1) * (Math.cos(2 * Math.PI * tt) + 1);
@@ -83,6 +86,9 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
         ChunkedArray.add3(vertices, controlPoint[0], controlPoint[1], controlPoint[2]);
         ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
 
+        const width = widthValues[0]
+        const height = heightValues[0]
+
         vertexCount = vertices.elementCount
         for (let i = 0; i < radialSegments; ++i) {
             const t = 2 * Math.PI * i / radialSegments;
@@ -111,6 +117,9 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
 
         ChunkedArray.add3(vertices, controlPoint[0], controlPoint[1], controlPoint[2]);
         ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
+
+        const width = widthValues[linearSegments]
+        const height = heightValues[linearSegments]
 
         vertexCount = vertices.elementCount
         for (let i = 0; i < radialSegments; ++i) {
