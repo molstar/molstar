@@ -474,6 +474,8 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     }
 });
 
+//
+
 export { ShapeRepresentation3D }
 type ShapeRepresentation3D = typeof ShapeRepresentation3D
 const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
@@ -482,7 +484,7 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
     from: SO.Shape.Provider,
     to: SO.Shape.Representation3D,
     params: (a, ctx: PluginContext) => {
-        return BaseGeometry.Params
+        return a ? a.data.geometryUtils.Params : BaseGeometry.Params
     }
 })({
     canAutoUpdate() {
