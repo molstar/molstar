@@ -1,6 +1,7 @@
 import { Vec3 } from 'mol-math/linear-algebra';
 import { AtomicHierarchy, AtomicConformation } from '../atomic';
-import { ElementSymbol, VdwRadii } from '../../types';
+import { ElementSymbol, VdwRadii, MaxAsa, DefaultMaxAsa } from '../../types';
+import { max } from 'mol-data/int/impl/ordered-set';
 
 const defaultNumberOfPoints = 960;
 const defaultProbeSize = 1.4;
@@ -132,7 +133,18 @@ function calculateASA(ctx: ASAContext) {
         residueAsa[residueAtomSegments.index[i]] += value;
     }
 
-    // TODO (optionally) normalize by maximum value expected for a particular amino acid - needs lookup of max values
+    console.log(residueAsa);
+
+    // normalize by maximum value expected for a particular amino acid - needs lookup of max values
+    for (let i = 0; i < residues.label_comp_id.rowCount; ++i) {
+        // skip entities not part of a peptide chain
+        if (derived.residue.moleculeType[i] !== 4)
+            continue;
+
+        const maxAsa = (MaxAsa as any)[residues.label_comp_id.value(i)];
+        residueAsa[i] /= (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
+    }
+
     console.log(residueAsa);
 }
 
