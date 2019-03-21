@@ -12,7 +12,7 @@ function charAtIsNumber(str: string, index: number) {
     return code >= 48 && code <= 57
 }
 
-export function guessElement (str: string) {
+export function guessElement(str: string) {
     let at = str.trim().toUpperCase()
 
     if (charAtIsNumber(at, 0)) at = at.substr(1)
