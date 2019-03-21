@@ -1,6 +1,7 @@
 import { Vec3 } from 'mol-math/linear-algebra';
 import { AtomicHierarchy, AtomicConformation } from '../atomic';
-import { ElementSymbol, VdwRadii, MaxAsa, DefaultMaxAsa } from '../../types';
+import { ElementSymbol, MaxAsa, DefaultMaxAsa, MoleculeType } from '../../types';
+import { VdwRadius } from '../atomic/measures';
 
 const defaultNumberOfPoints = 960;
 const defaultProbeSize = 1.4;
@@ -24,23 +25,13 @@ export function computeModelASA(hierarchy: AtomicHierarchy, conformation: Atomic
         conformation
     }
 
-    return calculateASA(ctx);
-}
-
-const valueForIgnoredAtom = -1.0;
-
-function calculateASA(ctx: ASAContext) {
     const { probeSize, spherePoints, cons } = ctx;
     const { atoms, residues, residueAtomSegments, derived } = ctx.hierarchy;
     const { type_symbol } = atoms;
     const { x, y, z } = ctx.conformation;
 
     const radii: number[] = [];
-    // const atomAsa: number[] = [];
     const residueAsa: number[] = [];
-
-    console.log(ctx.hierarchy);
-    console.log(ctx.conformation);
 
     const position = (i: number, v: Vec3) => Vec3.set(v, x[i], y[i], z[i]);
     const a1Pos = Vec3.zero();
@@ -59,7 +50,7 @@ function calculateASA(ctx: ASAContext) {
         const groupIndex = residueAtomSegments.index[i];
 
         // skip entities not part of a peptide chain
-        if (derived.residue.moleculeType[groupIndex] !== 4) {
+        if (derived.residue.moleculeType[groupIndex] !== MoleculeType.protein) {
             radii[radii.length] = valueForIgnoredAtom;
             continue;
         }
@@ -144,9 +135,11 @@ function calculateASA(ctx: ASAContext) {
         residueAsa[i] /= (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
     }
 
-    // console.log(residueAsa);
+    console.log(residueAsa);
     return residueAsa;
 }
+
+const valueForIgnoredAtom = -1.0;
 
 /**
  * Gets the van der Waals radius of the given atom following the values defined by Chothia (1976)
@@ -178,8 +171,7 @@ function determineRadius(atomId: string, element: ElementSymbol, compId: string)
             }
         }
     }
-    // TODO could potentially use logging or error thrown
-    return (VdwRadii as any)[atomId];
+    return VdwRadius(element);
 }
 
 /** Creates a collection of points on a sphere by the Golden Section Spiral algorithm. */
