@@ -31,13 +31,14 @@ async function getPlyMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, 
     const nx = vertex.getProperty('nx')
     const ny = vertex.getProperty('ny')
     const nz = vertex.getProperty('nz')
-    if (!nx || !ny || !nz) throw new Error('missing normal properties') // TODO calculate normals when not provided
+
+    const hasNormals = !!nx && !!ny && !!nz
 
     for (let i = 0, il = vertex.rowCount; i < il; ++i) {
         if (i % 10000 === 0 && ctx.shouldUpdate) await ctx.update({ current: i, max: il, message: `adding vertex ${i}` })
 
         ChunkedArray.add3(vertices, x.value(i), y.value(i), z.value(i))
-        ChunkedArray.add3(normals, nx.value(i), ny.value(i), nz.value(i));
+        if (hasNormals) ChunkedArray.add3(normals, nx!.value(i), ny!.value(i), nz!.value(i));
         ChunkedArray.add(groups, groupIds[i])
     }
 
@@ -47,7 +48,12 @@ async function getPlyMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, 
         const { entries } = face.value(i)
         ChunkedArray.add3(indices, entries[0], entries[1], entries[2])
     }
-    return MeshBuilder.getMesh(builderState);
+
+    const m = MeshBuilder.getMesh(builderState);
+    m.normalsComputed = hasNormals
+    await Mesh.computeNormals(m).runInContext(ctx)
+
+    return m
 }
 
 function getGrouping(count: number, column?: Column<number>) {
@@ -66,10 +72,9 @@ async function getShape(ctx: RuntimeContext, plyFile: PlyFile, props: PD.Values<
     const vertex = plyFile.getElement('vertex') as PlyTable
     if (!vertex) throw new Error('missing vertex element')
 
-    const red = vertex.getProperty(vp.red)
-    const green = vertex.getProperty(vp.green)
-    const blue = vertex.getProperty(vp.blue)
-    if (!red || !green || !blue) throw new Error('missing color properties')
+    const red = vertex.getProperty(vp.red) || Column.ofConst(127, vertex.rowCount, Column.Schema.int)
+    const green = vertex.getProperty(vp.green) || Column.ofConst(127, vertex.rowCount, Column.Schema.int)
+    const blue = vertex.getProperty(vp.blue) || Column.ofConst(127, vertex.rowCount, Column.Schema.int)
 
     const face = plyFile.getElement('face') as PlyList
     if (!face) throw new Error('missing face element')
@@ -95,13 +100,20 @@ export const PlyShapeParams = {
 
     vertexProperties: PD.Group({
         group: PD.Select('' as string, [['', '']]),
-        red: PD.Select('red' as string, [['red', 'red']]),
-        green: PD.Select('green' as string, [['green', 'green']]),
-        blue: PD.Select('blue' as string, [['blue', 'blue']]),
+        red: PD.Select('' as string, [['', '']]),
+        green: PD.Select('' as string, [['', '']]),
+        blue: PD.Select('' as string, [['', '']]),
     }, { isExpanded: true }),
 }
 export type PlyShapeParams = typeof PlyShapeParams
 
+function setGroupDefault<T>(group: PD.Group<any>, name: string, defaultValue: T) {
+    group.params[name].defaultValue = defaultValue
+    group.defaultValue.group = defaultValue
+}
+function setSelectOptions(select: PD.Select<string>, options: [string, string][]) {
+    select.options = options;
+}
 
 export function getPlyShapeParams(plyFile: PlyFile) {
     const params = PD.clone(PlyShapeParams)
@@ -112,17 +124,18 @@ export function getPlyShapeParams(plyFile: PlyFile) {
             const name = vertex.propertyNames[i]
             options.push([ name, name ])
         }
-        const vp = params.vertexProperties.params;
-        (vp.group as PD.Select<string>).options = options;
-        (vp.red as PD.Select<string>).options = options;
-        (vp.green as PD.Select<string>).options = options;
-        (vp.blue as PD.Select<string>).options = options;
+        const vp = params.vertexProperties;
+        setSelectOptions(vp.params.group as PD.Select<string>, options);
+        setSelectOptions(vp.params.red as PD.Select<string>, options);
+        setSelectOptions(vp.params.green as PD.Select<string>, options);
+        setSelectOptions(vp.params.blue as PD.Select<string>, options);
 
         // TODO harcoded as convenience for data provided by MegaMol
-        if (vertex.propertyNames.includes('atomid')) {
-            vp.group.defaultValue = 'atomid'
-            params.vertexProperties.defaultValue.group = 'atomid'
-        }
+        if (vertex.propertyNames.includes('atomid')) setGroupDefault(vp, 'group', 'atomid')
+
+        if (vertex.propertyNames.includes('red')) setGroupDefault(vp, 'red', 'red')
+        if (vertex.propertyNames.includes('green')) setGroupDefault(vp, 'green', 'green')
+        if (vertex.propertyNames.includes('blue')) setGroupDefault(vp, 'blue', 'blue')
     }
     return params
 }
