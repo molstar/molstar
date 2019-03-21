@@ -67,7 +67,7 @@ async function getShape(ctx: RuntimeContext, plyFile: PlyFile, props: {}, shape?
 
     const mesh = await getPlyMesh(ctx, vertex, face, shape && shape.geometry)
     return shape || Shape.create(
-        'test', mesh,
+        'test', plyFile, mesh,
         (groupId: number) => {
             return Color.fromRgb(red.value(groupId), green.value(groupId), blue.value(groupId))
         },

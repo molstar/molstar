@@ -15,6 +15,8 @@ export interface Shape<G extends Geometry = Geometry> {
     readonly id: UUID
     /** A name to describe the shape */
     readonly name: string
+    /** The data used to create the shape */
+    readonly sourceData: unknown
     /** The geometry of the shape, e.g. `Mesh` or `Lines` */
     readonly geometry: G
     /** An array of transformation matrices to describe multiple instances of the geometry */
@@ -30,10 +32,11 @@ export interface Shape<G extends Geometry = Geometry> {
 }
 
 export namespace Shape {
-    export function create<G extends Geometry>(name: string, geometry: G, getColor: Shape['getColor'], getSize: Shape['getSize'], getLabel: Shape['getLabel'], transforms?: Mat4[]): Shape<G> {
+    export function create<G extends Geometry>(name: string, sourceData: unknown, geometry: G, getColor: Shape['getColor'], getSize: Shape['getSize'], getLabel: Shape['getLabel'], transforms?: Mat4[]): Shape<G> {
         return {
             id: UUID.create22(),
             name,
+            sourceData,
             geometry,
             transforms: transforms || [Mat4.identity()],
             get groupCount() { return Geometry.getGroupCount(geometry) },

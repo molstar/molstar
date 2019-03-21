@@ -19,9 +19,6 @@ import { Representation } from 'mol-repr/representation';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { EveryLoci } from 'mol-model/loci';
 
-
-
-
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
 parent.style.height = '100%'
@@ -85,7 +82,7 @@ async function getSphereMesh(ctx: RuntimeContext, centers: number[], mesh?: Mesh
 
 const myData = {
     centers: [0, 0, 0, 0, 3, 0, 1, 0 , 4],
-    colors: [ColorNames.tomato, ColorNames.springgreen,ColorNames.springgreen],
+    colors: [ColorNames.tomato, ColorNames.springgreen, ColorNames.springgreen],
     labels: ['Sphere 0, Instance A', 'Sphere 1, Instance A', 'Sphere 0, Instance B', 'Sphere 1, Instance B'],
     transforms: [Mat4.identity(), Mat4.fromTranslation(Mat4.zero(), Vec3.create(3, 0, 0))]
 }
@@ -100,7 +97,7 @@ async function getShape(ctx: RuntimeContext, data: MyData, props: {}, shape?: Sh
     const mesh = await getSphereMesh(ctx, centers, shape && shape.geometry)
     const groupCount = centers.length / 3
     return shape || Shape.create(
-        'test', mesh,
+        'test', data, mesh,
         (groupId: number) => colors[groupId], // color: per group, same for instances
         () => 1, // size: constant
         (groupId: number, instanceId: number) => labels[instanceId * groupCount + groupId], // label: per group and instance
