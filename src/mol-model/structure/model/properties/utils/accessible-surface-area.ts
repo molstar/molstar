@@ -36,7 +36,7 @@ function calculateASA(ctx: ASAContext) {
     const { x, y, z } = ctx.conformation;
 
     const radii: number[] = [];
-    const atomAsa: number[] = [];
+    // const atomAsa: number[] = [];
     const residueAsa: number[] = [];
 
     console.log(ctx.hierarchy);
@@ -46,7 +46,7 @@ function calculateASA(ctx: ASAContext) {
     const a1Pos = Vec3.zero();
     const a2Pos = Vec3.zero();
 
-    // 1. extract all heavy atoms
+    // extract all heavy atoms
     // TODO can be more elegant by obtaining residue info once and then using offset to navigate to next residue
     for (let i = 0; i < type_symbol.rowCount; ++i) {
         // skip hydrogen atoms
@@ -67,11 +67,13 @@ function calculateASA(ctx: ASAContext) {
         const atomId = atoms.label_atom_id.value(i);
         const compId = residues.label_comp_id.value(groupIndex);
         const element = type_symbol.value(i);
-        // 2. assign radius to all heavy atoms - depends on element and bonding patterns
+        // assign radius to all heavy atoms - depends on element and bonding patterns
         radii[radii.length] = determineRadius(atomId, element, compId);
+        // set ASA of corresponding group to 0
+        residueAsa[groupIndex] = 0.0;
     }
 
-    // 3. calculate the individual ASA of each atom
+    // calculate the individual ASA of each atom
     // TODO again might be more elegant to use offsets
     // TODO distance is symmetric, omit redudant calcuations
     for (let i = 0; i < radii.length; ++i) {
@@ -79,7 +81,7 @@ function calculateASA(ctx: ASAContext) {
 
         // skip invalid entries
         if (radius === valueForIgnoredAtom) {
-            atomAsa[atomAsa.length] = valueForIgnoredAtom;
+            // atomAsa[atomAsa.length] = valueForIgnoredAtom;
             continue;
         }
 
@@ -124,13 +126,14 @@ function calculateASA(ctx: ASAContext) {
             }
         }
 
-        atomAsa[atomAsa.length] = cons * accessiblePoints * r * r;
+        const value = cons * accessiblePoints * r * r;
+        // atomAsa[atomAsa.length] = value;
+        // sum up values for each residue
+        residueAsa[residueAtomSegments.index[i]] += value;
     }
 
-    // 3. for each residue
-    // 3b. sum up
-    // 3c. (optionally) normalize by maximum value expected for a particular amino acid - needs lookup of max values
-    console.log(atomAsa);
+    // TODO (optionally) normalize by maximum value expected for a particular amino acid - needs lookup of max values
+    console.log(residueAsa);
 }
 
 /**
