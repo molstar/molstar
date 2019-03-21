@@ -13,8 +13,9 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Shape } from 'mol-model/shape';
 import { ChunkedArray } from 'mol-data/util';
+import { arrayMax } from 'mol-util/array';
 
-async function getPlyMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, mesh?: Mesh) {
+async function getPlyMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, groupIds: ArrayLike<number>, mesh?: Mesh) {
     const builderState = MeshBuilder.createState(face.rowCount, face.rowCount, mesh)
     const { vertices, normals, indices, groups } = builderState
 
@@ -28,15 +29,12 @@ async function getPlyMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, 
     const nz = vertex.getProperty('nz')
     if (!nx || !ny || !nz) throw new Error('missing normal properties')
 
-    const atomid = vertex.getProperty('atomid')
-    if (!atomid) throw new Error('missing atomid property')
-
     for (let i = 0, il = vertex.rowCount; i < il; ++i) {
         if (i % 10000 === 0 && ctx.shouldUpdate) await ctx.update({ current: i, max: il, message: `adding vertex ${i}` })
 
         ChunkedArray.add3(vertices, x.value(i), y.value(i), z.value(i))
         ChunkedArray.add3(normals, nx.value(i), ny.value(i), nz.value(i));
-        ChunkedArray.add(groups, atomid.value(i))
+        ChunkedArray.add(groups, groupIds[i])
     }
 
     for (let i = 0, il = face.rowCount; i < il; ++i) {
@@ -57,6 +55,11 @@ async function getShape(ctx: RuntimeContext, plyFile: PlyFile, props: {}, shape?
     const atomid = vertex.getProperty('atomid')
     if (!atomid) throw new Error('missing atomid property')
 
+    const groupIds = atomid.toArray({ array: Int32Array })
+    const maxGroupId = arrayMax(groupIds) // assumes uint group ids
+    const groupIdMap = new Uint32Array(maxGroupId + 1)
+    for (let i = 0, il = groupIds.length; i < il; ++i) groupIdMap[groupIds[i]] = i
+
     const red = vertex.getProperty('red')
     const green = vertex.getProperty('green')
     const blue = vertex.getProperty('blue')
@@ -65,15 +68,16 @@ async function getShape(ctx: RuntimeContext, plyFile: PlyFile, props: {}, shape?
     const face = plyFile.getElement('face') as PlyList
     if (!face) throw new Error('missing face element')
 
-    const mesh = await getPlyMesh(ctx, vertex, face, shape && shape.geometry)
+    const mesh = await getPlyMesh(ctx, vertex, face, groupIds, shape && shape.geometry)
     return shape || Shape.create(
         'test', plyFile, mesh,
         (groupId: number) => {
-            return Color.fromRgb(red.value(groupId), green.value(groupId), blue.value(groupId))
+            const idx = groupIdMap[groupId]
+            return Color.fromRgb(red.value(idx), green.value(idx), blue.value(idx))
         },
         () => 1, // size: constant
         (groupId: number) => {
-            return atomid.value(groupId).toString()
+            return atomid.value(groupIdMap[groupId]).toString()
         }
     )
 }
