@@ -49,6 +49,8 @@ export interface Model extends Readonly<{
         readonly chemicalComponentMap: ChemicalComponentMap
         /** maps residue name to `SaccharideComponent` data */
         readonly saccharideComponentMap: SaccharideComponentMap
+        /** brute-force way to add ASA data, prob should be a custom property */
+        readonly asa: number[]
     },
 
     customProperties: CustomProperties,
