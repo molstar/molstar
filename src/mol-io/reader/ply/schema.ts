@@ -17,7 +17,16 @@ export const PlyTypeByteLength = {
     'int': 4,
     'uint': 4,
     'float': 4,
-    'double': 8
+    'double': 8,
+
+    'int8': 1,
+    'uint8': 1,
+    'int16': 2,
+    'uint16': 2,
+    'int32': 4,
+    'uint32': 4,
+    'float32': 4,
+    'float64': 8
 }
 export type PlyType = keyof typeof PlyTypeByteLength
 export const PlyTypes = new Set(Object.keys(PlyTypeByteLength))
