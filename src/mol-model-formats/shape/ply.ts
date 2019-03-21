@@ -13,10 +13,14 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Shape } from 'mol-model/shape';
 import { ChunkedArray } from 'mol-data/util';
-import { arrayMax } from 'mol-util/array';
+import { arrayMax, fillSerial } from 'mol-util/array';
+import { Column } from 'mol-data/db';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+
+// TODO support 'edge' and 'material' elements, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
 
 async function getPlyMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, groupIds: ArrayLike<number>, mesh?: Mesh) {
-    const builderState = MeshBuilder.createState(face.rowCount, face.rowCount, mesh)
+    const builderState = MeshBuilder.createState(vertex.rowCount, vertex.rowCount / 4, mesh)
     const { vertices, normals, indices, groups } = builderState
 
     const x = vertex.getProperty('x')
@@ -27,7 +31,7 @@ async function getPlyMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, 
     const nx = vertex.getProperty('nx')
     const ny = vertex.getProperty('ny')
     const nz = vertex.getProperty('nz')
-    if (!nx || !ny || !nz) throw new Error('missing normal properties')
+    if (!nx || !ny || !nz) throw new Error('missing normal properties') // TODO calculate normals when not provided
 
     for (let i = 0, il = vertex.rowCount; i < il; ++i) {
         if (i % 10000 === 0 && ctx.shouldUpdate) await ctx.update({ current: i, max: il, message: `adding vertex ${i}` })
@@ -46,53 +50,89 @@ async function getPlyMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, 
     return MeshBuilder.getMesh(builderState);
 }
 
-async function getShape(ctx: RuntimeContext, plyFile: PlyFile, props: {}, shape?: Shape<Mesh>) {
-    await ctx.update('async creation of shape from  myData')
+function getGrouping(count: number, column?: Column<number>) {
+    const ids = column ? column.toArray({ array: Int32Array }) : fillSerial(new Uint32Array(count))
+    const maxId = arrayMax(ids) // assumes uint ids
+    const map = new Uint32Array(maxId + 1)
+    for (let i = 0, il = ids.length; i < il; ++i) map[ids[i]] = i
+    return { ids, map }
+}
+
+async function getShape(ctx: RuntimeContext, plyFile: PlyFile, props: PD.Values<PlyShapeParams>, shape?: Shape<Mesh>) {
+    await ctx.update('async creation of shape from ply file')
+
+    const { vertexProperties: vp } = props
 
     const vertex = plyFile.getElement('vertex') as PlyTable
     if (!vertex) throw new Error('missing vertex element')
 
-    const atomid = vertex.getProperty('atomid')
-    if (!atomid) throw new Error('missing atomid property')
-
-    const groupIds = atomid.toArray({ array: Int32Array })
-    const maxGroupId = arrayMax(groupIds) // assumes uint group ids
-    const groupIdMap = new Uint32Array(maxGroupId + 1)
-    for (let i = 0, il = groupIds.length; i < il; ++i) groupIdMap[groupIds[i]] = i
-
-    const red = vertex.getProperty('red')
-    const green = vertex.getProperty('green')
-    const blue = vertex.getProperty('blue')
+    const red = vertex.getProperty(vp.red)
+    const green = vertex.getProperty(vp.green)
+    const blue = vertex.getProperty(vp.blue)
     if (!red || !green || !blue) throw new Error('missing color properties')
 
     const face = plyFile.getElement('face') as PlyList
     if (!face) throw new Error('missing face element')
 
-    const mesh = await getPlyMesh(ctx, vertex, face, groupIds, shape && shape.geometry)
-    return shape || Shape.create(
+    const { ids, map } = getGrouping(vertex.rowCount, vertex.getProperty(vp.group))
+
+    const mesh = await getPlyMesh(ctx, vertex, face, ids, shape && shape.geometry)
+    return Shape.create(
         'test', plyFile, mesh,
         (groupId: number) => {
-            const idx = groupIdMap[groupId]
+            const idx = map[groupId]
             return Color.fromRgb(red.value(idx), green.value(idx), blue.value(idx))
         },
         () => 1, // size: constant
         (groupId: number) => {
-            return atomid.value(groupIdMap[groupId]).toString()
+            return ids[groupId].toString()
         }
     )
 }
 
 export const PlyShapeParams = {
-    ...Mesh.Params
+    ...Mesh.Params,
+
+    vertexProperties: PD.Group({
+        group: PD.Select('' as string, [['', '']]),
+        red: PD.Select('red' as string, [['red', 'red']]),
+        green: PD.Select('green' as string, [['green', 'green']]),
+        blue: PD.Select('blue' as string, [['blue', 'blue']]),
+    }, { isExpanded: true }),
 }
 export type PlyShapeParams = typeof PlyShapeParams
 
+
+export function getPlyShapeParams(plyFile: PlyFile) {
+    const params = PD.clone(PlyShapeParams)
+    const vertex = plyFile.getElement('vertex') as PlyTable
+    if (vertex) {
+        const options: [string, string][] = [['', '']]
+        for (let i = 0, il = vertex.propertyNames.length; i < il; ++i) {
+            const name = vertex.propertyNames[i]
+            options.push([ name, name ])
+        }
+        const vp = params.vertexProperties.params;
+        (vp.group as PD.Select<string>).options = options;
+        (vp.red as PD.Select<string>).options = options;
+        (vp.green as PD.Select<string>).options = options;
+        (vp.blue as PD.Select<string>).options = options;
+
+        // TODO harcoded as convenience for data provided by MegaMol
+        if (vertex.propertyNames.includes('atomid')) {
+            vp.group.defaultValue = 'atomid'
+            params.vertexProperties.defaultValue.group = 'atomid'
+        }
+    }
+    return params
+}
+
 export function shapeFromPly(source: PlyFile, params?: {}) {
-    return Task.create<ShapeProvider<PlyFile, Mesh, PlyShapeParams>>('Parse Shape Data', async ctx => {
-        console.log('source', source)
+    return Task.create<ShapeProvider<PlyFile, Mesh, PlyShapeParams>>('Shape Provider', async ctx => {
         return {
             label: 'Mesh',
             data: source,
+            params: getPlyShapeParams(source),
             getShape,
             geometryUtils: Mesh.Utils
         }

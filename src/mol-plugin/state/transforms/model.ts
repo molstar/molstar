@@ -339,7 +339,6 @@ function updateStructureFromQuery(query: QueryFn<Sel>, src: Structure, obj: SO.M
     return true;
 }
 
-
 namespace StructureComplexElement {
     export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres'
 }
