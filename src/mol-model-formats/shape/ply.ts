@@ -19,12 +19,17 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ColorNames } from 'mol-util/color/tables';
 import { deepClone } from 'mol-util/object';
 
-// TODO support 'edge' and 'material' elements, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
+// TODO support 'edge' element, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
+// TODO support missing face element
 
-function createPlyShapeParams(vertex?: PlyTable) {
+function createPlyShapeParams(plyFile?: PlyFile) {
+    const vertex = plyFile && plyFile.getElement('vertex') as PlyTable
+    const material = plyFile && plyFile.getElement('material') as PlyTable
+
+    const defaultValues = { group: '', vRed: '', vGreen: '', vBlue: '', mRed: '', mGreen: '', mBlue: '' }
+
     const groupOptions: [string, string][] = [['', '']]
     const colorOptions: [string, string][] = [['', '']]
-    const defaultValues = { group: '', red: '', green: '', blue: '' }
     if (vertex) {
         for (let i = 0, il = vertex.propertyNames.length; i < il; ++i) {
             const name = vertex.propertyNames[i]
@@ -39,20 +44,42 @@ function createPlyShapeParams(vertex?: PlyTable) {
 
         // TODO hardcoded as convenience for data provided by MegaMol
         if (vertex.propertyNames.includes('atomid')) defaultValues.group = 'atomid'
+        else if (vertex.propertyNames.includes('material_index')) defaultValues.group = 'material_index'
 
-        if (vertex.propertyNames.includes('red')) defaultValues.red = 'red'
-        if (vertex.propertyNames.includes('green')) defaultValues.green = 'green'
-        if (vertex.propertyNames.includes('blue')) defaultValues.blue = 'blue'
+        if (vertex.propertyNames.includes('red')) defaultValues.vRed = 'red'
+        if (vertex.propertyNames.includes('green')) defaultValues.vGreen = 'green'
+        if (vertex.propertyNames.includes('blue')) defaultValues.vBlue = 'blue'
     }
+
+    const materialOptions: [string, string][] = [['', '']]
+    if (material) {
+        for (let i = 0, il = material.propertyNames.length; i < il; ++i) {
+            const name = material.propertyNames[i]
+            const type = material.propertyTypes[i]
+            if (type === 'uchar' || type === 'uint8') materialOptions.push([ name, name ])
+        }
+
+        if (material.propertyNames.includes('red')) defaultValues.mRed = 'red'
+        if (material.propertyNames.includes('green')) defaultValues.mGreen = 'green'
+        if (material.propertyNames.includes('blue')) defaultValues.mBlue = 'blue'
+    }
+
+    const defaultColoring = defaultValues.vRed && defaultValues.vGreen && defaultValues.vBlue ? 'vertex' :
+        defaultValues.mRed && defaultValues.mGreen && defaultValues.mBlue ? 'material' : 'uniform'
 
     return {
         ...Mesh.Params,
 
-        coloring: PD.MappedStatic(defaultValues.red && defaultValues.green && defaultValues.blue ? 'vertex' : 'uniform', {
+        coloring: PD.MappedStatic(defaultColoring, {
             vertex: PD.Group({
-                red: PD.Select(defaultValues.red, colorOptions, { label: 'Red Property' }),
-                green: PD.Select(defaultValues.green, colorOptions, { label: 'Green Property' }),
-                blue: PD.Select(defaultValues.blue, colorOptions, { label: 'Blue Property' }),
+                red: PD.Select(defaultValues.vRed, colorOptions, { label: 'Red Property' }),
+                green: PD.Select(defaultValues.vGreen, colorOptions, { label: 'Green Property' }),
+                blue: PD.Select(defaultValues.vBlue, colorOptions, { label: 'Blue Property' }),
+            }, { isFlat: true }),
+            material: PD.Group({
+                red: PD.Select(defaultValues.mRed, materialOptions, { label: 'Red Property' }),
+                green: PD.Select(defaultValues.mGreen, materialOptions, { label: 'Green Property' }),
+                blue: PD.Select(defaultValues.mBlue, materialOptions, { label: 'Blue Property' }),
             }, { isFlat: true }),
             uniform: PD.Group({
                 color: PD.Color(ColorNames.grey)
@@ -129,8 +156,8 @@ function getGrouping(vertex: PlyTable, props: PD.Values<PlyShapeParams>): Groupi
     return { ids, map }
 }
 
-type Coloring = { red: Column<number>, green: Column<number>, blue: Column<number> }
-function getColoring(vertex: PlyTable, props: PD.Values<PlyShapeParams>): Coloring {
+type Coloring = { kind: 'vertex' | 'material' | 'uniform', red: Column<number>, green: Column<number>, blue: Column<number> }
+function getColoring(vertex: PlyTable, material: PlyTable | undefined, props: PD.Values<PlyShapeParams>): Coloring {
     const { coloring } = props
     const { rowCount } = vertex
 
@@ -139,23 +166,26 @@ function getColoring(vertex: PlyTable, props: PD.Values<PlyShapeParams>): Colori
         red = vertex.getProperty(coloring.params.red) || Column.ofConst(127, rowCount, int)
         green = vertex.getProperty(coloring.params.green) || Column.ofConst(127, rowCount, int)
         blue = vertex.getProperty(coloring.params.blue) || Column.ofConst(127, rowCount, int)
+    } else if (coloring.name === 'material') {
+        red = (material && material.getProperty(coloring.params.red)) || Column.ofConst(127, rowCount, int)
+        green = (material && material.getProperty(coloring.params.green)) || Column.ofConst(127, rowCount, int)
+        blue = (material && material.getProperty(coloring.params.blue)) || Column.ofConst(127, rowCount, int)
     } else {
         const [r, g, b] = Color.toRgb(coloring.params.color)
         red = Column.ofConst(r, rowCount, int)
         green = Column.ofConst(g, rowCount, int)
         blue = Column.ofConst(b, rowCount, int)
     }
-
-    return { red, green, blue }
+    return { kind: coloring.name, red, green, blue }
 }
 
 function createShape(plyFile: PlyFile, mesh: Mesh, coloring: Coloring, grouping: Grouping) {
-    const { red, green, blue } = coloring
+    const { kind, red, green, blue } = coloring
     const { ids, map } = grouping
     return Shape.create(
         'ply-mesh', plyFile, mesh,
         (groupId: number) => {
-            const idx = map[groupId]
+            const idx = kind === 'material' ? groupId : map[groupId]
             return Color.fromRgb(red.value(idx), green.value(idx), blue.value(idx))
         },
         () => 1, // size: constant
@@ -182,6 +212,8 @@ function makeShapeGetter() {
         const face = plyFile.getElement('face') as PlyList
         if (!face) throw new Error('missing face element')
 
+        const material = plyFile.getElement('material') as PlyTable
+
         let newMesh = false
         let newColor = false
 
@@ -198,12 +230,12 @@ function makeShapeGetter() {
         }
 
         if (newMesh) {
-            _coloring = getColoring(vertex, props)
+            _coloring = getColoring(vertex, material, props)
             _grouping = getGrouping(vertex, props)
             _mesh = await getMesh(ctx, vertex, face, _grouping.ids, shape && shape.geometry)
             _shape = createShape(plyFile, _mesh, _coloring, _grouping)
         } else if (newColor) {
-            _coloring = getColoring(vertex, props)
+            _coloring = getColoring(vertex, material, props)
             _shape = createShape(plyFile, _mesh, _coloring, _grouping)
         }
 
@@ -220,7 +252,7 @@ export function shapeFromPly(source: PlyFile, params?: {}) {
         return {
             label: 'Mesh',
             data: source,
-            params: createPlyShapeParams(source.getElement('vertex') as PlyTable),
+            params: createPlyShapeParams(source),
             getShape: makeShapeGetter(),
             geometryUtils: Mesh.Utils
         }
