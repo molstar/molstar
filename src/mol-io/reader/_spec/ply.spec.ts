@@ -56,6 +56,60 @@ end_header
 3 3 5 4
 `
 
+const plyCubeString = `ply
+format ascii 1.0
+comment test cube
+element vertex 24
+property float32 x
+property float32 y
+property float32 z
+property uint32 material_index
+element face 6
+property list uint8 int32 vertex_indices
+element material 6
+property uint8 red
+property uint8 green
+property uint8 blue
+end_header
+-1 -1 -1 0
+1 -1 -1 0
+1 1 -1 0
+-1 1 -1 0
+1 -1 1 1
+-1 -1 1 1
+-1 1 1 1
+1 1 1 1
+1 1 1 2
+1 1 -1 2
+1 -1 -1 2
+1 -1 1 2
+-1 1 -1 3
+-1 1 1 3
+-1 -1 1 3
+-1 -1 -1 3
+-1 1 1 4
+-1 1 -1 4
+1 1 -1 4
+1 1 1 4
+1 -1 1 5
+1 -1 -1 5
+-1 -1 -1 5
+-1 -1 1 5
+4 0 1 2 3
+4 4 5 6 7
+4 8 9 10 11
+4 12 13 14 15
+4 16 17 18 19
+4 20 21 22 23
+255 0 0
+0 255 0
+0 0 255
+255 255 0
+0 255 255
+255 0 255
+`
+
+
 describe('ply reader', () => {
     it('basic', async () => {
         const parsed = await Ply(plyString).run();
@@ -66,13 +120,33 @@ describe('ply reader', () => {
         if (!vertex) return
         const x = vertex.getProperty('x')
         if (!x) return
-        console.log('x', x.toArray())
+        expect(x.value(0)).toEqual(130.901)
 
         const face = plyFile.getElement('face') as PlyList
         if (!face) return
-        const f0 = face.value(0)
-        console.log('f0', f0)
-        const f1 = face.value(1)
-        console.log('f1', f1)
+        expect(face.value(0)).toEqual({ count: 3, entries: [0, 2, 1]})
+        expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4]})
+
+        expect.assertions(3)
+    });
+
+    it('material', async () => {
+        const parsed = await Ply(plyCubeString).run();
+        if (parsed.isError) return;
+        const plyFile = parsed.result;
+
+        const vertex = plyFile.getElement('vertex') as PlyTable
+        if (!vertex) return
+        expect(vertex.rowCount).toBe(24)
+
+        const face = plyFile.getElement('face') as PlyList
+        if (!face) return
+        expect(face.rowCount).toBe(6)
+
+        const material = plyFile.getElement('face') as PlyTable
+        if (!material) return
+        expect(face.rowCount).toBe(6)
+
+        expect.assertions(3)
     });
 });

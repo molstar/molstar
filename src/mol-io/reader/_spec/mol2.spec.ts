@@ -265,10 +265,10 @@ describe('mol2 reader', () => {
         expect(molecule.num_subst).toBe(0);
         expect(molecule.num_feat).toBe(0);
         expect(molecule.num_sets).toBe(0);
-        expect(molecule.mol_type).toBe("SMALL")
-        expect(molecule.charge_type).toBe("GASTEIGER");
-        expect(molecule.status_bits).toBe("");
-        expect(molecule.mol_comment).toBe("");
+        expect(molecule.mol_type).toBe('SMALL')
+        expect(molecule.charge_type).toBe('GASTEIGER');
+        expect(molecule.status_bits).toBe('');
+        expect(molecule.mol_comment).toBe('');
 
         // required atom fields
         expect(atoms.count).toBe(26);
@@ -277,7 +277,7 @@ describe('mol2 reader', () => {
         expect(atoms.x.value(0)).toBeCloseTo(1.7394, 0.001);
         expect(atoms.y.value(0)).toBeCloseTo(-2.1169, 0.0001);
         expect(atoms.z.value(0)).toBeCloseTo(-1.0893, 0.0001);
-        expect(atoms.atom_type.value(0)).toBe("O.3");
+        expect(atoms.atom_type.value(0)).toBe('O.3');
 
         // optional atom fields
         expect(atoms.subst_id.value(0)).toBe(1);
@@ -316,10 +316,10 @@ describe('mol2 reader', () => {
         expect(molecule.num_subst).toBe(0);
         expect(molecule.num_feat).toBe(0);
         expect(molecule.num_sets).toBe(0);
-        expect(molecule.mol_type).toBe("SMALL")
-        expect(molecule.charge_type).toBe("GASTEIGER");
-        expect(molecule.status_bits).toBe("");
-        expect(molecule.mol_comment).toBe("");
+        expect(molecule.mol_type).toBe('SMALL')
+        expect(molecule.charge_type).toBe('GASTEIGER');
+        expect(molecule.status_bits).toBe('');
+        expect(molecule.mol_comment).toBe('');
 
         // required atom fields
         expect(atoms.count).toBe(26);
@@ -328,7 +328,7 @@ describe('mol2 reader', () => {
         expect(atoms.x.value(0)).toBeCloseTo(1.7394, 0.001);
         expect(atoms.y.value(0)).toBeCloseTo(-2.1169, 0.0001);
         expect(atoms.z.value(0)).toBeCloseTo(-1.0893, 0.0001);
-        expect(atoms.atom_type.value(0)).toBe("O.3");
+        expect(atoms.atom_type.value(0)).toBe('O.3');
 
         // optional atom fields
         expect(atoms.subst_id.value(0)).toBe(1);
@@ -367,10 +367,10 @@ describe('mol2 reader', () => {
         expect(molecule.num_subst).toBe(0);
         expect(molecule.num_feat).toBe(0);
         expect(molecule.num_sets).toBe(0);
-        expect(molecule.mol_type).toBe("SMALL")
-        expect(molecule.charge_type).toBe("GASTEIGER");
-        expect(molecule.status_bits).toBe("");
-        expect(molecule.mol_comment).toBe("");
+        expect(molecule.mol_type).toBe('SMALL')
+        expect(molecule.charge_type).toBe('GASTEIGER');
+        expect(molecule.status_bits).toBe('');
+        expect(molecule.mol_comment).toBe('');
 
         // required atom fields
         expect(atoms.count).toBe(26);
@@ -379,7 +379,7 @@ describe('mol2 reader', () => {
         expect(atoms.x.value(0)).toBeCloseTo(1.7394, 0.001);
         expect(atoms.y.value(0)).toBeCloseTo(-2.1169, 0.0001);
         expect(atoms.z.value(0)).toBeCloseTo(-1.0893, 0.0001);
-        expect(atoms.atom_type.value(0)).toBe("O.3");
+        expect(atoms.atom_type.value(0)).toBe('O.3');
 
         // optional atom fields
         expect(atoms.subst_id.value(0)).toBe(0);
