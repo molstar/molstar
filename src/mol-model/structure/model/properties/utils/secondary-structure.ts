@@ -407,11 +407,11 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
 // angle calculations return NaN upon missing atoms
 // TODO would be nice to be provided elsewhere, omega is related but not needed here
 function calculatePhi(c: Vec3, nNext: Vec3, caNext: Vec3, cNext: Vec3) {
-    return angle(c, nNext, caNext, cNext);
+    return Vec3.dihedralAngle(c, nNext, caNext, cNext);
 }
 
 function calculatePsi(n: Vec3, ca: Vec3, c: Vec3, nNext: Vec3) {
-    return angle(n, ca, c, nNext);
+    return Vec3.dihedralAngle(n, ca, c, nNext);
 }
 
 // function calculateOmega(ca: Vec3, c: Vec3, nNext: Vec3, caNext: Vec3) {
@@ -798,30 +798,6 @@ function assignHelices(ctx: DSSPContext) {
         }
     }
     // console.log(`${ count[3] + count[4] + count[5] } helix elements - ${ count[3] } 3-10, ${ count[4] } alpha, ${ count[5] } pi`)
-}
-
-function angle(a: Vec3, b: Vec3, c: Vec3, d: Vec3) {
-    const ab = Vec3.zero();
-    const cb = Vec3.zero();
-    const bc = Vec3.zero();
-    const dc = Vec3.zero();
-
-    Vec3.sub(ab, a, b);
-    Vec3.sub(cb, c, b);
-    Vec3.sub(bc, b, c);
-    Vec3.sub(dc, d, c);
-
-    const abc = Vec3.zero();
-    const bcd = Vec3.zero();
-
-    Vec3.cross(abc, ab, cb);
-    Vec3.cross(bcd, bc, dc);
-
-    const angle = Vec3.angle(abc, bcd) * 360.0 / (2 * Math.PI);
-    const cross = Vec3.zero();
-    Vec3.cross(cross, abc, bcd);
-
-    return Vec3.dot(cb, cross) > 0 ? angle : -angle;
 }
 
 /**
