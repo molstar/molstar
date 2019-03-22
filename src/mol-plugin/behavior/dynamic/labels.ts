@@ -107,7 +107,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
 
         private getLabelsShape = (ctx: RuntimeContext, data: LabelsData, props: SceneLabelsProps, shape?: Shape<Text>) => {
             this.geo = getLabelsText(data, props, this.geo)
-            return Shape.create('Scene Labels', this.geo, this.getColor, this.getSize, this.getLabel, data.transforms)
+            return Shape.create('Scene Labels', data, this.geo, this.getColor, this.getSize, this.getLabel, data.transforms)
         }
 
         /** Update structures to be labeled, returns true if changed */

@@ -6,6 +6,7 @@
  */
 
 import { CifFile } from 'mol-io/reader/cif';
+import { PlyFile } from 'mol-io/reader/ply/schema';
 import { Model as _Model, Structure as _Structure } from 'mol-model/structure';
 import { VolumeData } from 'mol-model/volume';
 import { PluginBehavior } from 'mol-plugin/behavior/behavior';
@@ -16,6 +17,8 @@ import { StateObject, StateTransformer } from 'mol-state';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 import { Dsn6File } from 'mol-io/reader/dsn6/schema';
 import { ShapeRepresentation } from 'mol-repr/shape/representation';
+import { Shape as _Shape } from 'mol-model/shape';
+import { ShapeProvider } from 'mol-model/shape/provider';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -61,6 +64,7 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
+        export class Ply extends Create<PlyFile>({ name: 'PLY File', typeClass: 'Data' }) { }
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
 
@@ -71,6 +75,7 @@ export namespace PluginStateObject {
             | { kind: 'cif', data: CifFile }
             | { kind: 'ccp4', data: Ccp4File }
             | { kind: 'dsn6', data: Dsn6File }
+            | { kind: 'ply', data: PlyFile }
             // For non-build in extensions
             | { kind: 'custom', data: unknown, tag: string })
         export type BlobData = BlobEntry[]
@@ -99,6 +104,11 @@ export namespace PluginStateObject {
     export namespace Volume {
         export class Data extends Create<VolumeData>({ name: 'Volume Data', typeClass: 'Object' }) { }
         export class Representation3D extends CreateRepresentation3D<VolumeRepresentation<any>>({ name: 'Volume 3D' }) { }
+    }
+
+    export namespace Shape {
+        export class Provider extends Create<ShapeProvider<any, any, any>>({ name: 'Shape Provider', typeClass: 'Object' }) { }
+        export class Representation3D extends CreateRepresentation3D<ShapeRepresentation<any, any, any>>({ name: 'Shape 3D' }) { }
     }
 }
 

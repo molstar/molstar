@@ -199,7 +199,7 @@ export namespace CifField {
 
     export function ofColumn(column: Column<any>): CifField {
         const { rowCount, valueKind, areValuesEqual } = column;
-        
+
         let str: CifField['str']
         let int: CifField['int']
         let float: CifField['float']
@@ -219,7 +219,6 @@ export namespace CifField {
             default:
                 throw new Error('unsupported')
         }
-                
 
         return {
             __array: void 0,

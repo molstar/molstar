@@ -284,7 +284,7 @@ export namespace ParamDefinition {
         return true;
     }
 
-    function isParamEqual(p: Any, a: any, b: any): boolean {
+    export function isParamEqual(p: Any, a: any, b: any): boolean {
         if (a === b) return true;
         if (!a) return !b;
         if (!b) return !a;

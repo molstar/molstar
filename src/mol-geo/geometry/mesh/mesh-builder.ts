@@ -45,7 +45,7 @@ export namespace MeshBuilder {
     export function addTriangle(state: State, a: Vec3, b: Vec3, c: Vec3) {
         const { vertices, normals, indices, groups, currentGroup } = state
         const offset = vertices.elementCount
-        
+
         // positions
         ChunkedArray.add3(vertices, a[0], a[1], a[2]);
         ChunkedArray.add3(vertices, b[0], b[1], b[2]);

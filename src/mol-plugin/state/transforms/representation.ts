@@ -30,6 +30,7 @@ import { Color } from 'mol-util/color';
 import { Overpaint } from 'mol-theme/overpaint';
 import { Transparency } from 'mol-theme/transparency';
 import { getStructureOverpaint, getStructureTransparency } from './helpers';
+import { BaseGeometry } from 'mol-geo/geometry/base';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -511,6 +512,40 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             b.data.repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.description = VolumeRepresentation3DHelpers.getDescription(props)
+            return StateTransformer.UpdateResult.Updated;
+        });
+    }
+});
+
+//
+
+export { ShapeRepresentation3D }
+type ShapeRepresentation3D = typeof ShapeRepresentation3D
+const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'shape-representation-3d',
+    display: '3D Representation',
+    from: SO.Shape.Provider,
+    to: SO.Shape.Representation3D,
+    params: (a, ctx: PluginContext) => {
+        return a ? a.data.params : BaseGeometry.Params
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Shape Representation', async ctx => {
+            const props = { ...PD.getDefaultValues(a.data.params), params }
+            const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils)
+            // TODO set initial state, repr.setState({})
+            await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: a.data.label });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Shape Representation', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams }
+            await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
             return StateTransformer.UpdateResult.Updated;
         });
     }

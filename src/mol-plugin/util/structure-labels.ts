@@ -44,7 +44,7 @@ export async function getLabelRepresentation(ctx: RuntimeContext, structure: Str
 
 function getLabelsShape(ctx: RuntimeContext, data: LabelsData, props: PD.Values<Text.Params>, shape?: Shape<Text>) {
     const geo = getLabelsText(data, props, shape && shape.geometry);
-    return Shape.create('Scene Labels', geo, () => ColorNames.dimgrey, g => data.sizes[g], () => '')
+    return Shape.create('Scene Labels', data, geo, () => ColorNames.dimgrey, g => data.sizes[g], () => '')
 }
 
 const boundaryHelper = new BoundaryHelper();
