@@ -39,11 +39,10 @@ function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
         const maxAsa = (MaxAsa as any)[residues.label_comp_id.value(i)];
         relativeAccessibleSurfaceArea[i] = accessibleSurfaceArea[i] / (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
     }
-
 }
 
 /**
- * notes on performance - scenario: compute for first 10 units of 3j3q
+ * notes on performance - scenario: compute for first 10 units of 3j3q @ 960 sphere points
  * lookup3d + refinement: ~5000ms
  * naive approach: ~5600ms - higher variance
  */
@@ -65,7 +64,7 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) { // runs at rough
         const radii1 = atomRadius[aI];
         if (radii1 === missingAccessibleSurfaceAreaValue) continue;
 
-        // find suitable neighbors by lookup
+        // find suitable neighbor candidates by lookup
         const { indices, count } = lookup3d.find(x[aI], y[aI], z[aI], maxLookupRadius);
         position(aI, a1Pos);
 
@@ -109,6 +108,8 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) { // runs at rough
 
         const value = cons * accessiblePointCount * r * r;
         accessibleSurfaceArea[residueIndex[aI]] += value;
+        // +30% computation by normalizing partial solutions
+        // relativeAccessibleSurfaceArea[residueIndex[aI]] += value * (NormalizationFactors as any)[residueIndex[aI]];
     }
 }
 
@@ -244,7 +245,7 @@ function generateSpherePoints(numberOfSpherePoints: number): Vec3[] {
         const y = k * offset - 1.0 + (offset / 2.0);
         const r = Math.sqrt(1.0 - y * y);
         const phi = k * inc;
-        points[points.length] = [Math.cos(phi), y, Math.sin(phi) * r] as Vec3;
+        points[points.length] = [Math.cos(phi) * r, y, Math.sin(phi) * r] as Vec3;
     }
     return points;
 }
