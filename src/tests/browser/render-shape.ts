@@ -96,7 +96,7 @@ async function getShape(ctx: RuntimeContext, data: MyData, props: {}, shape?: Sh
     const { centers, colors, labels, transforms } = data
     const mesh = await getSphereMesh(ctx, centers, shape && shape.geometry)
     const groupCount = centers.length / 3
-    return shape || Shape.create(
+    return Shape.create(
         'test', data, mesh,
         (groupId: number) => colors[groupId], // color: per group, same for instances
         () => 1, // size: constant

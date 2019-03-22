@@ -56,9 +56,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             updateState.createNew = true
         } else if (shape && _shape && shape.id === _shape.id) {
             // console.log('same shape')
-            // trigger color update when shape has not changed
-            updateState.updateColor = true
-            updateState.updateTransform = true
+            // nothing to set
         } else if (shape && _shape && shape.id !== _shape.id) {
             // console.log('new shape')
             updateState.updateTransform = true
