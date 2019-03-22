@@ -16,6 +16,7 @@ import { ChunkedArray } from 'mol-data/util';
 import { arrayMax, fillSerial } from 'mol-util/array';
 import { Column } from 'mol-data/db';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ColorNames } from 'mol-util/color/tables';
 
 // TODO support 'edge' and 'material' elements, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
 
@@ -67,19 +68,30 @@ function getGrouping(count: number, column?: Column<number>) {
 async function getShape(ctx: RuntimeContext, plyFile: PlyFile, props: PD.Values<PlyShapeParams>, shape?: Shape<Mesh>) {
     await ctx.update('async creation of shape from ply file')
 
-    const { vertexProperties: vp } = props
+    const { coloring, grouping } = props
 
     const vertex = plyFile.getElement('vertex') as PlyTable
     if (!vertex) throw new Error('missing vertex element')
 
-    const red = vertex.getProperty(vp.red) || Column.ofConst(127, vertex.rowCount, Column.Schema.int)
-    const green = vertex.getProperty(vp.green) || Column.ofConst(127, vertex.rowCount, Column.Schema.int)
-    const blue = vertex.getProperty(vp.blue) || Column.ofConst(127, vertex.rowCount, Column.Schema.int)
+    const { rowCount } = vertex
+    const int = Column.Schema.int
+
+    let red: Column<number>, green: Column<number>, blue: Column<number>
+    if (coloring.name === 'vertex') {
+        red = vertex.getProperty(coloring.params.red) || Column.ofConst(127, rowCount, int)
+        green = vertex.getProperty(coloring.params.green) || Column.ofConst(127, rowCount, int)
+        blue = vertex.getProperty(coloring.params.blue) || Column.ofConst(127, rowCount, int)
+    } else {
+        const [r, g, b] = Color.toRgb(coloring.params.color)
+        red = Column.ofConst(r, rowCount, int)
+        green = Column.ofConst(g, rowCount, int)
+        blue = Column.ofConst(b, rowCount, int)
+    }
 
     const face = plyFile.getElement('face') as PlyList
     if (!face) throw new Error('missing face element')
 
-    const { ids, map } = getGrouping(vertex.rowCount, vertex.getProperty(vp.group))
+    const { ids, map } = getGrouping(vertex.rowCount, grouping.name === 'vertex' ? vertex.getProperty(grouping.params.group) : undefined)
 
     const mesh = await getPlyMesh(ctx, vertex, face, ids, shape && shape.geometry)
     return Shape.create(
@@ -95,57 +107,54 @@ async function getShape(ctx: RuntimeContext, plyFile: PlyFile, props: PD.Values<
     )
 }
 
-export const PlyShapeParams = {
-    ...Mesh.Params,
-
-    vertexProperties: PD.Group({
-        group: PD.Select('' as string, [['', '']]),
-        red: PD.Select('' as string, [['', '']]),
-        green: PD.Select('' as string, [['', '']]),
-        blue: PD.Select('' as string, [['', '']]),
-    }, { isExpanded: true }),
-}
-export type PlyShapeParams = typeof PlyShapeParams
-
-function setGroupDefault<T>(group: PD.Group<any>, name: string, defaultValue: T) {
-    group.params[name].defaultValue = defaultValue
-    group.defaultValue.group = defaultValue
-}
-function setSelectOptions(select: PD.Select<string>, options: [string, string][]) {
-    select.options = options;
-}
-
-export function getPlyShapeParams(plyFile: PlyFile) {
-    const params = PD.clone(PlyShapeParams)
-    const vertex = plyFile.getElement('vertex') as PlyTable
+function createPlyShapeParams(vertex?: PlyTable) {
+    const options: [string, string][] = [['', '']]
+    const defaultValues = { group: '', red: '', green: '', blue: '' }
     if (vertex) {
-        const options: [string, string][] = [['', '']]
         for (let i = 0, il = vertex.propertyNames.length; i < il; ++i) {
             const name = vertex.propertyNames[i]
             options.push([ name, name ])
         }
-        const vp = params.vertexProperties;
-        setSelectOptions(vp.params.group as PD.Select<string>, options);
-        setSelectOptions(vp.params.red as PD.Select<string>, options);
-        setSelectOptions(vp.params.green as PD.Select<string>, options);
-        setSelectOptions(vp.params.blue as PD.Select<string>, options);
 
         // TODO harcoded as convenience for data provided by MegaMol
-        if (vertex.propertyNames.includes('atomid')) setGroupDefault(vp, 'group', 'atomid')
+        if (vertex.propertyNames.includes('atomid')) defaultValues.group = 'atomid'
 
-        if (vertex.propertyNames.includes('red')) setGroupDefault(vp, 'red', 'red')
-        if (vertex.propertyNames.includes('green')) setGroupDefault(vp, 'green', 'green')
-        if (vertex.propertyNames.includes('blue')) setGroupDefault(vp, 'blue', 'blue')
+        if (vertex.propertyNames.includes('red')) defaultValues.red = 'red'
+        if (vertex.propertyNames.includes('green')) defaultValues.green = 'green'
+        if (vertex.propertyNames.includes('blue')) defaultValues.blue = 'blue'
     }
-    return params
+
+    return {
+        ...Mesh.Params,
+
+        coloring: PD.MappedStatic(defaultValues.red && defaultValues.green && defaultValues.blue ? 'vertex' : 'uniform', {
+            vertex: PD.Group({
+                red: PD.Select(defaultValues.red, options, { label: 'Red Property' }),
+                green: PD.Select(defaultValues.green, options, { label: 'Green Property' }),
+                blue: PD.Select(defaultValues.blue, options, { label: 'Blue Property' }),
+            }, { isFlat: true }),
+            uniform: PD.Group({
+                color: PD.Color(ColorNames.grey)
+            }, { isFlat: true })
+        }),
+        grouping: PD.MappedStatic(defaultValues.group ? 'vertex' : 'none', {
+            vertex: PD.Group({
+                group: PD.Select(defaultValues.group, options, { label: 'Group Property' }),
+            }, { isFlat: true }),
+            none: PD.Group({ })
+        }),
+    }
 }
+
+export const PlyShapeParams = createPlyShapeParams()
+export type PlyShapeParams = typeof PlyShapeParams
 
 export function shapeFromPly(source: PlyFile, params?: {}) {
     return Task.create<ShapeProvider<PlyFile, Mesh, PlyShapeParams>>('Shape Provider', async ctx => {
         return {
             label: 'Mesh',
             data: source,
-            params: getPlyShapeParams(source),
+            params: createPlyShapeParams(source.getElement('vertex') as PlyTable),
             getShape,
             geometryUtils: Mesh.Utils
         }
