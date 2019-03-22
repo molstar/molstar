@@ -98,9 +98,13 @@ async function getMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, gro
 
         const { entries, count } = face.value(i)
         if (count === 3) {
+            // triangle
             ChunkedArray.add3(indices, entries[0], entries[1], entries[2])
+        } else if (count === 4) {
+            // quadrilateral
+            ChunkedArray.add3(indices, entries[2], entries[1], entries[0])
+            ChunkedArray.add3(indices, entries[2], entries[0], entries[3])
         }
-        // TODO support quadriliterals
     }
 
     const m = MeshBuilder.getMesh(builderState);
