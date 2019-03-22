@@ -65,6 +65,7 @@ function parseHeader(state: State) {
     let currentCount: number | undefined
     let currentProperties: Property[] | undefined
 
+
     function addCurrentElementSchema() {
         if (currentName !== undefined && currentCount !== undefined && currentProperties !== undefined) {
             let isList = false
