@@ -474,6 +474,8 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     }
 });
 
+//
+
 export { ShapeRepresentation3D }
 type ShapeRepresentation3D = typeof ShapeRepresentation3D
 const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
@@ -482,7 +484,7 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
     from: SO.Shape.Provider,
     to: SO.Shape.Representation3D,
     params: (a, ctx: PluginContext) => {
-        return BaseGeometry.Params
+        return a ? a.data.params : BaseGeometry.Params
     }
 })({
     canAutoUpdate() {
@@ -490,7 +492,7 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Shape Representation', async ctx => {
-            const props = { ...PD.getDefaultValues(a.data.geometryUtils.Params), params }
+            const props = { ...PD.getDefaultValues(a.data.params), params }
             const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils)
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data.data).runInContext(ctx);

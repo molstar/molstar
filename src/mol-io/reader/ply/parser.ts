@@ -140,11 +140,11 @@ function parseElements(state: State) {
 
 function getColumnSchema(type: PlyType): Column.Schema {
     switch (type) {
-        case 'char': case 'uchar':
-        case 'short': case 'ushort':
-        case 'int': case 'uint':
+        case 'char': case 'uchar': case 'int8': case 'uint8':
+        case 'short': case 'ushort': case 'int16': case 'uint16':
+        case 'int': case 'uint': case 'int32': case 'uint32':
             return Column.Schema.int
-        case 'float': case 'double':
+        case 'float': case 'double': case 'float32': case 'float64':
             return Column.Schema.float
     }
 }
