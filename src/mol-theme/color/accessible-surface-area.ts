@@ -13,7 +13,7 @@ import { ColorListOptions, ColorListName, ColorScale } from 'mol-util/color/scal
 import { StructureElement, Unit } from 'mol-model/structure';
 import { missingAccessibleSurfaceAreaValue } from 'mol-model/structure/structure/unit/accessible-surface-area/compute';
 
-const DefaultColor = Color(0xCCCCCC)
+const DefaultColor = Color(0xFFFFFF)
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.'
 
 export const AccessibleSurfaceAreaColorThemeParams = {

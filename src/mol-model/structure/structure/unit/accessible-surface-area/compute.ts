@@ -46,8 +46,7 @@ function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
 function computePerResidue(ctx: AccessibleSurfaceAreaContext) {
     const { atomRadius, accessibleSurfaceArea, maxLookupRadius, spherePoints, cons } = ctx;
     const { probeSize } = ctx.params;
-    const { elements: atoms } = ctx.unit;
-    const { residueAtomSegments } = ctx.unit.model.atomicHierarchy;
+    const { elements: atoms, residueIndex } = ctx.unit;
     const { x, y, z } = ctx.unit.model.atomicConformation;
     const atomCount = ctx.unit.elements.length;
     const { lookup3d } = ctx.unit;
@@ -57,6 +56,7 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) {
     const a2Pos = Vec3.zero();
 
     for (let _aI = 0; _aI < atomCount; ++_aI) {
+        // map the atom index of this unit to the actual 'global' atom index
         const aI = atoms[_aI];
         const radii1 = atomRadius[aI];
         if (radii1 === missingAccessibleSurfaceAreaValue) continue;
@@ -104,7 +104,7 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) {
         }
 
         const value = cons * accessiblePointCount * r * r;
-        accessibleSurfaceArea[residueAtomSegments.index[aI]] += value;
+        accessibleSurfaceArea[residueIndex[aI]] += value;
     }
 }
 
@@ -136,11 +136,11 @@ function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
         const element = type_symbol.value(aI);
         const resn = label_comp_id.value(raI)!;
 
-        ctx.atomRadius[ctx.atomRadius.length] = determineRadius(atomId, element, resn);
+        ctx.atomRadius[aI] = determineRadius(atomId, element, resn);
 
         // while having atom->parent mapping at hand, initialize residue-level of information
-        ctx.accessibleSurfaceArea[ctx.accessibleSurfaceArea.length] = 0.0;
-        ctx.relativeAccessibleSurfaceArea[ctx.relativeAccessibleSurfaceArea.length] = 0.0;
+        ctx.accessibleSurfaceArea[raI] = 0.0;
+        ctx.relativeAccessibleSurfaceArea[raI] = 0.0;
     }
 }
 
@@ -202,6 +202,7 @@ function initialize(unit: Unit.Atomic, params: AccessibleSurfaceAreaComputationP
 }
 
 function computeAccessibleSurfaceArea(unit: Unit.Atomic, params?: Partial<AccessibleSurfaceAreaComputationParameters>): AccessibleSurfaceArea {
+    console.log(`computing accessible surface area for unit #${ unit.id + 1 }`);
     return _computeAccessibleSurfaceArea(unit, {
         numberOfSpherePoints: (params && params.numberOfSpherePoints) || 960,
         probeSize: (params && params.probeSize) || 1.4
