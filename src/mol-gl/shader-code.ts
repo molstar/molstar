@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,44 +31,44 @@ export function ShaderCode(vert: string, frag: string, extensions: ShaderExtensi
 }
 
 export const PointsShaderCode = ShaderCode(
-    require('mol-gl/shader/points.vert'),
-    require('mol-gl/shader/points.frag'),
+    require('mol-gl/shader/points.vert').default,
+    require('mol-gl/shader/points.frag').default,
     { standardDerivatives: false, fragDepth: false }
 )
 
 export const SpheresShaderCode = ShaderCode(
-    require('mol-gl/shader/spheres.vert'),
-    require('mol-gl/shader/spheres.frag'),
+    require('mol-gl/shader/spheres.vert').default,
+    require('mol-gl/shader/spheres.frag').default,
     { standardDerivatives: false, fragDepth: true }
 )
 
 export const TextShaderCode = ShaderCode(
-    require('mol-gl/shader/text.vert'),
-    require('mol-gl/shader/text.frag'),
+    require('mol-gl/shader/text.vert').default,
+    require('mol-gl/shader/text.frag').default,
     { standardDerivatives: true, fragDepth: false }
 )
 
 export const LinesShaderCode = ShaderCode(
-    require('mol-gl/shader/lines.vert'),
-    require('mol-gl/shader/lines.frag'),
+    require('mol-gl/shader/lines.vert').default,
+    require('mol-gl/shader/lines.frag').default,
     { standardDerivatives: false, fragDepth: false }
 )
 
 export const MeshShaderCode = ShaderCode(
-    require('mol-gl/shader/mesh.vert'),
-    require('mol-gl/shader/mesh.frag'),
+    require('mol-gl/shader/mesh.vert').default,
+    require('mol-gl/shader/mesh.frag').default,
     { standardDerivatives: true, fragDepth: false }
 )
 
 export const GaussianDensityShaderCode = ShaderCode(
-    require('mol-gl/shader/gaussian-density.vert'),
-    require('mol-gl/shader/gaussian-density.frag'),
+    require('mol-gl/shader/gaussian-density.vert').default,
+    require('mol-gl/shader/gaussian-density.frag').default,
     { standardDerivatives: false, fragDepth: false }
 )
 
 export const DirectVolumeShaderCode = ShaderCode(
-    require('mol-gl/shader/direct-volume.vert'),
-    require('mol-gl/shader/direct-volume.frag'),
+    require('mol-gl/shader/direct-volume.vert').default,
+    require('mol-gl/shader/direct-volume.frag').default,
     { standardDerivatives: false, fragDepth: true }
 )
 
