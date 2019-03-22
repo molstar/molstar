@@ -22,12 +22,19 @@ import { deepClone } from 'mol-util/object';
 // TODO support 'edge' and 'material' elements, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
 
 function createPlyShapeParams(vertex?: PlyTable) {
-    const options: [string, string][] = [['', '']]
+    const groupOptions: [string, string][] = [['', '']]
+    const colorOptions: [string, string][] = [['', '']]
     const defaultValues = { group: '', red: '', green: '', blue: '' }
     if (vertex) {
         for (let i = 0, il = vertex.propertyNames.length; i < il; ++i) {
             const name = vertex.propertyNames[i]
-            options.push([ name, name ])
+            const type = vertex.propertyTypes[i]
+            if (
+                type === 'uchar' || type === 'uint8' ||
+                type === 'ushort' || type === 'uint16' ||
+                type === 'uint' || type === 'uint32'
+            ) groupOptions.push([ name, name ])
+            if (type === 'uchar' || type === 'uint8') colorOptions.push([ name, name ])
         }
 
         // TODO hardcoded as convenience for data provided by MegaMol
@@ -43,9 +50,9 @@ function createPlyShapeParams(vertex?: PlyTable) {
 
         coloring: PD.MappedStatic(defaultValues.red && defaultValues.green && defaultValues.blue ? 'vertex' : 'uniform', {
             vertex: PD.Group({
-                red: PD.Select(defaultValues.red, options, { label: 'Red Property' }),
-                green: PD.Select(defaultValues.green, options, { label: 'Green Property' }),
-                blue: PD.Select(defaultValues.blue, options, { label: 'Blue Property' }),
+                red: PD.Select(defaultValues.red, colorOptions, { label: 'Red Property' }),
+                green: PD.Select(defaultValues.green, colorOptions, { label: 'Green Property' }),
+                blue: PD.Select(defaultValues.blue, colorOptions, { label: 'Blue Property' }),
             }, { isFlat: true }),
             uniform: PD.Group({
                 color: PD.Color(ColorNames.grey)
@@ -53,7 +60,7 @@ function createPlyShapeParams(vertex?: PlyTable) {
         }),
         grouping: PD.MappedStatic(defaultValues.group ? 'vertex' : 'none', {
             vertex: PD.Group({
-                group: PD.Select(defaultValues.group, options, { label: 'Group Property' }),
+                group: PD.Select(defaultValues.group, groupOptions, { label: 'Group Property' }),
             }, { isFlat: true }),
             none: PD.Group({ })
         }),

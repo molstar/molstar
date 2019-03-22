@@ -61,6 +61,7 @@ export interface PlyTable {
     readonly kind: 'table'
     readonly rowCount: number
     readonly propertyNames: ReadonlyArray<string>
+    readonly propertyTypes: ReadonlyArray<PlyType>
     getProperty(name: string): Column<number> | undefined
 }
 
@@ -73,5 +74,6 @@ export interface PlyList {
     readonly kind: 'list'
     readonly rowCount: number,
     readonly name: string,
+    readonly type: PlyType,
     value: (row: number) => PlyListValue
 }

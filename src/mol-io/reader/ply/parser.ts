@@ -154,6 +154,7 @@ function parseTableElement(state: State, spec: TableElementSpec) {
     const { count, properties } = spec
     const propertyCount = properties.length
     const propertyNames: string[] = []
+    const propertyTypes: PlyType[] = []
     const propertyTokens: Tokens[] = []
     const propertyColumns = new Map<string, Column<number>>()
 
@@ -175,6 +176,7 @@ function parseTableElement(state: State, spec: TableElementSpec) {
         const { type, name } = properties[i]
         const column = TokenColumn(propertyTokens[i], getColumnSchema(type))
         propertyNames.push(name)
+        propertyTypes.push(type)
         propertyColumns.set(name, column)
     }
 
@@ -182,6 +184,7 @@ function parseTableElement(state: State, spec: TableElementSpec) {
         kind: 'table',
         rowCount: count,
         propertyNames,
+        propertyTypes,
         getProperty: (name: string) => propertyColumns.get(name)
     })
 }
@@ -225,6 +228,7 @@ function parseListElement(state: State, spec: ListElementSpec) {
         kind: 'list',
         rowCount: count,
         name: property.name,
+        type: property.dataType,
         value: (row: number) => {
             const start = offsets[row]
             const end = offsets[row + 1]
