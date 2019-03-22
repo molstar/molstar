@@ -61,17 +61,19 @@ function getCartoonRepr() {
 }
 
 async function init() {
-    const cif = await downloadFromPdb('1brr')
+    const cif = await downloadFromPdb('3j3q')
     const models = await getModels(cif)
 
     const structure = await getStructure(models[0])
     const cartoonRepr = getCartoonRepr()
 
+    console.time('ASA');
     cartoonRepr.setTheme({
         color: reprCtx.colorThemeRegistry.create('accessible-surface-area', { structure }),
         size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
     })
     await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
+    console.timeEnd('ASA');
 
     // console.time('computeModelDSSP')
     // const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy, models[0].atomicConformation)

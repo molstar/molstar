@@ -39,7 +39,7 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
         color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
                 if (Unit.isAtomic(location.unit)) {
-                    const value = location.unit.accessibleSurfaceArea.relativeAccessibleSurfaceArea[location.unit.residueIndex[location.element]];
+                    const value = location.unit.accessibleSurfaceArea.accessibleSurfaceArea[location.unit.residueIndex[location.element]];
                     return value !== missingAccessibleSurfaceAreaValue ? scaleColor(value) : DefaultColor;
                 }
             }

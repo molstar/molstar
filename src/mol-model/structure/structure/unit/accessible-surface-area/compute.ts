@@ -42,8 +42,12 @@ function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
 
 }
 
-// TODO compare performance of lookup and naive approach
-function computePerResidue(ctx: AccessibleSurfaceAreaContext) {
+/**
+ * notes on performance - scenario: compute for first 10 units of 3j3q
+ * lookup3d + refinement: ~5000ms
+ * naive approach: ~5600ms - higher variance
+ */
+function computePerResidue(ctx: AccessibleSurfaceAreaContext) { // runs at roughly 5000 ms
     const { atomRadius, accessibleSurfaceArea, maxLookupRadius, spherePoints, cons } = ctx;
     const { probeSize } = ctx.params;
     const { elements: atoms, residueIndex } = ctx.unit;
@@ -201,12 +205,34 @@ function initialize(unit: Unit.Atomic, params: AccessibleSurfaceAreaComputationP
     }
 }
 
+class Count {
+    static count = 10;
+    get count(): number {
+        return Count.count;
+    }
+    set count(v: number) {
+        Count.count = v;
+    }
+}
+
 function computeAccessibleSurfaceArea(unit: Unit.Atomic, params?: Partial<AccessibleSurfaceAreaComputationParameters>): AccessibleSurfaceArea {
-    console.log(`computing accessible surface area for unit #${ unit.id + 1 }`);
-    return _computeAccessibleSurfaceArea(unit, {
-        numberOfSpherePoints: (params && params.numberOfSpherePoints) || 960,
-        probeSize: (params && params.probeSize) || 1.4
-    });
+    const count = new Count();
+    count.count = count.count - 1;
+    if (count.count > 0) {
+        console.log(`computing accessible surface area for unit #${ unit.id + 1 }`);
+        return _computeAccessibleSurfaceArea(unit, {
+            numberOfSpherePoints: (params && params.numberOfSpherePoints) || 92 /* original value Shrake, A. & Rupley, J. A. (1973) J. Mol. Biol. 79: 92, BioJava: 960, EPPIC: 3000 */ ,
+            /** 92: 1600ms, 960: 5000ms, 3000: 13000ms */
+            probeSize: (params && params.probeSize) || 1.4
+        });
+    } else {
+        return {
+            atomRadius: [],
+            accessibleSurfaceArea: [],
+            relativeAccessibleSurfaceArea: [],
+            buried: void 0
+        }
+    }
 }
 
 /** Creates a collection of points on a sphere by the Golden Section Spiral algorithm. */
