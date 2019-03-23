@@ -140,6 +140,10 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
             const program = programs[variant].value
             const vertexArray = vertexArrays[variant]
             program.setUniforms(uniformValueEntries)
+            if (ctx.currentRenderVariant !== variant) {
+                ctx.currentMaterialId = -1
+                ctx.currentRenderVariant = variant
+            }
             if (materialId === -1 || materialId !== ctx.currentMaterialId) {
                 // console.log('materialId changed or -1', materialId)
                 program.setUniforms(materialUniformValueEntries)

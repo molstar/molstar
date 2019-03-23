@@ -137,6 +137,7 @@ export interface WebGLContext {
 
     currentProgramId: number
     currentMaterialId: number
+    currentRenderVariant: string
 
     bufferCount: number
     framebufferCount: number
@@ -265,6 +266,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
 
         currentProgramId: -1,
         currentMaterialId: -1,
+        currentRenderVariant: '',
 
         bufferCount: 0,
         framebufferCount: 0,
