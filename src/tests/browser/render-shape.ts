@@ -68,7 +68,7 @@ async function getSphereMesh(ctx: RuntimeContext, centers: number[], mesh?: Mesh
     const builderState = MeshBuilder.createState(centers.length * 128, centers.length * 128 / 2, mesh)
     const t = Mat4.identity()
     const v = Vec3.zero()
-    const sphere = Sphere(4)
+    const sphere = Sphere(3)
     builderState.currentGroup = 0
     for (let i = 0, il = centers.length / 3; i < il; ++i) {
         // for production, calls to update should be guarded by `if (ctx.shouldUpdate)`
@@ -121,4 +121,4 @@ export async function init() {
         await repr.createOrUpdate({}, myData).run()
     }, 1000)
 }
-export default init();
+init()

@@ -1,42 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-        <title>Mol* Browser Test</title>
-        <style>
-                * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                }
-                html, body {
-                        width: 100%;
-                        height: 100%;
-                        overflow: hidden;
-                }
-        </style>
-</head>
-<body>
-<div id="app"></div>
-<script type="text/javascript">
-        function urlQueryParameter (id) {
-                if (typeof window === 'undefined') return undefined
-                const a = new RegExp(`${id}=([^&#=]*)`)
-                const m = a.exec(window.location.search)
-                return m ? decodeURIComponent(m[1]) : undefined
-        }
-        const name = urlQueryParameter('name')
-        if (name) {
-                const script = document.createElement('script')
-                script.src = name + '.js'
-                document.body.appendChild(script)
-        }
-</script>
-<script type="text/javascript" >
-        const script = document.createElement('script');
-        script.src = "render-shape.js";
-        document.body.appendChild(script);
-</script>
-</body>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<title>Mol* Browser Test</title>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			html, body {
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="app"></div>
+		<script type="text/javascript">
+			function urlQueryParameter (id) {
+				if (typeof window === 'undefined') return undefined
+				const a = new RegExp(`${id}=([^&#=]*)`)
+				const m = a.exec(window.location.search)
+				return m ? decodeURIComponent(m[1]) : undefined
+			}
+			const name = urlQueryParameter('name')
+			if (name) {
+				const script = document.createElement('script')
+				script.src = name + '.js'
+				document.body.appendChild(script)
+			}
+		</script>
+	</body>
 </html>

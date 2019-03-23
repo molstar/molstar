@@ -194,7 +194,6 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     }
 });
 
-
 type StructureLabels3D = typeof StructureLabels3D
 const StructureLabels3D = PluginStateTransform.BuiltIn({
     name: 'structure-labels-3d',
