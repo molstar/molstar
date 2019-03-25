@@ -75,19 +75,6 @@ async function init() {
     await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
     console.timeEnd('ASA');
 
-    // console.time('computeModelDSSP')
-    // const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy, models[0].atomicConformation)
-    // console.timeEnd('computeModelDSSP');
-    // (models[0].properties as any).secondaryStructure = secondaryStructure
-    // const structure = await getStructure(models[0])
-    // const cartoonRepr = getCartoonRepr()
-
-    // cartoonRepr.setTheme({
-    //     color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
-    //     size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
-    // })
-    // await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
-
     canvas3d.add(cartoonRepr)
     canvas3d.resetCamera()
 }

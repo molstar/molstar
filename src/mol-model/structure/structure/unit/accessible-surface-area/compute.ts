@@ -6,12 +6,11 @@
 
 import Unit from '../../unit'
 import { Vec3 } from 'mol-math/linear-algebra';
-import { AccessibleSurfaceAreaComputationParams, AccessibleSurfaceArea } from './data';
+import { AccessibleSurfaceAreaComputationParams, AccessibleSurfaceArea, SolventAccessibility } from './data';
 import { isHydrogen, getElementIdx } from '../links/common'; // TODO these functions are relevant for many tasks: move them somewhere actually common
 import { MoleculeType, ElementSymbol, MaxAsa, DefaultMaxAsa } from 'mol-model/structure/model/types';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic/measures';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { BitFlags } from 'mol-util';
 
 const trigonalCarbonVdw = 1.76;
 const tetrahedralCarbonVdw = 1.87;
@@ -27,17 +26,17 @@ interface AccessibleSurfaceAreaContext {
     params: PD.Values<AccessibleSurfaceAreaComputationParams>,
     spherePoints: Vec3[],
     cons: number,
-    atomRadius: Float32Array,
-    accessibleSurfaceArea: Float32Array,
-    relativeAccessibleSurfaceArea: Float32Array,
     maxLookupRadius: number,
-    buried: Uint8Array
+    atomRadius?: Float32Array,
+    accessibleSurfaceArea?: Float32Array,
+    relativeAccessibleSurfaceArea?: Float32Array,
+    buried?: Uint8Array
 }
 
-function computeAccessibleSurfaceArea(unit: Unit.Atomic, params: PD.Values<AccessibleSurfaceAreaComputationParams>): AccessibleSurfaceArea {
+function computeAccessibleSurfaceArea(unit: Unit.Atomic, params?: PD.Values<AccessibleSurfaceAreaComputationParams>): AccessibleSurfaceArea {
     console.log(`computing accessible surface area for unit #${ unit.id + 1 }`);
 
-    console.log(params);
+    if (!params) params = PD.getDefaultValues(AccessibleSurfaceAreaComputationParams);
 
     const ctx = initialize(unit, params);
     assignRadiusForHeavyAtoms(ctx);
@@ -45,21 +44,11 @@ function computeAccessibleSurfaceArea(unit: Unit.Atomic, params: PD.Values<Acces
     normalizeAccessibleSurfaceArea(ctx);
 
     return {
-        atomRadius: ctx.atomRadius,
-        accessibleSurfaceArea: ctx.accessibleSurfaceArea,
-        relativeAccessibleSurfaceArea: ctx.relativeAccessibleSurfaceArea,
-        buried: ctx.buried // TODO impl - rasa < 0.16
+        atomRadius: ctx.atomRadius!,
+        accessibleSurfaceArea: ctx.accessibleSurfaceArea!,
+        relativeAccessibleSurfaceArea: ctx.relativeAccessibleSurfaceArea!,
+        buried: ctx.buried!
     };
-}
-
-namespace SolventAccessibility {
-    export const is: (t: number, f: Flag) => boolean = BitFlags.has
-    export const create: (f: Flag) => number = BitFlags.create
-    export const enum Flag {
-        _ = 0x0,
-        BURIED = 0x1,
-        ACCESSIBLE = 0x2
-    }
 }
 
 function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
@@ -71,9 +60,9 @@ function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
         if (derived.residue.moleculeType[i] !== MoleculeType.protein) continue;
 
         const maxAsa = (MaxAsa as any)[residues.label_comp_id.value(i)];
-        const rasa = accessibleSurfaceArea[i] / (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
-        relativeAccessibleSurfaceArea[i] = rasa;
-        ctx.buried[i] |= (rasa < ctx.params.buriedRasaThreshold ? SolventAccessibility.Flag.BURIED : SolventAccessibility.Flag.ACCESSIBLE)
+        const rasa = accessibleSurfaceArea![i] / (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
+        relativeAccessibleSurfaceArea![i] = rasa;
+        ctx.buried![i] |= (rasa < ctx.params.buriedRasaThreshold ? SolventAccessibility.Flag.BURIED : SolventAccessibility.Flag.ACCESSIBLE)
     }
 }
 
@@ -97,7 +86,7 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) { // runs at rough
     for (let _aI = 0; _aI < atomCount; ++_aI) {
         // map the atom index of this unit to the actual 'global' atom index
         const aI = atoms[_aI];
-        const radii1 = atomRadius[aI];
+        const radii1 = atomRadius![aI];
         if (radii1 === missingAccessibleSurfaceAreaValue) continue;
 
         // find suitable neighbor candidates by lookup
@@ -106,11 +95,11 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) { // runs at rough
 
         // refine list by actual criterion
         const cutoff = probeSize + probeSize + radii1;
-        const filteredIndicies = [];
+        const filteredIndicies = []; // TODO might be better to use IntArray here and reuse it - how to find safe upper limit of possible neighborhood count
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni];
             const bI = atoms[_bI];
-            const radii2 = atomRadius[bI];
+            const radii2 = atomRadius![bI];
             if (bI === aI || radii2 === missingAccessibleSurfaceAreaValue) continue;
 
             const cutoff2 = (cutoff + radii2) * (cutoff + radii2);
@@ -132,7 +121,7 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) { // runs at rough
             for (let ni = 0; ni < filteredIndicies.length; ++ni) {
                 const naI = filteredIndicies[ni];
                 position(naI, a2Pos);
-                const cutoff3 = (atomRadius[naI] + probeSize) * (atomRadius[naI] + probeSize);
+                const cutoff3 = (atomRadius![naI] + probeSize) * (atomRadius![naI] + probeSize);
                 if (Vec3.squaredDistance(testPoint, a2Pos) < cutoff3) {
                     accessible = false;
                     break;
@@ -143,7 +132,7 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) { // runs at rough
         }
 
         const value = cons * accessiblePointCount * r * r;
-        accessibleSurfaceArea[residueIndex[aI]] += value;
+        accessibleSurfaceArea![residueIndex[aI]] += value;
         // +30% computation by normalizing partial solutions
         // relativeAccessibleSurfaceArea[residueIndex[aI]] += value * (NormalizationFactors as any)[residueIndex[aI]];
     }
@@ -152,9 +141,16 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) { // runs at rough
 function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
     const atomCount = ctx.unit.elements.length;
     const { elements: atoms, residueIndex } = ctx.unit;
+    const { residues } = ctx.unit.model.atomicHierarchy;
     const { moleculeType } = ctx.unit.model.atomicHierarchy.derived.residue;
     const { type_symbol, label_atom_id } = ctx.unit.model.atomicHierarchy.atoms;
     const { label_comp_id } = ctx.unit.model.atomicHierarchy.residues;
+
+    const residueCount = residues.label_comp_id.rowCount;
+    ctx.atomRadius = new Float32Array(atomCount - 1);
+    ctx.accessibleSurfaceArea = new Float32Array(residueCount - 1);
+    ctx.relativeAccessibleSurfaceArea = new Float32Array(residueCount - 1);
+    ctx.buried = new Uint8Array(residueCount - 1);
 
     for (let _aI = 0; _aI < atomCount; ++_aI) {
         const aI =  atoms[_aI];
@@ -163,13 +159,13 @@ function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
 
         // skip hydrogen atoms
         if (isHydrogen(aeI)) {
-            ctx.atomRadius[ctx.atomRadius.length] = missingAccessibleSurfaceAreaValue;
+            ctx.atomRadius[aI] = missingAccessibleSurfaceAreaValue;
             continue;
         }
 
         // skip non-peptide groups
         if (moleculeType[raI] !== MoleculeType.protein) {
-            ctx.atomRadius[ctx.atomRadius.length] = missingAccessibleSurfaceAreaValue;
+            ctx.atomRadius[aI] = missingAccessibleSurfaceAreaValue;
             continue;
         }
 
@@ -178,10 +174,6 @@ function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
         const resn = label_comp_id.value(raI)!;
 
         ctx.atomRadius[aI] = determineRadius(atomId, element, resn);
-
-        // while having atom->parent mapping at hand, initialize residue-level of information
-        ctx.accessibleSurfaceArea[raI] = 0.0;
-        ctx.relativeAccessibleSurfaceArea[raI] = 0.0;
     }
 }
 
@@ -219,17 +211,12 @@ function determineRadius(atomId: string, element: ElementSymbol, compId: string)
 }
 
 function initialize(unit: Unit.Atomic, params: PD.Values<AccessibleSurfaceAreaComputationParams>): AccessibleSurfaceAreaContext {
-    console.log(params);
     return {
         unit: unit,
         params: params,
         spherePoints: generateSpherePoints(params.numberOfSpherePoints),
         cons: 4.0 * Math.PI / params.numberOfSpherePoints,
-        atomRadius: new Float32Array(),
-        accessibleSurfaceArea: new Float32Array(),
-        relativeAccessibleSurfaceArea: new Float32Array(),
-        maxLookupRadius: 1.4 + 1.4 + 1.87 + 1.87,
-        buried: new Uint8Array()
+        maxLookupRadius: 1.4 + 1.4 + 1.87 + 1.87
     }
 }
 
