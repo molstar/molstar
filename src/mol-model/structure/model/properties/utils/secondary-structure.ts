@@ -43,12 +43,6 @@ const hbondEnergyCutoff = -0.5
 /** prevent extremely low hbond energies */
 const hbondEnergyMinimal = -9.9
 
-export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
-    conformation: AtomicConformation): SecondaryStructure {
-    // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
-    return computeModelDSSP(hierarchy, conformation)
-}
-
 interface DSSPContext {
     /** Whether to use the old DSSP convention for the annotation of turns and helices, causes them to be two residues shorter */
     oldDefinition: boolean,
@@ -119,10 +113,11 @@ namespace DSSPType {
     }
 }
 
-export function computeModelDSSP(hierarchy: AtomicHierarchy,
+export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     conformation: AtomicConformation,
     oldDefinition = true,
-    oldOrdering = true) {
+    oldOrdering = true): SecondaryStructure {
+    // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
     // console.log(`calculating secondary structure elements using ${ oldDefinition ? 'old' : 'revised'} definition and ${ oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
     const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
     const backboneIndices = calcBackboneAtomIndices(hierarchy, proteinResidues)
