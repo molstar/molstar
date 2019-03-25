@@ -10,11 +10,12 @@ export interface AccessibleSurfaceArea {
     readonly atomRadius: ArrayLike<number>,
     readonly accessibleSurfaceArea: ArrayLike<number>,
     readonly relativeAccessibleSurfaceArea: ArrayLike<number>,
-    readonly buried: any
+    readonly buried: Uint8Array
 }
 
 export const AccessibleSurfaceAreaComputationParams = {
-    numberOfSpherePoints: PD.Numeric(92, {}, { description: 'number of sphere points to sample per atom: 92 (original paper), 960 (BioJava), 3000 (EPPIC)' }),
-    probeSize: PD.Numeric(1.4, {}, { description: 'corresponds to the size of a water molecule: 1.4 (original paper), 1.5 (occassionally used)' })
+    numberOfSpherePoints: PD.Numeric(92, {}, { description: 'number of sphere points to sample per atom: 92 (original paper), 960 (BioJava), 3000 (EPPIC) - see Shrake A, Rupley JA: Environment and exposure to solvent of protein atoms. Lysozyme and insulin. J Mol Biol 1973.' }),
+    probeSize: PD.Numeric(1.4, {}, { description: 'corresponds to the size of a water molecule: 1.4 (original paper), 1.5 (occassionally used)' }),
+    buriedRasaThreshold: PD.Numeric(0.16, { min: 0.0, max: 1.0 }, { description: 'below this cutoff of relative accessible surface area a residue will be considered buried - see: Rost B, Sander C: Conservation and prediction of solvent accessibility in protein families. Proteins 1994.' })
 }
 export type AccessibleSurfaceAreaComputationParams = typeof AccessibleSurfaceAreaComputationParams

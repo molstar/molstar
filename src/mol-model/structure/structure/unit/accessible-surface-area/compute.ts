@@ -11,6 +11,7 @@ import { isHydrogen, getElementIdx } from '../links/common'; // TODO these funct
 import { MoleculeType, ElementSymbol, MaxAsa, DefaultMaxAsa } from 'mol-model/structure/model/types';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic/measures';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { BitFlags } from 'mol-util';
 
 const trigonalCarbonVdw = 1.76;
 const tetrahedralCarbonVdw = 1.87;
@@ -26,14 +27,17 @@ interface AccessibleSurfaceAreaContext {
     params: PD.Values<AccessibleSurfaceAreaComputationParams>,
     spherePoints: Vec3[],
     cons: number,
-    atomRadius: number[],
-    accessibleSurfaceArea: number[],
-    relativeAccessibleSurfaceArea: number[],
-    maxLookupRadius: number
+    atomRadius: Float32Array,
+    accessibleSurfaceArea: Float32Array,
+    relativeAccessibleSurfaceArea: Float32Array,
+    maxLookupRadius: number,
+    buried: Uint8Array
 }
 
 function computeAccessibleSurfaceArea(unit: Unit.Atomic, params: PD.Values<AccessibleSurfaceAreaComputationParams>): AccessibleSurfaceArea {
     console.log(`computing accessible surface area for unit #${ unit.id + 1 }`);
+
+    console.log(params);
 
     const ctx = initialize(unit, params);
     assignRadiusForHeavyAtoms(ctx);
@@ -44,8 +48,18 @@ function computeAccessibleSurfaceArea(unit: Unit.Atomic, params: PD.Values<Acces
         atomRadius: ctx.atomRadius,
         accessibleSurfaceArea: ctx.accessibleSurfaceArea,
         relativeAccessibleSurfaceArea: ctx.relativeAccessibleSurfaceArea,
-        buried: void 0 // TODO impl - rasa < 0.16 - find Rost reference
+        buried: ctx.buried // TODO impl - rasa < 0.16
     };
+}
+
+namespace SolventAccessibility {
+    export const is: (t: number, f: Flag) => boolean = BitFlags.has
+    export const create: (f: Flag) => number = BitFlags.create
+    export const enum Flag {
+        _ = 0x0,
+        BURIED = 0x1,
+        ACCESSIBLE = 0x2
+    }
 }
 
 function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
@@ -57,7 +71,9 @@ function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
         if (derived.residue.moleculeType[i] !== MoleculeType.protein) continue;
 
         const maxAsa = (MaxAsa as any)[residues.label_comp_id.value(i)];
-        relativeAccessibleSurfaceArea[i] = accessibleSurfaceArea[i] / (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
+        const rasa = accessibleSurfaceArea[i] / (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
+        relativeAccessibleSurfaceArea[i] = rasa;
+        ctx.buried[i] |= (rasa < ctx.params.buriedRasaThreshold ? SolventAccessibility.Flag.BURIED : SolventAccessibility.Flag.ACCESSIBLE)
     }
 }
 
@@ -203,15 +219,17 @@ function determineRadius(atomId: string, element: ElementSymbol, compId: string)
 }
 
 function initialize(unit: Unit.Atomic, params: PD.Values<AccessibleSurfaceAreaComputationParams>): AccessibleSurfaceAreaContext {
+    console.log(params);
     return {
         unit: unit,
         params: params,
         spherePoints: generateSpherePoints(params.numberOfSpherePoints),
         cons: 4.0 * Math.PI / params.numberOfSpherePoints,
-        atomRadius: [],
-        accessibleSurfaceArea: [],
-        relativeAccessibleSurfaceArea: [],
-        maxLookupRadius: 1.4 + 1.4 + 1.87 + 1.87
+        atomRadius: new Float32Array(),
+        accessibleSurfaceArea: new Float32Array(),
+        relativeAccessibleSurfaceArea: new Float32Array(),
+        maxLookupRadius: 1.4 + 1.4 + 1.87 + 1.87,
+        buried: new Uint8Array()
     }
 }
 
