@@ -14,6 +14,7 @@ import { IntAdjacencyGraph } from 'mol-math/graph';
 import { BitFlags } from 'mol-util';
 import { ElementIndex } from 'mol-model/structure/model/indexing';
 import { AtomicHierarchy, AtomicConformation } from '../atomic';
+import { Float } from 'servers/volume/common/binary-schema';
 
 /**
  * TODO bugs to fix:
@@ -55,7 +56,7 @@ interface DSSPContext {
     flags: Uint32Array
     hbonds: DsspHbonds,
 
-    torsionAngles: { phi: number[], psi: number[] },
+    torsionAngles: { phi: Float32Array, psi: Float32Array },
     backboneIndices: BackboneAtomIndices,
     conformation: AtomicConformation,
     ladders: Ladder[],
@@ -351,7 +352,7 @@ function assignBends(ctx: DSSPContext) {
     }
 }
 
-function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: AtomicConformation, proteinResidues: SortedArray<ResidueIndex>, backboneIndices: BackboneAtomIndices): { phi: number[], psi: number[]/*, omega: number[]*/ } {
+function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: AtomicConformation, proteinResidues: SortedArray<ResidueIndex>, backboneIndices: BackboneAtomIndices): { phi: Float32Array, psi: Float32Array } {
     const { cIndices, nIndices } = backboneIndices
     const { index } = hierarchy
     const { x, y, z } = conformation
@@ -360,52 +361,30 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
     const residueCount = proteinResidues.length
     const position = (i: number, v: Vec3) => Vec3.set(v, x[i], y[i], z[i])
 
-    const cPosPrev = Vec3.zero()
-    const caPosPrev = Vec3.zero()
-    const nPosPrev = Vec3.zero()
-    const cPos = Vec3.zero()
-    const caPos = Vec3.zero()
-    const nPos = Vec3.zero()
-    const cPosNext = Vec3.zero()
-    const caPosNext = Vec3.zero()
-    const nPosNext = Vec3.zero()
+    let cPosPrev = Vec3.zero(), caPosPrev = Vec3.zero(), nPosPrev = Vec3.zero()
+    let cPos = Vec3.zero(), caPos = Vec3.zero(), nPos = Vec3.zero()
+    let cPosNext = Vec3.zero(), caPosNext = Vec3.zero(), nPosNext = Vec3.zero()
 
-    const phi: number[] = []
-    const psi: number[] = []
+    const phi: Float32Array = new Float32Array(residueCount - 1)
+    const psi: Float32Array = new Float32Array(residueCount - 1)
 
+    const cAtomPrev = cIndices[-1], caAtomPrev = traceElementIndex[proteinResidues[-1]], nAtomPrev = nIndices[-1]
+    position(cAtomPrev, cPosPrev), position(caAtomPrev, caPosPrev), position(nAtomPrev, nPosPrev)
+    const cAtom = cIndices[0], caAtom = traceElementIndex[proteinResidues[0]], nAtom = nIndices[0]
+    position(cAtom, cPos), position(caAtom, caPos), position(nAtom, nPos)
+    const cAtomNext = cIndices[1], caAtomNext = traceElementIndex[proteinResidues[1]], nAtomNext = nIndices[1]
+    position(cAtomNext, cPosNext), position(caAtomNext, caPosNext), position(nAtomNext, nPosNext)
     for (let i = 0; i < residueCount - 1; ++i) {
-        const oPIprev = i - 1
-        const oRIprev = proteinResidues[i - 1]
-        const oPI = i
-        const oRI = proteinResidues[i]
-        const oPInext = i + 1
-        const oRInext = proteinResidues[i + 1]
-
-        const cAtomPrev = cIndices[oPIprev]
-        const caAtomPrev = traceElementIndex[oRIprev]
-        const nAtomPrev = nIndices[oPIprev]
-        const cAtom = cIndices[oPI]
-        const caAtom = traceElementIndex[oRI]
-        const nAtom = nIndices[oPI]
-        const cAtomNext = cIndices[oPInext]
-        const caAtomNext = traceElementIndex[oRInext]
-        const nAtomNext = nIndices[oRInext]
-
         // ignore C-terminal residue as acceptor
-        if (index.findAtomOnResidue(oRI, 'OXT') !== -1) continue
-
-        position(cAtomPrev, cPosPrev)
-        position(caAtomPrev, caPosPrev)
-        position(nAtomPrev, nPosPrev)
-        position(cAtom, cPos)
-        position(caAtom, caPos)
-        position(nAtom, nPos)
-        position(cAtomNext, cPosNext)
-        position(caAtomNext, caPosNext)
-        position(nAtomNext, nPosNext)
+        if (index.findAtomOnResidue(proteinResidues[i], 'OXT') !== -1) continue
 
         phi[phi.length] = calculatePhi(cPosPrev, nPos, caPos, cPos)
         psi[psi.length] = calculatePsi(nPos, caPos, cPos, nPosNext)
+
+        cPosPrev = cPos, caPosPrev = caPos, nPosPrev = nPos
+        cPos = cPosNext, caPos = caPosNext, nPos = nPosNext
+
+        position(cIndices[i + 1], cPosNext), position(traceElementIndex[proteinResidues[i + 1]], caPosNext), position(nIndices[i + 1], nPosNext)
     }
 
     return { phi, psi };
