@@ -23,124 +23,30 @@ import { AtomicHierarchy, AtomicConformation } from '../atomic';
  * - validate new ordering of secondary structure elements
  */
 
+ /** max distance between two C-alpha atoms to check for hbond */
+const caMaxDist = 9.0;
+
+/**
+ * Constant for electrostatic energy in kcal/mol
+ *      f  *  q1 *   q2
+ * Q = -332 * 0.42 * 0.20
+ *
+ * f is the dimensional factor
+ *
+ * q1 and q2 are partial charges which are placed on the C,O
+ * (+q1,-q1) and N,H (-q2,+q2)
+ */
+const Q = -27.888
+
+/** cutoff for hbonds in kcal/mol, must be lower to be consider as an hbond */
+const hbondEnergyCutoff = -0.5
+/** prevent extremely low hbond energies */
+const hbondEnergyMinimal = -9.9
+
 export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     conformation: AtomicConformation): SecondaryStructure {
     // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
     return computeModelDSSP(hierarchy, conformation)
-}
-
-export function computeModelDSSP(hierarchy: AtomicHierarchy,
-    conformation: AtomicConformation,
-    oldDefinition = true,
-    oldOrdering = true) {
-    // console.log(`calculating secondary structure elements using ${ oldDefinition ? 'old' : 'revised'} definition and ${ oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
-    const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
-    const backboneIndices = calcBackboneAtomIndices(hierarchy, proteinResidues)
-    const hbonds = calcBackboneHbonds(hierarchy, conformation, proteinResidues, backboneIndices, lookup3d)
-
-    const residueCount = proteinResidues.length
-    const flags = new Uint32Array(residueCount)
-
-    const torsionAngles = calculateDihedralAngles(hierarchy, conformation, proteinResidues, backboneIndices)
-
-    const ladders: Ladder[] = []
-    const bridges: Bridge[] = []
-
-    const getResidueFlag = oldOrdering ? getOriginalResidueFlag : getUpdatedResidueFlag
-    const getFlagName = oldOrdering ? getOriginalFlagName : getUpdatedFlagName
-
-    const ctx: DSSPContext = {
-        oldDefinition,
-        oldOrdering,
-        getResidueFlag,
-        getFlagName,
-
-        hierarchy,
-        proteinResidues,
-        flags,
-        hbonds,
-
-        torsionAngles,
-        backboneIndices,
-        conformation,
-        ladders,
-        bridges
-    }
-
-    assignTurns(ctx)
-    assignHelices(ctx)
-    assignBends(ctx)
-    assignBridges(ctx)
-    assignLadders(ctx)
-    assignSheets(ctx)
-
-    const assignment = getDSSPAssignment(flags, getResidueFlag)
-
-    const type = new Uint32Array(hierarchy.residues._rowCount) as unknown as SecondaryStructureType[]
-
-    const keys: number[] = []
-    const elements: SecondaryStructure.Element[] = []
-
-    for (let i = 0, il = proteinResidues.length; i < il; ++i) {
-        const assign = assignment[i]
-        type[proteinResidues[i]] = assign
-        const flag = getResidueFlag(flags[i])
-        // TODO is this expected behavior? elements will be strictly split depending on 'winning' flag
-        if (elements.length === 0 || // check ought to fail at very start
-            flag !== (elements[elements.length - 1] as SecondaryStructure.Helix | SecondaryStructure.Sheet).flags) { // exact flag changed
-                elements[elements.length] = createElement(mapToKind(assign), flags[i], getResidueFlag)
-        }
-        keys[i] = elements.length - 1
-    }
-
-    const secondaryStructure: SecondaryStructure = {
-        type,
-        key: keys,
-        elements: elements,
-        dsspString: composeDSSPString(flags, getFlagName)
-    }
-
-    return secondaryStructure
-}
-
-function composeDSSPString(flags: Uint32Array, getFlagName: (f: DSSPType) => String) {
-    let out = ''
-    for (let i = 0, il = flags.length; i < il; ++i) {
-        const f = DSSPType.create(flags[i])
-        out += getFlagName(f)
-    }
-    return out
-}
-
-function createElement(kind: string, flag: DSSPType.Flag, getResidueFlag: (f: DSSPType) => SecondaryStructureType): SecondaryStructure.Element {
-    // TODO would be nice to add more detailed information
-    if (kind === 'helix') {
-        return {
-            kind: 'helix',
-            flags: getResidueFlag(flag)
-        } as SecondaryStructure.Helix
-    } else if (kind === 'sheet') {
-        return {
-            kind: 'sheet',
-            flags: getResidueFlag(flag)
-        } as SecondaryStructure.Sheet
-    } else {
-        return {
-            kind: 'none',
-            flags: getResidueFlag(flag)
-        }
-    }
-}
-
-function mapToKind(assignment: SecondaryStructureType.Flag) {
-    if (assignment === SecondaryStructureType.SecondaryStructureDssp.H || assignment === SecondaryStructureType.SecondaryStructureDssp.G ||
-        assignment === SecondaryStructureType.SecondaryStructureDssp.I) {
-            return 'helix'
-        } else if (assignment === SecondaryStructureType.SecondaryStructureDssp.B || assignment === SecondaryStructureType.SecondaryStructureDssp.E) {
-            return 'sheet'
-        } else {
-            return 'none'
-        }
 }
 
 interface DSSPContext {
@@ -157,7 +63,7 @@ interface DSSPContext {
     flags: Uint32Array
     hbonds: DsspHbonds,
 
-    torsionAngles: { phi: number[], psi: number[]/*, omega: number[]*/ },
+    torsionAngles: { phi: number[], psi: number[] },
     backboneIndices: BackboneAtomIndices,
     conformation: AtomicConformation,
     ladders: Ladder[],
@@ -213,8 +119,115 @@ namespace DSSPType {
     }
 }
 
-/** max distance between two C-alpha atoms to check for hbond */
-const caMaxDist = 9.0;
+export function computeModelDSSP(hierarchy: AtomicHierarchy,
+    conformation: AtomicConformation,
+    oldDefinition = true,
+    oldOrdering = true) {
+    // console.log(`calculating secondary structure elements using ${ oldDefinition ? 'old' : 'revised'} definition and ${ oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
+    const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
+    const backboneIndices = calcBackboneAtomIndices(hierarchy, proteinResidues)
+    const hbonds = calcBackboneHbonds(hierarchy, conformation, proteinResidues, backboneIndices, lookup3d)
+
+    const residueCount = proteinResidues.length
+    const flags = new Uint32Array(residueCount)
+
+    const torsionAngles = calculateDihedralAngles(hierarchy, conformation, proteinResidues, backboneIndices)
+
+    const ladders: Ladder[] = []
+    const bridges: Bridge[] = []
+
+    const getResidueFlag = oldOrdering ? getOriginalResidueFlag : getUpdatedResidueFlag
+    const getFlagName = oldOrdering ? getOriginalFlagName : getUpdatedFlagName
+
+    const ctx: DSSPContext = {
+        oldDefinition,
+        oldOrdering,
+        getResidueFlag,
+        getFlagName,
+
+        hierarchy,
+        proteinResidues,
+        flags,
+        hbonds,
+
+        torsionAngles,
+        backboneIndices,
+        conformation,
+        ladders,
+        bridges
+    }
+
+    assignTurns(ctx)
+    assignHelices(ctx)
+    assignBends(ctx)
+    assignBridges(ctx)
+    assignLadders(ctx)
+    assignSheets(ctx)
+
+    const assignment = getDSSPAssignment(flags, getResidueFlag)
+    const type = new Uint32Array(hierarchy.residues._rowCount) as unknown as SecondaryStructureType[]
+    const keys: number[] = []
+    const elements: SecondaryStructure.Element[] = []
+
+    for (let i = 0, il = proteinResidues.length; i < il; ++i) {
+        const assign = assignment[i]
+        type[proteinResidues[i]] = assign
+        const flag = getResidueFlag(flags[i])
+        // TODO is this expected behavior? elements will be strictly split depending on 'winning' flag
+        if (elements.length === 0 /* would fail at very start */ || flag !== (elements[elements.length - 1] as SecondaryStructure.Helix | SecondaryStructure.Sheet).flags /* flag changed */) {
+            elements[elements.length] = createElement(mapToKind(assign), flags[i], getResidueFlag)
+        }
+        keys[i] = elements.length - 1
+    }
+
+    const secondaryStructure: SecondaryStructure = {
+        type,
+        key: keys,
+        elements: elements,
+        dsspString: composeDSSPString(flags, getFlagName)
+    }
+
+    return secondaryStructure
+}
+
+function composeDSSPString(flags: Uint32Array, getFlagName: (f: DSSPType) => String) {
+    let out = ''
+    for (let i = 0, il = flags.length; i < il; ++i) {
+        const f = DSSPType.create(flags[i])
+        out += getFlagName(f)
+    }
+    return out
+}
+
+function createElement(kind: string, flag: DSSPType.Flag, getResidueFlag: (f: DSSPType) => SecondaryStructureType): SecondaryStructure.Element {
+    // TODO would be nice to add more detailed information
+    if (kind === 'helix') {
+        return {
+            kind: 'helix',
+            flags: getResidueFlag(flag)
+        } as SecondaryStructure.Helix
+    } else if (kind === 'sheet') {
+        return {
+            kind: 'sheet',
+            flags: getResidueFlag(flag)
+        } as SecondaryStructure.Sheet
+    } else {
+        return {
+            kind: 'none',
+            flags: getResidueFlag(flag)
+        }
+    }
+}
+
+function mapToKind(assignment: SecondaryStructureType.Flag) {
+    if (assignment === SecondaryStructureType.SecondaryStructureDssp.H || assignment === SecondaryStructureType.SecondaryStructureDssp.G || assignment === SecondaryStructureType.SecondaryStructureDssp.I) {
+        return 'helix'
+    } else if (assignment === SecondaryStructureType.SecondaryStructureDssp.B || assignment === SecondaryStructureType.SecondaryStructureDssp.E) {
+        return 'sheet'
+    } else {
+        return 'none'
+    }
+}
 
 function calcAtomicTraceLookup3D(hierarchy: AtomicHierarchy, conformation: AtomicConformation) {
     const { x, y, z } = conformation;
@@ -284,7 +297,6 @@ function assignBends(ctx: DSSPContext) {
     const caPosPrev2 = Vec3.zero()
     const caPos = Vec3.zero()
     const caPosNext2 = Vec3.zero()
-    // let bends = 0
 
     const nIndices = ctx.backboneIndices.nIndices
     const cPos = Vec3.zero()
@@ -321,16 +333,14 @@ function assignBends(ctx: DSSPContext) {
 
         const angle = Vec3.angle(caMinus2, caPlus2) * 360 / (2 * Math.PI)
         if (angle && angle > 70.00) {
-            // console.log(`found bend at ${ i } with kappa ${ angle }`)
             flags[i] |= DSSPType.Flag.S
-            // bends++
         }
     }
-    // console.log(bends + ' bends')
 }
 
 function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: AtomicConformation, proteinResidues: SortedArray<ResidueIndex>, backboneIndices: BackboneAtomIndices): { phi: number[], psi: number[]/*, omega: number[]*/ } {
     const { cIndices, nIndices } = backboneIndices
+    const { index } = hierarchy
     const { x, y, z } = conformation
     const { traceElementIndex } = hierarchy.derived.residue
 
@@ -349,7 +359,6 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
 
     const phi: number[] = []
     const psi: number[] = []
-    // const omega: number[] = []
 
     for (let i = 0; i < residueCount - 1; ++i) {
         const oPIprev = i - 1
@@ -370,7 +379,7 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
         const nAtomNext = nIndices[oRInext]
 
         // ignore C-terminal residue as acceptor
-        // if (index.findAtomOnResidue(oRI, 'OXT') !== -1) continue
+        if (index.findAtomOnResidue(oRI, 'OXT') !== -1) continue
 
         position(cAtomPrev, cPosPrev)
         position(caAtomPrev, caPosPrev)
@@ -550,23 +559,6 @@ function getDSSPAssignment(flags: Uint32Array, getResidueFlag: (f: DSSPType) => 
 
     return type as unknown as ArrayLike<SecondaryStructureType>
 }
-
-/**
- * Constant for electrostatic energy in kcal/mol
- *      f  *  q1 *   q2
- * Q = -332 * 0.42 * 0.20
- *
- * f is the dimensional factor
- *
- * q1 and q2 are partial charges which are placed on the C,O
- * (+q1,-q1) and N,H (-q2,+q2)
- */
-const Q = -27.888
-
-/** cutoff for hbonds in kcal/mol, must be lower to be consider as an hbond */
-const hbondEnergyCutoff = -0.5
-
-const hbondEnergyMinimal = -9.9
 
 /**
  * E = Q * (1/r(ON) + l/r(CH) - l/r(OH) - l/r(CN))
