@@ -44,9 +44,7 @@ const hbondEnergyCutoff = -0.5
 const hbondEnergyMinimal = -9.9
 
 interface DSSPContext {
-    /** Whether to use the old DSSP convention for the annotation of turns and helices, causes them to be two residues shorter */
     oldDefinition: boolean,
-    /** alpha-helices are preferred over 3-10 helix */
     oldOrdering: boolean,
     getResidueFlag: (f: DSSPType) => SecondaryStructureType,
     getFlagName: (f: DSSPType) => String,
@@ -113,12 +111,15 @@ namespace DSSPType {
     }
 }
 
+export interface SecondaryStructureComputationParams {
+    oldDefinition: boolean
+    oldOrdering: boolean
+}
+
 export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     conformation: AtomicConformation,
-    oldDefinition = true,
-    oldOrdering = true): SecondaryStructure {
+    params?: Partial<SecondaryStructureComputationParams>): SecondaryStructure {
     // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
-    // console.log(`calculating secondary structure elements using ${ oldDefinition ? 'old' : 'revised'} definition and ${ oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
     const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
     const backboneIndices = calcBackboneAtomIndices(hierarchy, proteinResidues)
     const hbonds = calcBackboneHbonds(hierarchy, conformation, proteinResidues, backboneIndices, lookup3d)
@@ -126,12 +127,16 @@ export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     const residueCount = proteinResidues.length
     const flags = new Uint32Array(residueCount)
 
+    const oldDefinition: boolean = (params && params.oldDefinition) || true
+    const oldOrdering: boolean = (params && params.oldOrdering) || true
+    console.log(`calculating secondary structure elements using ${ oldDefinition ? 'old' : 'revised'} definition and ${ oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
+
     const torsionAngles = calculateDihedralAngles(hierarchy, conformation, proteinResidues, backboneIndices)
 
     const ladders: Ladder[] = []
     const bridges: Bridge[] = []
 
-    const getResidueFlag = oldOrdering ? getOriginalResidueFlag : getUpdatedResidueFlag
+    const getResidueFlag = oldDefinition ? getOriginalResidueFlag : getUpdatedResidueFlag
     const getFlagName = oldOrdering ? getOriginalFlagName : getUpdatedFlagName
 
     const ctx: DSSPContext = {
