@@ -120,7 +120,10 @@ export type SecondaryStructureComputationParams = typeof SecondaryStructureCompu
 
 export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     conformation: AtomicConformation,
-    params: PD.Values<SecondaryStructureComputationParams>): SecondaryStructure {
+    params?: PD.Values<SecondaryStructureComputationParams>): SecondaryStructure {
+    // TODO is this the best way? is should be possible to provide partial 'overrides' of default values
+    if (!params) params = PD.getDefaultValues(SecondaryStructureComputationParams);
+
     // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
     const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
     const backboneIndices = calcBackboneAtomIndices(hierarchy, proteinResidues)
