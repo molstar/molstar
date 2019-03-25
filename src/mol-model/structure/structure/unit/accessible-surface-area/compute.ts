@@ -8,17 +8,22 @@ import Unit from '../../unit'
 import { Vec3 } from 'mol-math/linear-algebra';
 import { AccessibleSurfaceAreaComputationParams, AccessibleSurfaceArea, SolventAccessibility } from './data';
 import { isHydrogen, getElementIdx } from '../links/common'; // TODO these functions are relevant for many tasks: move them somewhere actually common
-import { MoleculeType, ElementSymbol, MaxAsa, DefaultMaxAsa } from 'mol-model/structure/model/types';
+import { ElementSymbol, MaxAsa, DefaultMaxAsa, isPolymer, isNucleic } from 'mol-model/structure/model/types';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic/measures';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 
+// Chothia's amino acid atoms vdw radii
 const trigonalCarbonVdw = 1.76;
 const tetrahedralCarbonVdw = 1.87;
 const trigonalNitrogenVdw = 1.65;
 const tetrahedralNitrogenVdw = 1.50;
 /** deviating radii from definition in types.ts */
-const oxygenVdw = 1.4;
+const oxygenVdw = 1.40;
 const sulfurVdw = 1.85;
+// Chothia's nucleotide atom vdw radii
+const nucCarbonVdw = 1.80;
+const nucNitrogenVdw = 1.60;
+const nucPhosphorusVdw = 1.40;
 const missingAccessibleSurfaceAreaValue = -1.0;
 
 interface AccessibleSurfaceAreaContext {
@@ -33,7 +38,7 @@ interface AccessibleSurfaceAreaContext {
     buried?: Uint8Array
 }
 
-/** 
+/**
  * Adapts the BioJava implementation by Jose Duarte. That implementation is based on the publication by Shrake, A., and
  * J. A. Rupley. "Environment and Exposure to Solvent of Protein Atoms. Lysozyme and Insulin." JMB (1973).
  */
@@ -60,8 +65,8 @@ function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
     const { accessibleSurfaceArea, relativeAccessibleSurfaceArea } = ctx;
 
     for (let i = 0; i < residues.label_comp_id.rowCount; ++i) {
-        // skip entities not part of a peptide chain
-        if (derived.residue.moleculeType[i] !== MoleculeType.protein) continue;
+        // skip entities not part of a polymer chain
+        if (!isPolymer(derived.residue.moleculeType[i])) continue;
 
         const maxAsa = (MaxAsa as any)[residues.label_comp_id.value(i)];
         const rasa = accessibleSurfaceArea![i] / (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
@@ -167,8 +172,8 @@ function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
             continue;
         }
 
-        // skip non-peptide groups
-        if (moleculeType[raI] !== MoleculeType.protein) {
+        // skip non-polymer groups
+        if (!isPolymer(moleculeType[raI])) {
             ctx.atomRadius[aI] = missingAccessibleSurfaceAreaValue;
             continue;
         }
@@ -177,7 +182,7 @@ function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
         const element = type_symbol.value(aI);
         const resn = label_comp_id.value(raI)!;
 
-        ctx.atomRadius[aI] = determineRadius(atomId, element, resn);
+        ctx.atomRadius[aI] = isNucleic(moleculeType[raI]) ? determineRadiusNucl(atomId, element, resn) : determineRadiusAmino(atomId, element, resn);
     }
 }
 
@@ -186,7 +191,7 @@ function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
  * J.Mol.Biol.105,1-14. NOTE: the vdw values defined by the paper assume no Hydrogens and thus "inflates" slightly
  * the heavy atoms to account for Hydrogens.
  */
-function determineRadius(atomId: string, element: ElementSymbol, compId: string): number {
+function determineRadiusAmino(atomId: string, element: ElementSymbol, compId: string): number {
     switch (element) {
         case 'O':
         return oxygenVdw;
@@ -210,6 +215,20 @@ function determineRadius(atomId: string, element: ElementSymbol, compId: string)
                 return atomId === 'CD' ? trigonalCarbonVdw : tetrahedralCarbonVdw;
             }
         }
+    }
+    return VdwRadius(element);
+}
+
+function determineRadiusNucl(atomId: string, element: ElementSymbol, compId: string): number {
+    switch (element) {
+        case 'C':
+        return nucCarbonVdw;
+        case 'N':
+        return nucNitrogenVdw;
+        case 'P':
+        return nucPhosphorusVdw;
+        case 'O':
+        return oxygenVdw;
     }
     return VdwRadius(element);
 }
