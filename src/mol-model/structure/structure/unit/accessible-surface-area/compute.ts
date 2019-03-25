@@ -8,7 +8,7 @@ import Unit from '../../unit'
 import { Vec3 } from 'mol-math/linear-algebra';
 import { AccessibleSurfaceAreaComputationParams, AccessibleSurfaceArea, SolventAccessibility } from './data';
 import { isHydrogen, getElementIdx } from '../links/common'; // TODO these functions are relevant for many tasks: move them somewhere actually common
-import { ElementSymbol, MaxAsa, DefaultMaxAsa, isPolymer, isNucleic } from 'mol-model/structure/model/types';
+import { ElementSymbol, MaxAsa, DefaultMaxAsa, isPolymer, isNucleic, MoleculeType } from 'mol-model/structure/model/types';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic/measures';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 
@@ -67,7 +67,9 @@ function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
 
     for (let i = 0; i < residues.label_comp_id.rowCount; ++i) {
         // skip entities not part of a polymer chain
-        if (!ctx.params.nonPolymer && !isPolymer(derived.residue.moleculeType[i])) continue;
+        if (!ctx.params.nonPolymer) {
+            if (!isPolymer(derived.residue.moleculeType[i])) continue;
+        }
 
         const maxAsa = (MaxAsa as any)[residues.label_comp_id.value(i)];
         const rasa = accessibleSurfaceArea![i] / (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
@@ -174,16 +176,18 @@ function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
         }
 
         // skip non-polymer groups
-        if (!ctx.params.nonPolymer && !isPolymer(moleculeType[raI])) {
-            ctx.atomRadius[aI] = missingAccessibleSurfaceAreaValue;
-            continue;
+        if (!ctx.params.nonPolymer) {
+            if (!isPolymer(moleculeType[raI])) {
+                ctx.atomRadius[aI] = missingAccessibleSurfaceAreaValue;
+                continue;
+            }
         }
 
         const atomId = label_atom_id.value(aI);
         const element = type_symbol.value(aI);
         const resn = label_comp_id.value(raI)!;
 
-        ctx.atomRadius[aI] = isNucleic(moleculeType[raI]) ? determineRadiusNucl(atomId, element, resn) : determineRadiusAmino(atomId, element, resn);
+        ctx.atomRadius[aI] = isNucleic(moleculeType[raI]) ? determineRadiusNucl(atomId, element, resn) : moleculeType[raI] === MoleculeType.protein ? determineRadiusAmino(atomId, element, resn) : VdwRadius(element);
     }
 }
 
