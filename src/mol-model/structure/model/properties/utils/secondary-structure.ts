@@ -14,7 +14,6 @@ import { IntAdjacencyGraph } from 'mol-math/graph';
 import { BitFlags } from 'mol-util';
 import { ElementIndex } from 'mol-model/structure/model/indexing';
 import { AtomicHierarchy, AtomicConformation } from '../atomic';
-import { Float } from 'servers/volume/common/binary-schema';
 
 /**
  * TODO bugs to fix:
