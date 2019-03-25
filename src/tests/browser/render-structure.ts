@@ -61,7 +61,7 @@ function getCartoonRepr() {
 }
 
 async function init() {
-    const cif = await downloadFromPdb(/*'3j3q'*/'1acj')
+    const cif = await downloadFromPdb(/*'3j3q'*/'1hrc')
     const models = await getModels(cif)
 
     const structure = await getStructure(models[0])

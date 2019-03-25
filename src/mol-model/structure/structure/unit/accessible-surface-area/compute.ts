@@ -43,9 +43,10 @@ interface AccessibleSurfaceAreaContext {
  * J. A. Rupley. "Environment and Exposure to Solvent of Protein Atoms. Lysozyme and Insulin." JMB (1973).
  */
 function computeAccessibleSurfaceArea(unit: Unit.Atomic, params?: PD.Values<AccessibleSurfaceAreaComputationParams>): AccessibleSurfaceArea {
-    console.log(`computing accessible surface area for unit #${ unit.id + 1 }`);
-
     if (!params) params = PD.getDefaultValues(AccessibleSurfaceAreaComputationParams);
+
+    // TODO non-polymer flag is currently useless as hetatms are located in different units - aim is not to color them, but to compute values correctly - relates to correct ASA computation for inter-chain contacts
+    console.log(`computing accessible surface area for unit #${ unit.id + 1 } - ${ params.numberOfSpherePoints } points, ${ params.probeSize } probe size, ${ params.nonPolymer ? 'honoring' : 'ignoring'} non-polymer atoms`);
 
     const ctx = initialize(unit, params);
     assignRadiusForHeavyAtoms(ctx);
@@ -66,7 +67,7 @@ function normalizeAccessibleSurfaceArea(ctx: AccessibleSurfaceAreaContext) {
 
     for (let i = 0; i < residues.label_comp_id.rowCount; ++i) {
         // skip entities not part of a polymer chain
-        if (!isPolymer(derived.residue.moleculeType[i])) continue;
+        if (!ctx.params.nonPolymer && !isPolymer(derived.residue.moleculeType[i])) continue;
 
         const maxAsa = (MaxAsa as any)[residues.label_comp_id.value(i)];
         const rasa = accessibleSurfaceArea![i] / (maxAsa === undefined ? DefaultMaxAsa : maxAsa);
@@ -173,7 +174,7 @@ function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
         }
 
         // skip non-polymer groups
-        if (!isPolymer(moleculeType[raI])) {
+        if (!ctx.params.nonPolymer && !isPolymer(moleculeType[raI])) {
             ctx.atomRadius[aI] = missingAccessibleSurfaceAreaValue;
             continue;
         }
