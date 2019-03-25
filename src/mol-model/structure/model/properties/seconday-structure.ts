@@ -13,7 +13,9 @@ interface SecondaryStructure {
     /** index into the elements array */
     readonly key: ArrayLike<number>,
     /** indexed by key */
-    readonly elements: ReadonlyArray<SecondaryStructure.Element>
+    readonly elements: ReadonlyArray<SecondaryStructure.Element>,
+    /** string representation of DSSP annotation */
+    readonly dsspString: String
 }
 
 namespace SecondaryStructure {

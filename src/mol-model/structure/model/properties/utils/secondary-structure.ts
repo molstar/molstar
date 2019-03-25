@@ -85,10 +85,8 @@ export function computeModelDSSP(hierarchy: AtomicHierarchy,
         const assign = assignment[i]
         type[proteinResidues[i]] = assign
         const flag = getResidueFlag(flags[i])
-        // const kind = mapToKind(assign)
         // TODO is this expected behavior? elements will be strictly split depending on 'winning' flag
         if (elements.length === 0 || // check ought to fail at very start
-            // elements[elements.length - 1].kind !== kind || // new element if overall kind changed
             flag !== (elements[elements.length - 1] as SecondaryStructure.Helix | SecondaryStructure.Sheet).flags) { // exact flag changed
                 elements[elements.length] = createElement(mapToKind(assign), flags[i], getResidueFlag)
         }
@@ -98,24 +96,21 @@ export function computeModelDSSP(hierarchy: AtomicHierarchy,
     const secondaryStructure: SecondaryStructure = {
         type,
         key: keys,
-        elements: elements
+        elements: elements,
+        dsspString: composeDSSPString(flags, getFlagName)
     }
-
-    // console.log(keys)
-    // console.log(elements)
-    // printDSSPString(flags, getFlagName)
 
     return secondaryStructure
 }
 
-// function printDSSPString(flags: Uint32Array, getFlagName: (f: DSSPType) => String) {
-//     let out = ''
-//     for (let i = 0, il = flags.length; i < il; ++i) {
-//         const f = DSSPType.create(flags[i])
-//         out += getFlagName(f)
-//     }
-//     console.log(out)
-// }
+function composeDSSPString(flags: Uint32Array, getFlagName: (f: DSSPType) => String) {
+    let out = ''
+    for (let i = 0, il = flags.length; i < il; ++i) {
+        const f = DSSPType.create(flags[i])
+        out += getFlagName(f)
+    }
+    return out
+}
 
 function createElement(kind: string, flag: DSSPType.Flag, getResidueFlag: (f: DSSPType) => SecondaryStructureType): SecondaryStructure.Element {
     // TODO would be nice to add more detailed information
@@ -390,22 +385,14 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
         position(caAtomNext, caPosNext)
         position(nAtomNext, nPosNext)
 
-        // const tPhi = calculatePhi(cPosPrev, nPos, caPos, cPos)
-        // const tPsi = calculatePsi(nPos, caPos, cPos, nPosNext)
-        // const tOmega = calculateOmega(caPos, cPos, nPosNext, caPosNext)
-
-        // console.log(`phi:  ${ tPhi }, psi: ${ tPsi }, omega: ${ tOmega }`)
-
         phi[phi.length] = calculatePhi(cPosPrev, nPos, caPos, cPos)
         psi[psi.length] = calculatePsi(nPos, caPos, cPos, nPosNext)
-        // omega[omega.length] = calculateOmega(caPos, cPos, nPosNext, caPosNext)
     }
 
-    return { phi, psi/*, omega*/ };
+    return { phi, psi };
 }
 
 // angle calculations return NaN upon missing atoms
-// TODO would be nice to be provided elsewhere, omega is related but not needed here
 function calculatePhi(c: Vec3, nNext: Vec3, caNext: Vec3, cNext: Vec3) {
     return Vec3.dihedralAngle(c, nNext, caNext, cNext);
 }
@@ -413,10 +400,6 @@ function calculatePhi(c: Vec3, nNext: Vec3, caNext: Vec3, cNext: Vec3) {
 function calculatePsi(n: Vec3, ca: Vec3, c: Vec3, nNext: Vec3) {
     return Vec3.dihedralAngle(n, ca, c, nNext);
 }
-
-// function calculateOmega(ca: Vec3, c: Vec3, nNext: Vec3, caNext: Vec3) {
-//     return angle(ca, c, nNext, caNext);
-// }
 
 function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConformation, proteinResidues: SortedArray<ResidueIndex>, backboneIndices: BackboneAtomIndices, lookup3d: GridLookup3D): DsspHbonds {
     const { cIndices, hIndices, nIndices, oIndices } = backboneIndices
@@ -463,7 +446,7 @@ function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConf
         const { indices, count } = lookup3d.find(caPos[0], caPos[1], caPos[2], caMaxDist)
 
         for (let j = 0; j < count; ++j) {
-            // if (squaredDistances[j] < caMinDistSq) continue
+            // if (squaredDistances[j] < caMinDist * caMinDist) continue
 
             const nPI = indices[j]
 
@@ -498,7 +481,6 @@ function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConf
             const e = calcHbondEnergy(oPos, cPos, nPos, hPos)
             if (e > hbondEnergyCutoff) continue
 
-            // console.log(`detected hbond between ${ oPI } and ${ nPI } with energy ${ e }`)
             oAtomResidues[oAtomResidues.length] = oPI
             nAtomResidues[nAtomResidues.length] = nPI
             energies[energies.length] = e
@@ -628,7 +610,6 @@ function assignTurns(ctx: DSSPContext) {
     const { proteinResidues, hbonds, flags, hierarchy } = ctx
     const { chains, residueAtomSegments, chainAtomSegments } = hierarchy
     const { label_asym_id } = chains
-    // let turns = 0, turnOpenings = 0
 
     const turnFlag = [DSSPType.Flag.T3S, DSSPType.Flag.T4S, DSSPType.Flag.T5S, DSSPType.Flag.T3, DSSPType.Flag.T4, DSSPType.Flag.T5]
 
@@ -644,27 +625,20 @@ function assignTurns(ctx: DSSPContext) {
             if (!label_asym_id.areValuesEqual(cI, cN)) continue
 
             // check if hbond exists
-            // console.log(`${ i } has ${ idx + 3}-turn opening: ${ hbonds.getDirectedEdgeIndex(i, i + idx + 3) !== -1 }`)
             if (hbonds.getDirectedEdgeIndex(i, i + idx + 3) !== -1) {
-                // console.log(`${ idx + 3 }-turn opening at ${ i } to ${ i + idx + 3 }`)
                 flags[i] |= turnFlag[idx + 3] | turnFlag[idx]
-                // turnOpenings++
                 if (ctx.oldDefinition) {
                     for (let k = 1; k < idx + 3; ++k) {
                         flags[i + k] |= turnFlag[idx + 3] | DSSPType.Flag.T
-                        // turns++
                     }
                 } else {
                     for (let k = 0; k <= idx + 3; ++k) {
                         flags[i + k] |= turnFlag[idx + 3] | DSSPType.Flag.T
-                        // turns++
                     }
                 }
             }
         }
     }
-
-    // console.log(`${ turns } turns, ${ turnOpenings } turn openings`)
 }
 
 /**
@@ -734,8 +708,6 @@ function assignBridges(ctx: DSSPContext) {
     }
 
     bridges.sort((a, b) => a.partner1 > b.partner1 ? 1 : a.partner1 < b.partner1 ? -1 : 0)
-    // console.log(`${ bridges.length } bridges`)
-    // bridges.forEach(b => console.log(b))
 }
 
 /**
@@ -756,7 +728,6 @@ function assignHelices(ctx: DSSPContext) {
     const helixFlag = [0, 0, 0, DSSPType.Flag.G, DSSPType.Flag.H, DSSPType.Flag.I]
 
     const helixCheckOrder = ctx.oldOrdering ? [4, 3, 5] : [3, 4, 5]
-    // const count = [0, 0, 0, 0, 0, 0]
     for (let ni = 0; ni < helixCheckOrder.length; ni++) {
         const n = helixCheckOrder[ni]
 
@@ -769,35 +740,29 @@ function assignHelices(ctx: DSSPContext) {
             if (ctx.oldOrdering) {
                 if ((n === 3 && (DSSPType.is(fI, DSSPType.Flag.H) || DSSPType.is(fI2, DSSPType.Flag.H)) || // for 3-10 yield to alpha helix
                     (n === 5 && ((DSSPType.is(fI, DSSPType.Flag.H) || DSSPType.is(fI, DSSPType.Flag.G)) || (DSSPType.is(fI2, DSSPType.Flag.H) || DSSPType.is(fI2, DSSPType.Flag.G)))))) { // for pi yield to all other helices
-                    // console.log('skipping in favor of more preferable helix already present')
                     continue
                 }
             } else {
                 if ((n === 4 && (DSSPType.is(fI, DSSPType.Flag.G) || DSSPType.is(fI2, DSSPType.Flag.G)) || // for alpha helix yield to 3-10
                     (n === 5 && ((DSSPType.is(fI, DSSPType.Flag.H) || DSSPType.is(fI, DSSPType.Flag.G)) || (DSSPType.is(fI2, DSSPType.Flag.H) || DSSPType.is(fI2, DSSPType.Flag.G)))))) { // for pi yield to all other helices
-                    // console.log('skipping in favor of more preferable helix already present')
                     continue
                 }
             }
 
             if (DSSPType.is(fI, turnFlag[n]) && DSSPType.is(fI, turnFlag[n - 3]) && // check fI for turn start of proper type
                 DSSPType.is(fI1, turnFlag[n]) && DSSPType.is(fI1, turnFlag[n - 3])) { // check fI1 accordingly
-                // console.log(`valid hit for ${n} from ${i} to ${i+n}`)
                 if (ctx.oldDefinition) {
                     for (let k = 0; k < n; k++) {
                         flags[i + k] |= helixFlag[n]
-                        // count[n]++
                     }
                 } else {
                     for (let k = -1; k <= n; k++) {
                         flags[i + k] |= helixFlag[n]
-                        // count[n]++
                     }
                 }
             }
         }
     }
-    // console.log(`${ count[3] + count[4] + count[5] } helix elements - ${ count[3] } 3-10, ${ count[4] } alpha, ${ count[5] } pi`)
 }
 
 /**
@@ -808,7 +773,6 @@ function assignHelices(ctx: DSSPContext) {
 function assignLadders(ctx: DSSPContext) {
     const { bridges, ladders } = ctx
 
-    // let ext = 0
     // create ladders
     for (let bridgeIndex = 0; bridgeIndex < bridges.length; bridgeIndex++) {
         const bridge = bridges[bridgeIndex]
@@ -816,7 +780,6 @@ function assignLadders(ctx: DSSPContext) {
         for (let ladderIndex = 0; ladderIndex < ladders.length; ladderIndex++) {
             const ladder = ladders[ladderIndex]
             if (shouldExtendLadder(ladder, bridge)) {
-                // ext++
                 found = true
                 ladder.firstEnd++
                 if (bridge.type === BridgeType.PARALLEL) {
@@ -840,7 +803,6 @@ function assignLadders(ctx: DSSPContext) {
             }
         }
     }
-    // console.log(`${ ext } extension operations`)
 
     // connect ladders
     for (let ladderIndex1 = 0; ladderIndex1 < ladders.length; ladderIndex1++) {
@@ -848,14 +810,11 @@ function assignLadders(ctx: DSSPContext) {
         for (let ladderIndex2 = ladderIndex1; ladderIndex2 < ladders.length; ladderIndex2++) {
             const ladder2 = ladders[ladderIndex2]
             if (resemblesBulge(ladder1, ladder2)) {
-                // console.log(`connecting ladders ${ ladderIndex1 } and ${ ladderIndex2 } with inbetween bulge`)
                 ladder1.nextLadder = ladderIndex2
                 ladder2.previousLadder = ladderIndex1
             }
         }
     }
-
-    // console.log(`${ ladders.length } ladders`)
 }
 
 /**
@@ -883,18 +842,15 @@ function shouldExtendLadder(ladder: Ladder, bridge: Bridge): boolean {
     // in order to extend ladders, same type must be present
     if (bridge.type !== ladder.type) return false
 
-    // console.log(`${ bridge.partner1 }-${ bridge.partner2 } ${ ladder.firstEnd }`)
     // only extend if residue 1 is sequence neighbor with regard to ladder
     if (bridge.partner1 !== ladder.firstEnd + 1) return false
 
     if (bridge.type === BridgeType.PARALLEL) {
         if (bridge.partner2 === ladder.secondEnd + 1) {
-            // console.log(ladder)
             return true
         }
     } else {
         if (bridge.partner2 === ladder.secondStart - 1) {
-            // console.log(ladder)
             return true
         }
     }

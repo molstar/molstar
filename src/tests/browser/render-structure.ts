@@ -62,7 +62,7 @@ function getCartoonRepr() {
 }
 
 async function init() {
-    const cif = await downloadFromPdb('3j3q')
+    const cif = await downloadFromPdb('1acj')
     const models = await getModels(cif)
     console.time('computeModelDSSP')
     const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy,
@@ -71,6 +71,8 @@ async function init() {
     (models[0].properties as any).secondaryStructure = secondaryStructure
     const structure = await getStructure(models[0])
     const cartoonRepr = getCartoonRepr()
+
+    console.log(secondaryStructure.dsspString)
 
     cartoonRepr.setTheme({
         color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
