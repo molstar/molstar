@@ -214,7 +214,7 @@ namespace DSSPType {
 }
 
 /** max distance between two C-alpha atoms to check for hbond */
-const caMaxDist = 7.0;
+const caMaxDist = 9.0;
 
 /** min distance between two C-alpha atoms to check for hbond */
 const caMinDist = 0.5;
