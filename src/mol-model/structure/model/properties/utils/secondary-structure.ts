@@ -216,9 +216,6 @@ namespace DSSPType {
 /** max distance between two C-alpha atoms to check for hbond */
 const caMaxDist = 9.0;
 
-/** min distance between two C-alpha atoms to check for hbond */
-const caMinDist = 0.5;
-
 function calcAtomicTraceLookup3D(hierarchy: AtomicHierarchy, conformation: AtomicConformation) {
     const { x, y, z } = conformation;
     const { moleculeType, traceElementIndex } = hierarchy.derived.residue
@@ -423,8 +420,6 @@ function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConf
     const cPosPrev = Vec3.zero()
     const oPosPrev = Vec3.zero()
 
-    // const caMinDistSq = caMinDist * caMinDist
-
     for (let i = 0, il = proteinResidues.length; i < il; ++i) {
         const oPI = i
         const oRI = proteinResidues[i]
@@ -446,8 +441,6 @@ function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConf
         const { indices, count } = lookup3d.find(caPos[0], caPos[1], caPos[2], caMaxDist)
 
         for (let j = 0; j < count; ++j) {
-            // if (squaredDistances[j] < caMinDist * caMinDist) continue
-
             const nPI = indices[j]
 
             // ignore bonds within a residue or to prev or next residue, TODO take chain border into account
@@ -583,10 +576,6 @@ function calcHbondEnergy(oPos: Vec3, cPos: Vec3, nPos: Vec3, hPos: Vec3) {
     const distCH = Vec3.distance(cPos, hPos)
     const distCN = Vec3.distance(cPos, nPos)
     const distON = Vec3.distance(oPos, nPos)
-
-    if (distOH < caMinDist || distCH < caMinDist || distCN < caMinDist || distON < caMinDist) {
-        return hbondEnergyMinimal
-    }
 
     const e1 = Q / distOH - Q / distCH
     const e2 = Q / distCN - Q / distON
