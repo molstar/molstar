@@ -1,7 +1,7 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
 import { Color } from 'mol-util/color';

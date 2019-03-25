@@ -1,20 +1,40 @@
+/**
+ * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
+ */
+
 import Unit from '../../unit'
 import { Vec3 } from 'mol-math/linear-algebra';
-import { AccessibleSurfaceAreaComputationParameters, AccessibleSurfaceArea } from './data';
-import { isHydrogen, getElementIdx } from '../links/common'; // TODO move these functions somewhere more common
+import { AccessibleSurfaceAreaComputationParams, AccessibleSurfaceArea } from './data';
+import { isHydrogen, getElementIdx } from '../links/common'; // TODO these functions are relevant for many tasks: move them somewhere actually common
 import { MoleculeType, ElementSymbol, MaxAsa, DefaultMaxAsa } from 'mol-model/structure/model/types';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic/measures';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
 
 const trigonalCarbonVdw = 1.76;
 const tetrahedralCarbonVdw = 1.87;
 const trigonalNitrogenVdw = 1.65;
 const tetrahedralNitrogenVdw = 1.50;
-/** deviating radii from the definition in types.ts */
+/** deviating radii from definition in types.ts */
 const oxygenVdw = 1.4;
 const sulfurVdw = 1.85;
 const missingAccessibleSurfaceAreaValue = -1.0;
 
-function _computeAccessibleSurfaceArea(unit: Unit.Atomic, params: AccessibleSurfaceAreaComputationParameters): AccessibleSurfaceArea {
+interface AccessibleSurfaceAreaContext {
+    unit: Unit.Atomic,
+    params: PD.Values<AccessibleSurfaceAreaComputationParams>,
+    spherePoints: Vec3[],
+    cons: number,
+    atomRadius: number[],
+    accessibleSurfaceArea: number[],
+    relativeAccessibleSurfaceArea: number[],
+    maxLookupRadius: number
+}
+
+function computeAccessibleSurfaceArea(unit: Unit.Atomic, params: PD.Values<AccessibleSurfaceAreaComputationParams>): AccessibleSurfaceArea {
+    console.log(`computing accessible surface area for unit #${ unit.id + 1 }`);
+
     const ctx = initialize(unit, params);
     assignRadiusForHeavyAtoms(ctx);
     computePerResidue(ctx);
@@ -182,18 +202,7 @@ function determineRadius(atomId: string, element: ElementSymbol, compId: string)
     return VdwRadius(element);
 }
 
-interface AccessibleSurfaceAreaContext {
-    unit: Unit.Atomic,
-    params: AccessibleSurfaceAreaComputationParameters,
-    spherePoints: Vec3[],
-    cons: number,
-    atomRadius: number[],
-    accessibleSurfaceArea: number[],
-    relativeAccessibleSurfaceArea: number[],
-    maxLookupRadius: number
-}
-
-function initialize(unit: Unit.Atomic, params: AccessibleSurfaceAreaComputationParameters): AccessibleSurfaceAreaContext {
+function initialize(unit: Unit.Atomic, params: PD.Values<AccessibleSurfaceAreaComputationParams>): AccessibleSurfaceAreaContext {
     return {
         unit: unit,
         params: params,
@@ -204,36 +213,6 @@ function initialize(unit: Unit.Atomic, params: AccessibleSurfaceAreaComputationP
         relativeAccessibleSurfaceArea: [],
         maxLookupRadius: 1.4 + 1.4 + 1.87 + 1.87
     }
-}
-
-// class Count {
-//     static count = 10;
-//     get count(): number {
-//         return Count.count;
-//     }
-//     set count(v: number) {
-//         Count.count = v;
-//     }
-// }
-
-function computeAccessibleSurfaceArea(unit: Unit.Atomic, params?: Partial<AccessibleSurfaceAreaComputationParameters>): AccessibleSurfaceArea {
-    // const count = new Count();
-    // count.count = count.count - 1;
-    // if (count.count > 0) {
-    console.log(`computing accessible surface area for unit #${ unit.id + 1 }`);
-    return _computeAccessibleSurfaceArea(unit, {
-        numberOfSpherePoints: (params && params.numberOfSpherePoints) || 92 /* original value Shrake, A. & Rupley, J. A. (1973) J. Mol. Biol. 79: 92, BioJava: 960, EPPIC: 3000 */ ,
-        /** 92: 1600ms, 960: 5000ms, 3000: 13000ms */
-        probeSize: (params && params.probeSize) || 1.4
-    });
-    // } else {
-    //     return {
-    //         atomRadius: [],
-    //         accessibleSurfaceArea: [],
-    //         relativeAccessibleSurfaceArea: [],
-    //         buried: void 0
-    //     }
-    // }
 }
 
 /** Creates a collection of points on a sphere by the Golden Section Spiral algorithm. */
