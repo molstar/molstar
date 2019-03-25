@@ -33,6 +33,10 @@ interface AccessibleSurfaceAreaContext {
     buried?: Uint8Array
 }
 
+/** 
+ * Adapts the BioJava implementation by Jose Duarte. That implementation is based on the publication by Shrake, A., and
+ * J. A. Rupley. "Environment and Exposure to Solvent of Protein Atoms. Lysozyme and Insulin." JMB (1973).
+ */
 function computeAccessibleSurfaceArea(unit: Unit.Atomic, params?: PD.Values<AccessibleSurfaceAreaComputationParams>): AccessibleSurfaceArea {
     console.log(`computing accessible surface area for unit #${ unit.id + 1 }`);
 
@@ -95,7 +99,7 @@ function computePerResidue(ctx: AccessibleSurfaceAreaContext) { // runs at rough
 
         // refine list by actual criterion
         const cutoff = probeSize + probeSize + radii1;
-        const filteredIndicies = []; // TODO might be better to use IntArray here and reuse it - how to find safe upper limit of possible neighborhood count
+        const filteredIndicies = []; // TODO might be better to use IntArray here and reuse it - how to find safe upper limit of possible neighborhood count - BioJava mentions 60 as relatively safe upper bound
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni];
             const bI = atoms[_bI];
@@ -180,7 +184,7 @@ function assignRadiusForHeavyAtoms(ctx: AccessibleSurfaceAreaContext) {
 /**
  * Gets the van der Waals radius of the given atom following the values defined by Chothia (1976)
  * J.Mol.Biol.105,1-14. NOTE: the vdw values defined by the paper assume no Hydrogens and thus "inflates" slightly
- * the heavy atoms to account for Hydrogens. Thus this method cannot be used in a structure that contains Hydrogens!
+ * the heavy atoms to account for Hydrogens.
  */
 function determineRadius(atomId: string, element: ElementSymbol, compId: string): number {
     switch (element) {
