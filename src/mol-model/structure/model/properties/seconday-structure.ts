@@ -19,15 +19,10 @@ interface SecondaryStructure {
 }
 
 namespace SecondaryStructure {
-    export type Element = None | Bend | Turn | Helix | Sheet
+    export type Element = None | Turn | Helix | Sheet
 
     export interface None {
         kind: 'none'
-    }
-
-    export interface Bend {
-        kind: 'bend',
-        flags: SecondaryStructureType
     }
 
     export interface Turn {

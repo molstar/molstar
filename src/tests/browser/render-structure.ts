@@ -12,7 +12,8 @@ import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { CartoonRepresentationProvider } from 'mol-repr/structure/representation/cartoon';
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
-import { computeSecondaryStructure } from 'mol-model/structure/model/properties/utils/secondary-structure';
+import { computeSecondaryStructure, SecondaryStructureComputationParams } from 'mol-model/structure/model/properties/utils/secondary-structure';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -66,7 +67,8 @@ async function init() {
     const models = await getModels(cif)
     console.time('computeModelDSSP')
     const secondaryStructure = computeSecondaryStructure(models[0].atomicHierarchy,
-        models[0].atomicConformation)
+        models[0].atomicConformation,
+        PD.getDefaultValues(SecondaryStructureComputationParams) /*{ oldDefinition: false, oldOrdering: false }*/)
     console.timeEnd('computeModelDSSP');
     (models[0].properties as any).secondaryStructure = secondaryStructure
     const structure = await getStructure(models[0])

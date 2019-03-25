@@ -2,6 +2,7 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
 import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
@@ -14,6 +15,7 @@ import { IntAdjacencyGraph } from 'mol-math/graph';
 import { BitFlags } from 'mol-util';
 import { ElementIndex } from 'mol-model/structure/model/indexing';
 import { AtomicHierarchy, AtomicConformation } from '../atomic';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
 
 /**
  * TODO bugs to fix:
@@ -44,8 +46,7 @@ const hbondEnergyCutoff = -0.5
 const hbondEnergyMinimal = -9.9
 
 interface DSSPContext {
-    oldDefinition: boolean,
-    oldOrdering: boolean,
+    params: PD.Values<SecondaryStructureComputationParams>,
     getResidueFlag: (f: DSSPType) => SecondaryStructureType,
     getFlagName: (f: DSSPType) => String,
 
@@ -111,14 +112,15 @@ namespace DSSPType {
     }
 }
 
-export interface SecondaryStructureComputationParams {
-    oldDefinition: boolean
-    oldOrdering: boolean
+export const SecondaryStructureComputationParams = {
+    oldDefinition: PD.Boolean(true, { description: 'Whether to use the old DSSP convention for the annotation of turns and helices, causes them to be two residues shorter' }),
+    oldOrdering: PD.Boolean(true, { description: 'Alpha-helices are preferred over 3-10 helices' })
 }
+export type SecondaryStructureComputationParams = typeof SecondaryStructureComputationParams
 
 export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     conformation: AtomicConformation,
-    params?: Partial<SecondaryStructureComputationParams>): SecondaryStructure {
+    params: PD.Values<SecondaryStructureComputationParams>): SecondaryStructure {
     // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
     const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
     const backboneIndices = calcBackboneAtomIndices(hierarchy, proteinResidues)
@@ -127,21 +129,18 @@ export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     const residueCount = proteinResidues.length
     const flags = new Uint32Array(residueCount)
 
-    const oldDefinition: boolean = (params && params.oldDefinition) || true
-    const oldOrdering: boolean = (params && params.oldOrdering) || true
-    console.log(`calculating secondary structure elements using ${ oldDefinition ? 'old' : 'revised'} definition and ${ oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
+    console.log(`calculating secondary structure elements using ${ params.oldDefinition ? 'old' : 'revised'} definition and ${ params.oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
 
     const torsionAngles = calculateDihedralAngles(hierarchy, conformation, proteinResidues, backboneIndices)
 
     const ladders: Ladder[] = []
     const bridges: Bridge[] = []
 
-    const getResidueFlag = oldDefinition ? getOriginalResidueFlag : getUpdatedResidueFlag
-    const getFlagName = oldOrdering ? getOriginalFlagName : getUpdatedFlagName
+    const getResidueFlag = params.oldDefinition ? getOriginalResidueFlag : getUpdatedResidueFlag
+    const getFlagName = params.oldOrdering ? getOriginalFlagName : getUpdatedFlagName
 
     const ctx: DSSPContext = {
-        oldDefinition,
-        oldOrdering,
+        params,
         getResidueFlag,
         getFlagName,
 
@@ -174,7 +173,7 @@ export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
         type[proteinResidues[i]] = assign
         const flag = getResidueFlag(flags[i])
         // TODO is this expected behavior? elements will be strictly split depending on 'winning' flag
-        if (elements.length === 0 /* would fail at very start */ || flag !== (elements[elements.length - 1] as SecondaryStructure.Helix | SecondaryStructure.Sheet).flags /* flag changed */) {
+        if (elements.length === 0 /* would fail at very start */ || flag !== (elements[elements.length - 1] as SecondaryStructure.Helix | SecondaryStructure.Sheet | SecondaryStructure.Turn).flags /* flag changed */) {
             elements[elements.length] = createElement(mapToKind(assign), flags[i], getResidueFlag)
         }
         keys[i] = elements.length - 1
@@ -211,14 +210,9 @@ function createElement(kind: string, flag: DSSPType.Flag, getResidueFlag: (f: DS
             kind: 'sheet',
             flags: getResidueFlag(flag)
         } as SecondaryStructure.Sheet
-    } else if (kind === 'turn') {
+    } else if (kind === 'turn' || kind === 'bend') {
         return {
             kind: 'turn',
-            flags: getResidueFlag(flag)
-        }
-    } else if (kind === 'bend') {
-        return {
-            kind: 'bend',
             flags: getResidueFlag(flag)
         }
     } else {
@@ -377,8 +371,9 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
         // ignore C-terminal residue as acceptor
         if (index.findAtomOnResidue(proteinResidues[i], 'OXT') !== -1) continue
 
-        phi[phi.length] = calculatePhi(cPosPrev, nPos, caPos, cPos)
-        psi[psi.length] = calculatePsi(nPos, caPos, cPos, nPosNext)
+        // returns NaN for missing atoms
+        phi[i] = Vec3.dihedralAngle(cPosPrev, nPos, caPos, cPos)
+        psi[i] = Vec3.dihedralAngle(nPos, caPos, cPos, nPosNext)
 
         cPosPrev = cPos, caPosPrev = caPos, nPosPrev = nPos
         cPos = cPosNext, caPos = caPosNext, nPos = nPosNext
@@ -387,15 +382,6 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
     }
 
     return { phi, psi };
-}
-
-// angle calculations return NaN upon missing atoms
-function calculatePhi(c: Vec3, nNext: Vec3, caNext: Vec3, cNext: Vec3) {
-    return Vec3.dihedralAngle(c, nNext, caNext, cNext);
-}
-
-function calculatePsi(n: Vec3, ca: Vec3, c: Vec3, nNext: Vec3) {
-    return Vec3.dihedralAngle(n, ca, c, nNext);
 }
 
 function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConformation, proteinResidues: SortedArray<ResidueIndex>, backboneIndices: BackboneAtomIndices, lookup3d: GridLookup3D): DsspHbonds {
@@ -599,7 +585,7 @@ function assignTurns(ctx: DSSPContext) {
             // check if hbond exists
             if (hbonds.getDirectedEdgeIndex(i, i + idx + 3) !== -1) {
                 flags[i] |= turnFlag[idx + 3] | turnFlag[idx]
-                if (ctx.oldDefinition) {
+                if (ctx.params.oldDefinition) {
                     for (let k = 1; k < idx + 3; ++k) {
                         flags[i + k] |= turnFlag[idx + 3] | DSSPType.Flag.T
                     }
@@ -699,7 +685,7 @@ function assignHelices(ctx: DSSPContext) {
     const turnFlag = [DSSPType.Flag.T3S, DSSPType.Flag.T4S, DSSPType.Flag.T5S, DSSPType.Flag.T3, DSSPType.Flag.T4, DSSPType.Flag.T5]
     const helixFlag = [0, 0, 0, DSSPType.Flag.G, DSSPType.Flag.H, DSSPType.Flag.I]
 
-    const helixCheckOrder = ctx.oldOrdering ? [4, 3, 5] : [3, 4, 5]
+    const helixCheckOrder = ctx.params.oldOrdering ? [4, 3, 5] : [3, 4, 5]
     for (let ni = 0; ni < helixCheckOrder.length; ni++) {
         const n = helixCheckOrder[ni]
 
@@ -709,7 +695,7 @@ function assignHelices(ctx: DSSPContext) {
             const fI2 = DSSPType.create(flags[i + 1])
 
             // TODO rework to elegant solution which will not break instantly
-            if (ctx.oldOrdering) {
+            if (ctx.params.oldOrdering) {
                 if ((n === 3 && (DSSPType.is(fI, DSSPType.Flag.H) || DSSPType.is(fI2, DSSPType.Flag.H)) || // for 3-10 yield to alpha helix
                     (n === 5 && ((DSSPType.is(fI, DSSPType.Flag.H) || DSSPType.is(fI, DSSPType.Flag.G)) || (DSSPType.is(fI2, DSSPType.Flag.H) || DSSPType.is(fI2, DSSPType.Flag.G)))))) { // for pi yield to all other helices
                     continue
@@ -723,7 +709,7 @@ function assignHelices(ctx: DSSPContext) {
 
             if (DSSPType.is(fI, turnFlag[n]) && DSSPType.is(fI, turnFlag[n - 3]) && // check fI for turn start of proper type
                 DSSPType.is(fI1, turnFlag[n]) && DSSPType.is(fI1, turnFlag[n - 3])) { // check fI1 accordingly
-                if (ctx.oldDefinition) {
+                if (ctx.params.oldDefinition) {
                     for (let k = 0; k < n; k++) {
                         flags[i + k] |= helixFlag[n]
                     }
