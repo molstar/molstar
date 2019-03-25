@@ -211,10 +211,19 @@ function createElement(kind: string, flag: DSSPType.Flag, getResidueFlag: (f: DS
             kind: 'sheet',
             flags: getResidueFlag(flag)
         } as SecondaryStructure.Sheet
+    } else if (kind === 'turn') {
+        return {
+            kind: 'turn',
+            flags: getResidueFlag(flag)
+        }
+    } else if (kind === 'bend') {
+        return {
+            kind: 'bend',
+            flags: getResidueFlag(flag)
+        }
     } else {
         return {
-            kind: 'none',
-            flags: getResidueFlag(flag)
+            kind: 'none'
         }
     }
 }
@@ -224,6 +233,10 @@ function mapToKind(assignment: SecondaryStructureType.Flag) {
         return 'helix'
     } else if (assignment === SecondaryStructureType.SecondaryStructureDssp.B || assignment === SecondaryStructureType.SecondaryStructureDssp.E) {
         return 'sheet'
+    } else if (assignment === SecondaryStructureType.SecondaryStructureDssp.T) {
+        return 'turn'
+    } else if (assignment === SecondaryStructureType.SecondaryStructureDssp.S) {
+        return 'bend'
     } else {
         return 'none'
     }

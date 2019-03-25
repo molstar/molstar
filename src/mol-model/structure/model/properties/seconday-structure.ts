@@ -19,11 +19,20 @@ interface SecondaryStructure {
 }
 
 namespace SecondaryStructure {
-    export type Element = None | Helix | Sheet
+    export type Element = None | Bend | Turn | Helix | Sheet
 
     export interface None {
-        kind: 'none',
-        flags?: SecondaryStructureType // TODO should this level of detail be added to non-defined secondary structure elements?
+        kind: 'none'
+    }
+
+    export interface Bend {
+        kind: 'bend',
+        flags: SecondaryStructureType
+    }
+
+    export interface Turn {
+        kind: 'turn',
+        flags: SecondaryStructureType
     }
 
     export interface Helix {

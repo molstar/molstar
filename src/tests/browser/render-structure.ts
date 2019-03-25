@@ -62,7 +62,7 @@ function getCartoonRepr() {
 }
 
 async function init() {
-    const cif = await downloadFromPdb('3j3q')
+    const cif = await downloadFromPdb('1acj')
     const models = await getModels(cif)
     console.time('computeModelDSSP')
     const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy,
