@@ -56,30 +56,30 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
         if (!refs['structure-interaction-group']) {
             refs['structure-interaction-group'] = builder.to(cell).group(StateTransforms.Misc.CreateGroup,
-                { label: 'Current Interaction' }, { props: { tag: Tags.Group } }).ref;
+                { label: 'Current Interaction' }, { tags: Tags.Group }).ref;
         }
 
         // Selections
         if (!refs[Tags.ResidueSel]) {
             refs[Tags.ResidueSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelection,
-                { query: { } as any, label: 'Residue' }, { props: { tag: Tags.ResidueSel } }).ref;
+                { query: { } as any, label: 'Residue' }, { tags: Tags.ResidueSel }).ref;
         }
 
         if (!refs[Tags.SurrSel]) {
             refs[Tags.SurrSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelection,
-                { query: { } as any, label: 'Surroundings' }, { props: { tag: Tags.SurrSel } }).ref;
+                { query: { } as any, label: 'Surroundings' }, { tags: Tags.SurrSel }).ref;
         }
 
         // Representations
         // TODO: ability to customize how it looks in the behavior params
         if (!refs[Tags.ResidueRepr]) {
             refs[Tags.ResidueRepr] = builder.to(refs['structure-interaction-residue-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
-                this.createResVisualParams(cell.obj!.data), { props: { tag: Tags.ResidueRepr } }).ref;
+                this.createResVisualParams(cell.obj!.data), { tags: Tags.ResidueRepr }).ref;
         }
 
         if (!refs[Tags.SurrRepr]) {
             refs[Tags.SurrRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
-                this.createSurVisualParams(cell.obj!.data), { props: { tag: Tags.SurrRepr } }).ref;
+                this.createSurVisualParams(cell.obj!.data), { tags: Tags.SurrRepr }).ref;
         }
 
         return { state, builder, refs };
@@ -87,7 +87,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
     private clear(root: StateTransform.Ref) {
         const state = this.plugin.state.dataState;
-        const groups = state.select(StateSelection.Generators.byRef(root).subtree().filter(o => o.transform.props.tag === Tags.Group));
+        const groups = state.select(StateSelection.Generators.byRef(root).subtree().withTag(Tags.Group));
         if (groups.length === 0) return;
 
         const update = state.build();

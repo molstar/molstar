@@ -56,6 +56,8 @@ namespace StateObject {
 }
 
 interface StateObjectCell<T extends StateObject = StateObject, F extends StateTransform<StateTransformer<any, T, any>> = StateTransform<StateTransformer<any, T, any>>> {
+    parent: State,
+
     transform: F,
 
     // Which object was used as a parent to create data in this cell

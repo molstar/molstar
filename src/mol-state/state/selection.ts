@@ -49,6 +49,7 @@ namespace StateSelection {
         parent(): Builder<C>;
         first(): Builder<C>;
         filter(p: (n: C) => boolean): Builder<C>;
+        withTag(tag: string): Builder<C>;
         withTransformer<T extends StateTransformer<any, StateObjectCell.Obj<C>, any>>(t: T): Builder<StateObjectCell<StateObjectCell.Obj<C>, StateTransform<T>>>;
         withStatus(s: StateObjectCell.Status): Builder<C>;
         subtree(): Builder;
@@ -199,6 +200,9 @@ namespace StateSelection {
 
     registerModifier('withStatus', withStatus);
     export function withStatus(b: Selector, s: StateObjectCell.Status) { return filter(b, n => n.status === s); }
+
+    registerModifier('withTag', withTag);
+    export function withTag(b: Selector, tag: string) { return filter(b, n => !!n.transform.tags && n.transform.tags.indexOf(tag) >= 0); }
 
     registerModifier('subtree', subtree);
     export function subtree(b: Selector) {

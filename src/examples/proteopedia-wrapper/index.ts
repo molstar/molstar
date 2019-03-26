@@ -73,7 +73,7 @@ class MolStarProteopediaWrapper {
         const model = this.state.build().to('model');
 
         return model
-            .apply(StateTransforms.Model.CustomModelProperties, { properties: [EvolutionaryConservation.Descriptor.name] }, { ref: 'props', props: { isGhost: false } })
+            .apply(StateTransforms.Model.CustomModelProperties, { properties: [EvolutionaryConservation.Descriptor.name] }, { ref: 'props', state: { isGhost: false } })
             .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
     }
 

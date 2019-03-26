@@ -16,6 +16,7 @@ import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
 import { NumericInput, IconButton } from './common';
+import { _Props, _State } from '../base';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -512,9 +513,6 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
         </>
     }
 }
-
-type _Props<C extends React.Component> = C extends React.Component<infer P> ? P : never
-type _State<C extends React.Component> = C extends React.Component<any, infer S> ? S : never
 
 class ObjectListEditor extends React.PureComponent<{ params: PD.Params, value: object, isUpdate?: boolean, apply: (value: any) => void, isDisabled?: boolean }, { params: PD.Params, value: object, current: object }> {
     state = { params: {}, value: void 0 as any, current: void 0 as any };

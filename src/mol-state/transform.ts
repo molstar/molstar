@@ -102,6 +102,11 @@ namespace Transform {
         return create(RootRef, StateTransformer.ROOT, {}, { ref: RootRef, state });
     }
 
+    export function hasTag(t: Transform, tag: string) {
+        if (!t.tags) return false;
+        return t.tags.indexOf(tag) >= 0;
+    }
+
     export interface Serialized {
         parent: string,
         transformer: string,

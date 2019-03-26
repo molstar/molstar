@@ -206,6 +206,7 @@ class State {
         const root = tree.root;
 
         (this.cells as Map<StateTransform.Ref, StateObjectCell>).set(root.ref, {
+            parent: this,
             transform: root,
             sourceRef: void 0,
             obj: rootObject,
@@ -442,6 +443,7 @@ function initCellsVisitor(transform: StateTransform, _: any, { ctx, added }: Ini
     }
 
     const cell: StateObjectCell = {
+        parent: ctx.parent,
         transform,
         sourceRef: void 0,
         status: 'pending',

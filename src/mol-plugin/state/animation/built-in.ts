@@ -121,7 +121,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
 
             changed = true;
             update.to(r)
-                .apply(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, { t: 0 }, { props: { tag: 'animate-assembly-unwind' } });
+                .apply(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D, { t: 0 }, { tags: 'animate-assembly-unwind' });
         }
 
         if (!changed) return;
@@ -131,7 +131,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
     async teardown(_, plugin) {
         const state = plugin.state.dataState;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
-            .filter(c => c.transform.props.tag === 'animate-assembly-unwind'));
+            .withTag('animate-assembly-unwind'));
         if (reprs.length === 0) return;
 
         const update = state.build();
@@ -191,7 +191,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
 
             changed = true;
             update.to(r.transform.ref)
-                .apply(StateTransforms.Representation.ExplodeStructureRepresentation3D, { t: 0 }, { props: { tag: 'animate-units-explode' } });
+                .apply(StateTransforms.Representation.ExplodeStructureRepresentation3D, { t: 0 }, { tags: 'animate-units-explode' });
         }
 
         if (!changed) return;
@@ -201,7 +201,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
     async teardown(_, plugin) {
         const state = plugin.state.dataState;
         const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3DState)
-            .filter(c => c.transform.props.tag === 'animate-units-explode'));
+            .withTag('animate-units-explode'));
         if (reprs.length === 0) return;
 
         const update = state.build();

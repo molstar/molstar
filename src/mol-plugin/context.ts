@@ -180,7 +180,7 @@ export class PluginContext {
         const tree = this.state.behaviorState.build();
 
         for (const cat of Object.keys(PluginBehavior.Categories)) {
-            tree.toRoot().apply(PluginBehavior.CreateCategory, { label: (PluginBehavior.Categories as any)[cat] }, { ref: cat, props: { isLocked: true } });
+            tree.toRoot().apply(PluginBehavior.CreateCategory, { label: (PluginBehavior.Categories as any)[cat] }, { ref: cat, state: { isLocked: true } });
         }
 
         for (const b of this.spec.behaviors) {

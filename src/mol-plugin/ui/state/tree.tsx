@@ -6,9 +6,9 @@
 
 import * as React from 'react';
 import { PluginStateObject } from 'mol-plugin/state/objects';
-import { State, StateObject, StateTransform } from 'mol-state'
+import { State, StateObject, StateTransform, StateObjectCell } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
-import { PluginUIComponent } from '../base';
+import { PluginUIComponent, _Props, _State } from '../base';
 import { StateObjectActions } from './actions';
 
 export class StateTree extends PluginUIComponent<{ state: State }, { showActions: boolean }> {
@@ -37,74 +37,72 @@ export class StateTree extends PluginUIComponent<{ state: State }, { showActions
         if (this.state.showActions) {
             return <StateObjectActions state={this.props.state} nodeRef={ref} hideHeader={true} />
         }
-        return <StateTreeNode state={this.props.state} nodeRef={ref} depth={0} />;
+        return <StateTreeNode cell={this.props.state.cells.get(ref)!} depth={0} />;
     }
 }
 
-class StateTreeNode extends PluginUIComponent<{ nodeRef: string, state: State, depth: number }, { state: State, isCollapsed: boolean }> {
+class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: number }, { isCollapsed: boolean }> {
     is(e: State.ObjectEvent) {
-        return e.ref === this.props.nodeRef && e.state === this.props.state;
+        return e.ref === this.ref && e.state === this.props.cell.parent;
     }
 
-    get cellState() {
-        return this.props.state.cellStates.get(this.props.nodeRef);
+    get ref() {
+        return this.props.cell.transform.ref;
     }
 
     componentDidMount() {
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
-            if (this.is(e) && e.state.transforms.has(this.props.nodeRef)) {
-                this.setState({ isCollapsed: e.cellState.isCollapsed });
+            if (this.props.cell === e.cell && this.is(e) && e.state.cells.has(this.ref)) {
+                if (!!this.props.cell.state.isCollapsed !== this.state.isCollapsed) {
+                    this.setState({ isCollapsed: !!e.cell.state.isCollapsed });
+                }
             }
         });
 
         this.subscribe(this.plugin.events.state.cell.created, e => {
-            if (this.props.state === e.state && this.props.nodeRef === e.cell.transform.parent) {
+            if (this.props.cell.parent === e.state && this.ref === e.cell.transform.parent) {
                 this.forceUpdate();
             }
         });
 
         this.subscribe(this.plugin.events.state.cell.removed, e => {
-            if (this.props.state === e.state && this.props.nodeRef === e.parent) {
+            if (this.props.cell.parent === e.state && this.ref === e.parent) {
                 this.forceUpdate();
             }
         });
     }
 
     state = {
-        isCollapsed: this.props.state.cellStates.get(this.props.nodeRef).isCollapsed,
-        state: this.props.state
+        isCollapsed: !!this.props.cell.state.isCollapsed
     }
 
-    static getDerivedStateFromProps(props: { nodeRef: string, state: State }, state: { state: State, isCollapsed: boolean }) {
-        if (props.state === state.state) return null;
-        return {
-            isCollapsed: props.state.cellStates.get(props.nodeRef).isCollapsed,
-            state: props.state
-        };
+    static getDerivedStateFromProps(props: _Props<StateTreeNode>, state: _State<StateTreeNode>): _State<StateTreeNode> | null {
+        if (!!props.cell.state.isCollapsed === state.isCollapsed) return null;
+        return { isCollapsed: !!props.cell.state.isCollapsed };
     }
 
     render() {
-        const cell = this.props.state.cells.get(this.props.nodeRef);
+        const cell = this.props.cell;
         if (!cell || cell.obj === StateObject.Null) return null;
 
-        const cellState = this.cellState;
-        const showLabel = cell.status !== 'ok' || !cell.transform.props || !cell.transform.props.isGhost;
-        const children = this.props.state.tree.children.get(this.props.nodeRef);
+        const cellState = cell.state;
+        const showLabel = cell.status !== 'ok' || !cell.state.isGhost;
+        const children = cell.parent.tree.children.get(this.ref);
         const newDepth = showLabel ? this.props.depth + 1 : this.props.depth;
 
         if (!showLabel) {
             if (children.size === 0) return null;
             return <div style={{ display: cellState.isCollapsed ? 'none' : 'block' }}>
-                {children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} depth={newDepth} />)}
+                {children.map(c => <StateTreeNode cell={cell.parent.cells.get(c!)!} key={c} depth={newDepth} />)}
             </div>;
         }
 
         return <>
-            <StateTreeNodeLabel nodeRef={this.props.nodeRef} state={this.props.state} depth={this.props.depth} />
+            <StateTreeNodeLabel cell={cell} depth={this.props.depth} />
             {children.size === 0
                 ? void 0
                 : <div style={{ display: cellState.isCollapsed ? 'none' : 'block' }}>
-                    {children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} depth={newDepth} />)}
+                    {children.map(c => <StateTreeNode cell={cell.parent.cells.get(c!)!} key={c} depth={newDepth} />)}
                 </div>
             }
         </>;
@@ -112,11 +110,15 @@ class StateTreeNode extends PluginUIComponent<{ nodeRef: string, state: State, d
 }
 
 class StateTreeNodeLabel extends PluginUIComponent<
-    { nodeRef: string, state: State, depth: number },
-    { state: State, isCurrent: boolean, isCollapsed: boolean /*, updaterCollapsed: boolean */ }> {
+    { cell: StateObjectCell, depth: number },
+    { isCurrent: boolean, isCollapsed: boolean }> {
 
     is(e: State.ObjectEvent) {
-        return e.ref === this.props.nodeRef && e.state === this.props.state;
+        return e.ref === this.ref && e.state === this.props.cell.parent;
+    }
+
+    get ref() {
+        return this.props.cell.transform.ref;
     }
 
     componentDidMount() {
@@ -126,70 +128,66 @@ class StateTreeNodeLabel extends PluginUIComponent<
 
         this.subscribe(this.plugin.state.behavior.currentObject, e => {
             if (!this.is(e)) {
-                if (this.state.isCurrent && e.state.transforms.has(this.props.nodeRef)) {
-                    this.setState({ isCurrent: this.props.state.current === this.props.nodeRef });
+                if (this.state.isCurrent && e.state.transforms.has(this.ref)) {
+                    this.setState({ isCurrent: this.props.cell.parent.current === this.ref });
                 }
                 return;
             }
 
-            if (e.state.transforms.has(this.props.nodeRef)) {
+            if (e.state.transforms.has(this.ref)) {
                 this.setState({
-                    isCurrent: this.props.state.current === this.props.nodeRef,
-                    isCollapsed: this.props.state.cellStates.get(this.props.nodeRef).isCollapsed
+                    isCurrent: this.props.cell.parent.current === this.ref,
+                    isCollapsed: !!this.props.cell.state.isCollapsed
                 });
             }
         });
     }
 
     state = {
-        isCurrent: this.props.state.current === this.props.nodeRef,
-        isCollapsed: this.props.state.cellStates.get(this.props.nodeRef).isCollapsed,
-        state: this.props.state,
-        // updaterCollapsed: true
+        isCurrent: this.props.cell.parent.current === this.ref,
+        isCollapsed: !!this.props.cell.state.isCollapsed
     }
 
-    static getDerivedStateFromProps(props: { nodeRef: string, state: State }, state: { state: State, isCurrent: boolean, isCollapsed: boolean }) {
-        if (props.state === state.state) return null;
-        return {
-            isCurrent: props.state.current === props.nodeRef,
-            isCollapsed: props.state.cellStates.get(props.nodeRef).isCollapsed,
-            state: props.state,
-            updaterCollapsed: true
-        };
+    static getDerivedStateFromProps(props: _Props<StateTreeNodeLabel>, state: _State<StateTreeNodeLabel>): _State<StateTreeNodeLabel> | null {
+        const isCurrent = props.cell.parent.current === props.cell.transform.ref;
+        const isCollapsed = !!props.cell.state.isCollapsed;
+
+        if (state.isCollapsed === isCollapsed && state.isCurrent === isCurrent) return null;
+        return { isCurrent, isCollapsed };
     }
 
     setCurrent = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         e.currentTarget.blur();
-        PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
     }
 
     remove = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef, removeParentGhosts: true });
+        PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref, removeParentGhosts: true });
     }
 
     toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ToggleVisibility.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        PluginCommands.State.ToggleVisibility.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
         e.currentTarget.blur();
     }
 
     toggleExpanded = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
         e.currentTarget.blur();
     }
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.Highlight.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        PluginCommands.State.Highlight.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
         e.currentTarget.blur();
     }
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.ClearHighlight.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        PluginCommands.State.ClearHighlight.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
         e.currentTarget.blur();
     }
 
@@ -201,12 +199,11 @@ class StateTreeNodeLabel extends PluginUIComponent<
     // }
 
     render() {
-        const n = this.props.state.transforms.get(this.props.nodeRef)!;
-        const cell = this.props.state.cells.get(this.props.nodeRef);
+        const cell = this.props.cell;
+        const n = cell.transform;
         if (!cell) return null;
 
-        const isCurrent = this.is(this.props.state.behaviors.currentObject.value);
-
+        const isCurrent = this.state.isCurrent; // this.is(cell.parent.behaviors.currentObject.value);
 
         let label: any;
         if (cell.status === 'pending' || cell.status === 'processing') {
@@ -226,8 +223,8 @@ class StateTreeNodeLabel extends PluginUIComponent<
             }
         }
 
-        const children = this.props.state.tree.children.get(this.props.nodeRef);
-        const cellState = this.props.state.cellStates.get(this.props.nodeRef);
+        const children = cell.parent.tree.children.get(this.ref);
+        const cellState = cell.state;
 
         const visibility = <button onClick={this.toggleVisible} className={`msp-btn msp-btn-link msp-tree-visibility${cellState.isHidden ? ' msp-tree-visibility-hidden' : ''}`}>
             <span className='msp-icon msp-icon-visual-visibility' />
@@ -244,7 +241,7 @@ class StateTreeNodeLabel extends PluginUIComponent<
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />
             </button>}
-            {!cell.transform.props.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
+            {!cell.state.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
                 <span className='msp-icon msp-icon-remove' />
             </button>}{visibility}
         </div>;
