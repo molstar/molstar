@@ -14,6 +14,7 @@ import { Ccp4Provider, Dsn6Provider, DscifProvider } from './volume';
 import { StateTransforms } from '../transforms';
 import { MmcifProvider, PdbProvider, GroProvider } from './structure';
 import msgpackDecode from 'mol-io/common/msgpack/decode'
+import { PlyProvider } from './shape';
 
 export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String> {
     private _list: { name: string, provider: DataFormatProvider<D> }[] = []
@@ -60,6 +61,7 @@ export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | Plugin
         this.add('gro', GroProvider)
         this.add('mmcif', MmcifProvider)
         this.add('pdb', PdbProvider)
+        this.add('ply', PlyProvider)
     };
 
     private _clear() {

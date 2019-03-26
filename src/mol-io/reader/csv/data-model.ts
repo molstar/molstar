@@ -9,12 +9,11 @@ import { CifField as CsvColumn } from '../cif/data-model'
 export { CsvColumn }
 
 export interface CsvFile {
-    readonly name?: string,
     readonly table: CsvTable
 }
 
-export function CsvFile(table: CsvTable, name?: string): CsvFile {
-    return { name, table };
+export function CsvFile(table: CsvTable): CsvFile {
+    return { table };
 }
 
 export interface CsvTable {
@@ -28,9 +27,3 @@ export function CsvTable(rowCount: number, columnNames: string[], columns: CsvCo
 }
 
 export type CsvColumns = { [name: string]: CsvColumn }
-
-// export namespace CsvTable {
-//     export function empty(name: string): Table {
-//         return { rowCount: 0, name, fieldNames: [], getColumn(name: string) { return void 0; } };
-//     };
-// }

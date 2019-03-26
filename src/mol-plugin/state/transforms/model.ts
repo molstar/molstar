@@ -24,6 +24,7 @@ import { trajectoryFromGRO } from 'mol-model-formats/structure/gro';
 import { parseGRO } from 'mol-io/reader/gro/parser';
 import { parseMolScript } from 'mol-script/language/parser';
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
+import { shapeFromPly } from 'mol-model-formats/shape/ply';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -338,7 +339,6 @@ function updateStructureFromQuery(query: QueryFn<Sel>, src: Structure, obj: SO.M
     return true;
 }
 
-
 namespace StructureComplexElement {
     export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres'
 }
@@ -395,3 +395,23 @@ async function attachProps(model: Model, ctx: PluginContext, taskCtx: RuntimeCon
         await p.attach(model).runInContext(taskCtx);
     }
 }
+
+export { ShapeFromPly }
+type ShapeFromPly = typeof ShapeFromPly
+const ShapeFromPly = PluginStateTransform.BuiltIn({
+    name: 'shape-from-ply',
+    display: { name: 'Shape from PLY', description: 'Create Shape from PLY data' },
+    from: SO.Format.Ply,
+    to: SO.Shape.Provider,
+    params(a) {
+        return { };
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Create shape from PLY', async ctx => {
+            const shape = await shapeFromPly(a.data, params).runInContext(ctx)
+            const props = { label: 'Shape' };
+            return new SO.Shape.Provider(shape, props);
+        });
+    }
+});

@@ -131,6 +131,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
     const valueChanges = createValueChanges()
 
     let destroyed = false
+    let currentProgramId = -1
 
     return {
         id,
@@ -142,9 +143,12 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
             const program = programs[variant].value
             const vertexArray = vertexArrays[variant]
             program.setUniforms(uniformValueEntries)
-            if (materialId === -1 || materialId !== ctx.currentMaterialId) {
-                // console.log('materialId changed or -1', materialId)
+            if (program.id !== currentProgramId ||
+                materialId === -1 || materialId !== ctx.currentMaterialId
+            ) {
+                // console.log('program.id changed or materialId changed/-1', materialId)
                 program.setUniforms(materialUniformValueEntries)
+                currentProgramId = program.id
                 ctx.currentMaterialId = materialId
             }
             program.bindTextures(textures)

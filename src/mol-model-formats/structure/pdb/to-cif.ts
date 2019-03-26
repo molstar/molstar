@@ -8,7 +8,7 @@
 import { substringStartsWith } from 'mol-util/string';
 import { CifField, CifCategory, CifFrame } from 'mol-io/reader/cif';
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
-import { TokenBuilder, Tokenizer } from 'mol-io/reader/common/text/tokenizer';
+import { TokenBuilder, Tokenizer, Tokens } from 'mol-io/reader/common/text/tokenizer';
 import { PdbFile } from 'mol-io/reader/pdb/schema';
 import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
 import { WaterNames } from 'mol-model/structure/model/types';
@@ -89,6 +89,43 @@ function getEntityId(residueName: string, isHet: boolean) {
     return '1';
 }
 
+export function guessElementSymbol(tokens: Tokens, str: string, start: number, end: number) {
+    let s = start, e = end - 1
+
+    // trim spaces and numbers
+    let c = str.charCodeAt(s)
+    while ((c === 32 || (c >= 48 && c <= 57)) && s <= e) c = str.charCodeAt(++s)
+    c = str.charCodeAt(e)
+    while ((c === 32 || (c >= 48 && c <= 57)) && e >= s) c = str.charCodeAt(--e)
+
+    ++e
+
+    if (s === e) return TokenBuilder.add(tokens, s, e) // empty
+    if (s + 1 === e) return TokenBuilder.add(tokens, s, e) // one char
+
+    c = str.charCodeAt(s)
+
+    if (s + 2 === e) { // two chars
+        const c2 = str.charCodeAt(s + 1)
+        if (
+            ((c === 78 || c === 110) && (c2 === 65 || c2 ===  97)) || // NA na Na nA
+            ((c === 67 || c ===  99) && (c2 === 76 || c2 === 108)) || // CL
+            ((c === 70 || c === 102) && (c2 === 69 || c2 === 101))    // FE
+        ) return TokenBuilder.add(tokens, s, s + 2)
+    }
+
+    if (
+        c === 67 || c ===  99 || // C c
+        c === 72 || c === 104 || // H h
+        c === 78 || c === 110 || // N n
+        c === 79 || c === 111 || // O o
+        c === 80 || c === 112 || // P p
+        c === 83 || c === 115    // S s
+    ) return TokenBuilder.add(tokens, s, s + 1)
+
+    TokenBuilder.add(tokens, s, s) // no reasonable guess, add empty token
+}
+
 function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number, isHet: boolean) {
     const { data: str } = data;
     const length = e - s;
@@ -162,11 +199,10 @@ function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: num
         if (data.tokenStart < data.tokenEnd) {
             TokenBuilder.addToken(sites.type_symbol, data);
         } else {
-            // "guess" the symbol
-            TokenBuilder.add(sites.type_symbol, s + 12, s + 13);
+            guessElementSymbol(sites.type_symbol, str, s + 12, s + 16)
         }
     } else {
-        TokenBuilder.add(sites.type_symbol, s + 12, s + 13);
+        guessElementSymbol(sites.type_symbol, str, s + 12, s + 16)
     }
 
     sites.label_entity_id[sites.index] = getEntityId(residueName, isHet);

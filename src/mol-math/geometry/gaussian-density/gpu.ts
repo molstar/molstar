@@ -45,8 +45,8 @@ export const GaussianDensitySchema = {
 }
 
 export const GaussianDensityShaderCode = ShaderCode(
-    require('mol-gl/shader/gaussian-density.vert'),
-    require('mol-gl/shader/gaussian-density.frag'),
+    require('mol-gl/shader/gaussian-density.vert').default,
+    require('mol-gl/shader/gaussian-density.frag').default,
     { standardDerivatives: false, fragDepth: false }
 )
 

@@ -22,6 +22,8 @@ const SecondaryStructureColors = ColorMap({
     'betaTurn': 0x6080FF,
     'betaStrand': 0xFFC800,
     'coil': 0xFFFFFF,
+    'bend': 0x66D8C9 /* biting original color used 0x00FF00 */,
+    'turn': 0x00B266,
 
     'dna': 0xAE00FE,
     'rna': 0xFD0162,
@@ -53,8 +55,10 @@ export function secondaryStructureColor(unit: Unit, element: ElementIndex): Colo
         return SecondaryStructureColors.alphaHelix
     } else if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Beta)) {
         return SecondaryStructureColors.betaStrand
+    } else if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Bend)) {
+        return SecondaryStructureColors.bend
     } else if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Turn)) {
-        return SecondaryStructureColors.coil
+        return SecondaryStructureColors.turn
     } else {
         const moleculeType = getElementMoleculeType(unit, element)
         if (moleculeType === MoleculeType.DNA) {
