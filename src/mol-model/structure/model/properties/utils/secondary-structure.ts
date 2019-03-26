@@ -119,11 +119,16 @@ export const SecondaryStructureComputationParams = {
 export type SecondaryStructureComputationParams = typeof SecondaryStructureComputationParams
 
 export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
+    conformation: AtomicConformation) {
+    // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
+    return computeModelDSSP(hierarchy, conformation)
+}
+
+export function computeModelDSSP(hierarchy: AtomicHierarchy,
     conformation: AtomicConformation,
     params: Partial<PD.Values<SecondaryStructureComputationParams>> = {}): SecondaryStructure {
     params = { ...PD.getDefaultValues(SecondaryStructureComputationParams), ...params };
 
-    // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
     const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
     const backboneIndices = calcBackboneAtomIndices(hierarchy, proteinResidues)
     const hbonds = calcBackboneHbonds(hierarchy, conformation, proteinResidues, backboneIndices, lookup3d)
@@ -184,20 +189,10 @@ export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     const secondaryStructure: SecondaryStructure = {
         type,
         key: keys,
-        elements: elements,
-        dsspString: composeDSSPString(flags, getFlagName)
+        elements: elements
     }
 
     return secondaryStructure
-}
-
-function composeDSSPString(flags: Uint32Array, getFlagName: (f: DSSPType) => String) {
-    let out = ''
-    for (let i = 0, il = flags.length; i < il; ++i) {
-        const f = DSSPType.create(flags[i])
-        out += getFlagName(f)
-    }
-    return out
 }
 
 function createElement(kind: string, flag: DSSPType.Flag, getResidueFlag: (f: DSSPType) => SecondaryStructureType): SecondaryStructure.Element {
