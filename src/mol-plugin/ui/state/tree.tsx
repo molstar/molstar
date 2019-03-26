@@ -53,9 +53,10 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
     componentDidMount() {
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
             if (this.props.cell === e.cell && this.is(e) && e.state.cells.has(this.ref)) {
-                if (!!this.props.cell.state.isCollapsed !== this.state.isCollapsed) {
-                    this.setState({ isCollapsed: !!e.cell.state.isCollapsed });
-                }
+                this.forceUpdate();
+                // if (!!this.props.cell.state.isCollapsed !== this.state.isCollapsed) {
+                //     this.setState({ isCollapsed: !!e.cell.state.isCollapsed });
+                // }
             }
         });
 
@@ -83,7 +84,9 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
 
     render() {
         const cell = this.props.cell;
-        if (!cell || cell.obj === StateObject.Null) return null;
+        if (!cell || cell.obj === StateObject.Null) {
+            return null;
+        }
 
         const cellState = cell.state;
         const showLabel = cell.status !== 'ok' || !cell.state.isGhost;

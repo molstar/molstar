@@ -52,8 +52,15 @@ namespace Transform {
 
     export function assignState(a: State, b?: Partial<State>): boolean {
         if (!b) return false;
+
         let changed = false;
         for (const k of Object.keys(b)) {
+            const s = (b as any)[k], t = (a as any)[k];
+            if (!!s === !!t) continue;
+            changed = true;
+            (a as any)[k] = s;
+        }
+        for (const k of Object.keys(a)) {
             const s = (b as any)[k], t = (a as any)[k];
             if (!!s === !!t) continue;
             changed = true;
