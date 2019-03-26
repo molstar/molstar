@@ -46,7 +46,7 @@ const hbondEnergyCutoff = -0.5
 const hbondEnergyMinimal = -9.9
 
 interface DSSPContext {
-    params: PD.Values<SecondaryStructureComputationParams>,
+    params: Partial<PD.Values<SecondaryStructureComputationParams>>,
     getResidueFlag: (f: DSSPType) => SecondaryStructureType,
     getFlagName: (f: DSSPType) => String,
 
@@ -120,9 +120,8 @@ export type SecondaryStructureComputationParams = typeof SecondaryStructureCompu
 
 export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     conformation: AtomicConformation,
-    params?: PD.Values<SecondaryStructureComputationParams>): SecondaryStructure {
-    // TODO is this the best way? is should be possible to provide partial 'overrides' of default values
-    if (!params) params = PD.getDefaultValues(SecondaryStructureComputationParams);
+    params: Partial<PD.Values<SecondaryStructureComputationParams>> = {}): SecondaryStructure {
+    params = { ...PD.getDefaultValues(SecondaryStructureComputationParams), ...params };
 
     // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
     const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
@@ -132,7 +131,7 @@ export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
     const residueCount = proteinResidues.length
     const flags = new Uint32Array(residueCount)
 
-    console.log(`calculating secondary structure elements using ${ params.oldDefinition ? 'old' : 'revised'} definition and ${ params.oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
+    // console.log(`calculating secondary structure elements using ${ params.oldDefinition ? 'old' : 'revised'} definition and ${ params.oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
 
     const torsionAngles = calculateDihedralAngles(hierarchy, conformation, proteinResidues, backboneIndices)
 
