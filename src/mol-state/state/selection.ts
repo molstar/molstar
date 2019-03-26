@@ -268,8 +268,12 @@ namespace StateSelection {
     }
 
     function _findUniqueTagsInSubtree(n: StateTransform, _: any, s: { refs: { [name: string]: StateTransform.Ref }, tags: Set<string> }) {
-        if (n.props.tag && s.tags.has(n.props.tag)) {
-            s.refs[n.props.tag] = n.ref;
+        if (n.tags) {
+            for (const t of n.tags) {
+                if (!s.tags.has(t)) continue;
+                s.refs[t] = n.ref;
+                break;
+            }
         }
         return true;
     }
@@ -279,7 +283,7 @@ namespace StateSelection {
     }
 
     function _findTagInSubtree(n: StateTransform, _: any, s: { ref: string | undefined, tag: string }) {
-        if (n.props.tag === s.tag) {
+        if (n.tags && n.tags.indexOf(s.tag) >= 0) {
             s.ref = n.ref;
             return false;
         }

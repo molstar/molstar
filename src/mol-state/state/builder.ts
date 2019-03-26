@@ -36,7 +36,7 @@ namespace StateBuilder {
         | { kind: 'add', transform: StateTransform }
         | { kind: 'update', ref: string, params: any }
         | { kind: 'delete', ref: string }
-        | { kind: 'insert', ref: string, transform: StateTransform, initialCellState?: Partial<StateObjectCell.State> }
+        | { kind: 'insert', ref: string, transform: StateTransform }
 
     function buildTree(state: BuildState) {
         if (!state.state || state.state.tree === state.editInfo.sourceTree) {
@@ -52,7 +52,7 @@ namespace StateBuilder {
                 case 'delete': tree.remove(a.ref); break;
                 case 'insert': {
                     const children = tree.children.get(a.ref).toArray();
-                    tree.add(a.transform, a.initialCellState);
+                    tree.add(a.transform);
                     for (const c of children) {
                         tree.changeParent(c, a.transform.ref);
                     }
@@ -89,7 +89,7 @@ namespace StateBuilder {
             this.state.actions.push({ kind: 'delete', ref });
             return this;
         }
-        getTree(): StateTree { return buildTree(this.state); } //this.state.tree.asImmutable(); }
+        getTree(): StateTree { return buildTree(this.state); }
         constructor(tree: StateTree, state?: State) { this.state = { state, tree: tree.asTransient(), actions: [], editInfo: { sourceTree: tree, count: 0, lastUpdate: void 0 } } }
     }
 
@@ -102,9 +102,9 @@ namespace StateBuilder {
          * Apply the transformed to the parent node
          * If no params are specified (params <- undefined), default params are lazily resolved.
          */
-        apply<T extends StateTransformer<A, any, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>, initialCellState?: Partial<StateObjectCell.State>): To<StateTransformer.To<T>> {
+        apply<T extends StateTransformer<A, any, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>> {
             const t = tr.apply(this.ref, params, options);
-            this.state.tree.add(t, initialCellState);
+            this.state.tree.add(t);
             this.editInfo.count++;
             this.editInfo.lastUpdate = t.ref;
 
@@ -116,20 +116,20 @@ namespace StateBuilder {
         /**
          * A helper to greate a group-like state object and keep the current type.
          */
-        group<T extends StateTransformer<A, any, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>, initialCellState?: Partial<StateObjectCell.State>): To<A> {
-            return this.apply(tr, params, options, initialCellState) as To<A>;
+        group<T extends StateTransformer<A, any, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<A> {
+            return this.apply(tr, params, options) as To<A>;
         }
 
         /**
          * Inserts a new transform that does not change the object type and move the original children to it.
          */
-        insert<T extends StateTransformer<A, A, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>, initialCellState?: Partial<StateObjectCell.State>): To<StateTransformer.To<T>> {
+        insert<T extends StateTransformer<A, A, any>>(tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>> {
             // cache the children
             const children = this.state.tree.children.get(this.ref).toArray();
 
             // add the new node
             const t = tr.apply(this.ref, params, options);
-            this.state.tree.add(t, initialCellState);
+            this.state.tree.add(t);
 
             // move the original children to the new node
             for (const c of children) {
@@ -139,7 +139,7 @@ namespace StateBuilder {
             this.editInfo.count++;
             this.editInfo.lastUpdate = t.ref;
 
-            this.state.actions.push({ kind: 'insert', ref: this.ref, transform: t, initialCellState });
+            this.state.actions.push({ kind: 'insert', ref: this.ref, transform: t });
 
             return new To(this.state, t.ref, this.root);
         }
@@ -193,7 +193,7 @@ namespace StateBuilder {
         toRoot<A extends StateObject>() { return this.root.toRoot<A>(); }
         delete(ref: StateTransform.Ref) { return this.root.delete(ref); }
 
-        getTree(): StateTree { return buildTree(this.state); } //this.state.tree.asImmutable(); }
+        getTree(): StateTree { return buildTree(this.state); }
 
         constructor(private state: BuildState, ref: StateTransform.Ref, private root: Root) {
             this.ref = ref;
