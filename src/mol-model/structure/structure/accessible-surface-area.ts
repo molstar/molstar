@@ -94,6 +94,7 @@ namespace AccessibleSurfaceArea {
         const position = (i: number, v: Vec3) => Vec3.set(v, x[i], y[i], z[i]);
         const aPos = Vec3.zero();
         const bPos = Vec3.zero();
+        let testPoint = Vec3.zero();
 
         for (let aI = 0; aI < atomCount; ++aI) {
             if (aI % 10000 === 0) {
@@ -130,7 +131,7 @@ namespace AccessibleSurfaceArea {
             let accessiblePointCount = 0;
             for (let sI = 0; sI < spherePoints.length; ++sI) {
                 const spherePoint = spherePoints[sI];
-                const testPoint = [spherePoint[0] * scalar + aPos[0], spherePoint[1] * scalar + aPos[1], spherePoint[2] * scalar + aPos[2]] as Vec3;
+                testPoint = [spherePoint[0] * scalar + aPos[0], spherePoint[1] * scalar + aPos[1], spherePoint[2] * scalar + aPos[2]] as Vec3;
                 let accessible = true;
 
                 for (let _nI = 0; _nI < neighbors.length; ++_nI) {

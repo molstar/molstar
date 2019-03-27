@@ -69,8 +69,8 @@ function getCartoonRepr() {
 let accessibleSurfaceArea: AccessibleSurfaceArea;
 async function init(props = {}) {
     const cif = await downloadFromPdb(
-        // '3j3q'
-        '1aon'
+        '3j3q'
+        // '1aon'
         // '1acj'
         )
     const models = await getModels(cif)
