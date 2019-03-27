@@ -74,7 +74,8 @@ async function init(props = {}) {
         // '1acj'
         // '1pga'
         '1brr'
-        )
+        // '1hrc'
+    )
     const models = await getModels(cif)
     const structure = await getStructure(models[0])
 

@@ -250,12 +250,8 @@ namespace AccessibleSurfaceArea {
     function handleNonStandardCase(element: ElementSymbol): number {
         const radius = VdwRadius(element);
         let index = VdWLookup.indexOf(radius);
-        console.log(radius);
-        console.log(index);
-        console.log(VdWLookup);
         if (index === -1) {
             // add novel value to lookup array
-            console.log(`novel value ${radius} for ${element}`)
             index = VdWLookup.length;
             VdWLookup[index] = radius;
         }
