@@ -69,9 +69,10 @@ function getCartoonRepr() {
 let accessibleSurfaceArea: AccessibleSurfaceArea;
 async function init(props = {}) {
     const cif = await downloadFromPdb(
-        '3j3q'
-        // '1aon'
+        // '3j3q'
+        '1aon'
         // '1acj'
+        // '1pga'
         )
     const models = await getModels(cif)
     const structure = await getStructure(models[0])
@@ -117,7 +118,7 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const value = accessibleSurfaceArea.relativeAccessibleSurfaceArea![location.unit.residueIndex[location.element]];
-                return value !== AccessibleSurfaceArea.missingValue ? scale.color(value) : DefaultColor;
+                return value !== AccessibleSurfaceArea.VdWLookup[0] /* signals missing value */ ? scale.color(value) : DefaultColor;
             }
         }
 

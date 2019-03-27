@@ -14,19 +14,19 @@ import { VdwRadius } from '../model/properties/atomic';
 import { isHydrogen, getElementIdx } from './unit/links/common';
 
 namespace AccessibleSurfaceArea {
-    // Chothia's amino acid atoms vdw radii
-    const trigonalCarbonVdw = 1.76;
-    const tetrahedralCarbonVdw = 1.87;
-    const trigonalNitrogenVdw = 1.65;
-    const tetrahedralNitrogenVdw = 1.50;
-    // deviating radii from definition in types.ts
-    const oxygenVdw = 1.40;
-    const sulfurVdw = 1.85;
-    // Chothia's nucleotide atom vdw radii
-    const nucCarbonVdw = 1.80;
-    const nucNitrogenVdw = 1.60;
-    const nucPhosphorusVdw = 1.40;
-    export const missingValue = -1.0;
+    // Chothia's amino acid and nucleotide atom vdw radii
+    export const VdWLookup = [
+        -1.0, // 0: missing
+        1.76, // 1: trigonal C
+        1.87, // 2: tetrahedral C
+        1.65, // 3: trigonal N
+        1.50, // 4: tetrahedral N
+        1.40, // 5: O
+        1.85, // 6: S
+        1.80, // 7: C (nucleic)
+        1.60, // 8: N (nucleic)
+        1.40  // 9: P (nucleic)
+    ] // can still be appended on-the-fly for rare elements like selenium
 
     /**
      * Adapts the BioJava implementation by Jose Duarte. That implementation is based on the publication by Shrake, A., and
@@ -48,7 +48,6 @@ namespace AccessibleSurfaceArea {
         normalizeAccessibleSurfaceArea(ctx);
 
         return {
-            atomRadius: ctx.atomRadius!,
             accessibleSurfaceArea: ctx.accessibleSurfaceArea!,
             relativeAccessibleSurfaceArea: ctx.relativeAccessibleSurfaceArea!,
             buried: (index: number) => ctx.relativeAccessibleSurfaceArea![index] < 0.16 // TODO this doesnt seem super elegant
@@ -62,7 +61,7 @@ namespace AccessibleSurfaceArea {
         spherePoints: Vec3[],
         cons: number,
         maxLookupRadius: number,
-        atomRadius?: Float32Array, // TODO there are only 5-10 unique values in this array - rather than storing values, a int pointing to a dictionary will be far more memory efficient
+        atomRadius?: Int8Array,
         accessibleSurfaceArea?: Float32Array,
         relativeAccessibleSurfaceArea?: Float32Array
     }
@@ -98,14 +97,13 @@ namespace AccessibleSurfaceArea {
 
         for (let aI = 0; aI < atomCount; ++aI) {
             if (aI % 10000 === 0) {
-                console.log(`calculating accessible surface area, current: ${ aI }, max: ${ atomCount }`);
                 if (ctx.rtctx.shouldUpdate) {
                     await ctx.rtctx.update({ message: 'calculating accessible surface area', current: aI, max: atomCount });
                 }
             }
 
-            const radius1 = atomRadius![aI];
-            if (radius1 === missingValue) continue;
+            const radius1 = VdWLookup[atomRadius![aI]];
+            if (radius1 === VdWLookup[0]) continue;
 
             // pre-filter by lookup3d
             // 36275 ms - lookup ~3000 ms
@@ -116,8 +114,8 @@ namespace AccessibleSurfaceArea {
             const neighbors = [];
             for (let iI = 0; iI < count; ++iI) {
                 const bI = units[iI].elements[indices[iI]];
-                const radius2 = atomRadius![bI];
-                if (aI === bI || radius2 === missingValue) continue;
+                const radius2 = VdWLookup[atomRadius![bI]];
+                if (aI === bI || radius2 === VdWLookup[0]) continue;
 
                 const cutoff2 = (cutoff1 + radius2) * (cutoff1 + radius2);
                 if (squaredDistances[iI] < cutoff2) {
@@ -137,7 +135,8 @@ namespace AccessibleSurfaceArea {
                 for (let _nI = 0; _nI < neighbors.length; ++_nI) {
                     const nI = neighbors[_nI];
                     position(nI, bPos);
-                    const cutoff3 = (atomRadius![nI] + probeSize!) * (atomRadius![nI] + probeSize!);
+                    const radius3 = VdWLookup[atomRadius![nI]];
+                    const cutoff3 = (radius3 + probeSize!) * (radius3 + probeSize!);
                     if (Vec3.squaredDistance(testPoint, bPos) < cutoff3) {
                         accessible = false;
                         break;
@@ -161,7 +160,7 @@ namespace AccessibleSurfaceArea {
         const residueCount = moleculeType.length;
 
         // with atom and residue count at hand: initialize arrays
-        ctx.atomRadius = new Float32Array(atomCount - 1);
+        ctx.atomRadius = new Int8Array(atomCount - 1);
         ctx.accessibleSurfaceArea = new Float32Array(residueCount - 1);
         ctx.relativeAccessibleSurfaceArea = new Float32Array(residueCount - 1);
 
@@ -171,7 +170,7 @@ namespace AccessibleSurfaceArea {
             const elementIdx = getElementIdx(element);
             // skip hydrogen atoms
             if (isHydrogen(elementIdx)) {
-                ctx.atomRadius[aI] = missingValue;
+                ctx.atomRadius[aI] = VdWLookup[0];
                 continue;
             }
 
@@ -179,7 +178,7 @@ namespace AccessibleSurfaceArea {
             // skip non-polymer groups
             if (!ctx.params.nonPolymer) {
                 if (!isPolymer(residueType)) {
-                    ctx.atomRadius[aI] = missingValue;
+                    ctx.atomRadius[aI] = VdWLookup[0];
                     continue;
                 }
             }
@@ -192,11 +191,11 @@ namespace AccessibleSurfaceArea {
             if (parentId !== void 0) compId = parentId;
 
             if (isNucleic(residueType)) {
-                ctx.atomRadius[aI] = determineRadiusNucl(atomId, element, compId);
+                 ctx.atomRadius[aI] = determineRadiusNucl(atomId, element, compId);
             } else if (residueType === MoleculeType.protein) {
                 ctx.atomRadius[aI] = determineRadiusAmino(atomId, element, compId);
             } else {
-                ctx.atomRadius[aI] = VdwRadius(element);
+                ctx.atomRadius[aI] = handleNonStandardCase(element);
             }
         }
     }
@@ -209,43 +208,58 @@ namespace AccessibleSurfaceArea {
     function determineRadiusAmino(atomId: string, element: ElementSymbol, compId: string): number {
         switch (element) {
             case 'O':
-            return oxygenVdw;
+            return 5;
             case 'S':
-            return sulfurVdw;
+            return 6;
             case 'N':
-            return atomId === 'NZ' ? tetrahedralNitrogenVdw : trigonalNitrogenVdw;
+            return atomId === 'NZ' ? 4 : 3;
             case 'C':
             switch (atomId) {
                 case 'C': case 'CE1': case'CE2': case 'CE3': case 'CH2': case 'CZ': case 'CZ2': case 'CZ3':
-                return trigonalCarbonVdw;
+                return 1;
                 case 'CA': case 'CB': case 'CE': case 'CG1': case 'CG2':
-                return tetrahedralCarbonVdw;
+                return 2;
                 default:
                 switch (compId) {
                     case 'PHE': case 'TRP': case 'TYR': case 'HIS': case 'ASP': case 'ASN':
-                    return trigonalCarbonVdw;
+                    return 1;
                     case 'PRO': case 'LYS': case 'ARG': case 'MET': case 'ILE': case 'LEU':
-                    return tetrahedralCarbonVdw;
+                    return 2;
                     case 'GLU': case 'GLN':
-                    return atomId === 'CD' ? trigonalCarbonVdw : tetrahedralCarbonVdw;
+                    return atomId === 'CD' ? 1 : 2;
                 }
             }
         }
-        return VdwRadius(element);
+        return handleNonStandardCase(element);
     }
 
     function determineRadiusNucl(atomId: string, element: ElementSymbol, compId: string): number {
         switch (element) {
             case 'C':
-            return nucCarbonVdw;
+            return 7;
             case 'N':
-            return nucNitrogenVdw;
+            return 8;
             case 'P':
-            return nucPhosphorusVdw;
+            return 9;
             case 'O':
-            return oxygenVdw;
+            return 5;
         }
-        return VdwRadius(element);
+        return handleNonStandardCase(element);
+    }
+
+    function handleNonStandardCase(element: ElementSymbol): number {
+        const radius = VdwRadius(element);
+        let index = VdWLookup.indexOf(radius);
+        console.log(radius);
+        console.log(index);
+        console.log(VdWLookup);
+        if (index === -1) {
+            // add novel value to lookup array
+            console.log(`novel value ${radius} for ${element}`)
+            index = VdWLookup.length;
+            VdWLookup[index] = radius;
+        }
+        return index;
     }
 
     function initialize(rtctx: RuntimeContext, structure: Structure, params: Partial<PD.Values<AccessibleSurfaceAreaComputationParams>>): AccessibleSurfaceAreaContext {
@@ -255,7 +269,7 @@ namespace AccessibleSurfaceArea {
             params: params,
             spherePoints: generateSpherePoints(params.numberOfSpherePoints!),
             cons: 4.0 * Math.PI / params.numberOfSpherePoints!,
-            maxLookupRadius: 2 * params.probeSize! + 2 * tetrahedralCarbonVdw // 2x probe size + 2x largest VdW
+            maxLookupRadius: 2 * params.probeSize! + 2 * VdWLookup[2] // 2x probe size + 2x largest VdW
         }
     }
 
@@ -318,7 +332,6 @@ namespace AccessibleSurfaceArea {
 }
 
 interface AccessibleSurfaceArea {
-    readonly atomRadius?: ArrayLike<number>
     readonly accessibleSurfaceArea?: ArrayLike<number>
     readonly relativeAccessibleSurfaceArea?: ArrayLike<number>
     buried(index: number): boolean
