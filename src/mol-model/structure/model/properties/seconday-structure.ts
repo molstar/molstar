@@ -17,10 +17,15 @@ interface SecondaryStructure {
 }
 
 namespace SecondaryStructure {
-    export type Element = None | Helix | Sheet
+    export type Element = None | Turn | Helix | Sheet
 
     export interface None {
         kind: 'none'
+    }
+
+    export interface Turn {
+        kind: 'turn',
+        flags: SecondaryStructureType
     }
 
     export interface Helix {
