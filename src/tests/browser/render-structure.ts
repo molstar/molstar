@@ -7,11 +7,17 @@
 import './index.html'
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import CIF, { CifFrame } from 'mol-io/reader/cif'
-import { Model, Structure } from 'mol-model/structure';
-import { ColorTheme } from 'mol-theme/color';
+import { Model, Structure, StructureElement, Unit } from 'mol-model/structure';
+import { ColorTheme, LocationColor } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { CartoonRepresentationProvider } from 'mol-repr/structure/representation/cartoon';
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
+import { AccessibleSurfaceArea } from 'mol-model/structure/structure/accessible-surface-area';
+import { Color, ColorScale } from 'mol-util/color';
+import { Location } from 'mol-model/location';
+import { ThemeDataContext } from 'mol-theme/theme';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -60,23 +66,78 @@ function getCartoonRepr() {
     return CartoonRepresentationProvider.factory(reprCtx, CartoonRepresentationProvider.getParams)
 }
 
-async function init() {
-    const cif = await downloadFromPdb(/*'3j3q'*/'1hrc')
+let accessibleSurfaceArea: AccessibleSurfaceArea;
+async function init(props = {}) {
+    const cif = await downloadFromPdb(
+        // '3j3q'
+        '1aon'
+        // '1acj'
+        )
     const models = await getModels(cif)
-
     const structure = await getStructure(models[0])
+
+    // async compute ASA
+    accessibleSurfaceArea = await AccessibleSurfaceArea.compute(structure)
+
     const cartoonRepr = getCartoonRepr()
 
-    console.time('ASA');
+    // create color theme
     cartoonRepr.setTheme({
-        color: reprCtx.colorThemeRegistry.create('accessible-surface-area', { structure }),
+        color: AccessibleSurfaceAreaColorTheme(reprCtx, { ...PD.getDefaultValues(AccessibleSurfaceAreaColorThemeParams), ...props }),
         size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
     })
     await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
-    console.timeEnd('ASA');
 
     canvas3d.add(cartoonRepr)
     canvas3d.resetCamera()
 }
 
 init()
+
+const DefaultColor = Color(0xFFFFFF)
+const Description = 'Assigns a color based on the relative accessible surface area of a residue.'
+
+export const AccessibleSurfaceAreaColorThemeParams = {
+    list: PD.ColorScale<ColorListName>('Rainbow', ColorListOptions)
+}
+export type AccessibleSurfaceAreaColorThemeParams = typeof AccessibleSurfaceAreaColorThemeParams
+export function getAccessibleSurfaceAreaColorThemeParams(ctx: ThemeDataContext) {
+    return AccessibleSurfaceAreaColorThemeParams // TODO return copy
+}
+
+export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD.Values<AccessibleSurfaceAreaColorThemeParams>): ColorTheme<AccessibleSurfaceAreaColorThemeParams> {
+    let color: LocationColor = () => DefaultColor
+    const scale = ColorScale.create({
+        listOrName: props.list,
+        minLabel: '0.0 (buried)',
+        maxLabel: '1.0 (exposed)',
+        domain: [0.0, 1.0]
+    })
+    color = (location: Location): Color => {
+        if (StructureElement.isLocation(location)) {
+            if (Unit.isAtomic(location.unit)) {
+                const value = accessibleSurfaceArea.relativeAccessibleSurfaceArea![location.unit.residueIndex[location.element]];
+                return value !== AccessibleSurfaceArea.missingValue ? scale.color(value) : DefaultColor;
+            }
+        }
+
+        return DefaultColor
+    }
+
+    return {
+        factory: AccessibleSurfaceAreaColorTheme,
+        granularity: 'group',
+        color,
+        props,
+        description: Description,
+        legend: scale ? scale.legend : undefined
+    }
+}
+
+export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<AccessibleSurfaceAreaColorThemeParams> = {
+    label: 'Accessible Surface Area',
+    factory: AccessibleSurfaceAreaColorTheme,
+    getParams: getAccessibleSurfaceAreaColorThemeParams,
+    defaultValues: PD.getDefaultValues(AccessibleSurfaceAreaColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
+}
