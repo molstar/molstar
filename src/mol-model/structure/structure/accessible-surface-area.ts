@@ -184,11 +184,16 @@ namespace AccessibleSurfaceArea {
             }
 
             const atomId = label_atom_id.value(aI);
-            const residueId = label_comp_id.value(rI);
+            let compId = label_comp_id.value(rI);
+
+            // handle modified residues
+            const parentId = model.properties.modifiedResidues.parentId.get(compId);
+            if (parentId !== void 0) compId = parentId;
+
             if (isNucleic(residueType)) {
-                ctx.atomRadius[aI] = determineRadiusNucl(atomId, element, residueId);
+                ctx.atomRadius[aI] = determineRadiusNucl(atomId, element, compId);
             } else if (residueType === MoleculeType.protein) {
-                ctx.atomRadius[aI] = determineRadiusAmino(atomId, element, residueId);
+                ctx.atomRadius[aI] = determineRadiusAmino(atomId, element, compId);
             } else {
                 ctx.atomRadius[aI] = VdwRadius(element);
             }
