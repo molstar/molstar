@@ -1,5 +1,3 @@
-
-
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -679,14 +677,14 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
             return {
                 size: 1,
                 type: gl.INT_VEC3,
-                name: `activeUniform${index}`,
+                name: `__activeUniform${index}`,
             };
         },
         getActiveAttrib: function (program: WebGLProgram, index: number) {
             return {
                 size: 1,
                 type: gl.FLOAT,
-                name: `activeAttrib${index}`
+                name: `__activeAttrib${index}`
             };
         },
         clear: function () { },

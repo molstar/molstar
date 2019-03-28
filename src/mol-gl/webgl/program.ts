@@ -55,6 +55,10 @@ function checkActiveAttributes(ctx: WebGLContext, program: WebGLProgram, schema:
         const info = gl.getActiveAttrib(program, i);
         if (info) {
             const { name, type } = info
+            if (name.startsWith('__activeAttribute')) {
+                // name assigned by `gl.shim.ts`, ignore for checks
+                continue
+            }
             const spec = schema[name]
             if (spec === undefined) {
                 throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`)
@@ -77,6 +81,10 @@ function checkActiveUniforms(ctx: WebGLContext, program: WebGLProgram, schema: R
         const info = gl.getActiveUniform(program, i);
         if (info) {
             const { name, type } = info
+            if (name.startsWith('__activeUniform')) {
+                // name assigned by `gl.shim.ts`, ignore for checks
+                continue
+            }
             const spec = schema[name]
             if (spec === undefined) {
                 throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`)
