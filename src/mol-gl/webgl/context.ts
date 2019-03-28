@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -113,7 +113,7 @@ export function createImageData(buffer: ArrayLike<number>, width: number, height
 
 //
 
-type Extensions = {
+export type WebGLExtensions = {
     instancedArrays: COMPAT_instanced_arrays
     standardDerivatives: COMPAT_standard_derivatives
     blendMinMax: COMPAT_blend_minmax
@@ -124,20 +124,7 @@ type Extensions = {
     fragDepth: COMPAT_frag_depth | null
 }
 
-/** A WebGL context object, including the rendering context, resource caches and counts */
-export interface WebGLContext {
-    readonly gl: GLRenderingContext
-    readonly isWebGL2: boolean
-    readonly extensions: Extensions
-    readonly pixelRatio: number
-
-    readonly shaderCache: ShaderCache
-    readonly programCache: ProgramCache
-    readonly framebufferCache: FramebufferCache
-
-    currentProgramId: number
-    currentMaterialId: number
-
+export type WebGLStats = {
     bufferCount: number
     framebufferCount: number
     renderbufferCount: number
@@ -147,6 +134,26 @@ export interface WebGLContext {
     drawCount: number
     instanceCount: number
     instancedDrawCount: number
+}
+
+export type WebGLState = {
+    currentProgramId: number
+    currentMaterialId: number
+}
+
+/** A WebGL context object, including the rendering context, resource caches and counts */
+export interface WebGLContext {
+    readonly gl: GLRenderingContext
+    readonly isWebGL2: boolean
+    readonly pixelRatio: number
+
+    readonly extensions: WebGLExtensions
+    readonly state: WebGLState
+    readonly stats: WebGLStats
+
+    readonly shaderCache: ShaderCache
+    readonly programCache: ProgramCache
+    readonly framebufferCache: FramebufferCache
 
     readonly maxTextureSize: number
     readonly maxDrawBuffers: number
@@ -193,9 +200,37 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         console.log('Could not find support for "frag_depth"')
     }
 
-    const shaderCache = createShaderCache()
-    const programCache = createProgramCache()
-    const framebufferCache = createFramebufferCache()
+    const state: WebGLState = {
+        currentProgramId: -1,
+        currentMaterialId: -1,
+    }
+
+    const stats: WebGLStats = {
+        bufferCount: 0,
+        framebufferCount: 0,
+        renderbufferCount: 0,
+        textureCount: 0,
+        vaoCount: 0,
+
+        drawCount: 0,
+        instanceCount: 0,
+        instancedDrawCount: 0,
+    }
+
+    const extensions: WebGLExtensions = {
+        instancedArrays,
+        standardDerivatives,
+        blendMinMax,
+        textureFloat,
+        textureFloatLinear,
+        elementIndexUint,
+        vertexArrayObject,
+        fragDepth
+    }
+
+    const shaderCache: ShaderCache = createShaderCache(gl)
+    const programCache: ProgramCache = createProgramCache(gl, state, extensions, shaderCache)
+    const framebufferCache: FramebufferCache = createFramebufferCache(gl, stats)
 
     const parameters = {
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
@@ -247,34 +282,18 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
     return {
         gl,
         isWebGL2: isWebGL2(gl),
-        extensions: {
-            instancedArrays,
-            standardDerivatives,
-            blendMinMax,
-            textureFloat,
-            textureFloatLinear,
-            elementIndexUint,
-            vertexArrayObject,
-            fragDepth
+        get pixelRatio () {
+            // this can change during the lifetime of a rendering context, so need to re-obtain on access
+            return getPixelRatio()
         },
-        get pixelRatio () { return getPixelRatio() },
+
+        extensions,
+        state,
+        stats,
 
         shaderCache,
         programCache,
         framebufferCache,
-
-        currentProgramId: -1,
-        currentMaterialId: -1,
-
-        bufferCount: 0,
-        framebufferCount: 0,
-        renderbufferCount: 0,
-        textureCount: 0,
-        vaoCount: 0,
-
-        drawCount: 0,
-        instanceCount: 0,
-        instancedDrawCount: 0,
 
         get maxTextureSize () { return parameters.maxTextureSize },
         get maxDrawBuffers () { return parameters.maxDrawBuffers },

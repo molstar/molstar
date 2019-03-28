@@ -5,7 +5,7 @@
  */
 
 import { createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, AttributeKind } from './buffer';
-import { createTextures } from './texture';
+import { createTextures, Texture } from './texture';
 import { WebGLContext } from './context';
 import { ShaderCode } from '../shader-code';
 import { Program } from './program';
@@ -84,7 +84,7 @@ function resetValueChanges(valueChanges: ValueChanges) {
  */
 export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number): RenderItem {
     const id = getNextRenderItemId()
-    const { programCache } = ctx
+    const { stats, state, programCache } = ctx
     const { instancedArrays, vertexArrayObject } = ctx.extensions
 
     const { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues } = splitValues(schema, values)
@@ -100,7 +100,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
     const programs: ProgramVariants = {}
     Object.keys(RenderVariantDefines).forEach(k => {
         const variantDefineValues: Values<RenderableSchema> = (RenderVariantDefines as any)[k]
-        programs[k] = programCache.get(ctx, {
+        programs[k] = programCache.get({
             defineValues: { ...defineValues, ...variantDefineValues },
             shaderCode,
             schema
@@ -124,9 +124,9 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
     let drawCount = values.drawCount.ref.value
     let instanceCount = values.instanceCount.ref.value
 
-    ctx.drawCount += drawCount
-    ctx.instanceCount += instanceCount
-    ctx.instancedDrawCount += instanceCount * drawCount
+    stats.drawCount += drawCount
+    stats.instanceCount += instanceCount
+    stats.instancedDrawCount += instanceCount * drawCount
 
     const valueChanges = createValueChanges()
 
@@ -144,12 +144,12 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
             const vertexArray = vertexArrays[variant]
             program.setUniforms(uniformValueEntries)
             if (program.id !== currentProgramId ||
-                materialId === -1 || materialId !== ctx.currentMaterialId
+                materialId === -1 || materialId !== state.currentMaterialId
             ) {
                 // console.log('program.id changed or materialId changed/-1', materialId)
                 program.setUniforms(materialUniformValueEntries)
                 currentProgramId = program.id
-                ctx.currentMaterialId = materialId
+                state.currentMaterialId = materialId
             }
             program.bindTextures(textures)
             if (vertexArrayObject && vertexArray) {
@@ -183,7 +183,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                 Object.keys(RenderVariantDefines).forEach(k => {
                     const variantDefineValues: Values<RenderableSchema> = (RenderVariantDefines as any)[k]
                     programs[k].free()
-                    programs[k] = programCache.get(ctx, {
+                    programs[k] = programCache.get({
                         defineValues: { ...defineValues, ...variantDefineValues },
                         shaderCode,
                         schema
@@ -193,15 +193,15 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
 
             if (values.drawCount.ref.version !== versions.drawCount) {
                 // console.log('drawCount version changed')
-                ctx.drawCount += values.drawCount.ref.value - drawCount
-                ctx.instancedDrawCount += instanceCount * values.drawCount.ref.value - instanceCount * drawCount
+                stats.drawCount += values.drawCount.ref.value - drawCount
+                stats.instancedDrawCount += instanceCount * values.drawCount.ref.value - instanceCount * drawCount
                 drawCount = values.drawCount.ref.value
                 versions.drawCount = values.drawCount.ref.version
             }
             if (values.instanceCount.ref.version !== versions.instanceCount) {
                 // console.log('instanceCount version changed')
-                ctx.instanceCount += values.instanceCount.ref.value - instanceCount
-                ctx.instancedDrawCount += values.instanceCount.ref.value * drawCount - instanceCount * drawCount
+                stats.instanceCount += values.instanceCount.ref.value - instanceCount
+                stats.instancedDrawCount += values.instanceCount.ref.value * drawCount - instanceCount * drawCount
                 instanceCount = values.instanceCount.ref.value
                 versions.instanceCount = values.instanceCount.ref.version
             }
@@ -217,7 +217,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                         // console.log('attribute array to small, need to create new attribute', k, value.ref.id, value.ref.version)
                         buffer.destroy()
                         const { itemSize, divisor } = schema[k] as AttributeSpec<AttributeKind>
-                        attributeBuffers[i] = [k, createAttributeBuffer(ctx, value.ref.value, itemSize, divisor)]
+                        attributeBuffers[i][1] = createAttributeBuffer(ctx, value.ref.value, itemSize, divisor)
                         valueChanges.attributes = true
                     }
                     versions[k] = value.ref.version
@@ -264,6 +264,8 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                         texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>)
                         versions[k] = value.ref.version
                         valueChanges.textures = true
+                    } else {
+                        textures[i][1] = value.ref.value as Texture
                     }
                 }
             }

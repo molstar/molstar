@@ -42,7 +42,7 @@ export function getTarget(ctx: WebGLContext, kind: TextureKind): number {
             case 'volume-float32': return gl.TEXTURE_3D
         }
     }
-    throw new Error('unknown texture kind')
+    throw new Error(`unknown texture kind '${kind}'`)
 }
 
 export function getFormat(ctx: WebGLContext, format: TextureFormat): number {
@@ -143,7 +143,7 @@ export type Textures = [string, Texture][]
 
 export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
     const id = getNextTextureId()
-    const { gl } = ctx
+    const { gl, stats } = ctx
     const texture = gl.createTexture()
     if (texture === null) {
         throw new Error('Could not create WebGL texture')
@@ -166,7 +166,7 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
     let width = 0, height = 0, depth = 0
 
     let destroyed = false
-    ctx.textureCount += 1
+    stats.textureCount += 1
 
     return {
         id,
@@ -238,7 +238,7 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
             if (destroyed) return
             gl.deleteTexture(texture)
             destroyed = true
-            ctx.textureCount -= 1
+            stats.textureCount -= 1
         }
     }
 }

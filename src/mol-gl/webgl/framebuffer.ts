@@ -1,12 +1,13 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { WebGLContext } from './context'
+import { WebGLStats } from './context'
 import { idFactory } from 'mol-util/id-factory';
 import { ReferenceCache, createReferenceCache } from 'mol-util/reference-cache';
+import { GLRenderingContext } from './compat';
 
 const getNextFramebufferId = idFactory()
 
@@ -17,15 +18,14 @@ export interface Framebuffer {
     destroy: () => void
 }
 
-export function createFramebuffer (ctx: WebGLContext): Framebuffer {
-    const { gl } = ctx
+export function createFramebuffer (gl: GLRenderingContext, stats: WebGLStats): Framebuffer {
     const _framebuffer = gl.createFramebuffer()
     if (_framebuffer === null) {
         throw new Error('Could not create WebGL framebuffer')
     }
 
     let destroyed = false
-    ctx.framebufferCount += 1
+    stats.framebufferCount += 1
 
     return {
         id: getNextFramebufferId(),
@@ -35,17 +35,17 @@ export function createFramebuffer (ctx: WebGLContext): Framebuffer {
             if (destroyed) return
             gl.deleteFramebuffer(_framebuffer)
             destroyed = true
-            ctx.framebufferCount -= 1
+            stats.framebufferCount -= 1
         }
     }
 }
 
-export type FramebufferCache = ReferenceCache<Framebuffer, string, WebGLContext>
+export type FramebufferCache = ReferenceCache<Framebuffer, string>
 
-export function createFramebufferCache(): FramebufferCache {
+export function createFramebufferCache(gl: GLRenderingContext, stats: WebGLStats): FramebufferCache {
     return createReferenceCache(
         (name: string) => name,
-        (ctx: WebGLContext) => createFramebuffer(ctx),
+        () => createFramebuffer(gl, stats),
         (framebuffer: Framebuffer) => { framebuffer.destroy() }
     )
 }

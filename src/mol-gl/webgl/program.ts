@@ -5,7 +5,7 @@
  */
 
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
-import { WebGLContext } from './context';
+import { WebGLExtensions, WebGLState } from './context';
 import { getUniformSetters, UniformsList, getUniformType } from './uniform';
 import { AttributeBuffers, getAttribType } from './buffer';
 import { TextureId, Textures } from './texture';
@@ -14,6 +14,8 @@ import { idFactory } from 'mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
 import { hashFnv32a, hashString } from 'mol-data/util';
 import { isProductionMode } from 'mol-util/debug';
+import { GLRenderingContext } from './compat';
+import { ShaderCache } from './shader';
 
 const getNextProgramId = idFactory()
 
@@ -30,8 +32,7 @@ export interface Program {
 
 type Locations = { [k: string]: number }
 
-function getLocations(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
-    const { gl } = ctx
+function getLocations(gl: GLRenderingContext, program: WebGLProgram, schema: RenderableSchema) {
     const locations: Locations = {}
     Object.keys(schema).forEach(k => {
         const spec = schema[k]
@@ -48,8 +49,7 @@ function getLocations(ctx: WebGLContext, program: WebGLProgram, schema: Renderab
     return locations
 }
 
-function checkActiveAttributes(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
-    const { gl } = ctx
+function checkActiveAttributes(gl: GLRenderingContext, program: WebGLProgram, schema: RenderableSchema) {
     const attribCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
     for (let i = 0; i < attribCount; ++i) {
         const info = gl.getActiveAttrib(program, i);
@@ -66,7 +66,7 @@ function checkActiveAttributes(ctx: WebGLContext, program: WebGLProgram, schema:
             if (spec.type !== 'attribute') {
                 throw new Error(`'${name}' must be of type 'attribute' but is '${spec.type}'`)
             }
-            const attribType = getAttribType(ctx, spec.kind, spec.itemSize)
+            const attribType = getAttribType(gl, spec.kind, spec.itemSize)
             if (attribType !== type) {
                 throw new Error(`unexpected attribute type for ${name}`)
             }
@@ -74,8 +74,7 @@ function checkActiveAttributes(ctx: WebGLContext, program: WebGLProgram, schema:
     }
 }
 
-function checkActiveUniforms(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
-    const { gl } = ctx
+function checkActiveUniforms(gl: GLRenderingContext, program: WebGLProgram, schema: RenderableSchema) {
     const attribCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
     for (let i = 0; i < attribCount; ++i) {
         const info = gl.getActiveUniform(program, i);
@@ -119,8 +118,7 @@ export interface ProgramProps {
     schema: RenderableSchema
 }
 
-export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
-    const { gl, shaderCache } = ctx
+export function createProgram(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, shaderCache: ShaderCache, props: ProgramProps): Program {
     const { defineValues, shaderCode: _shaderCode, schema } = props
 
     const program = gl.createProgram()
@@ -129,9 +127,9 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
     }
     const programId = getNextProgramId()
 
-    const shaderCode = addShaderDefines(ctx, defineValues, _shaderCode)
-    const vertShaderRef = shaderCache.get(ctx, { type: 'vert', source: shaderCode.vert })
-    const fragShaderRef = shaderCache.get(ctx, { type: 'frag', source: shaderCode.frag })
+    const shaderCode = addShaderDefines(gl, extensions, defineValues, _shaderCode)
+    const vertShaderRef = shaderCache.get({ type: 'vert', source: shaderCode.vert })
+    const fragShaderRef = shaderCache.get({ type: 'frag', source: shaderCode.frag })
 
     vertShaderRef.value.attach(program)
     fragShaderRef.value.attach(program)
@@ -140,12 +138,12 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
         throw new Error(`Could not compile WebGL program. \n\n${gl.getProgramInfoLog(program)}`);
     }
 
-    const locations = getLocations(ctx, program, schema)
+    const locations = getLocations(gl, program, schema)
     const uniformSetters = getUniformSetters(schema)
 
     if (!isProductionMode) {
-        checkActiveAttributes(ctx, program, schema)
-        checkActiveUniforms(ctx, program, schema)
+        checkActiveAttributes(gl, program, schema)
+        checkActiveUniforms(gl, program, schema)
     }
 
     let destroyed = false
@@ -155,7 +153,7 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
 
         use: () => {
             // console.log('use', programId)
-            ctx.currentProgramId = programId
+            state.currentProgramId = programId
             gl.useProgram(program)
         },
         setUniforms: (uniformValues: UniformsList) => {
@@ -191,14 +189,14 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
     }
 }
 
-export type ProgramCache = ReferenceCache<Program, ProgramProps, WebGLContext>
+export type ProgramCache = ReferenceCache<Program, ProgramProps>
 
 function defineValueHash(v: boolean | number | string): number {
     return typeof v === 'boolean' ? (v ? 1 : 0) :
         typeof v === 'number' ? v : hashString(v)
 }
 
-export function createProgramCache(): ProgramCache {
+export function createProgramCache(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, shaderCache: ShaderCache): ProgramCache {
     return createReferenceCache(
         (props: ProgramProps) => {
             const array = [ props.shaderCode.id ]
@@ -208,7 +206,7 @@ export function createProgramCache(): ProgramCache {
             })
             return hashFnv32a(array).toString()
         },
-        (ctx: WebGLContext, props: ProgramProps) => createProgram(ctx, props),
+        (props: ProgramProps) => createProgram(gl, state, extensions, shaderCache, props),
         (program: Program) => { program.destroy() }
     )
 }

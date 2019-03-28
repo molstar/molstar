@@ -110,7 +110,7 @@ async function calcGaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLCon
     const { gl, framebufferCache } = webgl
     const { uCurrentSlice, uCurrentX, uCurrentY } = renderable.values
 
-    const framebuffer = framebufferCache.get(webgl, FramebufferName).value
+    const framebuffer = framebufferCache.get(FramebufferName).value
     framebuffer.bind()
     setRenderingDefaults(gl)
 
@@ -168,7 +168,7 @@ async function calcGaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLCon
     const { gl, framebufferCache } = webgl
     const { uCurrentSlice } = renderable.values
 
-    const framebuffer = framebufferCache.get(webgl, FramebufferName).value
+    const framebuffer = framebufferCache.get(FramebufferName).value
     framebuffer.bind()
     setRenderingDefaults(gl)
     gl.viewport(0, 0, dx, dy)
@@ -312,6 +312,7 @@ function setupGroupIdRendering(webgl: WebGLContext, renderable: ComputeRenderabl
 }
 
 function getTexture2dSize(maxTexSize: number, gridDim: Vec3) {
+    maxTexSize = 256
     let texDimX = 0
     let texDimY = gridDim[1]
     let texRows = 1
@@ -342,7 +343,7 @@ async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3
 
     const image = new Uint8Array(width * height * 4)
 
-    const framebuffer = framebufferCache.get(ctx, FramebufferName).value
+    const framebuffer = framebufferCache.get(FramebufferName).value
     framebuffer.bind()
     texture.attachFramebuffer(framebuffer, 0)
     // TODO too slow, why? Too many checks if gpu ready???

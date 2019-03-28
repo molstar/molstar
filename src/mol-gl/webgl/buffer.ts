@@ -9,6 +9,7 @@ import { ValueCell } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { ValueOf } from 'mol-util/type-helpers';
+import { GLRenderingContext } from './compat';
 
 const getNextBufferId = idFactory()
 
@@ -97,7 +98,7 @@ export interface Buffer {
 }
 
 export function createBuffer(ctx: WebGLContext, array: ArrayType, usageHint: UsageHint, bufferType: BufferType): Buffer {
-    const { gl } = ctx
+    const { gl, stats } = ctx
     const _buffer = gl.createBuffer()
     if (_buffer === null) {
         throw new Error('Could not create WebGL buffer')
@@ -116,7 +117,7 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, usageHint: Usa
     updateData(array)
 
     let destroyed = false
-    ctx.bufferCount += 1
+    stats.bufferCount += 1
 
     return {
         id: getNextBufferId(),
@@ -139,7 +140,7 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, usageHint: Usa
             if (destroyed) return
             gl.deleteBuffer(_buffer)
             destroyed = true
-            ctx.bufferCount -= 1
+            stats.bufferCount -= 1
         }
     }
 }
@@ -149,8 +150,7 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, usageHint: Usa
 export type AttributeItemSize = 1 | 2 | 3 | 4 | 16
 export type AttributeKind = 'float32' | 'int32'
 
-export function getAttribType(ctx: WebGLContext, kind: AttributeKind, itemSize: AttributeItemSize) {
-    const { gl } = ctx
+export function getAttribType(gl: GLRenderingContext, kind: AttributeKind, itemSize: AttributeItemSize) {
     switch (kind) {
         case 'int32':
             switch (itemSize) {

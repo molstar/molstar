@@ -16,7 +16,7 @@ export function createVertexArray(ctx: WebGLContext, program: Program, attribute
         vertexArrayObject.bindVertexArray(vertexArray)
         if (elementsBuffer) elementsBuffer.bind()
         program.bindAttributes(attributeBuffers)
-        ctx.vaoCount += 1
+        ctx.stats.vaoCount += 1
         vertexArrayObject.bindVertexArray(null)
     }
     return vertexArray
@@ -36,6 +36,6 @@ export function deleteVertexArray(ctx: WebGLContext, vertexArray: WebGLVertexArr
     const { vertexArrayObject } = ctx.extensions
     if (vertexArrayObject && vertexArray) {
         vertexArrayObject.deleteVertexArray(vertexArray)
-        ctx.vaoCount -= 1
+        ctx.stats.vaoCount -= 1
     }
 }

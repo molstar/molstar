@@ -53,7 +53,7 @@ export type RendererProps = typeof DefaultRendererProps
 
 namespace Renderer {
     export function create(ctx: WebGLContext, camera: Camera, props: Partial<RendererProps> = {}): Renderer {
-        const { gl } = ctx
+        const { gl, state, stats } = ctx
         let { clearColor, viewport: _viewport, pickingAlphaThreshold } = { ...DefaultRendererProps, ...props }
 
         const viewport = Viewport.clone(_viewport)
@@ -111,7 +111,7 @@ namespace Renderer {
         const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
             const program = r.getProgram(variant)
             if (r.state.visible) {
-                if (ctx.currentProgramId !== program.id) {
+                if (state.currentProgramId !== program.id) {
                     // console.log('new program')
                     globalUniformsNeedUpdate = true
                 }
@@ -238,15 +238,15 @@ namespace Renderer {
                     programCount: ctx.programCache.count,
                     shaderCount: ctx.shaderCache.count,
 
-                    bufferCount: ctx.bufferCount,
-                    framebufferCount: ctx.framebufferCount,
-                    renderbufferCount: ctx.renderbufferCount,
-                    textureCount: ctx.textureCount,
-                    vaoCount: ctx.vaoCount,
+                    bufferCount: stats.bufferCount,
+                    framebufferCount: stats.framebufferCount,
+                    renderbufferCount: stats.renderbufferCount,
+                    textureCount: stats.textureCount,
+                    vaoCount: stats.vaoCount,
 
-                    drawCount: ctx.drawCount,
-                    instanceCount: ctx.instanceCount,
-                    instancedDrawCount: ctx.instancedDrawCount,
+                    drawCount: stats.drawCount,
+                    instanceCount: stats.instanceCount,
+                    instancedDrawCount: stats.instancedDrawCount,
                 }
             },
             dispose: () => {

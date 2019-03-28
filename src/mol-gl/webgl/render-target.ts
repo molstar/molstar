@@ -31,7 +31,7 @@ export interface RenderTarget {
 }
 
 export function createRenderTarget (ctx: WebGLContext, _width: number, _height: number): RenderTarget {
-    const { gl } = ctx
+    const { gl, stats } = ctx
 
     const image: Mutable<TextureImage<Uint8Array>> = {
         array: new Uint8Array(_width * _height * 4),
@@ -42,7 +42,7 @@ export function createRenderTarget (ctx: WebGLContext, _width: number, _height: 
     const targetTexture = createTexture(ctx, 'image-uint8', 'rgba', 'ubyte', 'linear')
     targetTexture.load(image)
 
-    const framebuffer = createFramebuffer(ctx)
+    const framebuffer = createFramebuffer(gl, stats)
 
     // attach the texture as the first color attachment
     targetTexture.attachFramebuffer(framebuffer, 'color0')

@@ -6,7 +6,8 @@
 
 import { ValueCell } from 'mol-util';
 import { idFactory } from 'mol-util/id-factory';
-import { WebGLContext } from './webgl/context';
+import { WebGLExtensions } from './webgl/context';
+import { isWebGL2, GLRenderingContext } from './webgl/compat';
 
 export type DefineKind = 'boolean' | 'string' | 'number'
 export type DefineType = boolean | string
@@ -66,6 +67,8 @@ export const DirectVolumeShaderCode = ShaderCode(
     { standardDerivatives: false, fragDepth: true }
 )
 
+
+
 export type ShaderDefines = {
     [k: string]: ValueCell<DefineType>
 }
@@ -91,16 +94,18 @@ function getDefinesCode (defines: ShaderDefines) {
     return lines.join('\n') + '\n'
 }
 
-function getGlsl100FragPrefix(ctx: WebGLContext, extensions: ShaderExtensions) {
+function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
     const prefix: string[] = []
-    if (extensions.standardDerivatives) {
+    if (shaderExtensions.standardDerivatives) {
         prefix.push('#extension GL_OES_standard_derivatives : enable')
         prefix.push('#define enabledStandardDerivatives')
     }
-    if (extensions.fragDepth) {
-        if (ctx.extensions.fragDepth) {
+    if (shaderExtensions.fragDepth) {
+        if (extensions.fragDepth) {
             prefix.push('#extension GL_EXT_frag_depth : enable')
             prefix.push('#define enabledFragDepth')
+        } else {
+            throw new Error(`requested 'GL_EXT_frag_depth' extension is unavailable`)
         }
     }
     return prefix.join('\n') + '\n'
@@ -123,11 +128,11 @@ layout(location = 0) out highp vec4 out_FragColor;
 #define enabledFragDepth
 `
 
-export function addShaderDefines(ctx: WebGLContext, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
-    const { isWebGL2 } = ctx
+export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtensions, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
+    const webgl2 = isWebGL2(gl)
     const header = getDefinesCode(defines)
-    const vertPrefix = isWebGL2 ? glsl300VertPrefix : ''
-    const fragPrefix = isWebGL2 ? glsl300FragPrefix : getGlsl100FragPrefix(ctx, shaders.extensions)
+    const vertPrefix = webgl2 ? glsl300VertPrefix : ''
+    const fragPrefix = webgl2 ? glsl300FragPrefix : getGlsl100FragPrefix(extensions, shaders.extensions)
     return {
         id: shaderCodeId(),
         vert: `${vertPrefix}${header}${shaders.vert}`,

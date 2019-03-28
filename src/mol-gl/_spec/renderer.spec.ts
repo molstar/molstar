@@ -117,9 +117,9 @@ describe('renderer', () => {
         expect(ctx.gl.canvas.width).toBe(32)
         expect(ctx.gl.canvas.height).toBe(32)
 
-        expect(ctx.bufferCount).toBe(0);
-        expect(ctx.textureCount).toBe(0);
-        expect(ctx.vaoCount).toBe(0);
+        expect(ctx.stats.bufferCount).toBe(0);
+        expect(ctx.stats.textureCount).toBe(0);
+        expect(ctx.stats.vaoCount).toBe(0);
         expect(ctx.programCache.count).toBe(0);
         expect(ctx.shaderCache.count).toBe(0);
 
@@ -137,16 +137,16 @@ describe('renderer', () => {
         const points = createPoints()
 
         scene.add(points)
-        expect(ctx.bufferCount).toBe(4);
-        expect(ctx.textureCount).toBe(5);
-        expect(ctx.vaoCount).toBe(4);
+        expect(ctx.stats.bufferCount).toBe(4);
+        expect(ctx.stats.textureCount).toBe(5);
+        expect(ctx.stats.vaoCount).toBe(4);
         expect(ctx.programCache.count).toBe(4);
         expect(ctx.shaderCache.count).toBe(8);
 
         scene.remove(points)
-        expect(ctx.bufferCount).toBe(0);
-        expect(ctx.textureCount).toBe(0);
-        expect(ctx.vaoCount).toBe(0);
+        expect(ctx.stats.bufferCount).toBe(0);
+        expect(ctx.stats.textureCount).toBe(0);
+        expect(ctx.stats.vaoCount).toBe(0);
         expect(ctx.programCache.count).toBe(4);
         expect(ctx.shaderCache.count).toBe(8);
 

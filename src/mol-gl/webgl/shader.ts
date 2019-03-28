@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
-import { WebGLContext } from './context';
 import { idFactory } from 'mol-util/id-factory';
+import { GLRenderingContext } from './compat';
 
 const getNextShaderId = idFactory()
 
@@ -26,8 +26,7 @@ export interface Shader {
     destroy: () => void
 }
 
-function createShader(ctx: WebGLContext, props: ShaderProps): Shader {
-    const { gl } = ctx
+function createShader(gl: GLRenderingContext, props: ShaderProps): Shader {
     const { type, source } = props
 
     const shader = gl.createShader(type === 'vert' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER)
@@ -54,12 +53,12 @@ function createShader(ctx: WebGLContext, props: ShaderProps): Shader {
     }
 }
 
-export type ShaderCache = ReferenceCache<Shader, ShaderProps, WebGLContext>
+export type ShaderCache = ReferenceCache<Shader, ShaderProps>
 
-export function createShaderCache(): ShaderCache {
+export function createShaderCache(gl: GLRenderingContext): ShaderCache {
     return createReferenceCache(
         (props: ShaderProps) => JSON.stringify(props),
-        (ctx: WebGLContext, props: ShaderProps) => createShader(ctx, props),
+        (props: ShaderProps) => createShader(gl, props),
         (shader: Shader) => { shader.destroy() }
     )
 }
