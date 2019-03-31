@@ -28,7 +28,7 @@ export function clearTransparency(array: Uint8Array, start: number, end: number)
 }
 
 export function createTransparency(count: number, variant: Transparency.Variant, transparencyData?: TransparencyData): TransparencyData {
-    const transparency = createTextureImage(Math.max(1, count), 1, transparencyData && transparencyData.tTransparency.ref.value.array)
+    const transparency = createTextureImage(Math.max(1, count), 1, Uint8Array, transparencyData && transparencyData.tTransparency.ref.value.array)
     if (transparencyData) {
         ValueCell.update(transparencyData.tTransparency, transparency)
         ValueCell.update(transparencyData.uTransparencyTexDim, Vec2.create(transparency.width, transparency.height))

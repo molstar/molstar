@@ -28,7 +28,7 @@ export function clearOverpaint(array: Uint8Array, start: number, end: number) {
 }
 
 export function createOverpaint(count: number, overpaintData?: OverpaintData): OverpaintData {
-    const overpaint = createTextureImage(Math.max(1, count), 4, overpaintData && overpaintData.tOverpaint.ref.value.array)
+    const overpaint = createTextureImage(Math.max(1, count), 4, Uint8Array, overpaintData && overpaintData.tOverpaint.ref.value.array)
     if (overpaintData) {
         ValueCell.update(overpaintData.tOverpaint, overpaint)
         ValueCell.update(overpaintData.uOverpaintTexDim, Vec2.create(overpaint.width, overpaint.height))

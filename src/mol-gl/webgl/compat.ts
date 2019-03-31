@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -50,9 +50,7 @@ export function getStandardDerivatives(gl: GLRenderingContext): COMPAT_standard_
         return { FRAGMENT_SHADER_DERIVATIVE_HINT: gl.FRAGMENT_SHADER_DERIVATIVE_HINT }
     } else {
         const ext = gl.getExtension('OES_standard_derivatives')
-        if (ext === null) {
-            throw new Error('Could not get "OES_standard_derivatives" extension')
-        }
+        if (ext === null) return null
         return { FRAGMENT_SHADER_DERIVATIVE_HINT: ext.FRAGMENT_SHADER_DERIVATIVE_HINT_OES }
     }
 }
@@ -79,7 +77,7 @@ export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_arra
             bindVertexArray: gl.bindVertexArray.bind(gl),
             createVertexArray: gl.createVertexArray.bind(gl),
             deleteVertexArray: gl.deleteVertexArray.bind(gl),
-            isVertexArray: gl.isVertexArray.bind(gl) as (value: any) => value is WebGLVertexArrayObject // TODO change when webgl2 types are fixed
+            isVertexArray: gl.isVertexArray.bind(gl)
         }
     } else {
         const ext = gl.getExtension('OES_vertex_array_object')
@@ -128,4 +126,19 @@ export interface COMPAT_frag_depth {
 
 export function getFragDepth(gl: GLRenderingContext): COMPAT_frag_depth | null {
     return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth')
+}
+
+export interface COMPAT_color_buffer_float {
+    readonly RGBA32F: number;
+}
+
+export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer_float | null {
+    if (isWebGL2(gl)) {
+        if (gl.getExtension('EXT_color_buffer_float') === null) return null
+        return { RGBA32F: gl.RGBA32F }
+    } else {
+        const ext = gl.getExtension('WEBGL_color_buffer_float')
+        if (ext === null) return null
+        return { RGBA32F: ext.RGBA32F_EXT }
+    }
 }

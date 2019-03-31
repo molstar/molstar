@@ -6,9 +6,10 @@
 
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat } from './compat';
 import { createFramebufferCache, FramebufferCache } from './framebuffer';
 import { Scheduler } from 'mol-task';
+import { isProductionMode } from 'mol-util/debug';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -23,6 +24,19 @@ export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebG
 
 function getPixelRatio() {
     return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
+}
+
+function getErrorDescription(gl: GLRenderingContext, error: number) {
+    switch (error) {
+        case gl.NO_ERROR: return 'no error'
+        case gl.INVALID_ENUM: return 'invalid enum'
+        case gl.INVALID_VALUE: return 'invalid value'
+        case gl.INVALID_OPERATION: return 'invalid operation'
+        case gl.INVALID_FRAMEBUFFER_OPERATION: return 'invalid framebuffer operation'
+        case gl.OUT_OF_MEMORY: return 'out of memory'
+        case gl.CONTEXT_LOST_WEBGL: return 'context lost'
+    }
+    return 'unknown error'
 }
 
 function unbindResources (gl: GLRenderingContext) {
@@ -96,6 +110,22 @@ function waitForGpuCommandsCompleteSync(gl: GLRenderingContext): void {
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
 }
 
+function readPixels(gl: GLRenderingContext, x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) {
+    if (!isProductionMode && gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        console.error('Reading pixels failed. Framebuffer not complete.')
+        return
+    }
+    if (buffer instanceof Uint8Array) {
+        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+    } else {
+        gl.readPixels(x, y, width, height, gl.RGBA, gl.FLOAT, buffer)
+    }
+    if (!isProductionMode) {
+        const error = gl.getError()
+        if (error) console.log(`Error reading pixels: '${getErrorDescription(gl, error)}'`)
+    }
+}
+
 export function createImageData(buffer: ArrayLike<number>, width: number, height: number) {
     const w = width * 4
     const h = height
@@ -122,6 +152,7 @@ export type WebGLExtensions = {
     elementIndexUint: COMPAT_element_index_uint | null
     vertexArrayObject: COMPAT_vertex_array_object | null
     fragDepth: COMPAT_frag_depth | null
+    colorBufferFloat: COMPAT_color_buffer_float | null
 }
 
 export type WebGLStats = {
@@ -159,7 +190,7 @@ export interface WebGLContext {
     readonly maxDrawBuffers: number
 
     unbindFramebuffer: () => void
-    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
+    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => void
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     waitForGpuCommandsComplete: () => Promise<void>
     waitForGpuCommandsCompleteSync: () => void
@@ -199,6 +230,10 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
     if (fragDepth === null) {
         console.log('Could not find support for "frag_depth"')
     }
+    const colorBufferFloat = getColorBufferFloat(gl)
+    if (colorBufferFloat === null) {
+        console.log('Could not find support for "color_buffer_float"')
+    }
 
     const state: WebGLState = {
         currentProgramId: -1,
@@ -225,7 +260,8 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         textureFloatLinear,
         elementIndexUint,
         vertexArrayObject,
-        fragDepth
+        fragDepth,
+        colorBufferFloat
     }
 
     const shaderCache: ShaderCache = createShaderCache(gl)
@@ -275,7 +311,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         })
     } else {
         readPixelsAsync = async (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
-            gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+            readPixels(gl, x, y, width, height, buffer)
         }
     }
 
@@ -299,14 +335,8 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         get maxDrawBuffers () { return parameters.maxDrawBuffers },
 
         unbindFramebuffer: () => unbindFramebuffer(gl),
-        readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
-            gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
-            // TODO check is very expensive
-            // if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
-            //     gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
-            // } else {
-            //     console.error('Reading pixels failed. Framebuffer not complete.')
-            // }
+        readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => {
+            readPixels(gl, x, y, width, height, buffer)
         },
         readPixelsAsync,
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),

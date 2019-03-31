@@ -74,7 +74,7 @@ export function createTextureColor(colors: TextureImage<Uint8Array>, type: Color
 /** Creates color texture with color for each instance/unit */
 export function createInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { instanceCount } = locationIt
-    const colors = createTextureImage(Math.max(1, instanceCount), 3, colorData && colorData.tColor.ref.value.array)
+    const colors = createTextureImage(Math.max(1, instanceCount), 3, Uint8Array, colorData && colorData.tColor.ref.value.array)
     locationIt.reset()
     while (locationIt.hasNext) {
         const { location, isSecondary, instanceIndex } = locationIt.move()
@@ -87,7 +87,7 @@ export function createInstanceColor(locationIt: LocationIterator, color: Locatio
 /** Creates color texture with color for each group (i.e. shared across instances/units) */
 export function createGroupColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount } = locationIt
-    const colors = createTextureImage(Math.max(1, groupCount), 3, colorData && colorData.tColor.ref.value.array)
+    const colors = createTextureImage(Math.max(1, groupCount), 3, Uint8Array, colorData && colorData.tColor.ref.value.array)
     locationIt.reset()
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const { location, isSecondary, groupIndex } = locationIt.move()
@@ -100,7 +100,7 @@ export function createGroupColor(locationIt: LocationIterator, color: LocationCo
 export function createGroupInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount, instanceCount } = locationIt
     const count = instanceCount * groupCount
-    const colors = createTextureImage(Math.max(1, count), 3, colorData && colorData.tColor.ref.value.array)
+    const colors = createTextureImage(Math.max(1, count), 3, Uint8Array, colorData && colorData.tColor.ref.value.array)
     locationIt.reset()
     while (locationIt.hasNext) {
         const { location, isSecondary, index } = locationIt.move()

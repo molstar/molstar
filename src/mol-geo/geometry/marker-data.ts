@@ -65,7 +65,7 @@ export function applyMarkerAction(array: Uint8Array, start: number, end: number,
 }
 
 export function createMarkers(count: number, markerData?: MarkerData): MarkerData {
-    const markers = createTextureImage(Math.max(1, count), 1, markerData && markerData.tMarker.ref.value.array)
+    const markers = createTextureImage(Math.max(1, count), 1, Uint8Array, markerData && markerData.tMarker.ref.value.array)
     if (markerData) {
         ValueCell.update(markerData.tMarker, markers)
         ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height))

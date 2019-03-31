@@ -149,6 +149,11 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
         throw new Error('Could not create WebGL texture')
     }
 
+    // check texture kind and type compatability
+    if ((kind.endsWith('float32') && _type !== 'float') || kind.endsWith('uint8') && _type !== 'ubyte') {
+        throw new Error(`texture kind '${kind}' and type '${_type}' are incompatible`)
+    }
+
     const target = getTarget(ctx, kind)
     const filter = getFilter(ctx, _filter)
     const format = getFormat(ctx, _format)

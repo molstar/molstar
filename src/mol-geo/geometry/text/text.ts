@@ -58,7 +58,7 @@ export interface Text {
 
 export namespace Text {
     export function createEmpty(text?: Text): Text {
-        const ft = text ? text.fontTexture.ref.value : createTextureImage(0, 1)
+        const ft = text ? text.fontTexture.ref.value : createTextureImage(0, 1, Uint8Array)
         const cb = text ? text.centerBuffer.ref.value : new Float32Array(0)
         const mb = text ? text.mappingBuffer.ref.value : new Float32Array(0)
         const db = text ? text.depthBuffer.ref.value : new Float32Array(0)
