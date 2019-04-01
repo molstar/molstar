@@ -16,8 +16,9 @@ export type DefineValues = { [k: string]: ValueCell<DefineType> }
 const shaderCodeId = idFactory()
 
 export interface ShaderExtensions {
-    readonly standardDerivatives: boolean
-    readonly fragDepth: boolean
+    readonly standardDerivatives?: boolean
+    readonly fragDepth?: boolean
+    readonly drawBuffers?: boolean
 }
 
 export interface ShaderCode {
@@ -27,44 +28,42 @@ export interface ShaderCode {
     readonly extensions: ShaderExtensions
 }
 
-export function ShaderCode(vert: string, frag: string, extensions: ShaderExtensions): ShaderCode {
+export function ShaderCode(vert: string, frag: string, extensions: ShaderExtensions = {}): ShaderCode {
     return { id: shaderCodeId(), vert, frag, extensions }
 }
 
 export const PointsShaderCode = ShaderCode(
     require('mol-gl/shader/points.vert').default,
-    require('mol-gl/shader/points.frag').default,
-    { standardDerivatives: false, fragDepth: false }
+    require('mol-gl/shader/points.frag').default
 )
 
 export const SpheresShaderCode = ShaderCode(
     require('mol-gl/shader/spheres.vert').default,
     require('mol-gl/shader/spheres.frag').default,
-    { standardDerivatives: false, fragDepth: true }
+    { fragDepth: true }
 )
 
 export const TextShaderCode = ShaderCode(
     require('mol-gl/shader/text.vert').default,
     require('mol-gl/shader/text.frag').default,
-    { standardDerivatives: true, fragDepth: false }
+    { standardDerivatives: true }
 )
 
 export const LinesShaderCode = ShaderCode(
     require('mol-gl/shader/lines.vert').default,
-    require('mol-gl/shader/lines.frag').default,
-    { standardDerivatives: false, fragDepth: false }
+    require('mol-gl/shader/lines.frag').default
 )
 
 export const MeshShaderCode = ShaderCode(
     require('mol-gl/shader/mesh.vert').default,
     require('mol-gl/shader/mesh.frag').default,
-    { standardDerivatives: true, fragDepth: false }
+    { standardDerivatives: true }
 )
 
 export const DirectVolumeShaderCode = ShaderCode(
     require('mol-gl/shader/direct-volume.vert').default,
     require('mol-gl/shader/direct-volume.frag').default,
-    { standardDerivatives: false, fragDepth: true }
+    { fragDepth: true }
 )
 
 
@@ -108,6 +107,14 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             throw new Error(`requested 'GL_EXT_frag_depth' extension is unavailable`)
         }
     }
+    if (shaderExtensions.drawBuffers) {
+        if (extensions.drawBuffers) {
+            prefix.push('#extension GL_EXT_draw_buffers : require')
+            prefix.push('#define requiredDrawBuffers')
+        } else {
+            throw new Error(`requested 'GL_EXT_draw_buffers' extension is unavailable`)
+        }
+    }
     return prefix.join('\n') + '\n'
 }
 
@@ -124,19 +131,33 @@ layout(location = 0) out highp vec4 out_FragColor;
 #define gl_FragDepthEXT gl_FragDepth
 #define texture2D texture
 
+layout(location = 1) out highp vec4 out_FragData1;
+layout(location = 2) out highp vec4 out_FragData2;
+layout(location = 3) out highp vec4 out_FragData3;
+layout(location = 4) out highp vec4 out_FragData4;
+layout(location = 5) out highp vec4 out_FragData5;
+layout(location = 6) out highp vec4 out_FragData6;
+layout(location = 7) out highp vec4 out_FragData7;
+
 #define enabledStandardDerivatives
 #define enabledFragDepth
+#define requiredDrawBuffers
 `
+
+function transformGlsl300Frag(frag: string) {
+    return frag.replace(/gl_FragData\[([0-7])\]/g, 'out_FragData$1')
+}
 
 export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtensions, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
     const webgl2 = isWebGL2(gl)
     const header = getDefinesCode(defines)
     const vertPrefix = webgl2 ? glsl300VertPrefix : ''
     const fragPrefix = webgl2 ? glsl300FragPrefix : getGlsl100FragPrefix(extensions, shaders.extensions)
+    const frag = webgl2 ? transformGlsl300Frag(shaders.frag) : shaders.frag
     return {
         id: shaderCodeId(),
         vert: `${vertPrefix}${header}${shaders.vert}`,
-        frag: `${fragPrefix}${header}${shaders.frag}`,
+        frag: `${fragPrefix}${header}${frag}`,
         extensions: shaders.extensions
     }
 }

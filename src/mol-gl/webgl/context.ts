@@ -6,7 +6,7 @@
 
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers } from './compat';
 import { createFramebufferCache, FramebufferCache } from './framebuffer';
 import { Scheduler } from 'mol-task';
 import { isProductionMode } from 'mol-util/debug';
@@ -153,6 +153,7 @@ export type WebGLExtensions = {
     vertexArrayObject: COMPAT_vertex_array_object | null
     fragDepth: COMPAT_frag_depth | null
     colorBufferFloat: COMPAT_color_buffer_float | null
+    drawBuffers: COMPAT_draw_buffers | null
 }
 
 export type WebGLStats = {
@@ -234,6 +235,10 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
     if (colorBufferFloat === null) {
         console.log('Could not find support for "color_buffer_float"')
     }
+    const drawBuffers = getDrawBuffers(gl)
+    if (drawBuffers === null) {
+        console.log('Could not find support for "draw_buffers"')
+    }
 
     const state: WebGLState = {
         currentProgramId: -1,
@@ -261,7 +266,8 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         elementIndexUint,
         vertexArrayObject,
         fragDepth,
-        colorBufferFloat
+        colorBufferFloat,
+        drawBuffers
     }
 
     const shaderCache: ShaderCache = createShaderCache(gl)

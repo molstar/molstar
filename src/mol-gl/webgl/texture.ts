@@ -95,21 +95,21 @@ export function getFilter(ctx: WebGLContext, type: TextureFilter): number {
 }
 
 export function getAttachment(ctx: WebGLContext, attachment: TextureAttachment): number {
-    const { gl } = ctx
+    const { gl, extensions } = ctx
     switch (attachment) {
         case 'depth': return gl.DEPTH_ATTACHMENT
         case 'stencil': return gl.STENCIL_ATTACHMENT
         case 'color0': case 0: return gl.COLOR_ATTACHMENT0
     }
-    if (isWebGL2(gl)) {
+    if (extensions.drawBuffers) {
         switch (attachment) {
-            case 'color1': case 1: return gl.COLOR_ATTACHMENT1
-            case 'color2': case 2: return gl.COLOR_ATTACHMENT2
-            case 'color3': case 3: return gl.COLOR_ATTACHMENT3
-            case 'color4': case 4: return gl.COLOR_ATTACHMENT4
-            case 'color5': case 5: return gl.COLOR_ATTACHMENT5
-            case 'color6': case 6: return gl.COLOR_ATTACHMENT6
-            case 'color7': case 7: return gl.COLOR_ATTACHMENT7
+            case 'color1': case 1: return extensions.drawBuffers.COLOR_ATTACHMENT1
+            case 'color2': case 2: return extensions.drawBuffers.COLOR_ATTACHMENT2
+            case 'color3': case 3: return extensions.drawBuffers.COLOR_ATTACHMENT3
+            case 'color4': case 4: return extensions.drawBuffers.COLOR_ATTACHMENT4
+            case 'color5': case 5: return extensions.drawBuffers.COLOR_ATTACHMENT5
+            case 'color6': case 6: return extensions.drawBuffers.COLOR_ATTACHMENT6
+            case 'color7': case 7: return extensions.drawBuffers.COLOR_ATTACHMENT7
         }
     }
     throw new Error('unknown texture attachment')
