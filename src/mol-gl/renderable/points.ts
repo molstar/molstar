@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { WebGLContext } from '../webgl/context';
-import { createRenderItem } from '../webgl/render-item';
+import { createGraphicsRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema, SizeSchema, InternalValues } from './schema';
 import { PointsShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
@@ -29,6 +29,6 @@ export function PointsRenderable(ctx: WebGLContext, id: number, values: PointsVa
         uPickable: ValueCell.create(state.pickable ? 1 : 0)
     }
     const shaderCode = PointsShaderCode
-    const renderItem = createRenderItem(ctx, 'points', shaderCode, schema, { ...values, ...internalValues }, materialId)
+    const renderItem = createGraphicsRenderItem(ctx, 'points', shaderCode, schema, { ...values, ...internalValues }, materialId)
     return createRenderable(renderItem, values, state);
 }

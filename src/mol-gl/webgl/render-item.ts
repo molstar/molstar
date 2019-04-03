@@ -33,23 +33,34 @@ export function getDrawMode(ctx: WebGLContext, drawMode: DrawMode) {
     }
 }
 
-export interface RenderItem {
+export interface RenderItem<T extends string> {
     readonly id: number
     readonly materialId: number
-    getProgram: (variant: RenderVariant) => Program
+    getProgram: (variant: T) => Program
 
-    render: (variant: RenderVariant) => void
+    render: (variant: T) => void
     update: () => Readonly<ValueChanges>
     destroy: () => void
 }
 
-const RenderVariantDefines = {
+//
+
+const GraphicsRenderVariantDefines = {
     'draw': {},
     'pickObject': { dColorType: ValueCell.create('objectPicking') },
     'pickInstance': { dColorType: ValueCell.create('instancePicking') },
     'pickGroup': { dColorType: ValueCell.create('groupPicking') }
 }
-export type RenderVariant = keyof typeof RenderVariantDefines
+export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariantDefines
+
+const ComputeRenderVariantDefines = {
+    'compute': {},
+}
+export type ComputeRenderVariant = keyof typeof ComputeRenderVariantDefines
+
+type RenderVariantDefines = typeof GraphicsRenderVariantDefines | typeof ComputeRenderVariantDefines
+
+//
 
 type ProgramVariants = { [k: string]: ReferenceItem<Program> }
 type VertexArrayVariants = { [k: string]: WebGLVertexArrayObjectOES | null }
@@ -75,14 +86,24 @@ function resetValueChanges(valueChanges: ValueChanges) {
     valueChanges.textures = false
 }
 
-// TODO make `RenderVariantDefines` a parameter for `createRenderItem`
+//
+
+export type GraphicsRenderItem = RenderItem<keyof typeof GraphicsRenderVariantDefines & string>
+export function createGraphicsRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number) {
+    return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, GraphicsRenderVariantDefines)
+}
+
+export type ComputeRenderItem = RenderItem<keyof typeof ComputeRenderVariantDefines & string>
+export function createComputeRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues) {
+    return createRenderItem(ctx, drawMode, shaderCode, schema, values, -1, ComputeRenderVariantDefines)
+}
 
 /**
  * Creates a render item
  *
  * - assumes that `values.drawCount` and `values.instanceCount` exist
  */
-export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number): RenderItem {
+export function createRenderItem<T extends RenderVariantDefines, S extends keyof T & string>(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, renderVariantDefines: T): RenderItem<S> {
     const id = getNextRenderItemId()
     const { stats, state, programCache } = ctx
     const { instancedArrays, vertexArrayObject } = ctx.extensions
@@ -98,8 +119,8 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
     const glDrawMode = getDrawMode(ctx, drawMode)
 
     const programs: ProgramVariants = {}
-    Object.keys(RenderVariantDefines).forEach(k => {
-        const variantDefineValues: Values<RenderableSchema> = (RenderVariantDefines as any)[k]
+    Object.keys(renderVariantDefines).forEach(k => {
+        const variantDefineValues: Values<RenderableSchema> = (renderVariantDefines as any)[k]
         programs[k] = programCache.get({
             defineValues: { ...defineValues, ...variantDefineValues },
             shaderCode,
@@ -117,7 +138,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
     }
 
     const vertexArrays: VertexArrayVariants = {}
-    Object.keys(RenderVariantDefines).forEach(k => {
+    Object.keys(renderVariantDefines).forEach(k => {
         vertexArrays[k] = createVertexArray(ctx, programs[k].value, attributeBuffers, elementsBuffer)
     })
 
@@ -136,9 +157,9 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
     return {
         id,
         materialId,
-        getProgram: (variant: RenderVariant) => programs[variant].value,
+        getProgram: (variant: S) => programs[variant].value,
 
-        render: (variant: RenderVariant) => {
+        render: (variant: S) => {
             if (drawCount === 0 || instanceCount === 0) return
             const program = programs[variant].value
             const vertexArray = vertexArrays[variant]
@@ -180,8 +201,8 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
 
             if (valueChanges.defines) {
                 // console.log('some defines changed, need to rebuild programs')
-                Object.keys(RenderVariantDefines).forEach(k => {
-                    const variantDefineValues: Values<RenderableSchema> = (RenderVariantDefines as any)[k]
+                Object.keys(renderVariantDefines).forEach(k => {
+                    const variantDefineValues: Values<RenderableSchema> = (renderVariantDefines as any)[k]
                     programs[k].free()
                     programs[k] = programCache.get({
                         defineValues: { ...defineValues, ...variantDefineValues },
@@ -241,7 +262,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
                 // console.log('program/defines or buffers changed, update vaos')
                 const { vertexArrayObject } = ctx.extensions
                 if (vertexArrayObject) {
-                    Object.keys(RenderVariantDefines).forEach(k => {
+                    Object.keys(renderVariantDefines).forEach(k => {
                         vertexArrayObject.bindVertexArray(vertexArrays[k])
                         if (elementsBuffer && (valueChanges.defines || valueChanges.elements)) {
                             elementsBuffer.bind()
@@ -274,7 +295,7 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
         },
         destroy: () => {
             if (!destroyed) {
-                Object.keys(RenderVariantDefines).forEach(k => {
+                Object.keys(renderVariantDefines).forEach(k => {
                     programs[k].free()
                     deleteVertexArray(ctx, vertexArrays[k])
                 })

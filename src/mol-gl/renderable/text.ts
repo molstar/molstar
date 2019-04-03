@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { WebGLContext } from '../webgl/context';
-import { createRenderItem } from '../webgl/render-item';
+import { createGraphicsRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, Values, InternalSchema, SizeSchema, InternalValues, TextureSpec, ElementsSpec, ValueSpec } from './schema';
 import { TextShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
@@ -41,6 +41,6 @@ export function TextRenderable(ctx: WebGLContext, id: number, values: TextValues
         uPickable: ValueCell.create(state.pickable ? 1 : 0)
     }
     const shaderCode = TextShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
     return createRenderable(renderItem, values, state);
 }

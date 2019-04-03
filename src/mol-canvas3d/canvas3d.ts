@@ -19,7 +19,7 @@ import { createContext, getGLContext, WebGLContext } from 'mol-gl/webgl/context'
 import { Representation } from 'mol-repr/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
-import { RenderVariant } from 'mol-gl/webgl/render-item';
+import { GraphicsRenderVariant } from 'mol-gl/webgl/render-item';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
@@ -70,7 +70,7 @@ interface Canvas3D {
     resetCamera: () => void
     readonly camera: Camera
     downloadScreenshot: () => void
-    getImageData: (variant: RenderVariant) => ImageData
+    getImageData: (variant: GraphicsRenderVariant) => ImageData
     setProps: (props: Partial<Canvas3DProps>) => void
 
     /** Returns a copy of the current Canvas3D instance props */
@@ -388,7 +388,7 @@ namespace Canvas3D {
             downloadScreenshot: () => {
                 // TODO
             },
-            getImageData: (variant: RenderVariant) => {
+            getImageData: (variant: GraphicsRenderVariant) => {
                 switch (variant) {
                     case 'draw': return renderer.getImageData()
                     case 'pickObject': return objectPickTarget.getImageData()

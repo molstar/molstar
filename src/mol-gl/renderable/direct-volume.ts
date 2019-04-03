@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { WebGLContext } from '../webgl/context';
-import { createRenderItem } from '../webgl/render-item';
+import { createGraphicsRenderItem } from '../webgl/render-item';
 import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec, InternalValues } from './schema';
 import { DirectVolumeShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
@@ -79,6 +79,6 @@ export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: Di
         uPickable: ValueCell.create(state.pickable ? 1 : 0),
     }
     const shaderCode = DirectVolumeShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
     return createRenderable(renderItem, values, state);
 }

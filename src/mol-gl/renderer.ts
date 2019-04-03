@@ -14,7 +14,7 @@ import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
 import { ValueCell } from 'mol-util';
 import { RenderableValues, GlobalUniformValues, BaseValues } from './renderable/schema';
-import { RenderVariant } from './webgl/render-item';
+import { GraphicsRenderVariant } from './webgl/render-item';
 
 export interface RendererStats {
     programCount: number
@@ -36,7 +36,7 @@ interface Renderer {
     readonly props: RendererProps
 
     clear: () => void
-    render: (scene: Scene, variant: RenderVariant) => void
+    render: (scene: Scene, variant: GraphicsRenderVariant) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     setClearColor: (color: Color) => void
     setPickingAlphaThreshold: (value: number) => void
@@ -108,7 +108,7 @@ namespace Renderer {
         const globalUniformList = Object.entries(globalUniforms)
 
         let globalUniformsNeedUpdate = true
-        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
+        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant) => {
             const program = r.getProgram(variant)
             if (r.state.visible) {
                 if (state.currentProgramId !== program.id) {
@@ -152,7 +152,7 @@ namespace Renderer {
             }
         }
 
-        const render = (scene: Scene, variant: RenderVariant) => {
+        const render = (scene: Scene, variant: GraphicsRenderVariant) => {
             ValueCell.update(globalUniforms.uModel, scene.view)
             ValueCell.update(globalUniforms.uView, camera.view)
             ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view))
