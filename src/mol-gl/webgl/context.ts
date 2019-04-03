@@ -107,6 +107,7 @@ function waitForGpuCommandsComplete(gl: GLRenderingContext): Promise<void> {
 }
 
 function waitForGpuCommandsCompleteSync(gl: GLRenderingContext): void {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
 }
 
