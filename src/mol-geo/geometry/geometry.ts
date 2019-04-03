@@ -21,6 +21,7 @@ import { TransformData } from './transform-data';
 import { Theme } from 'mol-theme/theme';
 import { RenderObjectValuesType } from 'mol-gl/render-object';
 import { ValueOf } from 'mol-util/type-helpers';
+import { Isosurface } from './isosurface/isosurface';
 
 export type GeometryKindType = {
     'mesh': Mesh,
@@ -29,6 +30,7 @@ export type GeometryKindType = {
     'text': Text,
     'lines': Lines,
     'direct-volume': DirectVolume,
+    'isosurface': Isosurface,
 }
 export type GeometryKindParams = {
     'mesh': Mesh.Params,
@@ -37,6 +39,7 @@ export type GeometryKindParams = {
     'text': Text.Params,
     'lines': Lines.Params,
     'direct-volume': DirectVolume.Params,
+    'isosurface': Isosurface.Params,
 }
 export type GeometryKind = keyof GeometryKindType
 export type Geometry = ValueOf<GeometryKindType>
@@ -63,6 +66,7 @@ export namespace Geometry {
             case 'text': return geometry.charCount * 2 * 3
             case 'lines': return geometry.lineCount * 2 * 3
             case 'direct-volume': return 12 * 3
+            case 'isosurface': return geometry.vertexCount.ref.value * 3
         }
     }
 
@@ -76,6 +80,8 @@ export namespace Geometry {
                 return getDrawCount(geometry) === 0 ? 0 : (arrayMax(geometry.groupBuffer.ref.value) + 1)
             case 'direct-volume':
                 return 1
+            case 'isosurface':
+                return geometry.groupCount.ref.value
         }
     }
 
@@ -88,6 +94,7 @@ export namespace Geometry {
             case 'text': return Text.Utils as any
             case 'lines': return Lines.Utils as any
             case 'direct-volume': return DirectVolume.Utils as any
+            case 'isosurface': return Isosurface.Utils as any
         }
         throw new Error('unknown geometry kind')
     }

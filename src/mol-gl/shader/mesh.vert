@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,7 +10,13 @@ precision highp int;
 #pragma glslify: import('./chunks/common-vert-params.glsl')
 #pragma glslify: import('./chunks/color-vert-params.glsl')
 
-attribute vec3 aPosition;
+#ifdef dPositionTexture
+    attribute float aIndex;
+    uniform vec2 uPositionTexDim;
+    uniform sampler2D tPosition;
+#else
+    attribute vec3 aPosition;
+#endif
 attribute mat4 aTransform;
 attribute float aInstance;
 attribute float aGroup;
