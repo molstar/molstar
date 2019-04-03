@@ -45,37 +45,39 @@ export function getTarget(ctx: WebGLContext, kind: TextureKind): number {
     throw new Error(`unknown texture kind '${kind}'`)
 }
 
-export function getFormat(ctx: WebGLContext, format: TextureFormat): number {
+export function getFormat(ctx: WebGLContext, format: TextureFormat, type: TextureType): number {
     const { gl } = ctx
     switch (format) {
-        case 'alpha': return gl.ALPHA
+        case 'alpha':
+            if (isWebGL2 && type === 'float') return (gl as WebGL2RenderingContext).RED
+            else return gl.ALPHA
         case 'rgb': return gl.RGB
         case 'rgba': return gl.RGBA
     }
 }
 
 export function getInternalFormat(ctx: WebGLContext, format: TextureFormat, type: TextureType): number {
-    const { gl, isWebGL2 } = ctx
-    if (isWebGL2) {
+    const { gl } = ctx
+    if (isWebGL2(gl)) {
         switch (format) {
             case 'alpha':
                 switch (type) {
                     case 'ubyte': return gl.ALPHA
-                    case 'float': throw new Error('invalid format/type combination alpha/float')
+                    case 'float': return gl.R32F
                 }
             case 'rgb':
                 switch (type) {
                     case 'ubyte': return gl.RGB
-                    case 'float': return (gl as WebGL2RenderingContext).RGB32F
+                    case 'float': return gl.RGB32F
                 }
             case 'rgba':
                 switch (type) {
                     case 'ubyte': return gl.RGBA
-                    case 'float': return (gl as WebGL2RenderingContext).RGBA32F
+                    case 'float': return gl.RGBA32F
                 }
         }
     }
-    return getFormat(ctx, format)
+    return getFormat(ctx, format, type)
 }
 
 export function getType(ctx: WebGLContext, type: TextureType): number {
@@ -156,7 +158,7 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
 
     const target = getTarget(ctx, kind)
     const filter = getFilter(ctx, _filter)
-    const format = getFormat(ctx, _format)
+    const format = getFormat(ctx, _format, _type)
     const internalFormat = getInternalFormat(ctx, _format, _type)
     const type = getType(ctx, _type)
 
@@ -189,8 +191,8 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
             gl.bindTexture(target, texture)
             if (target === gl.TEXTURE_2D) {
                 gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, null)
-            } else if (target === (gl as WebGL2RenderingContext).TEXTURE_3D && depth !== undefined) {
-                (gl as WebGL2RenderingContext).texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, null)
+            } else if (isWebGL2(gl) && target === gl.TEXTURE_3D && depth !== undefined) {
+                gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, null)
             } else {
                 throw new Error('unknown texture target')
             }
@@ -205,10 +207,10 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
                 const { array, width: _width, height: _height } = data as TextureImage<any>
                 width = _width, height = _height;
                 gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, array)
-            } else if (target === (gl as WebGL2RenderingContext).TEXTURE_3D) {
+            } else if (isWebGL2(gl) && target === gl.TEXTURE_3D) {
                 const { array, width: _width, height: _height, depth: _depth } = data as TextureVolume<any>
-                width = _width, height = _height, depth = _depth;
-                (gl as WebGL2RenderingContext).texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, array)
+                width = _width, height = _height, depth = _depth
+                gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, array)
             } else {
                 throw new Error('unknown texture target')
             }
@@ -250,7 +252,7 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
 
 export function createTextures(ctx: WebGLContext, schema: RenderableSchema, values: TextureValues) {
     const textures: Textures = []
-    Object.keys(schema).forEach((k, i) => {
+    Object.keys(schema).forEach(k => {
         const spec = schema[k]
         if (spec.type === 'texture') {
             if (spec.kind === 'texture') {
