@@ -65,7 +65,6 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length })
                 }
             } else if (structure && !Structure.areEquivalent(structure, _structure)) {
-                // console.log(label, 'structure not equivalent')
                 // Tries to re-use existing visuals for the groups of the new structure.
                 // Creates additional visuals if needed, destroys left-over visuals.
                 _groups = structure.unitSymmetryGroups;

@@ -120,8 +120,12 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
         }
 
         // check if the conformation of unit.model has changed
-        if (Unit.conformationId(newStructureGroup.group.units[0]) !== Unit.conformationId(currentStructureGroup.group.units[0])) {
+        // if (Unit.conformationId(newStructureGroup.group.units[0]) !== Unit.conformationId(currentStructureGroup.group.units[0])) {
+        if (Unit.conformationId(newStructureGroup.group.units[0]) !== Unit.conformationId(currentStructureGroup.group.units[0])
+            // TODO: this needs more attention
+            || newStructureGroup.group.units[0].conformation !== currentStructureGroup.group.units[0].conformation) {
             // console.log('new conformation')
+            updateState.updateTransform = true;
             updateState.createGeometry = true
         }
 

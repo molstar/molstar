@@ -83,7 +83,12 @@ namespace StructureSymmetry {
     export function areTransformGroupsEquivalent(a: ReadonlyArray<Unit.SymmetryGroup>, b: ReadonlyArray<Unit.SymmetryGroup>) {
         if (a.length !== b.length) return false
         for (let i = 0, il = a.length; i < il; ++i) {
+            const au = a[i].units, bu = b[i].units;
+            if (au.length !== bu.length) return false;
             if (a[i].hashCode !== b[i].hashCode) return false
+            for (let j = 0, _j = au.length; j < _j; j++) {
+                if (au[j].conformation !== bu[j].conformation) return false;
+            }
         }
         return true
     }
