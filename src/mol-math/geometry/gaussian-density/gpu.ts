@@ -115,7 +115,7 @@ async function calcGaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLCon
     framebuffer.bind()
     setRenderingDefaults(gl)
 
-    if (!texture) texture = createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'linear')
+    if (!texture) texture = createTexture(webgl, 'image-float32', 'rgba', 'float', 'nearest')
     texture.define(texDimX, texDimY)
 
     function render(fbTex: Texture) {
@@ -173,7 +173,7 @@ async function calcGaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLCon
     setRenderingDefaults(gl)
     gl.viewport(0, 0, dx, dy)
 
-    if (!texture) texture = createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
+    if (!texture) texture = createTexture(webgl, 'volume-float32', 'rgba', 'float', 'nearest')
     texture.define(dx, dy, dz)
 
     function render(fbTex: Texture) {
@@ -330,7 +330,7 @@ function getTexture2dSize(gridDim: Vec3) {
     return { texDimX, texDimY, texRows, texCols }
 }
 
-async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3) {
+export async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3) {
     // console.time('fieldFromTexture2d')
     const { framebufferCache } = ctx
     const [ dx, dy, dz ] = dim
@@ -343,7 +343,8 @@ async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3
     const idData = space.create()
     const idField = Tensor.create(space, idData)
 
-    const image = new Uint8Array(width * height * 4)
+    // const image = new Uint8Array(width * height * 4)
+    const image = new Float32Array(width * height * 4)
 
     const framebuffer = framebufferCache.get(FramebufferName).value
     framebuffer.bind()
@@ -365,8 +366,8 @@ async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3
         for (let iy = 0; iy < dy; ++iy) {
             for (let ix = 0; ix < dx; ++ix) {
                 const idx = 4 * (tmpCol * dx + (iy + tmpRow) * width + ix)
-                data[j] = image[idx + 3] / 255
-                idData[j] = decodeFloatRGB(image[idx], image[idx + 1], image[idx + 2])
+                data[j] = image[idx + 3] // / 255
+                idData[j] = decodeFloatRGB(image[idx] * 255, image[idx + 1] * 255, image[idx + 2] * 255)
                 j++
             }
         }
