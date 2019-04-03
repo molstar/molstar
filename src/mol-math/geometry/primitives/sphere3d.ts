@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,6 +9,7 @@ import { Vec3, Mat4, EPSILON } from '../../linear-algebra'
 import { PositionData } from '../common'
 import { OrderedSet } from 'mol-data/int';
 import { NumberArray } from 'mol-util/type-helpers';
+import { Box3D } from './box3d';
 
 interface Sphere3D { center: Vec3, radius: number }
 
@@ -73,6 +74,12 @@ namespace Sphere3D {
     export function fromArray(out: Sphere3D, array: NumberArray, offset: number) {
         Vec3.fromArray(out.center, array, offset)
         out.radius = array[offset + 3]
+        return out
+    }
+
+    export function fromBox3D(out: Sphere3D, box: Box3D) {
+        Vec3.scale(out.center, Vec3.add(out.center, box.max, box.min), 0.5)
+        out.radius = Vec3.distance(out.center, box.max)
         return out
     }
 
