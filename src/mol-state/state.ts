@@ -79,10 +79,10 @@ class State {
         const cell = this.cells.get(ref);
         if (!cell) return;
 
-        const update = typeof stateOrProvider === 'function' ? stateOrProvider(cell.transform.state) : stateOrProvider;
+        const update = typeof stateOrProvider === 'function' ? stateOrProvider(cell.state) : stateOrProvider;
 
-        if (this._tree.updateState(cell.transform.ref, update)) {
-            cell.transform = this._tree.transforms.get(cell.transform.ref);
+        if (StateTransform.assignState(cell.state, update)) {
+            cell.transform = this._tree.assignState(cell.transform.ref, update);
             this.events.cell.stateUpdated.next({ state: this, ref, cell });
         }
     }
@@ -210,6 +210,7 @@ class State {
             sourceRef: void 0,
             obj: rootObject,
             status: 'ok',
+            state: { ...root.state },
             errorText: void 0,
             params: {
                 definition: {},
@@ -407,7 +408,7 @@ function findDeletes(ctx: UpdateContext): Ref[] {
 
 function syncNewStatesVisitor(n: StateTransform, tree: StateTree, ctx: UpdateContext) {
     const cell = ctx.cells.get(n.ref);
-    if (!cell || !StateTransform.syncState(cell.transform.state, n.state)) return;
+    if (!cell || !StateTransform.syncState(cell.state, n.state)) return;
     ctx.parent.events.cell.stateUpdated.next({ state: ctx.parent, ref: n.ref, cell });
 }
 
@@ -445,6 +446,7 @@ function initCellsVisitor(transform: StateTransform, _: any, { ctx, added }: Ini
         transform,
         sourceRef: void 0,
         status: 'pending',
+        state: { ...transform.state },
         errorText: void 0,
         params: void 0,
         cache: void 0

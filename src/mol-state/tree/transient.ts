@@ -140,22 +140,21 @@ class TransientTree implements StateTree {
         return true;
     }
 
-    updateState(ref: StateTransform.Ref, state?: Partial<StateTransform.State>) {
+    assignState(ref: StateTransform.Ref, state?: Partial<StateTransform.State>) {
         ensurePresent(this.transforms, ref);
 
         const old = this.transforms.get(ref);
-        if (!StateTransform.isStateChange(old.state, state)) return false;
-
-        if (this._stateUpdates && this._stateUpdates.has(old.ref)) {
+        if (this._stateUpdates && this._stateUpdates.has(ref)) {
             StateTransform.assignState(old.state, state);
+            return old;
         } else {
             if (!this._stateUpdates) this._stateUpdates = new Set();
             this._stateUpdates.add(old.ref);
             this.changeNodes();
-            this.transforms.set(ref, StateTransform.withState(old, state));
+            const updated = StateTransform.withState(old, state);
+            this.transforms.set(ref, updated);
+            return updated;
         }
-
-        return true;
     }
 
     remove(ref: StateTransform.Ref): StateTransform[] {

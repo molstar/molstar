@@ -87,7 +87,7 @@ export function ToggleExpanded(ctx: PluginContext) {
 }
 
 export function ToggleVisibility(ctx: PluginContext) {
-    PluginCommands.State.ToggleVisibility.subscribe(ctx, ({ state, ref }) => setVisibility(state, ref, !state.cells.get(ref)!.transform.state.isHidden));
+    PluginCommands.State.ToggleVisibility.subscribe(ctx, ({ state, ref }) => setVisibility(state, ref, !state.cells.get(ref)!.state.isHidden));
 }
 
 function setVisibility(state: State, root: StateTransform.Ref, value: boolean) {
