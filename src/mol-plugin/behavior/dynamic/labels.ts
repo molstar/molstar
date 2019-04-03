@@ -118,7 +118,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
             for (const s of structures) {
                 const rootStructure = getRootStructure(s, state)
                 if (!rootStructure || !SO.Molecule.Structure.is(rootStructure.obj)) continue
-                if (!s.state.isHidden) {
+                if (!s.transform.state.isHidden) {
                     rootStructures.add(rootStructure.obj)
                 }
             }

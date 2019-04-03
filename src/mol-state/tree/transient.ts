@@ -19,6 +19,7 @@ class TransientTree implements StateTree {
     private changedChildren = false;
 
     private _childMutations: Map<StateTransform.Ref, OrderedSet<StateTransform.Ref>> | undefined = void 0;
+    private _stateUpdates: Set<StateTransform.Ref> | undefined = void 0;
 
     private get childMutations() {
         if (this._childMutations) return this._childMutations;
@@ -145,9 +146,14 @@ class TransientTree implements StateTree {
         const old = this.transforms.get(ref);
         if (!StateTransform.isStateChange(old.state, state)) return false;
 
-        this.changeNodes();
-        // TODO: cache these changes?
-        this.transforms.set(ref, StateTransform.withState(old, state));
+        if (this._stateUpdates && this._stateUpdates.has(old.ref)) {
+            StateTransform.assignState(old.state, state);
+        } else {
+            if (!this._stateUpdates) this._stateUpdates = new Set();
+            this._stateUpdates.add(old.ref);
+            this.changeNodes();
+            this.transforms.set(ref, StateTransform.withState(old, state));
+        }
 
         return true;
     }

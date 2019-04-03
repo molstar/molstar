@@ -54,8 +54,8 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
             if (this.props.cell === e.cell && this.is(e) && e.state.cells.has(this.ref)) {
                 this.forceUpdate();
-                // if (!!this.props.cell.state.isCollapsed !== this.state.isCollapsed) {
-                //     this.setState({ isCollapsed: !!e.cell.state.isCollapsed });
+                // if (!!this.props.cell.transform.state.isCollapsed !== this.state.isCollapsed) {
+                //     this.setState({ isCollapsed: !!e.cell.transform.state.isCollapsed });
                 // }
             }
         });
@@ -74,22 +74,22 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
     }
 
     state = {
-        isCollapsed: !!this.props.cell.state.isCollapsed
+        isCollapsed: !!this.props.cell.transform.state.isCollapsed
     }
 
     static getDerivedStateFromProps(props: _Props<StateTreeNode>, state: _State<StateTreeNode>): _State<StateTreeNode> | null {
-        if (!!props.cell.state.isCollapsed === state.isCollapsed) return null;
-        return { isCollapsed: !!props.cell.state.isCollapsed };
+        if (!!props.cell.transform.state.isCollapsed === state.isCollapsed) return null;
+        return { isCollapsed: !!props.cell.transform.state.isCollapsed };
     }
 
     render() {
         const cell = this.props.cell;
-        if (!cell || cell.obj === StateObject.Null) {
+        if (!cell || cell.obj === StateObject.Null || !cell.parent.tree.transforms.has(cell.transform.ref)) {
             return null;
         }
 
-        const cellState = cell.state;
-        const showLabel = cell.status !== 'ok' || !cell.state.isGhost;
+        const cellState = cell.transform.state;
+        const showLabel = cell.status !== 'ok' || !cell.transform.state.isGhost;
         const children = cell.parent.tree.children.get(this.ref);
         const newDepth = showLabel ? this.props.depth + 1 : this.props.depth;
 
@@ -140,7 +140,7 @@ class StateTreeNodeLabel extends PluginUIComponent<
             if (e.state.transforms.has(this.ref)) {
                 this.setState({
                     isCurrent: this.props.cell.parent.current === this.ref,
-                    isCollapsed: !!this.props.cell.state.isCollapsed
+                    isCollapsed: !!this.props.cell.transform.state.isCollapsed
                 });
             }
         });
@@ -148,12 +148,12 @@ class StateTreeNodeLabel extends PluginUIComponent<
 
     state = {
         isCurrent: this.props.cell.parent.current === this.ref,
-        isCollapsed: !!this.props.cell.state.isCollapsed
+        isCollapsed: !!this.props.cell.transform.state.isCollapsed
     }
 
     static getDerivedStateFromProps(props: _Props<StateTreeNodeLabel>, state: _State<StateTreeNodeLabel>): _State<StateTreeNodeLabel> | null {
         const isCurrent = props.cell.parent.current === props.cell.transform.ref;
-        const isCollapsed = !!props.cell.state.isCollapsed;
+        const isCollapsed = !!props.cell.transform.state.isCollapsed;
 
         if (state.isCollapsed === isCollapsed && state.isCurrent === isCurrent) return null;
         return { isCurrent, isCollapsed };
@@ -227,7 +227,7 @@ class StateTreeNodeLabel extends PluginUIComponent<
         }
 
         const children = cell.parent.tree.children.get(this.ref);
-        const cellState = cell.state;
+        const cellState = cell.transform.state;
 
         const visibility = <button onClick={this.toggleVisible} className={`msp-btn msp-btn-link msp-tree-visibility${cellState.isHidden ? ' msp-tree-visibility-hidden' : ''}`}>
             <span className='msp-icon msp-icon-visual-visibility' />
@@ -244,7 +244,7 @@ class StateTreeNodeLabel extends PluginUIComponent<
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />
             </button>}
-            {!cell.state.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
+            {!cell.transform.state.isLocked && <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
                 <span className='msp-icon msp-icon-remove' />
             </button>}{visibility}
         </div>;

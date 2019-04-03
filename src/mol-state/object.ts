@@ -64,7 +64,7 @@ interface StateObjectCell<T extends StateObject = StateObject, F extends StateTr
     sourceRef: StateTransform.Ref | undefined,
 
     status: StateObjectCell.Status,
-    state: StateTransform.State,
+    // state: StateTransform.State,
 
     params: {
         definition: ParamDefinition.Params,
