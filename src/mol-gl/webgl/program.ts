@@ -134,7 +134,7 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
     vertShaderRef.value.attach(program)
     fragShaderRef.value.attach(program)
     gl.linkProgram(program)
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    if (!isProductionMode && !gl.getProgramParameter(program, gl.LINK_STATUS)) {
         throw new Error(`Could not compile WebGL program. \n\n${gl.getProgramInfoLog(program)}`);
     }
 

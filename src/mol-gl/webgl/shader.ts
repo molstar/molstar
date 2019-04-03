@@ -7,6 +7,7 @@
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 import { idFactory } from 'mol-util/id-factory';
 import { GLRenderingContext } from './compat';
+import { isProductionMode } from 'mol-util/debug';
 
 const getNextShaderId = idFactory()
 
@@ -37,7 +38,7 @@ function createShader(gl: GLRenderingContext, props: ShaderProps): Shader {
     gl.shaderSource(shader, source)
     gl.compileShader(shader)
 
-    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS) === false) {
+    if (!isProductionMode && gl.getShaderParameter(shader, gl.COMPILE_STATUS) === false) {
         console.warn(`'${type}' shader info log '${gl.getShaderInfoLog(shader)}'\n${addLineNumbers(source)}`)
         throw new Error(`Error compiling ${type} shader`)
     }
