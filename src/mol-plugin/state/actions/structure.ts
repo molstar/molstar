@@ -287,6 +287,15 @@ export const EnableModelCustomProps = StateAction.build({
     return state.updateTree(root);
 });
 
+export const TransformStructureConformation = StateAction.build({
+    display: { name: 'Transform Conformation' },
+    from: PluginStateObject.Molecule.Structure,
+    params: StateTransforms.Model.TransformStructureConformation.definition.params,
+})(({ ref, params, state }) => {
+    const root = state.build().to(ref).insert(StateTransforms.Model.TransformStructureConformation, params as any);
+    return state.updateTree(root);
+});
+
 export const StructureFromSelection = StateAction.build({
     display: { name: 'Selection Structure', description: 'Create a new Structure from the current selection.' },
     from: PluginStateObject.Molecule.Structure,

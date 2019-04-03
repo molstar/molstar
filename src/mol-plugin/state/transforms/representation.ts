@@ -15,7 +15,7 @@ import { BuiltInVolumeRepresentationsName } from 'mol-repr/volume/registry';
 import { VolumeParams } from 'mol-repr/volume/representation';
 import { StateTransformer } from 'mol-state';
 import { Task } from 'mol-task';
-import { BuiltInColorThemeName, ColorTheme } from 'mol-theme/color';
+import { BuiltInColorThemeName, ColorTheme, BuiltInColorThemes } from 'mol-theme/color';
 import { BuiltInSizeThemeName, SizeTheme } from 'mol-theme/size';
 import { createTheme, ThemeRegistryContext } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -191,6 +191,19 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             return StateTransformer.UpdateResult.Updated;
         });
+    },
+    interpolate(src, tar, t) {
+        if (src.colorTheme.name !== 'uniform' || tar.colorTheme.name !== 'uniform') {
+            return t <= 0.5 ? src : tar;
+        }
+        BuiltInColorThemes
+        const from = src.colorTheme.params.value as Color, to = tar.colorTheme.params.value as Color;
+        const value = Color.interpolate(from, to, t);
+        return {
+            type: t <= 0.5 ? src.type : tar.type,
+            colorTheme: { name: 'uniform', params: { value } },
+            sizeTheme: t <= 0.5 ? src.sizeTheme : tar.sizeTheme,
+        };
     }
 });
 
