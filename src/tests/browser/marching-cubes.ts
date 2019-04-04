@@ -39,21 +39,21 @@ canvas3d.animate()
 async function init() {
     const { webgl } = canvas3d
 
-    const position: PositionData = {
-        x: [0, 2],
-        y: [0, 2],
-        z: [0, 2],
-        indices: OrderedSet.ofSortedArray([0, 1]),
-    }
-    const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(3, 3, 3))
     // const position: PositionData = {
-    //     x: [0],
-    //     y: [0],
-    //     z: [0],
-    //     indices: OrderedSet.ofSortedArray([0]),
+    //     x: [0, 2],
+    //     y: [0, 2],
+    //     z: [0, 2],
+    //     indices: OrderedSet.ofSortedArray([0, 1]),
     // }
-    // const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1))
-    const radius = () => 1.6
+    // const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(3, 3, 3))
+    const position: PositionData = {
+        x: [0],
+        y: [0],
+        z: [0],
+        indices: OrderedSet.ofSortedArray([0]),
+    }
+    const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1))
+    const radius = () => 1.4
     const props = {
         resolution: 0.1,
         radiusOffset: 0,
@@ -138,7 +138,7 @@ async function init() {
     console.timeEnd('cpu mc')
     // console.log('surface', surface)
     Mesh.computeNormalsImmediate(surface)
-    const meshProps = { doubleSided: true, flatShaded: true, alpha: 1.0 }
+    const meshProps = { doubleSided: true, flatShaded: true, alpha: 0.1 }
     const meshValues = Mesh.Utils.createValuesSimple(surface, meshProps, Color(0x995511), 1)
     const meshState = Mesh.Utils.createRenderableState(meshProps)
     const meshRenderObject = createRenderObject('mesh', meshValues, meshState, -1)

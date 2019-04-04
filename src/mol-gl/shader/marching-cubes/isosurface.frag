@@ -20,22 +20,15 @@ uniform vec2 uScale;
 
 varying vec2 vCoordinate;
 
-// const vec3 c0  = vec3(0., 0., 0.);
-// const vec3 c1  = vec3(1., 0., 0.);
-// const vec3 c2  = vec3(1., 1., 0.);
-// const vec3 c3  = vec3(0., 1., 0.);
-// const vec3 c4  = vec3(0., 0., 1.);
-// const vec3 c5  = vec3(1., 0., 1.);
-// const vec3 c6  = vec3(1., 1., 1.);
-// const vec3 c7  = vec3(0., 1., 1.);
-
-const vec3 p0 = vec3(1., 0., 0.);
-const vec3 p1 = vec3(1., 1., 0.);
-const vec3 p2 = vec3(0., 1., 0.);
-const vec3 p3 = vec3(0., 0., 1.);
-const vec3 p4 = vec3(1., 0., 1.);
-const vec3 p5 = vec3(1., 1., 1.);
-const vec3 p6 = vec3(0., 1., 1.);
+// cube corners
+const vec3 c0 = vec3(0., 0., 0.);
+const vec3 c1 = vec3(1., 0., 0.);
+const vec3 c2 = vec3(1., 1., 0.);
+const vec3 c3 = vec3(0., 1., 0.);
+const vec3 c4 = vec3(0., 0., 1.);
+const vec3 c5 = vec3(1., 0., 1.);
+const vec3 c6 = vec3(1., 1., 1.);
+const vec3 c7 = vec3(0., 1., 1.);
 
 vec3 index3dFrom2d(vec2 coord) {
     vec2 gridTexPos = coord * uGridTexDim.xy;
@@ -107,7 +100,7 @@ void main(void) {
     vec2 coord2d = position * uScale;
     vec3 coord3d = floor(index3dFrom2d(coord2d) + 0.5);
 
-    float edgeIndex = texture2D(tActiveVoxelsBase, position * uScale).a;
+    float edgeIndex = floor(texture2D(tActiveVoxelsBase, position * uScale).a + 0.5);
 
     // current vertex for the up to 15 MC cases
     float currentVertex = vI - dot(m, starts);
@@ -127,29 +120,30 @@ void main(void) {
 
     // apply bit masks
     vec3 b0 = coord3d +
-                m1.y * p0 +
-                m1.z * p1 +
-                m1.w * p2 +
-                m2.x * p3 +
-                m2.y * p4 +
-                m2.z * p5 +
-                m2.w * p6 +
-                m3.y * p0 +
-                m3.z * p1 +
-                m3.w * p2;
+                m1.y * c1 +
+                m1.z * c2 +
+                m1.w * c3 +
+                m2.x * c4 +
+                m2.y * c5 +
+                m2.z * c6 +
+                m2.w * c7 +
+                m3.y * c1 +
+                m3.z * c2 +
+                m3.w * c3;
     vec3 b1 = coord3d +
-                m1.x * p0 +
-                m1.y * p1 +
-                m1.z * p2 +
-                m2.x * p4 +
-                m2.y * p5 +
-                m2.z * p6 +
-                m2.w * p3 +
-                m3.x * p3 +
-                m3.y * p4 +
-                m3.z * p5 +
-                m3.w * p6;
+                m1.x * c1 +
+                m1.y * c2 +
+                m1.z * c3 +
+                m2.x * c5 +
+                m2.y * c6 +
+                m2.z * c7 +
+                m2.w * c4 +
+                m3.x * c4 +
+                m3.y * c5 +
+                m3.z * c6 +
+                m3.w * c7;
 
+    // the conditionals that are avoided by above bitmasks
     // vec3 b0 = coord3d;
     // vec3 b1 = coord3d;
     // if (mcIndex == 0.0) {
@@ -184,5 +178,6 @@ void main(void) {
     float v1 = voxel(b1 / uGridDim).a;
 
     float t = (uIsoValue - v0) / (v0 - v1);
+    t = -0.5;
     gl_FragColor.xyz = b0 + t * (b0 - b1);
 }

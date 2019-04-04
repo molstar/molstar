@@ -1,5 +1,5 @@
-precision mediump float;
-precision mediump sampler2D;
+precision highp float;
+precision highp sampler2D;
 
 // input texture (previous level used to evaluate the new level)
 uniform sampler2D tPreviousLevel;

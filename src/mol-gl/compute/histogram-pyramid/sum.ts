@@ -7,35 +7,28 @@
 import { createComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
-import { AttributeSpec, Values, TextureSpec, ValueSpec } from '../../renderable/schema';
+import { Values, TextureSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
 import { decodeFloatRGB } from 'mol-util/float-packing';
-import { QuadPositions, readTexture } from '../util';
+import { readTexture, QuadSchema, QuadValues } from '../util';
 
 const HistopyramidSumSchema = {
-    drawCount: ValueSpec('number'),
-    instanceCount: ValueSpec('number'),
-    aPosition: AttributeSpec('float32', 2, 0),
-
+    ...QuadSchema,
     tTexture: TextureSpec('texture', 'rgba', 'float', 'nearest'),
 }
 
 function getHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture) {
     const values: Values<typeof HistopyramidSumSchema> = {
-        drawCount: ValueCell.create(6),
-        instanceCount: ValueCell.create(1),
-        aPosition: ValueCell.create(QuadPositions),
-
+        ...QuadValues,
         tTexture: ValueCell.create(texture),
     }
 
     const schema = { ...HistopyramidSumSchema }
     const shaderCode = ShaderCode(
         require('mol-gl/shader/quad.vert').default,
-        require('mol-gl/shader/histogram-pyramid/sum.frag').default,
-        { standardDerivatives: false, fragDepth: false }
+        require('mol-gl/shader/histogram-pyramid/sum.frag').default
     )
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
@@ -54,6 +47,7 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
     encodeFloatRenderable.update()
     encodeFloatRenderable.use()
 
+    // TODO cache globally for reuse
     const encodedFloatTexture = createTexture(ctx, 'image-uint8', 'rgba', 'ubyte', 'nearest')
     encodedFloatTexture.define(1, 1)
     encodedFloatTexture.attachFramebuffer(framebuffer, 0)

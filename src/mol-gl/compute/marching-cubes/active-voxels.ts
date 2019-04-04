@@ -7,22 +7,20 @@
 import { createComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
-import { AttributeSpec, Values, TextureSpec, ValueSpec, UniformSpec } from '../../renderable/schema';
+import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { QuadPositions } from '../util';
+import { QuadSchema, QuadValues } from '../util';
 import { getTriCount } from './tables';
 
 /** name for shared framebuffer used for gpu marching cubes operations */
 const FramebufferName = 'marching-cubes'
 
 const ActiveVoxelsSchema = {
-    drawCount: ValueSpec('number'),
-    instanceCount: ValueSpec('number'),
-    aPosition: AttributeSpec('float32', 2, 0),
+    ...QuadSchema,
 
     tTriCount: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     tVolumeData: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -34,9 +32,7 @@ const ActiveVoxelsSchema = {
 
 function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridDimensions: Vec3, isoValue: number) {
     const values: Values<typeof ActiveVoxelsSchema> = {
-        drawCount: ValueCell.create(6),
-        instanceCount: ValueCell.create(1),
-        aPosition: ValueCell.create(QuadPositions),
+        ...QuadValues,
 
         tTriCount: ValueCell.create(getTriCount()),
         tVolumeData: ValueCell.create(volumeData),
@@ -49,8 +45,7 @@ function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridD
     const schema = { ...ActiveVoxelsSchema }
     const shaderCode = ShaderCode(
         require('mol-gl/shader/quad.vert').default,
-        require('mol-gl/shader/marching-cubes/active-voxels.frag').default,
-        { standardDerivatives: false, fragDepth: false }
+        require('mol-gl/shader/marching-cubes/active-voxels.frag').default
     )
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 

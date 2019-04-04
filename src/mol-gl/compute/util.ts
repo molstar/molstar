@@ -7,12 +7,27 @@
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { Texture } from 'mol-gl/webgl/texture';
 import { printTextureImage } from 'mol-gl/renderable/util';
-import { defaults } from 'mol-util';
+import { defaults, ValueCell } from 'mol-util';
+import { ValueSpec, AttributeSpec } from 'mol-gl/renderable/schema';
 
 export const QuadPositions = new Float32Array([
-     1.0,  1.0,  -1.0,  1.0,  -1.0, -1.0, // First triangle:
-    -1.0, -1.0,   1.0, -1.0,   1.0,  1.0  // Second triangle:
+     1.0,  1.0,  -1.0,  1.0,  -1.0, -1.0, // First triangle
+    -1.0, -1.0,   1.0, -1.0,   1.0,  1.0  // Second triangle
 ])
+
+export const QuadSchema = {
+    drawCount: ValueSpec('number'),
+    instanceCount: ValueSpec('number'),
+    aPosition: AttributeSpec('float32', 2, 0)
+}
+
+export const QuadValues = {
+    drawCount: ValueCell.create(6),
+    instanceCount: ValueCell.create(1),
+    aPosition: ValueCell.create(QuadPositions),
+}
+
+//
 
 export function readTexture(ctx: WebGLContext, texture: Texture, width?: number, height?: number) {
     const { gl, framebufferCache } = ctx

@@ -7,30 +7,24 @@
 import { createComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
-import { AttributeSpec, Values, TextureSpec, ValueSpec, UniformSpec } from '../../renderable/schema';
+import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
-import { QuadPositions } from '../util';
+import { printTexture, QuadSchema, QuadValues } from '../util';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
 
 const HistopyramidReductionSchema = {
-    drawCount: ValueSpec('number'),
-    instanceCount: ValueSpec('number'),
-    aPosition: AttributeSpec('float32', 2, 0),
-
+    ...QuadSchema,
     tPreviousLevel: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     uSize: UniformSpec('f'),
 }
 
 function getHistopyramidReductionRenderable(ctx: WebGLContext, initialTexture: Texture) {
     const values: Values<typeof HistopyramidReductionSchema> = {
-        drawCount: ValueCell.create(6),
-        instanceCount: ValueCell.create(1),
-        aPosition: ValueCell.create(QuadPositions),
-
+        ...QuadValues,
         tPreviousLevel: ValueCell.create(initialTexture),
         uSize: ValueCell.create(0),
     }
@@ -38,8 +32,7 @@ function getHistopyramidReductionRenderable(ctx: WebGLContext, initialTexture: T
     const schema = { ...HistopyramidReductionSchema }
     const shaderCode = ShaderCode(
         require('mol-gl/shader/quad.vert').default,
-        require('mol-gl/shader/histogram-pyramid/reduction.frag').default,
-        { standardDerivatives: false, fragDepth: false }
+        require('mol-gl/shader/histogram-pyramid/reduction.frag').default
     )
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
@@ -73,6 +66,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
 
     // This part set the levels
     const levels = Math.ceil(Math.log(inputTextureMaxDim) / Math.log(2))
+    console.log('levels', levels)
 
     const initialTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     initialTexture.load({ array: new Float32Array(4), width: 1, height: 1 })
@@ -89,6 +83,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
     const pyramidTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     pyramidTexture.define(Math.pow(2, levels), Math.pow(2, levels))
 
+    // TODO cache globally for reuse
     const levelTextures: Texture[] = []
     for (let i = 0; i < levels; ++i) {
         const tex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
@@ -106,7 +101,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
         levelTextures[currLevel].attachFramebuffer(framebuffer, 0)
 
         const size = Math.pow(2, currLevel)
-        // console.log('size', size, 'draw-level', currLevel, 'read-level', levels - i)
+        console.log('size', size, 'draw-level', currLevel, 'read-level', levels - i)
         gl.clear(gl.COLOR_BUFFER_BIT)
 
         ValueCell.update(renderable.values.uSize, Math.pow(2, i + 1) / initialTextureMaxDim)
@@ -139,13 +134,13 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
         offset += size;
     }
 
-    // printTexture(ctx, pyramidTexture, 3)
+    printTexture(ctx, pyramidTexture, 3)
 
     //
 
     const finalCount = getHistopyramidSum(ctx, levelTextures[0])
     const height = Math.ceil(finalCount / Math.pow(2, levels))
-    // console.log('height', height)
+    console.log('height', height, 'finalCount', finalCount)
 
     //
 

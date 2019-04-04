@@ -7,13 +7,13 @@
 import { createComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
-import { AttributeSpec, Values, TextureSpec, ValueSpec, UniformSpec } from '../../renderable/schema';
+import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { Vec3, Vec2, Mat4 } from 'mol-math/linear-algebra';
-import { QuadPositions } from '../util';
+import { QuadSchema, QuadValues } from '../util';
 import { HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
 
@@ -21,9 +21,7 @@ import { getTriIndices } from './tables';
 const FramebufferName = 'marching-cubes'
 
 const IsosurfaceSchema = {
-    drawCount: ValueSpec('number'),
-    instanceCount: ValueSpec('number'),
-    aPosition: AttributeSpec('float32', 2, 0),
+    ...QuadSchema,
 
     tTriIndices: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     tActiveVoxelsPyramid: TextureSpec('texture', 'rgba', 'float', 'nearest'),
@@ -45,9 +43,7 @@ const IsosurfaceSchema = {
 function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, activeVoxelsTotal: Texture, gridDimensions: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2) {
     // console.log('uSize', Math.pow(2, levels))
     const values: Values<typeof IsosurfaceSchema> = {
-        drawCount: ValueCell.create(6),
-        instanceCount: ValueCell.create(1),
-        aPosition: ValueCell.create(QuadPositions),
+        ...QuadValues,
 
         tTriIndices: ValueCell.create(getTriIndices()),
         tActiveVoxelsPyramid: ValueCell.create(activeVoxelsPyramid),

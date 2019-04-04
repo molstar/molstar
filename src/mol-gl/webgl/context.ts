@@ -276,13 +276,13 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
     const framebufferCache: FramebufferCache = createFramebufferCache(gl, stats)
 
     const parameters = {
-        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
-        maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) : 0,
-        maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS),
+        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
+        maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) as number : 0,
+        maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) as number,
     }
 
-    if (parameters.maxVertexTextureImageUnits < 4) {
-        throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 4')
+    if (parameters.maxVertexTextureImageUnits < 8) {
+        throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8')
     }
 
     let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
