@@ -8,7 +8,7 @@ import { Unit, StructureElement, ElementIndex, Structure } from 'mol-model/struc
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
 import { Task } from 'mol-task';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { GaussianDensityTexture } from 'mol-math/geometry/gaussian-density/gpu';
+import { GaussianDensityTexture, GaussianDensityTexture2d } from 'mol-math/geometry/gaussian-density/gpu';
 import { Texture } from 'mol-gl/webgl/texture';
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { PhysicalSizeTheme } from 'mol-theme/size/physical';
@@ -68,10 +68,17 @@ export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityPro
     });
 }
 
-export function computeUnitGaussianDensityTexture(unit: Unit, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
+export function computeUnitGaussianDensityTexture(unit: Unit, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
     const { position, radius } = getUnitConformationAndRadius(unit)
     return Task.create('Gaussian Density', async ctx => {
         return await GaussianDensityTexture(ctx, webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
+    });
+}
+
+export function computeUnitGaussianDensityTexture2d(unit: Unit, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
+    const { position, radius } = getUnitConformationAndRadius(unit)
+    return Task.create('Gaussian Density', async ctx => {
+        return await GaussianDensityTexture2d(ctx, webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
     });
 }
 

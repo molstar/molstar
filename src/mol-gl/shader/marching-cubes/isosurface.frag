@@ -186,7 +186,7 @@ void main(void) {
 
     float t = (uIsoValue - v0) / (v0 - v1);
     // t = -0.5;
-    gl_FragColor.xyz = b0 + t * (b0 - b1);
+    gl_FragColor.xyz = (uGridTransform * vec4(b0 + t * (b0 - b1), 1.0)).xyz;
     gl_FragColor.w = decodeFloatRGB(d0.rgb); // group id
 
     // normals from gradients
@@ -201,4 +201,6 @@ void main(void) {
         v1 - voxel((b1 + c4) / uGridDim).a
     ));
     gl_FragData[1].xyz = -normalize((v0 * n0 + v1 * n1) / max(v0 + v1, EPS));
+    mat3 normalMatrix = transpose(inverse(mat3(uGridTransform)));
+    gl_FragData[1].xyz = normalMatrix * gl_FragData[1].xyz;
 }

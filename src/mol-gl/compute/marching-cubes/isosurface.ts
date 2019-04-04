@@ -13,7 +13,7 @@ import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { Vec3, Vec2, Mat4 } from 'mol-math/linear-algebra';
-import { QuadSchema, QuadValues, readTexture } from '../util';
+import { QuadSchema, QuadValues } from '../util';
 import { HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
 
@@ -138,8 +138,8 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     pr.render()
     gl.disable(gl.SCISSOR_TEST)
 
-    const vgt = readTexture(ctx, vertexGroupTexture, pyramidTex.width, height)
-    console.log('vertexGroupTexture', vgt.array.subarray(0, 4 * count))
+    // const vgt = readTexture(ctx, vertexGroupTexture, pyramidTex.width, height)
+    // console.log('vertexGroupTexture', vgt.array.subarray(0, 4 * count))
 
     // const vt = readTexture(ctx, verticesTex, pyramidTex.width, height)
     // console.log('vt', vt)

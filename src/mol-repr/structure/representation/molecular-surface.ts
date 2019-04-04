@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GaussianSurfaceVisual, GaussianSurfaceParams } from '../visual/gaussian-surface-mesh';
+import { GaussianSurfaceMeshVisual, GaussianSurfaceTextureMeshVisual, GaussianSurfaceParams } from '../visual/gaussian-surface-mesh';
 import { UnitsRepresentation } from '../units-representation';
 import { GaussianWireframeVisual, GaussianWireframeParams } from '../visual/gaussian-surface-wireframe';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -14,7 +14,8 @@ import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
 
 const MolecularSurfaceVisuals = {
-    'gaussian-surface': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceParams>) => UnitsRepresentation('Gaussian surface', ctx, getParams, GaussianSurfaceVisual),
+    'gaussian-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceParams>) => UnitsRepresentation('Gaussian surface', ctx, getParams, GaussianSurfaceMeshVisual),
+    'gaussian-surface-texture-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceParams>) => UnitsRepresentation('Gaussian surface', ctx, getParams, GaussianSurfaceTextureMeshVisual),
     'gaussian-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianWireframeParams>) => UnitsRepresentation('Gaussian wireframe', ctx, getParams, GaussianWireframeVisual),
 }
 type MolecularSurfaceVisualName = keyof typeof MolecularSurfaceVisuals
@@ -23,7 +24,7 @@ const MolecularSurfaceVisualOptions = Object.keys(MolecularSurfaceVisuals).map(n
 export const MolecularSurfaceParams = {
     ...GaussianSurfaceParams,
     ...GaussianWireframeParams,
-    visuals: PD.MultiSelect<MolecularSurfaceVisualName>(['gaussian-surface'], MolecularSurfaceVisualOptions),
+    visuals: PD.MultiSelect<MolecularSurfaceVisualName>(['gaussian-surface-mesh'], MolecularSurfaceVisualOptions),
 }
 export type MolecularSurfaceParams = typeof MolecularSurfaceParams
 export function getMolecularSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {

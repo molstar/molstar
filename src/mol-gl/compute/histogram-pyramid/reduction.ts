@@ -12,7 +12,7 @@ import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
-import { printTexture, QuadSchema, QuadValues } from '../util';
+import { QuadSchema, QuadValues } from '../util';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
 

@@ -7,7 +7,7 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps } from '../representation';
 import { Visual, VisualContext } from '../visual';
-import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureSpheresParams } from './representation';
+import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureSpheresParams, StructureTextureMeshParams } from './representation';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { GraphicsRenderObject, createRenderObject } from 'mol-gl/render-object';
 import { deepEqual, ValueCell } from 'mol-util';
@@ -33,6 +33,7 @@ import { Spheres } from 'mol-geo/geometry/spheres/spheres';
 import { createUnitsTransform, includesUnitKind } from './visual/util/common';
 import { Overpaint } from 'mol-theme/overpaint';
 import { Transparency } from 'mol-theme/transparency';
+import { TextureMesh } from 'mol-geo/geometry/texture-mesh/texture-mesh';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -328,7 +329,7 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLines
 
 export const UnitsDirectVolumeParams = { ...StructureDirectVolumeParams, ...UnitsParams }
 export type UnitsDirectVolumeParams = typeof UnitsDirectVolumeParams
-export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeParams> extends UnitsVisualGeometryBuilder<P, DirectVolume> { }
+export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeParams> extends UnitsVisualBuilder<P, DirectVolume> { }
 
 export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(builder: UnitsDirectVolumeVisualBuilder<P>, materialId: number): UnitsVisual<P> {
     return UnitsVisual<DirectVolume, StructureDirectVolumeParams & UnitsParams>({
@@ -338,5 +339,22 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(build
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         geometryUtils: DirectVolume.Utils
+    }, materialId)
+}
+
+// texture-mesh
+
+export const UnitsTextureMeshParams = { ...StructureTextureMeshParams, ...UnitsParams }
+export type UnitsTextureMeshParams = typeof UnitsTextureMeshParams
+export interface UnitsTextureMeshVisualBuilder<P extends UnitsTextureMeshParams> extends UnitsVisualBuilder<P, TextureMesh> { }
+
+export function UnitsTextureMeshVisual<P extends UnitsTextureMeshParams>(builder: UnitsTextureMeshVisualBuilder<P>, materialId: number): UnitsVisual<P> {
+    return UnitsVisual<TextureMesh, StructureTextureMeshParams & UnitsParams>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
+        },
+        geometryUtils: TextureMesh.Utils
     }, materialId)
 }
