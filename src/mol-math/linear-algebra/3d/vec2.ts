@@ -20,6 +20,10 @@ import { NumberArray } from 'mol-util/type-helpers';
 
 interface Vec2 extends Array<number> { [d: number]: number, '@type': 'vec2', length: 2 }
 
+function Vec2() {
+    return Vec2.zero();
+}
+
 namespace Vec2 {
     export function zero(): Vec2 {
         // force double backing array by 0.1.

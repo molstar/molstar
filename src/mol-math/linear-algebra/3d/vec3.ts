@@ -24,6 +24,10 @@ import { NumberArray } from 'mol-util/type-helpers';
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 
+function Vec3() {
+    return Vec3.zero();
+}
+
 namespace Vec3 {
     export function zero(): Vec3 {
         const out = [0.1, 0.0, 0.0];
@@ -434,26 +438,28 @@ namespace Vec3 {
         }
     }
 
-    const tmp_dh_ab = Vec3.zero();
-    const tmp_dh_cb = Vec3.zero();
-    const tmp_dh_bc = Vec3.zero();
-    const tmp_dh_dc = Vec3.zero();
-    const tmp_dh_abc = Vec3.zero();
-    const tmp_dh_bcd = Vec3.zero();
-    const tmp_dh_cross = Vec3.zero();
-    /** Computes the dihedral angles of 4 related atoms. phi: C, N+1, CA+1, C+1 - psi: N, CA, C, N+1 - omega: CA, C, N+1, CA+1 */
-    export function dihedralAngle(a: Vec3, b: Vec3, c: Vec3, d: Vec3) {
-        Vec3.sub(tmp_dh_ab, a, b);
-        Vec3.sub(tmp_dh_cb, c, b);
-        Vec3.sub(tmp_dh_bc, b, c);
-        Vec3.sub(tmp_dh_dc, d, c);
+    const tmp_dh_ab = zero();
+    const tmp_dh_cb = zero();
+    const tmp_dh_bc = zero();
+    const tmp_dh_dc = zero();
+    const tmp_dh_abc = zero();
+    const tmp_dh_bcd = zero();
+    const tmp_dh_cross = zero();
+    /**
+     * Computes the dihedral angles of 4 points.
+     */
+    export function dihedralAngle(a: Vec3, b: Vec3, c: Vec3, d: Vec3): number {
+        sub(tmp_dh_ab, a, b);
+        sub(tmp_dh_cb, c, b);
+        sub(tmp_dh_bc, b, c);
+        sub(tmp_dh_dc, d, c);
 
-        Vec3.cross(tmp_dh_abc, tmp_dh_ab, tmp_dh_cb);
-        Vec3.cross(tmp_dh_bcd, tmp_dh_bc, tmp_dh_dc);
+        cross(tmp_dh_abc, tmp_dh_ab, tmp_dh_cb);
+        cross(tmp_dh_bcd, tmp_dh_bc, tmp_dh_dc);
 
-        const angle = Vec3.angle(tmp_dh_abc, tmp_dh_bcd) * 360.0 / (2 * Math.PI);
-        Vec3.cross(tmp_dh_cross, tmp_dh_abc, tmp_dh_bcd);
-        return Vec3.dot(tmp_dh_cb, tmp_dh_cross) > 0 ? angle : -angle;
+        const _angle = angle(tmp_dh_abc, tmp_dh_bcd) * 360.0 / (2 * Math.PI);
+        cross(tmp_dh_cross, tmp_dh_abc, tmp_dh_bcd);
+        return dot(tmp_dh_cb, tmp_dh_cross) > 0 ? _angle : -_angle;
     }
 
     /**

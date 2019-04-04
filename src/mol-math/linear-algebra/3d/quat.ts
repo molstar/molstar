@@ -276,7 +276,7 @@ namespace Quat {
         return out;
     }
 
-    const fromUnitVec3Temp = Vec3.zero()
+    const fromUnitVec3Temp = Vec3()
     /** Quaternion from two normalized unit vectors. */
     export function fromUnitVec3 (out: Quat, a: Vec3, b: Vec3) {
         // assumes a and b are normalized
@@ -374,7 +374,7 @@ namespace Quat {
      *
      * Both vectors are assumed to be unit length.
      */
-    const rotTmpVec3 = Vec3.zero();
+    const rotTmpVec3 = Vec3();
     const rotTmpVec3UnitX = Vec3.create(1, 0, 0);
     const rotTmpVec3UnitY = Vec3.create(0, 1, 0);
     export function rotationTo(out: Quat, a: Vec3, b: Vec3) {
@@ -405,8 +405,8 @@ namespace Quat {
     /**
      * Performs a spherical linear interpolation with two control points
      */
-    let sqlerpTemp1 = Quat.zero();
-    let sqlerpTemp2 = Quat.zero();
+    let sqlerpTemp1 = Quat();
+    let sqlerpTemp2 = Quat();
     export function sqlerp(out: Quat, a: Quat, b: Quat, c: Quat, d: Quat, t: number) {
         slerp(sqlerpTemp1, a, d, t);
         slerp(sqlerpTemp2, b, c, t);
@@ -419,7 +419,7 @@ namespace Quat {
      * axes. Each axis is a vec3 and is expected to be unit length and
      * perpendicular to all other specified axes.
      */
-    const axesTmpMat = Mat3.zero();
+    const axesTmpMat = Mat3();
     export function setAxes(out: Quat, view: Vec3, right: Vec3, up: Vec3) {
         axesTmpMat[0] = right[0];
         axesTmpMat[3] = right[1];

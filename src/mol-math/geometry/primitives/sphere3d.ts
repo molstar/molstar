@@ -13,6 +13,10 @@ import { Box3D } from './box3d';
 
 interface Sphere3D { center: Vec3, radius: number }
 
+function Sphere3D() {
+    return Sphere3D.zero();
+}
+
 namespace Sphere3D {
     export function create(center: Vec3, radius: number): Sphere3D { return { center, radius }; }
     export function zero(): Sphere3D { return { center: Vec3.zero(), radius: 0 }; }
@@ -83,7 +87,7 @@ namespace Sphere3D {
         return out
     }
 
-    const tmpAddVec3 = Vec3.zero()
+    const tmpAddVec3 = Vec3()
     export function addVec3(out: Sphere3D, s: Sphere3D, v: Vec3) {
         const d = Vec3.distance(s.center, v)
         if (d < s.radius) return Sphere3D.copy(out, s)
