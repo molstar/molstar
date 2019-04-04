@@ -12,8 +12,7 @@ precision highp int;
 
 #ifdef dGeoTexture
     uniform vec2 uGeoTexDim;
-    uniform sampler2D tPosition;
-    uniform sampler2D tGroup;
+    uniform sampler2D tPositionGroup;
 #else
     attribute vec3 aPosition;
 #endif

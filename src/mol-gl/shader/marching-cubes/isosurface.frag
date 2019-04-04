@@ -56,6 +56,8 @@ vec4 voxel(vec3 pos) {
     return texture3dFrom2dNearest(tVolumeData, pos, uGridDim, uGridTexDim.xy);
 }
 
+#pragma glslify: decodeFloatRGB = require(../utils/decode-float-rgb.glsl)
+
 void main(void) {
     // get 1D index
     float vI = dot(floor(uSize * vCoordinate), vec2(1.0, uSize));
@@ -176,8 +178,8 @@ void main(void) {
     // b0 = floor(b0 + 0.5);
     // b1 = floor(b1 + 0.5);
 
-    float d0 = voxel(b0 / uGridDim);
-    float d1 = voxel(b1 / uGridDim);
+    vec4 d0 = voxel(b0 / uGridDim);
+    vec4 d1 = voxel(b1 / uGridDim);
 
     float v0 = d0.a;
     float v1 = d1.a;
@@ -185,6 +187,7 @@ void main(void) {
     float t = (uIsoValue - v0) / (v0 - v1);
     // t = -0.5;
     gl_FragColor.xyz = b0 + t * (b0 - b1);
+    gl_FragColor.w = decodeFloatRGB(d0.rgb); // group id
 
     // normals from gradients
     vec3 n0 = -normalize(vec3(

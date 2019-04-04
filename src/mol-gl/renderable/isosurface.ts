@@ -15,9 +15,9 @@ export const IsosurfaceSchema = {
     ...BaseSchema,
 
     uGeoTexDim: UniformSpec('v2'),
-    tPosition: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    /** texture has vertex positions in XYZ and group id in W */
+    tPositionGroup: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     tNormal: TextureSpec('texture', 'rgba', 'float', 'nearest'),
-    tGroup: TextureSpec('texture', 'rgba', 'float', 'nearest'),
 
     dFlatShaded: DefineSpec('boolean'),
     dDoubleSided: DefineSpec('boolean'),

@@ -39,20 +39,20 @@ canvas3d.animate()
 async function init() {
     const { webgl } = canvas3d
 
-    // const position: PositionData = {
-    //     x: [0, 2],
-    //     y: [0, 2],
-    //     z: [0, 2],
-    //     indices: OrderedSet.ofSortedArray([0, 1]),
-    // }
-    // const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(3, 3, 3))
     const position: PositionData = {
-        x: [0],
-        y: [0],
-        z: [0],
-        indices: OrderedSet.ofSortedArray([0]),
+        x: [0, 2],
+        y: [0, 2],
+        z: [0, 2],
+        indices: OrderedSet.ofSortedArray([0, 1]),
     }
-    const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1))
+    const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(3, 3, 3))
+    // const position: PositionData = {
+    //     x: [0],
+    //     y: [0],
+    //     z: [0],
+    //     indices: OrderedSet.ofSortedArray([0]),
+    // }
+    // const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1))
     const radius = () => 1.4
     const props = {
         resolution: 0.1,
@@ -110,7 +110,7 @@ async function init() {
     const mcBoundingSphere = Sphere3D.zero()
     Sphere3D.addVec3(mcBoundingSphere, mcBoundingSphere, densityTextureData.gridDimension)
     console.log('mcBoundingSphere', mcBoundingSphere, densityTextureData.gridDimension)
-    const mcIsosurface = Isosurface.create(gv.vertexCount, 1, gv.vertexTexture, gv.normalTexture, gv.groupTexture, mcBoundingSphere)
+    const mcIsosurface = Isosurface.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, mcBoundingSphere)
     const mcIsoSurfaceProps = { doubleSided: true, flatShaded: false, alpha: 1.0 }
     const mcIsoSurfaceValues = Isosurface.Utils.createValuesSimple(mcIsosurface, mcIsoSurfaceProps, Color(0x112299), 1)
     // console.log('mcIsoSurfaceValues', mcIsoSurfaceValues)

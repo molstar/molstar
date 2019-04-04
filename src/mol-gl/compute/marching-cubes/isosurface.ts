@@ -13,7 +13,7 @@ import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { Vec3, Vec2, Mat4 } from 'mol-math/linear-algebra';
-import { QuadSchema, QuadValues } from '../util';
+import { QuadSchema, QuadValues, readTexture } from '../util';
 import { HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
 
@@ -87,14 +87,11 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     const framebuffer = framebufferCache.get(FramebufferName).value
     framebuffer.bind()
 
-    const vertexTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    vertexTexture.define(pyramidTex.width, pyramidTex.height)
+    const vertexGroupTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+    vertexGroupTexture.define(pyramidTex.width, pyramidTex.height)
 
     const normalTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     normalTexture.define(pyramidTex.width, pyramidTex.height)
-
-    const groupTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    groupTexture.define(pyramidTex.width, pyramidTex.height)
 
     // const infoTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     // infoTex.define(pyramidTex.width, pyramidTex.height)
@@ -115,7 +112,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     pr.update()
     pr.use()
 
-    vertexTexture.attachFramebuffer(framebuffer, 0)
+    vertexGroupTexture.attachFramebuffer(framebuffer, 0)
     normalTexture.attachFramebuffer(framebuffer, 1)
     // infoTex.attachFramebuffer(framebuffer, 1)
     // pointTexA.attachFramebuffer(framebuffer, 2)
@@ -140,6 +137,9 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     gl.scissor(0, 0, pyramidTex.width, height)
     pr.render()
     gl.disable(gl.SCISSOR_TEST)
+
+    const vgt = readTexture(ctx, vertexGroupTexture, pyramidTex.width, height)
+    console.log('vertexGroupTexture', vgt.array.subarray(0, 4 * count))
 
     // const vt = readTexture(ctx, verticesTex, pyramidTex.width, height)
     // console.log('vt', vt)
@@ -178,5 +178,5 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     // console.log('valuesA', valuesA)
     // console.log('valuesB', valuesB)
 
-    return { vertexTexture, normalTexture, groupTexture, vertexCount: count }
+    return { vertexGroupTexture, normalTexture, vertexCount: count }
 }

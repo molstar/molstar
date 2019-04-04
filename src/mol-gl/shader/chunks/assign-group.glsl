@@ -1,6 +1,6 @@
 #ifdef dGeoTexture
-    // aGroup is used as a triangle index here and the group id is retirieved from the tGroup texture
-    float group = readFromTexture(tGroup, aGroup, uGeoTexDim).a;
+    // aGroup is used as a vertex index here and the group id is retirieved from tPositionGroup
+    float group = readFromTexture(tPositionGroup, aGroup, uGeoTexDim).w;
 #else
     float group = aGroup;
 #endif
