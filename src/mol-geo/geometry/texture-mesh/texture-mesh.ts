@@ -17,18 +17,18 @@ import { Color } from 'mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
-import { IsosurfaceValues } from 'mol-gl/renderable/isosurface';
+import { TextureMeshValues } from 'mol-gl/renderable/texture-mesh';
 import { calculateTransformBoundingSphere } from 'mol-gl/renderable/util';
 import { Texture } from 'mol-gl/webgl/texture';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
 
-export interface Isosurface {
-    readonly kind: 'isosurface',
+export interface TextureMesh {
+    readonly kind: 'texture-mesh',
 
-    /** Number of vertices in the isosurface */
+    /** Number of vertices in the texture-mesh */
     readonly vertexCount: ValueCell<number>,
-    /** Number of groups in the isosurface */
+    /** Number of groups in the texture-mesh */
     readonly groupCount: ValueCell<number>,
 
     readonly geoTextureDim: ValueCell<Vec2>,
@@ -39,20 +39,20 @@ export interface Isosurface {
     readonly boundingSphere: ValueCell<Sphere3D>,
 }
 
-export namespace Isosurface {
-    export function create(vertexCount: number, groupCount: number, vertexGroupTexture: Texture, normalTexture: Texture, boundingSphere: Sphere3D, isosurface?: Isosurface): Isosurface {
+export namespace TextureMesh {
+    export function create(vertexCount: number, groupCount: number, vertexGroupTexture: Texture, normalTexture: Texture, boundingSphere: Sphere3D, textureMesh?: TextureMesh): TextureMesh {
         const { width, height } = vertexGroupTexture
-        if (isosurface) {
-            ValueCell.update(isosurface.vertexCount, vertexCount)
-            ValueCell.update(isosurface.groupCount, groupCount)
-            ValueCell.update(isosurface.geoTextureDim, Vec2.set(isosurface.geoTextureDim.ref.value, width, height))
-            ValueCell.update(isosurface.vertexGroupTexture, vertexGroupTexture)
-            ValueCell.update(isosurface.normalTexture, normalTexture)
-            ValueCell.update(isosurface.boundingSphere, boundingSphere)
-            return isosurface
+        if (textureMesh) {
+            ValueCell.update(textureMesh.vertexCount, vertexCount)
+            ValueCell.update(textureMesh.groupCount, groupCount)
+            ValueCell.update(textureMesh.geoTextureDim, Vec2.set(textureMesh.geoTextureDim.ref.value, width, height))
+            ValueCell.update(textureMesh.vertexGroupTexture, vertexGroupTexture)
+            ValueCell.update(textureMesh.normalTexture, normalTexture)
+            ValueCell.update(textureMesh.boundingSphere, boundingSphere)
+            return textureMesh
         } else {
             return {
-                kind: 'isosurface',
+                kind: 'texture-mesh',
                 vertexCount: ValueCell.create(vertexCount),
                 groupCount: ValueCell.create(groupCount),
                 geoTextureDim: ValueCell.create(Vec2.create(width, height)),
@@ -63,8 +63,8 @@ export namespace Isosurface {
         }
     }
 
-    export function createEmpty(isosurface?: Isosurface): Isosurface {
-        return {} as Isosurface // TODO
+    export function createEmpty(textureMesh?: TextureMesh): TextureMesh {
+        return {} as TextureMesh // TODO
     }
 
     export const Params = {
@@ -75,7 +75,7 @@ export namespace Isosurface {
     }
     export type Params = typeof Params
 
-    export const Utils: GeometryUtils<Isosurface, Params> = {
+    export const Utils: GeometryUtils<TextureMesh, Params> = {
         Params,
         createEmpty,
         createValues,
@@ -86,26 +86,26 @@ export namespace Isosurface {
         updateRenderableState: BaseGeometry.updateRenderableState
     }
 
-    function createValues(isosurface: Isosurface, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): IsosurfaceValues {
+    function createValues(textureMesh: TextureMesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): TextureMeshValues {
         const { instanceCount, groupCount } = locationIt
         const color = createColors(locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
         const overpaint = createEmptyOverpaint()
         const transparency = createEmptyTransparency()
 
-        const counts = { drawCount: isosurface.vertexCount.ref.value, groupCount, instanceCount }
+        const counts = { drawCount: textureMesh.vertexCount.ref.value, groupCount, instanceCount }
 
-        const transformBoundingSphere = calculateTransformBoundingSphere(isosurface.boundingSphere.ref.value, transform.aTransform.ref.value, transform.instanceCount.ref.value)
+        const transformBoundingSphere = calculateTransformBoundingSphere(textureMesh.boundingSphere.ref.value, transform.aTransform.ref.value, transform.instanceCount.ref.value)
 
         return {
-            uGeoTexDim: isosurface.geoTextureDim,
-            tPositionGroup: isosurface.vertexGroupTexture,
-            tNormal: isosurface.normalTexture,
+            uGeoTexDim: textureMesh.geoTextureDim,
+            tPositionGroup: textureMesh.vertexGroupTexture,
+            tNormal: textureMesh.normalTexture,
 
             // aGroup is used as a vertex index here and the group id is retirieved from tPositionGroup
-            aGroup: ValueCell.create(fillSerial(new Float32Array(isosurface.vertexCount.ref.value))),
+            aGroup: ValueCell.create(fillSerial(new Float32Array(textureMesh.vertexCount.ref.value))),
             boundingSphere: ValueCell.create(transformBoundingSphere),
-            invariantBoundingSphere: isosurface.boundingSphere,
+            invariantBoundingSphere: textureMesh.boundingSphere,
 
             ...color,
             ...marker,
@@ -121,13 +121,13 @@ export namespace Isosurface {
         }
     }
 
-    function createValuesSimple(isosurface: Isosurface, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
+    function createValuesSimple(textureMesh: TextureMesh, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
         const s = BaseGeometry.createSimple(colorValue, sizeValue, transform)
         const p = { ...PD.getDefaultValues(Params), ...props }
-        return createValues(isosurface, s.transform, s.locationIterator, s.theme, p)
+        return createValues(textureMesh, s.transform, s.locationIterator, s.theme, p)
     }
 
-    function updateValues(values: IsosurfaceValues, props: PD.Values<Params>) {
+    function updateValues(values: TextureMeshValues, props: PD.Values<Params>) {
         if (Color.fromNormalizedArray(values.uHighlightColor.ref.value, 0) !== props.highlightColor) {
             ValueCell.update(values.uHighlightColor, Color.toArrayNormalized(props.highlightColor, values.uHighlightColor.ref.value, 0))
         }
@@ -142,8 +142,8 @@ export namespace Isosurface {
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
     }
 
-    function updateBoundingSphere(values: IsosurfaceValues, isosurface: Isosurface) {
-        const invariantBoundingSphere = isosurface.boundingSphere.ref.value
+    function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {
+        const invariantBoundingSphere = textureMesh.boundingSphere.ref.value
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value)
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)

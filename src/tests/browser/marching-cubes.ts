@@ -16,7 +16,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { ColorNames } from 'mol-util/color/tables';
-import { Isosurface } from 'mol-geo/geometry/isosurface/isosurface';
+import { TextureMesh } from 'mol-geo/geometry/texture-mesh/texture-mesh';
 import { calcActiveVoxels } from 'mol-gl/compute/marching-cubes/active-voxels';
 import { createHistogramPyramid } from 'mol-gl/compute/histogram-pyramid/reduction';
 import { createIsosurfaceBuffers } from 'mol-gl/compute/marching-cubes/isosurface';
@@ -110,13 +110,13 @@ async function init() {
     const mcBoundingSphere = Sphere3D.zero()
     Sphere3D.addVec3(mcBoundingSphere, mcBoundingSphere, densityTextureData.gridDimension)
     console.log('mcBoundingSphere', mcBoundingSphere, densityTextureData.gridDimension)
-    const mcIsosurface = Isosurface.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, mcBoundingSphere)
+    const mcIsosurface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, mcBoundingSphere)
     const mcIsoSurfaceProps = { doubleSided: true, flatShaded: false, alpha: 1.0 }
-    const mcIsoSurfaceValues = Isosurface.Utils.createValuesSimple(mcIsosurface, mcIsoSurfaceProps, Color(0x112299), 1)
+    const mcIsoSurfaceValues = TextureMesh.Utils.createValuesSimple(mcIsosurface, mcIsoSurfaceProps, Color(0x112299), 1)
     // console.log('mcIsoSurfaceValues', mcIsoSurfaceValues)
-    const mcIsoSurfaceState = Isosurface.Utils.createRenderableState(mcIsoSurfaceProps)
-    const mcIsoSurfaceRenderObject = createRenderObject('isosurface', mcIsoSurfaceValues, mcIsoSurfaceState, -1)
-    const mcIsoSurfaceRepr = Representation.fromRenderObject('isosurface', mcIsoSurfaceRenderObject)
+    const mcIsoSurfaceState = TextureMesh.Utils.createRenderableState(mcIsoSurfaceProps)
+    const mcIsoSurfaceRenderObject = createRenderObject('texture-mesh', mcIsoSurfaceValues, mcIsoSurfaceState, -1)
+    const mcIsoSurfaceRepr = Representation.fromRenderObject('texture-mesh', mcIsoSurfaceRenderObject)
 
     canvas3d.add(mcIsoSurfaceRepr)
     canvas3d.resetCamera()

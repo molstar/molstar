@@ -14,7 +14,7 @@ import { PointsValues, PointsRenderable } from './renderable/points';
 import { LinesValues, LinesRenderable } from './renderable/lines';
 import { SpheresValues, SpheresRenderable } from './renderable/spheres';
 import { TextValues, TextRenderable } from './renderable/text';
-import { IsosurfaceValues, IsosurfaceRenderable } from './renderable/isosurface';
+import { TextureMeshValues, TextureMeshRenderable } from './renderable/texture-mesh';
 
 const getNextId = idFactory(0, 0x7FFFFFFF)
 
@@ -27,11 +27,11 @@ export interface SpheresRenderObject extends BaseRenderObject { type: 'spheres',
 export interface TextRenderObject extends BaseRenderObject { type: 'text', values: TextValues }
 export interface LinesRenderObject extends BaseRenderObject { type: 'lines', values: LinesValues }
 export interface DirectVolumeRenderObject extends BaseRenderObject { type: 'direct-volume', values: DirectVolumeValues }
-export interface IsosurfaceRenderObject extends BaseRenderObject { type: 'isosurface', values: IsosurfaceValues }
+export interface TextureMeshRenderObject extends BaseRenderObject { type: 'texture-mesh', values: TextureMeshValues }
 
 //
 
-export type GraphicsRenderObject = MeshRenderObject | PointsRenderObject | SpheresRenderObject | TextRenderObject | LinesRenderObject | DirectVolumeRenderObject | IsosurfaceRenderObject
+export type GraphicsRenderObject = MeshRenderObject | PointsRenderObject | SpheresRenderObject | TextRenderObject | LinesRenderObject | DirectVolumeRenderObject | TextureMeshRenderObject
 
 export type RenderObjectKindType = {
     'mesh': MeshRenderObject
@@ -40,7 +40,7 @@ export type RenderObjectKindType = {
     'text': TextRenderObject
     'lines': LinesRenderObject
     'direct-volume': DirectVolumeRenderObject
-    'isosurface': IsosurfaceRenderObject
+    'texture-mesh': TextureMeshRenderObject
 }
 export type RenderObjectValuesType = {
     'mesh': MeshValues
@@ -49,7 +49,7 @@ export type RenderObjectValuesType = {
     'text': TextValues
     'lines': LinesValues
     'direct-volume': DirectVolumeValues
-    'isosurface': IsosurfaceValues
+    'texture-mesh': TextureMeshValues
 }
 export type RenderObjectType = keyof RenderObjectKindType
 
@@ -67,6 +67,6 @@ export function createRenderable(ctx: WebGLContext, o: GraphicsRenderObject): Re
         case 'text': return TextRenderable(ctx, o.id, o.values, o.state, o.materialId)
         case 'lines': return LinesRenderable(ctx, o.id, o.values, o.state, o.materialId)
         case 'direct-volume': return DirectVolumeRenderable(ctx, o.id, o.values, o.state, o.materialId)
-        case 'isosurface': return IsosurfaceRenderable(ctx, o.id, o.values, o.state, o.materialId)
+        case 'texture-mesh': return TextureMeshRenderable(ctx, o.id, o.values, o.state, o.materialId)
     }
 }

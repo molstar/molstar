@@ -11,7 +11,7 @@ import { GlobalUniformSchema, BaseSchema, DefineSpec, Values, InternalSchema, In
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
 
-export const IsosurfaceSchema = {
+export const TextureMeshSchema = {
     ...BaseSchema,
 
     uGeoTexDim: UniformSpec('v2'),
@@ -24,11 +24,11 @@ export const IsosurfaceSchema = {
     dFlipSided: DefineSpec('boolean'),
     dGeoTexture: DefineSpec('boolean'),
 }
-export type IsosurfaceSchema = typeof IsosurfaceSchema
-export type IsosurfaceValues = Values<IsosurfaceSchema>
+export type TextureMeshSchema = typeof TextureMeshSchema
+export type TextureMeshValues = Values<TextureMeshSchema>
 
-export function IsosurfaceRenderable(ctx: WebGLContext, id: number, values: IsosurfaceValues, state: RenderableState, materialId: number): Renderable<IsosurfaceValues> {
-    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...IsosurfaceSchema }
+export function TextureMeshRenderable(ctx: WebGLContext, id: number, values: TextureMeshValues, state: RenderableState, materialId: number): Renderable<TextureMeshValues> {
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...TextureMeshSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
         uPickable: ValueCell.create(state.pickable ? 1 : 0)
