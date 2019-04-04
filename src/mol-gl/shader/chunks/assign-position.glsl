@@ -1,6 +1,6 @@
 mat4 modelView = uView * uModel * aTransform;
-#ifdef dPositionTexture
-    vec3 position = readFromTexture(tPosition, aIndex, uPositionTexDim).xyz;
+#ifdef dGeoTexture
+    vec3 position = readFromTexture(tPosition, aGroup, uGeoTexDim).xyz;
 #else
     vec3 position = aPosition;
 #endif

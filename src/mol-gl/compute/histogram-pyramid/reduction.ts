@@ -134,7 +134,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
         offset += size;
     }
 
-    printTexture(ctx, pyramidTexture, 3)
+    // printTexture(ctx, pyramidTexture, 3)
 
     //
 

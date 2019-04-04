@@ -7,23 +7,22 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, InternalValues, UniformSpec, TextureSpec } from './schema';
+import { GlobalUniformSchema, BaseSchema, DefineSpec, Values, InternalSchema, InternalValues, UniformSpec, TextureSpec } from './schema';
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
 
 export const IsosurfaceSchema = {
     ...BaseSchema,
 
-    aIndex: AttributeSpec('float32', 1, 0),
-    aNormal: AttributeSpec('float32', 3, 0),
-
-    uPositionTexDim: UniformSpec('v2'),
+    uGeoTexDim: UniformSpec('v2'),
     tPosition: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    tNormal: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    tGroup: TextureSpec('texture', 'rgba', 'float', 'nearest'),
 
     dFlatShaded: DefineSpec('boolean'),
     dDoubleSided: DefineSpec('boolean'),
     dFlipSided: DefineSpec('boolean'),
-    dPositionTexture: DefineSpec('boolean'),
+    dGeoTexture: DefineSpec('boolean'),
 }
 export type IsosurfaceSchema = typeof IsosurfaceSchema
 export type IsosurfaceValues = Values<IsosurfaceSchema>

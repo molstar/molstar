@@ -61,8 +61,6 @@ async function init() {
     }
     const isoValue = Math.exp(-props.smoothness)
 
-    // console.log('bbox', densityTextureData.bbox)
-
     // console.time('gpu gaussian2')
     // const densityTextureData2 = await computeGaussianDensityTexture2d(position, box, radius, props, webgl).run()
     // webgl.waitForGpuCommandsCompleteSync()
@@ -109,8 +107,11 @@ async function init() {
 
     console.log({ ...webgl.stats, programCount: webgl.programCache.count, shaderCount: webgl.shaderCache.count })
 
-    const mcIsosurface = Isosurface.create(gv.vertexCount, 1, gv.vertexTexture, gv.normalBuffer, gv.groupBuffer, Sphere3D.fromBox3D(Sphere3D.zero(), densityTextureData.bbox))
-    const mcIsoSurfaceProps = { doubleSided: true, flatShaded: true, alpha: 1.0 }
+    const mcBoundingSphere = Sphere3D.zero()
+    Sphere3D.addVec3(mcBoundingSphere, mcBoundingSphere, densityTextureData.gridDimension)
+    console.log('mcBoundingSphere', mcBoundingSphere, densityTextureData.gridDimension)
+    const mcIsosurface = Isosurface.create(gv.vertexCount, 1, gv.vertexTexture, gv.normalTexture, gv.groupTexture, mcBoundingSphere)
+    const mcIsoSurfaceProps = { doubleSided: true, flatShaded: false, alpha: 1.0 }
     const mcIsoSurfaceValues = Isosurface.Utils.createValuesSimple(mcIsosurface, mcIsoSurfaceProps, Color(0x112299), 1)
     // console.log('mcIsoSurfaceValues', mcIsoSurfaceValues)
     const mcIsoSurfaceState = Isosurface.Utils.createRenderableState(mcIsoSurfaceProps)
@@ -138,7 +139,7 @@ async function init() {
     console.timeEnd('cpu mc')
     // console.log('surface', surface)
     Mesh.computeNormalsImmediate(surface)
-    const meshProps = { doubleSided: true, flatShaded: true, alpha: 0.1 }
+    const meshProps = { doubleSided: true, flatShaded: false, alpha: 1.0 }
     const meshValues = Mesh.Utils.createValuesSimple(surface, meshProps, Color(0x995511), 1)
     const meshState = Mesh.Utils.createRenderableState(meshProps)
     const meshRenderObject = createRenderObject('mesh', meshValues, meshState, -1)

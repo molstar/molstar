@@ -31,27 +31,24 @@ export interface Isosurface {
     /** Number of groups in the isosurface */
     readonly groupCount: ValueCell<number>,
 
+    readonly geoTextureDim: ValueCell<Vec2>,
     readonly vertexTexture: ValueCell<Texture>,
-    readonly vertexTextureDim: ValueCell<Vec2>,
-
-    /** Normal buffer as array of xyz values for each vertex wrapped in a value cell */
-    readonly normalBuffer: ValueCell<Float32Array>,
-    /** Group buffer as array of group ids for each vertex wrapped in a value cell */
-    readonly groupBuffer: ValueCell<Float32Array>,
+    readonly normalTexture: ValueCell<Texture>,
+    readonly groupTexture: ValueCell<Texture>,
 
     readonly boundingSphere: ValueCell<Sphere3D>,
 }
 
 export namespace Isosurface {
-    export function create(vertexCount: number, groupCount: number, vertexTexture: Texture, normalBuffer: Float32Array, groupBuffer: Float32Array, boundingSphere: Sphere3D, isosurface?: Isosurface): Isosurface {
+    export function create(vertexCount: number, groupCount: number, vertexTexture: Texture, normalTexture: Texture, groupTexture: Texture, boundingSphere: Sphere3D, isosurface?: Isosurface): Isosurface {
         const { width, height } = vertexTexture
         if (isosurface) {
             ValueCell.update(isosurface.vertexCount, vertexCount)
             ValueCell.update(isosurface.groupCount, groupCount)
+            ValueCell.update(isosurface.geoTextureDim, Vec2.set(isosurface.geoTextureDim.ref.value, width, height))
             ValueCell.update(isosurface.vertexTexture, vertexTexture)
-            ValueCell.update(isosurface.vertexTextureDim, Vec2.set(isosurface.vertexTextureDim.ref.value, width, height))
-            ValueCell.update(isosurface.normalBuffer, normalBuffer)
-            ValueCell.update(isosurface.groupBuffer, groupBuffer)
+            ValueCell.update(isosurface.normalTexture, normalTexture)
+            ValueCell.update(isosurface.groupTexture, groupTexture)
             ValueCell.update(isosurface.boundingSphere, boundingSphere)
             return isosurface
         } else {
@@ -59,10 +56,10 @@ export namespace Isosurface {
                 kind: 'isosurface',
                 vertexCount: ValueCell.create(vertexCount),
                 groupCount: ValueCell.create(groupCount),
+                geoTextureDim: ValueCell.create(Vec2.create(width, height)),
                 vertexTexture: ValueCell.create(vertexTexture),
-                vertexTextureDim: ValueCell.create(Vec2.create(width, height)),
-                normalBuffer: ValueCell.create(normalBuffer),
-                groupBuffer: ValueCell.create(groupBuffer),
+                normalTexture: ValueCell.create(normalTexture),
+                groupTexture: ValueCell.create(groupTexture),
                 boundingSphere: ValueCell.create(boundingSphere),
             }
         }
@@ -103,11 +100,13 @@ export namespace Isosurface {
         const transformBoundingSphere = calculateTransformBoundingSphere(isosurface.boundingSphere.ref.value, transform.aTransform.ref.value, transform.instanceCount.ref.value)
 
         return {
+            uGeoTexDim: isosurface.geoTextureDim,
             tPosition: isosurface.vertexTexture,
-            uPositionTexDim: isosurface.vertexTextureDim,
-            aIndex: ValueCell.create(fillSerial(new Float32Array(isosurface.vertexCount.ref.value))),
-            aNormal: isosurface.normalBuffer,
-            aGroup: isosurface.groupBuffer,
+            tNormal: isosurface.normalTexture,
+            tGroup: isosurface.groupTexture,
+
+            // aGroup is used as a triangle index here and the group id is retirieved from the tGroup texture
+            aGroup: ValueCell.create(fillSerial(new Float32Array(isosurface.vertexCount.ref.value))),
             boundingSphere: ValueCell.create(transformBoundingSphere),
             invariantBoundingSphere: isosurface.boundingSphere,
 
@@ -121,7 +120,7 @@ export namespace Isosurface {
             dDoubleSided: ValueCell.create(props.doubleSided),
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
-            dPositionTexture: ValueCell.create(true),
+            dGeoTexture: ValueCell.create(true),
         }
     }
 

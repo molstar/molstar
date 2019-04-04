@@ -30,6 +30,8 @@ const vec3 c5 = vec3(1., 0., 1.);
 const vec3 c6 = vec3(1., 1., 1.);
 const vec3 c7 = vec3(0., 1., 1.);
 
+const float EPS = 0.00001;
+
 vec3 index3dFrom2d(vec2 coord) {
     vec2 gridTexPos = coord * uGridTexDim.xy;
     vec2 columnRow = floor(gridTexPos / uGridDim.xy);
@@ -174,10 +176,26 @@ void main(void) {
     // b0 = floor(b0 + 0.5);
     // b1 = floor(b1 + 0.5);
 
-    float v0 = voxel(b0 / uGridDim).a;
-    float v1 = voxel(b1 / uGridDim).a;
+    float d0 = voxel(b0 / uGridDim);
+    float d1 = voxel(b1 / uGridDim);
+
+    float v0 = d0.a;
+    float v1 = d1.a;
 
     float t = (uIsoValue - v0) / (v0 - v1);
-    t = -0.5;
+    // t = -0.5;
     gl_FragColor.xyz = b0 + t * (b0 - b1);
+
+    // normals from gradients
+    vec3 n0 = -normalize(vec3(
+        v0 - voxel((b0 + c1) / uGridDim).a,
+        v0 - voxel((b0 + c3) / uGridDim).a,
+        v0 - voxel((b0 + c4) / uGridDim).a
+    ));
+    vec3 n1 = -normalize(vec3(
+        v1 - voxel((b1 + c1) / uGridDim).a,
+        v1 - voxel((b1 + c3) / uGridDim).a,
+        v1 - voxel((b1 + c4) / uGridDim).a
+    ));
+    gl_FragData[1].xyz = -normalize((v0 * n0 + v1 * n1) / max(v0 + v1, EPS));
 }

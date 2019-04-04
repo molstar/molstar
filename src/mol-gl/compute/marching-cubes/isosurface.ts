@@ -87,8 +87,14 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     const framebuffer = framebufferCache.get(FramebufferName).value
     framebuffer.bind()
 
-    const verticesTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    verticesTex.define(pyramidTex.width, pyramidTex.height)
+    const vertexTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+    vertexTexture.define(pyramidTex.width, pyramidTex.height)
+
+    const normalTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+    normalTexture.define(pyramidTex.width, pyramidTex.height)
+
+    const groupTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+    groupTexture.define(pyramidTex.width, pyramidTex.height)
 
     // const infoTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     // infoTex.define(pyramidTex.width, pyramidTex.height)
@@ -109,24 +115,25 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     pr.update()
     pr.use()
 
-    verticesTex.attachFramebuffer(framebuffer, 0)
+    vertexTexture.attachFramebuffer(framebuffer, 0)
+    normalTexture.attachFramebuffer(framebuffer, 1)
     // infoTex.attachFramebuffer(framebuffer, 1)
     // pointTexA.attachFramebuffer(framebuffer, 2)
     // pointTexB.attachFramebuffer(framebuffer, 3)
     // coordTex.attachFramebuffer(framebuffer, 4)
     // indexTex.attachFramebuffer(framebuffer, 5)
 
-    // const { drawBuffers } = ctx.extensions
-    // if (!drawBuffers) throw new Error('need draw buffers')
+    const { drawBuffers } = ctx.extensions
+    if (!drawBuffers) throw new Error('need draw buffers')
 
-    // drawBuffers.drawBuffers([
-    //     drawBuffers.COLOR_ATTACHMENT0,
-    //     drawBuffers.COLOR_ATTACHMENT1,
-    //     drawBuffers.COLOR_ATTACHMENT2,
-    //     drawBuffers.COLOR_ATTACHMENT3,
-    //     drawBuffers.COLOR_ATTACHMENT4,
-    //     drawBuffers.COLOR_ATTACHMENT5
-    // ])
+    drawBuffers.drawBuffers([
+        drawBuffers.COLOR_ATTACHMENT0,
+        drawBuffers.COLOR_ATTACHMENT1,
+        // drawBuffers.COLOR_ATTACHMENT2,
+        // drawBuffers.COLOR_ATTACHMENT3,
+        // drawBuffers.COLOR_ATTACHMENT4,
+        // drawBuffers.COLOR_ATTACHMENT5
+    ])
 
     setRenderingDefaults(gl)
     gl.viewport(0, 0, pyramidTex.width, pyramidTex.height)
@@ -171,9 +178,5 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     // console.log('valuesA', valuesA)
     // console.log('valuesB', valuesB)
 
-    const vertexTexture = verticesTex
-    const normalBuffer = new Float32Array(count * 3)
-    const groupBuffer = new Float32Array(count)
-
-    return { vertexTexture, normalBuffer, groupBuffer, vertexCount: count }
+    return { vertexTexture, normalTexture, groupTexture, vertexCount: count }
 }

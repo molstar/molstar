@@ -36,6 +36,7 @@ void trimSegment(const in vec4 start, inout vec4 end) {
 }
 
 void main(){
+    #pragma glslify: import('./chunks/assign-group.glsl')
     #pragma glslify: import('./chunks/assign-color-varying.glsl')
     #pragma glslify: import('./chunks/assign-marker-varying.glsl')
     #pragma glslify: import('./chunks/assign-size.glsl')

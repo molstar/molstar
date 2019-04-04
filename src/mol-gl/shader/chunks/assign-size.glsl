@@ -5,9 +5,9 @@
 #elif defined(dSizeType_instance)
     float size = readFromTexture(tSize, aInstance, uSizeTexDim).a;
 #elif defined(dSizeType_group)
-    float size = readFromTexture(tSize, aGroup, uSizeTexDim).a;
+    float size = readFromTexture(tSize, group, uSizeTexDim).a;
 #elif defined(dSizeType_groupInstance)
-    float size = readFromTexture(tSize, aInstance * float(uGroupCount) + aGroup, uSizeTexDim).a;
+    float size = readFromTexture(tSize, aInstance * float(uGroupCount) + group, uSizeTexDim).a;
 #endif
 
 #if defined(dSizeType_instance) || defined(dSizeType_group) || defined(dSizeType_groupInstance)

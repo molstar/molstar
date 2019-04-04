@@ -37,7 +37,8 @@ vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) 
     float column = intMod(zSlice * gridDim.x, texDim.x) / gridDim.x;
     float row = floor(intDiv(zSlice * gridDim.x, texDim.x));
     vec2 coord = (vec2(column * gridDim.x, row * gridDim.y) + (pos.xy * gridDim.xy)) / texDim;
-    return texture2D(tex, coord + 0.5 / texDim);
+    // return texture2D(tex, coord + 0.5 / texDim);
+    return texture2D(tex, coord);
 }
 
 vec4 voxel(vec3 pos) {
