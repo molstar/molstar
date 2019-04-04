@@ -180,7 +180,7 @@ function getBoundingSphere(lineStart: Float32Array, lineEnd: Float32Array, lineC
     const start = calculateBoundingSphere(lineStart, lineCount * 4, transform, transformCount)
     const end = calculateBoundingSphere(lineEnd, lineCount * 4, transform, transformCount)
     return {
-        boundingSphere: Sphere3D.addSphere(start.boundingSphere, end.boundingSphere),
-        invariantBoundingSphere: Sphere3D.addSphere(start.invariantBoundingSphere, end.invariantBoundingSphere)
+        boundingSphere: Sphere3D.expandBySphere(start.boundingSphere, end.boundingSphere),
+        invariantBoundingSphere: Sphere3D.expandBySphere(start.invariantBoundingSphere, end.invariantBoundingSphere)
     }
 }

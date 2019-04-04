@@ -83,12 +83,25 @@ namespace Sphere3D {
         return out
     }
 
-    export function addSphere(out: Sphere3D, sphere: Sphere3D) {
+    const tmpAddVec3 = Vec3.zero()
+    export function addVec3(out: Sphere3D, s: Sphere3D, v: Vec3) {
+        const d = Vec3.distance(s.center, v)
+        if (d < s.radius) return Sphere3D.copy(out, s)
+        Vec3.sub(tmpAddVec3, s.center, v)
+        Vec3.sub(tmpAddVec3, s.center, tmpAddVec3)
+        Vec3.setMagnitude(tmpAddVec3, tmpAddVec3, s.radius)
+        Vec3.scale(out.center, Vec3.add(tmpAddVec3, tmpAddVec3, v), 0.5)
+        out.radius = Vec3.distance(out.center, v)
+        return out
+    }
+
+    /** Expand sphere radius by another sphere */
+    export function expandBySphere(out: Sphere3D, sphere: Sphere3D) {
         out.radius = Math.max(out.radius, Vec3.distance(out.center, sphere.center) + sphere.radius)
         return out
     }
 
-    /** Expand sphere by delta */
+    /** Expand sphere radius by delta */
     export function expand(out: Sphere3D, sphere: Sphere3D, delta: number): Sphere3D {
         out.radius = sphere.radius + delta
         return out
