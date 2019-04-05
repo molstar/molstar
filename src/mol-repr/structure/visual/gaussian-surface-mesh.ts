@@ -86,7 +86,7 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     const compacted = createHistogramPyramid(ctx.webgl, activeVoxelsTex)
     // ctx.webgl.waitForGpuCommandsCompleteSync()
 
-    const gv = createIsosurfaceBuffers(ctx.webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDimension, densityTextureData.transform, isoLevel)
+    const gv = createIsosurfaceBuffers(ctx.webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDimension, densityTextureData.transform, isoLevel, textureMesh ? textureMesh.vertexGroupTexture.ref.value : undefined, textureMesh ? textureMesh.normalTexture.ref.value : undefined)
     // ctx.webgl.waitForGpuCommandsCompleteSync()
 
     // const boundingSphere = Sphere3D.zero()

@@ -76,8 +76,7 @@ export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDime
     gl.viewport(0, 0, width, height)
     renderable.render()
 
-    // const at = readTexture(ctx, activeVoxelsTex)
-    // console.log('at', at)
+    // console.log('at', readTexture(ctx, activeVoxelsTex))
 
     return activeVoxelsTex
 }

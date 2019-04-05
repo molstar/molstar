@@ -110,10 +110,9 @@ void main(void) {
     // get index into triIndices table
     float mcIndex = 16. * edgeIndex + currentVertex;
     vec4 mcData = texture2D(tTriIndices, vec2(intMod(mcIndex, 64.), floor(mcIndex / 64.)) / 64.);
-    mcIndex = floor(mcData.a * 255.0 + 0.5);
 
     // bit mask to avoid conditionals (see comment below) for getting MC case corner
-    vec4 m0 = vec4(mcIndex);
+    vec4 m0 = vec4(floor(mcData.a * 255.0 + 0.5));
 
     // get edge value masks
     vec4 m1 = vec4(equal(m0, vec4(0., 1., 2., 3.)));

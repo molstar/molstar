@@ -78,19 +78,19 @@ function setRenderingDefaults(gl: GLRenderingContext) {
     gl.disable(gl.BLEND)
     gl.disable(gl.DEPTH_TEST)
     gl.depthMask(false)
+    gl.enable(gl.SCISSOR_TEST)
 }
 
-export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDimensions: Vec3, transform: Mat4, isoValue: number) {
+export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDimensions: Vec3, transform: Mat4, isoValue: number, vertexGroupTexture?: Texture, normalTexture?: Texture) {
     const { gl, framebufferCache } = ctx
     const { pyramidTex, height, levels, scale, count } = histogramPyramid
 
     const framebuffer = framebufferCache.get(FramebufferName).value
-    framebuffer.bind()
 
-    const vertexGroupTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+    if (!vertexGroupTexture) vertexGroupTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     vertexGroupTexture.define(pyramidTex.width, pyramidTex.height)
 
-    const normalTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+    if (!normalTexture) normalTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     normalTexture.define(pyramidTex.width, pyramidTex.height)
 
     // const infoTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
@@ -119,7 +119,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     // indexTex.attachFramebuffer(framebuffer, 5)
 
     const { drawBuffers } = ctx.extensions
-    if (!drawBuffers) throw new Error('need draw buffers')
+    if (!drawBuffers) throw new Error('need WebGL draw buffers')
 
     drawBuffers.drawBuffers([
         drawBuffers.COLOR_ATTACHMENT0,

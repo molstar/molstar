@@ -85,7 +85,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
     // This part set the levels
     const levels = Math.ceil(Math.log(inputTextureMaxDim) / Math.log(2))
     const maxSize = Math.pow(2, levels)
-    // console.log('levels', levels)
+    // console.log('levels', levels, 'maxSize', maxSize)
 
     const initialTexture = getLevelTexture(ctx, levels)
 
