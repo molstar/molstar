@@ -43,7 +43,7 @@ namespace Box3D {
         return { min, max }
     }
 
-    /** Get size of the box */
+    /** Get size/extent of the box */
     export function size(size: Vec3, box: Box3D): Vec3 {
         return Vec3.sub(size, box.max, box.min);
     }
@@ -73,6 +73,12 @@ namespace Box3D {
         Vec3.sub(out.min, box.min, delta)
         Vec3.add(out.max, box.max, delta)
         return out
+    }
+
+    export function scale(out: Box3D, box: Box3D, scale: number) {
+        Vec3.scale(out.min, box.min, scale)
+        Vec3.scale(out.max, box.max, scale)
+        return out;
     }
 
     const tmpTransformV = Vec3()
