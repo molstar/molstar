@@ -51,6 +51,10 @@ function unbindResources (gl: GLRenderingContext) {
         gl.activeTexture(gl.TEXTURE0 + i)
         gl.bindTexture(gl.TEXTURE_2D, null)
         gl.bindTexture(gl.TEXTURE_CUBE_MAP, null)
+        if (isWebGL2(gl)) {
+            gl.bindTexture(gl.TEXTURE_2D_ARRAY, null)
+            gl.bindTexture(gl.TEXTURE_3D, null)
+        }
     }
 
     // assign the smallest possible buffer to all attributes
