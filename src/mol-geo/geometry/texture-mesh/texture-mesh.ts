@@ -140,6 +140,11 @@ export namespace TextureMesh {
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
+
+        if (values.drawCount.ref.value > values.aGroup.ref.value.length) {
+            // console.log('updating vertex ids in aGroup to handle larger drawCount')
+            ValueCell.update(values.aGroup, fillSerial(new Float32Array(values.drawCount.ref.value)))
+        }
     }
 
     function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {
