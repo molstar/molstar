@@ -285,7 +285,6 @@ function setupMinDistanceRendering(webgl: WebGLContext, renderable: ComputeRende
     const { gl } = webgl
     ValueCell.update(renderable.values.dCalcType, 'minDistance')
     renderable.update()
-    renderable.use()
     gl.blendFunc(gl.ONE, gl.ONE)
     // the shader writes 1 - dist so we set blending to MAX
     gl.blendEquation(webgl.extensions.blendMinMax.MAX)
@@ -295,7 +294,6 @@ function setupDensityRendering(webgl: WebGLContext, renderable: ComputeRenderabl
     const { gl } = webgl
     ValueCell.update(renderable.values.dCalcType, 'density')
     renderable.update()
-    renderable.use()
     gl.blendFunc(gl.ONE, gl.ONE)
     gl.blendEquation(gl.FUNC_ADD)
 }
@@ -304,7 +302,6 @@ function setupGroupIdRendering(webgl: WebGLContext, renderable: ComputeRenderabl
     const { gl } = webgl
     ValueCell.update(renderable.values.dCalcType, 'groupId')
     renderable.update()
-    renderable.use()
     // overwrite color, don't change alpha
     gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE)
     gl.blendEquation(gl.FUNC_ADD)

@@ -110,7 +110,6 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
 
     const pr = getIsosurfaceRenderable(ctx, pyramidTex, activeVoxelsBase, volumeData, totalTex, gridDimensions, transform, isoValue, levels, scale)
     pr.update()
-    pr.use()
 
     vertexGroupTexture.attachFramebuffer(framebuffer, 0)
     normalTexture.attachFramebuffer(framebuffer, 1)

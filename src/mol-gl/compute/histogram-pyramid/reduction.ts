@@ -93,7 +93,6 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
 
     const renderable = getHistopyramidReductionRenderable(ctx, initialTexture)
     renderable.update()
-    renderable.use()
 
     let offset = 0;
     for (let i = 0; i < levels; i++) {
@@ -110,7 +109,6 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
         ValueCell.update(renderable.values.tPreviousLevel, readTex)
 
         renderable.update()
-        renderable.use()
         setRenderingDefaults(gl)
         gl.viewport(0, 0, size, size)
         renderable.render()

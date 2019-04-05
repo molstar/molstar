@@ -154,7 +154,6 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
     const valueChanges = createValueChanges()
 
     let destroyed = false
-    let currentProgramId = -1
 
     return {
         id,
@@ -165,15 +164,15 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
             if (drawCount === 0 || instanceCount === 0) return
             const program = programs[variant].value
             const vertexArray = vertexArrays[variant]
-            program.setUniforms(uniformValueEntries)
-            if (program.id !== currentProgramId ||
+            if (program.id !== state.currentProgramId ||
                 materialId === -1 || materialId !== state.currentMaterialId
             ) {
                 // console.log('program.id changed or materialId changed/-1', materialId)
+                if (program.id !== state.currentProgramId) program.use()
                 program.setUniforms(materialUniformValueEntries)
-                currentProgramId = program.id
                 state.currentMaterialId = materialId
             }
+            program.setUniforms(uniformValueEntries)
             program.bindTextures(textures)
             if (vertexArrayObject && vertexArray) {
                 vertexArrayObject.bindVertexArray(vertexArray)

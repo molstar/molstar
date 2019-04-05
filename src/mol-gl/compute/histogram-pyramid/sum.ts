@@ -48,7 +48,6 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
 
     const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture)
     renderable.update()
-    renderable.use()
 
     // TODO cache globally for reuse
     const sumTexture = createTexture(ctx, 'image-uint8', 'rgba', 'ubyte', 'nearest')

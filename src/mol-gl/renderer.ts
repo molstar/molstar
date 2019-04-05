@@ -114,9 +114,9 @@ namespace Renderer {
                 if (state.currentProgramId !== program.id) {
                     // console.log('new program')
                     globalUniformsNeedUpdate = true
+                    program.use()
                 }
 
-                program.use()
                 if (globalUniformsNeedUpdate) {
                     // console.log('globalUniformsNeedUpdate')
                     program.setUniforms(globalUniformList)
