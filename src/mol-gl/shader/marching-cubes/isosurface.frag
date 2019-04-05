@@ -20,6 +20,9 @@ uniform vec2 uScale;
 
 varying vec2 vCoordinate;
 
+#pragma glslify: import('../chunks/common.glsl')
+#pragma glslify: decodeFloatRGB = require(../utils/decode-float-rgb.glsl)
+
 // cube corners
 const vec3 c0 = vec3(0., 0., 0.);
 const vec3 c1 = vec3(1., 0., 0.);
@@ -41,9 +44,6 @@ vec3 index3dFrom2d(vec2 coord) {
     return posXYZ;
 }
 
-float intDiv(float a, float b) { return float(int(a) / int(b)); }
-float intMod(float a, float b) { return a - b * float(int(a) / int(b)); }
-
 vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
     float zSlice = floor(pos.z * gridDim.z + 0.5); // round to nearest z-slice
     float column = intMod(zSlice * gridDim.x, texDim.x) / gridDim.x;
@@ -55,8 +55,6 @@ vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) 
 vec4 voxel(vec3 pos) {
     return texture3dFrom2dNearest(tVolumeData, pos, uGridDim, uGridTexDim.xy);
 }
-
-#pragma glslify: decodeFloatRGB = require(../utils/decode-float-rgb.glsl)
 
 void main(void) {
     // get 1D index
@@ -186,8 +184,8 @@ void main(void) {
 
     float t = (uIsoValue - v0) / (v0 - v1);
     // t = -0.5;
-    gl_FragColor.xyz = (uGridTransform * vec4(b0 + t * (b0 - b1), 1.0)).xyz;
-    gl_FragColor.w = decodeFloatRGB(d0.rgb); // group id
+    gl_FragData[0].xyz = (uGridTransform * vec4(b0 + t * (b0 - b1), 1.0)).xyz;
+    gl_FragData[0].w = decodeFloatRGB(d0.rgb); // group id
 
     // normals from gradients
     vec3 n0 = -normalize(vec3(
