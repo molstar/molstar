@@ -8,8 +8,8 @@ import { Structure } from 'mol-model/structure';
 import { RepresentationProvider, RepresentationRegistry } from '../representation';
 import { CartoonRepresentationProvider } from './representation/cartoon';
 import { BallAndStickRepresentationProvider } from './representation/ball-and-stick';
-import { MolecularSurfaceRepresentationProvider } from './representation/molecular-surface';
-import { MolecularVolumeRepresentationProvider } from './representation/molecular-volume';
+import { GaussianSurfaceRepresentationProvider } from './representation/gaussian-surface';
+import { GaussianVolumeRepresentationProvider } from './representation/gaussian-volume';
 import { CarbohydrateRepresentationProvider } from './representation/carbohydrate';
 import { SpacefillRepresentationProvider } from './representation/spacefill';
 import { DistanceRestraintRepresentationProvider } from './representation/distance-restraint';
@@ -32,8 +32,8 @@ export const BuiltInStructureRepresentations = {
     'ball-and-stick': BallAndStickRepresentationProvider,
     'carbohydrate': CarbohydrateRepresentationProvider,
     'distance-restraint': DistanceRestraintRepresentationProvider,
-    'molecular-surface': MolecularSurfaceRepresentationProvider,
-    'molecular-volume': MolecularVolumeRepresentationProvider,
+    'gaussian-surface': GaussianSurfaceRepresentationProvider,
+    'gaussian-volume': GaussianVolumeRepresentationProvider,
     'point': PointRepresentationProvider,
     'putty': PuttyRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,

@@ -22,12 +22,12 @@ import { createHistogramPyramid } from 'mol-gl/compute/histogram-pyramid/reducti
 import { createIsosurfaceBuffers } from 'mol-gl/compute/marching-cubes/isosurface';
 import { Sphere3D } from 'mol-math/geometry';
 
-export const GaussianSurfaceParams = {
+export const GaussianSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...UnitsTextureMeshParams,
     ...GaussianDensityParams,
 }
-export type GaussianSurfaceParams = typeof GaussianSurfaceParams
+export type GaussianSurfaceMeshParams = typeof GaussianSurfaceMeshParams
 
 export function getGaussianSurfaceVisual(webgl?: WebGLContext) {
     return webgl && webgl.extensions.drawBuffers ? GaussianSurfaceTextureMeshVisual : GaussianSurfaceMeshVisual
@@ -53,14 +53,14 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
     return surface
 }
 
-export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<GaussianSurfaceParams> {
-    return UnitsMeshVisual<GaussianSurfaceParams>({
-        defaultProps: PD.getDefaultValues(GaussianSurfaceParams),
+export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<GaussianSurfaceMeshParams> {
+    return UnitsMeshVisual<GaussianSurfaceMeshParams>({
+        defaultProps: PD.getDefaultValues(GaussianSurfaceMeshParams),
         createGeometry: createGaussianSurfaceMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         eachLocation: eachElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianSurfaceParams>, currentProps: PD.Values<GaussianSurfaceParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianSurfaceMeshParams>, currentProps: PD.Values<GaussianSurfaceMeshParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
@@ -98,14 +98,14 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     return surface
 }
 
-export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisual<GaussianSurfaceParams> {
-    return UnitsTextureMeshVisual<GaussianSurfaceParams>({
-        defaultProps: PD.getDefaultValues(GaussianSurfaceParams),
+export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisual<GaussianSurfaceMeshParams> {
+    return UnitsTextureMeshVisual<GaussianSurfaceMeshParams>({
+        defaultProps: PD.getDefaultValues(GaussianSurfaceMeshParams),
         createGeometry: createGaussianSurfaceTextureMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         eachLocation: eachElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianSurfaceParams>, currentProps: PD.Values<GaussianSurfaceParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianSurfaceMeshParams>, currentProps: PD.Values<GaussianSurfaceMeshParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
