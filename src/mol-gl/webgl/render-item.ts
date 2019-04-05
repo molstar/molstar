@@ -6,7 +6,7 @@
 
 import { createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, AttributeKind } from './buffer';
 import { createTextures, Texture } from './texture';
-import { WebGLContext } from './context';
+import { WebGLContext, checkError } from './context';
 import { ShaderCode } from '../shader-code';
 import { Program } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values } from '../renderable/schema';
@@ -15,6 +15,8 @@ import { deleteVertexArray, createVertexArray } from './vertex-array';
 import { ValueCell } from 'mol-util';
 import { ReferenceItem } from 'mol-util/reference-cache';
 import { TextureImage, TextureVolume } from 'mol-gl/renderable/util';
+import { checkFramebufferStatus } from './framebuffer';
+import { isProductionMode } from 'mol-util/debug';
 
 const getNextRenderItemId = idFactory()
 
@@ -181,10 +183,23 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
                 if (elementsBuffer) elementsBuffer.bind()
                 program.bindAttributes(attributeBuffers)
             }
+            if (!isProductionMode) {
+                checkFramebufferStatus(ctx.gl)
+            }
             if (elementsBuffer) {
                 instancedArrays.drawElementsInstanced(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
             } else {
                 instancedArrays.drawArraysInstanced(glDrawMode, 0, drawCount, instanceCount)
+            }
+            if (!isProductionMode) {
+                try {
+                    checkError(ctx.gl)
+                } catch (e) {
+                    // console.log('shaderCode', shaderCode)
+                    // console.log('schema', schema)
+                    // console.log('attributeBuffers', attributeBuffers)
+                    throw new Error(`Error rendering item id ${id}: '${e}'`)
+                }
             }
         },
         update: () => {

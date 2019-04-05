@@ -7,7 +7,7 @@
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
 import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers } from './compat';
-import { createFramebufferCache, FramebufferCache } from './framebuffer';
+import { createFramebufferCache, FramebufferCache, checkFramebufferStatus } from './framebuffer';
 import { Scheduler } from 'mol-task';
 import { isProductionMode } from 'mol-util/debug';
 
@@ -37,6 +37,11 @@ function getErrorDescription(gl: GLRenderingContext, error: number) {
         case gl.CONTEXT_LOST_WEBGL: return 'context lost'
     }
     return 'unknown error'
+}
+
+export function checkError(gl: GLRenderingContext) {
+    const error = gl.getError()
+    if (error) throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'`)
 }
 
 function unbindResources (gl: GLRenderingContext) {
@@ -112,19 +117,13 @@ function waitForGpuCommandsCompleteSync(gl: GLRenderingContext): void {
 }
 
 function readPixels(gl: GLRenderingContext, x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) {
-    if (!isProductionMode && gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-        console.error('Reading pixels failed. Framebuffer not complete.')
-        return
-    }
+    if (!isProductionMode) checkFramebufferStatus(gl)
     if (buffer instanceof Uint8Array) {
         gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
     } else {
         gl.readPixels(x, y, width, height, gl.RGBA, gl.FLOAT, buffer)
     }
-    if (!isProductionMode) {
-        const error = gl.getError()
-        if (error) console.log(`Error reading pixels: '${getErrorDescription(gl, error)}'`)
-    }
+    if (!isProductionMode) checkError(gl)
 }
 
 export function createImageData(buffer: ArrayLike<number>, width: number, height: number) {

@@ -134,8 +134,12 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
     vertShaderRef.value.attach(program)
     fragShaderRef.value.attach(program)
     gl.linkProgram(program)
-    if (!isProductionMode && !gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw new Error(`Could not compile WebGL program. \n\n${gl.getProgramInfoLog(program)}`);
+    if (!isProductionMode) {
+        // no-op in FF on Mac, see https://bugzilla.mozilla.org/show_bug.cgi?id=1284425
+        // gl.validateProgram(program)
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            throw new Error(`Could not compile WebGL program. \n\n${gl.getProgramInfoLog(program)}`);
+        }
     }
 
     const locations = getLocations(gl, program, schema)

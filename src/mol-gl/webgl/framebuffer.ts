@@ -7,9 +7,34 @@
 import { WebGLStats } from './context'
 import { idFactory } from 'mol-util/id-factory';
 import { ReferenceCache, createReferenceCache } from 'mol-util/reference-cache';
-import { GLRenderingContext } from './compat';
+import { GLRenderingContext, isWebGL2 } from './compat';
 
 const getNextFramebufferId = idFactory()
+
+function getFramebufferStatusDescription(gl: GLRenderingContext, status: number) {
+    switch (status) {
+        case gl.FRAMEBUFFER_COMPLETE: return 'complete'
+        case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT: return 'incomplete attachment'
+        case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: return 'incomplete missing attachment'
+        case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS: return 'incomplete dimensions'
+        case gl.FRAMEBUFFER_UNSUPPORTED: return 'unsupported'
+    }
+    if (isWebGL2(gl)) {
+        switch (status) {
+            case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: return 'incomplete multisample'
+            case gl.RENDERBUFFER_SAMPLES: return 'renderbuffer samples'
+        }
+    }
+    return 'unknown error'
+}
+
+export function checkFramebufferStatus(gl: GLRenderingContext) {
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+        const description = getFramebufferStatusDescription(gl, status)
+        throw new Error(`Framebuffer status: ${description}`)
+    }
+}
 
 export interface Framebuffer {
     readonly id: number

@@ -125,12 +125,7 @@ const glsl300VertPrefix = `#version 300 es
 `
 
 const glsl300FragPrefix = `#version 300 es
-#define varying in
-layout(location = 0) out highp vec4 out_FragColor;
-#define gl_FragColor out_FragColor
-#define gl_FragDepthEXT gl_FragDepth
-#define texture2D texture
-
+layout(location = 0) out highp vec4 out_FragData0;
 layout(location = 1) out highp vec4 out_FragData1;
 layout(location = 2) out highp vec4 out_FragData2;
 layout(location = 3) out highp vec4 out_FragData3;
@@ -138,6 +133,12 @@ layout(location = 4) out highp vec4 out_FragData4;
 layout(location = 5) out highp vec4 out_FragData5;
 layout(location = 6) out highp vec4 out_FragData6;
 layout(location = 7) out highp vec4 out_FragData7;
+
+#define varying in
+#define texture2D texture
+
+#define gl_FragColor out_FragData0
+#define gl_FragDepthEXT gl_FragDepth
 
 #define enabledStandardDerivatives
 #define enabledFragDepth
