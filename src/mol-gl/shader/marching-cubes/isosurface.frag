@@ -3,13 +3,13 @@ precision highp sampler2D;
 
 uniform sampler2D tActiveVoxelsPyramid;
 uniform sampler2D tActiveVoxelsBase;
-uniform sampler2D tActiveVoxelsTotal;
 uniform sampler2D tVolumeData;
 uniform sampler2D tTriIndices;
 
 uniform float uIsoValue;
 uniform float uLevels;
 uniform float uSize;
+uniform float uCount;
 
 uniform vec3 uGridDim;
 uniform vec3 uGridTexDim;
@@ -61,7 +61,7 @@ void main(void) {
     float vI = dot(floor(uSize * vCoordinate), vec2(1.0, uSize));
 
     // ignore 1D indices outside of the grid
-    if(vI >= texture2D(tActiveVoxelsTotal, vec2(0.5)).r) discard;
+    if(vI >= uCount) discard;
 
     float offset = uSize - 2.;
     float k = 1. / uSize;

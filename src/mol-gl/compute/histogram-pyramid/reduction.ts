@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createComputeRenderable } from '../../renderable'
+import { createComputeRenderable, ComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
 import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
@@ -22,25 +22,45 @@ const HistopyramidReductionSchema = {
     uSize: UniformSpec('f'),
 }
 
+let HistopyramidReductionRenderable: ComputeRenderable<Values<typeof HistopyramidReductionSchema>>
 function getHistopyramidReductionRenderable(ctx: WebGLContext, initialTexture: Texture) {
-    const values: Values<typeof HistopyramidReductionSchema> = {
-        ...QuadValues,
-        tPreviousLevel: ValueCell.create(initialTexture),
-        uSize: ValueCell.create(0),
+    if (HistopyramidReductionRenderable) {
+        ValueCell.update(HistopyramidReductionRenderable.values.tPreviousLevel, initialTexture)
+        HistopyramidReductionRenderable.update()
+        return HistopyramidReductionRenderable
+    } else {
+        const values: Values<typeof HistopyramidReductionSchema> = {
+            ...QuadValues,
+            tPreviousLevel: ValueCell.create(initialTexture),
+            uSize: ValueCell.create(0),
+        }
+
+        const schema = { ...HistopyramidReductionSchema }
+        const shaderCode = ShaderCode(
+            require('mol-gl/shader/quad.vert').default,
+            require('mol-gl/shader/histogram-pyramid/reduction.frag').default
+        )
+        const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
+
+        HistopyramidReductionRenderable = createComputeRenderable(renderItem, values);
+        return HistopyramidReductionRenderable
     }
-
-    const schema = { ...HistopyramidReductionSchema }
-    const shaderCode = ShaderCode(
-        require('mol-gl/shader/quad.vert').default,
-        require('mol-gl/shader/histogram-pyramid/reduction.frag').default
-    )
-    const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
-
-    return createComputeRenderable(renderItem, values);
 }
 
 /** name for shared framebuffer used for histogram-pyramid operations */
 const FramebufferName = 'histogram-pyramid-reduction'
+
+const LevelTextures: Texture[] = []
+function getLevelTexture(ctx: WebGLContext, level: number) {
+    let tex = LevelTextures[level]
+    const size = Math.pow(2, level)
+    if (tex === undefined) {
+        tex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+        LevelTextures[level] = tex
+    }
+    tex.define(size, size) // always call to set size AND clear
+    return tex
+}
 
 function setRenderingDefaults(gl: GLRenderingContext) {
     gl.disable(gl.CULL_FACE)
@@ -51,8 +71,6 @@ function setRenderingDefaults(gl: GLRenderingContext) {
 
 export interface HistogramPyramid {
     pyramidTex: Texture
-    totalTex: Texture
-    initialTex: Texture
     count: number
     height: number
     levels: number
@@ -66,33 +84,24 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
 
     // This part set the levels
     const levels = Math.ceil(Math.log(inputTextureMaxDim) / Math.log(2))
+    const maxSize = Math.pow(2, levels)
     // console.log('levels', levels)
 
-    const initialTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    initialTexture.load({ array: new Float32Array(4), width: 1, height: 1 })
-    initialTexture.define(Math.pow(2, levels), Math.pow(2, levels))
+    const initialTexture = getLevelTexture(ctx, levels)
 
     const framebuffer = framebufferCache.get(FramebufferName).value
     inputTexture.attachFramebuffer(framebuffer, 0)
-    initialTexture.define(Math.pow(2, levels), Math.pow(2, levels))
     // TODO need to initialize texSubImage2D to make Firefox happy
     gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, inputTexture.width, inputTexture.height);
 
-    const initialTextureMaxDim = Math.max(initialTexture.width, initialTexture.height)
-
     const pyramidTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    pyramidTexture.define(Math.pow(2, levels), Math.pow(2, levels))
+    pyramidTexture.define(maxSize, maxSize)
 
-    // TODO cache globally for reuse
     const levelTextures: Texture[] = []
-    for (let i = 0; i < levels; ++i) {
-        const tex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-        tex.define(Math.pow(2, i), Math.pow(2, i))
-        levelTextures.push(tex)
-    }
+    for (let i = 0; i < levels; ++i) levelTextures.push(getLevelTexture(ctx, i))
 
     const renderable = getHistopyramidReductionRenderable(ctx, initialTexture)
-    renderable.update()
+    setRenderingDefaults(gl)
 
     let offset = 0;
     for (let i = 0; i < levels; i++) {
@@ -102,15 +111,13 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
         const size = Math.pow(2, currLevel)
         // console.log('size', size, 'draw-level', currLevel, 'read-level', levels - i)
         gl.clear(gl.COLOR_BUFFER_BIT)
-
-        ValueCell.update(renderable.values.uSize, Math.pow(2, i + 1) / initialTextureMaxDim)
-        const readTex = i === 0 ? initialTexture : levelTextures[levels - i]
-        // console.log(readTex.width, readTex.height)
-        ValueCell.update(renderable.values.tPreviousLevel, readTex)
-
-        renderable.update()
-        setRenderingDefaults(gl)
         gl.viewport(0, 0, size, size)
+
+        ValueCell.update(renderable.values.uSize, Math.pow(2, i + 1) / maxSize)
+        if (i > 0) {
+            ValueCell.update(renderable.values.tPreviousLevel, levelTextures[levels - i])
+            renderable.update()
+        }
         renderable.render()
 
         pyramidTexture.bind(0)
@@ -138,18 +145,11 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
 
     const finalCount = getHistopyramidSum(ctx, levelTextures[0])
     const height = Math.ceil(finalCount / Math.pow(2, levels))
-    // console.log('height', height, 'finalCount', finalCount)
+    const scale = Vec2.create(maxSize / inputTexture.width, maxSize / inputTexture.height)
+    // console.log('height', height, 'finalCount', finalCount, 'scale', scale)
 
-    //
-
-    const scale = Vec2.create(
-        initialTexture.width / inputTexture.width,
-        initialTexture.height / inputTexture.height
-    )
     return {
         pyramidTex: pyramidTexture,
-        totalTex: levelTextures[0],
-        initialTex: initialTexture,
         count: finalCount,
         height,
         levels,

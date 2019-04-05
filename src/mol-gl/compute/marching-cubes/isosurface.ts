@@ -27,11 +27,11 @@ const IsosurfaceSchema = {
     tActiveVoxelsPyramid: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     tActiveVoxelsBase: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     tVolumeData: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-    tActiveVoxelsTotal: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     uIsoValue: UniformSpec('f'),
 
     uSize: UniformSpec('f'),
     uLevels: UniformSpec('f'),
+    uCount: UniformSpec('f'),
 
     uGridDim: UniformSpec('v3'),
     uGridTexDim: UniformSpec('v3'),
@@ -40,7 +40,7 @@ const IsosurfaceSchema = {
     uScale: UniformSpec('v2'),
 }
 
-function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, activeVoxelsTotal: Texture, gridDimensions: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2) {
+function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDimensions: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number) {
     // console.log('uSize', Math.pow(2, levels))
     const values: Values<typeof IsosurfaceSchema> = {
         ...QuadValues,
@@ -49,11 +49,11 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
         tActiveVoxelsPyramid: ValueCell.create(activeVoxelsPyramid),
         tActiveVoxelsBase: ValueCell.create(activeVoxelsBase),
         tVolumeData: ValueCell.create(volumeData),
-        tActiveVoxelsTotal: ValueCell.create(activeVoxelsTotal),
         uIsoValue: ValueCell.create(isoValue),
 
         uSize: ValueCell.create(Math.pow(2, levels)),
         uLevels: ValueCell.create(levels),
+        uCount: ValueCell.create(count),
 
         uGridDim: ValueCell.create(gridDimensions),
         uGridTexDim: ValueCell.create(Vec3.create(volumeData.width, volumeData.height, 0)),
@@ -82,7 +82,7 @@ function setRenderingDefaults(gl: GLRenderingContext) {
 
 export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDimensions: Vec3, transform: Mat4, isoValue: number) {
     const { gl, framebufferCache } = ctx
-    const { pyramidTex, totalTex, height, levels, scale, count } = histogramPyramid
+    const { pyramidTex, height, levels, scale, count } = histogramPyramid
 
     const framebuffer = framebufferCache.get(FramebufferName).value
     framebuffer.bind()
@@ -108,8 +108,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     // const indexTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     // indexTex.define(pyramidTex.width, pyramidTex.height)
 
-    const pr = getIsosurfaceRenderable(ctx, pyramidTex, activeVoxelsBase, volumeData, totalTex, gridDimensions, transform, isoValue, levels, scale)
-    pr.update()
+    const renderable = getIsosurfaceRenderable(ctx, pyramidTex, activeVoxelsBase, volumeData, gridDimensions, transform, isoValue, levels, scale, count)
 
     vertexGroupTexture.attachFramebuffer(framebuffer, 0)
     normalTexture.attachFramebuffer(framebuffer, 1)
@@ -134,7 +133,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     setRenderingDefaults(gl)
     gl.viewport(0, 0, pyramidTex.width, pyramidTex.height)
     gl.scissor(0, 0, pyramidTex.width, height)
-    pr.render()
+    renderable.render()
     gl.disable(gl.SCISSOR_TEST)
 
     // const vgt = readTexture(ctx, vertexGroupTexture, pyramidTex.width, height)

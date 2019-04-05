@@ -61,27 +61,29 @@ async function init() {
     }
     const isoValue = Math.exp(-props.smoothness)
 
-    // console.time('gpu gaussian2')
-    // const densityTextureData2 = await computeGaussianDensityTexture2d(position, box, radius, props, webgl).run()
-    // webgl.waitForGpuCommandsCompleteSync()
-    // console.timeEnd('gpu gaussian2')
+    // if (true) {
+    //     console.time('gpu gaussian2')
+    //     const densityTextureData2 = await computeGaussianDensityTexture2d(position, box, radius, props, webgl).run()
+    //     webgl.waitForGpuCommandsCompleteSync()
+    //     console.timeEnd('gpu gaussian2')
 
-    // console.time('gpu mc2')
-    // console.time('gpu mc active2')
-    // const activeVoxelsTex2 = calcActiveVoxels(webgl, densityTextureData2.texture, densityTextureData2.gridDimension, isoValue)
-    // webgl.waitForGpuCommandsCompleteSync()
-    // console.timeEnd('gpu mc active2')
+    //     console.time('gpu mc2')
+    //     console.time('gpu mc active2')
+    //     const activeVoxelsTex2 = calcActiveVoxels(webgl, densityTextureData2.texture, densityTextureData2.gridDimension, isoValue)
+    //     webgl.waitForGpuCommandsCompleteSync()
+    //     console.timeEnd('gpu mc active2')
 
-    // console.time('gpu mc pyramid2')
-    // const compacted2 = createHistogramPyramid(webgl, activeVoxelsTex2)
-    // webgl.waitForGpuCommandsCompleteSync()
-    // console.timeEnd('gpu mc pyramid2')
+    //     console.time('gpu mc pyramid2')
+    //     const compacted2 = createHistogramPyramid(webgl, activeVoxelsTex2)
+    //     webgl.waitForGpuCommandsCompleteSync()
+    //     console.timeEnd('gpu mc pyramid2')
 
-    // console.time('gpu mc vert2')
-    // const gv2 = createIsosurfaceBuffers(webgl, activeVoxelsTex2, densityTextureData2.texture, compacted2, densityTextureData2.gridDimension, densityTextureData2.transform, isoValue)
-    // webgl.waitForGpuCommandsCompleteSync()
-    // console.timeEnd('gpu mc vert2')
-    // console.timeEnd('gpu mc2')
+    //     console.time('gpu mc vert2')
+    //     const gv2 = createIsosurfaceBuffers(webgl, activeVoxelsTex2, densityTextureData2.texture, compacted2, densityTextureData2.gridDimension, densityTextureData2.transform, isoValue)
+    //     webgl.waitForGpuCommandsCompleteSync()
+    //     console.timeEnd('gpu mc vert2')
+    //     console.timeEnd('gpu mc2')
+    // }
 
     console.time('gpu gaussian')
     const densityTextureData = await computeGaussianDensityTexture2d(position, box, radius, props, webgl).run()
@@ -107,9 +109,7 @@ async function init() {
 
     console.log({ ...webgl.stats, programCount: webgl.programCache.count, shaderCount: webgl.shaderCache.count })
 
-    const mcBoundingSphere = Sphere3D.zero()
-    Sphere3D.addVec3(mcBoundingSphere, mcBoundingSphere, densityTextureData.gridDimension)
-    console.log('mcBoundingSphere', mcBoundingSphere, densityTextureData.gridDimension)
+    const mcBoundingSphere = Sphere3D.fromBox3D(Sphere3D(), densityTextureData.bbox)
     const mcIsosurface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, mcBoundingSphere)
     const mcIsoSurfaceProps = { doubleSided: true, flatShaded: false, alpha: 1.0 }
     const mcIsoSurfaceValues = TextureMesh.Utils.createValuesSimple(mcIsosurface, mcIsoSurfaceProps, Color(0x112299), 1)
@@ -138,6 +138,7 @@ async function init() {
     const surface = await computeMarchingCubesMesh(params).run()
     console.timeEnd('cpu mc')
     // console.log('surface', surface)
+    Mesh.transformImmediate(surface, densityData.transform)
     Mesh.computeNormalsImmediate(surface)
     const meshProps = { doubleSided: true, flatShaded: false, alpha: 1.0 }
     const meshValues = Mesh.Utils.createValuesSimple(surface, meshProps, Color(0x995511), 1)

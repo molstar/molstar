@@ -70,7 +70,6 @@ export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDime
     activeVoxelsTex.define(width, height)
 
     const renderable = getActiveVoxelsRenderable(ctx, cornerTex, gridDimensions, isoValue)
-    renderable.update()
 
     activeVoxelsTex.attachFramebuffer(framebuffer, 0)
     setRenderingDefaults(gl)
