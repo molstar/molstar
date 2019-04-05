@@ -8,7 +8,7 @@
 import { RuntimeContext } from 'mol-task'
 import { PositionData, DensityData, DensityTextureData } from '../common'
 import { Box3D } from '../../geometry'
-import { GaussianDensityGPUProps, getDelta } from '../gaussian-density'
+import { GaussianDensityGPUProps } from '../gaussian-density'
 import { OrderedSet } from 'mol-data/int'
 import { Vec3, Tensor, Mat4 } from '../../linear-algebra'
 import { ValueCell } from 'mol-util'
@@ -229,12 +229,15 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
     }
 
     const pad = maxRadius * 2 + resolution
-    const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad));
-    const extent = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min)
+    const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
+    const expandedDim = Box3D.size(Vec3(), expandedBox)
 
-    const delta = getDelta(expandedBox, resolution)
-    const dim = Vec3.zero()
-    Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
+    const scaledBox = Box3D.scale(Box3D(), expandedBox, 1 / resolution)
+    const dim = Box3D.size(Vec3(), scaledBox)
+    Vec3.ceil(dim, dim)
+    const delta = Vec3.div(Vec3(), dim, expandedDim)
+
+    // console.log({ maxRadius, resolution, pad, box, expandedBox, delta })
     // console.log('grid dim gpu', dim)
 
     return { drawCount: n, positions, radii, groups, delta, expandedBox, dim }

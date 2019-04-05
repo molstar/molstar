@@ -45,15 +45,8 @@ async function init() {
         z: [0, 2],
         indices: OrderedSet.ofSortedArray([0, 1]),
     }
-    const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(3, 3, 3))
-    // const position: PositionData = {
-    //     x: [0],
-    //     y: [0],
-    //     z: [0],
-    //     indices: OrderedSet.ofSortedArray([0]),
-    // }
-    // const box = Box3D.create(Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1))
-    const radius = () => 1.4
+    const box = Box3D.create(Vec3.create(0, 0, 0), Vec3.create(2, 2, 2))
+    const radius = () => 1.8
     const props = {
         resolution: 0.1,
         radiusOffset: 0,
@@ -61,7 +54,7 @@ async function init() {
     }
     const isoValue = Math.exp(-props.smoothness)
 
-    if (true) {
+    if (false) {
         console.time('gpu gaussian2')
         const densityTextureData2 = await computeGaussianDensityTexture2d(position, box, radius, props, webgl).run()
         webgl.waitForGpuCommandsCompleteSync()

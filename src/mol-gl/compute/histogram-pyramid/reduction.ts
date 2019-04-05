@@ -80,6 +80,7 @@ export interface HistogramPyramid {
 export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture): HistogramPyramid {
     const { gl, framebufferCache } = ctx
 
+    // printTexture(ctx, inputTexture, 2)
     const inputTextureMaxDim = Math.max(inputTexture.width, inputTexture.height)
 
     // This part set the levels
@@ -139,7 +140,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
         offset += size;
     }
 
-    // printTexture(ctx, pyramidTexture, 3)
+    // printTexture(ctx, pyramidTexture, 2)
 
     //
 
