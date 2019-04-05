@@ -84,6 +84,7 @@ namespace StateBuilder {
         }
         toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.root.ref, this); }
         delete(ref: StateTransform.Ref) {
+            if (!this.state.tree.transforms.has(ref)) return this;
             this.editInfo.count++;
             this.state.tree.remove(ref);
             this.state.actions.push({ kind: 'delete', ref });
@@ -111,6 +112,19 @@ namespace StateBuilder {
             this.state.actions.push({ kind: 'add', transform: t });
 
             return new To(this.state, t.ref, this.root);
+        }
+
+        /**
+         * If the ref is present, the transform is applied.
+         * Otherwise a transform with the specifed ref is created.
+         */
+        applyOrUpdate<T extends StateTransformer<A, any, any>>(ref: StateTransform.Ref, tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>> {
+            if (this.state.tree.transforms.has(ref)) {
+                this.to(ref).update(params);
+                return this.to(ref) as To<StateTransformer.To<T>>;
+            } else {
+                return this.apply(tr, params, { ...options, ref });
+            }
         }
 
         /**

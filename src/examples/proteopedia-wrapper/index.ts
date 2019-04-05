@@ -15,10 +15,12 @@ import { PluginStateObject as PSO, PluginStateObject } from 'mol-plugin/state/ob
 import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
 import { StateBuilder, StateObject } from 'mol-state';
 import { EvolutionaryConservation } from './annotation';
-import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo } from './helpers';
+import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo, StateElements } from './helpers';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { ControlsWrapper } from './ui/controls';
 import { PluginState } from 'mol-plugin/state';
+import { Scheduler } from 'mol-task';
+import { createProteopediaCustomTheme } from './coloring';
 require('mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
@@ -33,9 +35,15 @@ class MolStarProteopediaWrapper {
 
     plugin: PluginContext;
 
-    init(target: string | HTMLElement) {
+    init(target: string | HTMLElement, options?: {
+        customColorList?: number[],
+        customColorDefault?: number
+    }) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
             ...DefaultPluginSpec,
+            animations: [
+                AnimateModelIndex
+            ],
             layout: {
                 initial: {
                     isExpanded: false,
@@ -47,6 +55,9 @@ class MolStarProteopediaWrapper {
             }
         });
 
+        const customColoring = createProteopediaCustomTheme((options && options.customColorList) || [], (options && options.customColorDefault) || 0x777777);
+
+        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add('proteopedia-custom', customColoring);
         this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(EvolutionaryConservation.Descriptor.name, EvolutionaryConservation.colorTheme!);
         this.plugin.lociLabels.addProvider(EvolutionaryConservation.labelProvider);
         this.plugin.customModelProperties.register(EvolutionaryConservation.propertyProvider);
@@ -66,43 +77,87 @@ class MolStarProteopediaWrapper {
             : b.apply(StateTransforms.Model.TrajectoryFromPDB);
 
         return parsed
-            .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 }, { ref: 'model' });
+            .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 }, { ref: StateElements.Model });
     }
 
     private structure(assemblyId: string) {
-        const model = this.state.build().to('model');
+        const model = this.state.build().to(StateElements.Model);
 
-        return model
-            .apply(StateTransforms.Model.CustomModelProperties, { properties: [EvolutionaryConservation.Descriptor.name] }, { ref: 'props', state: { isGhost: false } })
-            .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
+        const s = model
+            .apply(StateTransforms.Model.CustomModelProperties, { properties: [EvolutionaryConservation.Descriptor.name] }, { ref: StateElements.ModelProps, state: { isGhost: false } })
+            .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: StateElements.Assembly });
+
+        s.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' }, { ref: StateElements.Sequence });
+        s.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' }, { ref: StateElements.Het });
+        s.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' }, { ref: StateElements.Water });
+
+        return s;
     }
 
-    private visual(ref: string, style?: RepresentationStyle) {
-        const structure = this.getObj<PluginStateObject.Molecule.Structure>(ref);
+    private visual(_style?: RepresentationStyle, partial?: boolean) {
+        const structure = this.getObj<PluginStateObject.Molecule.Structure>(StateElements.Assembly);
         if (!structure) return;
 
-        const root = this.state.build().to(ref);
+        const style = _style || { };
 
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' }, { ref: 'sequence' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
-                    (style && style.sequence && style.sequence.kind) || 'cartoon',
-                    (style && style.sequence && style.sequence.coloring) || 'unit-index', structure),
-                    { ref: 'sequence-visual' });
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' }, { ref: 'het' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
-                    (style && style.hetGroups && style.hetGroups.kind) || 'ball-and-stick',
-                    (style && style.hetGroups && style.hetGroups.coloring), structure),
-                    { ref: 'het-visual' });
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' }, { ref: 'water' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
-                    (style && style.water && style.water.kind) || 'ball-and-stick',
-                    (style && style.water && style.water.coloring), structure, { alpha: 0.51 }),
-                    { ref: 'water-visual' });
+        const update = this.state.build();
 
-        return root;
+        if (!partial || (partial && style.sequence)) {
+            const root = update.to(StateElements.Sequence);
+            if (style.sequence && style.sequence.hide) {
+                root.delete(StateElements.SequenceVisual);
+            } else {
+                root.applyOrUpdate(StateElements.SequenceVisual, StateTransforms.Representation.StructureRepresentation3D,
+                    StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
+                        (style.sequence && style.sequence.kind) || 'cartoon',
+                        (style.sequence && style.sequence.coloring) || 'unit-index', structure));
+            }
+        }
+
+        if (!partial || (partial && style.hetGroups)) {
+            const root = update.to(StateElements.Het);
+            if (style.hetGroups && style.hetGroups.hide) {
+                root.delete(StateElements.HetVisual);
+            } else {
+                if (style.hetGroups && style.hetGroups.hide) {
+                    root.delete(StateElements.HetVisual);
+                } else {
+                    root.applyOrUpdate(StateElements.HetVisual, StateTransforms.Representation.StructureRepresentation3D,
+                        StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
+                            (style.hetGroups && style.hetGroups.kind) || 'ball-and-stick',
+                            (style.hetGroups && style.hetGroups.coloring), structure));
+                }
+            }
+        }
+
+        if (!partial || (partial && style.snfg3d)) {
+            const root = update.to(StateElements.Het);
+            if (style.hetGroups && style.hetGroups.hide) {
+                root.delete(StateElements.HetVisual);
+            } else {
+                if (style.snfg3d && style.snfg3d.hide) {
+                    root.delete(StateElements.Het3DSNFG);
+                } else {
+                    root.applyOrUpdate(StateElements.Het3DSNFG, StateTransforms.Representation.StructureRepresentation3D,
+                        StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin, 'carbohydrate', void 0, structure));
+                }
+            }
+        }
+
+        if (!partial || (partial && style.water)) {
+            const root = update.to(StateElements.Het);
+            if (style.water && style.water.hide) {
+                root.delete(StateElements.Water);
+            } else {
+                root.applyOrUpdate(StateElements.Water, StateTransforms.Model.StructureComplexElement, { type: 'water' })
+                    .applyOrUpdate(StateElements.WaterVisual, StateTransforms.Representation.StructureRepresentation3D,
+                        StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
+                            (style.water && style.water.kind) || 'ball-and-stick',
+                            (style.water && style.water.coloring), structure, { alpha: 0.51 }));
+            }
+        }
+
+        return update;
     }
 
     private getObj<T extends StateObject>(ref: string): T['data'] {
@@ -134,7 +189,7 @@ class MolStarProteopediaWrapper {
         if (this.loadedParams.url !== url || this.loadedParams.format !== format) {
             loadType = 'full';
         } else if (this.loadedParams.url === url) {
-            if (state.select('asm').length > 0) loadType = 'update';
+            if (state.select(StateElements.Assembly).length > 0) loadType = 'update';
         }
 
         if (loadType === 'full') {
@@ -146,18 +201,18 @@ class MolStarProteopediaWrapper {
             await this.applyState(structureTree);
         } else {
             const tree = state.build();
-            tree.to('asm').update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId || 'deposited' }));
+            tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId || 'deposited' }));
             await this.applyState(tree);
         }
 
         await this.updateStyle(representationStyle);
 
         this.loadedParams = { url, format, assemblyId };
-        PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+        Scheduler.setImmediate(() => PluginCommands.Camera.Reset.dispatch(this.plugin, { }));
     }
 
-    async updateStyle(style?: RepresentationStyle) {
-        const tree = this.visual('asm', style);
+    async updateStyle(style?: RepresentationStyle, partial?: boolean) {
+        const tree = this.visual(style, partial);
         if (!tree) return;
         await PluginCommands.State.Update.dispatch(this.plugin, { state: this.plugin.state.dataState, tree });
     }
@@ -186,7 +241,7 @@ class MolStarProteopediaWrapper {
 
     coloring = {
         evolutionaryConservation: async () => {
-            await this.updateStyle({ sequence: { kind: 'spacefill' } });
+            await this.updateStyle({ sequence: { kind: 'spacefill' } }, true);
 
             const state = this.state;
 
@@ -194,7 +249,7 @@ class MolStarProteopediaWrapper {
             const tree = state.build();
             const colorTheme = { name: EvolutionaryConservation.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(EvolutionaryConservation.Descriptor.name).defaultValues };
 
-            tree.to('sequence-visual').update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
+            tree.to(StateElements.SequenceVisual).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
             // for (const v of visuals) {
             // }
 
