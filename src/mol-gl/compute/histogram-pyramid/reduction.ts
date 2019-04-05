@@ -40,7 +40,7 @@ function getHistopyramidReductionRenderable(ctx: WebGLContext, initialTexture: T
 }
 
 /** name for shared framebuffer used for histogram-pyramid operations */
-const FramebufferName = 'histogram-pyramid'
+const FramebufferName = 'histogram-pyramid-reduction'
 
 function setRenderingDefaults(gl: GLRenderingContext) {
     gl.disable(gl.CULL_FACE)
@@ -66,7 +66,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
 
     // This part set the levels
     const levels = Math.ceil(Math.log(inputTextureMaxDim) / Math.log(2))
-    console.log('levels', levels)
+    // console.log('levels', levels)
 
     const initialTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     initialTexture.load({ array: new Float32Array(4), width: 1, height: 1 })
@@ -101,7 +101,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
         levelTextures[currLevel].attachFramebuffer(framebuffer, 0)
 
         const size = Math.pow(2, currLevel)
-        console.log('size', size, 'draw-level', currLevel, 'read-level', levels - i)
+        // console.log('size', size, 'draw-level', currLevel, 'read-level', levels - i)
         gl.clear(gl.COLOR_BUFFER_BIT)
 
         ValueCell.update(renderable.values.uSize, Math.pow(2, i + 1) / initialTextureMaxDim)
@@ -140,7 +140,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
 
     const finalCount = getHistopyramidSum(ctx, levelTextures[0])
     const height = Math.ceil(finalCount / Math.pow(2, levels))
-    console.log('height', height, 'finalCount', finalCount)
+    // console.log('height', height, 'finalCount', finalCount)
 
     //
 

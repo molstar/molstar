@@ -18,7 +18,7 @@ import { HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
 
 /** name for shared framebuffer used for gpu marching cubes operations */
-const FramebufferName = 'marching-cubes'
+const FramebufferName = 'marching-cubes-isosurface'
 
 const IsosurfaceSchema = {
     ...QuadSchema,

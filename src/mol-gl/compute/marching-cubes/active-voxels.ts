@@ -17,7 +17,7 @@ import { QuadSchema, QuadValues } from '../util';
 import { getTriCount } from './tables';
 
 /** name for shared framebuffer used for gpu marching cubes operations */
-const FramebufferName = 'marching-cubes'
+const FramebufferName = 'marching-cubes-active-voxels'
 
 const ActiveVoxelsSchema = {
     ...QuadSchema,

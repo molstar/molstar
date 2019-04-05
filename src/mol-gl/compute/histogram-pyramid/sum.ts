@@ -12,7 +12,7 @@ import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
 import { decodeFloatRGB } from 'mol-util/float-packing';
-import { readTexture, QuadSchema, QuadValues } from '../util';
+import { QuadSchema, QuadValues } from '../util';
 
 const HistopyramidSumSchema = {
     ...QuadSchema,
@@ -36,25 +36,29 @@ function getHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture) {
 }
 
 /** name for shared framebuffer used for histogram-pyramid operations */
-const FramebufferName = 'histogram-pyramid'
+const FramebufferName = 'histogram-pyramid-sum'
 
+const sumArray = new Uint8Array(4)
 export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture) {
     const { gl, framebufferCache } = ctx
 
     const framebuffer = framebufferCache.get(FramebufferName).value
+    framebuffer.bind()
+    gl.viewport(0, 0, 1, 1)
 
-    const encodeFloatRenderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture)
-    encodeFloatRenderable.update()
-    encodeFloatRenderable.use()
+    const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture)
+    renderable.update()
+    renderable.use()
 
     // TODO cache globally for reuse
-    const encodedFloatTexture = createTexture(ctx, 'image-uint8', 'rgba', 'ubyte', 'nearest')
-    encodedFloatTexture.define(1, 1)
-    encodedFloatTexture.attachFramebuffer(framebuffer, 0)
+    const sumTexture = createTexture(ctx, 'image-uint8', 'rgba', 'ubyte', 'nearest')
+    sumTexture.define(1, 1)
+    sumTexture.attachFramebuffer(framebuffer, 0)
 
-    gl.viewport(0, 0, 1, 1)
-    encodeFloatRenderable.render()
+    renderable.render()
+    ctx.readPixels(0, 0, 1, 1, sumArray)
 
-    const sumImage = readTexture(ctx, encodedFloatTexture)
-    return decodeFloatRGB(sumImage.array[0], sumImage.array[1], sumImage.array[2])
+    ctx.unbindFramebuffer()
+
+    return decodeFloatRGB(sumArray[0], sumArray[1], sumArray[2])
 }
