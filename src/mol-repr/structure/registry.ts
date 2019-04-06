@@ -16,6 +16,7 @@ import { DistanceRestraintRepresentationProvider } from './representation/distan
 import { PointRepresentationProvider } from './representation/point';
 import { StructureRepresentationState } from './representation';
 import { PuttyRepresentationProvider } from './representation/putty';
+import { MolecularSurfaceRepresentationProvider } from './representation/molecular-surface';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
@@ -34,6 +35,7 @@ export const BuiltInStructureRepresentations = {
     'distance-restraint': DistanceRestraintRepresentationProvider,
     'gaussian-surface': GaussianSurfaceRepresentationProvider,
     'gaussian-volume': GaussianVolumeRepresentationProvider,
+    'molecular-surface': MolecularSurfaceRepresentationProvider,
     'point': PointRepresentationProvider,
     'putty': PuttyRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,
