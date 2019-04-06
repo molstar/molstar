@@ -99,6 +99,7 @@
 
             PluginWrapper.events.modelInfo.subscribe(function (info) {
                 console.log('Model Info', info);
+                listHetGroups(info);
             });
 
             addControl('Load Asym Unit', () => PluginWrapper.load({ url: url, format: format }));
@@ -146,6 +147,12 @@
             addControl('Default Visuals', () => PluginWrapper.updateStyle());
 
             addSeparator();
+            addHeader('HET Groups');
+
+            addControl('Reset', () => PluginWrapper.hetGroups.reset());
+            addHetGroupsContainer();
+
+            addSeparator();
             addHeader('State');
 
             var snapshot;
@@ -163,6 +170,12 @@
 
             ////////////////////////////////////////////////////////
 
+            function addHetGroupsContainer() {
+                var div = document.createElement('div');
+                div.id = 'het-groups';
+                $('controls').appendChild(div);
+            }
+
             function addControl(label, action) {
                 var btn = document.createElement('button');
                 btn.onclick = action;
@@ -179,6 +192,19 @@
                 var h = document.createElement('h3');
                 h.innerText = header;
                 $('controls').appendChild(h);
+            }
+
+            function listHetGroups(info) {
+                var div = $('het-groups');
+                div.innerHTML = '';
+                info.hetResidues.forEach(function (r) {
+                    var l = document.createElement('button');
+                    l.innerText = r.name;
+                    l.onclick = function () {
+                        PluginWrapper.hetGroups.focusFirst(r.name);
+                    };
+                    div.appendChild(l);
+                });
             }
         </script>
     </body>

@@ -111,5 +111,7 @@ export enum StateElements {
     HetVisual = 'het-visual',
     Het3DSNFG = 'het-3dsnfg',
     Water = 'water',
-    WaterVisual = 'water-visual'
+    WaterVisual = 'water-visual',
+
+    HetGroupFocus = 'het-group-focus'
 }

@@ -84,7 +84,7 @@ class Camera implements Object3D {
         return ret;
     }
 
-    focus(target: Vec3, radius: number) {
+    getFocus(target: Vec3, radius: number): Partial<Camera.Snapshot> {
         const fov = this.state.fov
         const { width, height } = this.viewport
         const aspect = width / height
@@ -98,7 +98,11 @@ class Camera implements Object3D {
         if (currentDistance < targetDistance) Vec3.negate(this.deltaDirection, this.deltaDirection)
         Vec3.add(this.newPosition, this.state.position, this.deltaDirection)
 
-        this.setState({ target, position: this.newPosition })
+        return { target, position: Vec3.clone(this.newPosition) };
+    }
+
+    focus(target: Vec3, radius: number) {
+        this.setState(this.getFocus(target, radius));
     }
 
     // lookAt(target: Vec3) {

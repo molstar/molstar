@@ -167,6 +167,10 @@ const filter = {
         test: Argument(Type.Bool)
     }), Types.ElementSelectionQuery, 'Pick all atom sets that satisfy the test.'),
 
+    first: symbol(Arguments.Dictionary({
+        0: Argument(Types.ElementSelectionQuery)
+    }), Types.ElementSelectionQuery, 'Take the 1st atom set in the sequence.'),
+
     withSameAtomProperties: symbol(Arguments.Dictionary({
         0: Argument(Types.ElementSelectionQuery),
         source: Argument(Types.ElementSelectionQuery),

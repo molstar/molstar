@@ -31,6 +31,25 @@ export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuer
     };
 }
 
+export function first(query: StructureQuery): StructureQuery {
+    return ctx => {
+        const sel = query(ctx);
+        const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
+        if (sel.kind === 'singletons') {
+            if (sel.structure.elementCount > 0) {
+                const u = sel.structure.units[0];
+                const s = Structure.create([u.getChild(SortedArray.ofSingleton(u.elements[0]))]);
+                ret.add(s);
+            }
+        } else {
+            if (sel.structures.length > 0) {
+                ret.add(sel.structures[0]);
+            }
+        }
+        return ret.getSelection();
+    };
+}
+
 export interface UnitTypeProperties { atomic?: QueryFn, coarse?: QueryFn }
 
 export function getCurrentStructureProperties(ctx: QueryContext, props: UnitTypeProperties, set: Set<any>) {

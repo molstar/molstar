@@ -21,6 +21,14 @@ import { ControlsWrapper } from './ui/controls';
 import { PluginState } from 'mol-plugin/state';
 import { Scheduler } from 'mol-task';
 import { createProteopediaCustomTheme } from './coloring';
+import { MolScriptBuilder as MS } from 'mol-script/language/builder';
+import { BuiltInStructureRepresentations } from 'mol-repr/structure/registry';
+import { BuiltInColorThemes } from 'mol-theme/color';
+import { BuiltInSizeThemes } from 'mol-theme/size';
+import { ColorNames } from 'mol-util/color/tables';
+// import { Vec3 } from 'mol-math/linear-algebra';
+// import { ParamDefinition } from 'mol-util/param-definition';
+// import { Text } from 'mol-geo/geometry/text/text';
 require('mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
@@ -255,6 +263,69 @@ class MolStarProteopediaWrapper {
 
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
         }
+    }
+
+    hetGroups = {
+        reset: () => {
+            const update = this.state.build().delete(StateElements.HetGroupFocus);
+            PluginCommands.State.Update.dispatch(this.plugin, { state: this.state, tree: update });
+            PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+        },
+        focusFirst: async (resn: string) => {
+            if (!this.state.transforms.has(StateElements.Assembly)) return;
+
+            // const asm = (this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure).data;
+
+            const update = this.state.build();
+
+            update.delete(StateElements.HetGroupFocus);
+
+            const surroundings = MS.struct.modifier.includeSurroundings({
+                0: MS.struct.filter.first([
+                    MS.struct.generator.atomGroups({
+                        'residue-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_comp_id(), resn]),
+                        'group-by': MS.struct.atomProperty.macromolecular.residueKey()
+                    })
+                ]),
+                radius: 5,
+                'as-whole-residues': true
+            });
+
+            const sel = update.to(StateElements.Assembly)
+                .apply(StateTransforms.Model.StructureSelection, { label: resn, query: surroundings }, { ref: StateElements.HetGroupFocus });
+
+            sel.apply(StateTransforms.Representation.StructureRepresentation3D, this.createSurVisualParams());
+            // sel.apply(StateTransforms.Representation.StructureLabels3D, {
+            //     target: { name: 'residues', params: { } },
+            //     options: {
+            //         ...ParamDefinition.getDefaultValues(Text.Params),
+            //         background: true,
+            //         backgroundMargin: 0.2,
+            //         backgroundColor: ColorNames.snow,
+            //         backgroundOpacity: 0.9,
+            //     }
+            // });
+
+            await PluginCommands.State.Update.dispatch(this.plugin, { state: this.state, tree: update });
+
+            const focus = (this.state.select(StateElements.HetGroupFocus)[0].obj as PluginStateObject.Molecule.Structure).data;
+            const sphere = focus.boundary.sphere;
+            // const asmCenter = asm.boundary.sphere.center;
+            // const position = Vec3.sub(Vec3.zero(), sphere.center, asmCenter);
+            // Vec3.normalize(position, position);
+            // Vec3.scaleAndAdd(position, sphere.center, position, sphere.radius);
+            const snapshot = this.plugin.canvas3d.camera.getFocus(sphere.center, 0.75 * sphere.radius);
+            PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, { snapshot, durationMs: 250 });
+        }
+    }
+
+    private createSurVisualParams() {
+        const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
+        return StructureRepresentation3DHelpers.createParams(this.plugin, asm.data, {
+            repr: BuiltInStructureRepresentations['ball-and-stick'],
+            color: [BuiltInColorThemes.uniform, () => ({ value: ColorNames.gray })],
+            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.33 } )]
+        });
     }
 
     snapshot = {
