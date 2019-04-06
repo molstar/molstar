@@ -17,8 +17,8 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const { indices, x, y, z } = position
     const n = OrderedSet.size(indices)
 
-    const v = Vec3.zero()
-    const p = Vec3.zero()
+    const v = Vec3()
+    const p = Vec3()
 
     let maxRadius = 0
     for (let i = 0; i < n; ++i) {
@@ -49,7 +49,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
 
     const densData = space.create()
 
-    const c = Vec3.zero()
+    const c = Vec3()
 
     const alpha = smoothness
 
@@ -58,8 +58,8 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     Vec3.mul(_radius2, _radius2, delta)
     const updateChunk = Math.ceil(10000 / (_radius2[0] * _radius2[1] * _radius2[2]))
 
-    const beg = Vec3.zero()
-    const end = Vec3.zero()
+    const beg = Vec3()
+    const end = Vec3()
 
     const gridPad = 1 / Math.max(...delta)
 
