@@ -32,7 +32,7 @@ import { ColorNames } from 'mol-util/color/tables';
 require('mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
-    static VERSION_MAJOR = 2;
+    static VERSION_MAJOR = 3;
     static VERSION_MINOR = 0;
 
     private _ev = RxEventHelper.create();
@@ -153,12 +153,11 @@ class MolStarProteopediaWrapper {
         }
 
         if (!partial || (partial && style.water)) {
-            const root = update.to(StateElements.Het);
+            const root = update.to(StateElements.Water);
             if (style.water && style.water.hide) {
-                root.delete(StateElements.Water);
+                root.delete(StateElements.WaterVisual);
             } else {
-                root.applyOrUpdate(StateElements.Water, StateTransforms.Model.StructureComplexElement, { type: 'water' })
-                    .applyOrUpdate(StateElements.WaterVisual, StateTransforms.Representation.StructureRepresentation3D,
+                root.applyOrUpdate(StateElements.WaterVisual, StateTransforms.Representation.StructureRepresentation3D,
                         StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
                             (style.water && style.water.kind) || 'ball-and-stick',
                             (style.water && style.water.coloring), structure, { alpha: 0.51 }));
