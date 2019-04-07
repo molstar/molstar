@@ -58,12 +58,11 @@
         <script>
             // it might be a good idea to define these colors in a separate script file 
             var CustomColors = [0x00ff00, 0x0000ff];
-            var DefaultCustomColor = 0xff0000;
 
             // create an instance of the plugin
             var PluginWrapper = new MolStarProteopediaWrapper();
 
-            console.log('Wrapper version', MolStarProteopediaWrapper.VERSION_MAJOR);
+            console.log('Wrapper version', MolStarProteopediaWrapper.VERSION_MAJOR, MolStarProteopediaWrapper.VERSION_MINOR);
 
             function $(id) { return document.getElementById(id); }
         
@@ -90,8 +89,7 @@
             };
 
             PluginWrapper.init('app' /** or document.getElementById('app') */, {
-                customColorList: CustomColors,
-                customColorDefault: DefaultCustomColor
+                customColorList: CustomColors
             });
             PluginWrapper.setBackground(0xffffff);
             PluginWrapper.load({ url: url, format: format, assemblyId: assemblyId, representationStyle: representationStyle });

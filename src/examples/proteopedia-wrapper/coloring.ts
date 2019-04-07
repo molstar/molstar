@@ -17,11 +17,10 @@ import { Column } from 'mol-data/db';
 
 const Description = 'Gives every chain a color from a list based on its `asym_id` value.'
 
-export function createProteopediaCustomTheme(colors: number[], defaultColor: number) {
+export function createProteopediaCustomTheme(colors: number[]) {
     const ProteopediaCustomColorThemeParams = {
         colors: PD.ObjectList({ color: PD.Color(Color(0xffffff)) }, ({ color }) => Color.toHexString(color),
-            { defaultValue: colors.map(c => ({ color: Color(c) })) }),
-        defaultColor: PD.Color(Color(defaultColor))
+            { defaultValue: colors.map(c => ({ color: Color(c) })) })
     }
     type ProteopediaCustomColorThemeParams = typeof ProteopediaCustomColorThemeParams
     function getChainIdColorThemeParams(ctx: ThemeDataContext) {
@@ -52,7 +51,7 @@ export function createProteopediaCustomTheme(colors: number[], defaultColor: num
     function ProteopediaCustomColorTheme(ctx: ThemeDataContext, props: PD.Values<ProteopediaCustomColorThemeParams>): ColorTheme<ProteopediaCustomColorThemeParams> {
         let color: LocationColor
 
-        const colors = props.colors, colorCount = colors.length, defaultColor = props.defaultColor;
+        const colors = props.colors, colorCount = colors.length, defaultColor = colors[0].color;
 
         if (ctx.structure) {
             const l = StructureElement.create()
@@ -71,13 +70,13 @@ export function createProteopediaCustomTheme(colors: number[], defaultColor: num
                 if (StructureElement.isLocation(location)) {
                     const asym_id = getAsymId(location.unit);
                     const o = asymIdSerialMap.get(asym_id(location)) || 0;
-                    return o < colorCount ? colors[o].color : defaultColor;
+                    return colors[o % colorCount].color;
                 } else if (Link.isLocation(location)) {
                     const asym_id = getAsymId(location.aUnit)
                     l.unit = location.aUnit
                     l.element = location.aUnit.elements[location.aIndex]
                     const o = asymIdSerialMap.get(asym_id(l)) || 0;
-                    return o < colorCount ? colors[o].color : defaultColor;
+                    return colors[o % colorCount].color;
                 }
                 return defaultColor
             }

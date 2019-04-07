@@ -33,7 +33,7 @@ require('mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 3;
-    static VERSION_MINOR = 0;
+    static VERSION_MINOR = 1;
 
     private _ev = RxEventHelper.create();
 
@@ -44,8 +44,7 @@ class MolStarProteopediaWrapper {
     plugin: PluginContext;
 
     init(target: string | HTMLElement, options?: {
-        customColorList?: number[],
-        customColorDefault?: number
+        customColorList?: number[]
     }) {
         this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
             ...DefaultPluginSpec,
@@ -63,7 +62,7 @@ class MolStarProteopediaWrapper {
             }
         });
 
-        const customColoring = createProteopediaCustomTheme((options && options.customColorList) || [], (options && options.customColorDefault) || 0x777777);
+        const customColoring = createProteopediaCustomTheme((options && options.customColorList) || []);
 
         this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add('proteopedia-custom', customColoring);
         this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(EvolutionaryConservation.Descriptor.name, EvolutionaryConservation.colorTheme!);
