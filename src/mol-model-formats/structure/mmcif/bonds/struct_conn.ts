@@ -10,7 +10,7 @@ import { Structure } from 'mol-model/structure'
 import { LinkType } from 'mol-model/structure/model/types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'
 import { Column } from 'mol-data/db'
-import { ModelPropertyDescriptor } from 'mol-model/structure/model/properties/custom';
+import { CustomPropertyDescriptor } from 'mol-model/structure';
 import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif'
@@ -23,7 +23,7 @@ export interface StructConn {
 }
 
 export namespace StructConn {
-    export const Descriptor: ModelPropertyDescriptor = {
+    export const Descriptor: CustomPropertyDescriptor = {
         isStatic: true,
         name: 'struct_conn',
         cifExport: {

@@ -16,7 +16,7 @@ import { _chem_comp, _pdbx_chem_comp_identifier, _pdbx_nonpoly_scheme } from './
 import { Model } from '../model';
 import { getUniqueEntityIndicesFromStructures, copy_mmCif_category } from './categories/utils';
 import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
-import { ModelPropertyDescriptor } from '../model/properties/custom';
+import { CustomPropertyDescriptor } from '../common/custom-property';
 
 export interface CifExportContext {
     structures: Structure[],
@@ -122,7 +122,7 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
 
         let propCtx = ctx;
         if (customProp.cifExport.context) {
-            const propId = ModelPropertyDescriptor.getUUID(customProp);
+            const propId = CustomPropertyDescriptor.getUUID(customProp);
             if (ctx.cache[propId + '__ctx']) propCtx = ctx.cache[propId + '__ctx'];
             else {
                 propCtx = customProp.cifExport.context(ctx) || ctx;

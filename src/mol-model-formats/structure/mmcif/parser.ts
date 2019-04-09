@@ -13,7 +13,7 @@ import { RuntimeContext } from 'mol-task';
 import UUID from 'mol-util/uuid';
 import { Model } from 'mol-model/structure/model/model';
 import { Entities } from 'mol-model/structure/model/properties/common';
-import { CustomProperties } from 'mol-model/structure/model/properties/custom';
+import { CustomProperties } from 'mol-model/structure';
 import { ModelSymmetry } from 'mol-model/structure/model/properties/symmetry';
 import { createAssemblies } from './assembly';
 import { getAtomicHierarchyAndConformation } from './atomic';
