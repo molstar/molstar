@@ -16,16 +16,15 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
 
     const { indices, x, y, z } = position
     const n = OrderedSet.size(indices)
-
-    const v = Vec3()
-    const p = Vec3()
+    const radii = new Float32Array(n)
 
     let maxRadius = 0
     for (let i = 0; i < n; ++i) {
         const r = radius(OrderedSet.getAt(indices, i)) + radiusOffset
         if (maxRadius < r) maxRadius = r
+        radii[i] = r
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
+        if (i % 100000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'calculating max radius', current: i, max: n })
         }
     }
@@ -49,6 +48,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
 
     const densData = space.create()
 
+    const v = Vec3()
     const c = Vec3()
 
     const alpha = smoothness
@@ -56,41 +56,53 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const _r2 = maxRadius * 2
     const _radius2 = Vec3.create(_r2, _r2, _r2)
     Vec3.mul(_radius2, _radius2, delta)
-    const updateChunk = Math.ceil(10000 / (_radius2[0] * _radius2[1] * _radius2[2]))
+    const updateChunk = Math.ceil(1000000 / (_radius2[0] * _radius2[1] * _radius2[2]))
 
     const beg = Vec3()
     const end = Vec3()
+    const rad2 = Vec3()
 
     const gridPad = 1 / Math.max(...delta)
+
+    const invDelta = Vec3.inverse(Vec3(), delta)
+    const [ invDeltaX, invDeltaY, invDeltaZ ] = invDelta
+
+    let dx: number, dy: number, dz: number
+    let dxySq: number
+    let dSq: number
 
     // console.time('gaussian density cpu')
     for (let i = 0; i < n; ++i) {
         const j = OrderedSet.getAt(indices, i)
 
         Vec3.set(v, x[j], y[j], z[j])
-
         Vec3.sub(v, v, min)
+        const [ vx, vy, vz ] = v
+
         Vec3.mul(c, v, delta)
 
-        const rad = radius(j) + radiusOffset
+        const rad = radii[i]
         const rSq = rad * rad
+        const rSqInv = 1 / rSq
 
         const r2 = radiusOffset + rad * 2 + gridPad
-        const rad2 = Vec3.create(r2, r2, r2)
-        Vec3.mul(rad2, rad2, delta)
         const r2sq = r2 * r2
+        Vec3.set(rad2, r2, r2, r2)
+        Vec3.mul(rad2, rad2, delta)
 
         const [ begX, begY, begZ ] = Vec3.floor(beg, Vec3.sub(beg, c, rad2))
         const [ endX, endY, endZ ] = Vec3.ceil(end, Vec3.add(end, c, rad2))
 
         for (let xi = begX; xi < endX; ++xi) {
+            dx = xi * invDeltaX - vx
             for (let yi = begY; yi < endY; ++yi) {
+                dy = yi * invDeltaY - vy
+                dxySq = dx * dx + dy * dy
                 for (let zi = begZ; zi < endZ; ++zi) {
-                    Vec3.set(p, xi, yi, zi)
-                    Vec3.div(p, p, delta)
-                    const distSq = Vec3.squaredDistance(p, v)
-                    if (distSq <= r2sq) {
-                        const dens = Math.exp(-alpha * (distSq / rSq))
+                    dz = zi * invDeltaZ - vz
+                    dSq = dxySq + dz * dz
+                    if (dSq <= r2sq) {
+                        const dens = Math.exp(-alpha * (dSq * rSqInv))
                         space.add(data, xi, yi, zi, dens)
                         if (dens > space.get(densData, xi, yi, zi)) {
                             space.set(densData, xi, yi, zi, dens)
