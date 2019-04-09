@@ -26,6 +26,7 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { idFactory } from 'mol-util/id-factory';
 import { GridLookup3D } from 'mol-math/geometry';
 import { UUID } from 'mol-util';
+import { CustomProperties } from '../common/custom-property';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -50,7 +51,9 @@ class Structure {
         transformHash: number,
         elementCount: number,
         polymerResidueCount: number,
-        coordinateSystem: SymmetryOperator
+        coordinateSystem: SymmetryOperator,
+        propertyData?: any,
+        customProps?: CustomProperties
     } = {
         hashCode: -1,
         transformHash: -1,
@@ -66,6 +69,30 @@ class Structure {
     /** Count of all elements in the structure, i.e. the sum of the elements in the units */
     get elementCount() {
         return this._props.elementCount;
+    }
+
+    get hasCustomProperties() {
+        return !!this._props.customProps && this._props.customProps.all.length > 0;
+    }
+
+    get customPropertyDescriptors() {
+        if (!this._props.customProps) this._props.customProps = new CustomProperties();
+        return this._props.customProps;
+    }
+
+    /**
+     * Property data unique to this instance of the structure.
+     */
+    get currentPropertyData() {
+        if (!this._props.propertyData) this._props.propertyData = Object.create(null);
+        return this._props.propertyData;
+    }
+
+    /**
+     * Property data of the parent structure if it exists, currentPropertyData otherwise.
+     */
+    get inheritedPropertyData() {
+        return this.parent ? this.parent.currentPropertyData : this.currentPropertyData;
     }
 
     /** Count of all polymer residues in the structure */
