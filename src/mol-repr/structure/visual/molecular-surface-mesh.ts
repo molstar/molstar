@@ -14,7 +14,8 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
-import { MolecularSurfaceCalculationParams, MolecularSurfaceCalculationProps, computeUnitMolecularSurface } from './util/molecular-surface';
+import { computeUnitMolecularSurface } from './util/molecular-surface';
+import { MolecularSurfaceCalculationParams, MolecularSurfaceCalculationProps } from 'mol-math/geometry/molecular-surface';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
@@ -26,10 +27,11 @@ export type MolecularSurfaceMeshParams = typeof MolecularSurfaceMeshParams
 //
 
 async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceCalculationProps, mesh?: Mesh): Promise<Mesh> {
-    const { transform, field, idField } = await computeUnitMolecularSurface(unit, props).runInContext(ctx.runtime)
+    console.log(props)
 
+    const { transform, field, idField } = await computeUnitMolecularSurface(unit, props).runInContext(ctx.runtime)
     const params = {
-        isoLevel: 1,
+        isoLevel: props.probeRadius,
         scalarField: field,
         idField
     }
@@ -52,6 +54,7 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MolecularSurfaceMeshParams>, currentProps: PD.Values<MolecularSurfaceMeshParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true
+            if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true
         }
     }, materialId)
 }

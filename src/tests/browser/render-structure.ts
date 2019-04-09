@@ -13,6 +13,8 @@ import { SizeTheme } from 'mol-theme/size';
 import { CartoonRepresentationProvider } from 'mol-repr/structure/representation/cartoon';
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 import { computeModelDSSP } from 'mol-model/structure/model/properties/utils/secondary-structure';
+import { MolecularSurfaceRepresentationProvider } from 'mol-repr/structure/representation/molecular-surface';
+import { BallAndStickRepresentationProvider } from 'mol-repr/structure/representation/ball-and-stick';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -61,8 +63,16 @@ function getCartoonRepr() {
     return CartoonRepresentationProvider.factory(reprCtx, CartoonRepresentationProvider.getParams)
 }
 
+function getBallAndStickRepr() {
+    return BallAndStickRepresentationProvider.factory(reprCtx, BallAndStickRepresentationProvider.getParams)
+}
+
+function getMolecularSurfaceRepr() {
+    return MolecularSurfaceRepresentationProvider.factory(reprCtx, MolecularSurfaceRepresentationProvider.getParams)
+}
+
 async function init() {
-    const cif = await downloadFromPdb('3j3q')
+    const cif = await downloadFromPdb('1crn')
     const models = await getModels(cif)
     console.time('computeModelDSSP')
     const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy, models[0].atomicConformation)
@@ -70,6 +80,8 @@ async function init() {
     (models[0].properties as any).secondaryStructure = secondaryStructure
     const structure = await getStructure(models[0])
     const cartoonRepr = getCartoonRepr()
+    const ballAndStick = getBallAndStickRepr()
+    const molecularSurfaceRepr = getMolecularSurfaceRepr()
 
     cartoonRepr.setTheme({
         color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
@@ -77,7 +89,21 @@ async function init() {
     })
     await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
 
-    canvas3d.add(cartoonRepr)
+    ballAndStick.setTheme({
+        color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
+        size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
+    })
+    await ballAndStick.createOrUpdate({ ...BallAndStickRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
+
+    molecularSurfaceRepr.setTheme({
+        color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
+        size: reprCtx.sizeThemeRegistry.create('physical', { structure })
+    })
+    await molecularSurfaceRepr.createOrUpdate({ ...MolecularSurfaceRepresentationProvider.defaultValues, quality: 'custom', alpha: 1.0, flatShaded: true, doubleSided: true, resolution: 0.5 }, structure).run()
+
+    // canvas3d.add(cartoonRepr)
+    // canvas3d.add(ballAndStick)
+    canvas3d.add(molecularSurfaceRepr)
     canvas3d.resetCamera()
 }
 
