@@ -135,7 +135,7 @@ namespace StructureSelection {
                 const { elements } = unit;
                 for (let i = 0, _i = elements.length; i < _i; i++) {
                     // TODO: optimize this somehow???
-                    const s = Structure.create([unit.getChild(SortedArray.ofSingleton(elements[i]))]);
+                    const s = Structure.create([unit.getChild(SortedArray.ofSingleton(elements[i]))], sel.source);
                     fn(s, idx++);
                 }
             }

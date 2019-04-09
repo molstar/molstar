@@ -24,7 +24,7 @@ namespace StructureSymmetry {
             const assembly = ModelSymmetry.findAssembly(models[0], asmName);
             if (!assembly) throw new Error(`Assembly '${asmName}' is not defined.`);
 
-            const assembler = Structure.Builder();
+            const assembler = Structure.Builder(void 0, SymmetryOperator.create(assembly.id, Mat4.identity(), { id: assembly.id, operList: [] }));
 
             const queryCtx = new QueryContext(structure);
 
@@ -137,7 +137,7 @@ function getOperatorsCached333(symmetry: ModelSymmetry) {
 }
 
 function assembleOperators(structure: Structure, operators: ReadonlyArray<SymmetryOperator>) {
-    const assembler = Structure.Builder();
+    const assembler = Structure.Builder(void 0, void 0);
     const { units } = structure;
     for (const oper of operators) {
         for (const unit of units) {
@@ -179,7 +179,7 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
     const operators = getOperatorsCached333(symmetry);
     const lookup = structure.lookup3d;
 
-    const assembler = Structure.Builder();
+    const assembler = Structure.Builder(void 0, void 0);
 
     const { units } = structure;
     const center = Vec3.zero();
