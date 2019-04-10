@@ -46,6 +46,8 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const idData = space.create()
     const idField = Tensor.create(space, idData)
 
+    const iu = dim[2], iv = dim[1], iuv = iu * iv
+
     const densData = space.create()
 
     const v = Vec3()
@@ -67,11 +69,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const invDelta = Vec3.inverse(Vec3(), delta)
     const [ invDeltaX, invDeltaY, invDeltaZ ] = invDelta
 
-    let dx: number, dy: number, dz: number
-    let dxySq: number
-    let dSq: number
-
-    // console.time('gaussian density cpu')
+    console.time('gaussian density cpu')
     for (let i = 0; i < n; ++i) {
         const j = OrderedSet.getAt(indices, i)
 
@@ -94,19 +92,22 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
         const [ endX, endY, endZ ] = Vec3.ceil(end, Vec3.add(end, c, rad2))
 
         for (let xi = begX; xi < endX; ++xi) {
-            dx = xi * invDeltaX - vx
+            const dx = xi * invDeltaX - vx
+            const xIdx = xi * iuv
             for (let yi = begY; yi < endY; ++yi) {
-                dy = yi * invDeltaY - vy
-                dxySq = dx * dx + dy * dy
+                const dy = yi * invDeltaY - vy
+                const dxySq = dx * dx + dy * dy
+                const xyIdx = yi * iu + xIdx
                 for (let zi = begZ; zi < endZ; ++zi) {
-                    dz = zi * invDeltaZ - vz
-                    dSq = dxySq + dz * dz
+                    const dz = zi * invDeltaZ - vz
+                    const dSq = dxySq + dz * dz
                     if (dSq <= r2sq) {
                         const dens = Math.exp(-alpha * (dSq * rSqInv))
-                        space.add(data, xi, yi, zi, dens)
-                        if (dens > space.get(densData, xi, yi, zi)) {
-                            space.set(densData, xi, yi, zi, dens)
-                            space.set(idData, xi, yi, zi, i)
+                        const idx = zi + xyIdx
+                        data[idx] += dens
+                        if (dens > densData[idx]) {
+                            densData[idx] = dens
+                            idData[idx] = i
                         }
                     }
                 }
@@ -117,7 +118,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
             await ctx.update({ message: 'filling density grid', current: i, max: n })
         }
     }
-    // console.timeEnd('gaussian density cpu')
+    console.timeEnd('gaussian density cpu')
 
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, Vec3.inverse(Vec3.zero(), delta))
