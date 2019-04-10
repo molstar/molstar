@@ -9,7 +9,7 @@ import { Vec3, Mat4, Tensor } from '../../linear-algebra';
 import { RuntimeContext } from 'mol-task';
 import { PositionData, DensityData } from '../common';
 import { OrderedSet } from 'mol-data/int';
-import { GaussianDensityProps, getDelta } from '../gaussian-density';
+import { GaussianDensityProps } from '../gaussian-density';
 
 export async function GaussianDensityCPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<DensityData> {
     const { resolution, radiusOffset, smoothness } = props
@@ -31,14 +31,11 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     }
 
     const pad = maxRadius * 2 + resolution
-    const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad))
-    const extent = Vec3.sub(Vec3(), expandedBox.max, expandedBox.min)
+    const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
     const min = expandedBox.min
-
-    const delta = getDelta(Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad)), resolution)
-    const dim = Vec3()
-    Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
-    // console.log('grid dim cpu', dim)
+    const scaledBox = Box3D.scale(Box3D(), expandedBox, scaleFactor)
+    const dim = Box3D.size(Vec3(), scaledBox)
+    Vec3.ceil(dim, dim)
 
     const space = Tensor.Space(dim, [0, 1, 2], Float32Array)
     const data = space.create()
@@ -59,7 +56,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const alpha = smoothness
     const updateChunk = Math.ceil(1000000 / (Math.pow(maxRadius * 2, 3) * resolution))
 
-    // console.time('gaussian density cpu')
+    console.time('gaussian density cpu')
     for (let i = 0; i < n; ++i) {
         const j = OrderedSet.getAt(indices, i)
         const vx = x[j], vy = y[j], vz = z[j]
@@ -118,10 +115,10 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
             await ctx.update({ message: 'filling density grid', current: i, max: n })
         }
     }
-    // console.timeEnd('gaussian density cpu')
+    console.timeEnd('gaussian density cpu')
 
     const transform = Mat4.identity()
-    Mat4.fromScaling(transform, Vec3.inverse(Vec3.zero(), delta))
+    Mat4.fromScaling(transform, Vec3.create(resolution, resolution, resolution))
     Mat4.setTranslation(transform, expandedBox.min)
 
     return { field, idField, transform }

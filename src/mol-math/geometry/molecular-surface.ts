@@ -16,7 +16,6 @@ import { OrderedSet } from 'mol-data/int';
 import { PositionData } from './common';
 import { Mat4 } from 'mol-math/linear-algebra/3d';
 import { Box3D, GridLookup3D, fillGridDim } from 'mol-math/geometry';
-import { getDelta } from './gaussian-density';
 
 function normalToLine (out: Vec3, p: Vec3) {
     out[0] = out[1] = out[2] = 1.0
@@ -308,8 +307,6 @@ interface MolSurfCalcState {
 
     lookup3d: Lookup3D
     position: Required<PositionData>
-    delta: Vec3
-    invDelta: Vec3
     min: Vec3
 
     maxRadius: number
@@ -337,7 +334,6 @@ interface MolSurfCalcState {
 
 async function createState(ctx: RuntimeContext, position: Required<PositionData>, maxRadius: number, props: MolecularSurfaceCalculationProps): Promise<MolSurfCalcState> {
     const { resolution, probeRadius, probePositions } = props
-
     const scaleFactor = 1 / resolution
 
     const lookup3d = GridLookup3D(position)
@@ -346,15 +342,11 @@ async function createState(ctx: RuntimeContext, position: Required<PositionData>
     const n = OrderedSet.size(indices)
 
     const pad = maxRadius * 2 + resolution
-    const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad))
-    const extent = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min)
+    const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
     const min = expandedBox.min
-
-    const delta = getDelta(Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad)), resolution)
-    const dim = Vec3.zero()
-    Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
-    console.log('grid dim surf', dim)
-    const invDelta = Vec3.inverse(Vec3(), delta)
+    const scaledBox = Box3D.scale(Box3D(), expandedBox, scaleFactor)
+    const dim = Box3D.size(Vec3(), scaledBox)
+    Vec3.ceil(dim, dim)
 
     const { cosTable, sinTable } = getAngleTables(probePositions)
 
@@ -377,8 +369,6 @@ async function createState(ctx: RuntimeContext, position: Required<PositionData>
 
         lookup3d,
         position,
-        delta,
-        invDelta,
         min,
 
         maxRadius,
@@ -437,9 +427,10 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
     const field = Tensor.create(state.space, state.data)
     const idField = Tensor.create(state.space, state.idData)
 
+    const { resolution, expandedBox } = state
     const transform = Mat4.identity()
-    Mat4.fromScaling(transform, Vec3.inverse(Vec3.zero(), state.delta))
-    Mat4.setTranslation(transform, state.expandedBox.min)
+    Mat4.fromScaling(transform, Vec3.create(resolution, resolution, resolution))
+    Mat4.setTranslation(transform, expandedBox.min)
     console.log({ field, idField, transform, state })
     return { field, idField, transform }
 }

@@ -5,7 +5,6 @@
  */
 
 import { Box3D } from '../geometry';
-import { Vec3 } from '../linear-algebra';
 import { RuntimeContext, Task } from 'mol-task';
 import { PositionData, DensityData } from './common';
 import { GaussianDensityCPU } from './gaussian-density/cpu';
@@ -33,14 +32,6 @@ export const DefaultGaussianDensityProps = {
     useGpu: true,
 }
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
-
-export function getDelta(box: Box3D, resolution: number) {
-    const extent = Vec3.sub(Vec3.zero(), box.max, box.min)
-    const size = Vec3.zero()
-    Vec3.ceil(size, Vec3.scale(size, extent, resolution))
-    const delta = Vec3.div(Vec3.zero(), extent, size)
-    return delta
-}
 
 export function computeGaussianDensity(position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps, webgl?: WebGLContext) {
     return Task.create('Gaussian Density', async ctx => {
