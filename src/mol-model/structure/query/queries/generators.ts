@@ -168,10 +168,10 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
     };
 }
 
-function getRingStructure(unit: Unit.Atomic, ring: UnitRing) {
+function getRingStructure(unit: Unit.Atomic, ring: UnitRing, inputStructure: Structure) {
     const elements = new Int32Array(ring.length) as any as ElementIndex[];
     for (let i = 0, _i = ring.length; i < _i; i++) elements[i] = unit.elements[ring[i]];
-    return Structure.create([unit.getChild(SortedArray.ofSortedArray(elements))])
+    return Structure.create([unit.getChild(SortedArray.ofSortedArray(elements))], inputStructure);
 }
 
 export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): StructureQuery {
@@ -184,7 +184,7 @@ export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): Structure
                 if (!Unit.isAtomic(u)) continue;
 
                 for (const r of u.rings.all) {
-                    ret.add(getRingStructure(u, r));
+                    ret.add(getRingStructure(u, r, ctx.inputStructure));
                 }
             }
         } else {
@@ -198,7 +198,7 @@ export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): Structure
                 for (const fp of uniqueFps.array) {
                     if (!rings.byFingerprint.has(fp)) continue;
                     for (const r of rings.byFingerprint.get(fp)!) {
-                        ret.add(getRingStructure(u, rings.all[r]));
+                        ret.add(getRingStructure(u, rings.all[r], ctx.inputStructure));
                     }
                 }
             }

@@ -1,6 +1,6 @@
 import { MolScriptBuilder } from 'mol-script/language/builder';
 import { compile, QuerySymbolRuntime, DefaultQueryRuntimeTable } from 'mol-script/runtime/query/compiler';
-import { QueryContext, Structure, StructureQuery, ModelPropertyDescriptor } from 'mol-model/structure';
+import { QueryContext, Structure, StructureQuery, CustomPropertyDescriptor } from 'mol-model/structure';
 import { readCifFile, getModelsAndStructure } from '../apps/structure-info/model';
 import { CustomPropSymbol } from 'mol-script/language/symbol';
 import Type from 'mol-script/language/type';
@@ -46,7 +46,7 @@ const compiled = compile<number>(expr);
 const result = compiled(new QueryContext(Structure.Empty));
 console.log(result);
 
-const CustomProp = ModelPropertyDescriptor({
+const CustomProp = CustomPropertyDescriptor({
     name: 'test_prop',
     isStatic: true,
     cifExport: { prefix: '', categories: [ ]},

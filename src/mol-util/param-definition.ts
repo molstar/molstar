@@ -168,7 +168,7 @@ export namespace ParamDefinition {
     }
 
     export interface NamedParams<T = any, K = string> { name: K, params: T }
-    export type NamedParamUnion<P extends Params, K = keyof P> = K extends any ? NamedParams<P[K]['defaultValue'], K> : never
+    export type NamedParamUnion<P extends Params, K extends keyof P = keyof P> = K extends any ? NamedParams<P[K]['defaultValue'], K> : never
     export interface Mapped<T extends NamedParams<any, any>> extends Base<T> {
         type: 'mapped',
         select: Select<string>,

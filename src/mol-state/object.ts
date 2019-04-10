@@ -19,7 +19,7 @@ interface StateObject<D = any, T extends StateObject.Type = StateObject.Type<any
     readonly label: string,
     readonly description?: string,
     // assigned by reconciler to be StateTransform.props.tag
-    readonly tag?: string
+    readonly tags?: string[]
 }
 
 namespace StateObject {
@@ -56,12 +56,15 @@ namespace StateObject {
 }
 
 interface StateObjectCell<T extends StateObject = StateObject, F extends StateTransform<StateTransformer<any, T, any>> = StateTransform<StateTransformer<any, T, any>>> {
+    parent: State,
+
     transform: F,
 
     // Which object was used as a parent to create data in this cell
     sourceRef: StateTransform.Ref | undefined,
 
     status: StateObjectCell.Status,
+    state: StateTransform.State,
 
     params: {
         definition: ParamDefinition.Params,
@@ -79,24 +82,6 @@ namespace StateObjectCell {
 
     export type Obj<C extends StateObjectCell> = C extends StateObjectCell<infer T> ? T : never
     export type Transform<C extends StateObjectCell> = C extends StateObjectCell<any, infer T> ? T : never
-
-    export interface State {
-        isHidden: boolean,
-        isCollapsed: boolean
-    }
-
-    export const DefaultState: State = { isHidden: false, isCollapsed: false };
-
-    export function areStatesEqual(a: State, b: State) {
-        return a.isHidden !== b.isHidden || a.isCollapsed !== b.isCollapsed;
-    }
-
-    export function isStateChange(a: State, b?: Partial<State>) {
-        if (!b) return false;
-        if (typeof b.isCollapsed !== 'undefined' && a.isCollapsed !== b.isCollapsed) return true;
-        if (typeof b.isHidden !== 'undefined' && a.isHidden !== b.isHidden) return true;
-        return false;
-    }
 }
 
 // TODO: improve the API?

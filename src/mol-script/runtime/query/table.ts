@@ -186,6 +186,9 @@ const symbols = [
     C(MolScript.structureQuery.slot.element, (ctx, _) => ctx.element),
     // C(MolScript.structureQuery.slot.elementSetReduce, (ctx, _) => ctx.element),
 
+    // ============= FILTERS ================
+    D(MolScript.structureQuery.filter.first, (ctx, xs) => Queries.filters.first(xs[0] as any)(ctx)),
+
     // ============= GENERATORS ================
     D(MolScript.structureQuery.generator.atomGroups, (ctx, xs) => Queries.generators.atoms({
         entityTest: xs['entity-test'],

@@ -6,7 +6,7 @@
  */
 
 import { parsePDB } from 'mol-io/reader/pdb/parser';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3, Mat4, Quat } from 'mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from 'mol-model-formats/structure/pdb';
 import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry, QueryFn } from 'mol-model/structure';
@@ -25,6 +25,7 @@ import { parseGRO } from 'mol-io/reader/gro/parser';
 import { parseMolScript } from 'mol-script/language/parser';
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 import { shapeFromPly } from 'mol-model-formats/shape/ply';
+import { SymmetryOperator } from 'mol-math/geometry';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -34,6 +35,7 @@ export { ModelFromTrajectory };
 export { StructureFromModel };
 export { StructureAssemblyFromModel };
 export { StructureSymmetryFromModel };
+export { TransformStructureConformation }
 export { StructureSelection };
 export { UserStructureSelection };
 export { StructureComplexElement };
@@ -248,6 +250,52 @@ const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
             const props = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: structureDesc(s) };
             return new SO.Molecule.Structure(s, props);
         })
+    }
+});
+
+const _translation = Vec3.zero(), _m = Mat4.zero(), _n = Mat4.zero();
+type TransformStructureConformation = typeof TransformStructureConformation
+const TransformStructureConformation = PluginStateTransform.BuiltIn({
+    name: 'transform-structure-conformation',
+    display: { name: 'Transform Conformation' },
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: {
+        axis: PD.Vec3(Vec3.create(1, 0, 0)),
+        angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }),
+        translation: PD.Vec3(Vec3.create(0, 0, 0)),
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        // TODO: optimze
+
+        const center = a.data.boundary.sphere.center;
+        Mat4.fromTranslation(_m, Vec3.negate(_translation, center));
+        Mat4.fromTranslation(_n, Vec3.add(_translation, center, params.translation));
+        const rot = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * params.angle, Vec3.normalize(Vec3.zero(), params.axis));
+
+        const m = Mat4.zero();
+        Mat4.mul3(m, _n, rot, _m);
+
+        const s = Structure.transform(a.data, m);
+        const props = { label: `${a.label}`, description: `Transformed` };
+        return new SO.Molecule.Structure(s, props);
+    },
+    interpolate(src, tar, t) {
+        // TODO: optimize
+        const u = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * src.angle, Vec3.normalize(Vec3.zero(), src.axis));
+        Mat4.setTranslation(u, src.translation);
+        const v = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * tar.angle, Vec3.normalize(Vec3.zero(), tar.axis));
+        Mat4.setTranslation(v, tar.translation);
+        const m = SymmetryOperator.slerp(Mat4.zero(), u, v, t);
+        const rot = Mat4.getRotation(Quat.zero(), m);
+        const axis = Vec3.zero();
+        const angle = Quat.getAxisAngle(axis, rot);
+        const translation = Mat4.getTranslation(Vec3.zero(), m);
+        return { axis, angle, translation };
     }
 });
 

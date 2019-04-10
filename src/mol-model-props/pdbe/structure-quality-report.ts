@@ -8,7 +8,7 @@ import { Column, Table } from 'mol-data/db';
 import { toTable } from 'mol-io/reader/cif/schema';
 import { mmCIF_residueId_schema } from 'mol-io/reader/cif/schema/mmcif-extras';
 import { CifWriter } from 'mol-io/writer/cif';
-import { Model, ModelPropertyDescriptor, ResidueIndex, Unit, IndexedCustomProperty } from 'mol-model/structure';
+import { Model, CustomPropertyDescriptor, ResidueIndex, Unit, IndexedCustomProperty } from 'mol-model/structure';
 import { residueIdFields } from 'mol-model/structure/export/categories/atom_site';
 import { StructureElement, CifExportContext } from 'mol-model/structure/structure';
 import { CustomPropSymbol } from 'mol-script/language/symbol';
@@ -43,7 +43,7 @@ export namespace StructureQualityReport {
     };
     export type Schema = typeof Schema
 
-    export const Descriptor = ModelPropertyDescriptor({
+    export const Descriptor = CustomPropertyDescriptor({
         isStatic: false,
         name: 'pdbe_structure_quality_report',
         cifExport: {

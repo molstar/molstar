@@ -59,11 +59,11 @@ export const InitVolumeStreaming = StateAction.build({
         PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data)));
 
     if (params.method === 'em') {
-        behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { props: { isGhost: true } });
+        behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { state: { isGhost: true } });
     } else {
-        behTree.apply(VolumeStreamingVisual, { channel: '2fo-fc' }, { props: { isGhost: true } });
-        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(+ve)' }, { props: { isGhost: true } });
-        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(-ve)' }, { props: { isGhost: true } });
+        behTree.apply(VolumeStreamingVisual, { channel: '2fo-fc' }, { state: { isGhost: true } });
+        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(+ve)' }, { state: { isGhost: true } });
+        behTree.apply(VolumeStreamingVisual, { channel: 'fo-fc(-ve)' }, { state: { isGhost: true } });
     }
     await state.updateTree(behTree).runInContext(taskCtx);
 }));

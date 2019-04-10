@@ -105,7 +105,7 @@ const state: State = {
     query: new Rx.BehaviorSubject(QueryList[1].definition),
     id: new Rx.BehaviorSubject('1cbs'),
     params: new Rx.BehaviorSubject({ }),
-    isBinary: new Rx.BehaviorSubject(false),
+    isBinary: new Rx.BehaviorSubject<boolean>(false),
     models: new Rx.BehaviorSubject<number[]>([]),
     url: new Rx.Subject()
 }

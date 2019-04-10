@@ -7,7 +7,7 @@
 import { Column, Table } from 'mol-data/db';
 import { toTable } from 'mol-io/reader/cif/schema';
 import { CifWriter } from 'mol-io/writer/cif';
-import { Model, ModelPropertyDescriptor } from 'mol-model/structure';
+import { Model, CustomPropertyDescriptor } from 'mol-model/structure';
 
 export namespace PDBePreferredAssembly {
     export type Property = string
@@ -31,7 +31,7 @@ export namespace PDBePreferredAssembly {
     };
     export type Schema = typeof Schema
 
-    export const Descriptor = ModelPropertyDescriptor({
+    export const Descriptor = CustomPropertyDescriptor({
         isStatic: true,
         name: 'pdbe_preferred_assembly',
         cifExport: {

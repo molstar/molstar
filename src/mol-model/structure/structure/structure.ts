@@ -26,6 +26,7 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { idFactory } from 'mol-util/id-factory';
 import { GridLookup3D } from 'mol-math/geometry';
 import { UUID } from 'mol-util';
+import { CustomProperties } from '../common/custom-property';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -34,6 +35,7 @@ class Structure {
     readonly units: ReadonlyArray<Unit>;
 
     private _props: {
+        parent?: Structure,
         lookup3d?: StructureLookup3D,
         links?: InterUnitBonds,
         crossLinkRestraints?: PairRestraints<CrossLinkRestraint>,
@@ -49,7 +51,16 @@ class Structure {
         transformHash: number,
         elementCount: number,
         polymerResidueCount: number,
-    } = { hashCode: -1, transformHash: -1, elementCount: 0, polymerResidueCount: 0 };
+        coordinateSystem: SymmetryOperator,
+        propertyData?: any,
+        customProps?: CustomProperties
+    } = {
+        hashCode: -1,
+        transformHash: -1,
+        elementCount: 0,
+        polymerResidueCount: 0,
+        coordinateSystem: SymmetryOperator.Default
+    };
 
     subsetBuilder(isSorted: boolean) {
         return new StructureSubsetBuilder(this, isSorted);
@@ -58,6 +69,30 @@ class Structure {
     /** Count of all elements in the structure, i.e. the sum of the elements in the units */
     get elementCount() {
         return this._props.elementCount;
+    }
+
+    get hasCustomProperties() {
+        return !!this._props.customProps && this._props.customProps.all.length > 0;
+    }
+
+    get customPropertyDescriptors() {
+        if (!this._props.customProps) this._props.customProps = new CustomProperties();
+        return this._props.customProps;
+    }
+
+    /**
+     * Property data unique to this instance of the structure.
+     */
+    get currentPropertyData() {
+        if (!this._props.propertyData) this._props.propertyData = Object.create(null);
+        return this._props.propertyData;
+    }
+
+    /**
+     * Property data of the parent structure if it exists, currentPropertyData otherwise.
+     */
+    get inheritedPropertyData() {
+        return this.parent ? this.parent.currentPropertyData : this.currentPropertyData;
     }
 
     /** Count of all polymer residues in the structure */
@@ -104,6 +139,14 @@ class Structure {
     /** Returns a new element location iterator */
     elementLocations(): Iterator<StructureElement> {
         return new Structure.ElementLocationIterator(this);
+    }
+
+    get parent() {
+        return this._props.parent;
+    }
+
+    get coordinateSystem() {
+        return this._props.coordinateSystem;
     }
 
     get boundary() {
@@ -174,7 +217,7 @@ class Structure {
         return SortedArray.has(this.unitMap.get(e.unit.id).elements, e.element);
     }
 
-    constructor(units: ArrayLike<Unit>) {
+    private initUnits(units: ArrayLike<Unit>) {
         const map = IntMap.Mutable<Unit>();
         let elementCount = 0;
         let polymerResidueCount = 0;
@@ -188,11 +231,18 @@ class Structure {
             if (u.id < lastId) isSorted = false;
             lastId = u.id;
         }
-        if (!isSorted) sort(units, 0, units.length, cmpUnits, arraySwap)
-        this.unitMap = map;
-        this.units = units as ReadonlyArray<Unit>;
+        if (!isSorted) sort(units, 0, units.length, cmpUnits, arraySwap);
         this._props.elementCount = elementCount;
         this._props.polymerResidueCount = polymerResidueCount;
+        return map;
+    }
+
+    constructor(units: ArrayLike<Unit>, parent: Structure | undefined, coordinateSystem?: SymmetryOperator) {
+        this.unitMap = this.initUnits(units);
+        this.units = units as ReadonlyArray<Unit>;
+        if (parent) this._props.parent = parent;
+        if (coordinateSystem) this._props.coordinateSystem = coordinateSystem;
+        else if (parent) this._props.coordinateSystem = parent.coordinateSystem;
     }
 }
 
@@ -283,7 +333,7 @@ function getUniqueAtomicResidueIndices(structure: Structure): ReadonlyMap<UUID, 
 }
 
 namespace Structure {
-    export const Empty = new Structure([]);
+    export const Empty = new Structure([], void 0, void 0);
 
     /** Represents a single structure */
     export interface Loci {
@@ -302,7 +352,9 @@ namespace Structure {
         return a.structure === b.structure
     }
 
-    export function create(units: ReadonlyArray<Unit>): Structure { return new Structure(units); }
+    export function create(units: ReadonlyArray<Unit>, parent: Structure | undefined, coordinateSystem?: SymmetryOperator): Structure {
+        return new Structure(units, parent, coordinateSystem);
+    }
 
     /**
      * Construct a Structure from a model.
@@ -312,7 +364,7 @@ namespace Structure {
      */
     export function ofModel(model: Model): Structure {
         const chains = model.atomicHierarchy.chainAtomSegments;
-        const builder = new StructureBuilder();
+        const builder = new StructureBuilder(void 0, void 0);
 
         for (let c = 0; c < chains.count; c++) {
             const start = chains.offsets[c];
@@ -381,11 +433,13 @@ namespace Structure {
         const units: Unit[] = [];
         for (const u of s.units) {
             const old = u.conformation.operator;
-            const op = SymmetryOperator.create(old.name, transform, { id: '', operList: [] }, old.ncsId, old.hkl);
+            const op = SymmetryOperator.create(old.name, transform, old.assembly, old.ncsId, old.hkl);
             units.push(u.applyOperator(u.id, op));
         }
 
-        return new Structure(units);
+        const cs = s.coordinateSystem;
+        const newCS = SymmetryOperator.compose(SymmetryOperator.create(cs.name, transform, cs.assembly, cs.ncsId, cs.hkl), cs);
+        return new Structure(units, s, newCS);
     }
 
     export class StructureBuilder {
@@ -405,15 +459,21 @@ namespace Structure {
         }
 
         getStructure(): Structure {
-            return create(this.units);
+            return create(this.units, this.parent, this.coordinateSystem);
         }
 
         get isEmpty() {
             return this.units.length === 0;
         }
+
+        constructor(private parent: Structure | undefined, private coordinateSystem: SymmetryOperator | undefined) {
+
+        }
     }
 
-    export function Builder() { return new StructureBuilder(); }
+    export function Builder(parent: Structure | undefined, coordinateSystem: SymmetryOperator | undefined) {
+        return new StructureBuilder(parent, coordinateSystem);
+    }
 
     export function hashCode(s: Structure) {
         return s.hashCode;

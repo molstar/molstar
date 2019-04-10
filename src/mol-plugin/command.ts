@@ -53,7 +53,7 @@ export const PluginCommands = {
     },
     Camera: {
         Reset: PluginCommand<{}>(),
-        SetSnapshot: PluginCommand<{ snapshot: Camera.Snapshot, durationMs?: number }>(),
+        SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number }>(),
         Snapshots: {
             Add: PluginCommand<{ name?: string, description?: string }>(),
             Remove: PluginCommand<{ id: string }>(),

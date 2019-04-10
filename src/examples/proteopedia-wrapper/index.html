@@ -55,11 +55,14 @@
             </select>
         </div>
         <div id="app"></div>
-        <script>  
+        <script>
+            // it might be a good idea to define these colors in a separate script file 
+            var CustomColors = [0x00ff00, 0x0000ff];
+
             // create an instance of the plugin
             var PluginWrapper = new MolStarProteopediaWrapper();
 
-            console.log('Wrapper version', MolStarProteopediaWrapper.VERSION_MAJOR);
+            console.log('Wrapper version', MolStarProteopediaWrapper.VERSION_MAJOR, MolStarProteopediaWrapper.VERSION_MINOR);
 
             function $(id) { return document.getElementById(id); }
         
@@ -78,17 +81,43 @@
             // var format = 'pdb';
             // var assemblyId = 'deposited';
 
-            PluginWrapper.init('app' /** or document.getElementById('app') */);
+            var representationStyle = {
+                sequence: { coloring: 'proteopedia-custom' }, // or just { }
+                hetGroups: { kind: 'ball-and-stick' }, // or 'spacefill
+                water: { hide: true },
+                snfg3d: { hide: false }
+            };
+
+            PluginWrapper.init('app' /** or document.getElementById('app') */, {
+                customColorList: CustomColors
+            });
             PluginWrapper.setBackground(0xffffff);
-            PluginWrapper.load({ url: url, format: format, assemblyId: assemblyId });
+            PluginWrapper.load({ url: url, format: format, assemblyId: assemblyId, representationStyle: representationStyle });
             PluginWrapper.toggleSpin();
 
             PluginWrapper.events.modelInfo.subscribe(function (info) {
                 console.log('Model Info', info);
+                listHetGroups(info);
             });
 
             addControl('Load Asym Unit', () => PluginWrapper.load({ url: url, format: format }));
             addControl('Load Assembly', () => PluginWrapper.load({ url: url, format: format, assemblyId: assemblyId }));
+
+            addSeparator();
+
+            addHeader('Representation');
+
+            addControl('Custom Chain Colors', () => PluginWrapper.updateStyle({ sequence: { coloring: 'proteopedia-custom' } }, true));
+            addControl('Default Chain Colors', () => PluginWrapper.updateStyle({ sequence: { } }, true));
+
+            addControl('HET Spacefill', () => PluginWrapper.updateStyle({ hetGroups: { kind: 'spacefill' } }, true));
+            addControl('HET Ball-and-stick', () => PluginWrapper.updateStyle({ hetGroups: { kind: 'ball-and-stick' } }, true));
+
+            addControl('Hide 3DSNFG', () => PluginWrapper.updateStyle({ snfg3d: { hide: true } }, true));
+            addControl('Show 3DSNFG', () => PluginWrapper.updateStyle({ snfg3d: { hide: false } }, true));
+
+            addControl('Hide Water', () => PluginWrapper.updateStyle({ water: { hide: true } }, true));
+            addControl('Show Water', () => PluginWrapper.updateStyle({ water: { hide: false } }, true));
 
             addSeparator();
 
@@ -116,6 +145,12 @@
             addControl('Default Visuals', () => PluginWrapper.updateStyle());
 
             addSeparator();
+            addHeader('HET Groups');
+
+            addControl('Reset', () => PluginWrapper.hetGroups.reset());
+            addHetGroupsContainer();
+
+            addSeparator();
             addHeader('State');
 
             var snapshot;
@@ -133,6 +168,12 @@
 
             ////////////////////////////////////////////////////////
 
+            function addHetGroupsContainer() {
+                var div = document.createElement('div');
+                div.id = 'het-groups';
+                $('controls').appendChild(div);
+            }
+
             function addControl(label, action) {
                 var btn = document.createElement('button');
                 btn.onclick = action;
@@ -149,6 +190,19 @@
                 var h = document.createElement('h3');
                 h.innerText = header;
                 $('controls').appendChild(h);
+            }
+
+            function listHetGroups(info) {
+                var div = $('het-groups');
+                div.innerHTML = '';
+                info.hetResidues.forEach(function (r) {
+                    var l = document.createElement('button');
+                    l.innerText = r.name;
+                    l.onclick = function () {
+                        PluginWrapper.hetGroups.focusFirst(r.name);
+                    };
+                    div.appendChild(l);
+                });
             }
         </script>
     </body>

@@ -146,7 +146,7 @@ const DownloadStructure = StateAction.build({
         createStructureTree(ctx, traj, supportProps);
     } else {
         for (const download of downloadParams) {
-            const data = b.toRoot().apply(StateTransforms.Data.Download, download, { props: { isGhost: true } });
+            const data = b.toRoot().apply(StateTransforms.Data.Download, download, { state: { isGhost: true } });
             const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
             createStructureTree(ctx, traj, supportProps)
         }
@@ -179,14 +179,14 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
     let parsed: StateBuilder.To<PluginStateObject.Molecule.Trajectory>
     switch (format) {
         case 'cif':
-            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { props: { isGhost: true } })
-                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { props: { isGhost: true } })
+            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
+                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { state: { isGhost: true } })
             break
         case 'pdb':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { props: { isGhost: true } });
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { state: { isGhost: true } });
             break
         case 'gro':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { props: { isGhost: true } });
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { state: { isGhost: true } });
             break
         default:
             throw new Error('unsupported format')
@@ -284,6 +284,15 @@ export const EnableModelCustomProps = StateAction.build({
     }
 })(({ ref, params, state }, ctx: PluginContext) => {
     const root = state.build().to(ref).insert(CustomModelProperties, params);
+    return state.updateTree(root);
+});
+
+export const TransformStructureConformation = StateAction.build({
+    display: { name: 'Transform Conformation' },
+    from: PluginStateObject.Molecule.Structure,
+    params: StateTransforms.Model.TransformStructureConformation.definition.params,
+})(({ ref, params, state }) => {
+    const root = state.build().to(ref).insert(StateTransforms.Model.TransformStructureConformation, params as any);
     return state.updateTree(root);
 });
 
