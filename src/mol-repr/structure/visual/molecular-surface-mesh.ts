@@ -27,7 +27,6 @@ export type MolecularSurfaceMeshParams = typeof MolecularSurfaceMeshParams
 //
 
 async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceCalculationProps, mesh?: Mesh): Promise<Mesh> {
-    console.log(props)
 
     const { transform, field, idField } = await computeUnitMolecularSurface(unit, props).runInContext(ctx.runtime)
     const params = {
