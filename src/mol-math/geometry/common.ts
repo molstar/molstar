@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -31,4 +31,12 @@ export type DensityTextureData = {
     texture: Texture,
     bbox: Box3D,
     gridDimension: Vec3
+}
+
+export function fillGridDim(length: number, start: number, step: number) {
+    const a = new Float32Array(length)
+    for (let i = 0; i < a.length; i++) {
+        a[i] = start + (step * i)
+    }
+    return a
 }

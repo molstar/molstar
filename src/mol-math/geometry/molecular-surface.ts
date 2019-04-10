@@ -15,7 +15,7 @@ import { RuntimeContext } from 'mol-task';
 import { OrderedSet } from 'mol-data/int';
 import { PositionData } from './common';
 import { Mat4 } from 'mol-math/linear-algebra/3d';
-import { Box3D, GridLookup3D } from 'mol-math/geometry';
+import { Box3D, GridLookup3D, fillGridDim } from 'mol-math/geometry';
 import { getDelta } from './gaussian-density';
 
 function normalToLine (out: Vec3, p: Vec3) {
@@ -43,12 +43,6 @@ function getAngleTables (probePositions: number): AnglesTables {
         theta += step
     }
     return { cosTable, sinTable}
-}
-
-function fillGridDim(a: Float32Array, start: number, step: number) {
-    for (let i = 0; i < a.length; i++) {
-        a[i] = start + (step * i)
-    }
 }
 
 /**
@@ -371,13 +365,11 @@ async function createState(ctx: RuntimeContext, position: Required<PositionData>
     fillUniform(data, -1001.0)
     fillUniform(idData, -1)
 
-    const gridx = new Float32Array(dim[0])
-    const gridy = new Float32Array(dim[1])
-    const gridz = new Float32Array(dim[2])
+    const gridx = fillGridDim(dim[0], min[0], resolution)
+    const gridy = fillGridDim(dim[1], min[1], resolution)
+    const gridz = fillGridDim(dim[2], min[2], resolution)
 
-    fillGridDim(gridx, min[0], resolution)
-    fillGridDim(gridy, min[1], resolution)
-    fillGridDim(gridz, min[2], resolution)
+    const updateChunk = Math.ceil(1000000 / (Math.pow(maxRadius, 3) * resolution))
 
     return {
         lastClip: -1,
