@@ -27,6 +27,7 @@ class GridLookup3DImpl implements GridLookup3D<number> {
     private ctx: QueryContext;
     boundary: Lookup3D['boundary'];
     buckets: GridLookup3D['buckets'];
+    result: Result<number>
 
     find(x: number, y: number, z: number, radius: number): Result<number> {
         this.ctx.x = x;
@@ -52,6 +53,7 @@ class GridLookup3DImpl implements GridLookup3D<number> {
         this.ctx = createContext(structure);
         this.boundary = { box: structure.boundingBox, sphere: structure.boundingSphere };
         this.buckets = { offset: structure.bucketOffset, count: structure.bucketCounts, array: structure.bucketArray };
+        this.result = this.ctx.result
     }
 }
 
