@@ -42,14 +42,14 @@ export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityPro
 export function computeUnitGaussianDensityTexture(unit: Unit, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
     const { position, radius } = getUnitConformationAndRadius(unit)
     return Task.create('Gaussian Density', async ctx => {
-        return await GaussianDensityTexture(ctx, webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
+        return GaussianDensityTexture(webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
     });
 }
 
 export function computeUnitGaussianDensityTexture2d(unit: Unit, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
     const { position, radius } = getUnitConformationAndRadius(unit)
     return Task.create('Gaussian Density', async ctx => {
-        return await GaussianDensityTexture2d(ctx, webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
+        return GaussianDensityTexture2d(webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
     });
 }
 
@@ -65,6 +65,6 @@ export function computeStructureGaussianDensity(structure: Structure, props: Gau
 export function computeStructureGaussianDensityTexture(structure: Structure, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
     const { position, radius } = getStructureConformationAndRadius(structure)
     return Task.create('Gaussian Density', async ctx => {
-        return await GaussianDensityTexture(ctx, webgl, position, structure.lookup3d.boundary.box, radius, props, texture);
+        return GaussianDensityTexture(webgl, position, structure.lookup3d.boundary.box, radius, props, texture);
     });
 }

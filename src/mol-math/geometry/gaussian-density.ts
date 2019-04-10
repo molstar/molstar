@@ -43,7 +43,7 @@ export async function GaussianDensity(ctx: RuntimeContext, position: PositionDat
     if (props.useGpu) {
         if (!GaussianDensityGPU) throw 'GPU computation not supported on this platform';
         if (!webgl) throw 'No WebGL context provided';
-        return await GaussianDensityGPU(ctx, position, box, radius, props, webgl)
+        return GaussianDensityGPU(position, box, radius, props, webgl)
     } else {
         return await GaussianDensityCPU(ctx, position, box, radius, props)
     }
@@ -65,7 +65,7 @@ function _computeGaussianDensityTexture(type: '2d' | '3d', position: PositionDat
     if (!GaussianDensityTexture) throw 'GPU computation not supported on this platform';
     return Task.create('Gaussian Density', async ctx => {
         return type === '2d' ?
-            await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props, texture) :
-            await GaussianDensityTexture3d(ctx, webgl, position, box, radius, props, texture);
+            GaussianDensityTexture2d(webgl, position, box, radius, props, texture) :
+            GaussianDensityTexture3d(webgl, position, box, radius, props, texture);
     });
 }
