@@ -23,7 +23,7 @@ export function computeUnitMolecularSurface(unit: Unit, props: MolecularSurfaceC
         for (let i = 0; i < n; ++i) {
             const r = radius(OrderedSet.getAt(indices, i))
             if (maxRadius < r) maxRadius = r
-            radii[i] = r
+            radii[i] = r + props.probeRadius
 
             if (i % 10000 === 0 && ctx.shouldUpdate) {
                 await ctx.update({ message: 'calculating max radius', current: i, max: n })
