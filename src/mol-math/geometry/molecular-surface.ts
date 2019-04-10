@@ -49,6 +49,8 @@ function getAngleTables (probePositions: number): AnglesTables {
  * Ignore indices a and b (these are the relevant atoms in projectPoints/Torii)
  *
  * Cache the last clipped atom (as very often the same one in subsequent calls)
+ * 
+ * `a` and `b` must be resolved indices
  */
 function obscured (state: MolSurfCalcState, x: number, y: number, z: number, a: number, b: number) {
     if (state.lastClip !== -1) {
@@ -61,7 +63,7 @@ function obscured (state: MolSurfCalcState, x: number, y: number, z: number, a: 
     }
 
     for (let j = 0, jl = state.neighbours.count; j < jl; ++j) {
-        const ai = state.neighbours.indices[j]
+        const ai = OrderedSet.getAt(state.position.indices, state.neighbours.indices[j])
         if (ai !== a && ai !== b && singleAtomObscures(state, ai, x, y, z)) {
             state.lastClip = ai
             return ai
@@ -71,12 +73,14 @@ function obscured (state: MolSurfCalcState, x: number, y: number, z: number, a: 
     return -1
 }
 
+/**
+ * `ai` must be a resolved index
+ */
 function singleAtomObscures (state: MolSurfCalcState, ai: number, x: number, y: number, z: number) {
-    const j = OrderedSet.getAt(state.position.indices, ai)
-    const r = state.position.radius[j]
-    const dx = state.position.x[j] - x
-    const dy = state.position.y[j] - y
-    const dz = state.position.z[j] - z
+    const r = state.position.radius[ai]
+    const dx = state.position.x[ai] - x
+    const dy = state.position.y[ai] - y
+    const dz = state.position.z[ai] - z
     const dSq = dx * dx + dy * dy + dz * dz
     return dSq < (r * r)
 }
@@ -92,7 +96,7 @@ function singleAtomObscures (state: MolSurfCalcState, ai: number, x: number, y: 
  *             itself and delta
  */
 async function projectPoints (ctx:  RuntimeContext, state: MolSurfCalcState) {
-    const { position, lookup3d, min, space, data, idData, scaleFactor } = state
+    const { position, lookup3d, min, space, data, idData, scaleFactor, updateChunk } = state
     const { gridx, gridy, gridz } = state
 
     const { indices, x, y, z, radius } = position
@@ -154,7 +158,7 @@ async function projectPoints (ctx:  RuntimeContext, state: MolSurfCalcState) {
                         const spy = dy * ap + vy
                         const spz = dz * ap + vz
 
-                        if (obscured(state, spx, spy, spz, i, -1) === -1) {
+                        if (obscured(state, spx, spy, spz, j, -1) === -1) {
                             const dd = rad - d
                             if (dd < data[idx]) {
                                 data[idx] = dd
@@ -166,7 +170,7 @@ async function projectPoints (ctx:  RuntimeContext, state: MolSurfCalcState) {
             }
         }
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
+        if (i % updateChunk === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'projecting points', current: i, max: n })
         }
     }
@@ -177,6 +181,9 @@ const atob = Vec3()
 const mid = Vec3()
 const n1 = Vec3()
 const n2 = Vec3()
+/**
+ * `a` and `b` must be resolved indices
+ */
 function projectTorus (state: MolSurfCalcState, a: number, b: number) {
     const { position, min, space, data, idData } = state
     const { cosTable, sinTable, probePositions, probeRadius, scaleFactor } = state
@@ -195,7 +202,7 @@ function projectTorus (state: MolSurfCalcState, a: number, b: number) {
     const dSq = dx * dx + dy * dy + dz * dz
 
     // This check now redundant as already done in AVHash.withinRadii
-    if (dSq > ((rA + rB) * (rA + rB))) { return }
+    // if (dSq > ((rA + rB) * (rA + rB))) { return }
 
     const d = Math.sqrt(dSq)
 
@@ -271,7 +278,7 @@ function projectTorus (state: MolSurfCalcState, a: number, b: number) {
                             // Is this grid point closer to a or b?
                             // Take dot product of atob and gridpoint->p (dx, dy, dz)
                             const dp = dx * atob[0] + dy * atob[1] + dz * atob[2]
-                            idData[idx] = dp < 0.0 ? b : a
+                            idData[idx] = OrderedSet.indexOf(position.indices, dp < 0.0 ? b : a)
                         }
                     }
                 }
@@ -281,17 +288,17 @@ function projectTorus (state: MolSurfCalcState, a: number, b: number) {
 }
 
 async function projectTorii (ctx: RuntimeContext, state: MolSurfCalcState) {
-    const { n, lookup3d, position } = state
+    const { n, lookup3d, position, updateChunk } = state
     const { x, y, z, indices, radius } = position
     for (let i = 0; i < n; ++i) {
         const k = OrderedSet.getAt(indices, i)
         state.neighbours = lookup3d.find(x[k], y[k], z[k], radius[k])
         for (let j = 0, jl = state.neighbours.count; j < jl; ++j) {
-            const l = state.neighbours.indices[j]
+            const l = OrderedSet.getAt(indices, state.neighbours.indices[j])
             if (k < l) projectTorus(state, k, l)
         }
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
+        if (i % updateChunk === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'projecting torii', current: i, max: n })
         }
     }
@@ -308,6 +315,7 @@ interface MolSurfCalcState {
     lookup3d: Lookup3D
     position: Required<PositionData>
     min: Vec3
+    updateChunk: number
 
     maxRadius: number
 
@@ -336,7 +344,9 @@ async function createState(ctx: RuntimeContext, position: Required<PositionData>
     const { resolution, probeRadius, probePositions } = props
     const scaleFactor = 1 / resolution
 
-    const lookup3d = GridLookup3D(position)
+    const cellSize =  Vec3.create(maxRadius, maxRadius, maxRadius)
+    Vec3.scale(cellSize, cellSize, 2)
+    const lookup3d = GridLookup3D(position, cellSize)
     const box = lookup3d.boundary.box
     const { indices } = position
     const n = OrderedSet.size(indices)
@@ -370,6 +380,7 @@ async function createState(ctx: RuntimeContext, position: Required<PositionData>
         lookup3d,
         position,
         min,
+        updateChunk,
 
         maxRadius,
 

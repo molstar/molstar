@@ -17,15 +17,16 @@ export function computeUnitMolecularSurface(unit: Unit, props: MolecularSurfaceC
     return Task.create('Molecular Surface', async ctx => {
         const { indices } = position
         const n = OrderedSet.size(indices)
-        const radii = new Float32Array(n)
+        const radii = new Float32Array(OrderedSet.max(indices))
 
         let maxRadius = 0
         for (let i = 0; i < n; ++i) {
-            const r = radius(OrderedSet.getAt(indices, i))
+            const j = OrderedSet.getAt(indices, i)
+            const r = radius(j)
             if (maxRadius < r) maxRadius = r
-            radii[i] = r + props.probeRadius
+            radii[j] = r + props.probeRadius
 
-            if (i % 10000 === 0 && ctx.shouldUpdate) {
+            if (i % 100000 === 0 && ctx.shouldUpdate) {
                 await ctx.update({ message: 'calculating max radius', current: i, max: n })
             }
         }
