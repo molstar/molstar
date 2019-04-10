@@ -13,7 +13,7 @@ import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 import { idFactory } from 'mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
 import { hashFnv32a, hashString } from 'mol-data/util';
-import { isProductionMode } from 'mol-util/debug';
+import { isDebugMode } from 'mol-util/debug';
 import { GLRenderingContext } from './compat';
 import { ShaderCache } from './shader';
 
@@ -134,7 +134,7 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
     vertShaderRef.value.attach(program)
     fragShaderRef.value.attach(program)
     gl.linkProgram(program)
-    if (!isProductionMode) {
+    if (isDebugMode) {
         // no-op in FF on Mac, see https://bugzilla.mozilla.org/show_bug.cgi?id=1284425
         // gl.validateProgram(program)
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
@@ -145,7 +145,7 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
     const locations = getLocations(gl, program, schema)
     const uniformSetters = getUniformSetters(schema)
 
-    if (!isProductionMode) {
+    if (isDebugMode) {
         checkActiveAttributes(gl, program, schema)
         checkActiveUniforms(gl, program, schema)
     }

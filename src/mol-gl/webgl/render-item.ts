@@ -16,7 +16,7 @@ import { ValueCell } from 'mol-util';
 import { ReferenceItem } from 'mol-util/reference-cache';
 import { TextureImage, TextureVolume } from 'mol-gl/renderable/util';
 import { checkFramebufferStatus } from './framebuffer';
-import { isProductionMode } from 'mol-util/debug';
+import { isDebugMode } from 'mol-util/debug';
 
 const getNextRenderItemId = idFactory()
 
@@ -184,7 +184,7 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
                 if (elementsBuffer) elementsBuffer.bind()
                 program.bindAttributes(attributeBuffers)
             }
-            if (!isProductionMode) {
+            if (isDebugMode) {
                 checkFramebufferStatus(ctx.gl)
             }
             if (elementsBuffer) {
@@ -192,7 +192,7 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
             } else {
                 instancedArrays.drawArraysInstanced(glDrawMode, 0, drawCount, instanceCount)
             }
-            if (!isProductionMode) {
+            if (isDebugMode) {
                 try {
                     checkError(ctx.gl)
                 } catch (e) {

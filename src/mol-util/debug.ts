@@ -10,4 +10,10 @@
  */
 const isProductionMode = process.env.NODE_ENV === 'production'
 
-export { isProductionMode }
+/**
+ * set to true to enable more comprehensive checks and assertions,
+ * moslty used in `mol-gl`
+ */
+const isDebugMode = false
+
+export { isProductionMode, isDebugMode }

@@ -9,7 +9,7 @@ import { createShaderCache, ShaderCache } from './shader'
 import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers } from './compat';
 import { createFramebufferCache, FramebufferCache, checkFramebufferStatus } from './framebuffer';
 import { Scheduler } from 'mol-task';
-import { isProductionMode } from 'mol-util/debug';
+import { isDebugMode } from 'mol-util/debug';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -121,13 +121,13 @@ function waitForGpuCommandsCompleteSync(gl: GLRenderingContext): void {
 }
 
 function readPixels(gl: GLRenderingContext, x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) {
-    if (!isProductionMode) checkFramebufferStatus(gl)
+    if (isDebugMode) checkFramebufferStatus(gl)
     if (buffer instanceof Uint8Array) {
         gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
     } else {
         gl.readPixels(x, y, width, height, gl.RGBA, gl.FLOAT, buffer)
     }
-    if (!isProductionMode) checkError(gl)
+    if (isDebugMode) checkError(gl)
 }
 
 export function createImageData(buffer: ArrayLike<number>, width: number, height: number) {
