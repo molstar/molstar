@@ -34,6 +34,7 @@ import { StructureElementSelectionManager } from './util/structure-element-selec
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { Representation } from 'mol-repr/representation';
 import { ModifiersKeys } from 'mol-util/input/input-observer';
+import { isProductionMode, isDebugMode } from 'mol-util/debug';
 
 export class PluginContext {
     private disposed = false;
@@ -225,5 +226,7 @@ export class PluginContext {
         this.lociLabels = new LociLabelManager(this);
 
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
+        if (!isProductionMode) this.log.message(`Development mode enabled`);
+        if (isDebugMode) this.log.message(`Debug mode enabled`);
     }
 }

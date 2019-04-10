@@ -12,8 +12,8 @@ const isProductionMode = process.env.NODE_ENV === 'production'
 
 /**
  * set to true to enable more comprehensive checks and assertions,
- * moslty used in `mol-gl`
+ * mostly used in `mol-gl`
  */
-const isDebugMode = false
+const isDebugMode = process.env.DEBUG === '*' || process.env.DEBUG === 'molstar'
 
 export { isProductionMode, isDebugMode }

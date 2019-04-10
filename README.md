@@ -55,19 +55,9 @@ This project builds on experience from previous solutions:
 
 ### Build automatically on file save:
     npm run watch
-    npm run watch-extra
 
-### Build/watch mol-viewer
-**Build**
-
-    npm run build
-    npm run build-viewer
-
-**Watch**
-
-    npm run watch
-    npm run watch-extra
-    npm run watch-viewer
+### With debug mode enabled:
+    DEBUG=molstar npm run watch
 
 **Run**
 
