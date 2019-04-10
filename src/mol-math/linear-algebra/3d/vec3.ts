@@ -47,6 +47,13 @@ namespace Vec3 {
         return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2])
     }
 
+    export function setNaN(out: Vec3) {
+        out[0] = NaN;
+        out[1] = NaN;
+        out[2] = NaN;
+        return out
+    }
+
     export function fromObj(v: { x: number, y: number, z: number }): Vec3 {
         return create(v.x, v.y, v.z);
     }
