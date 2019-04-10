@@ -298,13 +298,16 @@ function assignBends(ctx: DSSPContext) {
 
     const position = (i: number, v: Vec3) => Vec3.set(v, x[i], y[i], z[i])
 
-    const caPosPrev2 = Vec3.zero()
-    const caPos = Vec3.zero()
-    const caPosNext2 = Vec3.zero()
+    const caPosPrev2 = Vec3()
+    const caPos = Vec3()
+    const caPosNext2 = Vec3()
 
     const nIndices = ctx.backboneIndices.nIndices
-    const cPos = Vec3.zero()
-    const nPosNext = Vec3.zero()
+    const cPos = Vec3()
+    const nPosNext = Vec3()
+
+    const caMinus2 = Vec3()
+    const caPlus2 = Vec3()
 
     f1: for (let i = 2; i < residueCount - 2; i++) {
         // check for peptide bond
@@ -329,9 +332,6 @@ function assignBends(ctx: DSSPContext) {
         position(caAtom, caPos)
         position(caAtomNext2, caPosNext2)
 
-        const caMinus2 = Vec3.zero()
-        const caPlus2 = Vec3.zero()
-
         Vec3.sub(caMinus2, caPosPrev2, caPos)
         Vec3.sub(caPlus2, caPos, caPosNext2)
 
@@ -349,21 +349,29 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
     const { traceElementIndex } = hierarchy.derived.residue
 
     const residueCount = proteinResidues.length
-    const position = (i: number, v: Vec3) => Vec3.set(v, x[i], y[i], z[i])
+    const position = (i: number, v: Vec3) => i === -1 ? Vec3.setNaN(v) : Vec3.set(v, x[i], y[i], z[i])
 
-    let cPosPrev = Vec3.zero(), caPosPrev = Vec3.zero(), nPosPrev = Vec3.zero()
-    let cPos = Vec3.zero(), caPos = Vec3.zero(), nPos = Vec3.zero()
-    let cPosNext = Vec3.zero(), caPosNext = Vec3.zero(), nPosNext = Vec3.zero()
+    let cPosPrev = Vec3(), caPosPrev = Vec3(), nPosPrev = Vec3()
+    let cPos = Vec3(), caPos = Vec3(), nPos = Vec3()
+    let cPosNext = Vec3(), caPosNext = Vec3(), nPosNext = Vec3()
+
+    if (residueCount === 0) return { phi: new Float32Array(0), psi: new Float32Array(0) }
 
     const phi: Float32Array = new Float32Array(residueCount - 1)
     const psi: Float32Array = new Float32Array(residueCount - 1)
 
-    const cAtomPrev = cIndices[-1], caAtomPrev = traceElementIndex[proteinResidues[-1]], nAtomPrev = nIndices[-1]
-    position(cAtomPrev, cPosPrev), position(caAtomPrev, caPosPrev), position(nAtomPrev, nPosPrev)
-    const cAtom = cIndices[0], caAtom = traceElementIndex[proteinResidues[0]], nAtom = nIndices[0]
-    position(cAtom, cPos), position(caAtom, caPos), position(nAtom, nPos)
-    const cAtomNext = cIndices[1], caAtomNext = traceElementIndex[proteinResidues[1]], nAtomNext = nIndices[1]
-    position(cAtomNext, cPosNext), position(caAtomNext, caPosNext), position(nAtomNext, nPosNext)
+    position(-1, cPosPrev)
+    position(-1, caPosPrev)
+    position(-1, nPosPrev)
+
+    position(cIndices[0], cPos)
+    position(traceElementIndex[proteinResidues[0]], caPos)
+    position(nIndices[0], nPos)
+
+    position(cIndices[1], cPosNext)
+    position(traceElementIndex[proteinResidues[1]], caPosNext)
+    position(nIndices[1], nPosNext)
+
     for (let i = 0; i < residueCount - 1; ++i) {
         // ignore C-terminal residue as acceptor
         if (index.findAtomOnResidue(proteinResidues[i], 'OXT') !== -1) continue
@@ -375,7 +383,9 @@ function calculateDihedralAngles(hierarchy: AtomicHierarchy, conformation: Atomi
         cPosPrev = cPos, caPosPrev = caPos, nPosPrev = nPos
         cPos = cPosNext, caPos = caPosNext, nPos = nPosNext
 
-        position(cIndices[i + 1], cPosNext), position(traceElementIndex[proteinResidues[i + 1]], caPosNext), position(nIndices[i + 1], nPosNext)
+        position(cIndices[i + 1], cPosNext)
+        position(traceElementIndex[proteinResidues[i + 1]], caPosNext)
+        position(nIndices[i + 1], nPosNext)
     }
 
     return { phi, psi };
@@ -394,14 +404,14 @@ function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConf
     const nAtomResidues: number[] = [];
     const energies: number[] = [];
 
-    const oPos = Vec3.zero()
-    const cPos = Vec3.zero()
-    const caPos = Vec3.zero()
-    const nPos = Vec3.zero()
-    const hPos = Vec3.zero()
+    const oPos = Vec3()
+    const cPos = Vec3()
+    const caPos = Vec3()
+    const nPos = Vec3()
+    const hPos = Vec3()
 
-    const cPosPrev = Vec3.zero()
-    const oPosPrev = Vec3.zero()
+    const cPosPrev = Vec3()
+    const oPosPrev = Vec3()
 
     for (let i = 0, il = proteinResidues.length; i < il; ++i) {
         const oPI = i
