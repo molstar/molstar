@@ -13,11 +13,12 @@ export function createVertexArray(ctx: WebGLContext, program: Program, attribute
     let vertexArray: WebGLVertexArrayObject | null = null
     if (vertexArrayObject) {
         vertexArray = vertexArrayObject.createVertexArray()
-        vertexArrayObject.bindVertexArray(vertexArray)
-        if (elementsBuffer) elementsBuffer.bind()
-        program.bindAttributes(attributeBuffers)
-        ctx.stats.vaoCount += 1
-        vertexArrayObject.bindVertexArray(null)
+        if (vertexArray) {
+            updateVertexArray(ctx, vertexArray, program, attributeBuffers, elementsBuffer)
+            ctx.stats.vaoCount += 1
+        } else {
+            console.warn('Could not create WebGL vertex array')
+        }
     }
     return vertexArray
 }
