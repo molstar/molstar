@@ -14,7 +14,6 @@ import { ValueCell } from 'mol-util'
 import { createComputeRenderable, ComputeRenderable } from 'mol-gl/renderable'
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
-import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { decodeFloatRGB } from 'mol-util/float-packing';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { createComputeRenderItem } from 'mol-gl/webgl/render-item';
@@ -112,7 +111,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
 
     const framebuffer = framebufferCache.get(FramebufferName).value
     framebuffer.bind()
-    setRenderingDefaults(gl)
+    setRenderingDefaults(webgl)
 
     if (!texture) texture = createTexture(webgl, 'image-float32', 'rgba', 'float', 'nearest')
     texture.define(texDimX, texDimY)
@@ -167,7 +166,7 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
 
     const framebuffer = framebufferCache.get(FramebufferName).value
     framebuffer.bind()
-    setRenderingDefaults(gl)
+    setRenderingDefaults(webgl)
     gl.viewport(0, 0, dx, dy)
 
     if (!texture) texture = createTexture(webgl, 'volume-float32', 'rgba', 'float', 'nearest')
@@ -265,37 +264,38 @@ function getGaussianDensityRenderable(webgl: WebGLContext, drawCount: number, po
     return createComputeRenderable(renderItem, values)
 }
 
-function setRenderingDefaults(gl: GLRenderingContext) {
-    gl.disable(gl.CULL_FACE)
-    gl.frontFace(gl.CCW)
-    gl.cullFace(gl.BACK)
-    gl.enable(gl.BLEND)
+function setRenderingDefaults(ctx: WebGLContext) {
+    const { gl, state } = ctx
+    state.disable(gl.CULL_FACE)
+    state.frontFace(gl.CCW)
+    state.cullFace(gl.BACK)
+    state.enable(gl.BLEND)
 }
 
 function setupMinDistanceRendering(webgl: WebGLContext, renderable: ComputeRenderable<any>) {
-    const { gl } = webgl
+    const { gl, state } = webgl
     ValueCell.update(renderable.values.dCalcType, 'minDistance')
     renderable.update()
-    gl.blendFunc(gl.ONE, gl.ONE)
+    state.blendFunc(gl.ONE, gl.ONE)
     // the shader writes 1 - dist so we set blending to MAX
-    gl.blendEquation(webgl.extensions.blendMinMax.MAX)
+    state.blendEquation(webgl.extensions.blendMinMax.MAX)
 }
 
 function setupDensityRendering(webgl: WebGLContext, renderable: ComputeRenderable<any>) {
-    const { gl } = webgl
+    const { gl, state } = webgl
     ValueCell.update(renderable.values.dCalcType, 'density')
     renderable.update()
-    gl.blendFunc(gl.ONE, gl.ONE)
-    gl.blendEquation(gl.FUNC_ADD)
+    state.blendFunc(gl.ONE, gl.ONE)
+    state.blendEquation(gl.FUNC_ADD)
 }
 
 function setupGroupIdRendering(webgl: WebGLContext, renderable: ComputeRenderable<any>) {
-    const { gl } = webgl
+    const { gl, state } = webgl
     ValueCell.update(renderable.values.dCalcType, 'groupId')
     renderable.update()
     // overwrite color, don't change alpha
-    gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE)
-    gl.blendEquation(gl.FUNC_ADD)
+    state.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE)
+    state.blendEquation(gl.FUNC_ADD)
 }
 
 function getTexture2dSize(gridDim: Vec3) {

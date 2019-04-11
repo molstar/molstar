@@ -11,7 +11,6 @@ import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
-import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { Vec3, Vec2, Mat4 } from 'mol-math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util';
 import { HistogramPyramid } from '../histogram-pyramid/reduction';
@@ -73,16 +72,17 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
     return createComputeRenderable(renderItem, values);
 }
 
-function setRenderingDefaults(gl: GLRenderingContext) {
-    gl.disable(gl.CULL_FACE)
-    gl.disable(gl.BLEND)
-    gl.disable(gl.DEPTH_TEST)
-    gl.depthMask(false)
-    gl.enable(gl.SCISSOR_TEST)
+function setRenderingDefaults(ctx: WebGLContext) {
+    const { gl, state } = ctx
+    state.disable(gl.CULL_FACE)
+    state.disable(gl.BLEND)
+    state.disable(gl.DEPTH_TEST)
+    state.depthMask(false)
+    state.enable(gl.SCISSOR_TEST)
 }
 
 export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDimensions: Vec3, transform: Mat4, isoValue: number, vertexGroupTexture?: Texture, normalTexture?: Texture) {
-    const { gl, framebufferCache } = ctx
+    const { gl, framebufferCache, state } = ctx
     const { pyramidTex, height, levels, scale, count } = histogramPyramid
 
     const framebuffer = framebufferCache.get(FramebufferName).value
@@ -130,11 +130,11 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
         // drawBuffers.COLOR_ATTACHMENT5
     ])
 
-    setRenderingDefaults(gl)
+    setRenderingDefaults(ctx)
     gl.viewport(0, 0, pyramidTex.width, pyramidTex.height)
     gl.scissor(0, 0, pyramidTex.width, height)
     renderable.render()
-    gl.disable(gl.SCISSOR_TEST)
+    state.disable(gl.SCISSOR_TEST)
 
     // const vgt = readTexture(ctx, vertexGroupTexture, pyramidTex.width, height)
     // console.log('vertexGroupTexture', vgt.array.subarray(0, 4 * count))

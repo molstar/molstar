@@ -138,6 +138,7 @@ async function init() {
     if (show.molecularSurface) canvas3d.add(molecularSurfaceRepr)
     if (show.gaussianSurface) canvas3d.add(gaussianSurfaceRepr)
     canvas3d.resetCamera()
+    // canvas3d.setProps({ trackball: { ...canvas3d.props.trackball, spin: true } })
 }
 
 init()

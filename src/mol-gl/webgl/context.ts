@@ -160,49 +160,7 @@ export type WebGLExtensions = {
     drawBuffers: COMPAT_draw_buffers | null
 }
 
-export type WebGLStats = {
-    bufferCount: number
-    framebufferCount: number
-    renderbufferCount: number
-    textureCount: number
-    vaoCount: number
-
-    drawCount: number
-    instanceCount: number
-    instancedDrawCount: number
-}
-
-export type WebGLState = {
-    currentProgramId: number
-    currentMaterialId: number
-}
-
-/** A WebGL context object, including the rendering context, resource caches and counts */
-export interface WebGLContext {
-    readonly gl: GLRenderingContext
-    readonly isWebGL2: boolean
-    readonly pixelRatio: number
-
-    readonly extensions: WebGLExtensions
-    readonly state: WebGLState
-    readonly stats: WebGLStats
-
-    readonly shaderCache: ShaderCache
-    readonly programCache: ProgramCache
-    readonly framebufferCache: FramebufferCache
-
-    readonly maxTextureSize: number
-    readonly maxDrawBuffers: number
-
-    unbindFramebuffer: () => void
-    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => void
-    readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
-    waitForGpuCommandsComplete: () => Promise<void>
-    waitForGpuCommandsCompleteSync: () => void
-    destroy: () => void
-}
-
-export function createContext(gl: GLRenderingContext): WebGLContext {
+function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     const instancedArrays = getInstancedArrays(gl)
     if (instancedArrays === null) {
         throw new Error('Could not find support for "instanced_arrays"')
@@ -244,24 +202,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         console.log('Could not find support for "draw_buffers"')
     }
 
-    const state: WebGLState = {
-        currentProgramId: -1,
-        currentMaterialId: -1,
-    }
-
-    const stats: WebGLStats = {
-        bufferCount: 0,
-        framebufferCount: 0,
-        renderbufferCount: 0,
-        textureCount: 0,
-        vaoCount: 0,
-
-        drawCount: 0,
-        instanceCount: 0,
-        instancedDrawCount: 0,
-    }
-
-    const extensions: WebGLExtensions = {
+    return {
         instancedArrays,
         standardDerivatives,
         blendMinMax,
@@ -273,6 +214,168 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         colorBufferFloat,
         drawBuffers
     }
+}
+
+export type WebGLStats = {
+    bufferCount: number
+    framebufferCount: number
+    renderbufferCount: number
+    textureCount: number
+    vaoCount: number
+
+    drawCount: number
+    instanceCount: number
+    instancedDrawCount: number
+}
+
+function createStats(): WebGLStats {
+    return {
+        bufferCount: 0,
+        framebufferCount: 0,
+        renderbufferCount: 0,
+        textureCount: 0,
+        vaoCount: 0,
+
+        drawCount: 0,
+        instanceCount: 0,
+        instancedDrawCount: 0,
+    }
+}
+
+export type WebGLState = {
+    currentProgramId: number
+    currentMaterialId: number
+
+    enable: (cap: number) => void
+    disable: (cap: number) => void
+
+    frontFace: (mode: number) => void
+    cullFace: (mode: number) => void
+    depthMask: (flag: boolean) => void
+
+    blendFunc: (src: number, dst: number) => void
+    blendFuncSeparate: (srcRGB: number, dstRGB: number, srcAlpha: number, dstAlpha: number) => void
+
+    blendEquation: (mode: number) => void
+    blendEquationSeparate: (modeRGB: number, modeAlpha: number) => void
+}
+
+function createState(gl: GLRenderingContext): WebGLState {
+    const enabledCapabilities: { [k: number]: boolean } = {}
+
+    let currentFrontFace = gl.getParameter(gl.FRONT_FACE)
+    let currentCullFace = gl.getParameter(gl.CULL_FACE_MODE)
+    let currentDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK)
+
+    let currentBlendSrcRGB = gl.getParameter(gl.BLEND_SRC_RGB)
+    let currentBlendDstRGB = gl.getParameter(gl.BLEND_DST_RGB)
+    let currentBlendSrcAlpha = gl.getParameter(gl.BLEND_SRC_ALPHA)
+    let currentBlendDstAlpha = gl.getParameter(gl.BLEND_DST_ALPHA)
+
+    let currentBlendEqRGB = gl.getParameter(gl.BLEND_EQUATION_RGB)
+    let currentBlendEqAlpha = gl.getParameter(gl.BLEND_EQUATION_ALPHA)
+
+    return {
+        currentProgramId: -1,
+        currentMaterialId: -1,
+
+        enable: (cap: number) => {
+            if (enabledCapabilities[cap] !== true ) {
+                gl.enable(cap)
+                enabledCapabilities[cap] = true
+            }
+        },
+        disable: (cap: number) => {
+            if (enabledCapabilities[cap] !== false) {
+                gl.disable(cap)
+                enabledCapabilities[cap] = false
+            }
+        },
+
+        frontFace: (mode: number) => {
+            if (mode !== currentFrontFace) {
+                gl.frontFace(mode)
+                currentFrontFace = mode
+            }
+        },
+        cullFace: (mode: number) => {
+            if (mode !== currentCullFace) {
+                gl.cullFace(mode)
+                currentCullFace = mode
+            }
+        },
+        depthMask: (flag: boolean) => {
+            if (flag !== currentDepthMask) {
+                gl.depthMask(flag)
+                currentDepthMask = flag
+            }
+        },
+
+        blendFunc: (src: number, dst: number) => {
+            if (src !== currentBlendSrcRGB || dst !== currentBlendDstRGB || src !== currentBlendSrcAlpha || dst !== currentBlendDstAlpha) {
+                gl.blendFunc(src, dst)
+                currentBlendSrcRGB = src
+                currentBlendDstRGB = dst
+                currentBlendSrcAlpha = src
+                currentBlendDstAlpha = dst
+            }
+        },
+        blendFuncSeparate: (srcRGB: number, dstRGB: number, srcAlpha: number, dstAlpha: number) => {
+            if (srcRGB !== currentBlendSrcRGB || dstRGB !== currentBlendDstRGB || srcAlpha !== currentBlendSrcAlpha || dstAlpha !== currentBlendDstAlpha) {
+                gl.blendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha)
+                currentBlendSrcRGB = srcRGB
+                currentBlendDstRGB = dstRGB
+                currentBlendSrcAlpha = srcAlpha
+                currentBlendDstAlpha = dstAlpha
+            }
+        },
+
+        blendEquation: (mode: number) => {
+            if (mode !== currentBlendEqRGB || mode !== currentBlendEqAlpha) {
+                gl.blendEquation(mode)
+                currentBlendEqRGB = mode
+                currentBlendEqAlpha = mode
+            }
+        },
+        blendEquationSeparate: (modeRGB: number, modeAlpha: number) => {
+            if (modeRGB !== currentBlendEqRGB || modeAlpha !== currentBlendEqAlpha) {
+                gl.blendEquationSeparate(modeRGB, modeAlpha)
+                currentBlendEqRGB = modeRGB
+                currentBlendEqAlpha = modeAlpha
+            }
+        }
+    }
+}
+
+/** A WebGL context object, including the rendering context, resource caches and counts */
+export interface WebGLContext {
+    readonly gl: GLRenderingContext
+    readonly isWebGL2: boolean
+    readonly pixelRatio: number
+
+    readonly extensions: WebGLExtensions
+    readonly state: WebGLState
+    readonly stats: WebGLStats
+
+    readonly shaderCache: ShaderCache
+    readonly programCache: ProgramCache
+    readonly framebufferCache: FramebufferCache
+
+    readonly maxTextureSize: number
+    readonly maxDrawBuffers: number
+
+    unbindFramebuffer: () => void
+    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => void
+    readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
+    waitForGpuCommandsComplete: () => Promise<void>
+    waitForGpuCommandsCompleteSync: () => void
+    destroy: () => void
+}
+
+export function createContext(gl: GLRenderingContext): WebGLContext {
+    const extensions = createExtensions(gl)
+    const state = createState(gl)
+    const stats = createStats()
 
     const shaderCache: ShaderCache = createShaderCache(gl)
     const programCache: ProgramCache = createProgramCache(gl, state, extensions, shaderCache)

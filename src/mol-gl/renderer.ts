@@ -125,27 +125,27 @@ namespace Renderer {
 
                 if (r.values.dDoubleSided) {
                     if (r.values.dDoubleSided.ref.value) {
-                        gl.disable(gl.CULL_FACE)
+                        state.disable(gl.CULL_FACE)
                     } else {
-                        gl.enable(gl.CULL_FACE)
+                        state.enable(gl.CULL_FACE)
                     }
                 } else {
                     // webgl default
-                    gl.disable(gl.CULL_FACE)
+                    state.disable(gl.CULL_FACE)
                 }
 
                 if (r.values.dFlipSided) {
                     if (r.values.dFlipSided.ref.value) {
-                        gl.frontFace(gl.CW)
-                        gl.cullFace(gl.FRONT)
+                        state.frontFace(gl.CW)
+                        state.cullFace(gl.FRONT)
                     } else {
-                        gl.frontFace(gl.CCW)
-                        gl.cullFace(gl.BACK)
+                        state.frontFace(gl.CCW)
+                        state.cullFace(gl.BACK)
                     }
                 } else {
                     // webgl default
-                    gl.frontFace(gl.CCW)
-                    gl.cullFace(gl.BACK)
+                    state.frontFace(gl.CCW)
+                    state.cullFace(gl.BACK)
                 }
 
                 r.render(variant)
@@ -172,26 +172,26 @@ namespace Renderer {
             const { renderables } = scene
 
             if (variant === 'draw') {
-                gl.disable(gl.BLEND)
-                gl.enable(gl.DEPTH_TEST)
-                gl.depthMask(true)
+                state.disable(gl.BLEND)
+                state.enable(gl.DEPTH_TEST)
+                state.depthMask(true)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
                     if (r.state.opaque) renderObject(r, variant)
                 }
 
-                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-                gl.enable(gl.BLEND)
+                state.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+                state.enable(gl.BLEND)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
-                    gl.depthMask(r.values.uAlpha.ref.value === 1.0)
+                    state.depthMask(r.values.uAlpha.ref.value === 1.0)
                     if (!r.state.opaque) renderObject(r, variant)
                 }
             } else {
                 // picking
-                gl.disable(gl.BLEND)
-                gl.enable(gl.DEPTH_TEST)
-                gl.depthMask(true)
+                state.disable(gl.BLEND)
+                state.enable(gl.DEPTH_TEST)
+                state.depthMask(true)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     renderObject(renderables[i], variant)
                 }
@@ -202,7 +202,7 @@ namespace Renderer {
 
         return {
             clear: () => {
-                gl.depthMask(true)
+                state.depthMask(true)
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
             },
             render,

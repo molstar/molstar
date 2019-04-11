@@ -163,7 +163,10 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
         setUniforms: (uniformValues: UniformsList) => {
             for (let i = 0, il = uniformValues.length; i < il; ++i) {
                 const [k, v] = uniformValues[i]
-                if (v) uniformSetters[k](gl, locations[k], v.ref.value)
+                if (v) {
+                    const l = locations[k]
+                    if (l !== null) uniformSetters[k](gl, l, v.ref.value)
+                }
             }
         },
         bindAttributes: (attribueBuffers: AttributeBuffers) => {
@@ -176,10 +179,13 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
         bindTextures: (textures: Textures) => {
             for (let i = 0, il = textures.length; i < il; ++i) {
                 const [k, texture] = textures[i]
-                texture.bind(i as TextureId)
-                // TODO if the order and count of textures in a material can be made invariant
-                //      this needs to be set only when the material changes
-                uniformSetters[k](gl, locations[k], i as TextureId)
+                const l = locations[k]
+                if (l !== null) {
+                    // TODO if the order and count of textures in a material can be made invariant
+                    //      bind needs to be called only when the material changes
+                    texture.bind(i as TextureId)
+                    uniformSetters[k](gl, l, i as TextureId)
+                }
             }
         },
 

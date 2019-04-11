@@ -11,7 +11,6 @@ import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
-import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util';
 import { getTriCount } from './tables';
@@ -52,11 +51,12 @@ function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridD
     return createComputeRenderable(renderItem, values);
 }
 
-function setRenderingDefaults(gl: GLRenderingContext) {
-    gl.disable(gl.CULL_FACE)
-    gl.disable(gl.BLEND)
-    gl.disable(gl.DEPTH_TEST)
-    gl.depthMask(false)
+function setRenderingDefaults(ctx: WebGLContext) {
+    const { gl, state } = ctx
+    state.disable(gl.CULL_FACE)
+    state.disable(gl.BLEND)
+    state.disable(gl.DEPTH_TEST)
+    state.depthMask(false)
 }
 
 export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDimensions: Vec3, isoValue: number) {
@@ -72,7 +72,7 @@ export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDime
     const renderable = getActiveVoxelsRenderable(ctx, cornerTex, gridDimensions, isoValue)
 
     activeVoxelsTex.attachFramebuffer(framebuffer, 0)
-    setRenderingDefaults(gl)
+    setRenderingDefaults(ctx)
     gl.viewport(0, 0, width, height)
     renderable.render()
 

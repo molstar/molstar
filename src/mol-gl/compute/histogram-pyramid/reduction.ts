@@ -11,7 +11,6 @@ import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
-import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { QuadSchema, QuadValues } from '../util';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
@@ -62,11 +61,12 @@ function getLevelTexture(ctx: WebGLContext, level: number) {
     return tex
 }
 
-function setRenderingDefaults(gl: GLRenderingContext) {
-    gl.disable(gl.CULL_FACE)
-    gl.disable(gl.BLEND)
-    gl.disable(gl.DEPTH_TEST)
-    gl.depthMask(false)
+function setRenderingDefaults(ctx: WebGLContext) {
+    const { gl, state } = ctx
+    state.disable(gl.CULL_FACE)
+    state.disable(gl.BLEND)
+    state.disable(gl.DEPTH_TEST)
+    state.depthMask(false)
 }
 
 export interface HistogramPyramid {
@@ -102,7 +102,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
     for (let i = 0; i < levels; ++i) levelTextures.push(getLevelTexture(ctx, i))
 
     const renderable = getHistopyramidReductionRenderable(ctx, initialTexture)
-    setRenderingDefaults(gl)
+    setRenderingDefaults(ctx)
 
     let offset = 0;
     for (let i = 0; i < levels; i++) {
