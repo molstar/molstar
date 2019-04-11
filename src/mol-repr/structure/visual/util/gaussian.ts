@@ -14,7 +14,7 @@ import { WebGLContext } from 'mol-gl/webgl/context';
 import { getUnitConformationAndRadius, getStructureConformationAndRadius } from './common';
 
 export const GaussianDensityParams = {
-    resolution: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }),
+    resolution: PD.Numeric(1, { min: 0.1, max: 20, step: 0.1 }),
     radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
     smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }),
     useGpu: PD.Boolean(false),
@@ -23,7 +23,7 @@ export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityPa
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
 export const GaussianDensityTextureParams = {
-    resolution: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }),
+    resolution: PD.Numeric(1, { min: 0.1, max: 20, step: 0.1 }),
     radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
     smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }),
 }

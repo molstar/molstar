@@ -46,7 +46,7 @@ function getAngleTables (probePositions: number): AnglesTables {
 //
 
 export const MolecularSurfaceCalculationParams = {
-    resolution: PD.Numeric(0.5, { min: 0.01, max: 10, step: 0.01 }),
+    resolution: PD.Numeric(0.5, { min: 0.01, max: 20, step: 0.01 }),
     probeRadius: PD.Numeric(1.4, { min: 0, max: 10, step: 0.1 }),
     probePositions: PD.Numeric(30, { min: 12, max: 90, step: 1 }),
 }
