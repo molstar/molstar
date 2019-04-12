@@ -20,6 +20,8 @@ import { TextureMesh } from 'mol-geo/geometry/texture-mesh/texture-mesh';
 import { calcActiveVoxels } from 'mol-gl/compute/marching-cubes/active-voxels';
 import { createHistogramPyramid } from 'mol-gl/compute/histogram-pyramid/reduction';
 import { createIsosurfaceBuffers } from 'mol-gl/compute/marching-cubes/isosurface';
+import { RendererParams } from 'mol-gl/renderer';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -31,7 +33,7 @@ canvas.style.height = '100%'
 parent.appendChild(canvas)
 
 const canvas3d = Canvas3D.create(canvas, parent, {
-    backgroundColor: ColorNames.white,
+    renderer: { ...PD.getDefaultValues(RendererParams), backgroundColor: ColorNames.white },
     cameraMode: 'orthographic'
 })
 canvas3d.animate()

@@ -9,11 +9,7 @@ precision highp int;
 
 #pragma glslify: import('./chunks/common-frag-params.glsl')
 #pragma glslify: import('./chunks/color-frag-params.glsl')
-
-// uniform vec3 uLightPosition;
-uniform vec3 uLightColor;
-uniform vec3 uLightAmbient;
-uniform mat4 uView;
+#pragma glslify: import('./chunks/light-frag-params.glsl')
 
 uniform mat4 uProjection;
 // uniform vec3 interiorColor;
@@ -30,27 +26,18 @@ varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
-#pragma glslify: attenuation = require(./utils/attenuation.glsl)
-#pragma glslify: calculateSpecular = require(./utils/phong-specular.glsl)
-#pragma glslify: calculateDiffuse = require(./utils/oren-nayar-diffuse.glsl)
-
-const float specularScale = 0.15;
-const float shininess = 200.0;
-const float roughness = 100.0;
-const float albedo = 0.95;
-
 bool flag2 = false;
 bool interior = false;
 vec3 cameraPos;
 vec3 cameraNormal;
 
 // Calculate depth based on the given camera position.
-float calcDepth(in vec3 cameraPos){
+float calcDepth(const in vec3 cameraPos){
     vec2 clipZW = cameraPos.z * uProjection[2].zw + uProjection[3].zw;
     return 0.5 + 0.5 * clipZW.x / clipZW.y;
 }
 
-float calcClip(in vec3 cameraPos) {
+float calcClip(const in vec3 cameraPos) {
     return dot(vec4(cameraPos, 1.0), vec4(0.0, 0.0, 1.0, clipNear - 0.5));
 }
 
@@ -143,36 +130,9 @@ void main(void){
             discard; // ignore so the element below can be picked
         gl_FragColor = material;
     #else
-
-        vec3 vNormal = cameraNormal;
+        vec3 normal = cameraNormal;
         vec3 vViewPosition = -cameraPos;
-
-        // determine surface to light direction
-        // vec4 viewLightPosition = view * vec4(lightPosition, 1.0);
-        // vec3 lightVector = viewLightPosition.xyz - vViewPosition;
-        vec3 lightVector = vViewPosition;
-
-        vec3 L = normalize(lightVector); // light direction
-        vec3 V = normalize(vViewPosition); // eye direction
-
-        vec3 N = normalize(vNormal);
-        #ifdef dDoubleSided
-            N = N * (float(gl_FrontFacing) * 2.0 - 1.0);
-        #endif
-
-        // compute our diffuse & specular terms
-        float specular = calculateSpecular(L, V, N, shininess) * specularScale;
-        vec3 diffuse = uLightColor * calculateDiffuse(L, V, N, roughness, albedo);
-        vec3 ambient = uLightAmbient;
-
-        // add the lighting
-        vec3 finalColor = material.rgb * (diffuse + ambient) + specular;
-
-        // gl_FragColor.rgb = N;
-        // gl_FragColor.a = 1.0;
-        // gl_FragColor.rgb = vec3(1.0, 0.0, 0.0);
-        gl_FragColor.rgb = finalColor;
-        gl_FragColor.a = material.a;
+        #pragma glslify: import('./chunks/apply-light-color.glsl')
 
         if(interior){
             #ifdef USE_INTERIOR_COLOR

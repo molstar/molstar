@@ -67,7 +67,7 @@ export const DirectVolumeSchema = {
 
     dGridTexType: DefineSpec('string', ['2d', '3d']),
     uGridTexDim: UniformSpec('v3'),
-    tGridTex: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    tGridTex: TextureSpec('texture', 'rgba', 'float', 'nearest'),
 }
 export type DirectVolumeSchema = typeof DirectVolumeSchema
 export type DirectVolumeValues = Values<DirectVolumeSchema>

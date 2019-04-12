@@ -1,5 +1,13 @@
-float intDiv(float a, float b) { return float(int(a) / int(b)); }
-float intMod(float a, float b) { return a - b * float(int(a) / int(b)); }
+#define PI 3.14159265
+#define RECIPROCAL_PI 0.31830988618
+#define EPSILON 1e-6
+
+#define saturate(a) clamp(a, 0.0, 1.0)
+
+float intDiv(const in float a, const in float b) { return float(int(a) / int(b)); }
+float intMod(const in float a, const in float b) { return a - b * float(int(a) / int(b)); }
+
+float pow2(const in float x) { return x*x; }
 
 #if __VERSION__ != 300
     // transpose

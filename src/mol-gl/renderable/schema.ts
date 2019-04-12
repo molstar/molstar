@@ -146,9 +146,13 @@ export const GlobalUniformSchema = {
     uInvProjection: UniformSpec('m4'),
     uModelViewProjection: UniformSpec('m4'),
     uInvModelViewProjection: UniformSpec('m4'),
-    // uLightPosition: Uniform('v3'),
-    uLightColor: UniformSpec('v3'),
-    uLightAmbient: UniformSpec('v3'),
+
+    uLightIntensity: UniformSpec('f'),
+    uAmbientIntensity: UniformSpec('f'),
+
+    uMetalness: UniformSpec('f'),
+    uRoughness: UniformSpec('f'),
+    uReflectivity: UniformSpec('f'),
 
     uPixelRatio: UniformSpec('f'),
     uViewportHeight: UniformSpec('f'),
@@ -162,7 +166,7 @@ export const GlobalUniformSchema = {
     uPickingAlphaThreshold: UniformSpec('f'),
 }
 export type GlobalUniformSchema = typeof GlobalUniformSchema
-export type GlobalUniformValues = { [k in keyof GlobalUniformSchema]: ValueCell<any> }
+export type GlobalUniformValues = Values<GlobalUniformSchema> // { [k in keyof GlobalUniformSchema]: ValueCell<any> }
 
 export const InternalSchema = {
     uObjectId: UniformSpec('i'),

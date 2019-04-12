@@ -224,7 +224,8 @@ class MolStarProteopediaWrapper {
     }
 
     setBackground(color: number) {
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { backgroundColor: Color(color) } });
+        const renderer = this.plugin.canvas3d.props.renderer;
+        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer,  backgroundColor: Color(color) } } });
     }
 
     toggleSpin() {

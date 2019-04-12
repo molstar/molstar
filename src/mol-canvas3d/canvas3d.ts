@@ -9,7 +9,7 @@ import { now } from 'mol-util/now';
 
 import { Vec3 } from 'mol-math/linear-algebra'
 import InputObserver, { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer'
-import Renderer, { RendererStats } from 'mol-gl/renderer'
+import Renderer, { RendererStats, RendererParams } from 'mol-gl/renderer'
 import { GraphicsRenderObject } from 'mol-gl/render-object'
 
 import { TrackballControls, TrackballControlsParams } from './controls/trackball'
@@ -23,7 +23,6 @@ import { GraphicsRenderVariant } from 'mol-gl/webgl/render-item';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
-import { Color } from 'mol-util/color';
 import { Camera } from './camera';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-sphere-helper';
@@ -35,11 +34,10 @@ export const Canvas3DParams = {
     // TODO: FPS cap?
     // maxFps: PD.Numeric(30),
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
-    backgroundColor: PD.Color(Color(0x000000)),
     cameraClipDistance: PD.Numeric(0, { min: 0.0, max: 50.0, step: 0.1 }, { description: 'The distance between camera and scene at which to clip regardless of near clipping plane.' }),
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
-    pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
+    renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
     debug: PD.Group(DebugHelperParams)
 }
@@ -74,7 +72,7 @@ interface Canvas3D {
     setProps: (props: Partial<Canvas3DProps>) => void
 
     /** Returns a copy of the current Canvas3D instance props */
-    readonly props: Canvas3DProps
+    readonly props: Readonly<Canvas3DProps>
     readonly input: InputObserver
     readonly stats: RendererStats
     readonly interaction: Canvas3dInteractionHelper['events']
@@ -117,7 +115,7 @@ namespace Canvas3D {
 
         const scene = Scene.create(webgl)
         const controls = TrackballControls.create(input, camera, p.trackball)
-        const renderer = Renderer.create(webgl, camera, { clearColor: p.backgroundColor })
+        const renderer = Renderer.create(webgl, camera, p.renderer)
 
         let pickScale = 0.25 / webgl.pixelRatio
         let pickWidth = Math.round(canvas.width * pickScale)
@@ -401,17 +399,11 @@ namespace Canvas3D {
                 if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
                     camera.setState({ mode: props.cameraMode })
                 }
-                if (props.backgroundColor !== undefined && props.backgroundColor !== renderer.props.clearColor) {
-                    renderer.setClearColor(props.backgroundColor)
-                }
-
                 if (props.cameraClipDistance !== undefined) p.cameraClipDistance = props.cameraClipDistance
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
-                if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== renderer.props.pickingAlphaThreshold) {
-                    renderer.setPickingAlphaThreshold(props.pickingAlphaThreshold)
-                }
+                if (props.renderer) renderer.setProps(props.renderer)
                 if (props.trackball) controls.setProps(props.trackball)
                 if (props.debug) debugHelper.setProps(props.debug)
                 requestDraw(true)
@@ -420,11 +412,10 @@ namespace Canvas3D {
             get props() {
                 return {
                     cameraMode: camera.state.mode,
-                    backgroundColor: renderer.props.clearColor,
                     cameraClipDistance: p.cameraClipDistance,
                     clip: p.clip,
                     fog: p.fog,
-                    pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,
+                    renderer: { ...renderer.props },
                     trackball: { ...controls.props },
                     debug: { ...debugHelper.props }
                 }

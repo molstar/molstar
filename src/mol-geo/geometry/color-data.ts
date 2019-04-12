@@ -33,14 +33,14 @@ export function createColors(locationIt: LocationIterator, colorTheme: ColorThem
 
 export function createValueColor(value: Color, colorData?: ColorData): ColorData {
     if (colorData) {
-        ValueCell.update(colorData.uColor, Color.toRgbNormalized(value) as Vec3)
+        ValueCell.update(colorData.uColor, Color.toVec3Normalized(colorData.uColor.ref.value, value))
         if (colorData.dColorType.ref.value !== 'uniform') {
             ValueCell.update(colorData.dColorType, 'uniform')
         }
         return colorData
     } else {
         return {
-            uColor: ValueCell.create(Color.toRgbNormalized(value) as Vec3),
+            uColor: ValueCell.create(Color.toVec3Normalized(Vec3(), value)),
             tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
             dColorType: ValueCell.create('uniform'),
