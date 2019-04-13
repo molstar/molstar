@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,7 +12,6 @@ import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables'
 import { defaults } from 'mol-util'
 import { MarchinCubesBuilder, MarchinCubesMeshBuilder, MarchinCubesLinesBuilder } from './builder';
 import { Lines } from '../../geometry/lines/lines';
-// import { Lines } from '../../geometry/lines/lines';
 
 /**
  * The parameters required by the algorithm.
@@ -156,16 +155,37 @@ class MarchingCubesState {
         const ret = this.verticesOnEdges[edgeId];
         if (ret > 0) return ret - 1;
 
+        const sf = this.scalarField
+        const sfg = this.scalarFieldGet
+
         const edge = CubeEdges[edgeNum];
         const a = edge.a, b = edge.b;
         const li = a.i + this.i, lj = a.j + this.j, lk = a.k + this.k;
         const hi = b.i + this.i, hj = b.j + this.j, hk = b.k + this.k;
-        const v0 = this.scalarFieldGet(this.scalarField, li, lj, lk);
-        const v1 = this.scalarFieldGet(this.scalarField, hi, hj, hk);
+        const v0 = sfg(sf, li, lj, lk);
+        const v1 = sfg(sf, hi, hj, hk);
         const t = (this.isoLevel - v0) / (v0 - v1);
 
-        const id = this.builder.addVertex(li + t * (li - hi), lj + t * (lj - hj), lk + t * (lk - hk));
+        const id = this.builder.addVertex(
+            li + t * (li - hi),
+            lj + t * (lj - hj),
+            lk + t * (lk - hk)
+        );
         this.verticesOnEdges[edgeId] = id + 1;
+
+        const n0x = sfg(sf, Math.max(0, li - 1), lj, lk) - sfg(sf, Math.min(this.nX - 1, li + 1), lj, lk)
+        const n0y = sfg(sf, li, Math.max(0, lj - 1), lk) - sfg(sf, li, Math.min(this.nY - 1, lj + 1), lk)
+        const n0z = sfg(sf, li, lj, Math.max(0, lk - 1)) - sfg(sf, li, lj, Math.min(this.nZ, lk + 1))
+
+        const n1x = sfg(sf, Math.max(0, hi - 1), hj, hk) - sfg(sf, Math.min(this.nX - 1, hi + 1), hj, hk)
+        const n1y = sfg(sf, hi, Math.max(0, hj - 1), hk) - sfg(sf, hi, Math.min(this.nY - 1, hj + 1), hk)
+        const n1z = sfg(sf, hi, hj, Math.max(0, hk - 1)) - sfg(sf, hi, hj, Math.min(this.nZ - 1, hk + 1))
+
+        this.builder.addNormal(
+            n0x + t * (n0x - n1x),
+            n0y + t * (n0y - n1y),
+            n0z + t * (n0z - n1z)
+        )
 
         if (this.idField) {
             const u = this.idFieldGet!(this.idField, li, lj, lk);

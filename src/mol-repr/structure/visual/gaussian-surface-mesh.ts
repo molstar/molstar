@@ -47,7 +47,6 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime)
 
     Mesh.transformImmediate(surface, transform)
-    Mesh.computeNormalsImmediate(surface)
     Mesh.uniformTriangleGroup(surface)
 
     return surface

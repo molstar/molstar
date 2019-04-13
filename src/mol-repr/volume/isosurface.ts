@@ -78,7 +78,6 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
     const transform = VolumeData.getGridToCartesianTransform(volume);
     ctx.runtime.update({ message: 'Transforming mesh...' });
     Mesh.transformImmediate(surface, transform);
-    Mesh.computeNormalsImmediate(surface)
 
     return surface;
 }
