@@ -188,16 +188,21 @@ void main(void) {
 
     // normals from gradients
     vec3 n0 = -normalize(vec3(
-        v0 - voxel((b0 + c1) / uGridDim).a,
-        v0 - voxel((b0 + c3) / uGridDim).a,
-        v0 - voxel((b0 + c4) / uGridDim).a
+        voxel((b0 - c1) / uGridDim).a - voxel((b0 + c1) / uGridDim).a,
+        voxel((b0 - c3) / uGridDim).a - voxel((b0 + c3) / uGridDim).a,
+        voxel((b0 - c4) / uGridDim).a - voxel((b0 + c4) / uGridDim).a
     ));
     vec3 n1 = -normalize(vec3(
-        v1 - voxel((b1 + c1) / uGridDim).a,
-        v1 - voxel((b1 + c3) / uGridDim).a,
-        v1 - voxel((b1 + c4) / uGridDim).a
+        voxel((b1 - c1) / uGridDim).a - voxel((b1 + c1) / uGridDim).a,
+        voxel((b1 - c3) / uGridDim).a - voxel((b1 + c3) / uGridDim).a,
+        voxel((b1 - c4) / uGridDim).a - voxel((b1 + c4) / uGridDim).a
     ));
-    gl_FragData[1].xyz = -normalize((v0 * n0 + v1 * n1) / max(v0 + v1, EPS));
+    gl_FragData[1].xyz = -vec3(
+        n0.x + t * (n0.x - n1.x),
+        n0.y + t * (n0.y - n1.y),
+        n0.z + t * (n0.z - n1.z)
+    );
+    
     mat3 normalMatrix = transpose(inverse(mat3(uGridTransform)));
     gl_FragData[1].xyz = normalMatrix * gl_FragData[1].xyz;
 }
