@@ -49,7 +49,7 @@ export const RendererParams = {
     backgroundColor: PD.Color(Color(0x000000)),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
 
-    lightIntensity: PD.Numeric(0.8, { min: 0.0, max: 1.0, step: 0.01 }),
+    lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
     ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
 
     metalness: PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }),
