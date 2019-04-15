@@ -208,19 +208,15 @@ namespace Canvas3D {
                     case 'pick':
                         renderer.setViewport(0, 0, pickWidth, pickHeight);
                         objectPickTarget.bind();
-                        renderer.clear()
                         renderer.render(scene, 'pickObject');
                         instancePickTarget.bind();
-                        renderer.clear()
                         renderer.render(scene, 'pickInstance');
                         groupPickTarget.bind();
-                        renderer.clear()
                         renderer.render(scene, 'pickGroup');
                         break;
                     case 'draw':
                         webgl.unbindFramebuffer();
                         renderer.setViewport(0, 0, canvas.width, canvas.height);
-                        renderer.clear()
                         renderer.render(scene, variant);
                         if (debugHelper.isEnabled) {
                             debugHelper.syncVisibility()

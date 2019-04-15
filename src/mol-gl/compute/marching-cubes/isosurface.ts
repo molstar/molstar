@@ -77,8 +77,10 @@ function setRenderingDefaults(ctx: WebGLContext) {
     state.disable(gl.CULL_FACE)
     state.disable(gl.BLEND)
     state.disable(gl.DEPTH_TEST)
-    state.depthMask(false)
     state.enable(gl.SCISSOR_TEST)
+    state.depthMask(false)
+    state.colorMask(true, true, true, true)
+    state.clearColor(0, 0, 0, 0)
 }
 
 export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDimensions: Vec3, transform: Mat4, isoValue: number, vertexGroupTexture?: Texture, normalTexture?: Texture) {
@@ -87,11 +89,25 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
 
     const framebuffer = framebufferCache.get(FramebufferName).value
 
-    if (!vertexGroupTexture) vertexGroupTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    vertexGroupTexture.define(pyramidTex.width, pyramidTex.height)
+    let needsClear = false
 
-    if (!normalTexture) normalTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-    normalTexture.define(pyramidTex.width, pyramidTex.height)
+    if (!vertexGroupTexture) {
+        vertexGroupTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+        vertexGroupTexture.define(pyramidTex.width, pyramidTex.height)
+    } else if (vertexGroupTexture.width !== pyramidTex.width || vertexGroupTexture.height !== pyramidTex.height) {
+        vertexGroupTexture.define(pyramidTex.width, pyramidTex.height)
+    } else {
+        needsClear = true
+    }
+
+    if (!normalTexture) {
+        normalTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+        normalTexture.define(pyramidTex.width, pyramidTex.height)
+    } else if (normalTexture.width !== pyramidTex.width || normalTexture.height !== pyramidTex.height) {
+        normalTexture.define(pyramidTex.width, pyramidTex.height)
+    } else {
+        needsClear = true
+    }
 
     // const infoTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     // infoTex.define(pyramidTex.width, pyramidTex.height)
@@ -109,6 +125,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     // indexTex.define(pyramidTex.width, pyramidTex.height)
 
     const renderable = getIsosurfaceRenderable(ctx, pyramidTex, activeVoxelsBase, volumeData, gridDimensions, transform, isoValue, levels, scale, count)
+    ctx.state.currentRenderItemId = -1
 
     vertexGroupTexture.attachFramebuffer(framebuffer, 0)
     normalTexture.attachFramebuffer(framebuffer, 1)
@@ -133,8 +150,11 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     setRenderingDefaults(ctx)
     gl.viewport(0, 0, pyramidTex.width, pyramidTex.height)
     gl.scissor(0, 0, pyramidTex.width, height)
+    if (needsClear) gl.clear(gl.COLOR_BUFFER_BIT)
     renderable.render()
     state.disable(gl.SCISSOR_TEST)
+
+    gl.finish()
 
     // const vgt = readTexture(ctx, vertexGroupTexture, pyramidTex.width, height)
     // console.log('vertexGroupTexture', vgt.array.subarray(0, 4 * count))

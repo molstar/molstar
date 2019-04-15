@@ -245,6 +245,7 @@ function createStats(): WebGLStats {
 export type WebGLState = {
     currentProgramId: number
     currentMaterialId: number
+    currentRenderItemId: number
 
     enable: (cap: number) => void
     disable: (cap: number) => void
@@ -252,6 +253,8 @@ export type WebGLState = {
     frontFace: (mode: number) => void
     cullFace: (mode: number) => void
     depthMask: (flag: boolean) => void
+    colorMask: (red: boolean, green: boolean, blue: boolean, alpha: boolean) => void
+    clearColor: (red: number, green: number, blue: number, alpha: number) => void
 
     blendFunc: (src: number, dst: number) => void
     blendFuncSeparate: (srcRGB: number, dstRGB: number, srcAlpha: number, dstAlpha: number) => void
@@ -266,6 +269,8 @@ function createState(gl: GLRenderingContext): WebGLState {
     let currentFrontFace = gl.getParameter(gl.FRONT_FACE)
     let currentCullFace = gl.getParameter(gl.CULL_FACE_MODE)
     let currentDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK)
+    let currentColorMask = gl.getParameter(gl.COLOR_WRITEMASK)
+    let currentClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE)
 
     let currentBlendSrcRGB = gl.getParameter(gl.BLEND_SRC_RGB)
     let currentBlendDstRGB = gl.getParameter(gl.BLEND_DST_RGB)
@@ -278,6 +283,7 @@ function createState(gl: GLRenderingContext): WebGLState {
     return {
         currentProgramId: -1,
         currentMaterialId: -1,
+        currentRenderItemId: -1,
 
         enable: (cap: number) => {
             if (enabledCapabilities[cap] !== true ) {
@@ -309,6 +315,22 @@ function createState(gl: GLRenderingContext): WebGLState {
                 gl.depthMask(flag)
                 currentDepthMask = flag
             }
+        },
+        colorMask: (red: boolean, green: boolean, blue: boolean, alpha: boolean) => {
+            if (red !== currentColorMask[0] || green !== currentColorMask[1] || blue !== currentColorMask[2] || alpha !== currentColorMask[3])
+            gl.colorMask(red, green, blue, alpha)
+            currentColorMask[0] = red
+            currentColorMask[1] = green
+            currentColorMask[2] = blue
+            currentColorMask[3] = alpha
+        },
+        clearColor: (red: number, green: number, blue: number, alpha: number) => {
+            if (red !== currentClearColor[0] || green !== currentClearColor[1] || blue !== currentClearColor[2] || alpha !== currentClearColor[3])
+            gl.clearColor(red, green, blue, alpha)
+            currentClearColor[0] = red
+            currentClearColor[1] = green
+            currentClearColor[2] = blue
+            currentClearColor[3] = alpha
         },
 
         blendFunc: (src: number, dst: number) => {

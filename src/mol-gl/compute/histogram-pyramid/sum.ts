@@ -54,17 +54,33 @@ function getSumTexture(ctx: WebGLContext) {
 /** name for shared framebuffer used for histogram-pyramid operations */
 const FramebufferName = 'histogram-pyramid-sum'
 
+function setRenderingDefaults(ctx: WebGLContext) {
+    const { gl, state } = ctx
+    state.disable(gl.CULL_FACE)
+    state.disable(gl.BLEND)
+    state.disable(gl.DEPTH_TEST)
+    state.disable(gl.SCISSOR_TEST)
+    state.depthMask(false)
+    state.colorMask(true, true, true, true)
+    state.clearColor(0, 0, 0, 0)
+}
+
 const sumArray = new Uint8Array(4)
 export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture) {
     const { gl, framebufferCache } = ctx
 
     const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture)
+    ctx.state.currentRenderItemId = -1
+    
     const framebuffer = framebufferCache.get(FramebufferName).value
     const sumTexture = getSumTexture(ctx)
     sumTexture.attachFramebuffer(framebuffer, 0)
 
+    setRenderingDefaults(ctx)
+
     gl.viewport(0, 0, 1, 1)
     renderable.render()
+    gl.finish()
     ctx.readPixels(0, 0, 1, 1, sumArray)
     ctx.unbindFramebuffer()
 

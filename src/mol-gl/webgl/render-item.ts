@@ -96,8 +96,8 @@ export function createGraphicsRenderItem(ctx: WebGLContext, drawMode: DrawMode, 
 }
 
 export type ComputeRenderItem = RenderItem<keyof typeof ComputeRenderVariantDefines & string>
-export function createComputeRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues) {
-    return createRenderItem(ctx, drawMode, shaderCode, schema, values, -1, ComputeRenderVariantDefines)
+export function createComputeRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId = -1) {
+    return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, ComputeRenderVariantDefines)
 }
 
 /**
@@ -164,25 +164,31 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
         render: (variant: S) => {
             if (drawCount === 0 || instanceCount === 0) return
             const program = programs[variant].value
-            const vertexArray = vertexArrays[variant]
-            if (program.id !== state.currentProgramId || program.id !== currentProgramId ||
-                materialId === -1 || materialId !== state.currentMaterialId
-            ) {
-                // console.log('program.id changed or materialId changed/-1', materialId)
-                if (program.id !== state.currentProgramId) program.use()
-                program.setUniforms(materialUniformValueEntries)
-                state.currentMaterialId = materialId
-                currentProgramId = program.id
-            }
-            program.setUniforms(uniformValueEntries)
-            program.bindTextures(textures)
-            if (vertexArrayObject && vertexArray) {
-                vertexArrayObject.bindVertexArray(vertexArray)
-                // need to bind elements buffer explicitly since it is not always recorded in the VAO
-                if (elementsBuffer) elementsBuffer.bind()
+            if (program.id === currentProgramId && state.currentRenderItemId === id) {
+                program.setUniforms(uniformValueEntries)
+                program.bindTextures(textures)
             } else {
-                if (elementsBuffer) elementsBuffer.bind()
-                program.bindAttributes(attributeBuffers)
+                const vertexArray = vertexArrays[variant]
+                if (program.id !== state.currentProgramId || program.id !== currentProgramId ||
+                    materialId === -1 || materialId !== state.currentMaterialId
+                ) {
+                    // console.log('program.id changed or materialId changed/-1', materialId)
+                    if (program.id !== state.currentProgramId) program.use()
+                    program.setUniforms(materialUniformValueEntries)
+                    state.currentMaterialId = materialId
+                    currentProgramId = program.id
+                }
+                program.setUniforms(uniformValueEntries)
+                program.bindTextures(textures)
+                if (vertexArrayObject && vertexArray) {
+                    vertexArrayObject.bindVertexArray(vertexArray)
+                    // need to bind elements buffer explicitly since it is not always recorded in the VAO
+                    if (elementsBuffer) elementsBuffer.bind()
+                } else {
+                    if (elementsBuffer) elementsBuffer.bind()
+                    program.bindAttributes(attributeBuffers)
+                }
+                state.currentRenderItemId = id
             }
             if (isDebugMode) {
                 checkFramebufferStatus(ctx.gl)

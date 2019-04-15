@@ -20,7 +20,6 @@ varying float vRadius;
 
 uniform vec3 uBboxSize;
 uniform vec3 uBboxMin;
-uniform vec3 uBboxMax;
 uniform vec3 uGridDim;
 uniform float uCurrentSlice;
 
@@ -29,7 +28,7 @@ void main() {
     #if defined(dCalcType_groupId)
         vGroup = aGroup;
     #endif
-    float scale = max(uBboxSize.z, max(uBboxSize.x, uBboxSize.y));
+    float scale = max(uBboxSize.x, uBboxSize.y);
     gl_PointSize = (vRadius / scale) * max(uGridDim.x, uGridDim.y) * 6.0;
     vPosition = (aPosition - uBboxMin) / uBboxSize;
     gl_Position = vec4(vPosition * 2.0 - 1.0, 1.0);

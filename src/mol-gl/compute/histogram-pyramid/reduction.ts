@@ -14,6 +14,7 @@ import { ValueCell } from 'mol-util';
 import { QuadSchema, QuadValues } from '../util';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
+import { Framebuffer, createFramebuffer } from 'mol-gl/webgl/framebuffer';
 
 const HistopyramidReductionSchema = {
     ...QuadSchema,
@@ -61,12 +62,31 @@ function getLevelTexture(ctx: WebGLContext, level: number) {
     return tex
 }
 
+type TextureFramebuffer = { texture: Texture, framebuffer: Framebuffer }
+const LevelTexturesFramebuffers: TextureFramebuffer[] = []
+function getLevelTextureFramebuffer(ctx: WebGLContext, level: number) {
+    let textureFramebuffer  = LevelTexturesFramebuffers[level]
+    const size = Math.pow(2, level)
+    if (textureFramebuffer === undefined) {
+        const texture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+        const framebuffer = createFramebuffer(ctx.gl, ctx.stats)
+        texture.attachFramebuffer(framebuffer, 0)
+        textureFramebuffer = { texture, framebuffer }
+        textureFramebuffer.texture.define(size, size)
+        LevelTexturesFramebuffers[level] = textureFramebuffer
+    }
+    return textureFramebuffer
+}
+
 function setRenderingDefaults(ctx: WebGLContext) {
     const { gl, state } = ctx
     state.disable(gl.CULL_FACE)
     state.disable(gl.BLEND)
     state.disable(gl.DEPTH_TEST)
+    state.disable(gl.SCISSOR_TEST)
     state.depthMask(false)
+    state.colorMask(true, true, true, true)
+    state.clearColor(0, 0, 0, 0)
 }
 
 export interface HistogramPyramid {
@@ -98,16 +118,19 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
     const pyramidTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     pyramidTexture.define(maxSize, maxSize)
 
-    const levelTextures: Texture[] = []
-    for (let i = 0; i < levels; ++i) levelTextures.push(getLevelTexture(ctx, i))
+    const levelTexturesFramebuffers: TextureFramebuffer[] = []
+    for (let i = 0; i < levels; ++i) levelTexturesFramebuffers.push(getLevelTextureFramebuffer(ctx, i))
 
     const renderable = getHistopyramidReductionRenderable(ctx, initialTexture)
+    ctx.state.currentRenderItemId = -1
     setRenderingDefaults(ctx)
 
     let offset = 0;
     for (let i = 0; i < levels; i++) {
         const currLevel = levels - 1 - i
-        levelTextures[currLevel].attachFramebuffer(framebuffer, 0)
+        const tf = levelTexturesFramebuffers[currLevel]
+        tf.framebuffer.bind()
+        // levelTextures[currLevel].attachFramebuffer(framebuffer, 0)
 
         const size = Math.pow(2, currLevel)
         // console.log('size', size, 'draw-level', currLevel, 'read-level', levels - i)
@@ -116,9 +139,10 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
 
         ValueCell.update(renderable.values.uSize, Math.pow(2, i + 1) / maxSize)
         if (i > 0) {
-            ValueCell.update(renderable.values.tPreviousLevel, levelTextures[levels - i])
+            ValueCell.update(renderable.values.tPreviousLevel, levelTexturesFramebuffers[levels - i].texture)
             renderable.update()
         }
+        ctx.state.currentRenderItemId = -1
         renderable.render()
 
         pyramidTexture.bind(0)
@@ -140,15 +164,18 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
         offset += size;
     }
 
+    gl.finish()
+
     // printTexture(ctx, pyramidTexture, 2)
 
     //
 
-    const finalCount = getHistopyramidSum(ctx, levelTextures[0])
+    const finalCount = getHistopyramidSum(ctx, levelTexturesFramebuffers[0].texture)
     const height = Math.ceil(finalCount / Math.pow(2, levels))
     const scale = Vec2.create(maxSize / inputTexture.width, maxSize / inputTexture.height)
     // console.log('height', height, 'finalCount', finalCount, 'scale', scale)
 
+    
     return {
         pyramidTex: pyramidTexture,
         count: finalCount,

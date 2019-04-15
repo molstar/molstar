@@ -64,6 +64,7 @@ namespace Renderer {
         const p = deepClone({ ...PD.getDefaultValues(RendererParams), ...props })
 
         const viewport = Viewport()
+        const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor)
 
         const view = Mat4.clone(camera.view)
         const invView = Mat4.invert(Mat4.identity(), view)
@@ -98,23 +99,14 @@ namespace Renderer {
             uCameraPosition: ValueCell.create(Vec3.clone(camera.state.position)),
             uFogNear: ValueCell.create(camera.state.fogNear),
             uFogFar: ValueCell.create(camera.state.fogFar),
-            uFogColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.backgroundColor)),
+            uFogColor: ValueCell.create(bgColor),
 
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
         }
         const globalUniformList = Object.entries(globalUniforms)
 
-        const [ bgRed, bgGreen, bgBlue ] = Color.toRgbNormalized(p.backgroundColor)
-        gl.clearColor(bgRed, bgGreen, bgBlue, 1.0)
-
-        if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {
-            p.backgroundColor = props.backgroundColor
-            const [ r, g, b ] = Color.toRgbNormalized(p.backgroundColor)
-            gl.clearColor(r, g, b, 1.0)
-            ValueCell.update(globalUniforms.uFogColor, Vec3.set(globalUniforms.uFogColor.ref.value, r, g, b))
-        }
-
         let globalUniformsNeedUpdate = true
+
         const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant) => {
             const program = r.getProgram(variant)
             if (r.state.visible) {
@@ -175,13 +167,19 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uFogNear, camera.state.fogNear)
 
             globalUniformsNeedUpdate = true
+            state.currentRenderItemId = -1
 
             const { renderables } = scene
 
+            state.disable(gl.SCISSOR_TEST)
+            state.disable(gl.BLEND)
+            state.depthMask(true)
+            state.colorMask(true, true, true, true)
+            state.enable(gl.DEPTH_TEST)
+            state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
             if (variant === 'draw') {
-                state.disable(gl.BLEND)
-                state.enable(gl.DEPTH_TEST)
-                state.depthMask(true)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
                     if (r.state.opaque) renderObject(r, variant)
@@ -196,9 +194,6 @@ namespace Renderer {
                 }
             } else {
                 // picking
-                state.disable(gl.BLEND)
-                state.enable(gl.DEPTH_TEST)
-                state.depthMask(true)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     renderObject(renderables[i], variant)
                 }
@@ -210,6 +205,7 @@ namespace Renderer {
         return {
             clear: () => {
                 state.depthMask(true)
+                state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
             },
             render,
@@ -221,9 +217,8 @@ namespace Renderer {
                 }
                 if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {
                     p.backgroundColor = props.backgroundColor
-                    const [ r, g, b ] = Color.toRgbNormalized(p.backgroundColor)
-                    gl.clearColor(r, g, b, 1.0)
-                    ValueCell.update(globalUniforms.uFogColor, Vec3.set(globalUniforms.uFogColor.ref.value, r, g, b))
+                    Color.toVec3Normalized(bgColor, p.backgroundColor)
+                    ValueCell.update(globalUniforms.uFogColor, Vec3.copy(globalUniforms.uFogColor.ref.value, bgColor))
                 }
                 if (props.lightIntensity !== undefined && props.lightIntensity !== p.lightIntensity) {
                     p.lightIntensity = props.lightIntensity

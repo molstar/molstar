@@ -173,6 +173,8 @@ class MarchingCubesState {
         );
         this.verticesOnEdges[edgeId] = id + 1;
 
+        // TODO cache scalarField differences for slices
+        // TODO make calculation optional
         const n0x = sfg(sf, Math.max(0, li - 1), lj, lk) - sfg(sf, Math.min(this.nX - 1, li + 1), lj, lk)
         const n0y = sfg(sf, li, Math.max(0, lj - 1), lk) - sfg(sf, li, Math.min(this.nY - 1, lj + 1), lk)
         const n0z = sfg(sf, li, lj, Math.max(0, lk - 1)) - sfg(sf, li, lj, Math.min(this.nZ, lk + 1))

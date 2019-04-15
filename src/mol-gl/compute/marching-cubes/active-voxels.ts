@@ -56,7 +56,10 @@ function setRenderingDefaults(ctx: WebGLContext) {
     state.disable(gl.CULL_FACE)
     state.disable(gl.BLEND)
     state.disable(gl.DEPTH_TEST)
+    state.disable(gl.SCISSOR_TEST)
     state.depthMask(false)
+    state.colorMask(true, true, true, true)
+    state.clearColor(0, 0, 0, 0)
 }
 
 export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDimensions: Vec3, isoValue: number) {
@@ -70,6 +73,7 @@ export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDime
     activeVoxelsTex.define(width, height)
 
     const renderable = getActiveVoxelsRenderable(ctx, cornerTex, gridDimensions, isoValue)
+    ctx.state.currentRenderItemId = -1
 
     activeVoxelsTex.attachFramebuffer(framebuffer, 0)
     setRenderingDefaults(ctx)
@@ -77,6 +81,8 @@ export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDime
     renderable.render()
 
     // console.log('at', readTexture(ctx, activeVoxelsTex))
+
+    gl.finish()
 
     return activeVoxelsTex
 }

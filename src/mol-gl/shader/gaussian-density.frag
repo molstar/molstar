@@ -28,8 +28,6 @@ varying float vRadius;
 #pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
 
 uniform vec3 uBboxSize;
-uniform vec3 uBboxMin;
-uniform vec3 uBboxMax;
 uniform vec3 uGridDim;
 uniform float uCurrentSlice;
 uniform float uCurrentX;
@@ -56,7 +54,7 @@ void main() {
     #if defined(dCalcType_density)
         float radiusSq = vRadius * vRadius;
         float density = exp(-uAlpha * ((dist * dist) / radiusSq));
-        gl_FragColor = vec4(density);
+        gl_FragColor.a = density;
     #elif defined(dCalcType_minDistance)
         gl_FragColor.a = 10000.0 - dist;
         // gl_FragColor.a = 1.0 - encodeFloatLog(dist);

@@ -30,12 +30,11 @@ export const GaussianDensitySchema = {
     uCurrentSlice: UniformSpec('f'),
     uCurrentX: UniformSpec('f'),
     uCurrentY: UniformSpec('f'),
-    uBboxMin: UniformSpec('v3'),
-    uBboxMax: UniformSpec('v3'),
-    uBboxSize: UniformSpec('v3'),
-    uGridDim: UniformSpec('v3'),
-    uGridTexDim: UniformSpec('v3'),
-    uAlpha: UniformSpec('f'),
+    uBboxMin: UniformSpec('v3', true),
+    uBboxSize: UniformSpec('v3', true),
+    uGridDim: UniformSpec('v3', true),
+    uGridTexDim: UniformSpec('v3', true),
+    uAlpha: UniformSpec('f', true),
     tMinDistanceTex: TextureSpec('texture', 'rgba', 'float', 'nearest'),
 
     dGridTexType: DefineSpec('string', ['2d', '3d']),
@@ -106,7 +105,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
 
     //
 
-    const { gl, framebufferCache } = webgl
+    const { gl, framebufferCache, state } = webgl
     const { uCurrentSlice, uCurrentX, uCurrentY } = renderable.values
 
     const framebuffer = framebufferCache.get(FramebufferName).value
@@ -116,8 +115,12 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
     if (!texture) texture = createTexture(webgl, 'image-float32', 'rgba', 'float', 'nearest')
     texture.define(texDimX, texDimY)
 
-    function render(fbTex: Texture) {
+    // console.log(renderable)
+
+    function render(fbTex: Texture, clear: boolean) {
+        state.currentRenderItemId = -1
         fbTex.attachFramebuffer(framebuffer, 0)
+        if (clear) gl.clear(gl.COLOR_BUFFER_BIT)
         let currCol = 0
         let currY = 0
         let currX = 0
@@ -126,25 +129,31 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
                 currCol -= texCols
                 currY += dy
                 currX = 0
+                ValueCell.update(uCurrentY, currY)
             }
-            gl.viewport(currX, currY, dx, dy)
-            ValueCell.update(uCurrentSlice, i)
+            // console.log({ i, currX, currY })
             ValueCell.update(uCurrentX, currX)
-            ValueCell.update(uCurrentY, currY)
+            ValueCell.update(uCurrentSlice, i)
+            gl.viewport(currX, currY, dx, dy)
             renderable.render()
             ++currCol
             currX += dx
         }
     }
 
-    setupMinDistanceRendering(webgl, renderable)
-    render(minDistanceTexture)
-
     setupDensityRendering(webgl, renderable)
-    render(texture)
+    render(texture, true)
+
+    setupMinDistanceRendering(webgl, renderable)
+    render(minDistanceTexture, true)
+    gl.finish()
 
     setupGroupIdRendering(webgl, renderable)
-    render(texture)
+    render(texture, false)
+
+    // printTexture(webgl, texture, 1)
+
+    gl.finish()
 
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
@@ -246,7 +255,6 @@ function getGaussianDensityRenderable(webgl: WebGLContext, drawCount: number, po
         uCurrentX: ValueCell.create(0),
         uCurrentY: ValueCell.create(0),
         uBboxMin: ValueCell.create(box.min),
-        uBboxMax: ValueCell.create(box.max),
         uBboxSize: ValueCell.create(extent),
         uGridDim: ValueCell.create(dimensions),
         uGridTexDim: ValueCell.create(Vec3.create(texDimX, texDimY, 0)),
@@ -267,15 +275,18 @@ function getGaussianDensityRenderable(webgl: WebGLContext, drawCount: number, po
 function setRenderingDefaults(ctx: WebGLContext) {
     const { gl, state } = ctx
     state.disable(gl.CULL_FACE)
-    state.frontFace(gl.CCW)
-    state.cullFace(gl.BACK)
     state.enable(gl.BLEND)
+    state.disable(gl.DEPTH_TEST)
+    state.disable(gl.SCISSOR_TEST)
+    state.depthMask(false)
+    state.clearColor(0, 0, 0, 0)
 }
 
 function setupMinDistanceRendering(webgl: WebGLContext, renderable: ComputeRenderable<any>) {
     const { gl, state } = webgl
     ValueCell.update(renderable.values.dCalcType, 'minDistance')
     renderable.update()
+    state.colorMask(false, false, false, true)
     state.blendFunc(gl.ONE, gl.ONE)
     // the shader writes 1 - dist so we set blending to MAX
     state.blendEquation(webgl.extensions.blendMinMax.MAX)
@@ -285,6 +296,7 @@ function setupDensityRendering(webgl: WebGLContext, renderable: ComputeRenderabl
     const { gl, state } = webgl
     ValueCell.update(renderable.values.dCalcType, 'density')
     renderable.update()
+    state.colorMask(false, false, false, true)
     state.blendFunc(gl.ONE, gl.ONE)
     state.blendEquation(gl.FUNC_ADD)
 }
@@ -294,7 +306,8 @@ function setupGroupIdRendering(webgl: WebGLContext, renderable: ComputeRenderabl
     ValueCell.update(renderable.values.dCalcType, 'groupId')
     renderable.update()
     // overwrite color, don't change alpha
-    state.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE)
+    state.colorMask(true, true, true, false)
+    state.blendFunc(gl.ONE, gl.ZERO)
     state.blendEquation(gl.FUNC_ADD)
 }
 

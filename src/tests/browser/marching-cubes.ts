@@ -56,7 +56,7 @@ async function init() {
     }
     const isoValue = Math.exp(-props.smoothness)
 
-    if (false) {
+    if (true) {
         console.time('gpu gaussian2')
         const densityTextureData2 = await computeGaussianDensityTexture2d(position, box, radius, props, webgl).run()
         webgl.waitForGpuCommandsCompleteSync()
@@ -119,7 +119,7 @@ async function init() {
     //
 
     console.time('cpu gaussian')
-    const densityData = await computeGaussianDensity(position, box, radius, { ...props, useGpu: false }, webgl).run()
+    const densityData = await computeGaussianDensity(position, box, radius, { ...props, useGpu: true }, webgl).run()
     console.timeEnd('cpu gaussian')
     // console.log({ densityData })
 
@@ -134,7 +134,6 @@ async function init() {
     console.timeEnd('cpu mc')
     // console.log('surface', surface)
     Mesh.transformImmediate(surface, densityData.transform)
-    Mesh.computeNormalsImmediate(surface)
     const meshProps = { doubleSided: true, flatShaded: false, alpha: 1.0 }
     const meshValues = Mesh.Utils.createValuesSimple(surface, meshProps, Color(0x995511), 1)
     const meshState = Mesh.Utils.createRenderableState(meshProps)
