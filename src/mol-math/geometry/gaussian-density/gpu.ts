@@ -104,7 +104,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
     const { drawCount, positions, radii, groups, delta, expandedBox, dim } = prepareGaussianDensityData(position, box, radius, props)
     const [ dx, dy, dz ] = dim
     const { texDimX, texDimY, texCols, powerOfTwoSize } = getTexture2dSize(dim)
-    console.log({ texDimX, texDimY, texCols, powerOfTwoSize })
+    // console.log({ texDimX, texDimY, texCols, powerOfTwoSize })
     // const gridTexDim = Vec3.create(powerOfTwoSize, powerOfTwoSize, 0)
     const gridTexDim = Vec3.create(texDimX, texDimY, 0)
     const gridTexScale = Vec2.create(texDimX / powerOfTwoSize, texDimY / powerOfTwoSize)

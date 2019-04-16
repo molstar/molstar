@@ -9,11 +9,8 @@ precision highp sampler2D;
 
 uniform sampler2D tTexture;
 
-// uv coordinate of each fragment obtained from vertex shader.
-varying vec2 vCoordinate;
-
 #pragma glslify: encodeFloatRGB = require(../utils/encode-float-rgb.glsl)
 
 void main(void) {
-    gl_FragColor = vec4(encodeFloatRGB(texture2D(tTexture, vCoordinate).r), 1.0);
+    gl_FragColor = vec4(encodeFloatRGB(texture2D(tTexture, vec2(0.5)).r), 1.0);
 }

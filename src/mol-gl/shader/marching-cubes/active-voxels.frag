@@ -7,8 +7,7 @@ uniform sampler2D tVolumeData;
 uniform float uIsoValue;
 uniform vec3 uGridDim;
 uniform vec3 uGridTexDim;
-
-varying vec2 vCoordinate;
+uniform vec2 uScale;
 
 // cube corners
 const vec3 c0 = vec3(0., 0., 0.);
@@ -36,7 +35,7 @@ vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) 
     float zSlice = floor(pos.z * gridDim.z + 0.5); // round to nearest z-slice
     float column = intMod(zSlice * gridDim.x, texDim.x) / gridDim.x;
     float row = floor(intDiv(zSlice * gridDim.x, texDim.x));
-    vec2 coord = (vec2(column * gridDim.x, row * gridDim.y) + (pos.xy * gridDim.xy)) / texDim;
+    vec2 coord = (vec2(column * gridDim.x, row * gridDim.y) + (pos.xy * gridDim.xy)) / (texDim / uScale);
     // return texture2D(tex, coord + 0.5 / texDim);
     return texture2D(tex, coord);
 }
@@ -46,7 +45,8 @@ vec4 voxel(vec3 pos) {
 }
 
 void main(void) {
-    vec3 posXYZ = index3dFrom2d(vCoordinate);
+    vec2 uv = gl_FragCoord.xy / uGridTexDim.xy;
+    vec3 posXYZ = index3dFrom2d(uv);
 
     // get MC case as the sum of corners that are below the given iso level
     float c = step(voxel(posXYZ).a, uIsoValue)
@@ -63,6 +63,13 @@ void main(void) {
     float totalTrianglesToGenerate = texture2D(tTriCount, vec2(intMod(c, 16.), floor(c / 16.)) / 16.).a;
     gl_FragColor = vec4(vec3(floor(totalTrianglesToGenerate * 255.0 + 0.5) * 3.0), c);
 
+    // gl_FragColor = vec4(255.0, 0.0, 0.0, voxel(posXYZ + c4 / uGridDim).a * 255.0);
+    // gl_FragColor = vec4(255.0, 0.0, 0.0, voxel(posXYZ).a * 255.0);
+
+    // vec2 uv = vCoordinate;
+    // uv = gl_FragCoord.xy / uGridTexDim.xy;
+
+    // if (uv.y < 0.91) discard;
     // gl_FragColor = vec4(vCoordinate * 255.0, 0.0, 255.0);
     // gl_FragColor = vec4(250.0, 0.0, 0.0, 255.0);
 }

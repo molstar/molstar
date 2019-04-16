@@ -6,13 +6,12 @@ uniform sampler2D tPreviousLevel;
 
 // 1/size of the previous level texture.
 uniform float uSize;
-
-varying vec2 vCoordinate;
+uniform float uTexSize;
 
 void main(void) {
     float k = 0.5 * uSize;
-    vec2 position = floor(vCoordinate / uSize) * uSize;
-    float a = texture2D(tPreviousLevel, position + vec2(0., 0.)).r;
+    vec2 position = floor((gl_FragCoord.xy / uTexSize) / uSize) * uSize;
+    float a = texture2D(tPreviousLevel, position).r;
     float b = texture2D(tPreviousLevel, position + vec2(k, 0.)).r;
     float c = texture2D(tPreviousLevel, position + vec2(0., k)).r;
     float d = texture2D(tPreviousLevel, position + vec2(k, k)).r;

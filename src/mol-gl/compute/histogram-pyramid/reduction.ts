@@ -11,15 +11,17 @@ import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
-import { QuadSchema, QuadValues, printTexture } from '../util';
+import { QuadSchema, QuadValues } from '../util';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
 import { Framebuffer, createFramebuffer } from 'mol-gl/webgl/framebuffer';
+import { isPowerOfTwo } from 'mol-math/misc';
 
 const HistopyramidReductionSchema = {
     ...QuadSchema,
     tPreviousLevel: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     uSize: UniformSpec('f'),
+    uTexSize: UniformSpec('f'),
 }
 
 let HistopyramidReductionRenderable: ComputeRenderable<Values<typeof HistopyramidReductionSchema>>
@@ -33,6 +35,7 @@ function getHistopyramidReductionRenderable(ctx: WebGLContext, initialTexture: T
             ...QuadValues,
             tPreviousLevel: ValueCell.create(initialTexture),
             uSize: ValueCell.create(0),
+            uTexSize: ValueCell.create(0),
         }
 
         const schema = { ...HistopyramidReductionSchema }
@@ -45,21 +48,6 @@ function getHistopyramidReductionRenderable(ctx: WebGLContext, initialTexture: T
         HistopyramidReductionRenderable = createComputeRenderable(renderItem, values);
         return HistopyramidReductionRenderable
     }
-}
-
-/** name for shared framebuffer used for histogram-pyramid operations */
-const FramebufferName = 'histogram-pyramid-reduction'
-
-const LevelTextures: Texture[] = []
-function getLevelTexture(ctx: WebGLContext, level: number) {
-    let tex = LevelTextures[level]
-    const size = Math.pow(2, level)
-    if (tex === undefined) {
-        tex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-        LevelTextures[level] = tex
-    }
-    tex.define(size, size) // always call to set size AND clear
-    return tex
 }
 
 type TextureFramebuffer = { texture: Texture, framebuffer: Framebuffer }
@@ -97,23 +85,18 @@ export interface HistogramPyramid {
     scale: Vec2
 }
 
-export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture): HistogramPyramid {
-    const { gl, framebufferCache } = ctx
+export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture, scale: Vec2): HistogramPyramid {
+    const { gl } = ctx
 
-    printTexture(ctx, inputTexture, 2)
-    const inputTextureMaxDim = Math.max(inputTexture.width, inputTexture.height)
+    // printTexture(ctx, inputTexture, 2)
+    if (inputTexture.width !== inputTexture.height || !isPowerOfTwo(inputTexture.width)) {
+        throw new Error('inputTexture must be of square power-of-two size')
+    }
 
     // This part set the levels
-    const levels = Math.ceil(Math.log(inputTextureMaxDim) / Math.log(2))
+    const levels = Math.ceil(Math.log(inputTexture.width) / Math.log(2))
     const maxSize = Math.pow(2, levels)
     // console.log('levels', levels, 'maxSize', maxSize)
-
-    const initialTexture = getLevelTexture(ctx, levels)
-
-    const framebuffer = framebufferCache.get(FramebufferName).value
-    inputTexture.attachFramebuffer(framebuffer, 0)
-    // TODO need to initialize texSubImage2D to make Firefox happy
-    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, inputTexture.width, inputTexture.height);
 
     const pyramidTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     pyramidTexture.define(maxSize, maxSize)
@@ -121,7 +104,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
     const levelTexturesFramebuffers: TextureFramebuffer[] = []
     for (let i = 0; i < levels; ++i) levelTexturesFramebuffers.push(getLevelTextureFramebuffer(ctx, i))
 
-    const renderable = getHistopyramidReductionRenderable(ctx, initialTexture)
+    const renderable = getHistopyramidReductionRenderable(ctx, inputTexture)
     ctx.state.currentRenderItemId = -1
     setRenderingDefaults(ctx)
 
@@ -138,6 +121,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
         gl.viewport(0, 0, size, size)
 
         ValueCell.update(renderable.values.uSize, Math.pow(2, i + 1) / maxSize)
+        ValueCell.update(renderable.values.uTexSize, size)
         if (i > 0) {
             ValueCell.update(renderable.values.tPreviousLevel, levelTexturesFramebuffers[levels - i].texture)
             renderable.update()
@@ -172,8 +156,8 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
 
     const finalCount = getHistopyramidSum(ctx, levelTexturesFramebuffers[0].texture)
     const height = Math.ceil(finalCount / Math.pow(2, levels))
-    const scale = Vec2.create(maxSize / inputTexture.width, maxSize / inputTexture.height)
-    console.log('height', height, 'finalCount', finalCount, 'scale', scale)
+    // const scale = Vec2.create(maxSize / inputTexture.width, maxSize / inputTexture.height)
+    // console.log('height', height, 'finalCount', finalCount, 'scale', scale)
 
 
     return {

@@ -18,7 +18,7 @@ uniform mat4 uGridTransform;
 // scale to volume data coord
 uniform vec2 uScale;
 
-varying vec2 vCoordinate;
+// varying vec2 vCoordinate;
 
 #pragma glslify: import('../chunks/common.glsl')
 #pragma glslify: decodeFloatRGB = require(../utils/decode-float-rgb.glsl)
@@ -48,8 +48,9 @@ vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) 
     float zSlice = floor(pos.z * gridDim.z + 0.5); // round to nearest z-slice
     float column = intMod(zSlice * gridDim.x, texDim.x) / gridDim.x;
     float row = floor(intDiv(zSlice * gridDim.x, texDim.x));
-    vec2 coord = (vec2(column * gridDim.x, row * gridDim.y) + (pos.xy * gridDim.xy)) / texDim;
-    return texture2D(tex, coord + 0.5 / texDim);
+    vec2 coord = (vec2(column * gridDim.x, row * gridDim.y) + (pos.xy * gridDim.xy)) / (texDim / uScale);
+    return texture2D(tex, coord + 0.5 / (texDim / uScale));
+    // return texture2D(tex, coord);
 }
 
 vec4 voxel(vec3 pos) {
@@ -58,7 +59,7 @@ vec4 voxel(vec3 pos) {
 
 void main(void) {
     // get 1D index
-    float vI = dot(floor(uSize * vCoordinate), vec2(1.0, uSize));
+    float vI = dot(floor(uSize * (gl_FragCoord.xy / uSize)), vec2(1.0, uSize));
 
     // ignore 1D indices outside of the grid
     if(vI >= uCount) discard;
@@ -99,10 +100,10 @@ void main(void) {
     m = vec4(greaterThanEqual(vI4, starts)) * vec4(lessThan(vI4, ends));
     position += m.y * vec2(k, 0.) + m.z * vec2(0., k) + m.w * vec2(k, k);
 
-    vec2 coord2d = position * uScale;
+    vec2 coord2d = position / uScale;
     vec3 coord3d = floor(index3dFrom2d(coord2d) + 0.5);
 
-    float edgeIndex = floor(texture2D(tActiveVoxelsBase, position * uScale).a + 0.5);
+    float edgeIndex = floor(texture2D(tActiveVoxelsBase, position).a + 0.5);
 
     // current vertex for the up to 15 MC cases
     float currentVertex = vI - dot(m, starts);
