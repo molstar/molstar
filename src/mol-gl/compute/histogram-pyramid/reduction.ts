@@ -86,7 +86,7 @@ export interface HistogramPyramid {
 }
 
 export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture, scale: Vec2): HistogramPyramid {
-    const { gl } = ctx
+    const { gl, framebufferCache } = ctx
 
     // printTexture(ctx, inputTexture, 2)
     if (inputTexture.width !== inputTexture.height || !isPowerOfTwo(inputTexture.width)) {
@@ -100,6 +100,10 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
 
     const pyramidTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     pyramidTexture.define(maxSize, maxSize)
+
+    const framebuffer = framebufferCache.get('reduction').value
+    pyramidTexture.attachFramebuffer(framebuffer, 0)
+    gl.clear(gl.COLOR_BUFFER_BIT)
 
     const levelTexturesFramebuffers: TextureFramebuffer[] = []
     for (let i = 0; i < levels; ++i) levelTexturesFramebuffers.push(getLevelTextureFramebuffer(ctx, i))
@@ -130,20 +134,8 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
         renderable.render()
 
         pyramidTexture.bind(0)
-        // TODO need to initialize texSubImage2D to make Firefox happy
         gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, offset, 0, 0, 0, size, size);
         pyramidTexture.unbind(0)
-
-        // if (i >= levels - 4) {
-        //     console.log('==============', i)
-        //     const rt = readTexture(ctx, levelTextures[currLevel])
-        //     console.log('array', rt.array)
-        //     for (let i = 0, il = rt.width * rt.height; i < il; ++i) {
-        //         // const v = decodeFloatRGB(rt.array[i * 4], rt.array[i * 4 + 1], rt.array[i * 4 + 2])
-        //         // console.log(i, 'v', v, 'rgb', rt.array[i * 4], rt.array[i * 4 + 1], rt.array[i * 4 + 2])
-        //         console.log(i, 'f', rt.array[i * 4])
-        //     }
-        // }
 
         offset += size;
     }
