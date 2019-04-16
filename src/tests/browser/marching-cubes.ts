@@ -50,7 +50,7 @@ async function init() {
     const box = Box3D.create(Vec3.create(0, 0, 0), Vec3.create(2, 2, 2))
     const radius = () => 1.8
     const props = {
-        resolution: 0.3,
+        resolution: 0.1,
         radiusOffset: 0,
         smoothness: 1.5
     }
@@ -119,9 +119,9 @@ async function init() {
     //
 
     console.time('cpu gaussian')
-    const densityData = await computeGaussianDensity(position, box, radius, { ...props, useGpu: true }, webgl).run()
+    const densityData = await computeGaussianDensity(position, box, radius, { ...props, useGpu: false }, webgl).run()
     console.timeEnd('cpu gaussian')
-    // console.log({ densityData })
+    console.log({ densityData })
 
     const params = {
         isoLevel: isoValue,
