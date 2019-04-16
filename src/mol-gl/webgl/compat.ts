@@ -214,3 +214,10 @@ export function getDrawBuffers(gl: GLRenderingContext): COMPAT_draw_buffers | nu
         }
     }
 }
+
+export interface COMPAT_shader_texture_lod {
+}
+
+export function getShaderTextureLod(gl: GLRenderingContext): COMPAT_shader_texture_lod | null {
+    return isWebGL2(gl) ? {} : gl.getExtension('EXT_shader_texture_lod')
+}

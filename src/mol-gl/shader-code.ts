@@ -19,6 +19,7 @@ export interface ShaderExtensions {
     readonly standardDerivatives?: boolean
     readonly fragDepth?: boolean
     readonly drawBuffers?: boolean
+    readonly shaderTextureLod?: boolean
 }
 
 export interface ShaderCode {
@@ -115,6 +116,14 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             throw new Error(`requested 'GL_EXT_draw_buffers' extension is unavailable`)
         }
     }
+    if (shaderExtensions.shaderTextureLod) {
+        if (extensions.shaderTextureLod) {
+            prefix.push('#extension GL_EXT_shader_texture_lod : enable')
+            prefix.push('#define enabledShaderTextureLod')
+        } else {
+            throw new Error(`requested 'GL_EXT_shader_texture_lod' extension is unavailable`)
+        }
+    }
     return prefix.join('\n') + '\n'
 }
 
@@ -136,6 +145,7 @@ layout(location = 7) out highp vec4 out_FragData7;
 
 #define varying in
 #define texture2D texture
+#define texture2DLodEXT textureLod
 
 #define gl_FragColor out_FragData0
 #define gl_FragDepthEXT gl_FragDepth

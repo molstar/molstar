@@ -6,7 +6,7 @@
 
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod } from './compat';
 import { createFramebufferCache, FramebufferCache, checkFramebufferStatus } from './framebuffer';
 import { Scheduler } from 'mol-task';
 import { isDebugMode } from 'mol-util/debug';
@@ -158,6 +158,7 @@ export type WebGLExtensions = {
     fragDepth: COMPAT_frag_depth | null
     colorBufferFloat: COMPAT_color_buffer_float | null
     drawBuffers: COMPAT_draw_buffers | null
+    shaderTextureLod: COMPAT_shader_texture_lod | null
 }
 
 function createExtensions(gl: GLRenderingContext): WebGLExtensions {
@@ -201,6 +202,11 @@ function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (drawBuffers === null) {
         console.log('Could not find support for "draw_buffers"')
     }
+    const shaderTextureLod = getShaderTextureLod(gl)
+    if (shaderTextureLod === null) {
+        console.log('Could not find support for "shader_texture_lod"')
+    }
+    
 
     return {
         instancedArrays,
@@ -212,7 +218,8 @@ function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         vertexArrayObject,
         fragDepth,
         colorBufferFloat,
-        drawBuffers
+        drawBuffers,
+        shaderTextureLod
     }
 }
 
