@@ -11,7 +11,7 @@ import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3, Vec2 } from 'mol-math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util';
 import { getTriCount } from './tables';
 
@@ -27,9 +27,11 @@ const ActiveVoxelsSchema = {
 
     uGridDim: UniformSpec('v3'),
     uGridTexDim: UniformSpec('v3'),
+
+    uScale: UniformSpec('v2'),
 }
 
-function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridDimensions: Vec3, isoValue: number) {
+function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, isoValue: number, scale: Vec2) {
     const values: Values<typeof ActiveVoxelsSchema> = {
         ...QuadValues,
 
@@ -37,8 +39,10 @@ function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridD
         tVolumeData: ValueCell.create(volumeData),
         uIsoValue: ValueCell.create(isoValue),
 
-        uGridDim: ValueCell.create(gridDimensions),
-        uGridTexDim: ValueCell.create(Vec3.create(volumeData.width, volumeData.height, 0)),
+        uGridDim: ValueCell.create(gridDim),
+        uGridTexDim: ValueCell.create(gridTexDim),
+
+        uScale: ValueCell.create(scale),
     }
 
     const schema = { ...ActiveVoxelsSchema }
@@ -62,7 +66,7 @@ function setRenderingDefaults(ctx: WebGLContext) {
     state.clearColor(0, 0, 0, 0)
 }
 
-export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDimensions: Vec3, isoValue: number) {
+export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDim: Vec3, gridTexDim: Vec3, isoValue: number, gridScale: Vec2) {
     const { gl, framebufferCache } = ctx
     const { width, height } = cornerTex
 
@@ -72,7 +76,7 @@ export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDime
     const activeVoxelsTex = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
     activeVoxelsTex.define(width, height)
 
-    const renderable = getActiveVoxelsRenderable(ctx, cornerTex, gridDimensions, isoValue)
+    const renderable = getActiveVoxelsRenderable(ctx, cornerTex, gridDim, gridTexDim, isoValue, gridScale)
     ctx.state.currentRenderItemId = -1
 
     activeVoxelsTex.attachFramebuffer(framebuffer, 0)
@@ -80,6 +84,7 @@ export function calcActiveVoxels(ctx: WebGLContext, cornerTex: Texture, gridDime
     gl.viewport(0, 0, width, height)
     renderable.render()
 
+    console.log('gridScale', gridScale)
     // console.log('at', readTexture(ctx, activeVoxelsTex))
 
     gl.finish()

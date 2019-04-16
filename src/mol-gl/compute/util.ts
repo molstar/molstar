@@ -8,7 +8,8 @@ import { WebGLContext } from 'mol-gl/webgl/context';
 import { Texture } from 'mol-gl/webgl/texture';
 import { printTextureImage } from 'mol-gl/renderable/util';
 import { defaults, ValueCell } from 'mol-util';
-import { ValueSpec, AttributeSpec } from 'mol-gl/renderable/schema';
+import { ValueSpec, AttributeSpec, UniformSpec } from 'mol-gl/renderable/schema';
+import { Vec2 } from 'mol-math/linear-algebra';
 
 export const QuadPositions = new Float32Array([
      1.0,  1.0,  -1.0,  1.0,  -1.0, -1.0, // First triangle
@@ -18,13 +19,15 @@ export const QuadPositions = new Float32Array([
 export const QuadSchema = {
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
-    aPosition: AttributeSpec('float32', 2, 0)
+    aPosition: AttributeSpec('float32', 2, 0),
+    uScale: UniformSpec('v2'),
 }
 
 export const QuadValues = {
     drawCount: ValueCell.create(6),
     instanceCount: ValueCell.create(1),
     aPosition: ValueCell.create(QuadPositions),
+    uScale: ValueCell.create(Vec2.create(1, 1)),
 }
 
 //

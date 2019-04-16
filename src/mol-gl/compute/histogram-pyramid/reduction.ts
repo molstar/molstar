@@ -11,7 +11,7 @@ import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
 import { Texture, createTexture } from 'mol-gl/webgl/texture';
 import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
-import { QuadSchema, QuadValues } from '../util';
+import { QuadSchema, QuadValues, printTexture } from '../util';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
 import { Framebuffer, createFramebuffer } from 'mol-gl/webgl/framebuffer';
@@ -100,7 +100,7 @@ export interface HistogramPyramid {
 export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture): HistogramPyramid {
     const { gl, framebufferCache } = ctx
 
-    // printTexture(ctx, inputTexture, 2)
+    printTexture(ctx, inputTexture, 2)
     const inputTextureMaxDim = Math.max(inputTexture.width, inputTexture.height)
 
     // This part set the levels
@@ -173,9 +173,9 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture)
     const finalCount = getHistopyramidSum(ctx, levelTexturesFramebuffers[0].texture)
     const height = Math.ceil(finalCount / Math.pow(2, levels))
     const scale = Vec2.create(maxSize / inputTexture.width, maxSize / inputTexture.height)
-    // console.log('height', height, 'finalCount', finalCount, 'scale', scale)
+    console.log('height', height, 'finalCount', finalCount, 'scale', scale)
 
-    
+
     return {
         pyramidTex: pyramidTexture,
         count: finalCount,

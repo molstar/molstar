@@ -23,9 +23,9 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
     const p = { ...props, useGpu: true }
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined
     const densityTextureData = await computeStructureGaussianDensityTexture(structure, p, webgl, oldTexture).runInContext(runtime)
-    const { transform, texture, bbox, gridDimension } = densityTextureData
+    const { transform, texture, bbox, gridDim } = densityTextureData
 
-    return DirectVolume.create(bbox, gridDimension, transform, texture, directVolume)
+    return DirectVolume.create(bbox, gridDim, transform, texture, directVolume)
 }
 
 export const GaussianDensityVolumeParams = {

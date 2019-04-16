@@ -62,4 +62,7 @@ void main(void) {
     // get total triangles to generate for calculated MC case from triCount texture
     float totalTrianglesToGenerate = texture2D(tTriCount, vec2(intMod(c, 16.), floor(c / 16.)) / 16.).a;
     gl_FragColor = vec4(vec3(floor(totalTrianglesToGenerate * 255.0 + 0.5) * 3.0), c);
+
+    // gl_FragColor = vec4(vCoordinate * 255.0, 0.0, 255.0);
+    // gl_FragColor = vec4(250.0, 0.0, 0.0, 255.0);
 }

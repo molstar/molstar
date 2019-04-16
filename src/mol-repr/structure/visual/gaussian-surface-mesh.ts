@@ -79,13 +79,13 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     // console.log('vertexGroupTexture', readTexture(ctx.webgl, densityTextureData.texture))
     // ctx.webgl.waitForGpuCommandsCompleteSync()
 
-    const activeVoxelsTex = calcActiveVoxels(ctx.webgl, densityTextureData.texture, densityTextureData.gridDimension, isoLevel)
+    const activeVoxelsTex = calcActiveVoxels(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, isoLevel, densityTextureData.gridTexScale)
     // ctx.webgl.waitForGpuCommandsCompleteSync()
 
     const compacted = createHistogramPyramid(ctx.webgl, activeVoxelsTex)
     // ctx.webgl.waitForGpuCommandsCompleteSync()
 
-    const gv = createIsosurfaceBuffers(ctx.webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDimension, densityTextureData.transform, isoLevel, textureMesh ? textureMesh.vertexGroupTexture.ref.value : undefined, textureMesh ? textureMesh.normalTexture.ref.value : undefined)
+    const gv = createIsosurfaceBuffers(ctx.webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.transform, isoLevel, textureMesh ? textureMesh.vertexGroupTexture.ref.value : undefined, textureMesh ? textureMesh.normalTexture.ref.value : undefined)
     // ctx.webgl.waitForGpuCommandsCompleteSync()
 
     // const boundingSphere = Sphere3D.zero()

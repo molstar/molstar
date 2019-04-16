@@ -50,13 +50,13 @@ async function init() {
     const box = Box3D.create(Vec3.create(0, 0, 0), Vec3.create(2, 2, 2))
     const radius = () => 1.8
     const props = {
-        resolution: 0.1,
+        resolution: 0.3,
         radiusOffset: 0,
         smoothness: 1.5
     }
     const isoValue = Math.exp(-props.smoothness)
 
-    if (true) {
+    if (false) {
         console.time('gpu gaussian2')
         const densityTextureData2 = await computeGaussianDensityTexture2d(position, box, radius, props, webgl).run()
         webgl.waitForGpuCommandsCompleteSync()
@@ -64,7 +64,7 @@ async function init() {
 
         console.time('gpu mc2')
         console.time('gpu mc active2')
-        const activeVoxelsTex2 = calcActiveVoxels(webgl, densityTextureData2.texture, densityTextureData2.gridDimension, isoValue)
+        const activeVoxelsTex2 = calcActiveVoxels(webgl, densityTextureData2.texture, densityTextureData2.gridDim, densityTextureData2.gridTexDim, isoValue, densityTextureData2.gridTexScale)
         webgl.waitForGpuCommandsCompleteSync()
         console.timeEnd('gpu mc active2')
 
@@ -74,7 +74,7 @@ async function init() {
         console.timeEnd('gpu mc pyramid2')
 
         console.time('gpu mc vert2')
-        createIsosurfaceBuffers(webgl, activeVoxelsTex2, densityTextureData2.texture, compacted2, densityTextureData2.gridDimension, densityTextureData2.transform, isoValue)
+        createIsosurfaceBuffers(webgl, activeVoxelsTex2, densityTextureData2.texture, compacted2, densityTextureData2.gridDim, densityTextureData2.transform, isoValue)
         webgl.waitForGpuCommandsCompleteSync()
         console.timeEnd('gpu mc vert2')
         console.timeEnd('gpu mc2')
@@ -87,7 +87,7 @@ async function init() {
 
     console.time('gpu mc')
     console.time('gpu mc active')
-    const activeVoxelsTex = calcActiveVoxels(webgl, densityTextureData.texture, densityTextureData.gridDimension, isoValue)
+    const activeVoxelsTex = calcActiveVoxels(webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, isoValue, densityTextureData.gridTexScale)
     webgl.waitForGpuCommandsCompleteSync()
     console.timeEnd('gpu mc active')
 
@@ -97,7 +97,7 @@ async function init() {
     console.timeEnd('gpu mc pyramid')
 
     console.time('gpu mc vert')
-    const gv = createIsosurfaceBuffers(webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDimension, densityTextureData.transform, isoValue)
+    const gv = createIsosurfaceBuffers(webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.transform, isoValue)
     webgl.waitForGpuCommandsCompleteSync()
     console.timeEnd('gpu mc vert')
     console.timeEnd('gpu mc')
