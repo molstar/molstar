@@ -24,7 +24,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
             this.ctx.fetch
         );
 
-        private provider: CustomPropertyRegistry.Provider = {
+        private provider: CustomPropertyRegistry.ModelProvider = {
             option: [StructureQualityReport.Descriptor.name, 'PDBe Structure Quality Report'],
             descriptor: StructureQualityReport.Descriptor,
             defaultSelected: this.params.autoAttach,

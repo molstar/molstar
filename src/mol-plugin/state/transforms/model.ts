@@ -40,6 +40,7 @@ export { StructureSelection };
 export { UserStructureSelection };
 export { StructureComplexElement };
 export { CustomModelProperties };
+export { CustomStructureProperties };
 
 type TrajectoryFromBlob = typeof TrajectoryFromBlob
 const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
@@ -189,7 +190,8 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
         const model = a.data;
         const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
         ids.push(['deposited', 'Deposited']);
-        return { id: PD.Optional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
+        return {
+            id: PD.Optional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
     }
 })({
     apply({ a, params }, plugin: PluginContext) {
@@ -432,15 +434,40 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
-            await attachProps(a.data, ctx, taskCtx, params.properties);
-            return new SO.Molecule.Model(a.data, { label: 'Props', description: `${params.properties.length} Selected` });
+            await attachModelProps(a.data, ctx, taskCtx, params.properties);
+            return new SO.Molecule.Model(a.data, { label: 'Model Props', description: `${params.properties.length} Selected` });
         });
     }
 });
-async function attachProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, names: string[]) {
+async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, names: string[]) {
     for (const name of names) {
         const p = ctx.customModelProperties.get(name);
         await p.attach(model).runInContext(taskCtx);
+    }
+}
+
+type CustomStructureProperties = typeof CustomStructureProperties
+const CustomStructureProperties = PluginStateTransform.BuiltIn({
+    name: 'custom-structure-properties',
+    display: { name: 'Custom Structure Properties' },
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: (a, ctx: PluginContext) => {
+        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of property descriptor ids.' }) };
+        return { properties: ctx.customStructureProperties.getSelect(a.data) };
+    }
+})({
+    apply({ a, params }, ctx: PluginContext) {
+        return Task.create('Custom Props', async taskCtx => {
+            await attachStructureProps(a.data, ctx, taskCtx, params.properties);
+            return new SO.Molecule.Structure(a.data, { label: 'Structure Props', description: `${params.properties.length} Selected` });
+        });
+    }
+});
+async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, names: string[]) {
+    for (const name of names) {
+        const p = ctx.customStructureProperties.get(name);
+        await p.attach(structure).runInContext(taskCtx);
     }
 }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -25,6 +25,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateActions.DataFormat.OpenFile),
         PluginSpec.Action(StateActions.Structure.CreateComplexRepresentation),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
+        PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 
         // Volume streaming
         PluginSpec.Action(InitVolumeStreaming),
@@ -35,6 +36,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Data.ParseCif),
         PluginSpec.Action(StateTransforms.Data.ParseCcp4),
         PluginSpec.Action(StateTransforms.Data.ParseDsn6),
+
         PluginSpec.Action(StateTransforms.Model.TrajectoryFromMmCif),
         PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
         PluginSpec.Action(StateTransforms.Model.StructureAssemblyFromModel),
@@ -43,13 +45,14 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
         PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
         PluginSpec.Action(StateTransforms.Model.UserStructureSelection),
-        PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
         PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.StructureLabels3D),
         PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3D),
+
+        PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
 
         PluginSpec.Action(StateActions.Structure.StructureFromSelection),
@@ -60,6 +63,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
         PluginSpec.Behavior(PluginBehaviors.Camera.FocusLociOnSelect, { minRadius: 8, extraRadius: 4 }),
         // PluginSpec.Behavior(PluginBehaviors.Labels.SceneLabels),
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.MolstarSecondaryStructure, { autoAttach: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry, { autoAttach: true }),
         PluginSpec.Behavior(StructureRepresentationInteraction)

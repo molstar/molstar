@@ -21,7 +21,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private attach = AssemblySymmetry.createAttachTask(this.ctx.fetch);
 
-        private provider: CustomPropertyRegistry.Provider = {
+        private provider: CustomPropertyRegistry.ModelProvider = {
             option: [AssemblySymmetry.Descriptor.name, 'RCSB Assembly Symmetry'],
             descriptor: AssemblySymmetry.Descriptor,
             defaultSelected: this.params.autoAttach,

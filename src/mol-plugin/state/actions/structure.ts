@@ -12,7 +12,7 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
-import { CustomModelProperties, StructureSelection } from '../transforms/model';
+import { CustomModelProperties, StructureSelection, CustomStructureProperties } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant } from './data-format';
 import { FileInfo } from 'mol-util/file-info';
 import { Task } from 'mol-task';
@@ -273,10 +273,10 @@ export const UpdateTrajectory = StateAction.build({
 });
 
 export const EnableModelCustomProps = StateAction.build({
-    display: { name: 'Custom Properties', description: 'Enable the addition of custom properties to the model.' },
+    display: { name: 'Custom Model Properties', description: 'Enable the addition of custom properties to the model.' },
     from: PluginStateObject.Molecule.Model,
     params(a, ctx: PluginContext) {
-        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of property descriptor ids.' }) };
+        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of model property descriptor ids.' }) };
         return { properties: ctx.customModelProperties.getSelect(a.data) };
     },
     isApplicable(a, t, ctx: PluginContext) {
@@ -284,6 +284,21 @@ export const EnableModelCustomProps = StateAction.build({
     }
 })(({ ref, params, state }, ctx: PluginContext) => {
     const root = state.build().to(ref).insert(CustomModelProperties, params);
+    return state.updateTree(root);
+});
+
+export const EnableStructureCustomProps = StateAction.build({
+    display: { name: 'Custom Structure Properties', description: 'Enable the addition of custom properties to the structure.' },
+    from: PluginStateObject.Molecule.Structure,
+    params(a, ctx: PluginContext) {
+        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of structure property descriptor ids.' }) };
+        return { properties: ctx.customStructureProperties.getSelect(a.data) };
+    },
+    isApplicable(a, t, ctx: PluginContext) {
+        return t.transformer !== CustomStructureProperties;
+    }
+})(({ ref, params, state }, ctx: PluginContext) => {
+    const root = state.build().to(ref).insert(CustomStructureProperties, params);
     return state.updateTree(root);
 });
 

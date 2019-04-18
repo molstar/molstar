@@ -35,6 +35,7 @@ import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { Representation } from 'mol-repr/representation';
 import { ModifiersKeys } from 'mol-util/input/input-observer';
 import { isProductionMode, isDebugMode } from 'mol-util/debug';
+import { Model, Structure } from 'mol-model/structure';
 
 export class PluginContext {
     private disposed = false;
@@ -99,7 +100,8 @@ export class PluginContext {
         registry: new DataFormatRegistry()
     }
 
-    readonly customModelProperties = new CustomPropertyRegistry();
+    readonly customModelProperties = new CustomPropertyRegistry<Model>();
+    readonly customStructureProperties = new CustomPropertyRegistry<Structure>();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     readonly helpers = {

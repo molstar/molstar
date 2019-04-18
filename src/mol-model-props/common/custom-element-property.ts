@@ -67,7 +67,7 @@ namespace CustomElementProperty {
         function getStatic(e: StructureElement) { return e.unit.model._staticPropertyData[name].get(e.element); }
         function getDynamic(e: StructureElement) { return e.unit.model._staticPropertyData[name].get(e.element); }
 
-        const propertyProvider: CustomPropertyRegistry.Provider = {
+        const propertyProvider: CustomPropertyRegistry.ModelProvider = {
             option: [name, params.display],
             descriptor: Descriptor,
             defaultSelected: !!params.autoAttach,
