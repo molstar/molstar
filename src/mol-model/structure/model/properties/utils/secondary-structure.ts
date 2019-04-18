@@ -16,6 +16,7 @@ import { BitFlags } from 'mol-util';
 import { ElementIndex } from 'mol-model/structure/model/indexing';
 import { AtomicHierarchy, AtomicConformation } from '../atomic';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { radToDeg } from 'mol-math/misc';
 
 /**
  * TODO bugs to fix:
@@ -335,7 +336,7 @@ function assignBends(ctx: DSSPContext) {
         Vec3.sub(caMinus2, caPosPrev2, caPos)
         Vec3.sub(caPlus2, caPos, caPosNext2)
 
-        const angle = Vec3.angle(caMinus2, caPlus2) * 360 / (2 * Math.PI)
+        const angle = radToDeg(Vec3.angle(caMinus2, caPlus2))
         if (angle && angle > 70.00) {
             flags[i] |= DSSPType.Flag.S
         }
