@@ -104,7 +104,7 @@ export const PolymerTraceParams = {
 }
 export type PolymerTraceParams = typeof PolymerTraceParams
 
-export function PolymerTraceVisual(): UnitsVisual<PolymerTraceParams> {
+export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTraceParams> {
     return UnitsMeshVisual<PolymerTraceParams>({
         defaultProps: PD.getDefaultValues(PolymerTraceParams),
         createGeometry: createPolymerTraceMesh,
@@ -120,5 +120,5 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceParams> {
                 newProps.arrowFactor !== currentProps.arrowFactor
             )
         }
-    })
+    }, materialId)
 }

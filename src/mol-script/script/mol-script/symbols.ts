@@ -148,6 +148,7 @@ export const SymbolTable = [
         [
             'Filters',
             Alias(MolScript.structureQuery.filter.pick, 'sel.atom.pick'),
+            Alias(MolScript.structureQuery.filter.first, 'sel.atom.first'),
             Alias(MolScript.structureQuery.filter.withSameAtomProperties, 'sel.atom.with-same-atom-properties'),
             Alias(MolScript.structureQuery.filter.intersectedBy, 'sel.atom.intersected-by'),
             Alias(MolScript.structureQuery.filter.within, 'sel.atom.within'),

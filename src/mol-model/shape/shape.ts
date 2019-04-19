@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,6 +15,8 @@ export interface Shape<G extends Geometry = Geometry> {
     readonly id: UUID
     /** A name to describe the shape */
     readonly name: string
+    /** The data used to create the shape */
+    readonly sourceData: unknown
     /** The geometry of the shape, e.g. `Mesh` or `Lines` */
     readonly geometry: G
     /** An array of transformation matrices to describe multiple instances of the geometry */
@@ -30,10 +32,11 @@ export interface Shape<G extends Geometry = Geometry> {
 }
 
 export namespace Shape {
-    export function create<G extends Geometry>(name: string, geometry: G, getColor: Shape['getColor'], getSize: Shape['getSize'], getLabel: Shape['getLabel'], transforms?: Mat4[]): Shape<G> {
+    export function create<G extends Geometry>(name: string, sourceData: unknown, geometry: G, getColor: Shape['getColor'], getSize: Shape['getSize'], getLabel: Shape['getLabel'], transforms?: Mat4[]): Shape<G> {
         return {
             id: UUID.create22(),
             name,
+            sourceData,
             geometry,
             transforms: transforms || [Mat4.identity()],
             get groupCount() { return Geometry.getGroupCount(geometry) },
@@ -43,6 +46,13 @@ export namespace Shape {
         }
     }
 
+    export interface Loci { readonly kind: 'shape-loci', readonly shape: Shape }
+    export function Loci(shape: Shape): Loci { return { kind: 'shape-loci', shape } }
+    export function isLoci(x: any): x is Loci { return !!x && x.kind === 'shape-loci' }
+    export function areLociEqual(a: Loci, b: Loci) { return a.shape === b.shape }
+}
+
+export namespace ShapeGroup {
     export interface Location {
         readonly kind: 'group-location'
         shape: Shape

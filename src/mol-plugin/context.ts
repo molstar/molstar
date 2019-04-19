@@ -34,6 +34,7 @@ import { StructureElementSelectionManager } from './util/structure-element-selec
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { Representation } from 'mol-repr/representation';
 import { ModifiersKeys } from 'mol-util/input/input-observer';
+import { isProductionMode, isDebugMode } from 'mol-util/debug';
 
 export class PluginContext {
     private disposed = false;
@@ -111,7 +112,8 @@ export class PluginContext {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
             (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
-            PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { backgroundColor: Color(0xFCFBF9) } });
+            const renderer = this.canvas3d.props.renderer;
+            PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { renderer: { ...renderer, backgroundColor: Color(0xFCFBF9) } } });
             this.canvas3d.animate();
             return true;
         } catch (e) {
@@ -180,7 +182,7 @@ export class PluginContext {
         const tree = this.state.behaviorState.build();
 
         for (const cat of Object.keys(PluginBehavior.Categories)) {
-            tree.toRoot().apply(PluginBehavior.CreateCategory, { label: (PluginBehavior.Categories as any)[cat] }, { ref: cat, props: { isLocked: true } });
+            tree.toRoot().apply(PluginBehavior.CreateCategory, { label: (PluginBehavior.Categories as any)[cat] }, { ref: cat, state: { isLocked: true } });
         }
 
         for (const b of this.spec.behaviors) {
@@ -225,5 +227,7 @@ export class PluginContext {
         this.lociLabels = new LociLabelManager(this);
 
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
+        if (!isProductionMode) this.log.message(`Development mode enabled`);
+        if (isDebugMode) this.log.message(`Debug mode enabled`);
     }
 }

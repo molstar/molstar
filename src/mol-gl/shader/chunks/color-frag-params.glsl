@@ -13,3 +13,8 @@
 #ifdef dOverpaint
     varying vec4 vOverpaint;
 #endif
+
+#ifdef dTransparency
+    varying float vGroup;
+    varying float vTransparency;
+#endif

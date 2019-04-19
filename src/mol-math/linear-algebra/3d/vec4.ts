@@ -23,6 +23,10 @@ import { NumberArray } from 'mol-util/type-helpers';
 
 interface Vec4 extends Array<number> { [d: number]: number, '@type': 'vec4', length: 4 }
 
+function Vec4() {
+    return Vec4.zero();
+}
+
 namespace Vec4 {
     export function zero(): Vec4 {
         // force double backing array by 0.1.

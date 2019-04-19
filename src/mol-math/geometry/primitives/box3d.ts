@@ -11,9 +11,13 @@ import { OrderedSet } from 'mol-data/int';
 
 interface Box3D { min: Vec3, max: Vec3 }
 
+function Box3D() {
+    return Box3D.empty();
+}
+
 namespace Box3D {
     export function create(min: Vec3, max: Vec3): Box3D { return { min, max }; }
-    export function empty(): Box3D { return { min: Vec3.zero(), max: Vec3.zero() }; }
+    export function empty(): Box3D { return { min: Vec3(), max: Vec3() }; }
 
     export function clone(a: Box3D): Box3D {
         const out = empty();
@@ -39,12 +43,12 @@ namespace Box3D {
         return { min, max }
     }
 
-    /** Get size of the box */
+    /** Get size/extent of the box */
     export function size(size: Vec3, box: Box3D): Vec3 {
         return Vec3.sub(size, box.max, box.min);
     }
 
-    const tmpSizeV = Vec3.zero()
+    const tmpSizeV = Vec3()
     /** Get size of the box */
     export function volume(box: Box3D): number {
         size(tmpSizeV, box)
@@ -71,7 +75,13 @@ namespace Box3D {
         return out
     }
 
-    const tmpTransformV = Vec3.zero()
+    export function scale(out: Box3D, box: Box3D, scale: number) {
+        Vec3.scale(out.min, box.min, scale)
+        Vec3.scale(out.max, box.max, scale)
+        return out;
+    }
+
+    const tmpTransformV = Vec3()
     /** Transform box with a Mat4 */
     export function transform(out: Box3D, box: Box3D, m: Mat4): Box3D {
         const [ minX, minY, minZ ] = box.min

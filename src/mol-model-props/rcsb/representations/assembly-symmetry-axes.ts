@@ -59,7 +59,7 @@ export const AssemblySymmetryAxesRepresentationProvider: StructureRepresentation
 
 //
 
-export function AssemblySymmetryAxesVisual(): ComplexVisual<AssemblySymmetryAxesParams> {
+export function AssemblySymmetryAxesVisual(materialId: number): ComplexVisual<AssemblySymmetryAxesParams> {
     return ComplexMeshVisual<AssemblySymmetryAxesParams>({
         defaultProps: PD.getDefaultValues(AssemblySymmetryAxesParams),
         createGeometry: createAssemblySymmetryAxesMesh,
@@ -73,7 +73,7 @@ export function AssemblySymmetryAxesVisual(): ComplexVisual<AssemblySymmetryAxes
                 newProps.symmetryId !== currentProps.symmetryId
             )
         }
-    })
+    }, materialId)
 }
 
 function createLocationIterator(structure: Structure) {

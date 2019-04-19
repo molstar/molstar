@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ModelPropertyDescriptor, Model } from 'mol-model/structure';
+import { CustomPropertyDescriptor, Model } from 'mol-model/structure';
 import { OrderedMap } from 'immutable';
 import { ParamDefinition } from 'mol-util/param-definition';
 import { Task } from 'mol-task';
@@ -58,7 +58,7 @@ namespace CustomPropertyRegistry {
     export interface Provider {
         option: [string, string],
         defaultSelected: boolean,
-        descriptor: ModelPropertyDescriptor<any, any>,
+        descriptor: CustomPropertyDescriptor<any, any>,
         attachableTo: (model: Model) => boolean,
         attach: (model: Model) => Task<boolean>
     }

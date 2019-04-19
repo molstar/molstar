@@ -86,6 +86,7 @@ void quadraticProjection(const in float radius, const in vec3 position){
 
 
 void main(void){
+    #pragma glslify: import('./chunks/assign-group.glsl')
     #pragma glslify: import('./chunks/assign-color-varying.glsl')
     #pragma glslify: import('./chunks/assign-marker-varying.glsl')
     #pragma glslify: import('./chunks/assign-size.glsl')

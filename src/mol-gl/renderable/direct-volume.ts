@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { WebGLContext } from '../webgl/context';
-import { createRenderItem } from '../webgl/render-item';
+import { createGraphicsRenderItem } from '../webgl/render-item';
 import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec, InternalValues } from './schema';
 import { DirectVolumeShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
@@ -23,6 +23,11 @@ export const DirectVolumeSchema = {
     uOverpaintTexDim: UniformSpec('v2'),
     tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
     dOverpaint: DefineSpec('boolean'),
+
+    uTransparencyTexDim: UniformSpec('v2'),
+    tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    dTransparency: DefineSpec('boolean'),
+    dTransparencyVariant: DefineSpec('string', ['single', 'multi']),
 
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
@@ -62,18 +67,18 @@ export const DirectVolumeSchema = {
 
     dGridTexType: DefineSpec('string', ['2d', '3d']),
     uGridTexDim: UniformSpec('v3'),
-    tGridTex: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    tGridTex: TextureSpec('texture', 'rgba', 'float', 'nearest'),
 }
 export type DirectVolumeSchema = typeof DirectVolumeSchema
 export type DirectVolumeValues = Values<DirectVolumeSchema>
 
-export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState): Renderable<DirectVolumeValues> {
+export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState, materialId: number): Renderable<DirectVolumeValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
-        uPickable: ValueCell.create(state.pickable ? 1 : 0)
+        uPickable: ValueCell.create(state.pickable ? 1 : 0),
     }
     const shaderCode = DirectVolumeShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
     return createRenderable(renderItem, values, state);
 }

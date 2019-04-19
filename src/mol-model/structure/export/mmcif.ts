@@ -16,7 +16,7 @@ import { _chem_comp, _pdbx_chem_comp_identifier, _pdbx_nonpoly_scheme } from './
 import { Model } from '../model';
 import { getUniqueEntityIndicesFromStructures, copy_mmCif_category } from './categories/utils';
 import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
-import { ModelPropertyDescriptor } from '../model/properties/custom';
+import { CustomPropertyDescriptor } from '../common/custom-property';
 
 export interface CifExportContext {
     structures: Structure[],
@@ -100,8 +100,32 @@ export const mmCIF_Export_Filters = {
     }
 }
 
+function encodeCustomProp(customProp: CustomPropertyDescriptor, ctx: CifExportContext, encoder: CifWriter.Encoder, params: encode_mmCIF_categories_Params) {
+    if (!customProp.cifExport || customProp.cifExport.categories.length === 0) return;
+
+    const prefix = customProp.cifExport.prefix;
+    const cats = customProp.cifExport.categories;
+
+    let propCtx = ctx;
+    if (customProp.cifExport.context) {
+        const propId = CustomPropertyDescriptor.getUUID(customProp);
+        if (ctx.cache[propId + '__ctx']) propCtx = ctx.cache[propId + '__ctx'];
+        else {
+            propCtx = customProp.cifExport.context(ctx) || ctx;
+            ctx.cache[propId + '__ctx'] = propCtx;
+        }
+    }
+    for (const cat of cats) {
+        if (params.skipCategoryNames && params.skipCategoryNames.has(cat.name)) continue;
+        if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
+        encoder.writeCategory(cat, propCtx);
+    }
+}
+
+type encode_mmCIF_categories_Params = { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext }
+
 /** Doesn't start a data block */
-export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: Structure | Structure[], params?: { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext }) {
+export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: Structure | Structure[], params?: encode_mmCIF_categories_Params) {
     const first = Array.isArray(structures) ? structures[0] : (structures as Structure);
     const models = first.models;
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
@@ -115,26 +139,15 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
     }
 
     for (const customProp of models[0].customProperties.all) {
-        if (!customProp.cifExport || customProp.cifExport.categories.length === 0) continue;
-
-        const prefix = customProp.cifExport.prefix;
-        const cats = customProp.cifExport.categories;
-
-        let propCtx = ctx;
-        if (customProp.cifExport.context) {
-            const propId = ModelPropertyDescriptor.getUUID(customProp);
-            if (ctx.cache[propId + '__ctx']) propCtx = ctx.cache[propId + '__ctx'];
-            else {
-                propCtx = customProp.cifExport.context(ctx) || ctx;
-                ctx.cache[propId + '__ctx'] = propCtx;
-            }
-        }
-        for (const cat of cats) {
-            if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;
-            if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
-            encoder.writeCategory(cat, propCtx);
-        }
+        encodeCustomProp(customProp, ctx, encoder, _params);
     }
+
+    const structureCustomProps = new Set<CustomPropertyDescriptor>();
+    for (const s of ctx.structures) {
+        if (!s.hasCustomProperties) continue;
+        for (const p of s.customPropertyDescriptors.all) structureCustomProps.add(p);
+    }
+    structureCustomProps.forEach(customProp => encodeCustomProp(customProp, ctx, encoder, _params));
 }
 
 function to_mmCIF(name: string, structure: Structure, asBinary = false) {

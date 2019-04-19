@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -50,9 +50,7 @@ export function getStandardDerivatives(gl: GLRenderingContext): COMPAT_standard_
         return { FRAGMENT_SHADER_DERIVATIVE_HINT: gl.FRAGMENT_SHADER_DERIVATIVE_HINT }
     } else {
         const ext = gl.getExtension('OES_standard_derivatives')
-        if (ext === null) {
-            throw new Error('Could not get "OES_standard_derivatives" extension')
-        }
+        if (ext === null) return null
         return { FRAGMENT_SHADER_DERIVATIVE_HINT: ext.FRAGMENT_SHADER_DERIVATIVE_HINT_OES }
     }
 }
@@ -79,7 +77,7 @@ export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_arra
             bindVertexArray: gl.bindVertexArray.bind(gl),
             createVertexArray: gl.createVertexArray.bind(gl),
             deleteVertexArray: gl.deleteVertexArray.bind(gl),
-            isVertexArray: gl.isVertexArray.bind(gl) as (value: any) => value is WebGLVertexArrayObject // TODO change when webgl2 types are fixed
+            isVertexArray: gl.isVertexArray.bind(gl)
         }
     } else {
         const ext = gl.getExtension('OES_vertex_array_object')
@@ -128,4 +126,98 @@ export interface COMPAT_frag_depth {
 
 export function getFragDepth(gl: GLRenderingContext): COMPAT_frag_depth | null {
     return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth')
+}
+
+export interface COMPAT_color_buffer_float {
+    readonly RGBA32F: number;
+}
+
+export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer_float | null {
+    if (isWebGL2(gl)) {
+        if (gl.getExtension('EXT_color_buffer_float') === null) return null
+        return { RGBA32F: gl.RGBA32F }
+    } else {
+        const ext = gl.getExtension('WEBGL_color_buffer_float')
+        if (ext === null) return null
+        return { RGBA32F: ext.RGBA32F_EXT }
+    }
+}
+
+export interface COMPAT_draw_buffers {
+    drawBuffers(buffers: number[]): void;
+    readonly COLOR_ATTACHMENT0: number;
+    readonly COLOR_ATTACHMENT1: number;
+    readonly COLOR_ATTACHMENT2: number;
+    readonly COLOR_ATTACHMENT3: number;
+    readonly COLOR_ATTACHMENT4: number;
+    readonly COLOR_ATTACHMENT5: number;
+    readonly COLOR_ATTACHMENT6: number;
+    readonly COLOR_ATTACHMENT7: number;
+    readonly DRAW_BUFFER0: number;
+    readonly DRAW_BUFFER1: number;
+    readonly DRAW_BUFFER2: number;
+    readonly DRAW_BUFFER3: number;
+    readonly DRAW_BUFFER4: number;
+    readonly DRAW_BUFFER5: number;
+    readonly DRAW_BUFFER6: number;
+    readonly DRAW_BUFFER7: number;
+    readonly MAX_COLOR_ATTACHMENTS: number;
+    readonly MAX_DRAW_BUFFERS: number;
+}
+
+export function getDrawBuffers(gl: GLRenderingContext): COMPAT_draw_buffers | null {
+    if (isWebGL2(gl)) {
+        return {
+            drawBuffers: gl.drawBuffers.bind(gl),
+            COLOR_ATTACHMENT0: gl.COLOR_ATTACHMENT0,
+            COLOR_ATTACHMENT1: gl.COLOR_ATTACHMENT1,
+            COLOR_ATTACHMENT2: gl.COLOR_ATTACHMENT2,
+            COLOR_ATTACHMENT3: gl.COLOR_ATTACHMENT3,
+            COLOR_ATTACHMENT4: gl.COLOR_ATTACHMENT4,
+            COLOR_ATTACHMENT5: gl.COLOR_ATTACHMENT5,
+            COLOR_ATTACHMENT6: gl.COLOR_ATTACHMENT6,
+            COLOR_ATTACHMENT7: gl.COLOR_ATTACHMENT7,
+            DRAW_BUFFER0: gl.DRAW_BUFFER0,
+            DRAW_BUFFER1: gl.DRAW_BUFFER1,
+            DRAW_BUFFER2: gl.DRAW_BUFFER2,
+            DRAW_BUFFER3: gl.DRAW_BUFFER3,
+            DRAW_BUFFER4: gl.DRAW_BUFFER4,
+            DRAW_BUFFER5: gl.DRAW_BUFFER5,
+            DRAW_BUFFER6: gl.DRAW_BUFFER6,
+            DRAW_BUFFER7: gl.DRAW_BUFFER7,
+            MAX_COLOR_ATTACHMENTS: gl.MAX_COLOR_ATTACHMENTS,
+            MAX_DRAW_BUFFERS: gl.MAX_DRAW_BUFFERS,
+        }
+    } else {
+        const ext = gl.getExtension('WEBGL_draw_buffers')
+        if (ext === null) return null
+        return {
+            drawBuffers: ext.drawBuffersWEBGL.bind(ext),
+            COLOR_ATTACHMENT0: ext.COLOR_ATTACHMENT0_WEBGL,
+            COLOR_ATTACHMENT1: ext.COLOR_ATTACHMENT1_WEBGL,
+            COLOR_ATTACHMENT2: ext.COLOR_ATTACHMENT2_WEBGL,
+            COLOR_ATTACHMENT3: ext.COLOR_ATTACHMENT3_WEBGL,
+            COLOR_ATTACHMENT4: ext.COLOR_ATTACHMENT4_WEBGL,
+            COLOR_ATTACHMENT5: ext.COLOR_ATTACHMENT5_WEBGL,
+            COLOR_ATTACHMENT6: ext.COLOR_ATTACHMENT6_WEBGL,
+            COLOR_ATTACHMENT7: ext.COLOR_ATTACHMENT7_WEBGL,
+            DRAW_BUFFER0: ext.DRAW_BUFFER0_WEBGL,
+            DRAW_BUFFER1: ext.DRAW_BUFFER1_WEBGL,
+            DRAW_BUFFER2: ext.DRAW_BUFFER2_WEBGL,
+            DRAW_BUFFER3: ext.DRAW_BUFFER3_WEBGL,
+            DRAW_BUFFER4: ext.DRAW_BUFFER4_WEBGL,
+            DRAW_BUFFER5: ext.DRAW_BUFFER5_WEBGL,
+            DRAW_BUFFER6: ext.DRAW_BUFFER6_WEBGL,
+            DRAW_BUFFER7: ext.DRAW_BUFFER7_WEBGL,
+            MAX_COLOR_ATTACHMENTS: ext.MAX_COLOR_ATTACHMENTS_WEBGL,
+            MAX_DRAW_BUFFERS: ext.MAX_DRAW_BUFFERS_WEBGL,
+        }
+    }
+}
+
+export interface COMPAT_shader_texture_lod {
+}
+
+export function getShaderTextureLod(gl: GLRenderingContext): COMPAT_shader_texture_lod | null {
+    return isWebGL2(gl) ? {} : gl.getExtension('EXT_shader_texture_lod')
 }

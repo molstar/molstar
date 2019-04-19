@@ -70,7 +70,7 @@ export const PolymerTubeParams = {
 }
 export type PolymerTubeParams = typeof PolymerTubeParams
 
-export function PolymerTubeVisual(): UnitsVisual<PolymerTubeParams> {
+export function PolymerTubeVisual(materialId: number): UnitsVisual<PolymerTubeParams> {
     return UnitsMeshVisual<PolymerTubeParams>({
         defaultProps: PD.getDefaultValues(PolymerTubeParams),
         createGeometry: createPolymerTubeMesh,
@@ -84,5 +84,5 @@ export function PolymerTubeVisual(): UnitsVisual<PolymerTubeParams> {
                 newProps.radialSegments !== currentProps.radialSegments
             )
         }
-    })
+    }, materialId)
 }

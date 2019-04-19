@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,6 +21,7 @@ import { TransformData } from './transform-data';
 import { Theme } from 'mol-theme/theme';
 import { RenderObjectValuesType } from 'mol-gl/render-object';
 import { ValueOf } from 'mol-util/type-helpers';
+import { TextureMesh } from './texture-mesh/texture-mesh';
 
 export type GeometryKindType = {
     'mesh': Mesh,
@@ -29,6 +30,7 @@ export type GeometryKindType = {
     'text': Text,
     'lines': Lines,
     'direct-volume': DirectVolume,
+    'texture-mesh': TextureMesh,
 }
 export type GeometryKindParams = {
     'mesh': Mesh.Params,
@@ -37,6 +39,7 @@ export type GeometryKindParams = {
     'text': Text.Params,
     'lines': Lines.Params,
     'direct-volume': DirectVolume.Params,
+    'texture-mesh': TextureMesh.Params,
 }
 export type GeometryKind = keyof GeometryKindType
 export type Geometry = ValueOf<GeometryKindType>
@@ -63,6 +66,7 @@ export namespace Geometry {
             case 'text': return geometry.charCount * 2 * 3
             case 'lines': return geometry.lineCount * 2 * 3
             case 'direct-volume': return 12 * 3
+            case 'texture-mesh': return geometry.vertexCount.ref.value
         }
     }
 
@@ -76,6 +80,8 @@ export namespace Geometry {
                 return getDrawCount(geometry) === 0 ? 0 : (arrayMax(geometry.groupBuffer.ref.value) + 1)
             case 'direct-volume':
                 return 1
+            case 'texture-mesh':
+                return geometry.groupCount.ref.value
         }
     }
 
@@ -88,6 +94,7 @@ export namespace Geometry {
             case 'text': return Text.Utils as any
             case 'lines': return Lines.Utils as any
             case 'direct-volume': return DirectVolume.Utils as any
+            case 'texture-mesh': return TextureMesh.Utils as any
         }
         throw new Error('unknown geometry kind')
     }

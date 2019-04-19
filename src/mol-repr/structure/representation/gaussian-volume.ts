@@ -11,29 +11,29 @@ import { Representation, RepresentationParamsGetter, RepresentationContext } fro
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
 
-const MolecularVolumeVisuals = {
+const GaussianVolumeVisuals = {
     'gaussian-volume': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianDensityVolumeParams>) => ComplexRepresentation('Gaussian volume', ctx, getParams, GaussianDensityVolumeVisual)
 }
 
-export const MolecularVolumeParams = {
+export const GaussianVolumeParams = {
     ...GaussianDensityVolumeParams,
 }
-export type MolecularVolumeParams = typeof MolecularVolumeParams
-export function getMolecularVolumeParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(MolecularVolumeParams)
+export type GaussianVolumeParams = typeof GaussianVolumeParams
+export function getGaussianVolumeParams(ctx: ThemeRegistryContext, structure: Structure) {
+    return PD.clone(GaussianVolumeParams)
 }
 
-export type MolecularVolumeRepresentation = StructureRepresentation<MolecularVolumeParams>
-export function MolecularVolumeRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularVolumeParams>): MolecularVolumeRepresentation {
-    return Representation.createMulti('Molecular Volume', ctx, getParams, StructureRepresentationStateBuilder, MolecularVolumeVisuals as unknown as Representation.Def<Structure, MolecularVolumeParams>)
+export type GaussianVolumeRepresentation = StructureRepresentation<GaussianVolumeParams>
+export function GaussianVolumeRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianVolumeParams>): GaussianVolumeRepresentation {
+    return Representation.createMulti('Gaussian Volume', ctx, getParams, StructureRepresentationStateBuilder, GaussianVolumeVisuals as unknown as Representation.Def<Structure, GaussianVolumeParams>)
 }
 
-export const MolecularVolumeRepresentationProvider: StructureRepresentationProvider<MolecularVolumeParams> = {
-    label: 'Molecular Volume',
+export const GaussianVolumeRepresentationProvider: StructureRepresentationProvider<GaussianVolumeParams> = {
+    label: 'Gaussian Volume',
     description: 'Displays a gaussian molecular density using direct volume rendering.',
-    factory: MolecularVolumeRepresentation,
-    getParams: getMolecularVolumeParams,
-    defaultValues: PD.getDefaultValues(MolecularVolumeParams),
+    factory: GaussianVolumeRepresentation,
+    getParams: getGaussianVolumeParams,
+    defaultValues: PD.getDefaultValues(GaussianVolumeParams),
     defaultColorTheme: 'polymer-id',
     defaultSizeTheme: 'uniform'
 }

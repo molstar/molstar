@@ -24,6 +24,10 @@ import { NumberArray } from 'mol-util/type-helpers';
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 
+function Vec3() {
+    return Vec3.zero();
+}
+
 namespace Vec3 {
     export function zero(): Vec3 {
         const out = [0.1, 0.0, 0.0];
@@ -41,6 +45,13 @@ namespace Vec3 {
 
     export function hasNaN(a: Vec3) {
         return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2])
+    }
+
+    export function setNaN(out: Vec3) {
+        out[0] = NaN;
+        out[1] = NaN;
+        out[2] = NaN;
+        return out
     }
 
     export function fromObj(v: { x: number, y: number, z: number }): Vec3 {
@@ -414,6 +425,7 @@ namespace Vec3 {
     }
 
     const angleTempA = zero(), angleTempB = zero();
+    /** Computes the angle between 2 vectors, reports in rad. */
     export function angle(a: Vec3, b: Vec3) {
         copy(angleTempA, a);
         copy(angleTempB, b);
@@ -431,6 +443,30 @@ namespace Vec3 {
         } else {
             return Math.acos(cosine);
         }
+    }
+
+    const tmp_dh_ab = zero();
+    const tmp_dh_cb = zero();
+    const tmp_dh_bc = zero();
+    const tmp_dh_dc = zero();
+    const tmp_dh_abc = zero();
+    const tmp_dh_bcd = zero();
+    const tmp_dh_cross = zero();
+    /**
+     * Computes the dihedral angles of 4 points.
+     */
+    export function dihedralAngle(a: Vec3, b: Vec3, c: Vec3, d: Vec3): number {
+        sub(tmp_dh_ab, a, b);
+        sub(tmp_dh_cb, c, b);
+        sub(tmp_dh_bc, b, c);
+        sub(tmp_dh_dc, d, c);
+
+        cross(tmp_dh_abc, tmp_dh_ab, tmp_dh_cb);
+        cross(tmp_dh_bcd, tmp_dh_bc, tmp_dh_dc);
+
+        const _angle = angle(tmp_dh_abc, tmp_dh_bcd) * 360.0 / (2 * Math.PI);
+        cross(tmp_dh_cross, tmp_dh_abc, tmp_dh_bcd);
+        return dot(tmp_dh_cb, tmp_dh_cross) > 0 ? _angle : -_angle;
     }
 
     /**

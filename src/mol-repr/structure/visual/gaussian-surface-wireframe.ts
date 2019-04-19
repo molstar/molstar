@@ -39,7 +39,7 @@ export const GaussianWireframeParams = {
 }
 export type GaussianWireframeParams = typeof GaussianWireframeParams
 
-export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeParams> {
+export function GaussianWireframeVisual(materialId: number): UnitsVisual<GaussianWireframeParams> {
     return UnitsLinesVisual<GaussianWireframeParams>({
         defaultProps: PD.getDefaultValues(GaussianWireframeParams),
         createGeometry: createGaussianWireframe,
@@ -52,5 +52,5 @@ export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeParams> 
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
         }
-    })
+    }, materialId)
 }

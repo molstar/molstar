@@ -86,6 +86,9 @@ namespace Transformer {
         /** By default, returns true */
         isSerializable?(params: P): { isSerializable: true } | { isSerializable: false; reason: string },
 
+        /** Parameter interpolation */
+        interpolate?(src: P, target: P, t: number, globalCtx: unknown): P
+
         /** Custom conversion to and from JSON */
         readonly customSerialization?: { toJSON(params: P, obj?: B): any, fromJSON(data: any): P }
     }
@@ -95,7 +98,7 @@ namespace Transformer {
         readonly from: StateObject.Ctor[],
         readonly to: StateObject.Ctor[],
         readonly display: { readonly name: string, readonly description?: string },
-        params?(a: A | undefined, globalCtx: unknown): { [K in keyof P]: PD.Any },
+        params?(a: A | undefined, globalCtx: unknown): { [K in keyof P]: PD.Any }
     }
 
     const registry = new Map<Id, Transformer<any, any>>();

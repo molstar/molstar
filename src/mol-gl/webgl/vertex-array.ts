@@ -6,18 +6,19 @@
 
 import { WebGLContext } from './context';
 import { Program } from './program';
-import { AttributeBuffers, ElementsBuffer } from './buffer';
+import { ElementsBuffer, AttributeBuffers } from './buffer';
 
 export function createVertexArray(ctx: WebGLContext, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) {
     const { vertexArrayObject } = ctx.extensions
     let vertexArray: WebGLVertexArrayObject | null = null
     if (vertexArrayObject) {
         vertexArray = vertexArrayObject.createVertexArray()
-        vertexArrayObject.bindVertexArray(vertexArray)
-        if (elementsBuffer) elementsBuffer.bind()
-        program.bindAttributes(attributeBuffers)
-        ctx.vaoCount += 1
-        vertexArrayObject.bindVertexArray(null)
+        if (vertexArray) {
+            updateVertexArray(ctx, vertexArray, program, attributeBuffers, elementsBuffer)
+            ctx.stats.vaoCount += 1
+        } else {
+            console.warn('Could not create WebGL vertex array')
+        }
     }
     return vertexArray
 }
@@ -36,6 +37,6 @@ export function deleteVertexArray(ctx: WebGLContext, vertexArray: WebGLVertexArr
     const { vertexArrayObject } = ctx.extensions
     if (vertexArrayObject && vertexArray) {
         vertexArrayObject.deleteVertexArray(vertexArray)
-        ctx.vaoCount -= 1
+        ctx.stats.vaoCount -= 1
     }
 }

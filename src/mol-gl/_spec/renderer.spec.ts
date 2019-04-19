@@ -23,6 +23,7 @@ import { fillSerial } from 'mol-util/array';
 import { Color } from 'mol-util/color';
 import { Sphere3D } from 'mol-math/geometry';
 import { createEmptyOverpaint } from 'mol-geo/geometry/overpaint-data';
+import { createEmptyTransparency } from 'mol-geo/geometry/transparency-data';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)
@@ -54,6 +55,7 @@ function createPoints() {
     const size = createValueSize(1)
     const marker = createEmptyMarkers()
     const overpaint = createEmptyOverpaint()
+    const transparency = createEmptyTransparency()
 
     const aTransform = ValueCell.create(new Float32Array(16))
     const m4 = Mat4.identity()
@@ -73,6 +75,7 @@ function createPoints() {
         ...marker,
         ...size,
         ...overpaint,
+        ...transparency,
 
         uAlpha: ValueCell.create(1.0),
         uHighlightColor: ValueCell.create(Vec3.create(1.0, 0.4, 0.6)),
@@ -102,7 +105,7 @@ function createPoints() {
         opaque: true
     }
 
-    return createRenderObject('points', values, state)
+    return createRenderObject('points', values, state, -1)
 }
 
 describe('renderer', () => {
@@ -114,9 +117,9 @@ describe('renderer', () => {
         expect(ctx.gl.canvas.width).toBe(32)
         expect(ctx.gl.canvas.height).toBe(32)
 
-        expect(ctx.bufferCount).toBe(0);
-        expect(ctx.textureCount).toBe(0);
-        expect(ctx.vaoCount).toBe(0);
+        expect(ctx.stats.bufferCount).toBe(0);
+        expect(ctx.stats.textureCount).toBe(0);
+        expect(ctx.stats.vaoCount).toBe(0);
         expect(ctx.programCache.count).toBe(0);
         expect(ctx.shaderCache.count).toBe(0);
 
@@ -134,16 +137,16 @@ describe('renderer', () => {
         const points = createPoints()
 
         scene.add(points)
-        expect(ctx.bufferCount).toBe(4);
-        expect(ctx.textureCount).toBe(4);
-        expect(ctx.vaoCount).toBe(4);
+        expect(ctx.stats.bufferCount).toBe(4);
+        expect(ctx.stats.textureCount).toBe(5);
+        expect(ctx.stats.vaoCount).toBe(4);
         expect(ctx.programCache.count).toBe(4);
         expect(ctx.shaderCache.count).toBe(8);
 
         scene.remove(points)
-        expect(ctx.bufferCount).toBe(0);
-        expect(ctx.textureCount).toBe(0);
-        expect(ctx.vaoCount).toBe(0);
+        expect(ctx.stats.bufferCount).toBe(0);
+        expect(ctx.stats.textureCount).toBe(0);
+        expect(ctx.stats.vaoCount).toBe(0);
         expect(ctx.programCache.count).toBe(4);
         expect(ctx.shaderCache.count).toBe(8);
 

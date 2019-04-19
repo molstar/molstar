@@ -1,4 +1,9 @@
 mat4 modelView = uView * uModel * aTransform;
-vec4 mvPosition = modelView * vec4(aPosition, 1.0);
+#ifdef dGeoTexture
+    vec3 position = readFromTexture(tPositionGroup, aGroup, uGeoTexDim).xyz;
+#else
+    vec3 position = aPosition;
+#endif
+vec4 mvPosition = modelView * vec4(position, 1.0);
 vViewPosition = mvPosition.xyz;
 gl_Position = uProjection * mvPosition;

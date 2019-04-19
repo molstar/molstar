@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ElementIndex, Model, ModelPropertyDescriptor } from 'mol-model/structure';
+import { ElementIndex, Model, CustomPropertyDescriptor } from 'mol-model/structure';
 import { StructureElement } from 'mol-model/structure/structure';
 import { Location } from 'mol-model/location';
 import { CustomPropertyRegistry } from './custom-property-registry';
@@ -36,7 +36,7 @@ namespace CustomElementProperty {
     export function create<T>(params: CreateParams<T>) {
         const name = params.name;
 
-        const Descriptor = ModelPropertyDescriptor({
+        const Descriptor = CustomPropertyDescriptor({
             isStatic: params.isStatic,
             name: params.name,
         });

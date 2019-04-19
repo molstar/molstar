@@ -12,10 +12,11 @@ import * as ReactDOM from 'react-dom';
 import { PluginSpec } from './spec';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
-import { AnimateModelIndex, AnimateAssemblyUnwind, AnimateUnitsExplode } from './state/animation/built-in';
+import { AnimateModelIndex, AnimateAssemblyUnwind, AnimateUnitsExplode, AnimateStateInterpolation } from './state/animation/built-in';
 import { StateActions } from './state/actions';
 import { InitVolumeStreaming, BoxifyVolumeStreaming, CreateVolumeStreamingBehavior } from './behavior/dynamic/volume-streaming/transformers';
 import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
+import { TransformStructureConformation } from './state/actions/structure';
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
@@ -38,6 +39,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
         PluginSpec.Action(StateTransforms.Model.StructureAssemblyFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureSymmetryFromModel),
+        PluginSpec.Action(TransformStructureConformation),
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
         PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
         PluginSpec.Action(StateTransforms.Model.UserStructureSelection),
@@ -46,7 +48,8 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateTransforms.Representation.StructureLabels3D),
         PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
-        PluginSpec.Action(StateTransforms.Representation.ColorStructureRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
 
         PluginSpec.Action(StateActions.Structure.StructureFromSelection),
@@ -65,6 +68,7 @@ export const DefaultPluginSpec: PluginSpec = {
         AnimateModelIndex,
         AnimateAssemblyUnwind,
         AnimateUnitsExplode,
+        AnimateStateInterpolation
     ]
 }
 

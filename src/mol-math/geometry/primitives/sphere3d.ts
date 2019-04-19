@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,8 +9,13 @@ import { Vec3, Mat4, EPSILON } from '../../linear-algebra'
 import { PositionData } from '../common'
 import { OrderedSet } from 'mol-data/int';
 import { NumberArray } from 'mol-util/type-helpers';
+import { Box3D } from './box3d';
 
 interface Sphere3D { center: Vec3, radius: number }
+
+function Sphere3D() {
+    return Sphere3D.zero();
+}
 
 namespace Sphere3D {
     export function create(center: Vec3, radius: number): Sphere3D { return { center, radius }; }
@@ -76,12 +81,31 @@ namespace Sphere3D {
         return out
     }
 
-    export function addSphere(out: Sphere3D, sphere: Sphere3D) {
+    export function fromBox3D(out: Sphere3D, box: Box3D) {
+        Vec3.scale(out.center, Vec3.add(out.center, box.max, box.min), 0.5)
+        out.radius = Vec3.distance(out.center, box.max)
+        return out
+    }
+
+    const tmpAddVec3 = Vec3()
+    export function addVec3(out: Sphere3D, s: Sphere3D, v: Vec3) {
+        const d = Vec3.distance(s.center, v)
+        if (d < s.radius) return Sphere3D.copy(out, s)
+        Vec3.sub(tmpAddVec3, s.center, v)
+        Vec3.sub(tmpAddVec3, s.center, tmpAddVec3)
+        Vec3.setMagnitude(tmpAddVec3, tmpAddVec3, s.radius)
+        Vec3.scale(out.center, Vec3.add(tmpAddVec3, tmpAddVec3, v), 0.5)
+        out.radius = Vec3.distance(out.center, v)
+        return out
+    }
+
+    /** Expand sphere radius by another sphere */
+    export function expandBySphere(out: Sphere3D, sphere: Sphere3D) {
         out.radius = Math.max(out.radius, Vec3.distance(out.center, sphere.center) + sphere.radius)
         return out
     }
 
-    /** Expand sphere by delta */
+    /** Expand sphere radius by delta */
     export function expand(out: Sphere3D, sphere: Sphere3D, delta: number): Sphere3D {
         out.radius = sphere.radius + delta
         return out

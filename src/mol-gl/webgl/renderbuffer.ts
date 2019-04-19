@@ -42,7 +42,7 @@ export interface Renderbuffer {
 }
 
 export function createRenderbuffer (ctx: WebGLContext, format: RenderbufferFormat, attachment: RenderbufferAttachment, _width: number, _height: number): Renderbuffer {
-    const { gl } = ctx
+    const { gl, stats } = ctx
     const _renderbuffer = gl.createRenderbuffer()
     if (_renderbuffer === null) {
         throw new Error('Could not create WebGL renderbuffer')
@@ -57,7 +57,7 @@ export function createRenderbuffer (ctx: WebGLContext, format: RenderbufferForma
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, _attachment, gl.RENDERBUFFER, _renderbuffer)
 
     let destroyed = false
-    ctx.renderbufferCount += 1
+    stats.renderbufferCount += 1
 
     return {
         id: getNextRenderbufferId(),
@@ -72,7 +72,7 @@ export function createRenderbuffer (ctx: WebGLContext, format: RenderbufferForma
             if (destroyed) return
             gl.deleteRenderbuffer(_renderbuffer)
             destroyed = true
-            ctx.framebufferCount -= 1
+            stats.framebufferCount -= 1
         }
     }
 }

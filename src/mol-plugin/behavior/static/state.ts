@@ -72,7 +72,8 @@ export function RemoveObject(ctx: PluginContext) {
                 const children = tree.children.get(curr.parent);
                 if (curr.parent === curr.ref || children.size > 1) return remove(state, curr.ref);
                 const parent = tree.transforms.get(curr.parent);
-                if (!parent.props || !parent.props.isGhost) return remove(state, curr.ref);
+                // TODO: should this use "cell state" instead?
+                if (!parent.state.isGhost) return remove(state, curr.ref);
                 curr = parent;
             }
         } else {
@@ -86,7 +87,7 @@ export function ToggleExpanded(ctx: PluginContext) {
 }
 
 export function ToggleVisibility(ctx: PluginContext) {
-    PluginCommands.State.ToggleVisibility.subscribe(ctx, ({ state, ref }) => setVisibility(state, ref, !state.cellStates.get(ref).isHidden));
+    PluginCommands.State.ToggleVisibility.subscribe(ctx, ({ state, ref }) => setVisibility(state, ref, !state.cells.get(ref)!.state.isHidden));
 }
 
 function setVisibility(state: State, root: StateTransform.Ref, value: boolean) {

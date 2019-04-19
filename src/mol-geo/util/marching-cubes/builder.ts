@@ -7,7 +7,7 @@
  */
 
 import { ChunkedArray } from '../../../mol-data/util';
-import { ValueCell } from 'mol-util';
+import { ValueCell, noop } from 'mol-util';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { AllowedContours } from './tables';
 import { LinesBuilder } from '../../geometry/lines/lines-builder';
@@ -15,6 +15,7 @@ import { Lines } from '../../geometry/lines/lines';
 
  export interface MarchinCubesBuilder<T> {
     addVertex(x: number, y: number, z: number): number
+    addNormal(x: number, y: number, z: number): void
     addGroup(group: number): void
     addTriangle(vertList: number[], a: number, b: number, c: number, edgeFilter: number): void
     get(): T
@@ -24,6 +25,7 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
     const triangleChunkSize = Math.min(1 << 16, vertexChunkSize * 4)
 
     const vertices = ChunkedArray.create(Float32Array, 3, vertexChunkSize, mesh && mesh.vertexBuffer.ref.value);
+    const normals = ChunkedArray.create(Float32Array, 3, vertexChunkSize, mesh && mesh.normalBuffer.ref.value);
     const groups = ChunkedArray.create(Float32Array, 1, vertexChunkSize, mesh && mesh.groupBuffer.ref.value);
     const indices = ChunkedArray.create(Uint32Array, 3, triangleChunkSize, mesh && mesh.indexBuffer.ref.value);
 
@@ -35,6 +37,9 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
             ++vertexCount
             return ChunkedArray.add3(vertices, x, y, z );
         },
+        addNormal: (x: number, y: number, z: number) => {
+            ChunkedArray.add3(normals, x, y, z );
+        },
         addGroup: (group: number) => {
             ChunkedArray.add(groups, group);
         },
@@ -44,6 +49,7 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
         },
         get: () => {
             const vb = ChunkedArray.compact(vertices, true) as Float32Array;
+            const nb = ChunkedArray.compact(normals, true) as Float32Array;
             const ib = ChunkedArray.compact(indices, true) as Uint32Array;
             const gb = ChunkedArray.compact(groups, true) as Float32Array;
 
@@ -54,8 +60,8 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
                 vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
                 groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, gb) : ValueCell.create(gb),
                 indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
-                normalBuffer: mesh ? mesh.normalBuffer : ValueCell.create(new Float32Array(0)),
-                normalsComputed: false
+                normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
+                normalsComputed: true
             }
         }
     }
@@ -72,6 +78,7 @@ export function MarchinCubesLinesBuilder(vertexChunkSize: number, lines?: Lines)
         addVertex: (x: number, y: number, z: number) => {
             return ChunkedArray.add3(vertices, x, y, z);
         },
+        addNormal: () => noop,
         addGroup: (group: number) => {
             ChunkedArray.add(groups, group);
         },

@@ -7,7 +7,7 @@
 import { AssemblySymmetry as AssemblySymmetryGraphQL } from './graphql/types';
 import query from './graphql/symmetry.gql';
 
-import { Model, ModelPropertyDescriptor } from 'mol-model/structure';
+import { Model, CustomPropertyDescriptor } from 'mol-model/structure';
 import { CifWriter } from 'mol-io/writer/cif';
 import { Database as _Database, Column, Table } from 'mol-data/db'
 import { Category } from 'mol-io/writer/cif/encoder';
@@ -140,7 +140,7 @@ function createDatabaseFromCif(model: Model): AssemblySymmetry.Database {
     })
 }
 
-const _Descriptor: ModelPropertyDescriptor = {
+const _Descriptor: CustomPropertyDescriptor = {
     isStatic: true,
     name: 'rcsb_assembly_symmetry',
     cifExport: {

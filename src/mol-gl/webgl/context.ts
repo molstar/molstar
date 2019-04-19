@@ -1,14 +1,15 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth } from './compat';
-import { createFramebufferCache, FramebufferCache } from './framebuffer';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod } from './compat';
+import { createFramebufferCache, FramebufferCache, checkFramebufferStatus } from './framebuffer';
 import { Scheduler } from 'mol-task';
+import { isDebugMode } from 'mol-util/debug';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -25,6 +26,24 @@ function getPixelRatio() {
     return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
 }
 
+function getErrorDescription(gl: GLRenderingContext, error: number) {
+    switch (error) {
+        case gl.NO_ERROR: return 'no error'
+        case gl.INVALID_ENUM: return 'invalid enum'
+        case gl.INVALID_VALUE: return 'invalid value'
+        case gl.INVALID_OPERATION: return 'invalid operation'
+        case gl.INVALID_FRAMEBUFFER_OPERATION: return 'invalid framebuffer operation'
+        case gl.OUT_OF_MEMORY: return 'out of memory'
+        case gl.CONTEXT_LOST_WEBGL: return 'context lost'
+    }
+    return 'unknown error'
+}
+
+export function checkError(gl: GLRenderingContext) {
+    const error = gl.getError()
+    if (error) throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'`)
+}
+
 function unbindResources (gl: GLRenderingContext) {
     // bind null to all texture units
     const maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)
@@ -32,6 +51,10 @@ function unbindResources (gl: GLRenderingContext) {
         gl.activeTexture(gl.TEXTURE0 + i)
         gl.bindTexture(gl.TEXTURE_2D, null)
         gl.bindTexture(gl.TEXTURE_CUBE_MAP, null)
+        if (isWebGL2(gl)) {
+            gl.bindTexture(gl.TEXTURE_2D_ARRAY, null)
+            gl.bindTexture(gl.TEXTURE_3D, null)
+        }
     }
 
     // assign the smallest possible buffer to all attributes
@@ -93,7 +116,18 @@ function waitForGpuCommandsComplete(gl: GLRenderingContext): Promise<void> {
 }
 
 function waitForGpuCommandsCompleteSync(gl: GLRenderingContext): void {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
+}
+
+function readPixels(gl: GLRenderingContext, x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) {
+    if (isDebugMode) checkFramebufferStatus(gl)
+    if (buffer instanceof Uint8Array) {
+        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+    } else {
+        gl.readPixels(x, y, width, height, gl.RGBA, gl.FLOAT, buffer)
+    }
+    if (isDebugMode) checkError(gl)
 }
 
 export function createImageData(buffer: ArrayLike<number>, width: number, height: number) {
@@ -113,7 +147,7 @@ export function createImageData(buffer: ArrayLike<number>, width: number, height
 
 //
 
-type Extensions = {
+export type WebGLExtensions = {
     instancedArrays: COMPAT_instanced_arrays
     standardDerivatives: COMPAT_standard_derivatives
     blendMinMax: COMPAT_blend_minmax
@@ -122,43 +156,12 @@ type Extensions = {
     elementIndexUint: COMPAT_element_index_uint | null
     vertexArrayObject: COMPAT_vertex_array_object | null
     fragDepth: COMPAT_frag_depth | null
+    colorBufferFloat: COMPAT_color_buffer_float | null
+    drawBuffers: COMPAT_draw_buffers | null
+    shaderTextureLod: COMPAT_shader_texture_lod | null
 }
 
-/** A WebGL context object, including the rendering context, resource caches and counts */
-export interface WebGLContext {
-    readonly gl: GLRenderingContext
-    readonly isWebGL2: boolean
-    readonly extensions: Extensions
-    readonly pixelRatio: number
-
-    readonly shaderCache: ShaderCache
-    readonly programCache: ProgramCache
-    readonly framebufferCache: FramebufferCache
-
-    currentProgramId: number
-
-    bufferCount: number
-    framebufferCount: number
-    renderbufferCount: number
-    textureCount: number
-    vaoCount: number
-
-    drawCount: number
-    instanceCount: number
-    instancedDrawCount: number
-
-    readonly maxTextureSize: number
-    readonly maxDrawBuffers: number
-
-    unbindFramebuffer: () => void
-    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
-    readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
-    waitForGpuCommandsComplete: () => Promise<void>
-    waitForGpuCommandsCompleteSync: () => void
-    destroy: () => void
-}
-
-export function createContext(gl: GLRenderingContext): WebGLContext {
+function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     const instancedArrays = getInstancedArrays(gl)
     if (instancedArrays === null) {
         throw new Error('Could not find support for "instanced_arrays"')
@@ -191,19 +194,230 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
     if (fragDepth === null) {
         console.log('Could not find support for "frag_depth"')
     }
+    const colorBufferFloat = getColorBufferFloat(gl)
+    if (colorBufferFloat === null) {
+        console.log('Could not find support for "color_buffer_float"')
+    }
+    const drawBuffers = getDrawBuffers(gl)
+    if (drawBuffers === null) {
+        console.log('Could not find support for "draw_buffers"')
+    }
+    const shaderTextureLod = getShaderTextureLod(gl)
+    if (shaderTextureLod === null) {
+        console.log('Could not find support for "shader_texture_lod"')
+    }
+    
 
-    const shaderCache = createShaderCache()
-    const programCache = createProgramCache()
-    const framebufferCache = createFramebufferCache()
+    return {
+        instancedArrays,
+        standardDerivatives,
+        blendMinMax,
+        textureFloat,
+        textureFloatLinear,
+        elementIndexUint,
+        vertexArrayObject,
+        fragDepth,
+        colorBufferFloat,
+        drawBuffers,
+        shaderTextureLod
+    }
+}
+
+export type WebGLStats = {
+    bufferCount: number
+    framebufferCount: number
+    renderbufferCount: number
+    textureCount: number
+    vaoCount: number
+
+    drawCount: number
+    instanceCount: number
+    instancedDrawCount: number
+}
+
+function createStats(): WebGLStats {
+    return {
+        bufferCount: 0,
+        framebufferCount: 0,
+        renderbufferCount: 0,
+        textureCount: 0,
+        vaoCount: 0,
+
+        drawCount: 0,
+        instanceCount: 0,
+        instancedDrawCount: 0,
+    }
+}
+
+export type WebGLState = {
+    currentProgramId: number
+    currentMaterialId: number
+    currentRenderItemId: number
+
+    enable: (cap: number) => void
+    disable: (cap: number) => void
+
+    frontFace: (mode: number) => void
+    cullFace: (mode: number) => void
+    depthMask: (flag: boolean) => void
+    colorMask: (red: boolean, green: boolean, blue: boolean, alpha: boolean) => void
+    clearColor: (red: number, green: number, blue: number, alpha: number) => void
+
+    blendFunc: (src: number, dst: number) => void
+    blendFuncSeparate: (srcRGB: number, dstRGB: number, srcAlpha: number, dstAlpha: number) => void
+
+    blendEquation: (mode: number) => void
+    blendEquationSeparate: (modeRGB: number, modeAlpha: number) => void
+}
+
+function createState(gl: GLRenderingContext): WebGLState {
+    const enabledCapabilities: { [k: number]: boolean } = {}
+
+    let currentFrontFace = gl.getParameter(gl.FRONT_FACE)
+    let currentCullFace = gl.getParameter(gl.CULL_FACE_MODE)
+    let currentDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK)
+    let currentColorMask = gl.getParameter(gl.COLOR_WRITEMASK)
+    let currentClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE)
+
+    let currentBlendSrcRGB = gl.getParameter(gl.BLEND_SRC_RGB)
+    let currentBlendDstRGB = gl.getParameter(gl.BLEND_DST_RGB)
+    let currentBlendSrcAlpha = gl.getParameter(gl.BLEND_SRC_ALPHA)
+    let currentBlendDstAlpha = gl.getParameter(gl.BLEND_DST_ALPHA)
+
+    let currentBlendEqRGB = gl.getParameter(gl.BLEND_EQUATION_RGB)
+    let currentBlendEqAlpha = gl.getParameter(gl.BLEND_EQUATION_ALPHA)
+
+    return {
+        currentProgramId: -1,
+        currentMaterialId: -1,
+        currentRenderItemId: -1,
+
+        enable: (cap: number) => {
+            if (enabledCapabilities[cap] !== true ) {
+                gl.enable(cap)
+                enabledCapabilities[cap] = true
+            }
+        },
+        disable: (cap: number) => {
+            if (enabledCapabilities[cap] !== false) {
+                gl.disable(cap)
+                enabledCapabilities[cap] = false
+            }
+        },
+
+        frontFace: (mode: number) => {
+            if (mode !== currentFrontFace) {
+                gl.frontFace(mode)
+                currentFrontFace = mode
+            }
+        },
+        cullFace: (mode: number) => {
+            if (mode !== currentCullFace) {
+                gl.cullFace(mode)
+                currentCullFace = mode
+            }
+        },
+        depthMask: (flag: boolean) => {
+            if (flag !== currentDepthMask) {
+                gl.depthMask(flag)
+                currentDepthMask = flag
+            }
+        },
+        colorMask: (red: boolean, green: boolean, blue: boolean, alpha: boolean) => {
+            if (red !== currentColorMask[0] || green !== currentColorMask[1] || blue !== currentColorMask[2] || alpha !== currentColorMask[3])
+            gl.colorMask(red, green, blue, alpha)
+            currentColorMask[0] = red
+            currentColorMask[1] = green
+            currentColorMask[2] = blue
+            currentColorMask[3] = alpha
+        },
+        clearColor: (red: number, green: number, blue: number, alpha: number) => {
+            if (red !== currentClearColor[0] || green !== currentClearColor[1] || blue !== currentClearColor[2] || alpha !== currentClearColor[3])
+            gl.clearColor(red, green, blue, alpha)
+            currentClearColor[0] = red
+            currentClearColor[1] = green
+            currentClearColor[2] = blue
+            currentClearColor[3] = alpha
+        },
+
+        blendFunc: (src: number, dst: number) => {
+            if (src !== currentBlendSrcRGB || dst !== currentBlendDstRGB || src !== currentBlendSrcAlpha || dst !== currentBlendDstAlpha) {
+                gl.blendFunc(src, dst)
+                currentBlendSrcRGB = src
+                currentBlendDstRGB = dst
+                currentBlendSrcAlpha = src
+                currentBlendDstAlpha = dst
+            }
+        },
+        blendFuncSeparate: (srcRGB: number, dstRGB: number, srcAlpha: number, dstAlpha: number) => {
+            if (srcRGB !== currentBlendSrcRGB || dstRGB !== currentBlendDstRGB || srcAlpha !== currentBlendSrcAlpha || dstAlpha !== currentBlendDstAlpha) {
+                gl.blendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha)
+                currentBlendSrcRGB = srcRGB
+                currentBlendDstRGB = dstRGB
+                currentBlendSrcAlpha = srcAlpha
+                currentBlendDstAlpha = dstAlpha
+            }
+        },
+
+        blendEquation: (mode: number) => {
+            if (mode !== currentBlendEqRGB || mode !== currentBlendEqAlpha) {
+                gl.blendEquation(mode)
+                currentBlendEqRGB = mode
+                currentBlendEqAlpha = mode
+            }
+        },
+        blendEquationSeparate: (modeRGB: number, modeAlpha: number) => {
+            if (modeRGB !== currentBlendEqRGB || modeAlpha !== currentBlendEqAlpha) {
+                gl.blendEquationSeparate(modeRGB, modeAlpha)
+                currentBlendEqRGB = modeRGB
+                currentBlendEqAlpha = modeAlpha
+            }
+        }
+    }
+}
+
+/** A WebGL context object, including the rendering context, resource caches and counts */
+export interface WebGLContext {
+    readonly gl: GLRenderingContext
+    readonly isWebGL2: boolean
+    readonly pixelRatio: number
+
+    readonly extensions: WebGLExtensions
+    readonly state: WebGLState
+    readonly stats: WebGLStats
+
+    readonly shaderCache: ShaderCache
+    readonly programCache: ProgramCache
+    readonly framebufferCache: FramebufferCache
+
+    readonly maxTextureSize: number
+    readonly maxDrawBuffers: number
+
+    unbindFramebuffer: () => void
+    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => void
+    readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
+    waitForGpuCommandsComplete: () => Promise<void>
+    waitForGpuCommandsCompleteSync: () => void
+    destroy: () => void
+}
+
+export function createContext(gl: GLRenderingContext): WebGLContext {
+    const extensions = createExtensions(gl)
+    const state = createState(gl)
+    const stats = createStats()
+
+    const shaderCache: ShaderCache = createShaderCache(gl)
+    const programCache: ProgramCache = createProgramCache(gl, state, extensions, shaderCache)
+    const framebufferCache: FramebufferCache = createFramebufferCache(gl, stats)
 
     const parameters = {
-        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
-        maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) : 0,
-        maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS),
+        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
+        maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) as number : 0,
+        maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) as number,
     }
 
-    if (parameters.maxVertexTextureImageUnits < 4) {
-        throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 4')
+    if (parameters.maxVertexTextureImageUnits < 8) {
+        throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8')
     }
 
     let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
@@ -239,53 +453,32 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         })
     } else {
         readPixelsAsync = async (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
-            gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+            readPixels(gl, x, y, width, height, buffer)
         }
     }
 
     return {
         gl,
         isWebGL2: isWebGL2(gl),
-        extensions: {
-            instancedArrays,
-            standardDerivatives,
-            blendMinMax,
-            textureFloat,
-            textureFloatLinear,
-            elementIndexUint,
-            vertexArrayObject,
-            fragDepth
+        get pixelRatio () {
+            // this can change during the lifetime of a rendering context, so need to re-obtain on access
+            return getPixelRatio()
         },
-        get pixelRatio () { return getPixelRatio() },
+
+        extensions,
+        state,
+        stats,
 
         shaderCache,
         programCache,
         framebufferCache,
 
-        currentProgramId: -1,
-
-        bufferCount: 0,
-        framebufferCount: 0,
-        renderbufferCount: 0,
-        textureCount: 0,
-        vaoCount: 0,
-
-        drawCount: 0,
-        instanceCount: 0,
-        instancedDrawCount: 0,
-
         get maxTextureSize () { return parameters.maxTextureSize },
         get maxDrawBuffers () { return parameters.maxDrawBuffers },
 
         unbindFramebuffer: () => unbindFramebuffer(gl),
-        readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
-            gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
-            // TODO check is very expensive
-            // if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
-            //     gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
-            // } else {
-            //     console.error('Reading pixels failed. Framebuffer not complete.')
-            // }
+        readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => {
+            readPixels(gl, x, y, width, height, buffer)
         },
         readPixelsAsync,
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),

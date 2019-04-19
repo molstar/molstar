@@ -15,7 +15,7 @@ export function encodeFloatLog(value: number) { return Math.log(value + 1.0) / f
 /** decode logarithmically encoded float */
 export function decodeFloatLog(value: number) { return Math.exp(value * floatLogFactor) - 1.0 }
 
-/** encode float as rgb triplet */
+/** encode float as normalized rgb triplet */
 export function encodeFloatRGB(value: number) {
     value = clamp(value, 0.0, 16777216.0 - 1.0) + 1.0
     const b = (value % 256) / 255.0

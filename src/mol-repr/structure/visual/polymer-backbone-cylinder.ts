@@ -67,7 +67,7 @@ export const PolymerBackboneParams = {
 }
 export type PolymerBackboneParams = typeof PolymerBackboneParams
 
-export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneParams> {
+export function PolymerBackboneVisual(materialId: number): UnitsVisual<PolymerBackboneParams> {
     return UnitsMeshVisual<PolymerBackboneParams>({
         defaultProps: PD.getDefaultValues(PolymerBackboneParams),
         createGeometry: createPolymerBackboneCylinderMesh,
@@ -81,5 +81,5 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneParams> {
                 newProps.radialSegments !== currentProps.radialSegments
             )
         }
-    })
+    }, materialId)
 }

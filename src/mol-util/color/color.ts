@@ -5,6 +5,7 @@
  */
 
 import { NumberArray } from 'mol-util/type-helpers';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 /** RGB color triplet expressed as a single number */
 export type Color = { readonly '@type': 'color' } & number
@@ -24,11 +25,11 @@ export namespace Color {
         return `RGB: ${Color.toRgb(hexColor).join(', ')}`
     }
 
-    export function toRgb(hexColor: Color) {
+    export function toRgb(hexColor: Color): [number, number, number] {
         return [ hexColor >> 16 & 255, hexColor >> 8 & 255, hexColor & 255 ]
     }
 
-    export function toRgbNormalized(hexColor: Color) {
+    export function toRgbNormalized(hexColor: Color): [number, number, number] {
         return [ (hexColor >> 16 & 255) / 255, (hexColor >> 8 & 255) / 255, (hexColor & 255) / 255 ]
     }
 
@@ -62,6 +63,22 @@ export namespace Color {
         array[ offset + 1 ] = (hexColor >> 8 & 255) / 255
         array[ offset + 2 ] = (hexColor & 255) / 255
         return array
+    }
+
+    /** Copies hex color to rgb vec3 */
+    export function toVec3(out: Vec3, hexColor: Color) {
+        out[0] = (hexColor >> 16 & 255)
+        out[1] = (hexColor >> 8 & 255)
+        out[2] = (hexColor & 255)
+        return out
+    }
+
+    /** Copies normalized (0 to 1) hex color to rgb vec3 */
+    export function toVec3Normalized(out: Vec3, hexColor: Color) {
+        out[0] = (hexColor >> 16 & 255) / 255
+        out[1] = (hexColor >> 8 & 255) / 255
+        out[2] = (hexColor & 255) / 255
+        return out
     }
 
     /** Linear interpolation between two colors */

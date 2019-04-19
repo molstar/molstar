@@ -7,7 +7,7 @@
 
 import { Model } from 'mol-model/structure/model/model'
 import { LinkType } from 'mol-model/structure/model/types'
-import { ModelPropertyDescriptor } from 'mol-model/structure/model/properties/custom';
+import { CustomPropertyDescriptor } from 'mol-model/structure';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { Structure, Unit, StructureProperties, StructureElement } from 'mol-model/structure';
 import { Segmentation } from 'mol-data/int';
@@ -18,7 +18,7 @@ export interface ComponentBond {
 }
 
 export namespace ComponentBond {
-    export const Descriptor: ModelPropertyDescriptor = {
+    export const Descriptor: CustomPropertyDescriptor = {
         isStatic: true,
         name: 'chem_comp_bond',
         cifExport: {

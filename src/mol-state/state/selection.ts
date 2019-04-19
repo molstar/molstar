@@ -49,6 +49,7 @@ namespace StateSelection {
         parent(): Builder<C>;
         first(): Builder<C>;
         filter(p: (n: C) => boolean): Builder<C>;
+        withTag(tag: string): Builder<C>;
         withTransformer<T extends StateTransformer<any, StateObjectCell.Obj<C>, any>>(t: T): Builder<StateObjectCell<StateObjectCell.Obj<C>, StateTransform<T>>>;
         withStatus(s: StateObjectCell.Status): Builder<C>;
         subtree(): Builder;
@@ -200,6 +201,9 @@ namespace StateSelection {
     registerModifier('withStatus', withStatus);
     export function withStatus(b: Selector, s: StateObjectCell.Status) { return filter(b, n => n.status === s); }
 
+    registerModifier('withTag', withTag);
+    export function withTag(b: Selector, tag: string) { return filter(b, n => !!n.transform.tags && n.transform.tags.indexOf(tag) >= 0); }
+
     registerModifier('subtree', subtree);
     export function subtree(b: Selector) {
         return flatMap(b, (n, s) => {
@@ -268,8 +272,12 @@ namespace StateSelection {
     }
 
     function _findUniqueTagsInSubtree(n: StateTransform, _: any, s: { refs: { [name: string]: StateTransform.Ref }, tags: Set<string> }) {
-        if (n.props.tag && s.tags.has(n.props.tag)) {
-            s.refs[n.props.tag] = n.ref;
+        if (n.tags) {
+            for (const t of n.tags) {
+                if (!s.tags.has(t)) continue;
+                s.refs[t] = n.ref;
+                break;
+            }
         }
         return true;
     }
@@ -279,7 +287,7 @@ namespace StateSelection {
     }
 
     function _findTagInSubtree(n: StateTransform, _: any, s: { ref: string | undefined, tag: string }) {
-        if (n.props.tag === s.tag) {
+        if (n.tags && n.tags.indexOf(s.tag) >= 0) {
             s.ref = n.ref;
             return false;
         }

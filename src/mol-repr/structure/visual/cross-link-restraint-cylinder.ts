@@ -58,7 +58,7 @@ export const CrossLinkRestraintParams = {
 }
 export type CrossLinkRestraintParams = typeof CrossLinkRestraintParams
 
-export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintParams> {
+export function CrossLinkRestraintVisual(materialId: number): ComplexVisual<CrossLinkRestraintParams> {
     return ComplexMeshVisual<CrossLinkRestraintParams>({
         defaultProps: PD.getDefaultValues(CrossLinkRestraintParams),
         createGeometry: createCrossLinkRestraintCylinderMesh,
@@ -71,7 +71,7 @@ export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintPara
                 newProps.radialSegments !== currentProps.radialSegments
             )
         }
-    })
+    }, materialId)
 }
 
 function CrossLinkRestraintIterator(structure: Structure): LocationIterator {

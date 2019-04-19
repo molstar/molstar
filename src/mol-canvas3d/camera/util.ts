@@ -1,19 +1,28 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Mat4, Vec3, Vec4, EPSILON } from 'mol-math/linear-algebra'
 
-export type Viewport = {
+export { Viewport }
+
+type Viewport = {
     x: number
     y: number
     width: number
     height: number
 }
 
-export namespace Viewport {
+function Viewport() {
+    return Viewport.zero()
+}
+
+namespace Viewport {
+    export function zero(): Viewport {
+        return { x: 0, y: 0, width: 0, height: 0 }
+    }
     export function create(x: number, y: number, width: number, height: number): Viewport {
         return { x, y, width, height }
     }
@@ -38,9 +47,15 @@ export namespace Viewport {
         v4[3] = viewport.height
         return v4
     }
+
+    export function equals(a: Viewport, b: Viewport) {
+        return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+    }
 }
 
-const tmpVec3 = Vec3.zero()
+//
+
+const tmpVec3 = Vec3()
 
 /** Modifies the direction & up vectors in place, both are normalized */
 export function cameraLookAt(position: Vec3, up: Vec3, direction: Vec3, target: Vec3) {
@@ -68,7 +83,7 @@ export function cameraLookAt(position: Vec3, up: Vec3, direction: Vec3, target: 
 const NEAR_RANGE = 0
 const FAR_RANGE = 1
 
-const tmpVec4 = Vec4.zero()
+const tmpVec4 = Vec4()
 
 /** Transform point into 2D window coordinates. */
 export function cameraProject (out: Vec4, point: Vec3, viewport: Viewport, projectionView: Mat4) {

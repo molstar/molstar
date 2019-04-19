@@ -15,7 +15,7 @@ import { BuiltInVolumeRepresentationsName } from 'mol-repr/volume/registry';
 import { VolumeParams } from 'mol-repr/volume/representation';
 import { StateTransformer } from 'mol-state';
 import { Task } from 'mol-task';
-import { BuiltInColorThemeName, ColorTheme } from 'mol-theme/color';
+import { BuiltInColorThemeName, ColorTheme, BuiltInColorThemes } from 'mol-theme/color';
 import { BuiltInSizeThemeName, SizeTheme } from 'mol-theme/size';
 import { createTheme, ThemeRegistryContext } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -25,16 +25,20 @@ import { ColorNames } from 'mol-util/color/tables';
 import { getLabelRepresentation } from 'mol-plugin/util/structure-labels';
 import { ShapeRepresentation } from 'mol-repr/shape/representation';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
-import { unwindStructureAssembly, explodeStructure, getStructureOverpaint } from '../animation/helpers';
+import { unwindStructureAssembly, explodeStructure } from '../animation/helpers';
 import { Color } from 'mol-util/color';
 import { Overpaint } from 'mol-theme/overpaint';
+import { Transparency } from 'mol-theme/transparency';
+import { getStructureOverpaint, getStructureTransparency } from './helpers';
+import { BaseGeometry } from 'mol-geo/geometry/base';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
 export { StructureLabels3D}
 export { ExplodeStructureRepresentation3D }
 export { UnwindStructureAssemblyRepresentation3D }
-export { OverpaintStructureRepresentation3D as ColorStructureRepresentation3D }
+export { OverpaintStructureRepresentation3D }
+export { TransparencyStructureRepresentation3D }
 export { VolumeRepresentation3D }
 
 namespace StructureRepresentation3DHelpers {
@@ -187,9 +191,21 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             return StateTransformer.UpdateResult.Updated;
         });
+    },
+    interpolate(src, tar, t) {
+        if (src.colorTheme.name !== 'uniform' || tar.colorTheme.name !== 'uniform') {
+            return t <= 0.5 ? src : tar;
+        }
+        BuiltInColorThemes
+        const from = src.colorTheme.params.value as Color, to = tar.colorTheme.params.value as Color;
+        const value = Color.interpolate(from, to, t);
+        return {
+            type: t <= 0.5 ? src.type : tar.type,
+            colorTheme: { name: 'uniform', params: { value } },
+            sizeTheme: t <= 0.5 ? src.sizeTheme : tar.sizeTheme,
+        };
     }
 });
-
 
 type StructureLabels3D = typeof StructureLabels3D
 const StructureLabels3D = PluginStateTransform.BuiltIn({
@@ -366,6 +382,46 @@ const OverpaintStructureRepresentation3D = PluginStateTransform.BuiltIn({
     }
 });
 
+type TransparencyStructureRepresentation3D = typeof TransparencyStructureRepresentation3D
+const TransparencyStructureRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'transparency-structure-representation-3d',
+    display: 'Transparency 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: {
+        script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :chain-test (= atom.label_asym_id A))' }),
+        value: PD.Numeric(0.75, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
+        variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']])
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.source.data
+        const transparency = getStructureTransparency(structure, params.script, params.value, params.variant)
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { transparency },
+            initialState: { transparency: Transparency.Empty },
+            info: structure,
+            source: a
+        }, { label: `Transparency (${transparency.value})` })
+    },
+    update({ a, b, newParams, oldParams }) {
+        const structure = b.data.info as Structure
+        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate
+        const oldTransparency = b.data.state.transparency!
+        const newTransparency = getStructureTransparency(structure, newParams.script, newParams.value, newParams.variant)
+        if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged
+
+        b.data.state.transparency = newTransparency
+        b.data.source = a
+        b.label = `Transparency (${newTransparency.value})`
+        return StateTransformer.UpdateResult.Updated
+    }
+});
+
 //
 
 export namespace VolumeRepresentation3DHelpers {
@@ -468,6 +524,40 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             b.data.repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.description = VolumeRepresentation3DHelpers.getDescription(props)
+            return StateTransformer.UpdateResult.Updated;
+        });
+    }
+});
+
+//
+
+export { ShapeRepresentation3D }
+type ShapeRepresentation3D = typeof ShapeRepresentation3D
+const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'shape-representation-3d',
+    display: '3D Representation',
+    from: SO.Shape.Provider,
+    to: SO.Shape.Representation3D,
+    params: (a, ctx: PluginContext) => {
+        return a ? a.data.params : BaseGeometry.Params
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Shape Representation', async ctx => {
+            const props = { ...PD.getDefaultValues(a.data.params), params }
+            const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils)
+            // TODO set initial state, repr.setState({})
+            await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: a.data.label });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Shape Representation', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams }
+            await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
             return StateTransformer.UpdateResult.Updated;
         });
     }

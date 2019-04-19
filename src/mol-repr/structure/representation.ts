@@ -15,6 +15,7 @@ import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Spheres } from 'mol-geo/geometry/spheres/spheres';
 import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
+import { TextureMesh } from 'mol-geo/geometry/texture-mesh/texture-mesh';
 
 export interface StructureRepresentationState extends Representation.State {
     unitTransforms: StructureUnitTransforms | null
@@ -55,6 +56,9 @@ export type StructureLinesParams = typeof StructureLinesParams
 
 export const StructureDirectVolumeParams = { ...DirectVolume.Params, ...StructureParams }
 export type StructureDirectVolumeParams = typeof StructureDirectVolumeParams
+
+export const StructureTextureMeshParams = { ...TextureMesh.Params, ...StructureParams }
+export type StructureTextureMeshParams = typeof StructureTextureMeshParams
 
 export { ComplexRepresentation } from './complex-representation'
 export { UnitsRepresentation } from './units-representation'

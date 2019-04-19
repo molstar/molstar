@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -23,6 +23,20 @@ export type UniformKind = keyof UniformKindValue
 export type UniformType = number | Vec2 | Vec3 | Vec4 | Mat3 | Mat4
 
 export type UniformValues = { [k: string]: ValueCell<UniformType> }
+export type UniformsList = [string, ValueCell<UniformType>][]
+
+export function getUniformType(gl: GLRenderingContext, kind: UniformKind) {
+    switch (kind) {
+        case 'f': return gl.FLOAT
+        case 'i': return gl.INT
+        case 'v2': return gl.FLOAT_VEC2
+        case 'v3': return gl.FLOAT_VEC3
+        case 'v4': return gl.FLOAT_VEC4
+        case 'm3': return gl.FLOAT_MAT3
+        case 'm4': return gl.FLOAT_MAT4
+        default: console.error(`unknown uniform kind '${kind}'`)
+    }
+}
 
 export function setUniform(gl: GLRenderingContext, location: WebGLUniformLocation | null, kind: UniformKind, value: any) {
     switch (kind) {

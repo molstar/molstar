@@ -7,7 +7,7 @@
 import { PluginStateObject as SO } from '../../state/objects';
 import { PluginContext } from 'mol-plugin/context';
 import { Representation } from 'mol-repr/representation';
-import { State } from 'mol-state';
+import { StateObjectCell } from 'mol-state';
 
 export function registerDefault(ctx: PluginContext) {
     SyncRepresentationToCanvas(ctx);
@@ -21,7 +21,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
     const events = ctx.state.dataState.events;
     events.object.created.subscribe(e => {
         if (!SO.isRepresentation3D(e.obj)) return;
-        updateVisibility(e, e.obj.data.repr);
+        updateVisibility(e.state.cells.get(e.ref)!, e.obj.data.repr);
         e.obj.data.repr.setState({ syncManually: true });
         ctx.canvas3d.add(e.obj.data.repr);
 
@@ -39,7 +39,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
             return;
         }
 
-        updateVisibility(e, e.obj.data.repr);
+        updateVisibility(e.state.cells.get(e.ref)!, e.obj.data.repr);
         if (e.action === 'recreate') {
             e.obj.data.repr.setState({ syncManually: true });
         }
@@ -86,11 +86,11 @@ export function UpdateRepresentationVisibility(ctx: PluginContext) {
     ctx.state.dataState.events.cell.stateUpdated.subscribe(e => {
         const cell = e.state.cells.get(e.ref)!;
         if (!SO.isRepresentation3D(cell.obj)) return;
-        updateVisibility(e, cell.obj.data.repr);
+        updateVisibility(cell, cell.obj.data.repr);
         ctx.canvas3d.requestDraw(true);
     })
 }
 
-function updateVisibility(e: State.ObjectEvent, r: Representation<any>) {
-    r.setState({ visible: !e.state.cellStates.get(e.ref).isHidden });
+function updateVisibility(cell: StateObjectCell, r: Representation<any>) {
+    r.setState({ visible: !cell.state.isHidden });
 }

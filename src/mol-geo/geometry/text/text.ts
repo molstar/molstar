@@ -25,6 +25,7 @@ import { clamp } from 'mol-math/interpolate';
 import { createRenderObject as _createRenderObject } from 'mol-gl/render-object';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
+import { createEmptyTransparency } from '../transparency-data';
 
 type TextAttachment = (
     'bottom-left' | 'bottom-center' | 'bottom-right' |
@@ -57,7 +58,7 @@ export interface Text {
 
 export namespace Text {
     export function createEmpty(text?: Text): Text {
-        const ft = text ? text.fontTexture.ref.value : createTextureImage(0, 1)
+        const ft = text ? text.fontTexture.ref.value : createTextureImage(0, 1, Uint8Array)
         const cb = text ? text.centerBuffer.ref.value : new Float32Array(0)
         const mb = text ? text.mappingBuffer.ref.value : new Float32Array(0)
         const db = text ? text.depthBuffer.ref.value : new Float32Array(0)
@@ -124,6 +125,7 @@ export namespace Text {
         const size = createSizes(locationIt, theme.size)
         const marker = createMarkers(instanceCount * groupCount)
         const overpaint = createEmptyOverpaint()
+        const transparency = createEmptyTransparency()
 
         const counts = { drawCount: text.charCount * 2 * 3, groupCount, instanceCount }
 
@@ -145,6 +147,7 @@ export namespace Text {
             ...size,
             ...marker,
             ...overpaint,
+            ...transparency,
             ...transform,
 
             aTexCoord: text.tcoordBuffer,

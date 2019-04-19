@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,7 +9,7 @@ import { NumberArray } from './type-helpers';
 // TODO move to mol-math as Vector???
 
 /** Get the maximum value in an array */
-export function arrayMax(array: NumberArray) {
+export function arrayMax(array: ArrayLike<number>) {
     let max = -Infinity
     for (let i = 0, il = array.length; i < il; ++i) {
         if (array[i] > max) max = array[i]
@@ -18,7 +18,7 @@ export function arrayMax(array: NumberArray) {
 }
 
 /** Get the minimum value in an array */
-export function arrayMin(array: NumberArray) {
+export function arrayMin(array: ArrayLike<number>) {
     let min = Infinity
     for (let i = 0, il = array.length; i < il; ++i) {
         if (array[i] < min) min = array[i]
@@ -27,7 +27,7 @@ export function arrayMin(array: NumberArray) {
 }
 
 /** Get the sum of values in an array */
-export function arraySum(array: NumberArray, stride = 1, offset = 0) {
+export function arraySum(array: ArrayLike<number>, stride = 1, offset = 0) {
     const n = array.length
     let sum = 0
     for (let i = offset; i < n; i += stride) {
@@ -37,12 +37,12 @@ export function arraySum(array: NumberArray, stride = 1, offset = 0) {
 }
 
 /** Get the mean of values in an array */
-export function arrayMean(array: NumberArray, stride = 1, offset = 0) {
+export function arrayMean(array: ArrayLike<number>, stride = 1, offset = 0) {
     return arraySum(array, stride, offset) / (array.length / stride)
 }
 
 /** Get the root mean square of values in an array */
-export function arrayRms(array: NumberArray) {
+export function arrayRms(array: ArrayLike<number>) {
     const n = array.length
     let sumSq = 0
     for (let i = 0; i < n; ++i) {
@@ -54,7 +54,13 @@ export function arrayRms(array: NumberArray) {
 
 /** Fill an array with serial numbers starting from 0 until n - 1 (defaults to array.length) */
 export function fillSerial<T extends NumberArray> (array: T, n?: number) {
-    for (let i = 0, il = n ? Math.min(n, array.length) : array.length; i < il; ++i) array[ i ] = i
+    for (let i = 0, il = n ? Math.min(n, array.length) : array.length; i < il; ++i) array[i] = i
+    return array
+}
+
+/** Fill an array with value starting from index 0 until n - 1 (defaults to array.length) */
+export function fillUniform<T extends NumberArray> (array: T, v: number, n?: number) {
+    for (let i = 0, il = n ? Math.min(n, array.length) : array.length; i < il; ++i) array[i] = v
     return array
 }
 

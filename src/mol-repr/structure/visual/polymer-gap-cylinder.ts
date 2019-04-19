@@ -85,7 +85,7 @@ export const PolymerGapParams = {
 }
 export type PolymerGapParams = typeof PolymerGapParams
 
-export function PolymerGapVisual(): UnitsVisual<PolymerGapParams> {
+export function PolymerGapVisual(materialId: number): UnitsVisual<PolymerGapParams> {
     return UnitsMeshVisual<PolymerGapParams>({
         defaultProps: PD.getDefaultValues(PolymerGapParams),
         createGeometry: createPolymerGapCylinderMesh,
@@ -98,5 +98,5 @@ export function PolymerGapVisual(): UnitsVisual<PolymerGapParams> {
                 newProps.radialSegments !== currentProps.radialSegments
             )
         }
-    })
+    }, materialId)
 }

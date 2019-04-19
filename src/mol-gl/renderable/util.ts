@@ -29,9 +29,9 @@ export interface TextureVolume<T extends Uint8Array | Float32Array> {
     readonly depth: number
 }
 
-export function createTextureImage(n: number, itemSize: number, array?: Uint8Array): TextureImage<Uint8Array> {
+export function createTextureImage<T extends Uint8Array | Float32Array>(n: number, itemSize: number, arrayCtor: new (length: number) => T, array?: T): TextureImage<T> {
     const { length, width, height } = calculateTextureInfo(n, itemSize)
-    array = array && array.length >= length ? array : new Uint8Array(length)
+    array = array && array.length >= length ? array : new arrayCtor(length)
     return { array, width, height }
 }
 
@@ -65,7 +65,8 @@ export function printImageData(imageData: ImageData, scale = 1) {
         const img = document.createElement('img')
         img.src = objectURL
         img.style.width = imageData.width * scale + 'px'
-        img.style.height = imageData.height * scale + 'px'
+        img.style.height = imageData.height * scale + 'px';
+        (img.style as any).imageRendering = 'pixelated' // works in Chrome
         img.style.position = 'absolute'
         img.style.top = '0px'
         img.style.left = '0px'

@@ -78,7 +78,6 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
     const transform = VolumeData.getGridToCartesianTransform(volume);
     ctx.runtime.update({ message: 'Transforming mesh...' });
     Mesh.transformImmediate(surface, transform);
-    Mesh.computeNormalsImmediate(surface)
 
     return surface;
 }
@@ -89,7 +88,7 @@ export const IsosurfaceMeshParams = {
 }
 export type IsosurfaceMeshParams = typeof IsosurfaceMeshParams
 
-export function IsosurfaceMeshVisual(): VolumeVisual<IsosurfaceMeshParams> {
+export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<IsosurfaceMeshParams> {
     return VolumeVisual<Mesh, IsosurfaceMeshParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceMeshParams),
         createGeometry: createVolumeIsosurfaceMesh,
@@ -100,7 +99,7 @@ export function IsosurfaceMeshVisual(): VolumeVisual<IsosurfaceMeshParams> {
             if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true
         },
         geometryUtils: Mesh.Utils
-    })
+    }, materialId)
 }
 
 //
@@ -125,7 +124,7 @@ export const IsosurfaceWireframeParams = {
 }
 export type IsosurfaceWireframeParams = typeof IsosurfaceWireframeParams
 
-export function IsosurfaceWireframeVisual(): VolumeVisual<IsosurfaceWireframeParams> {
+export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<IsosurfaceWireframeParams> {
     return VolumeVisual<Lines, IsosurfaceWireframeParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceWireframeParams),
         createGeometry: createVolumeIsosurfaceWireframe,
@@ -136,7 +135,7 @@ export function IsosurfaceWireframeVisual(): VolumeVisual<IsosurfaceWireframePar
             if (!VolumeIsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.dataStats)) state.createGeometry = true
         },
         geometryUtils: Lines.Utils
-    })
+    }, materialId)
 }
 
 //

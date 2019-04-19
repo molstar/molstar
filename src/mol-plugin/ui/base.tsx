@@ -59,3 +59,6 @@ export abstract class PurePluginUIComponent<P = {}, S = {}, SS = {}> extends Rea
         if (this.init) this.init();
     }
 }
+
+export type _Props<C extends React.Component> = C extends React.Component<infer P> ? P : never
+export type _State<C extends React.Component> = C extends React.Component<any, infer S> ? S : never

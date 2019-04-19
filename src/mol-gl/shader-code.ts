@@ -1,12 +1,13 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ValueCell } from 'mol-util';
 import { idFactory } from 'mol-util/id-factory';
-import { WebGLContext } from './webgl/context';
+import { WebGLExtensions } from './webgl/context';
+import { isWebGL2, GLRenderingContext } from './webgl/compat';
 
 export type DefineKind = 'boolean' | 'string' | 'number'
 export type DefineType = boolean | string
@@ -15,8 +16,10 @@ export type DefineValues = { [k: string]: ValueCell<DefineType> }
 const shaderCodeId = idFactory()
 
 export interface ShaderExtensions {
-    readonly standardDerivatives: boolean
-    readonly fragDepth: boolean
+    readonly standardDerivatives?: boolean
+    readonly fragDepth?: boolean
+    readonly drawBuffers?: boolean
+    readonly shaderTextureLod?: boolean
 }
 
 export interface ShaderCode {
@@ -26,51 +29,45 @@ export interface ShaderCode {
     readonly extensions: ShaderExtensions
 }
 
-export function ShaderCode(vert: string, frag: string, extensions: ShaderExtensions): ShaderCode {
+export function ShaderCode(vert: string, frag: string, extensions: ShaderExtensions = {}): ShaderCode {
     return { id: shaderCodeId(), vert, frag, extensions }
 }
 
 export const PointsShaderCode = ShaderCode(
-    require('mol-gl/shader/points.vert'),
-    require('mol-gl/shader/points.frag'),
-    { standardDerivatives: false, fragDepth: false }
+    require('mol-gl/shader/points.vert').default,
+    require('mol-gl/shader/points.frag').default
 )
 
 export const SpheresShaderCode = ShaderCode(
-    require('mol-gl/shader/spheres.vert'),
-    require('mol-gl/shader/spheres.frag'),
-    { standardDerivatives: false, fragDepth: true }
+    require('mol-gl/shader/spheres.vert').default,
+    require('mol-gl/shader/spheres.frag').default,
+    { fragDepth: true }
 )
 
 export const TextShaderCode = ShaderCode(
-    require('mol-gl/shader/text.vert'),
-    require('mol-gl/shader/text.frag'),
-    { standardDerivatives: true, fragDepth: false }
+    require('mol-gl/shader/text.vert').default,
+    require('mol-gl/shader/text.frag').default,
+    { standardDerivatives: true }
 )
 
 export const LinesShaderCode = ShaderCode(
-    require('mol-gl/shader/lines.vert'),
-    require('mol-gl/shader/lines.frag'),
-    { standardDerivatives: false, fragDepth: false }
+    require('mol-gl/shader/lines.vert').default,
+    require('mol-gl/shader/lines.frag').default
 )
 
 export const MeshShaderCode = ShaderCode(
-    require('mol-gl/shader/mesh.vert'),
-    require('mol-gl/shader/mesh.frag'),
-    { standardDerivatives: true, fragDepth: false }
-)
-
-export const GaussianDensityShaderCode = ShaderCode(
-    require('mol-gl/shader/gaussian-density.vert'),
-    require('mol-gl/shader/gaussian-density.frag'),
-    { standardDerivatives: false, fragDepth: false }
+    require('mol-gl/shader/mesh.vert').default,
+    require('mol-gl/shader/mesh.frag').default,
+    { standardDerivatives: true }
 )
 
 export const DirectVolumeShaderCode = ShaderCode(
-    require('mol-gl/shader/direct-volume.vert'),
-    require('mol-gl/shader/direct-volume.frag'),
-    { standardDerivatives: false, fragDepth: true }
+    require('mol-gl/shader/direct-volume.vert').default,
+    require('mol-gl/shader/direct-volume.frag').default,
+    { fragDepth: true }
 )
+
+
 
 export type ShaderDefines = {
     [k: string]: ValueCell<DefineType>
@@ -97,16 +94,34 @@ function getDefinesCode (defines: ShaderDefines) {
     return lines.join('\n') + '\n'
 }
 
-function getGlsl100FragPrefix(ctx: WebGLContext, extensions: ShaderExtensions) {
+function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
     const prefix: string[] = []
-    if (extensions.standardDerivatives) {
+    if (shaderExtensions.standardDerivatives) {
         prefix.push('#extension GL_OES_standard_derivatives : enable')
         prefix.push('#define enabledStandardDerivatives')
     }
-    if (extensions.fragDepth) {
-        if (ctx.extensions.fragDepth) {
+    if (shaderExtensions.fragDepth) {
+        if (extensions.fragDepth) {
             prefix.push('#extension GL_EXT_frag_depth : enable')
             prefix.push('#define enabledFragDepth')
+        } else {
+            throw new Error(`requested 'GL_EXT_frag_depth' extension is unavailable`)
+        }
+    }
+    if (shaderExtensions.drawBuffers) {
+        if (extensions.drawBuffers) {
+            prefix.push('#extension GL_EXT_draw_buffers : require')
+            prefix.push('#define requiredDrawBuffers')
+        } else {
+            throw new Error(`requested 'GL_EXT_draw_buffers' extension is unavailable`)
+        }
+    }
+    if (shaderExtensions.shaderTextureLod) {
+        if (extensions.shaderTextureLod) {
+            prefix.push('#extension GL_EXT_shader_texture_lod : enable')
+            prefix.push('#define enabledShaderTextureLod')
+        } else {
+            throw new Error(`requested 'GL_EXT_shader_texture_lod' extension is unavailable`)
         }
     }
     return prefix.join('\n') + '\n'
@@ -119,25 +134,41 @@ const glsl300VertPrefix = `#version 300 es
 `
 
 const glsl300FragPrefix = `#version 300 es
+layout(location = 0) out highp vec4 out_FragData0;
+layout(location = 1) out highp vec4 out_FragData1;
+layout(location = 2) out highp vec4 out_FragData2;
+layout(location = 3) out highp vec4 out_FragData3;
+layout(location = 4) out highp vec4 out_FragData4;
+layout(location = 5) out highp vec4 out_FragData5;
+layout(location = 6) out highp vec4 out_FragData6;
+layout(location = 7) out highp vec4 out_FragData7;
+
 #define varying in
-layout(location = 0) out highp vec4 out_FragColor;
-#define gl_FragColor out_FragColor
-#define gl_FragDepthEXT gl_FragDepth
 #define texture2D texture
+#define texture2DLodEXT textureLod
+
+#define gl_FragColor out_FragData0
+#define gl_FragDepthEXT gl_FragDepth
 
 #define enabledStandardDerivatives
 #define enabledFragDepth
+#define requiredDrawBuffers
 `
 
-export function addShaderDefines(ctx: WebGLContext, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
-    const { isWebGL2 } = ctx
+function transformGlsl300Frag(frag: string) {
+    return frag.replace(/gl_FragData\[([0-7])\]/g, 'out_FragData$1')
+}
+
+export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtensions, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
+    const webgl2 = isWebGL2(gl)
     const header = getDefinesCode(defines)
-    const vertPrefix = isWebGL2 ? glsl300VertPrefix : ''
-    const fragPrefix = isWebGL2 ? glsl300FragPrefix : getGlsl100FragPrefix(ctx, shaders.extensions)
+    const vertPrefix = webgl2 ? glsl300VertPrefix : ''
+    const fragPrefix = webgl2 ? glsl300FragPrefix : getGlsl100FragPrefix(extensions, shaders.extensions)
+    const frag = webgl2 ? transformGlsl300Frag(shaders.frag) : shaders.frag
     return {
         id: shaderCodeId(),
         vert: `${vertPrefix}${header}${shaders.vert}`,
-        frag: `${fragPrefix}${header}${shaders.frag}`,
+        frag: `${fragPrefix}${header}${frag}`,
         extensions: shaders.extensions
     }
 }

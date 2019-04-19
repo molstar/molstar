@@ -13,6 +13,9 @@ import { SizeTheme } from 'mol-theme/size';
 import { CartoonRepresentationProvider } from 'mol-repr/structure/representation/cartoon';
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 import { computeModelDSSP } from 'mol-model/structure/model/properties/utils/secondary-structure';
+import { MolecularSurfaceRepresentationProvider } from 'mol-repr/structure/representation/molecular-surface';
+import { BallAndStickRepresentationProvider } from 'mol-repr/structure/representation/ball-and-stick';
+import { GaussianSurfaceRepresentationProvider } from 'mol-repr/structure/representation/gaussian-surface';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -61,24 +64,81 @@ function getCartoonRepr() {
     return CartoonRepresentationProvider.factory(reprCtx, CartoonRepresentationProvider.getParams)
 }
 
+function getBallAndStickRepr() {
+    return BallAndStickRepresentationProvider.factory(reprCtx, BallAndStickRepresentationProvider.getParams)
+}
+
+function getMolecularSurfaceRepr() {
+    return MolecularSurfaceRepresentationProvider.factory(reprCtx, MolecularSurfaceRepresentationProvider.getParams)
+}
+
+function getGaussianSurfaceRepr() {
+    return GaussianSurfaceRepresentationProvider.factory(reprCtx, GaussianSurfaceRepresentationProvider.getParams)
+}
+
 async function init() {
-    const cif = await downloadFromPdb('3j3q')
+    const cif = await downloadFromPdb('1crn')
     const models = await getModels(cif)
     console.time('computeModelDSSP')
     const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy, models[0].atomicConformation)
-    console.timeEnd('computeModelDSSP')
-    ;(models[0].properties as any).secondaryStructure = secondaryStructure
+    console.timeEnd('computeModelDSSP');
+    (models[0].properties as any).secondaryStructure = secondaryStructure
     const structure = await getStructure(models[0])
-    const cartoonRepr = getCartoonRepr()
 
-    cartoonRepr.setTheme({
-        color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
-        size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
-    })
-    await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
-    
-    canvas3d.add(cartoonRepr)
+    const show = {
+        cartoon: false,
+        ballAndStick: true,
+        molecularSurface: true,
+        gaussianSurface: false,
+    }
+
+    const cartoonRepr = getCartoonRepr()
+    const ballAndStickRepr = getBallAndStickRepr()
+    const molecularSurfaceRepr = getMolecularSurfaceRepr()
+    const gaussianSurfaceRepr = getGaussianSurfaceRepr()
+
+    if (show.cartoon) {
+        cartoonRepr.setTheme({
+            color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
+            size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
+        })
+        await cartoonRepr.createOrUpdate({ ...CartoonRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
+    }
+
+    if (show.ballAndStick) {
+        ballAndStickRepr.setTheme({
+            color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
+            size: reprCtx.sizeThemeRegistry.create('uniform', { structure })
+        })
+        await ballAndStickRepr.createOrUpdate({ ...BallAndStickRepresentationProvider.defaultValues, quality: 'auto' }, structure).run()
+    }
+
+    if (show.molecularSurface) {
+        molecularSurfaceRepr.setTheme({
+            color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
+            size: reprCtx.sizeThemeRegistry.create('physical', { structure })
+        })
+        console.time('molecular surface')
+        await molecularSurfaceRepr.createOrUpdate({ ...MolecularSurfaceRepresentationProvider.defaultValues, quality: 'custom', alpha: 0.5, flatShaded: true, doubleSided: true, resolution: 0.3 }, structure).run()
+        console.timeEnd('molecular surface')
+    }
+
+    if (show.gaussianSurface) {
+        gaussianSurfaceRepr.setTheme({
+            color: reprCtx.colorThemeRegistry.create('secondary-structure', { structure }),
+            size: reprCtx.sizeThemeRegistry.create('physical', { structure })
+        })
+        console.time('gaussian surface')
+        await gaussianSurfaceRepr.createOrUpdate({ ...GaussianSurfaceRepresentationProvider.defaultValues, quality: 'custom', alpha: 1.0, flatShaded: true, doubleSided: true, resolution: 0.3 }, structure).run()
+        console.timeEnd('gaussian surface')
+    }
+
+    if (show.cartoon) canvas3d.add(cartoonRepr)
+    if (show.ballAndStick) canvas3d.add(ballAndStickRepr)
+    if (show.molecularSurface) canvas3d.add(molecularSurfaceRepr)
+    if (show.gaussianSurface) canvas3d.add(gaussianSurfaceRepr)
     canvas3d.resetCamera()
+    // canvas3d.setProps({ trackball: { ...canvas3d.props.trackball, spin: true } })
 }
 
 init()

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -42,40 +42,42 @@ export function getTarget(ctx: WebGLContext, kind: TextureKind): number {
             case 'volume-float32': return gl.TEXTURE_3D
         }
     }
-    throw new Error('unknown texture kind')
+    throw new Error(`unknown texture kind '${kind}'`)
 }
 
-export function getFormat(ctx: WebGLContext, format: TextureFormat): number {
+export function getFormat(ctx: WebGLContext, format: TextureFormat, type: TextureType): number {
     const { gl } = ctx
     switch (format) {
-        case 'alpha': return gl.ALPHA
+        case 'alpha':
+            if (isWebGL2 && type === 'float') return (gl as WebGL2RenderingContext).RED
+            else return gl.ALPHA
         case 'rgb': return gl.RGB
         case 'rgba': return gl.RGBA
     }
 }
 
 export function getInternalFormat(ctx: WebGLContext, format: TextureFormat, type: TextureType): number {
-    const { gl, isWebGL2 } = ctx
-    if (isWebGL2) {
+    const { gl } = ctx
+    if (isWebGL2(gl)) {
         switch (format) {
             case 'alpha':
                 switch (type) {
                     case 'ubyte': return gl.ALPHA
-                    case 'float': throw new Error('invalid format/type combination alpha/float')
+                    case 'float': return gl.R32F
                 }
             case 'rgb':
                 switch (type) {
                     case 'ubyte': return gl.RGB
-                    case 'float': return (gl as WebGL2RenderingContext).RGB32F
+                    case 'float': return gl.RGB32F
                 }
             case 'rgba':
                 switch (type) {
                     case 'ubyte': return gl.RGBA
-                    case 'float': return (gl as WebGL2RenderingContext).RGBA32F
+                    case 'float': return gl.RGBA32F
                 }
         }
     }
-    return getFormat(ctx, format)
+    return getFormat(ctx, format, type)
 }
 
 export function getType(ctx: WebGLContext, type: TextureType): number {
@@ -95,21 +97,21 @@ export function getFilter(ctx: WebGLContext, type: TextureFilter): number {
 }
 
 export function getAttachment(ctx: WebGLContext, attachment: TextureAttachment): number {
-    const { gl } = ctx
+    const { gl, extensions } = ctx
     switch (attachment) {
         case 'depth': return gl.DEPTH_ATTACHMENT
         case 'stencil': return gl.STENCIL_ATTACHMENT
         case 'color0': case 0: return gl.COLOR_ATTACHMENT0
     }
-    if (isWebGL2(gl)) {
+    if (extensions.drawBuffers) {
         switch (attachment) {
-            case 'color1': case 1: return gl.COLOR_ATTACHMENT1
-            case 'color2': case 2: return gl.COLOR_ATTACHMENT2
-            case 'color3': case 3: return gl.COLOR_ATTACHMENT3
-            case 'color4': case 4: return gl.COLOR_ATTACHMENT4
-            case 'color5': case 5: return gl.COLOR_ATTACHMENT5
-            case 'color6': case 6: return gl.COLOR_ATTACHMENT6
-            case 'color7': case 7: return gl.COLOR_ATTACHMENT7
+            case 'color1': case 1: return extensions.drawBuffers.COLOR_ATTACHMENT1
+            case 'color2': case 2: return extensions.drawBuffers.COLOR_ATTACHMENT2
+            case 'color3': case 3: return extensions.drawBuffers.COLOR_ATTACHMENT3
+            case 'color4': case 4: return extensions.drawBuffers.COLOR_ATTACHMENT4
+            case 'color5': case 5: return extensions.drawBuffers.COLOR_ATTACHMENT5
+            case 'color6': case 6: return extensions.drawBuffers.COLOR_ATTACHMENT6
+            case 'color7': case 7: return extensions.drawBuffers.COLOR_ATTACHMENT7
         }
     }
     throw new Error('unknown texture attachment')
@@ -139,19 +141,24 @@ export interface Texture {
 export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
 
 export type TextureValues = { [k: string]: ValueCell<TextureValueType> }
-export type Textures = { [k: string]: Texture }
+export type Textures = [string, Texture][]
 
 export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
     const id = getNextTextureId()
-    const { gl } = ctx
+    const { gl, stats } = ctx
     const texture = gl.createTexture()
     if (texture === null) {
         throw new Error('Could not create WebGL texture')
     }
 
+    // check texture kind and type compatability
+    if ((kind.endsWith('float32') && _type !== 'float') || kind.endsWith('uint8') && _type !== 'ubyte') {
+        throw new Error(`texture kind '${kind}' and type '${_type}' are incompatible`)
+    }
+
     const target = getTarget(ctx, kind)
     const filter = getFilter(ctx, _filter)
-    const format = getFormat(ctx, _format)
+    const format = getFormat(ctx, _format, _type)
     const internalFormat = getInternalFormat(ctx, _format, _type)
     const type = getType(ctx, _type)
 
@@ -166,7 +173,7 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
     let width = 0, height = 0, depth = 0
 
     let destroyed = false
-    ctx.textureCount += 1
+    stats.textureCount += 1
 
     return {
         id,
@@ -184,8 +191,8 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
             gl.bindTexture(target, texture)
             if (target === gl.TEXTURE_2D) {
                 gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, null)
-            } else if (target === (gl as WebGL2RenderingContext).TEXTURE_3D && depth !== undefined) {
-                (gl as WebGL2RenderingContext).texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, null)
+            } else if (isWebGL2(gl) && target === gl.TEXTURE_3D && depth !== undefined) {
+                gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, null)
             } else {
                 throw new Error('unknown texture target')
             }
@@ -200,10 +207,10 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
                 const { array, width: _width, height: _height } = data as TextureImage<any>
                 width = _width, height = _height;
                 gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, array)
-            } else if (target === (gl as WebGL2RenderingContext).TEXTURE_3D) {
+            } else if (isWebGL2(gl) && target === gl.TEXTURE_3D) {
                 const { array, width: _width, height: _height, depth: _depth } = data as TextureVolume<any>
-                width = _width, height = _height, depth = _depth;
-                (gl as WebGL2RenderingContext).texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, array)
+                width = _width, height = _height, depth = _depth
+                gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, array)
             } else {
                 throw new Error('unknown texture target')
             }
@@ -238,22 +245,22 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
             if (destroyed) return
             gl.deleteTexture(texture)
             destroyed = true
-            ctx.textureCount -= 1
+            stats.textureCount -= 1
         }
     }
 }
 
 export function createTextures(ctx: WebGLContext, schema: RenderableSchema, values: TextureValues) {
-    const textures: Textures = {}
-    Object.keys(schema).forEach((k, i) => {
+    const textures: Textures = []
+    Object.keys(schema).forEach(k => {
         const spec = schema[k]
         if (spec.type === 'texture') {
             if (spec.kind === 'texture') {
-                textures[k] = values[k].ref.value as Texture
+                textures[textures.length] = [k, values[k].ref.value as Texture]
             } else {
                 const texture = createTexture(ctx, spec.kind, spec.format, spec.dataType, spec.filter)
                 texture.load(values[k].ref.value as TextureImage<any> | TextureVolume<any>)
-                textures[k] = texture
+                textures[textures.length] = [k, texture]
             }
         }
     })

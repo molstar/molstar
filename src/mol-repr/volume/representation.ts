@@ -13,7 +13,7 @@ import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { GraphicsRenderObject, createRenderObject } from 'mol-gl/render-object';
+import { GraphicsRenderObject, createRenderObject, getNextMaterialId } from 'mol-gl/render-object';
 import { Interval } from 'mol-data/int';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { VisualUpdateState } from 'mol-repr/util';
@@ -27,15 +27,16 @@ import { ColorTheme } from 'mol-theme/color';
 import { createColors } from 'mol-geo/geometry/color-data';
 import { createSizes } from 'mol-geo/geometry/size-data';
 import { Overpaint } from 'mol-theme/overpaint';
+import { Transparency } from 'mol-theme/transparency';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
-function createVolumeRenderObject<G extends Geometry>(volume: VolumeData, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>) {
+function createVolumeRenderObject<G extends Geometry>(volume: VolumeData, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry)
     const transform = createIdentityTransform()
     const values = createValues(geometry, transform, locationIt, theme, props)
     const state = createRenderableState(props)
-    return createRenderObject(geometry.kind, values, state)
+    return createRenderObject(geometry.kind, values, state, materialId)
 }
 
 interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
@@ -51,7 +52,7 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
     geometryUtils: GeometryUtils<G>
 }
 
-export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geometry.Params<G>>(builder: VolumeVisualGeometryBuilder<P, G>): VolumeVisual<P> {
+export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geometry.Params<G>>(builder: VolumeVisualGeometryBuilder<P, G>, materialId: number): VolumeVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState } = builder
     const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
@@ -104,7 +105,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         if (updateState.createNew) {
             locationIt = createLocationIterator(newVolume)
             if (newGeometry) {
-                renderObject = createVolumeRenderObject(newVolume, newGeometry, locationIt, newTheme, newProps)
+                renderObject = createVolumeRenderObject(newVolume, newGeometry, locationIt, newTheme, newProps, materialId)
             } else {
                 throw new Error('expected geometry to be given')
             }
@@ -186,6 +187,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         setOverpaint(overpaint: Overpaint) {
             return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
         },
+        setTransparency(transparency: Transparency) {
+            return Visual.setTransparency(renderObject, transparency, lociApply, true)
+        },
         destroy() {
             // TODO
             renderObject = undefined
@@ -204,9 +208,10 @@ export const VolumeParams = {
 }
 export type VolumeParams = typeof VolumeParams
 
-export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: () => VolumeVisual<P>): VolumeRepresentation<P> {
+export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (materialId: number) => VolumeVisual<P>): VolumeRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const materialId = getNextMaterialId()
     const renderObjects: GraphicsRenderObject[] = []
     const _state = Representation.createState()
     let visual: VolumeVisual<P> | undefined
@@ -225,7 +230,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         _props = Object.assign({}, _props, props)
 
         return Task.create('Creating or updating VolumeRepresentation', async runtime => {
-            if (!visual) visual = visualCtor()
+            if (!visual) visual = visualCtor(materialId)
             const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, volume)
             if (promise) await promise
             // update list of renderObjects
@@ -249,6 +254,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor)
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
         if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint)
+        if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency)
         if (state.transform !== undefined && visual) visual.setTransform(state.transform)
 
         Representation.updateState(_state, state)

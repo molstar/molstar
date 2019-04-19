@@ -42,7 +42,7 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     return builder.getPoints()
 }
 
-export function ElementPointVisual(): UnitsVisual<ElementPointParams> {
+export function ElementPointVisual(materialId: number): UnitsVisual<ElementPointParams> {
     return UnitsPointsVisual<ElementPointParams>({
         defaultProps: PD.getDefaultValues(ElementPointParams),
         createGeometry: createElementPoint,
@@ -52,5 +52,5 @@ export function ElementPointVisual(): UnitsVisual<ElementPointParams> {
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementPointParams>, currentProps: PD.Values<ElementPointParams>) => {
 
         }
-    })
+    }, materialId)
 }

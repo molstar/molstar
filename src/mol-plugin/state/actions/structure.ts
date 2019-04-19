@@ -13,7 +13,7 @@ import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
 import { CustomModelProperties, StructureSelection } from '../transforms/model';
-import { DataFormatProvider } from './data-format';
+import { DataFormatProvider, guessCifVariant } from './data-format';
 import { FileInfo } from 'mol-util/file-info';
 import { Task } from 'mol-task';
 import { StructureElement } from 'mol-model/structure';
@@ -24,7 +24,10 @@ export const MmcifProvider: DataFormatProvider<any> = {
     stringExtensions: ['cif', 'mmcif', 'mcif'],
     binaryExtensions: ['bcif'],
     isApplicable: (info: FileInfo, data: Uint8Array | string) => {
-        return info.ext === 'cif' || info.ext === 'mmcif' || info.ext === 'mcif' || info.ext === 'bcif'
+        if (info.ext === 'mmcif' || info.ext === 'mcif') return true
+        // assume cif/bcif files that are not DensityServer CIF are mmCIF
+        if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) !== 'dscif'
+        return false
     },
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, state: State) => {
         return Task.create('mmCIF default builder', async taskCtx => {
@@ -143,7 +146,7 @@ const DownloadStructure = StateAction.build({
         createStructureTree(ctx, traj, supportProps);
     } else {
         for (const download of downloadParams) {
-            const data = b.toRoot().apply(StateTransforms.Data.Download, download, { props: { isGhost: true } });
+            const data = b.toRoot().apply(StateTransforms.Data.Download, download, { state: { isGhost: true } });
             const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
             createStructureTree(ctx, traj, supportProps)
         }
@@ -176,14 +179,14 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
     let parsed: StateBuilder.To<PluginStateObject.Molecule.Trajectory>
     switch (format) {
         case 'cif':
-            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { props: { isGhost: true } })
-                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { props: { isGhost: true } })
+            parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
+                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { state: { isGhost: true } })
             break
         case 'pdb':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { props: { isGhost: true } });
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { state: { isGhost: true } });
             break
         case 'gro':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { props: { isGhost: true } });
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { state: { isGhost: true } });
             break
         default:
             throw new Error('unsupported format')
@@ -281,6 +284,15 @@ export const EnableModelCustomProps = StateAction.build({
     }
 })(({ ref, params, state }, ctx: PluginContext) => {
     const root = state.build().to(ref).insert(CustomModelProperties, params);
+    return state.updateTree(root);
+});
+
+export const TransformStructureConformation = StateAction.build({
+    display: { name: 'Transform Conformation' },
+    from: PluginStateObject.Molecule.Structure,
+    params: StateTransforms.Model.TransformStructureConformation.definition.params,
+})(({ ref, params, state }) => {
+    const root = state.build().to(ref).insert(StateTransforms.Model.TransformStructureConformation, params as any);
     return state.updateTree(root);
 });
 

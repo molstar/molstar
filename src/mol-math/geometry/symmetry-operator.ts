@@ -5,6 +5,7 @@
  */
 
 import { Vec3, Mat4, Mat3, Quat } from '../linear-algebra/3d'
+import { lerp as scalar_lerp } from 'mol-math/interpolate';
 
 interface SymmetryOperator {
     readonly name: string,
@@ -64,7 +65,7 @@ namespace SymmetryOperator {
         return create(name, t, { id: '', operList: [] }, ncsId);
     }
 
-    const _q1 = Quat.identity(), _q2 = Quat.zero(), _axis = Vec3.zero();
+    const _q1 = Quat.identity(), _q2 = Quat.zero(), _q3 = Quat.zero(), _axis = Vec3.zero();
     export function lerpFromIdentity(out: Mat4, op: SymmetryOperator, t: number): Mat4 {
         const m = op.inverse;
         if (op.isIdentity) return Mat4.copy(out, m);
@@ -80,6 +81,25 @@ namespace SymmetryOperator {
         Mat4.setValue(out, 0, 3, _t * Mat4.getValue(m, 0, 3));
         Mat4.setValue(out, 1, 3, _t * Mat4.getValue(m, 1, 3));
         Mat4.setValue(out, 2, 3, _t * Mat4.getValue(m, 2, 3));
+
+        return out;
+    }
+
+    export function slerp(out: Mat4, src: Mat4, tar: Mat4, t: number): Mat4 {
+        if (Math.abs(t) <= 0.00001) return Mat4.copy(out, src);
+        if (Math.abs(t - 1) <= 0.00001) return Mat4.copy(out, tar);
+
+        // interpolate rotation
+        Mat4.getRotation(_q2, src);
+        Mat4.getRotation(_q3, tar);
+        Quat.slerp(_q3, _q2, _q3, t);
+        const angle = Quat.getAxisAngle(_axis, _q3);
+        Mat4.fromRotation(out, angle, _axis);
+
+        // interpolate translation
+        Mat4.setValue(out, 0, 3, scalar_lerp(Mat4.getValue(src, 0, 3), Mat4.getValue(tar, 0, 3), t));
+        Mat4.setValue(out, 1, 3, scalar_lerp(Mat4.getValue(src, 1, 3), Mat4.getValue(tar, 1, 3), t));
+        Mat4.setValue(out, 2, 3, scalar_lerp(Mat4.getValue(src, 2, 3), Mat4.getValue(tar, 2, 3), t));
 
         return out;
     }

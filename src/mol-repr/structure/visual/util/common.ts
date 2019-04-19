@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,9 +9,10 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { TransformData, createTransform } from 'mol-geo/geometry/transform-data';
 import { OrderedSet, SortedArray } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
+import { PhysicalSizeTheme } from 'mol-theme/size/physical';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
-export function getResidueLoci(structure: Structure, unit: Unit, elementIndex: ElementIndex): Loci {
+export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
     const { elements, model } = unit
     if (OrderedSet.indexOf(elements, elementIndex) !== -1) {
         const { index, offsets } = model.atomicHierarchy.residueAtomSegments
@@ -55,4 +56,68 @@ export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
         if (Unit.isGaussians(unit) && unitKinds[i] === 'gaussians') return true
     }
     return false
+}
+
+//
+
+export function getConformation(unit: Unit) {
+    switch (unit.kind) {
+        case Unit.Kind.Atomic: return unit.model.atomicConformation
+        case Unit.Kind.Spheres: return unit.model.coarseConformation.spheres
+        case Unit.Kind.Gaussians: return unit.model.coarseConformation.gaussians
+    }
+}
+
+export function getUnitConformationAndRadius(unit: Unit) {
+    const conformation = getConformation(unit)
+    const { elements } = unit
+    const position = {
+        indices: elements,
+        x: conformation.x,
+        y: conformation.y,
+        z: conformation.z
+    }
+
+    const l = StructureElement.create(unit)
+    const sizeTheme = PhysicalSizeTheme({}, {})
+    const radius = (index: number) => {
+        l.element = index as ElementIndex
+        return sizeTheme.size(l)
+    }
+
+    return { position, radius }
+}
+
+export function getStructureConformationAndRadius(structure: Structure) {
+    const n = structure.elementCount
+
+    const xs = new Float32Array(n)
+    const ys = new Float32Array(n)
+    const zs = new Float32Array(n)
+    const rs = new Float32Array(n)
+
+    const l = StructureElement.create()
+    const sizeTheme = PhysicalSizeTheme({}, {})
+
+    let m = 0
+    for (let i = 0, il = structure.units.length; i < il; ++i) {
+        const unit = structure.units[i]
+        const { elements } = unit
+        const { x, y, z } = unit.conformation
+        l.unit = unit
+        for (let j = 0, jl = elements.length; j < jl; ++j) {
+            const eI = elements[j]
+            xs[m + j] = x(eI)
+            ys[m + j] = y(eI)
+            zs[m + j] = z(eI)
+            l.element = eI
+            rs[m + j] = sizeTheme.size(l)
+        }
+        m += elements.length
+    }
+
+    const position = { indices: OrderedSet.ofRange(0, n), x: xs, y: ys, z: zs }
+    const radius = (index: number) => rs[index]
+
+    return { position, radius }
 }

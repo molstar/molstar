@@ -23,9 +23,9 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
     const p = { ...props, useGpu: true }
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined
     const densityTextureData = await computeStructureGaussianDensityTexture(structure, p, webgl, oldTexture).runInContext(runtime)
-    const { transform, texture, bbox, gridDimension } = densityTextureData
+    const { transform, texture, bbox, gridDim } = densityTextureData
 
-    return DirectVolume.create(bbox, gridDimension, transform, texture, directVolume)
+    return DirectVolume.create(bbox, gridDim, transform, texture, directVolume)
 }
 
 export const GaussianDensityVolumeParams = {
@@ -34,7 +34,7 @@ export const GaussianDensityVolumeParams = {
 }
 export type GaussianDensityVolumeParams = typeof GaussianDensityVolumeParams
 
-export function GaussianDensityVolumeVisual(): ComplexVisual<GaussianDensityVolumeParams> {
+export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<GaussianDensityVolumeParams> {
     return ComplexDirectVolumeVisual<GaussianDensityVolumeParams>({
         defaultProps: PD.getDefaultValues(GaussianDensityVolumeParams),
         createGeometry: createGaussianDensityVolume,
@@ -49,5 +49,5 @@ export function GaussianDensityVolumeVisual(): ComplexVisual<GaussianDensityVolu
                 newProps.isoValueNorm = Math.exp(-newProps.smoothness)
             }
         }
-    })
+    }, materialId)
 }

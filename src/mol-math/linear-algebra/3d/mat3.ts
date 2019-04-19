@@ -22,6 +22,10 @@ import { NumberArray } from 'mol-util/type-helpers';
 
 interface Mat3 extends Array<number> { [d: number]: number, '@type': 'mat3', length: 9 }
 
+function Mat3() {
+    return Mat3.zero();
+}
+
 namespace Mat3 {
     export function zero(): Mat3 {
         // force double backing array by 0.1.

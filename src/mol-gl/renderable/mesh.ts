@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { WebGLContext } from '../webgl/context';
-import { createRenderItem } from '../webgl/render-item';
+import { createGraphicsRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, ElementsSpec, DefineSpec, Values, InternalSchema, InternalValues } from './schema';
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
@@ -23,14 +23,14 @@ export const MeshSchema = {
 export type MeshSchema = typeof MeshSchema
 export type MeshValues = Values<MeshSchema>
 
-export function MeshRenderable(ctx: WebGLContext, id: number, values: MeshValues, state: RenderableState): Renderable<MeshValues> {
+export function MeshRenderable(ctx: WebGLContext, id: number, values: MeshValues, state: RenderableState, materialId: number): Renderable<MeshValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...MeshSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
         uPickable: ValueCell.create(state.pickable ? 1 : 0)
     }
     const shaderCode = MeshShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId)
 
     return createRenderable(renderItem, values, state)
 }

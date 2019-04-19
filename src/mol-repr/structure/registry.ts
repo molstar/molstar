@@ -8,14 +8,14 @@ import { Structure } from 'mol-model/structure';
 import { RepresentationProvider, RepresentationRegistry } from '../representation';
 import { CartoonRepresentationProvider } from './representation/cartoon';
 import { BallAndStickRepresentationProvider } from './representation/ball-and-stick';
-import { MolecularSurfaceRepresentationProvider } from './representation/molecular-surface';
-import { MolecularVolumeRepresentationProvider } from './representation/molecular-volume';
+import { GaussianSurfaceRepresentationProvider } from './representation/gaussian-surface';
 import { CarbohydrateRepresentationProvider } from './representation/carbohydrate';
 import { SpacefillRepresentationProvider } from './representation/spacefill';
 import { DistanceRestraintRepresentationProvider } from './representation/distance-restraint';
 import { PointRepresentationProvider } from './representation/point';
 import { StructureRepresentationState } from './representation';
 import { PuttyRepresentationProvider } from './representation/putty';
+import { MolecularSurfaceRepresentationProvider } from './representation/molecular-surface';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
@@ -32,8 +32,9 @@ export const BuiltInStructureRepresentations = {
     'ball-and-stick': BallAndStickRepresentationProvider,
     'carbohydrate': CarbohydrateRepresentationProvider,
     'distance-restraint': DistanceRestraintRepresentationProvider,
+    'gaussian-surface': GaussianSurfaceRepresentationProvider,
+    // 'gaussian-volume': GaussianVolumeRepresentationProvider, // TODO disabled for now, needs more work
     'molecular-surface': MolecularSurfaceRepresentationProvider,
-    'molecular-volume': MolecularVolumeRepresentationProvider,
     'point': PointRepresentationProvider,
     'putty': PuttyRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -30,11 +30,11 @@ uniform float uPickingAlphaThreshold;
 uniform int uPickable;
 
 #if defined(dGridTexType_2d)
-    precision mediump sampler2D;
+    precision highp sampler2D;
     uniform sampler2D tGridTex;
     uniform vec3 uGridTexDim;
 #elif defined(dGridTexType_3d)
-    precision mediump sampler3D;
+    precision highp sampler3D;
     uniform sampler3D tGridTex;
 #endif
 
@@ -46,25 +46,13 @@ uniform int uPickable;
 #endif
 
 #pragma glslify: import('./chunks/common.glsl')
+#pragma glslify: import('./chunks/light-frag-params.glsl')
+
 #pragma glslify: readFromTexture = require(./utils/read-from-texture.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
 #pragma glslify: encodeFloatRGB = require(./utils/encode-float-rgb.glsl)
 #pragma glslify: decodeFloatRGB = require(./utils/decode-float-rgb.glsl)
 #pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
 #pragma glslify: texture3dFrom2dLinear = require(./utils/texture3d-from-2d-linear.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
-
-// uniform vec3 uLightPosition;
-uniform vec3 uLightColor;
-uniform vec3 uLightAmbient;
-uniform mat4 uView;
-
-#pragma glslify: attenuation = require(./utils/attenuation.glsl)
-#pragma glslify: calculateSpecular = require(./utils/phong-specular.glsl)
-#pragma glslify: calculateDiffuse = require(./utils/oren-nayar-diffuse.glsl)
-
-const float specularScale = 0.15;
-const float shininess = 200.0;
-const float roughness = 100.0;
-const float albedo = 0.95;
 
 #if defined(dGridTexType_2d)
     vec4 textureVal(vec3 pos) {
@@ -160,29 +148,16 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                         color = readFromTexture(tColor, instance * float(uGroupCount) + group, uColorTexDim).rgb;
                     #endif
 
-                    vec3 L = normalize(viewDir); // light direction
-                    vec3 V = normalize(viewDir); // eye direction
-                    vec3 N = normalize(gradient); // surface normal
+                    vec3 normal = normalize(gradient);
+                    vec3 vViewPosition = normalize(viewDir);
+                    vec4 material = vec4(color, uAlpha);
+                    #pragma glslify: import('./chunks/apply-light-color.glsl')
 
-                    // compute our diffuse & specular terms
-                    float specular = calculateSpecular(L, V, N, shininess) * specularScale;
-                    vec3 diffuse = uLightColor * calculateDiffuse(L, V, N, roughness, albedo);
-                    vec3 ambient = uLightAmbient;
+                    float vMarker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a;
+                    #pragma glslify: import('./chunks/apply-marker-color.glsl')
 
-                    // add the lighting
-                    vec3 finalColor = color.rgb * (diffuse + ambient) + specular;
-
-                    src.rgb = finalColor;
-                    src.a = uAlpha;
-
-                    float marker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a * 255.0;
-                    if (marker > 0.1) {
-                        if (mod(marker, 2.0) > 0.1) {
-                            src.rgb = mix(uHighlightColor, src.rgb, 0.3);
-                        } else {
-                            src.rgb = mix(uSelectColor, src.rgb, 0.3);
-                        }
-                    }
+                    src.rgb = gl_FragColor.rgb;
+                    src.a = gl_FragColor.a;
 
                     // draw interior darker
                     if( (prevValue - uIsoValue) > 0.0 ) {

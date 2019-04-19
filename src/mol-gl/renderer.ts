@@ -1,10 +1,9 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Viewport } from 'mol-canvas3d/camera/util';
 import { Camera } from 'mol-canvas3d/camera';
 
@@ -15,7 +14,9 @@ import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
 import { ValueCell } from 'mol-util';
 import { RenderableValues, GlobalUniformValues, BaseValues } from './renderable/schema';
-import { RenderVariant } from './webgl/render-item';
+import { GraphicsRenderVariant } from './webgl/render-item';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { deepClone } from 'mol-util/object';
 
 export interface RendererStats {
     programCount: number
@@ -34,44 +35,36 @@ export interface RendererStats {
 
 interface Renderer {
     readonly stats: RendererStats
-    readonly props: RendererProps
+    readonly props: Readonly<RendererProps>
 
     clear: () => void
-    render: (scene: Scene, variant: RenderVariant) => void
+    render: (scene: Scene, variant: GraphicsRenderVariant) => void
+    setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
-    setClearColor: (color: Color) => void
-    setPickingAlphaThreshold: (value: number) => void
     getImageData: () => ImageData
     dispose: () => void
 }
 
-export const DefaultRendererProps = {
-    clearColor: Color(0x000000),
-    viewport: Viewport.create(0, 0, 0, 0),
-    pickingAlphaThreshold: 0.5,
+export const RendererParams = {
+    backgroundColor: PD.Color(Color(0x000000)),
+    pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
+
+    lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
+    ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
+
+    metalness: PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }),
+    roughness: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
+    reflectivity: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
 }
-export type RendererProps = typeof DefaultRendererProps
+export type RendererProps = PD.Values<typeof RendererParams>
 
 namespace Renderer {
     export function create(ctx: WebGLContext, camera: Camera, props: Partial<RendererProps> = {}): Renderer {
-        const { gl } = ctx
-        let { clearColor, viewport: _viewport, pickingAlphaThreshold } = { ...DefaultRendererProps, ...props }
+        const { gl, state, stats } = ctx
+        const p = deepClone({ ...PD.getDefaultValues(RendererParams), ...props })
 
-        const viewport = Viewport.clone(_viewport)
-        const viewportVec4 = Viewport.toVec4(Vec4.zero(), viewport)
-
-        // const lightPosition = Vec3.create(0, 0, -100)
-        const lightColor = Vec3.create(1.0, 1.0, 1.0)
-        const lightAmbient = Vec3.create(0.5, 0.5, 0.5)
-        const fogColor = Vec3.create(0.0, 0.0, 0.0)
-
-        function setClearColor(color: Color) {
-            clearColor = color
-            const [ r, g, b ] = Color.toRgbNormalized(color)
-            gl.clearColor(r, g, b, 1.0)
-            Vec3.set(fogColor, r, g, b)
-        }
-        setClearColor(clearColor)
+        const viewport = Viewport()
+        const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor)
 
         const view = Mat4.clone(camera.view)
         const invView = Mat4.invert(Mat4.identity(), view)
@@ -94,63 +87,71 @@ namespace Renderer {
 
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
             uViewportHeight: ValueCell.create(viewport.height),
-            uViewport: ValueCell.create(viewportVec4),
+            uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
 
-            uLightColor: ValueCell.create(lightColor),
-            uLightAmbient: ValueCell.create(lightAmbient),
+            uLightIntensity: ValueCell.create(p.lightIntensity),
+            uAmbientIntensity: ValueCell.create(p.ambientIntensity),
+
+            uMetalness: ValueCell.create(p.metalness),
+            uRoughness: ValueCell.create(p.roughness),
+            uReflectivity: ValueCell.create(p.reflectivity),
 
             uCameraPosition: ValueCell.create(Vec3.clone(camera.state.position)),
             uFogNear: ValueCell.create(camera.state.fogNear),
             uFogFar: ValueCell.create(camera.state.fogFar),
-            uFogColor: ValueCell.create(fogColor),
+            uFogColor: ValueCell.create(bgColor),
 
-            uPickingAlphaThreshold: ValueCell.create(pickingAlphaThreshold),
+            uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
         }
+        const globalUniformList = Object.entries(globalUniforms)
 
         let globalUniformsNeedUpdate = true
-        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
+
+        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: GraphicsRenderVariant) => {
             const program = r.getProgram(variant)
             if (r.state.visible) {
-                if (ctx.currentProgramId !== program.id) {
+                if (state.currentProgramId !== program.id) {
+                    // console.log('new program')
                     globalUniformsNeedUpdate = true
+                    program.use()
                 }
 
-                program.use()
                 if (globalUniformsNeedUpdate) {
-                    program.setUniforms(globalUniforms)
+                    // console.log('globalUniformsNeedUpdate')
+                    program.setUniforms(globalUniformList)
                     globalUniformsNeedUpdate = false
                 }
 
                 if (r.values.dDoubleSided) {
                     if (r.values.dDoubleSided.ref.value) {
-                        gl.disable(gl.CULL_FACE)
+                        state.disable(gl.CULL_FACE)
                     } else {
-                        gl.enable(gl.CULL_FACE)
+                        state.enable(gl.CULL_FACE)
                     }
                 } else {
                     // webgl default
-                    gl.disable(gl.CULL_FACE)
+                    state.disable(gl.CULL_FACE)
                 }
 
                 if (r.values.dFlipSided) {
                     if (r.values.dFlipSided.ref.value) {
-                        gl.frontFace(gl.CW)
-                        gl.cullFace(gl.FRONT)
+                        state.frontFace(gl.CW)
+                        state.cullFace(gl.FRONT)
                     } else {
-                        gl.frontFace(gl.CCW)
-                        gl.cullFace(gl.BACK)
+                        state.frontFace(gl.CCW)
+                        state.cullFace(gl.BACK)
                     }
                 } else {
                     // webgl default
-                    gl.frontFace(gl.CCW)
-                    gl.cullFace(gl.BACK)
+                    state.frontFace(gl.CCW)
+                    state.cullFace(gl.BACK)
                 }
 
                 r.render(variant)
             }
         }
 
-        const render = (scene: Scene, variant: RenderVariant) => {
+        const render = (scene: Scene, variant: GraphicsRenderVariant) => {
             ValueCell.update(globalUniforms.uModel, scene.view)
             ValueCell.update(globalUniforms.uView, camera.view)
             ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view))
@@ -166,30 +167,33 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uFogNear, camera.state.fogNear)
 
             globalUniformsNeedUpdate = true
+            state.currentRenderItemId = -1
 
             const { renderables } = scene
 
+            state.disable(gl.SCISSOR_TEST)
+            state.disable(gl.BLEND)
+            state.depthMask(true)
+            state.colorMask(true, true, true, true)
+            state.enable(gl.DEPTH_TEST)
+            state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
             if (variant === 'draw') {
-                gl.disable(gl.BLEND)
-                gl.enable(gl.DEPTH_TEST)
-                gl.depthMask(true)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
                     if (r.state.opaque) renderObject(r, variant)
                 }
 
-                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-                gl.enable(gl.BLEND)
+                state.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+                state.enable(gl.BLEND)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
-                    gl.depthMask(r.values.uAlpha.ref.value === 1.0)
+                    state.depthMask(r.values.uAlpha.ref.value === 1.0)
                     if (!r.state.opaque) renderObject(r, variant)
                 }
             } else {
                 // picking
-                gl.disable(gl.BLEND)
-                gl.enable(gl.DEPTH_TEST)
-                gl.depthMask(true)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     renderObject(renderables[i], variant)
                 }
@@ -200,51 +204,79 @@ namespace Renderer {
 
         return {
             clear: () => {
-                gl.depthMask(true)
+                state.depthMask(true)
+                state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
             },
             render,
 
-            setClearColor,
-            setPickingAlphaThreshold: (value: number) => {
-                pickingAlphaThreshold = value
-                ValueCell.update(globalUniforms.uPickingAlphaThreshold, pickingAlphaThreshold)
+            setProps: (props: Partial<RendererProps>) => {
+                if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== p.pickingAlphaThreshold) {
+                    p.pickingAlphaThreshold = props.pickingAlphaThreshold
+                    ValueCell.update(globalUniforms.uPickingAlphaThreshold, p.pickingAlphaThreshold)
+                }
+                if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {
+                    p.backgroundColor = props.backgroundColor
+                    Color.toVec3Normalized(bgColor, p.backgroundColor)
+                    ValueCell.update(globalUniforms.uFogColor, Vec3.copy(globalUniforms.uFogColor.ref.value, bgColor))
+                }
+                if (props.lightIntensity !== undefined && props.lightIntensity !== p.lightIntensity) {
+                    p.lightIntensity = props.lightIntensity
+                    ValueCell.update(globalUniforms.uLightIntensity, p.lightIntensity)
+                }
+                if (props.ambientIntensity !== undefined && props.ambientIntensity !== p.ambientIntensity) {
+                    p.ambientIntensity = props.ambientIntensity
+                    ValueCell.update(globalUniforms.uAmbientIntensity, p.ambientIntensity)
+                }
+
+                if (props.metalness !== undefined && props.metalness !== p.metalness) {
+                    p.metalness = props.metalness
+                    ValueCell.update(globalUniforms.uMetalness, p.metalness)
+                }
+                if (props.roughness !== undefined && props.roughness !== p.roughness) {
+                    p.roughness = props.roughness
+                    ValueCell.update(globalUniforms.uRoughness, p.roughness)
+                }
+                if (props.reflectivity !== undefined && props.reflectivity !== p.reflectivity) {
+                    p.reflectivity = props.reflectivity
+                    ValueCell.update(globalUniforms.uReflectivity, p.reflectivity)
+                }
             },
             setViewport: (x: number, y: number, width: number, height: number) => {
-                Viewport.set(viewport, x, y, width, height)
                 gl.viewport(x, y, width, height)
-                ValueCell.update(globalUniforms.uViewportHeight, height)
-                ValueCell.update(globalUniforms.uViewport, Vec4.set(viewportVec4, x, y, width, height))
+                if (x !== viewport.x || y !== viewport.y || width !== viewport.width || height !== viewport.height) {
+                    Viewport.set(viewport, x, y, width, height)
+                    ValueCell.update(globalUniforms.uViewportHeight, height)
+                    ValueCell.update(globalUniforms.uViewport, Vec4.set(globalUniforms.uViewport.ref.value, x, y, width, height))
+                }
             },
             getImageData: () => {
-                const { width, height } = viewport
-                const buffer = new Uint8Array(width * height * 4)
+                const { x, y, width, height } = viewport
+                const dw = width - x
+                const dh = height - y
+                const buffer = new Uint8Array(dw * dh * 4)
                 ctx.unbindFramebuffer()
-                ctx.readPixels(0, 0, width, height, buffer)
-                return createImageData(buffer, width, height)
+                ctx.readPixels(x, y, width, height, buffer)
+                return createImageData(buffer, dw, dh)
             },
 
             get props() {
-                return {
-                    clearColor,
-                    pickingAlphaThreshold,
-                    viewport
-                }
+                return p
             },
             get stats(): RendererStats {
                 return {
                     programCount: ctx.programCache.count,
                     shaderCount: ctx.shaderCache.count,
 
-                    bufferCount: ctx.bufferCount,
-                    framebufferCount: ctx.framebufferCount,
-                    renderbufferCount: ctx.renderbufferCount,
-                    textureCount: ctx.textureCount,
-                    vaoCount: ctx.vaoCount,
+                    bufferCount: stats.bufferCount,
+                    framebufferCount: stats.framebufferCount,
+                    renderbufferCount: stats.renderbufferCount,
+                    textureCount: stats.textureCount,
+                    vaoCount: stats.vaoCount,
 
-                    drawCount: ctx.drawCount,
-                    instanceCount: ctx.instanceCount,
-                    instancedDrawCount: ctx.instancedDrawCount,
+                    drawCount: stats.drawCount,
+                    instanceCount: stats.instanceCount,
+                    instancedDrawCount: stats.instancedDrawCount,
                 }
             },
             dispose: () => {

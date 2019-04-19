@@ -50,7 +50,7 @@ class BasicWrapper {
 
         return parsed
             .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
-            .apply(StateTransforms.Model.CustomModelProperties, { properties: [StripedResidues.Descriptor.name] }, { ref: 'props', props: { isGhost: false } })
+            .apply(StateTransforms.Model.CustomModelProperties, { properties: [StripedResidues.Descriptor.name] }, { ref: 'props', state: { isGhost: false } })
             .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
     }
 
@@ -98,7 +98,8 @@ class BasicWrapper {
     }
 
     setBackground(color: number) {
-        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { backgroundColor: Color(color) } });
+        const renderer = this.plugin.canvas3d.props.renderer;
+        PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer,  backgroundColor: Color(color) } } });
     }
 
     toggleSpin() {

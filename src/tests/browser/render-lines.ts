@@ -35,7 +35,7 @@ function linesRepr() {
 
     const values = Lines.Utils.createValuesSimple(lines, {}, Color(0xFF0000), 3)
     const state = Lines.Utils.createRenderableState({})
-    const renderObject = createRenderObject('lines', values, state)
+    const renderObject = createRenderObject('lines', values, state, -1)
     const repr = Representation.fromRenderObject('cage-lines', renderObject)
     return repr
 }

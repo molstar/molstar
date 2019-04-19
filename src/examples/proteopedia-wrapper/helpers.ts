@@ -92,9 +92,26 @@ export interface LoadParams {
 export interface RepresentationStyle {
     sequence?: RepresentationStyle.Entry,
     hetGroups?: RepresentationStyle.Entry,
+    snfg3d?: { hide?: boolean },
     water?: RepresentationStyle.Entry
 }
 
 export namespace RepresentationStyle {
-    export type Entry = { kind?: BuiltInStructureRepresentationsName, coloring?: BuiltInColorThemeName }
+    export type Entry = { hide?: boolean, kind?: BuiltInStructureRepresentationsName, coloring?: BuiltInColorThemeName }
+}
+
+export enum StateElements {
+    Model = 'model',
+    ModelProps = 'model-props',
+    Assembly = 'assembly',
+
+    Sequence = 'sequence',
+    SequenceVisual = 'sequence-visual',
+    Het = 'het',
+    HetVisual = 'het-visual',
+    Het3DSNFG = 'het-3dsnfg',
+    Water = 'water',
+    WaterVisual = 'water-visual',
+
+    HetGroupFocus = 'het-group-focus'
 }

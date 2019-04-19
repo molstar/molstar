@@ -24,7 +24,7 @@ export function getElementSphereVisual(webgl?: WebGLContext) {
     return webgl && webgl.extensions.fragDepth ? ElementSphereImpostorVisual : ElementSphereMeshVisual
 }
 
-export function ElementSphereImpostorVisual(): UnitsVisual<ElementSphereParams> {
+export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<ElementSphereParams> {
     return UnitsSpheresVisual<ElementSphereParams>({
         defaultProps: PD.getDefaultValues(ElementSphereParams),
         createGeometry: createElementSphereImpostor,
@@ -34,10 +34,10 @@ export function ElementSphereImpostorVisual(): UnitsVisual<ElementSphereParams> 
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {
 
         }
-    })
+    }, materialId)
 }
 
-export function ElementSphereMeshVisual(): UnitsVisual<ElementSphereParams> {
+export function ElementSphereMeshVisual(materialId: number): UnitsVisual<ElementSphereParams> {
     return UnitsMeshVisual<ElementSphereParams>({
         defaultProps: PD.getDefaultValues(ElementSphereParams),
         createGeometry: createElementSphereMesh,
@@ -50,5 +50,5 @@ export function ElementSphereMeshVisual(): UnitsVisual<ElementSphereParams> {
                 newProps.detail !== currentProps.detail
             )
         }
-    })
+    }, materialId)
 }
