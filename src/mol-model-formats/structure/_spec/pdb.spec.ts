@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { guessElementSymbol } from '../pdb/to-cif';
 import { TokenBuilder } from 'mol-io/reader/common/text/tokenizer';
+import { guessElementSymbolTokens } from '../util';
 
 const records = [
     ['ATOM     19 HD23 LEU A   1     151.940 143.340 155.670  0.00  0.00', 'H'],
@@ -19,7 +19,7 @@ describe('PDB to-cif', () => {
         for (let i = 0, il = records.length; i < il; ++i) {
             const [ data, element ] = records[i]
             const tokens = TokenBuilder.create(data, 2)
-            guessElementSymbol(tokens, data, 12, 16)
+            guessElementSymbolTokens(tokens, data, 12, 16)
             expect(data.substring(tokens.indices[0], tokens.indices[1])).toBe(element)
         }
     });

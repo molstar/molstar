@@ -101,7 +101,7 @@ export namespace CifField {
         return ofStrings([value]);
     }
 
-    export function ofStrings(values: string[]): CifField {
+    export function ofStrings(values: ArrayLike<string>): CifField {
         const rowCount = values.length;
         const str: CifField['str'] = row => { const ret = values[row]; if (!ret || ret === '.' || ret === '?') return ''; return ret; };
         const int: CifField['int'] = row => { const v = values[row]; return fastParseInt(v, 0, v.length) || 0; };

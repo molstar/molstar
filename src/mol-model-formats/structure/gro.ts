@@ -12,6 +12,7 @@ import { GroFile, GroAtoms } from 'mol-io/reader/gro/schema';
 import { CifCategory, CifField } from 'mol-io/reader/cif';
 import { Column } from 'mol-data/db';
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
+import { guessElementSymbolString } from './util';
 
 // TODO multi model files
 // TODO seperate chains
@@ -37,7 +38,7 @@ function _atom_site(atoms: GroAtoms): { [K in keyof mmCIF_Schema['atom_site']]?:
         auth_comp_id,
         auth_seq_id,
         B_iso_or_equiv: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.float)),
-        Cartn_x: CifField.ofNumbers(Column.mapToArray(atoms.x, x => x * 10, Float32Array)), 
+        Cartn_x: CifField.ofNumbers(Column.mapToArray(atoms.x, x => x * 10, Float32Array)),
         Cartn_y: CifField.ofNumbers(Column.mapToArray(atoms.y, y => y * 10, Float32Array)),
         Cartn_z: CifField.ofNumbers(Column.mapToArray(atoms.z, z => z * 10, Float32Array)),
         group_PDB: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
@@ -52,7 +53,8 @@ function _atom_site(atoms: GroAtoms): { [K in keyof mmCIF_Schema['atom_site']]?:
         label_entity_id: CifField.ofColumn(Column.ofConst('1', atoms.count, Column.Schema.str)),
 
         occupancy: CifField.ofColumn(Column.ofConst(1, atoms.count, Column.Schema.float)),
-        type_symbol: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
+        type_symbol: CifField.ofStrings(Column.mapToArray(atoms.atomName, s => guessElementSymbolString(s))),
+        // type_symbol: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
 
         pdbx_PDB_ins_code: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
         pdbx_PDB_model_num: CifField.ofColumn(Column.ofConst('1', atoms.count, Column.Schema.str)),
