@@ -224,7 +224,7 @@ namespace Unit {
             rings: ValueRef.create(void 0),
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),
-            nucleotideElements: ValueRef.create(void 0),
+            nucleotideElements: ValueRef.create(void 0)
         };
     }
 
