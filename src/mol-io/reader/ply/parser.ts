@@ -11,6 +11,9 @@ import { Tokenizer, TokenBuilder, Tokens } from '../common/text/tokenizer';
 import { Column } from 'mol-data/db';
 import { TokenColumn } from '../common/text/column/token';
 
+// TODO add support for binary ply files
+// TODO parse elements asynchronously
+
 interface State {
     data: string
     tokenizer: Tokenizer

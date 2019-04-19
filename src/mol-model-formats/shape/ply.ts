@@ -97,9 +97,8 @@ function createPlyShapeParams(plyFile?: PlyFile) {
 export const PlyShapeParams = createPlyShapeParams()
 export type PlyShapeParams = typeof PlyShapeParams
 
-async function getMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, groupIds: ArrayLike<number>, mesh?: Mesh) {
-    const builderState = MeshBuilder.createState(vertex.rowCount, vertex.rowCount / 4, mesh)
-    const { vertices, normals, indices, groups } = builderState
+function addVerticesRange(begI: number, endI: number, state: MeshBuilder.State, vertex: PlyTable, groupIds: ArrayLike<number>) {
+    const { vertices, normals, groups } = state
 
     const x = vertex.getProperty('x')
     const y = vertex.getProperty('y')
@@ -112,17 +111,17 @@ async function getMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, gro
 
     const hasNormals = !!nx && !!ny && !!nz
 
-    for (let i = 0, il = vertex.rowCount; i < il; ++i) {
-        if (i % 100000 === 0 && ctx.shouldUpdate) await ctx.update({ current: i, max: il, message: `adding vertex ${i}` })
-
+    for (let i = begI; i < endI; ++i) {
         ChunkedArray.add3(vertices, x.value(i), y.value(i), z.value(i))
         if (hasNormals) ChunkedArray.add3(normals, nx!.value(i), ny!.value(i), nz!.value(i));
         ChunkedArray.add(groups, groupIds[i])
     }
+}
 
-    for (let i = 0, il = face.rowCount; i < il; ++i) {
-        if (i % 100000 === 0 && ctx.shouldUpdate) await ctx.update({ current: i, max: il, message: `adding face ${i}` })
+function addFacesRange(begI: number, endI: number, state: MeshBuilder.State, face: PlyList) {
+    const { indices } = state
 
+    for (let i = begI; i < endI; ++i) {
         const { entries, count } = face.value(i)
         if (count === 3) {
             // triangle
@@ -131,6 +130,38 @@ async function getMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, gro
             // quadrilateral
             ChunkedArray.add3(indices, entries[2], entries[1], entries[0])
             ChunkedArray.add3(indices, entries[2], entries[0], entries[3])
+        }
+    }
+}
+
+async function getMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, groupIds: ArrayLike<number>, mesh?: Mesh) {
+    const builderState = MeshBuilder.createState(vertex.rowCount, vertex.rowCount / 4, mesh)
+
+    const x = vertex.getProperty('x')
+    const y = vertex.getProperty('y')
+    const z = vertex.getProperty('z')
+    if (!x || !y || !z) throw new Error('missing coordinate properties')
+
+    const nx = vertex.getProperty('nx')
+    const ny = vertex.getProperty('ny')
+    const nz = vertex.getProperty('nz')
+
+    const hasNormals = !!nx && !!ny && !!nz
+    const updateChunk = 100000
+
+    for (let i = 0, il = vertex.rowCount; i < il; i += updateChunk) {
+        addVerticesRange(i, Math.min(i + updateChunk, il), builderState, vertex, groupIds)
+
+        if (ctx.shouldUpdate) {
+            await ctx.update({ message: 'adding ply mesh vertices', current: i, max: il })
+        }
+    }
+
+    for (let i = 0, il = face.rowCount; i < il; i += updateChunk) {
+        addFacesRange(i, Math.min(i + updateChunk, il), builderState, face)
+
+        if (ctx.shouldUpdate) {
+            await ctx.update({ message: 'adding ply mesh faces', current: i, max: il })
         }
     }
 
