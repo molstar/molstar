@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,7 +9,7 @@ import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, interpolateSizes } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
-import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
+import { UnitsMeshVisual, UnitsMeshParams, StructureGroup } from '../units-visual';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
@@ -17,6 +17,8 @@ import { addSheet } from 'mol-geo/geometry/mesh/builder/sheet';
 import { addTube } from 'mol-geo/geometry/mesh/builder/tube';
 import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
+import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
+import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
 
 export const PolymerTraceMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
@@ -44,7 +46,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
     const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = state
 
     let i = 0
-    const polymerTraceIt = PolymerTraceIterator(unit)
+    const polymerTraceIt = PolymerTraceIterator(unit, structure)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
         builderState.currentGroup = i
@@ -111,7 +113,7 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTraceParams>, currentProps: PD.Values<PolymerTraceParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTraceParams>, currentProps: PD.Values<PolymerTraceParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.linearSegments !== currentProps.linearSegments ||
@@ -119,6 +121,12 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
                 newProps.aspectRatio !== currentProps.aspectRatio ||
                 newProps.arrowFactor !== currentProps.arrowFactor
             )
+
+            const computedSecondaryStructure = ComputedSecondaryStructure.get(newStructureGroup.structure)
+            if ((state.info.computedSecondaryStructure as SecondaryStructure) !== computedSecondaryStructure) {
+                state.createGeometry = true;
+                state.info.computedSecondaryStructure = computedSecondaryStructure
+            }
         }
     }, materialId)
 }

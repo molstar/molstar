@@ -14,9 +14,9 @@ import { SortedArray } from 'mol-data/int';
 import { IntAdjacencyGraph } from 'mol-math/graph';
 import { BitFlags } from 'mol-util';
 import { ElementIndex } from 'mol-model/structure/model/indexing';
-import { AtomicHierarchy, AtomicConformation } from '../atomic';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { radToDeg } from 'mol-math/misc';
+import { AtomicHierarchy, AtomicConformation } from 'mol-model/structure/model/properties/atomic';
 
 /**
  * TODO bugs to fix:
@@ -47,7 +47,7 @@ const hbondEnergyCutoff = -0.5
 const hbondEnergyMinimal = -9.9
 
 interface DSSPContext {
-    params: Partial<PD.Values<SecondaryStructureComputationParams>>,
+    params: Partial<PD.Values<DSSPComputationParams>>,
     getResidueFlag: (f: DSSPType) => SecondaryStructureType,
     getFlagName: (f: DSSPType) => String,
 
@@ -113,22 +113,17 @@ namespace DSSPType {
     }
 }
 
-export const SecondaryStructureComputationParams = {
+export const DSSPComputationParams = {
     oldDefinition: PD.Boolean(true, { description: 'Whether to use the old DSSP convention for the annotation of turns and helices, causes them to be two residues shorter' }),
     oldOrdering: PD.Boolean(true, { description: 'Alpha-helices are preferred over 3-10 helices' })
 }
-export type SecondaryStructureComputationParams = typeof SecondaryStructureComputationParams
-
-export function computeSecondaryStructure(hierarchy: AtomicHierarchy,
-    conformation: AtomicConformation) {
-    // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
-    return computeModelDSSP(hierarchy, conformation)
-}
+export type DSSPComputationParams = typeof DSSPComputationParams
+export type DSSPComputationProps = PD.Values<DSSPComputationParams>
 
 export function computeModelDSSP(hierarchy: AtomicHierarchy,
     conformation: AtomicConformation,
-    params: Partial<PD.Values<SecondaryStructureComputationParams>> = {}): SecondaryStructure {
-    params = { ...PD.getDefaultValues(SecondaryStructureComputationParams), ...params };
+    params: Partial<DSSPComputationProps> = {}): SecondaryStructure {
+    params = { ...PD.getDefaultValues(DSSPComputationParams), ...params };
 
     const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
     const backboneIndices = calcBackboneAtomIndices(hierarchy, proteinResidues)
@@ -187,13 +182,7 @@ export function computeModelDSSP(hierarchy: AtomicHierarchy,
         keys[i] = elements.length - 1
     }
 
-    const secondaryStructure: SecondaryStructure = {
-        type,
-        key: keys,
-        elements: elements
-    }
-
-    return secondaryStructure
+    return SecondaryStructure(type, keys, elements)
 }
 
 function createElement(kind: string, flag: DSSPType.Flag, getResidueFlag: (f: DSSPType) => SecondaryStructureType): SecondaryStructure.Element {

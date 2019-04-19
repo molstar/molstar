@@ -53,7 +53,7 @@ interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
     eachLocation(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
+    setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup): void
 }
 
 interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
@@ -100,12 +100,13 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
             return
         }
 
-        setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
+        setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
 
-        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) {
+        if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
             // console.log('new colorTheme')
             updateState.updateColor = true
         }
+
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
             // console.log('new unitKinds')
             updateState.createGeometry = true
@@ -121,10 +122,12 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
         }
 
         // check if the conformation of unit.model has changed
-        // if (Unit.conformationId(newStructureGroup.group.units[0]) !== Unit.conformationId(currentStructureGroup.group.units[0])) {
-        if (Unit.conformationId(newStructureGroup.group.units[0]) !== Unit.conformationId(currentStructureGroup.group.units[0])
+        const newUnit = newStructureGroup.group.units[0]
+        const currentUnit = currentStructureGroup.group.units[0]
+        // if (Unit.conformationId(newUnit) !== Unit.conformationId(currentUnit)) {
+        if (Unit.conformationId(newUnit) !== Unit.conformationId(currentUnit)
             // TODO: this needs more attention
-            || newStructureGroup.group.units[0].conformation !== currentStructureGroup.group.units[0].conformation) {
+            || newUnit.conformation !== currentUnit.conformation) {
             // console.log('new conformation')
             updateState.updateTransform = true;
             updateState.createGeometry = true
@@ -270,8 +273,8 @@ export interface UnitsMeshVisualBuilder<P extends UnitsMeshParams> extends Units
 export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVisualBuilder<P>, materialId: number): UnitsVisual<P> {
     return UnitsVisual<Mesh, StructureMeshParams & UnitsParams>({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
-            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         geometryUtils: Mesh.Utils
@@ -287,8 +290,8 @@ export interface UnitsSpheresVisualBuilder<P extends UnitsSpheresParams> extends
 export function UnitsSpheresVisual<P extends UnitsSpheresParams>(builder: UnitsSpheresVisualBuilder<P>, materialId: number): UnitsVisual<P> {
     return UnitsVisual<Spheres, StructureSpheresParams & UnitsParams>({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
-            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         geometryUtils: Spheres.Utils
@@ -304,8 +307,8 @@ export interface UnitsPointVisualBuilder<P extends UnitsPointsParams> extends Un
 export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPointVisualBuilder<P>, materialId: number): UnitsVisual<P> {
     return UnitsVisual<Points, StructurePointsParams & UnitsParams>({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
-            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         geometryUtils: Points.Utils
@@ -321,8 +324,8 @@ export interface UnitsLinesVisualBuilder<P extends UnitsLinesParams> extends Uni
 export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLinesVisualBuilder<P>, materialId: number): UnitsVisual<P> {
     return UnitsVisual<Lines, StructureLinesParams & UnitsParams>({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
-            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         geometryUtils: Lines.Utils
@@ -338,8 +341,8 @@ export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeParam
 export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(builder: UnitsDirectVolumeVisualBuilder<P>, materialId: number): UnitsVisual<P> {
     return UnitsVisual<DirectVolume, StructureDirectVolumeParams & UnitsParams>({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
-            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         geometryUtils: DirectVolume.Utils
@@ -355,8 +358,8 @@ export interface UnitsTextureMeshVisualBuilder<P extends UnitsTextureMeshParams>
 export function UnitsTextureMeshVisual<P extends UnitsTextureMeshParams>(builder: UnitsTextureMeshVisualBuilder<P>, materialId: number): UnitsVisual<P> {
     return UnitsVisual<TextureMesh, StructureTextureMeshParams & UnitsParams>({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
-            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         geometryUtils: TextureMesh.Utils

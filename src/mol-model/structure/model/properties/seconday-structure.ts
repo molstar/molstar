@@ -5,15 +5,22 @@
  */
 
 import { SecondaryStructureType } from '../types';
+import { idFactory } from 'mol-util/id-factory';
+
+const getNextSecondaryStructureId = idFactory()
 
 /** Secondary structure "indexed" by residues. */
 interface SecondaryStructure {
+    readonly id: number
     readonly type: ArrayLike<SecondaryStructureType>,
-
     /** index into the elements array */
     readonly key: ArrayLike<number>,
     /** indexed by key */
     readonly elements: ReadonlyArray<SecondaryStructure.Element>
+}
+
+function SecondaryStructure(type: SecondaryStructure['type'], key: SecondaryStructure['key'], elements: SecondaryStructure['elements']) {
+    return { id: getNextSecondaryStructureId(), type, key, elements }
 }
 
 namespace SecondaryStructure {

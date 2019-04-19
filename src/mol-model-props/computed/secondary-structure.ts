@@ -6,21 +6,24 @@
 
 import { CustomPropertyDescriptor, Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
+import { DSSPComputationParams, computeModelDSSP } from './secondary-structure/dssp';
+import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export namespace ComputedSecondaryStructure {
-    export type Property = {} // TODO
+    export type Property = SecondaryStructure
 
     export function get(structure: Structure): Property | undefined {
-        return structure.currentPropertyData.__ComputedSecondaryStructure__;
+        return structure.inheritedPropertyData.__ComputedSecondaryStructure__;
     }
     function set(structure: Structure, prop: Property) {
-        (structure.currentPropertyData.__ComputedSecondaryStructure__ as Property) = prop;
+        (structure.inheritedPropertyData.__ComputedSecondaryStructure__ as Property) = prop;
     }
 
-    export function createAttachTask() {
+    export function createAttachTask(params: Partial<SecondaryStructureComputationProps> = {}) {
         return (structure: Structure) => Task.create('Compute Secondary Structure', async ctx => {
             if (get(structure)) return true;
-            return await attachFromCifOrCompute(structure, ctx)
+            return await attachFromCifOrCompute(structure, params)
         });
     }
 
@@ -30,12 +33,10 @@ export namespace ComputedSecondaryStructure {
         // TODO `cifExport` and `symbol`
     });
 
-    export async function attachFromCifOrCompute(structure: Structure, params: {
-        // TODO params
-    }) {
+    export async function attachFromCifOrCompute(structure: Structure, params: Partial<SecondaryStructureComputationProps> = {}) {
         if (structure.customPropertyDescriptors.has(Descriptor)) return true;
 
-        const compSecStruc = computeSecondaryStructure(structure)
+        const compSecStruc = computeSecondaryStructure(structure, params)
 
         structure.customPropertyDescriptors.add(Descriptor);
         set(structure, compSecStruc);
@@ -43,14 +44,15 @@ export namespace ComputedSecondaryStructure {
     }
 }
 
-// export const SecondaryStructureComputationParams = {
-//     oldDefinition: PD.Boolean(true, { description: 'Whether to use the old DSSP convention for the annotation of turns and helices, causes them to be two residues shorter' }),
-//     oldOrdering: PD.Boolean(true, { description: 'Alpha-helices are preferred over 3-10 helices' })
-// }
-// export type SecondaryStructureComputationParams = typeof SecondaryStructureComputationParams
+export const SecondaryStructureComputationParams = {
+    ...DSSPComputationParams
+}
+export type SecondaryStructureComputationParams = typeof SecondaryStructureComputationParams
+export type SecondaryStructureComputationProps = PD.Values<SecondaryStructureComputationParams>
 
-function computeSecondaryStructure(structure: Structure): ComputedSecondaryStructure.Property {
-    // TODO
-    console.log('TODO calc secondary structure')
-    return {}
+function computeSecondaryStructure(structure: Structure, params: Partial<SecondaryStructureComputationProps>): ComputedSecondaryStructure.Property {
+    // TODO compute from structure not from model
+    // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
+    const { atomicHierarchy, atomicConformation } = structure.model
+    return computeModelDSSP(atomicHierarchy, atomicConformation, params)
 }

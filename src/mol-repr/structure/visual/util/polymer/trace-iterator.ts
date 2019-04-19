@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureElement, ElementIndex, ResidueIndex } from 'mol-model/structure';
+import { Unit, StructureElement, ElementIndex, ResidueIndex, Structure } from 'mol-model/structure';
 import { Segmentation } from 'mol-data/int';
 import { MoleculeType, SecondaryStructureType } from 'mol-model/structure/model/types';
 import Iterator from 'mol-data/iterator';
@@ -13,17 +13,18 @@ import SortedRanges from 'mol-data/int/sorted-ranges';
 import { CoarseSphereConformation, CoarseGaussianConformation } from 'mol-model/structure/model/properties/coarse';
 import { getPolymerRanges } from '../polymer';
 import { AtomicConformation } from 'mol-model/structure/model/properties/atomic';
+import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
 
 /**
  * Iterates over individual residues/coarse elements in polymers of a unit while
  * providing information about the neighbourhood in the underlying model for drawing splines
  */
-export function PolymerTraceIterator(unit: Unit): Iterator<PolymerTraceElement> {
+export function PolymerTraceIterator(unit: Unit, structure: Structure): Iterator<PolymerTraceElement> {
     switch (unit.kind) {
-        case Unit.Kind.Atomic: return new AtomicPolymerTraceIterator(unit)
+        case Unit.Kind.Atomic: return new AtomicPolymerTraceIterator(unit, structure)
         case Unit.Kind.Spheres:
         case Unit.Kind.Gaussians:
-            return new CoarsePolymerTraceIterator(unit)
+            return new CoarsePolymerTraceIterator(unit, structure)
     }
 }
 
@@ -236,18 +237,20 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         return this.value;
     }
 
-    constructor(private unit: Unit.Atomic) {
+    constructor(private unit: Unit.Atomic, structure: Structure) {
         this.atomicConformation = unit.model.atomicConformation
         this.residueAtomSegments = unit.model.atomicHierarchy.residueAtomSegments
         this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex as ArrayLike<ElementIndex> // can assume it won't be -1 for polymer residues
         this.directionElementIndex = unit.model.atomicHierarchy.derived.residue.directionElementIndex
         this.moleculeType = unit.model.atomicHierarchy.derived.residue.moleculeType
         this.cyclicPolymerMap = unit.model.atomicHierarchy.cyclicPolymerMap
-        this.secondaryStructureType = unit.model.properties.secondaryStructure.type
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)
         this.residueIt = Segmentation.transientSegments(this.residueAtomSegments, unit.elements);
         this.value = createPolymerTraceElement(unit)
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
+
+        const computedSecondaryStructure = ComputedSecondaryStructure.get(structure)
+        this.secondaryStructureType = (computedSecondaryStructure && computedSecondaryStructure.type) || unit.model.properties.secondaryStructure.type
     }
 }
 
@@ -316,7 +319,7 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
         return this.value;
     }
 
-    constructor(private unit: Unit.Spheres | Unit.Gaussians) {
+    constructor(private unit: Unit.Spheres | Unit.Gaussians, structure: Structure) {
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements);
         this.value = createPolymerTraceElement(unit)
         switch (unit.kind) {

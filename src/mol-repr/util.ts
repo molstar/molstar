@@ -15,6 +15,9 @@ export interface VisualUpdateState {
     updateSize: boolean
     createGeometry: boolean
     createNew: boolean
+
+    /** holds contextual info, is not reset  */
+    info: { [k: string]: unknown }
 }
 export namespace VisualUpdateState {
     export function create(): VisualUpdateState {
@@ -25,6 +28,8 @@ export namespace VisualUpdateState {
             updateSize: false,
             createGeometry: false,
             createNew: false,
+
+            info: {}
         }
     }
     export function reset(state: VisualUpdateState) {

@@ -13,6 +13,8 @@ import { getElementMoleculeType } from 'mol-model/structure/util';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from 'mol-util/color/tables';
+import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
+import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -40,10 +42,12 @@ export function getSecondaryStructureColorThemeParams(ctx: ThemeDataContext) {
     return SecondaryStructureColorThemeParams // TODO return copy
 }
 
-export function secondaryStructureColor(unit: Unit, element: ElementIndex): Color {
+export function secondaryStructureColor(unit: Unit, element: ElementIndex, computedSecondaryStructure: SecondaryStructure | undefined): Color {
     let secStrucType = SecondaryStructureType.create(SecondaryStructureType.Flag.None)
     if (Unit.isAtomic(unit)) {
-        secStrucType = unit.model.properties.secondaryStructure.type[unit.residueIndex[element]]
+        secStrucType = computedSecondaryStructure ?
+            computedSecondaryStructure.type[unit.residueIndex[element]] :
+            unit.model.properties.secondaryStructure.type[unit.residueIndex[element]]
     }
 
     if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Helix)) {
@@ -75,11 +79,16 @@ export function secondaryStructureColor(unit: Unit, element: ElementIndex): Colo
 }
 
 export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Values<SecondaryStructureColorThemeParams>): ColorTheme<SecondaryStructureColorThemeParams> {
+
+    const computedSecondaryStructure = ctx.structure && ComputedSecondaryStructure.get(ctx.structure)
+    // use `computedSecondaryStructure.id` as context hash, when available
+    const contextHash = computedSecondaryStructure && computedSecondaryStructure.id
+
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
-            return secondaryStructureColor(location.unit, location.element)
+            return secondaryStructureColor(location.unit, location.element, computedSecondaryStructure)
         } else if (Link.isLocation(location)) {
-            return secondaryStructureColor(location.aUnit, location.aUnit.elements[location.aIndex])
+            return secondaryStructureColor(location.aUnit, location.aUnit.elements[location.aIndex], computedSecondaryStructure)
         }
         return DefaultSecondaryStructureColor
     }
@@ -89,6 +98,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Va
         granularity: 'group',
         color,
         props,
+        contextHash,
         description: Description,
         legend: TableLegend(Object.keys(SecondaryStructureColors).map(name => {
             return [name, (SecondaryStructureColors as any)[name] as Color] as [string, Color]

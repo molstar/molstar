@@ -106,8 +106,13 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
             updateState.createGeometry = true
         }
 
-        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
-        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
+        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) {
+            updateState.updateColor = true
+        }
+
+        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
+            updateState.createGeometry = true
+        }
 
         if (updateState.createGeometry) {
             updateState.updateColor = true

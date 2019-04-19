@@ -50,7 +50,7 @@ function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structu
     const { normalVectors, binormalVectors } = state
 
     let i = 0
-    const polymerTraceIt = PolymerTraceIterator(unit)
+    const polymerTraceIt = PolymerTraceIterator(unit, structure)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
         builderState.currentGroup = i

@@ -53,6 +53,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
         }
 
         unregister() {
+            console.log('unregister')
             this.ctx.customModelProperties.unregister(StructureQualityReport.Descriptor.name);
             this.ctx.lociLabels.removeProvider(labelPDBeValidation);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('pdbe-structure-quality-report')

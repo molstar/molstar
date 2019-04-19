@@ -11,12 +11,12 @@ import { AtomicHierarchy, AtomicConformation } from 'mol-model/structure/model/p
 import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
 import { Column } from 'mol-data/db';
 import { ChainIndex, ResidueIndex } from 'mol-model/structure/model/indexing';
-import { computeSecondaryStructure } from 'mol-model/structure/model/properties/utils/secondary-structure';
+import { computeModelDSSP } from 'mol-model-props/computed/secondary-structure/dssp';
 
 // TODO add parameter to allow forcing computation
 export function getSecondaryStructure(data: mmCIF_Database, hierarchy: AtomicHierarchy, conformation: AtomicConformation): SecondaryStructure {
     if (!data.struct_conf._rowCount && !data.struct_sheet_range._rowCount) {
-        return computeSecondaryStructure(hierarchy, conformation)
+        return computeModelDSSP(hierarchy, conformation)
     } else {
         return getSecondaryStructureMmCif(data, hierarchy)
     }
@@ -36,7 +36,7 @@ export function getSecondaryStructureMmCif(data: mmCIF_Database, hierarchy: Atom
     };
 
     if (map.size > 0) assignSecondaryStructureRanges(hierarchy, map, secStruct);
-    return secStruct;
+    return SecondaryStructure(secStruct.type, secStruct.key, secStruct.elements);
 }
 
 type SecondaryStructureEntry = {

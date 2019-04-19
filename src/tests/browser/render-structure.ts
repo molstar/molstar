@@ -12,10 +12,10 @@ import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { CartoonRepresentationProvider } from 'mol-repr/structure/representation/cartoon';
 import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
-import { computeModelDSSP } from 'mol-model/structure/model/properties/utils/secondary-structure';
 import { MolecularSurfaceRepresentationProvider } from 'mol-repr/structure/representation/molecular-surface';
 import { BallAndStickRepresentationProvider } from 'mol-repr/structure/representation/ball-and-stick';
 import { GaussianSurfaceRepresentationProvider } from 'mol-repr/structure/representation/gaussian-surface';
+import { computeModelDSSP } from 'mol-model-props/computed/secondary-structure/dssp';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'

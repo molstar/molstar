@@ -36,6 +36,7 @@ interface ColorTheme<P extends PD.Params> {
     readonly granularity: ColorType
     readonly color: LocationColor
     readonly props: Readonly<PD.Values<P>>
+    readonly contextHash?: number
     readonly description?: string
     readonly legend?: Readonly<ScaleLegend | TableLegend>
 }
@@ -44,10 +45,15 @@ namespace ColorTheme {
     export type Factory<P extends PD.Params> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
     export const EmptyFactory = () => Empty
     const EmptyColor = Color(0xCCCCCC)
-    export const Empty: ColorTheme<{}> = { factory: EmptyFactory, granularity: 'uniform', color: () => EmptyColor, props: {} }
+    export const Empty: ColorTheme<{}> = {
+        factory: EmptyFactory,
+        granularity: 'uniform',
+        color: () => EmptyColor,
+        props: {}
+    }
 
     export function areEqual(themeA: ColorTheme<any>, themeB: ColorTheme<any>) {
-        return themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props)
+        return themeA.contextHash === themeB.contextHash && themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props)
     }
 
     export interface Provider<P extends PD.Params> extends ThemeProvider<ColorTheme<P>, P> { }
