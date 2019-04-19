@@ -104,6 +104,7 @@ module.exports = [
     createApp('model-server-query'),
 
     createBrowserTest('font-atlas'),
+    createBrowserTest('render-asa'),
     createBrowserTest('marching-cubes'),
     createBrowserTest('render-lines'),
     createBrowserTest('render-mesh'),
