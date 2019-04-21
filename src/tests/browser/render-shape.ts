@@ -40,8 +40,8 @@ parent.appendChild(info)
 let prevReprLoci = Representation.Loci.Empty
 const canvas3d = Canvas3D.create(canvas, parent)
 canvas3d.animate()
-canvas3d.input.move.subscribe(async ({x, y}) => {
-    const pickingId = await canvas3d.identify(x, y)
+canvas3d.input.move.subscribe(({x, y}) => {
+    const pickingId = canvas3d.identify(x, y)
     let label = ''
     if (pickingId) {
         const reprLoci = canvas3d.getLoci(pickingId)

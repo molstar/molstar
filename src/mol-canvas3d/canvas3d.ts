@@ -57,7 +57,7 @@ interface Canvas3D {
     requestDraw: (force?: boolean) => void
     animate: () => void
     pick: () => void
-    identify: (x: number, y: number) => Promise<PickingId | undefined>
+    identify: (x: number, y: number) => PickingId | undefined
     mark: (loci: Representation.Loci, action: MarkerAction) => void
     getLoci: (pickingId: PickingId) => Representation.Loci
 
@@ -263,7 +263,8 @@ namespace Canvas3D {
             }
         }
 
-        async function identify(x: number, y: number): Promise<PickingId | undefined> {
+        const readBuffer = new Uint8Array(4)
+        function identify(x: number, y: number): PickingId | undefined {
             if (isIdentifying) return
 
             pick() // must be called before setting `isIdentifying = true`
@@ -273,27 +274,22 @@ namespace Canvas3D {
             y *= webgl.pixelRatio
             y = canvas.height - y // flip y
 
-            const buffer = new Uint8Array(4)
             const xp = Math.round(x * pickScale)
             const yp = Math.round(y * pickScale)
 
             objectPickTarget.bind()
-            // TODO slow in Chrome, ok in FF; doesn't play well with gpu surface calc
-            // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
-            webgl.readPixels(xp, yp, 1, 1, buffer)
-            const objectId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
+            webgl.readPixels(xp, yp, 1, 1, readBuffer)
+            const objectId = decodeFloatRGB(readBuffer[0], readBuffer[1], readBuffer[2])
             if (objectId === -1) { isIdentifying = false; return; }
 
             instancePickTarget.bind()
-            // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
-            webgl.readPixels(xp, yp, 1, 1, buffer)
-            const instanceId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
+            webgl.readPixels(xp, yp, 1, 1, readBuffer)
+            const instanceId = decodeFloatRGB(readBuffer[0], readBuffer[1], readBuffer[2])
             if (instanceId === -1) { isIdentifying = false; return; }
 
             groupPickTarget.bind()
-            // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
-            webgl.readPixels(xp, yp, 1, 1, buffer)
-            const groupId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
+            webgl.readPixels(xp, yp, 1, 1, readBuffer)
+            const groupId = decodeFloatRGB(readBuffer[0], readBuffer[1], readBuffer[2])
             if (groupId === -1) { isIdentifying = false; return; }
 
             isIdentifying = false
