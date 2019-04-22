@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { now } from 'mol-util/now';
 
-import { Vec3 } from 'mol-math/linear-algebra'
+import { Vec3, Vec2 } from 'mol-math/linear-algebra'
 import InputObserver, { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer'
 import Renderer, { RendererStats, RendererParams } from 'mol-gl/renderer'
 import { GraphicsRenderObject } from 'mol-gl/render-object'
@@ -29,6 +29,9 @@ import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-spher
 import { decodeFloatRGB } from 'mol-util/float-packing';
 import { SetUtils } from 'mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
+import { createTexture } from 'mol-gl/webgl/texture';
+import { ValueCell } from 'mol-util';
+import { getSSAOPassRenderable, SSAOPassParams } from './passes/ssao-pass';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -37,6 +40,8 @@ export const Canvas3DParams = {
     cameraClipDistance: PD.Numeric(0, { min: 0.0, max: 50.0, step: 0.1 }, { description: 'The distance between camera and scene at which to clip regardless of near clipping plane.' }),
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
+
+    ambientOcclusion: PD.Group(SSAOPassParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
     debug: PD.Group(DebugHelperParams)
@@ -116,6 +121,12 @@ namespace Canvas3D {
         const scene = Scene.create(webgl)
         const controls = TrackballControls.create(input, camera, p.trackball)
         const renderer = Renderer.create(webgl, camera, p.renderer)
+
+        const drawTarget = createRenderTarget(webgl, canvas.width, canvas.height)
+        const depthTexture = createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
+        depthTexture.define(canvas.width, canvas.height)
+        depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
+        const ssaoPass = getSSAOPassRenderable(webgl, drawTarget.texture, depthTexture, p.ambientOcclusion)
 
         let pickScale = 0.25 / webgl.pixelRatio
         let pickWidth = Math.round(canvas.width * pickScale)
@@ -215,13 +226,18 @@ namespace Canvas3D {
                         renderer.render(scene, 'pickGroup');
                         break;
                     case 'draw':
-                        webgl.unbindFramebuffer();
                         renderer.setViewport(0, 0, canvas.width, canvas.height);
-                        renderer.render(scene, variant);
+                        drawTarget.bind()
+                        renderer.render(scene, 'draw');
                         if (debugHelper.isEnabled) {
                             debugHelper.syncVisibility()
                             renderer.render(debugHelper.scene, 'draw')
                         }
+                        webgl.unbindFramebuffer();
+                        webgl.state.disable(webgl.gl.SCISSOR_TEST)
+                        webgl.state.disable(webgl.gl.BLEND)
+                        webgl.state.disable(webgl.gl.DEPTH_TEST)
+                        ssaoPass.render()
                         pickDirty = true
                         break;
                 }
@@ -395,6 +411,25 @@ namespace Canvas3D {
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
+                if (props.ambientOcclusion) {
+                    if (props.ambientOcclusion.enable !== undefined) {
+                        p.ambientOcclusion.enable = props.ambientOcclusion.enable
+                        ValueCell.update(ssaoPass.values.uEnable, props.ambientOcclusion.enable ? 1 : 0)
+                    }
+                    if (props.ambientOcclusion.kernelSize !== undefined) {
+                        p.ambientOcclusion.kernelSize = props.ambientOcclusion.kernelSize
+                        ValueCell.update(ssaoPass.values.uKernelSize, props.ambientOcclusion.kernelSize)
+                    }
+                    if (props.ambientOcclusion.bias !== undefined) {
+                        p.ambientOcclusion.bias = props.ambientOcclusion.bias
+                        ValueCell.update(ssaoPass.values.uBias, props.ambientOcclusion.bias)
+                    }
+                    if (props.ambientOcclusion.radius !== undefined) {
+                        p.ambientOcclusion.radius = props.ambientOcclusion.radius
+                        ValueCell.update(ssaoPass.values.uRadius, props.ambientOcclusion.radius)
+                    }
+                }
+                
                 if (props.renderer) renderer.setProps(props.renderer)
                 if (props.trackball) controls.setProps(props.trackball)
                 if (props.debug) debugHelper.setProps(props.debug)
@@ -407,6 +442,8 @@ namespace Canvas3D {
                     cameraClipDistance: p.cameraClipDistance,
                     clip: p.clip,
                     fog: p.fog,
+
+                    ambientOcclusion: { ...p.ambientOcclusion },
                     renderer: { ...renderer.props },
                     trackball: { ...controls.props },
                     debug: { ...debugHelper.props }
@@ -437,6 +474,10 @@ namespace Canvas3D {
             renderer.setViewport(0, 0, canvas.width, canvas.height)
             Viewport.set(camera.viewport, 0, 0, canvas.width, canvas.height)
             Viewport.set(controls.viewport, 0, 0, canvas.width, canvas.height)
+
+            drawTarget.setSize(canvas.width, canvas.height)
+            depthTexture.define(canvas.width, canvas.height)
+            ValueCell.update(ssaoPass.values.uTexSize, Vec2.set(ssaoPass.values.uTexSize.ref.value, canvas.width, canvas.height))
 
             pickScale = 0.25 / webgl.pixelRatio
             pickWidth = Math.round(canvas.width * pickScale)
