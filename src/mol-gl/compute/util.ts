@@ -10,6 +10,7 @@ import { printTextureImage } from 'mol-gl/renderable/util';
 import { defaults, ValueCell } from 'mol-util';
 import { ValueSpec, AttributeSpec, UniformSpec, Values } from 'mol-gl/renderable/schema';
 import { Vec2 } from 'mol-math/linear-algebra';
+import { GLRenderingContext } from 'mol-gl/webgl/compat';
 
 export const QuadPositions = new Float32Array([
      1.0,  1.0,  -1.0,  1.0,  -1.0, -1.0, // First triangle
@@ -32,12 +33,21 @@ export const QuadValues: Values<typeof QuadSchema> = {
 
 //
 
+function getArrayForTexture(gl:GLRenderingContext, texture: Texture, size: number) {
+    switch (texture.type) {
+        case gl.UNSIGNED_BYTE: return new Uint8Array(size)
+        case gl.FLOAT: return new Float32Array(size)
+    }
+    throw new Error('unknown/unsupported texture type')
+}
+
 export function readTexture(ctx: WebGLContext, texture: Texture, width?: number, height?: number) {
     const { gl, framebufferCache } = ctx
     width = defaults(width, texture.width)
     height = defaults(height, texture.height)
+    const size = width * height * 4
     const framebuffer = framebufferCache.get('read-texture').value
-    const array = texture.type === gl.UNSIGNED_BYTE ? new Uint8Array(width * height * 4) : new Float32Array(width * height * 4)
+    const array = getArrayForTexture(gl, texture, size)
     framebuffer.bind()
     texture.attachFramebuffer(framebuffer, 0)
     ctx.readPixels(0, 0, width, height, array)

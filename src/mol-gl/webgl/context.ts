@@ -6,7 +6,7 @@
 
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture } from './compat';
 import { createFramebufferCache, FramebufferCache, checkFramebufferStatus } from './framebuffer';
 import { Scheduler } from 'mol-task';
 import { isDebugMode } from 'mol-util/debug';
@@ -124,8 +124,10 @@ function readPixels(gl: GLRenderingContext, x: number, y: number, width: number,
     if (isDebugMode) checkFramebufferStatus(gl)
     if (buffer instanceof Uint8Array) {
         gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
-    } else {
+    } else if (buffer instanceof Float32Array) {
         gl.readPixels(x, y, width, height, gl.RGBA, gl.FLOAT, buffer)
+    } else {
+        throw new Error('unsupported readPixels buffer type')
     }
     if (isDebugMode) checkError(gl)
 }
@@ -153,7 +155,9 @@ export type WebGLExtensions = {
     blendMinMax: COMPAT_blend_minmax
     textureFloat: COMPAT_texture_float
     textureFloatLinear: COMPAT_texture_float_linear
-    elementIndexUint: COMPAT_element_index_uint | null
+    elementIndexUint: COMPAT_element_index_uint
+    depthTexture: COMPAT_depth_texture
+
     vertexArrayObject: COMPAT_vertex_array_object | null
     fragDepth: COMPAT_frag_depth | null
     colorBufferFloat: COMPAT_color_buffer_float | null
@@ -184,8 +188,13 @@ function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     }
     const elementIndexUint = getElementIndexUint(gl)
     if (elementIndexUint === null) {
-        console.warn('Could not find support for "element_index_uint"')
+        throw new Error('Could not find support for "element_index_uint"')
     }
+    const depthTexture = getDepthTexture(gl)
+    if (depthTexture === null) {
+        throw new Error('Could not find support for "depth_texture"')
+    }
+
     const vertexArrayObject = getVertexArrayObject(gl)
     if (vertexArrayObject === null) {
         console.log('Could not find support for "vertex_array_object"')
@@ -207,7 +216,6 @@ function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         console.log('Could not find support for "shader_texture_lod"')
     }
     
-
     return {
         instancedArrays,
         standardDerivatives,
@@ -215,11 +223,13 @@ function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         textureFloat,
         textureFloatLinear,
         elementIndexUint,
+        depthTexture,
+
         vertexArrayObject,
         fragDepth,
         colorBufferFloat,
         drawBuffers,
-        shaderTextureLod
+        shaderTextureLod,
     }
 }
 
