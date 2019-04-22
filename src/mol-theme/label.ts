@@ -66,9 +66,9 @@ export function elementLabel(location: StructureElement) {
 
     if (Unit.isAtomic(location.unit)) {
         const asym_id = Props.chain.auth_asym_id(location)
-        const seq_id = Props.residue.auth_seq_id(location)
-        const comp_id = Props.residue.auth_comp_id(location)
-        const atom_id = Props.atom.auth_atom_id(location)
+        const seq_id = location.unit.model.atomicHierarchy.residues.auth_seq_id.isDefined ? Props.residue.auth_seq_id(location) : Props.residue.label_seq_id(location)
+        const comp_id = Props.residue.label_comp_id(location)
+        const atom_id = Props.atom.label_atom_id(location)
         const alt_id = Props.atom.label_alt_id(location)
         label = `[${comp_id}]${seq_id}:${asym_id}.${atom_id}${alt_id ? `%${alt_id}` : ''}`
     } else if (Unit.isCoarse(location.unit)) {

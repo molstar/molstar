@@ -75,7 +75,7 @@ export function residueNameColor(residueName: string): Color {
 
 function getAtomicCompId(unit: Unit.Atomic, element: ElementIndex) {
     const { modifiedResidues } = unit.model.properties
-    const compId = unit.model.atomicHierarchy.residues.auth_comp_id.value(unit.residueIndex[element])
+    const compId = unit.model.atomicHierarchy.residues.label_comp_id.value(unit.residueIndex[element])
     const parentId = modifiedResidues.parentId.get(compId)
     return parentId === undefined ? compId : parentId
 }

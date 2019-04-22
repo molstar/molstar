@@ -78,8 +78,8 @@ function getLabelDataComputed(structure: Structure, level: 'elements' | 'residue
     const l = StructureElement.create();
     const { units } = structure;
 
-    const { auth_atom_id } = StructureProperties.atom;
-    const { auth_seq_id, auth_comp_id } = StructureProperties.residue;
+    const { label_atom_id } = StructureProperties.atom;
+    const { auth_seq_id, label_comp_id } = StructureProperties.residue;
     const { auth_asym_id } = StructureProperties.chain;
     const p = Vec3.zero();
 
@@ -97,7 +97,7 @@ function getLabelDataComputed(structure: Structure, level: 'elements' | 'residue
                 l.element = elements[j];
 
                 pos(l.element, p);
-                data.texts.push(auth_atom_id(l));
+                data.texts.push(label_atom_id(l));
                 data.positions.push(Vec3.clone(p));
                 data.sizes.push(1);
                 data.depths.push(2);
@@ -124,7 +124,7 @@ function getLabelDataComputed(structure: Structure, level: 'elements' | 'residue
 
                 l.element = elements[start];
 
-                data.texts.push(`${auth_comp_id(l)} ${auth_seq_id(l)}:${auth_asym_id(l)}`);
+                data.texts.push(`${label_comp_id(l)} ${auth_seq_id(l)}:${auth_asym_id(l)}`);
                 data.positions.push(Vec3.clone(boundaryHelper.center));
                 data.sizes.push(Math.max(1, boundaryHelper.radius / 5));
                 data.depths.push(boundaryHelper.radius);

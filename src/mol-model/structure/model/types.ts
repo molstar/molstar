@@ -219,6 +219,19 @@ export function getComponentType(compId: string): mmCIF_Schema['chem_comp']['typ
     }
 }
 
+export function getEntityType(compId: string): mmCIF_Schema['entity']['type']['T'] {
+    compId = compId.toUpperCase()
+    if (AminoAcidNames.has(compId) || RnaBaseNames.has(compId) || DnaBaseNames.has(compId)) {
+        return 'polymer'
+    } else if (SaccharideCompIdMap.has(compId)) {
+        return 'polymer' // TODO will be 'branched' in the future
+    } else if (WaterNames.has(compId)) {
+        return 'water'
+    } else {
+        return 'non-polymer'
+    }
+}
+
 export function isPolymer(moleculeType: MoleculeType) {
     return moleculeType === MoleculeType.protein || moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA || moleculeType === MoleculeType.PNA
 }

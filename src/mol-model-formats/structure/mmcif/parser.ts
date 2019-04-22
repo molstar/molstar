@@ -24,11 +24,12 @@ import { getSequence } from './sequence';
 import { sortAtomSite } from './sort';
 import { StructConn } from './bonds/struct_conn';
 import { ChemicalComponent } from 'mol-model/structure/model/properties/chemical-component';
-import { getMoleculeType, MoleculeType } from 'mol-model/structure/model/types';
+import { getMoleculeType, MoleculeType, getEntityType } from 'mol-model/structure/model/types';
 import { ModelFormat } from '../format';
 import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from 'mol-model/structure/structure/carbohydrates/constants';
 import mmCIF_Format = ModelFormat.mmCIF
 import { memoize1 } from 'mol-util/memoize';
+import { ElementIndex } from 'mol-model/structure/model';
 
 export async function _parse_mmCif(format: mmCIF_Format, ctx: RuntimeContext) {
     const formatData = getFormatData(format)
@@ -247,9 +248,50 @@ function findModelEnd(num: Column<number>, startIndex: number) {
     return endIndex;
 }
 
+function getEntities(format: mmCIF_Format): Entities {
+    let entityData: Table<mmCIF_Schema['entity']>
+
+    if (!format.data.entity.id.isDefined) {
+        const entityIds = new Set<string>()
+        const entityList: Partial<Table.Row<mmCIF_Schema['entity']>>[] = []
+
+        const { label_entity_id, label_comp_id } = format.data.atom_site;
+        for (let i = 0 as ElementIndex, il = format.data.atom_site._rowCount; i < il; i++) {
+            const entityId = label_entity_id.value(i);
+            if (!entityIds.has(entityId)) {
+                entityList.push({ id: entityId, type: getEntityType(label_comp_id.value(i)) })
+                entityIds.add(entityId)
+            }
+        }
+
+        const { entity_id: sphere_entity_id } = format.data.ihm_sphere_obj_site;
+        for (let i = 0 as ElementIndex, il = format.data.ihm_sphere_obj_site._rowCount; i < il; i++) {
+            const entityId = sphere_entity_id.value(i);
+            if (!entityIds.has(entityId)) {
+                entityList.push({ id: entityId, type: 'polymer' })
+                entityIds.add(entityId)
+            }
+        }
+
+        const { entity_id: gaussian_entity_id } = format.data.ihm_gaussian_obj_site;
+        for (let i = 0 as ElementIndex, il = format.data.ihm_gaussian_obj_site._rowCount; i < il; i++) {
+            const entityId = gaussian_entity_id.value(i);
+            if (!entityIds.has(entityId)) {
+                entityList.push({ id: entityId, type: 'polymer' })
+                entityIds.add(entityId)
+            }
+        }
+
+        entityData = Table.ofRows(mmCIF_Schema.entity, entityList)
+    } else {
+        entityData = format.data.entity;
+    }
+    return { data: entityData, getEntityIndex: Column.createIndexer(entityData.id) };
+}
+
 async function readStandard(ctx: RuntimeContext, format: mmCIF_Format, formatData: FormatData) {
     const atomCount = format.data.atom_site._rowCount;
-    const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
+    const entities = getEntities(format)
 
     const models: Model[] = [];
     let modelStart = 0;
@@ -282,12 +324,12 @@ function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
 }
 
 async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: FormatData) {
-    const { ihm_model_list } = format.data;
-    const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
-
     if (format.data.atom_site._rowCount && !format.data.atom_site.ihm_model_id.isDefined) {
         throw new Error('expected _atom_site.ihm_model_id to be defined')
     }
+
+    const { ihm_model_list } = format.data;
+    const entities = getEntities(format)
 
     const atom_sites = splitTable(format.data.atom_site, format.data.atom_site.ihm_model_id);
     // TODO: will coarse IHM records require sorting or will we trust it?
