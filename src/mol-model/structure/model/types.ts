@@ -240,6 +240,10 @@ export function isNucleic(moleculeType: MoleculeType) {
     return moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA || moleculeType === MoleculeType.PNA
 }
 
+export function isProtein(moleculeType: MoleculeType) {
+    return moleculeType === MoleculeType.protein
+}
+
 /**
  * TODO write script that read CCD and outputs list of ion names
  *

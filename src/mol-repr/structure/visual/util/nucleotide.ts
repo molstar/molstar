@@ -5,7 +5,6 @@
  */
 
 import { Unit, StructureElement, Structure } from 'mol-model/structure';
-import { getNucleotideElements } from 'mol-model/structure/structure/util/nucleotide';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
@@ -16,7 +15,7 @@ import { getResidueLoci } from './common';
 export namespace NucleotideLocationIterator {
     export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
         const u = group.units[0]
-        const nucleotideElementIndices = Unit.isAtomic(u) ? getNucleotideElements(u) : []
+        const nucleotideElementIndices = Unit.isAtomic(u) ? u.nucleotideElements : []
         const groupCount = nucleotideElementIndices.length
         const instanceCount = group.units.length
         const location = StructureElement.create()

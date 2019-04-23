@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -16,8 +16,7 @@ import StructureElement from './element'
 import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
 import { IntMap, SortedArray } from 'mol-data/int';
 import { hash2, hashFnv32a } from 'mol-data/util';
-import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements } from './util/polymer';
-import { getNucleotideElements } from './util/nucleotide';
+import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements, getNucleotideElements, getProteinElements } from './util/polymer';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -126,7 +125,7 @@ namespace Unit {
      * together with a tranformation (rotation and translation)
      * that is dynamically applied to the underlying atom set.
      *
-     * An atom set can be referenced by multiple diffrent units which
+     * An atom set can be referenced by multiple different units which
      * makes construction of assemblies and spacegroups very efficient.
      */
     export class Atomic implements Base {
@@ -191,6 +190,12 @@ namespace Unit {
             return this.props.nucleotideElements.ref;
         }
 
+        get proteinElements() {
+            if (this.props.proteinElements.ref) return this.props.proteinElements.ref;
+            this.props.proteinElements.ref = getProteinElements(this);
+            return this.props.proteinElements.ref;
+        }
+
         getResidueIndex(elementIndex: StructureElement.UnitIndex) {
             return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
         }
@@ -215,6 +220,7 @@ namespace Unit {
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
         nucleotideElements: ValueRef<SortedArray<ElementIndex> | undefined>
+        proteinElements: ValueRef<SortedArray<ElementIndex> | undefined>
     }
 
     function AtomicProperties(): AtomicProperties {
@@ -224,7 +230,8 @@ namespace Unit {
             rings: ValueRef.create(void 0),
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),
-            nucleotideElements: ValueRef.create(void 0)
+            nucleotideElements: ValueRef.create(void 0),
+            proteinElements: ValueRef.create(void 0),
         };
     }
 
