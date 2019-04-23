@@ -18,7 +18,6 @@ import { addTube } from 'mol-geo/geometry/mesh/builder/tube';
 import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
 import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
-import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
 
 export const PolymerTraceMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
@@ -123,7 +122,7 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
             )
 
             const computedSecondaryStructure = ComputedSecondaryStructure.get(newStructureGroup.structure)
-            if ((state.info.computedSecondaryStructure as SecondaryStructure) !== computedSecondaryStructure) {
+            if ((state.info.computedSecondaryStructure as ComputedSecondaryStructure.Property) !== computedSecondaryStructure) {
                 state.createGeometry = true;
                 state.info.computedSecondaryStructure = computedSecondaryStructure
             }

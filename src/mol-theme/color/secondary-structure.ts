@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,7 +14,6 @@ import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from 'mol-util/color/tables';
 import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
-import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -42,12 +41,14 @@ export function getSecondaryStructureColorThemeParams(ctx: ThemeDataContext) {
     return SecondaryStructureColorThemeParams // TODO return copy
 }
 
-export function secondaryStructureColor(unit: Unit, element: ElementIndex, computedSecondaryStructure: SecondaryStructure | undefined): Color {
+export function secondaryStructureColor(unit: Unit, element: ElementIndex, computedSecondaryStructure: ComputedSecondaryStructure.Property | undefined): Color {
     let secStrucType = SecondaryStructureType.create(SecondaryStructureType.Flag.None)
     if (Unit.isAtomic(unit)) {
-        secStrucType = computedSecondaryStructure ?
-            computedSecondaryStructure.type[unit.residueIndex[element]] :
-            unit.model.properties.secondaryStructure.type[unit.residueIndex[element]]
+        secStrucType = unit.model.properties.secondaryStructure.type[unit.residueIndex[element]]
+        if (computedSecondaryStructure) {
+            const secondaryStructure = computedSecondaryStructure.map.get(unit.invariantId)
+            if (secondaryStructure) secStrucType = secondaryStructure.type[unit.residueIndex[element]]
+        }
     }
 
     if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Helix)) {

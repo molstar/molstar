@@ -7,10 +7,9 @@
 
 import { BitFlags } from 'mol-util';
 import { SecondaryStructureType } from 'mol-model/structure/model/types';
-import { AtomicHierarchy, AtomicConformation } from 'mol-model/structure/model/properties/atomic';
-import { SortedArray } from 'mol-data/int';
-import { ResidueIndex, ElementIndex } from 'mol-model/structure';
 import { IntAdjacencyGraph } from 'mol-math/graph';
+import { Unit } from 'mol-model/structure/structure';
+import { ProteinInfo } from './protein-info';
 
 export interface DSSPContext {
     params: {
@@ -20,15 +19,13 @@ export interface DSSPContext {
     getResidueFlag: (f: DSSPType) => SecondaryStructureType,
     getFlagName: (f: DSSPType) => String,
 
-    hierarchy: AtomicHierarchy
-    proteinResidues: SortedArray<ResidueIndex>
+    unit: Unit.Atomic
+    proteinInfo: ProteinInfo
     /** flags for each residue */
     flags: Uint32Array
     hbonds: DsspHbonds,
 
     torsionAngles: { phi: Float32Array, psi: Float32Array },
-    backboneIndices: BackboneAtomIndices,
-    conformation: AtomicConformation,
     ladders: Ladder[],
     bridges: Bridge[]
 }
@@ -54,13 +51,6 @@ namespace DSSPType {
         T4S = 0x800,
         T5S = 0x1000
     }
-}
-
-export interface BackboneAtomIndices {
-    cIndices: ArrayLike<ElementIndex | -1>
-    hIndices: ArrayLike<ElementIndex | -1>
-    oIndices: ArrayLike<ElementIndex | -1>
-    nIndices: ArrayLike<ElementIndex | -1>
 }
 
 export type DsspHbonds = IntAdjacencyGraph<{ readonly energies: ArrayLike<number> }>

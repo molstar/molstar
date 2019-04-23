@@ -6,12 +6,19 @@
 
 import { CustomPropertyDescriptor, Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
-import { DSSPComputationParams, computeModelDSSP } from './secondary-structure/dssp';
+import { DSSPComputationParams, computeUnitDSSP } from './secondary-structure/dssp';
 import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { Unit } from 'mol-model/structure/structure';
+import { idFactory } from 'mol-util/id-factory';
+
+const nextSecondaryStructureId = idFactory()
 
 export namespace ComputedSecondaryStructure {
-    export type Property = SecondaryStructure
+    export type Property = {
+        id: number
+        map: Map<number, SecondaryStructure>
+    }
 
     export function get(structure: Structure): Property | undefined {
         return structure.inheritedPropertyData.__ComputedSecondaryStructure__;
@@ -36,7 +43,7 @@ export namespace ComputedSecondaryStructure {
     export async function attachFromCifOrCompute(structure: Structure, params: Partial<SecondaryStructureComputationProps> = {}) {
         if (structure.customPropertyDescriptors.has(Descriptor)) return true;
 
-        const compSecStruc = computeSecondaryStructure(structure, params)
+        const compSecStruc = await computeSecondaryStructure(structure, params)
 
         structure.customPropertyDescriptors.add(Descriptor);
         set(structure, compSecStruc);
@@ -50,9 +57,17 @@ export const SecondaryStructureComputationParams = {
 export type SecondaryStructureComputationParams = typeof SecondaryStructureComputationParams
 export type SecondaryStructureComputationProps = PD.Values<SecondaryStructureComputationParams>
 
-function computeSecondaryStructure(structure: Structure, params: Partial<SecondaryStructureComputationProps>): ComputedSecondaryStructure.Property {
-    // TODO compute from structure not from model
+async function computeSecondaryStructure(structure: Structure, params: Partial<SecondaryStructureComputationProps>): Promise<ComputedSecondaryStructure.Property> {
+    const p = { ...PD.getDefaultValues(SecondaryStructureComputationParams), params }
+    // TODO take inter-unit hbonds into account
     // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
-    const { atomicHierarchy, atomicConformation } = structure.model
-    return computeModelDSSP(atomicHierarchy, atomicConformation, params)
+    const map = new Map<number, SecondaryStructure>()
+    for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
+        const u = structure.unitSymmetryGroups[i].units[0]
+        if (Unit.isAtomic(u)) {
+            const secondaryStructure = await computeUnitDSSP(u, p)
+            map.set(u.invariantId, secondaryStructure)
+        }
+    }
+    return { id: nextSecondaryStructureId(), map }
 }

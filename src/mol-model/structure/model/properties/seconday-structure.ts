@@ -1,17 +1,13 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { SecondaryStructureType } from '../types';
-import { idFactory } from 'mol-util/id-factory';
-
-const getNextSecondaryStructureId = idFactory()
 
 /** Secondary structure "indexed" by residues. */
 interface SecondaryStructure {
-    readonly id: number
     readonly type: ArrayLike<SecondaryStructureType>,
     /** index into the elements array */
     readonly key: ArrayLike<number>,
@@ -20,7 +16,7 @@ interface SecondaryStructure {
 }
 
 function SecondaryStructure(type: SecondaryStructure['type'], key: SecondaryStructure['key'], elements: SecondaryStructure['elements']) {
-    return { id: getNextSecondaryStructureId(), type, key, elements }
+    return { type, key, elements }
 }
 
 namespace SecondaryStructure {

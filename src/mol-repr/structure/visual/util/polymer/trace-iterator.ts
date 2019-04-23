@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -249,8 +249,12 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.value = createPolymerTraceElement(unit)
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
 
+        this.secondaryStructureType = unit.model.properties.secondaryStructure.type
         const computedSecondaryStructure = ComputedSecondaryStructure.get(structure)
-        this.secondaryStructureType = (computedSecondaryStructure && computedSecondaryStructure.type) || unit.model.properties.secondaryStructure.type
+        if (computedSecondaryStructure) {
+            const secondaryStructure = computedSecondaryStructure.map.get(unit.invariantId)
+            if (secondaryStructure) this.secondaryStructureType = secondaryStructure.type
+        }
     }
 }
 

@@ -16,22 +16,12 @@ import { DSSPContext, DSSPType } from './common';
  * Type: T
  */
 export function assignTurns(ctx: DSSPContext) {
-    const { proteinResidues, hbonds, flags, hierarchy } = ctx
-    const { chains, residueAtomSegments, chainAtomSegments } = hierarchy
-    const { label_asym_id } = chains
+    const { proteinInfo, hbonds, flags } = ctx
 
     const turnFlag = [DSSPType.Flag.T3S, DSSPType.Flag.T4S, DSSPType.Flag.T5S, DSSPType.Flag.T3, DSSPType.Flag.T4, DSSPType.Flag.T5]
 
     for (let idx = 0; idx < 3; idx++) {
-        for (let i = 0, il = proteinResidues.length - 1; i < il; ++i) {
-            const rI = proteinResidues[i]
-            const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]]
-
-            // TODO should take sequence gaps into account
-            const rN = proteinResidues[i + idx + 3]
-            const cN = chainAtomSegments.index[residueAtomSegments.offsets[rN]]
-            // check if on same chain
-            if (!label_asym_id.areValuesEqual(cI, cN)) continue
+        for (let i = 0, il = proteinInfo.residueIndices.length - 1; i < il; ++i) {
 
             // check if hbond exists
             if (hbonds.getDirectedEdgeIndex(i, i + idx + 3) !== -1) {

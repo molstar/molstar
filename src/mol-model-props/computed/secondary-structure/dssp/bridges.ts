@@ -24,12 +24,12 @@ import { DSSPContext, DSSPType, BridgeType, Bridge } from './common';
  * Type: B
  */
 export function assignBridges(ctx: DSSPContext) {
-    const { proteinResidues, hbonds, flags, bridges } = ctx
+    const { proteinInfo, hbonds, flags, bridges } = ctx
 
     const { offset, b } = hbonds
     let i: number, j: number
 
-    for (let k = 0, kl = proteinResidues.length; k < kl; ++k) {
+    for (let k = 0, kl = proteinInfo.residueIndices.length; k < kl; ++k) {
         for (let t = offset[k], _t = offset[k + 1]; t < _t; t++) {
             const l = b[t]
             if (k > l) continue

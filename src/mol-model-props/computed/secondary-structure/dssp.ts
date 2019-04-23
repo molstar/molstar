@@ -8,18 +8,18 @@
 import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
 import { SecondaryStructureType } from 'mol-model/structure/model/types';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { AtomicHierarchy, AtomicConformation } from 'mol-model/structure/model/properties/atomic';
 import { assignBends } from './dssp/bends';
-import { calcBackboneHbonds } from './dssp/backbone-hbonds';
+import { calcUnitBackboneHbonds } from './dssp/backbone-hbonds';
 import { Ladder, Bridge, DSSPContext, DSSPType } from './dssp/common';
 import { assignTurns } from './dssp/turns';
 import { assignHelices } from './dssp/helices';
 import { assignLadders } from './dssp/ladders';
 import { assignBridges } from './dssp/bridges';
 import { assignSheets } from './dssp/sheets';
-import { calculateDihedralAngles } from './dssp/dihedral-angles';
-import { calcBackboneAtomIndices } from './dssp/backbone-indices';
-import { calcAtomicTraceLookup3D } from './dssp/trace-lookup';
+import { calculateUnitDihedralAngles } from './dssp/dihedral-angles';
+import { calcUnitProteinTraceLookup3D } from './dssp/trace-lookup';
+import { Unit } from 'mol-model/structure';
+import { getUnitProteinInfo } from './dssp/protein-info';
 
 /**
  * TODO bugs to fix:
@@ -36,19 +36,20 @@ export const DSSPComputationParams = {
 export type DSSPComputationParams = typeof DSSPComputationParams
 export type DSSPComputationProps = PD.Values<DSSPComputationParams>
 
-export function computeModelDSSP(hierarchy: AtomicHierarchy, conformation: AtomicConformation, params: Partial<DSSPComputationProps> = {}): SecondaryStructure {
-    const p = { ...PD.getDefaultValues(DSSPComputationParams), ...params };
+export async function computeUnitDSSP(unit: Unit.Atomic, params: DSSPComputationProps): Promise<SecondaryStructure> {
 
-    const { lookup3d, proteinResidues } = calcAtomicTraceLookup3D(hierarchy, conformation)
-    const backboneIndices = calcBackboneAtomIndices(hierarchy, proteinResidues)
-    const hbonds = calcBackboneHbonds(hierarchy, conformation, proteinResidues, backboneIndices, lookup3d)
+    const proteinInfo = getUnitProteinInfo(unit)
+    const { residueIndices } = proteinInfo
+    const lookup3d = calcUnitProteinTraceLookup3D(unit, residueIndices)
 
-    const residueCount = proteinResidues.length
+    const hbonds = calcUnitBackboneHbonds(unit, proteinInfo, lookup3d)
+
+    const residueCount = residueIndices.length
     const flags = new Uint32Array(residueCount)
 
     // console.log(`calculating secondary structure elements using ${ params.oldDefinition ? 'old' : 'revised'} definition and ${ params.oldOrdering ? 'old' : 'revised'} ordering of secondary structure elements`)
 
-    const torsionAngles = calculateDihedralAngles(hierarchy, conformation, proteinResidues, backboneIndices)
+    const torsionAngles = calculateUnitDihedralAngles(unit, proteinInfo)
 
     const ladders: Ladder[] = []
     const bridges: Bridge[] = []
@@ -57,18 +58,16 @@ export function computeModelDSSP(hierarchy: AtomicHierarchy, conformation: Atomi
     const getFlagName = params.oldOrdering ? getOriginalFlagName : getUpdatedFlagName
 
     const ctx: DSSPContext = {
-        params: p,
+        params,
         getResidueFlag,
         getFlagName,
 
-        hierarchy,
-        proteinResidues,
+        unit,
+        proteinInfo,
         flags,
         hbonds,
 
         torsionAngles,
-        backboneIndices,
-        conformation,
         ladders,
         bridges
     }
@@ -81,13 +80,13 @@ export function computeModelDSSP(hierarchy: AtomicHierarchy, conformation: Atomi
     assignSheets(ctx)
 
     const assignment = getDSSPAssignment(flags, getResidueFlag)
-    const type = new Uint32Array(hierarchy.residues._rowCount) as unknown as SecondaryStructureType[]
+    const type = new Uint32Array(residueCount) as unknown as SecondaryStructureType[]
     const keys: number[] = []
     const elements: SecondaryStructure.Element[] = []
 
-    for (let i = 0, il = proteinResidues.length; i < il; ++i) {
+    for (let i = 0, il = residueIndices.length; i < il; ++i) {
         const assign = assignment[i]
-        type[proteinResidues[i]] = assign
+        type[residueIndices[i]] = assign
         const flag = getResidueFlag(flags[i])
         // TODO is this expected behavior? elements will be strictly split depending on 'winning' flag
         if (elements.length === 0 /* would fail at very start */ || flag !== (elements[elements.length - 1] as SecondaryStructure.Helix | SecondaryStructure.Sheet | SecondaryStructure.Turn).flags /* flag changed */) {
@@ -95,6 +94,7 @@ export function computeModelDSSP(hierarchy: AtomicHierarchy, conformation: Atomi
         }
         keys[i] = elements.length - 1
     }
+    // TODO expose model to unit residueIndex mapping
 
     return SecondaryStructure(type, keys, elements)
 }

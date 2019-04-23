@@ -19,7 +19,8 @@ import { DSSPContext, DSSPType } from './common';
  * Type: G (n=3), H (n=4), I (n=5)
  */
 export function assignHelices(ctx: DSSPContext) {
-    const { proteinResidues, flags } = ctx
+    const { proteinInfo, flags } = ctx
+    const residueCount = proteinInfo.residueIndices.length
 
     const turnFlag = [DSSPType.Flag.T3S, DSSPType.Flag.T4S, DSSPType.Flag.T5S, DSSPType.Flag.T3, DSSPType.Flag.T4, DSSPType.Flag.T5]
     const helixFlag = [0, 0, 0, DSSPType.Flag.G, DSSPType.Flag.H, DSSPType.Flag.I]
@@ -28,7 +29,7 @@ export function assignHelices(ctx: DSSPContext) {
     for (let ni = 0; ni < helixCheckOrder.length; ni++) {
         const n = helixCheckOrder[ni]
 
-        for (let i = 1, il = proteinResidues.length - n; i < il; i++) {
+        for (let i = 1, il = residueCount - n; i < il; i++) {
             const fI = DSSPType.create(flags[i])
             const fI1 = DSSPType.create(flags[i - 1])
             const fI2 = DSSPType.create(flags[i + 1])

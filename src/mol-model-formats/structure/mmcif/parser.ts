@@ -200,7 +200,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIn
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
-            secondaryStructure: getSecondaryStructure(format.data, atomic.hierarchy, atomic.conformation),
+            secondaryStructure: getSecondaryStructure(format.data, atomic.hierarchy),
             ...formatData
         },
         customProperties: new CustomProperties(),
@@ -226,7 +226,7 @@ function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatD
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
-            secondaryStructure: getSecondaryStructure(format.data, atomic.hierarchy, atomic.conformation),
+            secondaryStructure: getSecondaryStructure(format.data, atomic.hierarchy),
             ...formatData
         },
         customProperties: new CustomProperties(),

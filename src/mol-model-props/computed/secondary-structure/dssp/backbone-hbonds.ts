@@ -5,13 +5,13 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { AtomicHierarchy, AtomicConformation } from 'mol-model/structure/model/properties/atomic';
-import { SortedArray } from 'mol-data/int';
 import { IntAdjacencyGraph } from 'mol-math/graph';
-import { ResidueIndex } from 'mol-model/structure';
+import { Unit } from 'mol-model/structure';
 import { GridLookup3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { DsspHbonds, BackboneAtomIndices } from './common';
+import { DsspHbonds } from './common';
+import { ProteinInfo } from './protein-info';
+import { ElementIndex } from 'mol-model/structure/model';
 
 /** max distance between two C-alpha atoms to check for hbond */
 const caMaxDist = 9.0;
@@ -53,14 +53,14 @@ function calcHbondEnergy(oPos: Vec3, cPos: Vec3, nPos: Vec3, hPos: Vec3) {
     return e
 }
 
-export function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: AtomicConformation, proteinResidues: SortedArray<ResidueIndex>, backboneIndices: BackboneAtomIndices, lookup3d: GridLookup3D): DsspHbonds {
-    const { cIndices, hIndices, nIndices, oIndices } = backboneIndices
-    const { index } = hierarchy
-    const { x, y, z } = conformation
-    const { traceElementIndex } = hierarchy.derived.residue
+export function calcUnitBackboneHbonds(unit: Unit.Atomic, proteinInfo: ProteinInfo, lookup3d: GridLookup3D): DsspHbonds {
+    const { residueIndices, cIndices, hIndices, nIndices, oIndices } = proteinInfo
 
-    const residueCount = proteinResidues.length
-    const position = (i: number, v: Vec3) => Vec3.set(v, x[i], y[i], z[i])
+    const { index } = unit.model.atomicHierarchy
+    const { invariantPosition } = unit.conformation
+    const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue
+
+    const residueCount = residueIndices.length
 
     const oAtomResidues: number[] = [];
     const nAtomResidues: number[] = [];
@@ -75,9 +75,9 @@ export function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: Ato
     const cPosPrev = Vec3()
     const oPosPrev = Vec3()
 
-    for (let i = 0, il = proteinResidues.length; i < il; ++i) {
+    for (let i = 0, il = residueIndices.length; i < il; ++i) {
         const oPI = i
-        const oRI = proteinResidues[i]
+        const oRI = residueIndices[i]
 
         const oAtom = oIndices[oPI]
         const cAtom = cIndices[oPI]
@@ -89,22 +89,22 @@ export function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: Ato
         // ignore C-terminal residue as acceptor
         if (index.findAtomOnResidue(oRI, 'OXT') !== -1) continue
 
-        position(oAtom, oPos)
-        position(cAtom, cPos)
-        position(caAtom, caPos)
+        invariantPosition(oAtom, oPos)
+        invariantPosition(cAtom, cPos)
+        invariantPosition(caAtom as ElementIndex, caPos)
 
         const { indices, count } = lookup3d.find(caPos[0], caPos[1], caPos[2], caMaxDist)
 
         for (let j = 0; j < count; ++j) {
             const nPI = indices[j]
 
-            // ignore bonds within a residue or to prev or next residue, TODO take chain border into account
+            // ignore bonds within a residue or to prev or next residue
             if (nPI === oPI || nPI - 1 === oPI || nPI + 1 === oPI) continue
 
             const nAtom = nIndices[nPI]
             if (nAtom === -1) continue
 
-            position(nAtom, nPos)
+            invariantPosition(nAtom, nPos)
 
             const hAtom = hIndices[nPI]
             if (hAtom === -1) {
@@ -116,14 +116,14 @@ export function calcBackboneHbonds(hierarchy: AtomicHierarchy, conformation: Ato
                 const cAtomPrev = cIndices[nPIprev]
                 if (oAtomPrev === -1 || cAtomPrev === -1) continue
 
-                position(oAtomPrev, oPosPrev)
-                position(cAtomPrev, cPosPrev)
+                invariantPosition(oAtomPrev, oPosPrev)
+                invariantPosition(cAtomPrev, cPosPrev)
 
                 Vec3.sub(hPos, cPosPrev, oPosPrev)
                 const dist = Vec3.distance(oPosPrev, cPosPrev)
                 Vec3.scaleAndAdd(hPos, nPos, hPos, 1 / dist)
             } else {
-                position(hAtom, hPos)
+                invariantPosition(hAtom, hPos)
             }
 
             const e = calcHbondEnergy(oPos, cPos, nPos, hPos)

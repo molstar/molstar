@@ -15,7 +15,7 @@ import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
 import { MolecularSurfaceRepresentationProvider } from 'mol-repr/structure/representation/molecular-surface';
 import { BallAndStickRepresentationProvider } from 'mol-repr/structure/representation/ball-and-stick';
 import { GaussianSurfaceRepresentationProvider } from 'mol-repr/structure/representation/gaussian-surface';
-import { computeModelDSSP } from 'mol-model-props/computed/secondary-structure/dssp';
+import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -79,11 +79,10 @@ function getGaussianSurfaceRepr() {
 async function init() {
     const cif = await downloadFromPdb('1crn')
     const models = await getModels(cif)
-    console.time('computeModelDSSP')
-    const secondaryStructure = computeModelDSSP(models[0].atomicHierarchy, models[0].atomicConformation)
-    console.timeEnd('computeModelDSSP');
-    (models[0].properties as any).secondaryStructure = secondaryStructure
     const structure = await getStructure(models[0])
+    console.time('computeDSSP')
+    await ComputedSecondaryStructure.attachFromCifOrCompute(structure)
+    console.timeEnd('computeDSSP');
 
     const show = {
         cartoon: false,
