@@ -31,7 +31,7 @@ import { SetUtils } from 'mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { createTexture } from 'mol-gl/webgl/texture';
 import { ValueCell } from 'mol-util';
-import { getSSAOPassRenderable, SSAOPassParams } from './passes/ssao-pass';
+import { getPostprocessingRenderable, PostprocessingParams } from './helper/postprocessing';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -41,7 +41,7 @@ export const Canvas3DParams = {
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
 
-    ambientOcclusion: PD.Group(SSAOPassParams),
+    postprocessing: PD.Group(PostprocessingParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
     debug: PD.Group(DebugHelperParams)
@@ -126,7 +126,7 @@ namespace Canvas3D {
         const depthTexture = createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
         depthTexture.define(canvas.width, canvas.height)
         depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
-        const ssaoPass = getSSAOPassRenderable(webgl, drawTarget.texture, depthTexture, p.ambientOcclusion)
+        const postprocessing = getPostprocessingRenderable(webgl, drawTarget.texture, depthTexture, p.postprocessing)
 
         let pickScale = 0.25 / webgl.pixelRatio
         let pickWidth = Math.round(canvas.width * pickScale)
@@ -213,6 +213,7 @@ namespace Canvas3D {
             // TODO: is this a good fix? Also, setClipping does not work if the user has manually set a clipping plane.
             if (!camera.transition.inTransition) setClipping();
             const cameraChanged = camera.updateMatrices();
+            const postprocessingEnabled = p.postprocessing.occlusionEnable || p.postprocessing.outlineEnable
 
             if (force || cameraChanged) {
                 switch (variant) {
@@ -227,17 +228,23 @@ namespace Canvas3D {
                         break;
                     case 'draw':
                         renderer.setViewport(0, 0, canvas.width, canvas.height);
-                        drawTarget.bind()
+                        if (postprocessingEnabled) {
+                            drawTarget.bind()
+                        } else {
+                            webgl.unbindFramebuffer();
+                        }
                         renderer.render(scene, 'draw');
                         if (debugHelper.isEnabled) {
                             debugHelper.syncVisibility()
                             renderer.render(debugHelper.scene, 'draw')
                         }
-                        webgl.unbindFramebuffer();
-                        webgl.state.disable(webgl.gl.SCISSOR_TEST)
-                        webgl.state.disable(webgl.gl.BLEND)
-                        webgl.state.disable(webgl.gl.DEPTH_TEST)
-                        ssaoPass.render()
+                        if (postprocessingEnabled) {
+                            webgl.unbindFramebuffer();
+                            webgl.state.disable(webgl.gl.SCISSOR_TEST)
+                            webgl.state.disable(webgl.gl.BLEND)
+                            webgl.state.disable(webgl.gl.DEPTH_TEST)
+                            postprocessing.render()
+                        }
                         pickDirty = true
                         break;
                 }
@@ -411,34 +418,40 @@ namespace Canvas3D {
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
-                if (props.ambientOcclusion) {
-                    if (props.ambientOcclusion.enable !== undefined) {
-                        p.ambientOcclusion.enable = props.ambientOcclusion.enable
-                        ValueCell.update(ssaoPass.values.uEnable, props.ambientOcclusion.enable ? 1 : 0)
+                if (props.postprocessing) {
+                    if (props.postprocessing.occlusionEnable !== undefined) {
+                        p.postprocessing.occlusionEnable = props.postprocessing.occlusionEnable
+                        ValueCell.update(postprocessing.values.dOcclusionEnable, props.postprocessing.occlusionEnable)
                     }
-                    if (props.ambientOcclusion.kernelSize !== undefined) {
-                        p.ambientOcclusion.kernelSize = props.ambientOcclusion.kernelSize
-                        ValueCell.update(ssaoPass.values.uKernelSize, props.ambientOcclusion.kernelSize)
+                    if (props.postprocessing.occlusionKernelSize !== undefined) {
+                        p.postprocessing.occlusionKernelSize = props.postprocessing.occlusionKernelSize
+                        ValueCell.update(postprocessing.values.uOcclusionKernelSize, props.postprocessing.occlusionKernelSize)
                     }
-                    if (props.ambientOcclusion.bias !== undefined) {
-                        p.ambientOcclusion.bias = props.ambientOcclusion.bias
-                        ValueCell.update(ssaoPass.values.uBias, props.ambientOcclusion.bias)
+                    if (props.postprocessing.occlusionBias !== undefined) {
+                        p.postprocessing.occlusionBias = props.postprocessing.occlusionBias
+                        ValueCell.update(postprocessing.values.uOcclusionBias, props.postprocessing.occlusionBias)
                     }
-                    if (props.ambientOcclusion.radius !== undefined) {
-                        p.ambientOcclusion.radius = props.ambientOcclusion.radius
-                        ValueCell.update(ssaoPass.values.uRadius, props.ambientOcclusion.radius)
+                    if (props.postprocessing.occlusionRadius !== undefined) {
+                        p.postprocessing.occlusionRadius = props.postprocessing.occlusionRadius
+                        ValueCell.update(postprocessing.values.uOcclusionRadius, props.postprocessing.occlusionRadius)
                     }
 
-                    if (props.ambientOcclusion.edgeScale !== undefined) {
-                        p.ambientOcclusion.edgeScale = props.ambientOcclusion.edgeScale
-                        ValueCell.update(ssaoPass.values.uEdgeScale, props.ambientOcclusion.edgeScale * webgl.pixelRatio)
+                    if (props.postprocessing.outlineEnable !== undefined) {
+                        p.postprocessing.outlineEnable = props.postprocessing.outlineEnable
+                        ValueCell.update(postprocessing.values.dOutlineEnable, props.postprocessing.outlineEnable)
                     }
-                    if (props.ambientOcclusion.edgeThreshold !== undefined) {
-                        p.ambientOcclusion.edgeThreshold = props.ambientOcclusion.edgeThreshold
-                        ValueCell.update(ssaoPass.values.uEdgeThreshold, props.ambientOcclusion.edgeThreshold)
+                    if (props.postprocessing.outlineScale !== undefined) {
+                        p.postprocessing.outlineScale = props.postprocessing.outlineScale
+                        ValueCell.update(postprocessing.values.uOutlineScale, props.postprocessing.outlineScale * webgl.pixelRatio)
                     }
+                    if (props.postprocessing.outlineThreshold !== undefined) {
+                        p.postprocessing.outlineThreshold = props.postprocessing.outlineThreshold
+                        ValueCell.update(postprocessing.values.uOutlineThreshold, props.postprocessing.outlineThreshold)
+                    }
+
+                    postprocessing.update()
                 }
-                
+
                 if (props.renderer) renderer.setProps(props.renderer)
                 if (props.trackball) controls.setProps(props.trackball)
                 if (props.debug) debugHelper.setProps(props.debug)
@@ -452,7 +465,7 @@ namespace Canvas3D {
                     clip: p.clip,
                     fog: p.fog,
 
-                    ambientOcclusion: { ...p.ambientOcclusion },
+                    postprocessing: { ...p.postprocessing },
                     renderer: { ...renderer.props },
                     trackball: { ...controls.props },
                     debug: { ...debugHelper.props }
@@ -486,7 +499,7 @@ namespace Canvas3D {
 
             drawTarget.setSize(canvas.width, canvas.height)
             depthTexture.define(canvas.width, canvas.height)
-            ValueCell.update(ssaoPass.values.uTexSize, Vec2.set(ssaoPass.values.uTexSize.ref.value, canvas.width, canvas.height))
+            ValueCell.update(postprocessing.values.uTexSize, Vec2.set(postprocessing.values.uTexSize.ref.value, canvas.width, canvas.height))
 
             pickScale = 0.25 / webgl.pixelRatio
             pickWidth = Math.round(canvas.width * pickScale)
