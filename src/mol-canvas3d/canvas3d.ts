@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { now } from 'mol-util/now';
 
-import { Vec3 } from 'mol-math/linear-algebra'
+import { Vec3, Vec2 } from 'mol-math/linear-algebra'
 import InputObserver, { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer'
 import Renderer, { RendererStats, RendererParams } from 'mol-gl/renderer'
 import { GraphicsRenderObject } from 'mol-gl/render-object'
@@ -29,6 +29,9 @@ import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-spher
 import { decodeFloatRGB } from 'mol-util/float-packing';
 import { SetUtils } from 'mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
+import { createTexture } from 'mol-gl/webgl/texture';
+import { ValueCell } from 'mol-util';
+import { getSSAOPassRenderable, SSAOPassParams } from './passes/ssao-pass';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -37,6 +40,8 @@ export const Canvas3DParams = {
     cameraClipDistance: PD.Numeric(0, { min: 0.0, max: 50.0, step: 0.1 }, { description: 'The distance between camera and scene at which to clip regardless of near clipping plane.' }),
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
+
+    ambientOcclusion: PD.Group(SSAOPassParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
     debug: PD.Group(DebugHelperParams)
@@ -57,7 +62,7 @@ interface Canvas3D {
     requestDraw: (force?: boolean) => void
     animate: () => void
     pick: () => void
-    identify: (x: number, y: number) => Promise<PickingId | undefined>
+    identify: (x: number, y: number) => PickingId | undefined
     mark: (loci: Representation.Loci, action: MarkerAction) => void
     getLoci: (pickingId: PickingId) => Representation.Loci
 
@@ -116,6 +121,12 @@ namespace Canvas3D {
         const scene = Scene.create(webgl)
         const controls = TrackballControls.create(input, camera, p.trackball)
         const renderer = Renderer.create(webgl, camera, p.renderer)
+
+        const drawTarget = createRenderTarget(webgl, canvas.width, canvas.height)
+        const depthTexture = createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
+        depthTexture.define(canvas.width, canvas.height)
+        depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
+        const ssaoPass = getSSAOPassRenderable(webgl, drawTarget.texture, depthTexture, p.ambientOcclusion)
 
         let pickScale = 0.25 / webgl.pixelRatio
         let pickWidth = Math.round(canvas.width * pickScale)
@@ -215,13 +226,18 @@ namespace Canvas3D {
                         renderer.render(scene, 'pickGroup');
                         break;
                     case 'draw':
-                        webgl.unbindFramebuffer();
                         renderer.setViewport(0, 0, canvas.width, canvas.height);
-                        renderer.render(scene, variant);
+                        drawTarget.bind()
+                        renderer.render(scene, 'draw');
                         if (debugHelper.isEnabled) {
                             debugHelper.syncVisibility()
                             renderer.render(debugHelper.scene, 'draw')
                         }
+                        webgl.unbindFramebuffer();
+                        webgl.state.disable(webgl.gl.SCISSOR_TEST)
+                        webgl.state.disable(webgl.gl.BLEND)
+                        webgl.state.disable(webgl.gl.DEPTH_TEST)
+                        ssaoPass.render()
                         pickDirty = true
                         break;
                 }
@@ -263,7 +279,8 @@ namespace Canvas3D {
             }
         }
 
-        async function identify(x: number, y: number): Promise<PickingId | undefined> {
+        const readBuffer = new Uint8Array(4)
+        function identify(x: number, y: number): PickingId | undefined {
             if (isIdentifying) return
 
             pick() // must be called before setting `isIdentifying = true`
@@ -273,27 +290,22 @@ namespace Canvas3D {
             y *= webgl.pixelRatio
             y = canvas.height - y // flip y
 
-            const buffer = new Uint8Array(4)
             const xp = Math.round(x * pickScale)
             const yp = Math.round(y * pickScale)
 
             objectPickTarget.bind()
-            // TODO slow in Chrome, ok in FF; doesn't play well with gpu surface calc
-            // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
-            webgl.readPixels(xp, yp, 1, 1, buffer)
-            const objectId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
+            webgl.readPixels(xp, yp, 1, 1, readBuffer)
+            const objectId = decodeFloatRGB(readBuffer[0], readBuffer[1], readBuffer[2])
             if (objectId === -1) { isIdentifying = false; return; }
 
             instancePickTarget.bind()
-            // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
-            webgl.readPixels(xp, yp, 1, 1, buffer)
-            const instanceId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
+            webgl.readPixels(xp, yp, 1, 1, readBuffer)
+            const instanceId = decodeFloatRGB(readBuffer[0], readBuffer[1], readBuffer[2])
             if (instanceId === -1) { isIdentifying = false; return; }
 
             groupPickTarget.bind()
-            // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
-            webgl.readPixels(xp, yp, 1, 1, buffer)
-            const groupId = decodeFloatRGB(buffer[0], buffer[1], buffer[2])
+            webgl.readPixels(xp, yp, 1, 1, readBuffer)
+            const groupId = decodeFloatRGB(readBuffer[0], readBuffer[1], readBuffer[2])
             if (groupId === -1) { isIdentifying = false; return; }
 
             isIdentifying = false
@@ -399,6 +411,34 @@ namespace Canvas3D {
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
+                if (props.ambientOcclusion) {
+                    if (props.ambientOcclusion.enable !== undefined) {
+                        p.ambientOcclusion.enable = props.ambientOcclusion.enable
+                        ValueCell.update(ssaoPass.values.uEnable, props.ambientOcclusion.enable ? 1 : 0)
+                    }
+                    if (props.ambientOcclusion.kernelSize !== undefined) {
+                        p.ambientOcclusion.kernelSize = props.ambientOcclusion.kernelSize
+                        ValueCell.update(ssaoPass.values.uKernelSize, props.ambientOcclusion.kernelSize)
+                    }
+                    if (props.ambientOcclusion.bias !== undefined) {
+                        p.ambientOcclusion.bias = props.ambientOcclusion.bias
+                        ValueCell.update(ssaoPass.values.uBias, props.ambientOcclusion.bias)
+                    }
+                    if (props.ambientOcclusion.radius !== undefined) {
+                        p.ambientOcclusion.radius = props.ambientOcclusion.radius
+                        ValueCell.update(ssaoPass.values.uRadius, props.ambientOcclusion.radius)
+                    }
+
+                    if (props.ambientOcclusion.edgeScale !== undefined) {
+                        p.ambientOcclusion.edgeScale = props.ambientOcclusion.edgeScale
+                        ValueCell.update(ssaoPass.values.uEdgeScale, props.ambientOcclusion.edgeScale * webgl.pixelRatio)
+                    }
+                    if (props.ambientOcclusion.edgeThreshold !== undefined) {
+                        p.ambientOcclusion.edgeThreshold = props.ambientOcclusion.edgeThreshold
+                        ValueCell.update(ssaoPass.values.uEdgeThreshold, props.ambientOcclusion.edgeThreshold)
+                    }
+                }
+                
                 if (props.renderer) renderer.setProps(props.renderer)
                 if (props.trackball) controls.setProps(props.trackball)
                 if (props.debug) debugHelper.setProps(props.debug)
@@ -411,6 +451,8 @@ namespace Canvas3D {
                     cameraClipDistance: p.cameraClipDistance,
                     clip: p.clip,
                     fog: p.fog,
+
+                    ambientOcclusion: { ...p.ambientOcclusion },
                     renderer: { ...renderer.props },
                     trackball: { ...controls.props },
                     debug: { ...debugHelper.props }
@@ -441,6 +483,10 @@ namespace Canvas3D {
             renderer.setViewport(0, 0, canvas.width, canvas.height)
             Viewport.set(camera.viewport, 0, 0, canvas.width, canvas.height)
             Viewport.set(controls.viewport, 0, 0, canvas.width, canvas.height)
+
+            drawTarget.setSize(canvas.width, canvas.height)
+            depthTexture.define(canvas.width, canvas.height)
+            ValueCell.update(ssaoPass.values.uTexSize, Vec2.set(ssaoPass.values.uTexSize.ref.value, canvas.width, canvas.height))
 
             pickScale = 0.25 / webgl.pixelRatio
             pickWidth = Math.round(canvas.width * pickScale)

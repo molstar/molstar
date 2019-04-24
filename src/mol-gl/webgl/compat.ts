@@ -221,3 +221,21 @@ export interface COMPAT_shader_texture_lod {
 export function getShaderTextureLod(gl: GLRenderingContext): COMPAT_shader_texture_lod | null {
     return isWebGL2(gl) ? {} : gl.getExtension('EXT_shader_texture_lod')
 }
+
+export interface COMPAT_depth_texture {
+    readonly UNSIGNED_INT_24_8: number;
+}
+
+export function getDepthTexture(gl: GLRenderingContext): COMPAT_depth_texture | null {
+    if(isWebGL2(gl)) {
+        return {
+            UNSIGNED_INT_24_8: gl.UNSIGNED_INT_24_8
+        }
+    } else {
+        const ext = gl.getExtension('WEBGL_depth_texture')
+        if (ext === null) return null
+        return {
+            UNSIGNED_INT_24_8: ext.UNSIGNED_INT_24_8_WEBGL
+        }
+    }
+}

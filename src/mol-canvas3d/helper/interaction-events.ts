@@ -38,9 +38,9 @@ export class Canvas3dInteractionHelper {
     private buttons: ButtonsType = ButtonsType.create(0);
     private modifiers: ModifiersKeys = ModifiersKeys.None;
 
-    private async identify(isClick: boolean, t: number) {
+    private identify(isClick: boolean, t: number) {
         if (this.lastX !== this.cX && this.lastY !== this.cY) {
-            this.id = await this.canvasIdentify(this.cX, this.cY);
+            this.id = this.canvasIdentify(this.cX, this.cY);
             this.lastX = this.cX;
             this.lastY = this.cY;
         }

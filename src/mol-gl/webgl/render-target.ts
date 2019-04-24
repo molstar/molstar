@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { WebGLContext, createImageData } from './context'
 import { idFactory } from 'mol-util/id-factory';
 import { createTexture, Texture } from './texture';
-import { createFramebuffer } from './framebuffer';
+import { createFramebuffer, Framebuffer } from './framebuffer';
 import { createRenderbuffer } from './renderbuffer';
 import { TextureImage } from '../renderable/util';
 import { Mutable } from 'mol-util/type-helpers';
@@ -20,6 +20,7 @@ export interface RenderTarget {
     readonly height: number
     readonly image: TextureImage<any>
     readonly texture: Texture
+    readonly framebuffer: Framebuffer
 
     /** binds framebuffer and sets viewport to rendertarget's width and height */
     bind: () => void
@@ -30,7 +31,7 @@ export interface RenderTarget {
     destroy: () => void
 }
 
-export function createRenderTarget (ctx: WebGLContext, _width: number, _height: number): RenderTarget {
+export function createRenderTarget (ctx: WebGLContext, _width: number, _height: number, enableDepthTexture: boolean = false): RenderTarget {
     const { gl, stats } = ctx
 
     const image: Mutable<TextureImage<Uint8Array>> = {
@@ -68,6 +69,7 @@ export function createRenderTarget (ctx: WebGLContext, _width: number, _height: 
         get height () { return _height },
         image,
         texture: targetTexture,
+        framebuffer,
 
         bind: () => {
             framebuffer.bind()
@@ -80,7 +82,6 @@ export function createRenderTarget (ctx: WebGLContext, _width: number, _height: 
             image.width = _width
             image.height = _height
             targetTexture.load(image)
-
             depthRenderbuffer.setSize(_width, _height)
         },
         readBuffer,
