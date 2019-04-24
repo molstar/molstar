@@ -11,6 +11,9 @@ uniform int uKernelSize;
 uniform float uBias;
 uniform float uRadius;
 
+uniform float uEdgeScale;
+uniform float uEdgeThreshold;
+
 const float noiseAmount = 0.0002;
 
 float noise(vec2 coords) {
@@ -31,11 +34,32 @@ float calcSSAO(in vec2 coords, in float depth) {
 			vec2 coordsDelta = coords + uRadius / float(uKernelSize) * vec2(float(i) / uTexSize.x, float(j) / uTexSize.y);
             coordsDelta += noiseAmount * (noise(coordsDelta) - 0.5) / uTexSize;
             coordsDelta = clamp(coordsDelta, 0.5 / uTexSize, 1.0 - 1.0 / uTexSize);
-			if (texture(tDepth, coordsDelta).r < depth) occlusionFactor += 1.0;
+			if (texture2D(tDepth, coordsDelta).r < depth) occlusionFactor += 1.0;
 		}
 	}
 
 	return occlusionFactor / float((2 * uKernelSize + 1) * (2 * uKernelSize + 1));
+}
+
+float calcEdgeDepth(in vec2 coords) {
+    vec2 invTexSize = 1.0 / uTexSize;
+    float halfScaleFloor = floor(uEdgeScale * 0.5);
+    float halfScaleCeil = ceil(uEdgeScale * 0.5);
+
+    vec2 bottomLeftUV = coords - invTexSize * halfScaleFloor;
+    vec2 topRightUV = coords + invTexSize * halfScaleCeil;  
+    vec2 bottomRightUV = coords + vec2(invTexSize.x * halfScaleCeil, -invTexSize.y * halfScaleFloor);
+    vec2 topLeftUV = coords + vec2(-invTexSize.x * halfScaleFloor, invTexSize.y * halfScaleCeil);
+
+    float depth0 = texture2D(tDepth, bottomLeftUV).r;
+    float depth1 = texture2D(tDepth, topRightUV).r;
+    float depth2 = texture2D(tDepth, bottomRightUV).r;
+    float depth3 = texture2D(tDepth, topLeftUV).r;
+
+    float depthFiniteDifference0 = depth1 - depth0;
+    float depthFiniteDifference1 = depth3 - depth2;
+
+    return sqrt(pow(depthFiniteDifference0, 2.0) + pow(depthFiniteDifference1, 2.0)) * 100.0;
 }
 
 void main(void) {
@@ -48,6 +72,8 @@ void main(void) {
 		float occlusionFactor = calcSSAO(coords, depth);
 		color = mix(color, vec4(0.0, 0.0, 0.0, 1.0), uBias * occlusionFactor);
 	}
+
+    color.rgb *= (step(calcEdgeDepth(coords), uEdgeThreshold));
 	
 	gl_FragColor = color;
 }

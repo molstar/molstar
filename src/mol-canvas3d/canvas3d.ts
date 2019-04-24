@@ -428,6 +428,15 @@ namespace Canvas3D {
                         p.ambientOcclusion.radius = props.ambientOcclusion.radius
                         ValueCell.update(ssaoPass.values.uRadius, props.ambientOcclusion.radius)
                     }
+
+                    if (props.ambientOcclusion.edgeScale !== undefined) {
+                        p.ambientOcclusion.edgeScale = props.ambientOcclusion.edgeScale
+                        ValueCell.update(ssaoPass.values.uEdgeScale, props.ambientOcclusion.edgeScale * webgl.pixelRatio)
+                    }
+                    if (props.ambientOcclusion.edgeThreshold !== undefined) {
+                        p.ambientOcclusion.edgeThreshold = props.ambientOcclusion.edgeThreshold
+                        ValueCell.update(ssaoPass.values.uEdgeThreshold, props.ambientOcclusion.edgeThreshold)
+                    }
                 }
                 
                 if (props.renderer) renderer.setProps(props.renderer)
