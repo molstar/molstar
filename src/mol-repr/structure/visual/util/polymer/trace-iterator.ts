@@ -14,6 +14,7 @@ import { CoarseSphereConformation, CoarseGaussianConformation } from 'mol-model/
 import { getPolymerRanges } from '../polymer';
 import { AtomicConformation } from 'mol-model/structure/model/properties/atomic';
 import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
+import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
 
 /**
  * Iterates over individual residues/coarse elements in polymers of a unit while
@@ -69,7 +70,8 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private residueIt: Segmentation.SegmentIterator<ResidueIndex>
     private polymerSegment: Segmentation.Segment<ResidueIndex>
     private cyclicPolymerMap: Map<ResidueIndex, ResidueIndex>
-    private secondaryStructureType: ArrayLike<SecondaryStructureType>
+    private secondaryStructureType: SecondaryStructure['type']
+    private secondaryStructureGetIndex: SecondaryStructure['getIndex']
     private residueSegmentMin: ResidueIndex
     private residueSegmentMax: ResidueIndex
     private prevSecStrucType: SecondaryStructureType
@@ -133,8 +135,12 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         return residueIndex as ResidueIndex
     }
 
+    private getSecStruc(residueIndex: number) {
+        return this.secondaryStructureType[this.secondaryStructureGetIndex(residueIndex as ResidueIndex)]
+    }
+
     private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: ResidueIndex) {
-        const ss =  this.secondaryStructureType[residueIndex]
+        const ss =  this.getSecStruc(residueIndex)
         if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
             Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p3, Vec3.add(out, p2, p2))), 1/4)
         } else {
@@ -153,7 +159,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 if (residueIt.hasNext) {
                     this.state = AtomicPolymerTraceIteratorState.nextResidue
                     this.currSecStrucType = SecStrucTypeNA
-                    this.nextSecStrucType = this.secondaryStructureType[this.residueSegmentMin]
+                    this.nextSecStrucType = this.getSecStruc(this.residueSegmentMin)
                     this.currCoarseBackbone = false
                     this.nextCoarseBackbone = this.directionElementIndex[this.residueSegmentMin] === -1
                     break
@@ -165,7 +171,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             const { index: residueIndex } = residueIt.move();
             this.prevSecStrucType = this.currSecStrucType
             this.currSecStrucType = this.nextSecStrucType
-            this.nextSecStrucType = residueIt.hasNext ? this.secondaryStructureType[residueIndex + 1] : SecStrucTypeNA
+            this.nextSecStrucType = residueIt.hasNext ? this.getSecStruc(residueIndex + 1) : SecStrucTypeNA
 
             this.prevCoarseBackbone = this.currCoarseBackbone
             this.currCoarseBackbone = this.nextCoarseBackbone
@@ -250,10 +256,14 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
 
         this.secondaryStructureType = unit.model.properties.secondaryStructure.type
+        this.secondaryStructureGetIndex = unit.model.properties.secondaryStructure.getIndex
         const computedSecondaryStructure = ComputedSecondaryStructure.get(structure)
         if (computedSecondaryStructure) {
             const secondaryStructure = computedSecondaryStructure.map.get(unit.invariantId)
-            if (secondaryStructure) this.secondaryStructureType = secondaryStructure.type
+            if (secondaryStructure) {
+                this.secondaryStructureType = secondaryStructure.type
+                this.secondaryStructureGetIndex = secondaryStructure.getIndex
+            }
         }
     }
 }

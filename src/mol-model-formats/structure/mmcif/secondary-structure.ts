@@ -19,14 +19,17 @@ export function getSecondaryStructure(data: mmCIF_Database, hierarchy: AtomicHie
     // must add Helices 1st because of 'key' value assignment.
     addSheets(data.struct_sheet_range, map, data.struct_conf._rowCount, elements);
 
+    const n = hierarchy.residues._rowCount
+    const getIndex = (rI: ResidueIndex) => rI
+
     const secStruct: SecondaryStructureData = {
-        type: new Int32Array(hierarchy.residues._rowCount) as any,
-        key: new Int32Array(hierarchy.residues._rowCount) as any,
+        type: new Int32Array(n) as any,
+        key: new Int32Array(n) as any,
         elements
     };
 
     if (map.size > 0) assignSecondaryStructureRanges(hierarchy, map, secStruct);
-    return SecondaryStructure(secStruct.type, secStruct.key, secStruct.elements);
+    return SecondaryStructure(secStruct.type, secStruct.key, secStruct.elements, getIndex);
 }
 
 type SecondaryStructureEntry = {

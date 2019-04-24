@@ -59,7 +59,8 @@ export type SecondaryStructureComputationProps = PD.Values<SecondaryStructureCom
 
 async function computeSecondaryStructure(structure: Structure, params: Partial<SecondaryStructureComputationProps>): Promise<ComputedSecondaryStructure.Property> {
     const p = { ...PD.getDefaultValues(SecondaryStructureComputationParams), params }
-    // TODO take inter-unit hbonds into account
+    // TODO take inter-unit hbonds into account for bridge, ladder, sheet assignment
+    // TODO store unit-only secStruc as custom unit property???
     // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
     const map = new Map<number, SecondaryStructure>()
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {

@@ -47,7 +47,7 @@ export function secondaryStructureColor(unit: Unit, element: ElementIndex, compu
         secStrucType = unit.model.properties.secondaryStructure.type[unit.residueIndex[element]]
         if (computedSecondaryStructure) {
             const secondaryStructure = computedSecondaryStructure.map.get(unit.invariantId)
-            if (secondaryStructure) secStrucType = secondaryStructure.type[unit.residueIndex[element]]
+            if (secondaryStructure) secStrucType = secondaryStructure.type[secondaryStructure.getIndex(unit.residueIndex[element])]
         }
     }
 

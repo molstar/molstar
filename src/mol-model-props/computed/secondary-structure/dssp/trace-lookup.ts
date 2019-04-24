@@ -14,7 +14,7 @@ export function calcUnitProteinTraceLookup3D(unit: Unit.Atomic, unitProteinResid
     const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue
     const indices = new Uint32Array(unitProteinResidues.length)
     for (let i = 0, il = unitProteinResidues.length; i < il; ++i) {
-        indices[indices.length] = traceElementIndex[unitProteinResidues[i]]
+        indices[i] = traceElementIndex[unitProteinResidues[i]]
     }
     return GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(indices) });
 }

@@ -20,6 +20,8 @@ import { calculateUnitDihedralAngles } from './dssp/dihedral-angles';
 import { calcUnitProteinTraceLookup3D } from './dssp/trace-lookup';
 import { Unit } from 'mol-model/structure';
 import { getUnitProteinInfo } from './dssp/protein-info';
+import { ResidueIndex } from 'mol-model/structure/model';
+import { SortedArray } from 'mol-data/int';
 
 /**
  * TODO bugs to fix:
@@ -37,7 +39,6 @@ export type DSSPComputationParams = typeof DSSPComputationParams
 export type DSSPComputationProps = PD.Values<DSSPComputationParams>
 
 export async function computeUnitDSSP(unit: Unit.Atomic, params: DSSPComputationProps): Promise<SecondaryStructure> {
-
     const proteinInfo = getUnitProteinInfo(unit)
     const { residueIndices } = proteinInfo
     const lookup3d = calcUnitProteinTraceLookup3D(unit, residueIndices)
@@ -83,20 +84,20 @@ export async function computeUnitDSSP(unit: Unit.Atomic, params: DSSPComputation
     const type = new Uint32Array(residueCount) as unknown as SecondaryStructureType[]
     const keys: number[] = []
     const elements: SecondaryStructure.Element[] = []
+    const getIndex = (rI: ResidueIndex) => SortedArray.indexOf(residueIndices, rI)
 
     for (let i = 0, il = residueIndices.length; i < il; ++i) {
         const assign = assignment[i]
-        type[residueIndices[i]] = assign
+        type[i] = assign
         const flag = getResidueFlag(flags[i])
+        // console.log(i, SortedArray.indexOf(residueIndices, i), getFlagName(flags[i]))
         // TODO is this expected behavior? elements will be strictly split depending on 'winning' flag
         if (elements.length === 0 /* would fail at very start */ || flag !== (elements[elements.length - 1] as SecondaryStructure.Helix | SecondaryStructure.Sheet | SecondaryStructure.Turn).flags /* flag changed */) {
             elements[elements.length] = createElement(mapToKind(assign), flags[i], getResidueFlag)
         }
         keys[i] = elements.length - 1
     }
-    // TODO expose model to unit residueIndex mapping
-
-    return SecondaryStructure(type, keys, elements)
+    return SecondaryStructure(type, keys, elements, getIndex)
 }
 
 function createElement(kind: string, flag: DSSPType.Flag, getResidueFlag: (f: DSSPType) => SecondaryStructureType): SecondaryStructure.Element {

@@ -5,6 +5,7 @@
  */
 
 import { SecondaryStructureType } from '../types';
+import { ResidueIndex } from '../indexing';
 
 /** Secondary structure "indexed" by residues. */
 interface SecondaryStructure {
@@ -13,10 +14,12 @@ interface SecondaryStructure {
     readonly key: ArrayLike<number>,
     /** indexed by key */
     readonly elements: ReadonlyArray<SecondaryStructure.Element>
+    /** mapping from residue index */
+    readonly getIndex: (rI: ResidueIndex) => number,
 }
 
-function SecondaryStructure(type: SecondaryStructure['type'], key: SecondaryStructure['key'], elements: SecondaryStructure['elements']) {
-    return { type, key, elements }
+function SecondaryStructure(type: SecondaryStructure['type'], key: SecondaryStructure['key'], elements: SecondaryStructure['elements'], getIndex: SecondaryStructure['getIndex']) {
+    return { type, key, elements, getIndex }
 }
 
 namespace SecondaryStructure {
