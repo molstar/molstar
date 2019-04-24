@@ -26,6 +26,7 @@ import { parseMolScript } from 'mol-script/language/parser';
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 import { shapeFromPly } from 'mol-model-formats/shape/ply';
 import { SymmetryOperator } from 'mol-math/geometry';
+import { ensureSecondaryStructure } from './helpers';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -167,9 +168,12 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure
 })({
     apply({ a }) {
-        let s = Structure.ofModel(a.data);
-        const props = { label: a.data.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
-        return new SO.Molecule.Structure(s, props);
+        return Task.create('Build Structure', async ctx => {
+            const s = Structure.ofModel(a.data);
+            await ensureSecondaryStructure(s)
+            const props = { label: a.data.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
+            return new SO.Molecule.Structure(s, props);
+        })
     }
 });
 
@@ -218,12 +222,14 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
 
             const base = Structure.ofModel(model);
             if (!asm) {
+                await ensureSecondaryStructure(base)
                 const label = { label: a.data.label, description: structureDesc(base) };
                 return new SO.Molecule.Structure(base, label);
             }
 
             id = asm.id;
             const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
+            await ensureSecondaryStructure(s)
             const props = { label: `Assembly ${id}`, description: structureDesc(s) };
             return new SO.Molecule.Structure(s, props);
         })
@@ -249,6 +255,7 @@ const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
             const model = a.data;
             const base = Structure.ofModel(model);
             const s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
+            await ensureSecondaryStructure(s)
             const props = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: structureDesc(s) };
             return new SO.Molecule.Structure(s, props);
         })

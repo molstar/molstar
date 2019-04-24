@@ -11,6 +11,7 @@ import { parseMolScript } from 'mol-script/language/parser';
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 import { compile } from 'mol-script/runtime/query/compiler';
 import { Transparency } from 'mol-theme/transparency';
+import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
 
 type Script = { language: string, expression: string }
 
@@ -35,4 +36,15 @@ export function getStructureOverpaint(structure: Structure, scriptLayers: { scri
 
 export function getStructureTransparency(structure: Structure, script: Script, value: number, variant: Transparency.Variant): Transparency {
     return { loci: scriptToLoci(structure, script), value, variant }
+}
+
+/**
+ * Attaches ComputedSecondaryStructure property when unavailable in sourceData
+ */
+export async function ensureSecondaryStructure(s: Structure) {
+    if (s.model.sourceData.kind === 'mmCIF') {
+        if (!s.model.sourceData.data.struct_conf.id.isDefined && !s.model.sourceData.data.struct_sheet_range.id.isDefined) {
+            await ComputedSecondaryStructure.attachFromCifOrCompute(s)
+        }
+    }
 }
