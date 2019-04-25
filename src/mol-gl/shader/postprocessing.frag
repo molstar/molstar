@@ -6,7 +6,6 @@ uniform sampler2D tColor;
 uniform sampler2D tDepth;
 uniform vec2 uTexSize;
 
-uniform int uOcclusionKernelSize;
 uniform float uOcclusionBias;
 uniform float uOcclusionRadius;
 
@@ -28,16 +27,16 @@ float noise(vec2 coords) {
 float calcSSAO(in vec2 coords, in float depth) {
 	float occlusionFactor = 0.0;
 
-	for (int i = -uOcclusionKernelSize; i <= uOcclusionKernelSize; i++) {
-		for (int j = -uOcclusionKernelSize; j <= uOcclusionKernelSize; j++) {
-			vec2 coordsDelta = coords + uOcclusionRadius / float(uOcclusionKernelSize) * vec2(float(i) / uTexSize.x, float(j) / uTexSize.y);
+	for (int i = -dOcclusionKernelSize; i <= dOcclusionKernelSize; i++) {
+		for (int j = -dOcclusionKernelSize; j <= dOcclusionKernelSize; j++) {
+			vec2 coordsDelta = coords + uOcclusionRadius / float(dOcclusionKernelSize) * vec2(float(i) / uTexSize.x, float(j) / uTexSize.y);
             coordsDelta += noiseAmount * (noise(coordsDelta) - 0.5) / uTexSize;
             coordsDelta = clamp(coordsDelta, 0.5 / uTexSize, 1.0 - 1.0 / uTexSize);
 			if (texture2D(tDepth, coordsDelta).r < depth) occlusionFactor += 1.0;
 		}
 	}
 
-	return occlusionFactor / float((2 * uOcclusionKernelSize + 1) * (2 * uOcclusionKernelSize + 1));
+	return occlusionFactor / float((2 * dOcclusionKernelSize + 1) * (2 * dOcclusionKernelSize + 1));
 }
 
 float calcEdgeDepth(in vec2 coords) {
@@ -63,10 +62,10 @@ float calcEdgeDepth(in vec2 coords) {
 
 void main(void) {
 	vec2 coords = gl_FragCoord.xy / uTexSize;
-	vec4 color = texture(tColor, coords);
+	vec4 color = texture2D(tColor, coords);
 
 	#ifdef dOcclusionEnable
-		float depth = texture(tDepth, coords).r;
+		float depth = texture2D(tDepth, coords).r;
 		if (depth != 1.0) {
 			float occlusionFactor = calcSSAO(coords, depth);
 			color = mix(color, vec4(0.0, 0.0, 0.0, 1.0), uOcclusionBias * occlusionFactor);

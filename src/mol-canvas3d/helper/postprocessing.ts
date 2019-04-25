@@ -22,7 +22,7 @@ const PostprocessingSchema = {
     uTexSize: UniformSpec('v2'),
 
     dOcclusionEnable: DefineSpec('boolean'),
-    uOcclusionKernelSize: UniformSpec('i'),
+    dOcclusionKernelSize: DefineSpec('number'),
     uOcclusionBias: UniformSpec('f'),
     uOcclusionRadius: UniformSpec('f'),
 
@@ -52,7 +52,7 @@ export function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Tex
         uTexSize: ValueCell.create(Vec2.create(colorTexture.width, colorTexture.height)),
 
         dOcclusionEnable: ValueCell.create(p.occlusionEnable),
-        uOcclusionKernelSize: ValueCell.create(p.occlusionKernelSize),
+        dOcclusionKernelSize: ValueCell.create(p.occlusionKernelSize),
         uOcclusionBias: ValueCell.create(p.occlusionBias),
         uOcclusionRadius: ValueCell.create(p.occlusionRadius),
 

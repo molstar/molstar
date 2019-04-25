@@ -425,7 +425,7 @@ namespace Canvas3D {
                     }
                     if (props.postprocessing.occlusionKernelSize !== undefined) {
                         p.postprocessing.occlusionKernelSize = props.postprocessing.occlusionKernelSize
-                        ValueCell.update(postprocessing.values.uOcclusionKernelSize, props.postprocessing.occlusionKernelSize)
+                        ValueCell.update(postprocessing.values.dOcclusionKernelSize, props.postprocessing.occlusionKernelSize)
                     }
                     if (props.postprocessing.occlusionBias !== undefined) {
                         p.postprocessing.occlusionBias = props.postprocessing.occlusionBias
