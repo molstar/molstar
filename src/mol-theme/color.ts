@@ -27,6 +27,7 @@ import { UnitIndexColorThemeProvider } from './color/unit-index';
 import { ScaleLegend } from 'mol-util/color/scale';
 import { TableLegend } from 'mol-util/color/tables';
 import { UncertaintyColorThemeProvider } from './color/uncertainty';
+import { IllustrativeColorThemeProvider } from './color/illustrative';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -73,6 +74,7 @@ export const BuiltInColorThemes = {
     'cross-link': CrossLinkColorThemeProvider,
     'element-index': ElementIndexColorThemeProvider,
     'element-symbol': ElementSymbolColorThemeProvider,
+    'illustrative': IllustrativeColorThemeProvider,
     'molecule-type': MoleculeTypeColorThemeProvider,
     'polymer-id': PolymerIdColorThemeProvider,
     'polymer-index': PolymerIndexColorThemeProvider,
