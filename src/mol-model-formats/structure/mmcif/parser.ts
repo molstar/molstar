@@ -347,7 +347,8 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
         let atom_site, atom_site_sourceIndex;
         if (atom_sites.has(id)) {
             const e = atom_sites.get(id)!;
-            const { atom_site: sorted, sourceIndex } = await sortAtomSite(ctx, e.table, e.start, e.end);
+            // need to sort `format.data.atom_site` as `e.start` and `e.end` are indices into that
+            const { atom_site: sorted, sourceIndex } = await sortAtomSite(ctx, format.data.atom_site, e.start, e.end);
             atom_site = sorted;
             atom_site_sourceIndex = sourceIndex;
         } else {
