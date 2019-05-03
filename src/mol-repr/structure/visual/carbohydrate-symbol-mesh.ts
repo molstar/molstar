@@ -82,7 +82,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
                 Mat4.scaleUniformly(t, t, side)
                 MeshBuilder.addPrimitive(builderState, t, perforatedBox)
                 Mat4.mul(t, t, Mat4.rotZ90X180)
-                builderState.currentGroup = i * 2 + 1
+                builderState.currentGroup += 1
                 MeshBuilder.addPrimitive(builderState, t, perforatedBox)
                 break;
             case SaccharideShapes.FilledCone:
@@ -93,7 +93,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
                 Mat4.scaleUniformly(t, t, side * 1.2)
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctagonalPyramid)
                 Mat4.mul(t, t, Mat4.rotZ90)
-                builderState.currentGroup = i * 2 + 1
+                builderState.currentGroup += 1
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctagonalPyramid)
                 break
             case SaccharideShapes.FlatBox:
@@ -116,7 +116,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctahedron)
                 Mat4.mul(t, t, Mat4.rotY90)
-                builderState.currentGroup = i * 2 + 1
+                builderState.currentGroup += 1
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctahedron)
                 break
             case SaccharideShapes.FlatDiamond:
