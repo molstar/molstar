@@ -49,7 +49,7 @@ export interface Carbohydrates {
     getLinkIndices: (unit: Unit, anomericCarbon: ElementIndex) => ReadonlyArray<number>
     getTerminalLinkIndex: (unitA: Unit, elementA: ElementIndex, unitB: Unit, elementB: ElementIndex) => number | undefined
     getTerminalLinkIndices: (unit: Unit, element: ElementIndex) => ReadonlyArray<number>
-    getAnomericCarbon: (unit: Unit, residueIndex: ResidueIndex) => ElementIndex | undefined
+    getAnomericCarbons: (unit: Unit, residueIndex: ResidueIndex) => ReadonlyArray<ElementIndex>
 }
 
 const EmptyArray: ReadonlyArray<any> = []
@@ -63,5 +63,5 @@ export const EmptyCarbohydrates: Carbohydrates = {
     getLinkIndices: () => EmptyArray,
     getTerminalLinkIndex: () => undefined,
     getTerminalLinkIndices: () => EmptyArray,
-    getAnomericCarbon: () => undefined,
+    getAnomericCarbons: () => [],
 }

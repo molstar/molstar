@@ -28,6 +28,33 @@ export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementI
     return EmptyLoci
 }
 
+/**
+ * Return a Loci for the elements of a whole residue the elementIndex belongs to but
+ * restrict to elements that have the same label_alt_id or none
+ */
+export function getAltResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
+    const { elements, model } = unit
+    const { label_alt_id } = model.atomicHierarchy.atoms
+    const elementAltId = label_alt_id.value(elementIndex)
+    if (OrderedSet.indexOf(elements, elementIndex) !== -1) {
+        const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+        const rI = index[elementIndex]
+        const _indices: number[] = []
+        for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
+            const unitIndex = OrderedSet.indexOf(elements, i)
+            if (unitIndex !== -1) {
+                const altId = label_alt_id.value(i)
+                if (elementAltId === altId || altId === '') {
+                    _indices.push(unitIndex)
+                }
+            }
+        }
+        const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices))
+        return StructureElement.Loci(structure, [{ unit, indices }])
+    }
+    return EmptyLoci
+}
+
 //
 
 export function createUnitsTransform({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
