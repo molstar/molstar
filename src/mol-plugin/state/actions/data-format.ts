@@ -150,6 +150,8 @@ type cifVariants = 'dscif' | -1
 export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifVariants {
     if (info.ext === 'bcif') {
         try {
+            // TODO find a way to run msgpackDecode only once
+            //      now it is run twice, here and during file parsing
             if (msgpackDecode(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif'
         } catch { }
     } else if (info.ext === 'cif') {

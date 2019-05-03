@@ -108,13 +108,14 @@ namespace StructureRepresentation3DHelpers {
         })
     }
 
-    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structureParams?: Partial<PD.Values<StructureParams>>): StateTransformer.Params<StructureRepresentation3D> {
+    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structureParams?: Partial<PD.Values<StructureParams>>, colorName?: BuiltInColorThemeName): StateTransformer.Params<StructureRepresentation3D> {
         const type = ctx.structureRepresentation.registry.get(name);
-        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).defaultValues;
+        const color = colorName || type.defaultColorTheme;
+        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(color).defaultValues;
         const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).defaultValues
         return ({
             type: { name, params: structureParams ? { ...type.defaultValues, ...structureParams } : type.defaultValues },
-            colorTheme: { name: type.defaultColorTheme, params: colorParams },
+            colorTheme: { name: color, params: colorParams },
             sizeTheme: { name: type.defaultSizeTheme, params: sizeParams }
         })
     }

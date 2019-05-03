@@ -228,7 +228,7 @@ export function complexRepresentation(
     if (!params || !params.hideCoarse) {
         root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'spacefill'));
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'spacefill', {}, 'polymer-id'));
     }
 }
 
