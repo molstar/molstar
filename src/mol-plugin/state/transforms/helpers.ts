@@ -42,7 +42,7 @@ export function getStructureTransparency(structure: Structure, script: Script, v
  * Attaches ComputedSecondaryStructure property when unavailable in sourceData
  */
 export async function ensureSecondaryStructure(s: Structure) {
-    if (s.model.sourceData.kind === 'mmCIF') {
+    if (s.model && s.model.sourceData.kind === 'mmCIF') {
         if (!s.model.sourceData.data.struct_conf.id.isDefined && !s.model.sourceData.data.struct_sheet_range.id.isDefined) {
             await ComputedSecondaryStructure.attachFromCifOrCompute(s)
         }

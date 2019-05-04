@@ -324,14 +324,13 @@ function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
 }
 
 async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: FormatData) {
-    if (format.data.atom_site._rowCount && !format.data.atom_site.ihm_model_id.isDefined) {
-        throw new Error('expected _atom_site.ihm_model_id to be defined')
-    }
+    // when `atom_site.ihm_model_id` is undefined fall back to `atom_site.pdbx_PDB_model_num`
+    const atom_sites_modelColumn = format.data.atom_site.ihm_model_id.isDefined ? format.data.atom_site.ihm_model_id : format.data.atom_site.pdbx_PDB_model_num
 
     const { ihm_model_list } = format.data;
     const entities = getEntities(format)
 
-    const atom_sites = splitTable(format.data.atom_site, format.data.atom_site.ihm_model_id);
+    const atom_sites = splitTable(format.data.atom_site, atom_sites_modelColumn);
     // TODO: will coarse IHM records require sorting or will we trust it?
     // ==> Probably implement a sort as as well and store the sourceIndex same as with atomSite
     // If the sorting is implemented, updated mol-model/structure/properties: atom.sourceIndex
