@@ -19,6 +19,7 @@ import { FormatData } from './parser';
 export interface IHMData {
     model_id: number,
     model_name: string,
+    model_group_name: string,
     entities: Entities,
     atom_site: mmCIF['atom_site'],
     atom_site_sourceIndex: Column<number>,

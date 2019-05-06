@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -190,6 +190,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIn
     return {
         id: UUID.create22(),
         label,
+        entry: label,
         sourceData: format,
         modelNum: atom_site.pdbx_PDB_model_num.value(0),
         entities,
@@ -212,10 +213,15 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIn
 function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatData): Model {
     const atomic = getAtomicHierarchyAndConformation(data.atom_site, data.atom_site_sourceIndex, data.entities, formatData);
     const coarse = getIHMCoarse(data, formatData);
+    const entry = format.data.entry.id.valueKind(0) === Column.ValueKind.Present
+        ? format.data.entry.id.value(0)
+        : format.data._name;
+    const label = data.model_group_name ? `${data.model_name}: ${data.model_group_name}` : data.model_name
 
     return {
         id: UUID.create22(),
-        label: data.model_name,
+        label,
+        entry,
         sourceData: format,
         modelNum: data.model_id,
         entities: data.entities,
@@ -339,7 +345,7 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
 
     const models: Model[] = [];
 
-    const { model_id, model_name } = ihm_model_list;
+    const { model_id, model_name, model_group_name } = ihm_model_list;
     for (let i = 0; i < ihm_model_list._rowCount; i++) {
         const id = model_id.value(i);
 
@@ -358,6 +364,7 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
         const data: IHMData = {
             model_id: id,
             model_name: model_name.value(i),
+            model_group_name: model_group_name.value(i),
             entities: entities,
             atom_site,
             atom_site_sourceIndex,
