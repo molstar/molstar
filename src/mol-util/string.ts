@@ -53,3 +53,24 @@ export function interpolate(str: string, params: { [k: string]: any }) {
     const values = Object.values(params);
     return new Function(...names, `return \`${str}\`;`)(...values);
 }
+
+export function trimChar(str: string, char: string) {
+    let start = 0;
+    let end = str.length;
+    while (start < end && str[start] === char) ++start;
+    while (end > start && str[end - 1] === char) --end;
+    return (start > 0 || end < str.length) ? str.substring(start, end) : str;
+}
+
+export function trimCharStart(str: string, char: string) {
+    let start = 0;
+    const end = str.length;
+    while (start < end && str[start] === char) ++start;
+    return (start > 0) ? str.substring(start, end) : str;
+}
+
+export function trimCharEnd(str: string, char: string) {
+    let end = str.length;
+    while (end > 0 && str[end - 1] === char) --end;
+    return (end < str.length) ? str.substring(0, end) : str;
+}
