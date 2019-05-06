@@ -91,6 +91,10 @@ const DownloadStructure = StateAction.build({
                 id: PD.Text('1tqn', { label: 'Id' }),
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
+            'pdb-dev': PD.Group({
+                id: PD.Text('PDBDEV_00000001', { label: 'Id' }),
+                options: DownloadStructurePdbIdSourceOptions
+            }, { isFlat: true }),
             'bcif-static': PD.Group({
                 id: PD.Text('1tqn', { label: 'Id' }),
                 options: DownloadStructurePdbIdSourceOptions
@@ -107,6 +111,7 @@ const DownloadStructure = StateAction.build({
                 options: [
                     ['pdbe-updated', 'PDBe Updated'],
                     ['rcsb', 'RCSB'],
+                    ['pdb-dev', 'PDBDEV'],
                     ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
                     ['url', 'URL']
                 ]
@@ -133,6 +138,18 @@ const DownloadStructure = StateAction.build({
             supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             break;
+        case 'pdb-dev':
+            downloadParams = getDownloadParams(src.params.id,
+                id => {
+                    const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`
+                    return `https://pdb-dev-testing-2.wwpdb.org/static/cif/${nId.toUpperCase()}.cif`
+                },
+                id => id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`,
+                false
+            );
+            supportProps = !!src.params.options.supportProps;
+            asTrajectory = !!src.params.options.asTrajectory;
+            break;
         case 'bcif-static':
             downloadParams = getDownloadParams(src.params.id, id => `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${id.toLowerCase()}`, id => `BinaryCIF: ${id}`, true);
             supportProps = !!src.params.options.supportProps;
@@ -155,7 +172,7 @@ const DownloadStructure = StateAction.build({
 });
 
 function getDownloadParams(src: string, url: (id: string) => string, label: (id: string) => string, isBinary: boolean): StateTransformer.Params<Download>[] {
-    const ids = src.split(',').map(id => id.trim()).filter(id => !!id && id.length >= 4);
+    const ids = src.split(',').map(id => id.trim()).filter(id => !!id && (id.length >= 4 || /^[1-9][0-9]*$/.test(id)));
     const ret: StateTransformer.Params<Download>[] = [];
     for (const id of ids) {
         ret.push({ url: url(id), isBinary, label: label(id) })
