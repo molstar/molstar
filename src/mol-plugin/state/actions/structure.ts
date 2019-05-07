@@ -142,7 +142,7 @@ const DownloadStructure = StateAction.build({
             downloadParams = getDownloadParams(src.params.id,
                 id => {
                     const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`
-                    return `https://pdb-dev-testing-2.wwpdb.org/static/cif/${nId.toUpperCase()}.cif`
+                    return `https://pdb-dev.wwpdb.org/static/cif/${nId.toUpperCase()}.cif`
                 },
                 id => id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`,
                 false
