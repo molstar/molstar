@@ -52,6 +52,8 @@ export function getFieldType (type: string, description: string, values?: string
         case 'date_dep':
         case 'url':
         case 'symop':
+        case 'exp_data_doi':
+        case 'asym_id':
             return StrCol(description)
         case 'int':
         case 'non_negative_int':
@@ -63,6 +65,8 @@ export function getFieldType (type: string, description: string, values?: string
         case 'ucode-alphanum-csv':
         case 'id_list':
             return ListCol('str', ',', description)
+        case 'id_list_spc':
+            return ListCol('str', ' ', description)
     }
     console.log(`unknown type '${type}'`)
     return StrCol(description)
@@ -163,6 +167,7 @@ const COMMA_SEPARATED_LIST_FIELDS = [
     '_entity.pdbx_description', // Endolysin,Beta-2 adrenergic receptor
     '_entity.pdbx_ec',
     '_entity_poly.pdbx_strand_id', // A,B
+    '_entity_src_gen.pdbx_gene_src_gene', // ADRB2, ADRB2R, B2AR
     '_pdbx_depui_entry_details.experimental_methods',
     '_pdbx_depui_entry_details.requested_accession_types',
     '_pdbx_soln_scatter_model.software_list', // INSIGHT II, HOMOLOGY, DISCOVERY, BIOPOLYMER, DELPHI
@@ -196,12 +201,7 @@ const SEMICOLON_SEPARATED_LIST_FIELDS = [
  * values are available in the existing dictionary.
  */
 const EXTRA_ENUM_VALUES: { [k: string]: string[] } = {
-    // TODO for carbohydrate extension draft, remove when added to chem_comp dic
-    '_pdbx_chem_comp_identifier.type': [
-        'CONDENSED IUPAC CARB SYMBOL',
-        'IUPAC CARB SYMBOL',
-        'SNFG CARB SYMBOL'
-    ]
+
 }
 
 export function generateSchema (frames: CifFrame[]) {

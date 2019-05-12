@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.305, IHM 0.139, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.309, IHM 0.141, CARB draft.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -485,7 +485,7 @@ export const mmCIF_Schema = {
          * Water entities are not expected to have corresponding
          * entries in the ENTITY category.
          */
-        type: Aliased<'polymer' | 'non-polymer' | 'macrolide' | 'water'>(str),
+        type: Aliased<'polymer' | 'non-polymer' | 'macrolide' | 'water' | 'branched'>(str),
         /**
          * A description of the entity.
          *
@@ -496,7 +496,7 @@ export const mmCIF_Schema = {
          * A place holder for the number of molecules of the entity in
          * the entry.
          */
-        pdbx_number_of_molecules: float,
+        pdbx_number_of_molecules: int,
         /**
          * Details about any entity mutation(s).
          */
@@ -534,7 +534,7 @@ export const mmCIF_Schema = {
         /**
          * The type of the polymer.
          */
-        type: Aliased<'polypeptide(D)' | 'polypeptide(L)' | 'polydeoxyribonucleotide' | 'polyribonucleotide' | 'polysaccharide(D)' | 'polysaccharide(L)' | 'polydeoxyribonucleotide/polyribonucleotide hybrid' | 'cyclic-pseudo-peptide' | 'peptide nucleic acid' | 'other'>(str),
+        type: Aliased<'polypeptide(D)' | 'polypeptide(L)' | 'polydeoxyribonucleotide' | 'polyribonucleotide' | 'polydeoxyribonucleotide/polyribonucleotide hybrid' | 'cyclic-pseudo-peptide' | 'peptide nucleic acid' | 'other'>(str),
         /**
          * The PDB strand/chain id(s) corresponding to this polymer entity.
          */
@@ -1965,6 +1965,52 @@ export const mmCIF_Schema = {
         details: str,
     },
     /**
+     * Data items in the ENTITY_SRC_GEN category record details of
+     * the source from which the entity was obtained in cases
+     * where the source was genetically manipulated.  The
+     * following are treated separately:  items pertaining to the tissue
+     * from which the gene was obtained, items pertaining to the host
+     * organism for gene expression and items pertaining to the actual
+     * producing organism (plasmid).
+     */
+    entity_src_gen: {
+        /**
+         * This data item is a pointer to _entity.id in the ENTITY category.
+         */
+        entity_id: str,
+        /**
+         * Identifies the gene.
+         */
+        pdbx_gene_src_gene: List(',', x => x),
+        /**
+         * This data item is an ordinal identifier for entity_src_gen data records.
+         */
+        pdbx_src_id: int,
+        /**
+         * This data item identifies cases in which an alternative source
+         * modeled.
+         */
+        pdbx_alt_source_flag: Aliased<'sample' | 'model'>(str),
+        /**
+         * This data item povides additional information about the sequence type.
+         */
+        pdbx_seq_type: Aliased<'N-terminal tag' | 'C-terminal tag' | 'Biological sequence' | 'Linker'>(str),
+        /**
+         * The beginning polymer sequence position for the polymer section corresponding
+         * to this source.
+         *
+         * A reference to the sequence position in the entity_poly category.
+         */
+        pdbx_beg_seq_num: int,
+        /**
+         * The ending polymer sequence position for the polymer section corresponding
+         * to this source.
+         *
+         * A reference to the sequence position in the entity_poly category.
+         */
+        pdbx_end_seq_num: int,
+    },
+    /**
      * Data items in the PDBX_ENTITY_DESCRIPTOR category provide
      * string descriptors of entity chemical structure.
      */
@@ -1982,7 +2028,7 @@ export const mmCIF_Schema = {
         /**
          * This data item contains the descriptor type.
          */
-        type: Aliased<'LINUCS'>(str),
+        type: Aliased<'LINUCS' | 'Glycam Condensed Sequence' | 'Glycam Condensed Core Sequence'>(str),
         /**
          * This data item contains the name of the program
          * or library used to compute the descriptor.
@@ -3716,7 +3762,7 @@ export const mmCIF_Schema = {
          */
         entity_id: str,
         /**
-         * An asym/strand identifier for the residue / residue range.
+         * An asym/strand identifier for the residue / residue range, if applicable.
          * This data item is a pointer to _struct_asym.id in the
          * STRUCT_ASYM category.
          */
@@ -3794,6 +3840,10 @@ export const mmCIF_Schema = {
          * Identifier to the input data from which the distance restraint is derived.
          * This data item is a pointer to the _ihm_dataset_list.id in the
          * IHM_DATASET_LIST category.
+         * This data item may not be applicable for all cases. For example, in case of
+         * ambiguous interface restraints where the interface residues are identified
+         * from multiple experiments, the reference to the _ihm_dataset_list.id is
+         * handled in the IHM_INTERFACE_RESIDUE_FEATURE category rather than here.
          */
         dataset_list_id: int,
     },

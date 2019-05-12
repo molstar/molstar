@@ -91,6 +91,14 @@ entity_poly_seq.num
 entity_poly_seq.mon_id
 entity_poly_seq.hetero
 
+entity_src_gen.entity_id
+entity_src_gen.pdbx_src_id
+entity_src_gen.pdbx_alt_source_flag 
+entity_src_gen.pdbx_seq_type 
+entity_src_gen.pdbx_beg_seq_num
+entity_src_gen.pdbx_end_seq_num
+entity_src_gen.pdbx_gene_src_gene
+
 pdbx_entity_branch.entity_id
 pdbx_entity_branch.type
 
