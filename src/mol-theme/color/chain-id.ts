@@ -51,6 +51,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
     const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
     if (ctx.structure) {
+        // TODO same asym ids in different models should get different color
         const l = StructureElement.create()
         const { models } = ctx.structure
         const asymIdSerialMap = new Map<string, number>()

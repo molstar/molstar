@@ -56,17 +56,16 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Poly
     const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
     if (ctx.structure) {
+        // TODO same asym ids in different models should get different color
         const l = StructureElement.create()
         const { models } = ctx.structure
         const polymerAsymIdSerialMap = new Map<string, number>()
         for (let i = 0, il = models.length; i <il; ++i) {
-            for (let i = 0, il = models.length; i <il; ++i) {
-                const m = models[i]
-                addPolymerAsymIds(polymerAsymIdSerialMap, m.atomicHierarchy.chains.label_asym_id, m.atomicHierarchy.chains.label_entity_id, m.entities)
-                if (m.coarseHierarchy.isDefined) {
-                    addPolymerAsymIds(polymerAsymIdSerialMap, m.coarseHierarchy.spheres.asym_id, m.coarseHierarchy.spheres.entity_id, m.entities)
-                    addPolymerAsymIds(polymerAsymIdSerialMap, m.coarseHierarchy.gaussians.asym_id, m.coarseHierarchy.spheres.entity_id, m.entities)
-                }
+            const m = models[i]
+            addPolymerAsymIds(polymerAsymIdSerialMap, m.atomicHierarchy.chains.label_asym_id, m.atomicHierarchy.chains.label_entity_id, m.entities)
+            if (m.coarseHierarchy.isDefined) {
+                addPolymerAsymIds(polymerAsymIdSerialMap, m.coarseHierarchy.spheres.asym_id, m.coarseHierarchy.spheres.entity_id, m.entities)
+                addPolymerAsymIds(polymerAsymIdSerialMap, m.coarseHierarchy.gaussians.asym_id, m.coarseHierarchy.spheres.entity_id, m.entities)
             }
         }
         scale.setDomain(0, polymerAsymIdSerialMap.size - 1)
