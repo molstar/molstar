@@ -153,10 +153,9 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
         const model = a.data[params.modelIndex];
-        const props = a.data.length === 1
-            ? { label: `${model.label}` }
-            : { label: `${model.label}:${model.modelNum}`, description: `Model ${params.modelIndex + 1} of ${a.data.length}` };
-        return new SO.Molecule.Model(model, props);
+        const label = a.data.length === 1 ? model.entry : `${model.entry}: ${model.modelNum}`
+        const description = a.data.length === 1 ? undefined : `Model ${params.modelIndex + 1} of ${a.data.length}`
+        return new SO.Molecule.Model(model, { label, description });
     }
 });
 

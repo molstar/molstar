@@ -115,7 +115,7 @@ const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
         const dataId = params.dataId;
         const emDefaultContourLevel = params.source.name === 'em' ? params.source.params.isoValue : VolumeIsoValue.relative(1);
         await taskCtx.update('Getting server header...');
-        const header = await plugin.fetch<VolumeServerHeader>({ url: urlCombine(params.serverUrl, `${params.source.name}/${dataId}`), type: 'json' }).runInContext(taskCtx);
+        const header = await plugin.fetch<VolumeServerHeader>({ url: urlCombine(params.serverUrl, `${params.source.name}/${dataId.toLocaleLowerCase()}`), type: 'json' }).runInContext(taskCtx);
         const data: VolumeServerInfo.Data = {
             serverUrl: params.serverUrl,
             dataId,

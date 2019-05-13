@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import UUID from 'mol-util/uuid';
@@ -25,7 +26,10 @@ export interface Model extends Readonly<{
     id: UUID,
     label: string,
 
-    // for IHM, corresponds to ihm_model_list.model_id
+    /** the name of the entry/file/collection the model is part of */
+    entry: string,
+
+    /** for IHM, corresponds to ihm_model_list.model_id */
     modelNum: number,
 
     sourceData: ModelFormat,

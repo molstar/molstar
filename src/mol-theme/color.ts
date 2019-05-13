@@ -28,6 +28,8 @@ import { ScaleLegend } from 'mol-util/color/scale';
 import { TableLegend } from 'mol-util/color/tables';
 import { UncertaintyColorThemeProvider } from './color/uncertainty';
 import { GeneColorThemeProvider } from './color/gene';
+import { IllustrativeColorThemeProvider } from './color/illustrative';
+import { HydrophobicityColorThemeProvider } from './color/hydrophobicity';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -75,6 +77,8 @@ export const BuiltInColorThemes = {
     'element-index': ElementIndexColorThemeProvider,
     'element-symbol': ElementSymbolColorThemeProvider,
     'gene': GeneColorThemeProvider,
+    'hydrophobicity': HydrophobicityColorThemeProvider,
+    'illustrative': IllustrativeColorThemeProvider,
     'molecule-type': MoleculeTypeColorThemeProvider,
     'polymer-id': PolymerIdColorThemeProvider,
     'polymer-index': PolymerIndexColorThemeProvider,

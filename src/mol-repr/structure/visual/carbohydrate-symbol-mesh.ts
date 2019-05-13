@@ -25,7 +25,7 @@ import { OrderedSet, Interval } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 import { VisualContext } from 'mol-repr/visual';
 import { Theme } from 'mol-theme/theme';
-import { getResidueLoci } from './util/common';
+import { getAltResidueLoci } from './util/common';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -82,7 +82,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
                 Mat4.scaleUniformly(t, t, side)
                 MeshBuilder.addPrimitive(builderState, t, perforatedBox)
                 Mat4.mul(t, t, Mat4.rotZ90X180)
-                builderState.currentGroup = i * 2 + 1
+                builderState.currentGroup += 1
                 MeshBuilder.addPrimitive(builderState, t, perforatedBox)
                 break;
             case SaccharideShapes.FilledCone:
@@ -93,7 +93,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
                 Mat4.scaleUniformly(t, t, side * 1.2)
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctagonalPyramid)
                 Mat4.mul(t, t, Mat4.rotZ90)
-                builderState.currentGroup = i * 2 + 1
+                builderState.currentGroup += 1
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctagonalPyramid)
                 break
             case SaccharideShapes.FlatBox:
@@ -116,7 +116,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctahedron)
                 Mat4.mul(t, t, Mat4.rotY90)
-                builderState.currentGroup = i * 2 + 1
+                builderState.currentGroup += 1
                 MeshBuilder.addPrimitive(builderState, t, perforatedOctahedron)
                 break
             case SaccharideShapes.FlatDiamond:
@@ -186,28 +186,28 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
     const { objectId, groupId } = pickingId
     if (id === objectId) {
         const carb = structure.carbohydrates.elements[Math.floor(groupId / 2)]
-        return getResidueLoci(structure, carb.unit, carb.anomericCarbon)
+        return getAltResidueLoci(structure, carb.unit, carb.anomericCarbon)
     }
     return EmptyLoci
 }
 
 /** For each carbohydrate (usually a monosaccharide) when all its residue's elements are in a loci. */
 function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
-    const { getElementIndex, getAnomericCarbon } = structure.carbohydrates
+    const { getElementIndex, getAnomericCarbons } = structure.carbohydrates
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     if (!Structure.areEquivalent(loci.structure, structure)) return false
     for (const e of loci.elements) {
+        // TODO make more efficient by handling/grouping `e.indices` by residue index
+        // TODO only call apply when the full alt-residue of the unit is part of `e`
         OrderedSet.forEach(e.indices, v => {
             const { model, elements } = e.unit
-            const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+            const { index } = model.atomicHierarchy.residueAtomSegments
             const rI = index[elements[v]]
-            const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
-            const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
-            const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
-            if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
-            const eI = getAnomericCarbon(e.unit, rI)
-            if (eI !== undefined) {
+            const eIndices = getAnomericCarbons(e.unit, rI)
+            for (let i = 0, il = eIndices.length; i < il; ++i) {
+                const eI = eIndices[i]
+                if (!OrderedSet.has(e.indices, OrderedSet.indexOf(elements, eI))) continue
                 const idx = getElementIndex(e.unit, eI)
                 if (idx !== undefined) {
                     if (apply(Interval.ofBounds(idx * 2, idx * 2 + 2))) changed = true

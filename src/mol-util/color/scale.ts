@@ -55,7 +55,7 @@ export interface ColorScale {
 }
 
 export const DefaultColorScaleProps = {
-    domain: [0, 1],
+    domain: [0, 1] as [number, number],
     reverse: false,
     listOrName: ColorBrewer.RedYellowBlue as Color[] | ColorListName,
     minLabel: '' as string | undefined,

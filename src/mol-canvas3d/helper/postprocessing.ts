@@ -33,7 +33,7 @@ const PostprocessingSchema = {
 
 export const PostprocessingParams = {
     occlusionEnable: PD.Boolean(false),
-    occlusionKernelSize: PD.Numeric(4, { min: 1, max: 100, step: 1 }),
+    occlusionKernelSize: PD.Numeric(4, { min: 1, max: 32, step: 1 }),
     occlusionBias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
     occlusionRadius: PD.Numeric(64, { min: 0, max: 256, step: 1 }),
 

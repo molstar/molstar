@@ -99,7 +99,7 @@ export namespace VolumeStreaming {
         channels: Channels = {}
 
         private async queryData(box?: Box3D) {
-            let url = urlCombine(this.info.serverUrl, `${this.info.kind}/${this.info.dataId}`);
+            let url = urlCombine(this.info.serverUrl, `${this.info.kind}/${this.info.dataId.toLowerCase()}`);
 
             if (box) {
                 const { min: a, max: b } = box;

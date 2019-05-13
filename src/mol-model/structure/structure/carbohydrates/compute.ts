@@ -421,16 +421,22 @@ function buildLookups (elements: CarbohydrateElement[], links: CarbohydrateLink[
         return `${unit.id}|${residueIndex}`
     }
 
-    const anomericCarbonMap = new Map<string, ElementIndex>()
+    const anomericCarbonMap = new Map<string, ElementIndex[]>()
     for (let i = 0, il = elements.length; i < il; ++i) {
         const { unit, anomericCarbon } = elements[i]
         const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index[anomericCarbon]
-        anomericCarbonMap.set(anomericCarbonKey(unit, residueIndex), anomericCarbon)
+        const k = anomericCarbonKey(unit, residueIndex)
+        if (anomericCarbonMap.has(k)) {
+            anomericCarbonMap.get(k)!.push(anomericCarbon)
+        } else {
+            anomericCarbonMap.set(k, [anomericCarbon])
+        }
     }
 
-    function getAnomericCarbon(unit: Unit, residueIndex: ResidueIndex) {
-        return anomericCarbonMap.get(anomericCarbonKey(unit, residueIndex))
+    const EmptyArray: ReadonlyArray<any> = []
+    function getAnomericCarbons(unit: Unit, residueIndex: ResidueIndex) {
+        return anomericCarbonMap.get(anomericCarbonKey(unit, residueIndex)) || EmptyArray
     }
 
-    return { getElementIndex, getLinkIndex, getLinkIndices, getTerminalLinkIndex, getTerminalLinkIndices, getAnomericCarbon }
+    return { getElementIndex, getLinkIndex, getLinkIndices, getTerminalLinkIndex, getTerminalLinkIndices, getAnomericCarbons }
 }

@@ -27,13 +27,13 @@ export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: PD.Va
     let color: LocationColor
 
     if (ctx.structure) {
-        const { elements, getElementIndex, getAnomericCarbon } = ctx.structure.carbohydrates
+        const { elements, getElementIndex, getAnomericCarbons } = ctx.structure.carbohydrates
 
         const getColor = (unit: Unit, index: ElementIndex) => {
             const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index[index]
-            const anomericCarbon = getAnomericCarbon(unit, residueIndex)
-            if (anomericCarbon !== undefined) {
-                const idx = getElementIndex(unit, anomericCarbon)
+            const anomericCarbons = getAnomericCarbons(unit, residueIndex)
+            if (anomericCarbons.length > 0) {
+                const idx = getElementIndex(unit, anomericCarbons[0])
                 if (idx !== undefined) return elements[idx].component.color
             }
             return DefaultColor
