@@ -833,7 +833,7 @@ namespace Mat4 {
         out[ 15 ] = 0;
         return out;
     }
-    
+
     /**
      * Generates a orthogonal projection matrix with the given bounds
      */

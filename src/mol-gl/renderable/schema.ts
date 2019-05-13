@@ -155,11 +155,14 @@ export const GlobalUniformSchema = {
     uRoughness: UniformSpec('f'),
     uReflectivity: UniformSpec('f'),
 
+    uIsOrtho: UniformSpec('f'),
     uPixelRatio: UniformSpec('f'),
     uViewportHeight: UniformSpec('f'),
     uViewport: UniformSpec('v4'),
 
     uCameraPosition: UniformSpec('v3'),
+    uNear: UniformSpec('f'),
+    uFar: UniformSpec('f'),
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),

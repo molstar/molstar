@@ -152,7 +152,7 @@ namespace Camera {
     /**
      * Sets an offseted view in a larger frustum. This is useful for
      * - multi-window or multi-monitor/multi-machine setups
-     * - jittering the camera position for 
+     * - jittering the camera position for
      */
     export interface ViewOffset {
         enabled: boolean,
@@ -183,9 +183,9 @@ namespace Camera {
 
             target: Vec3.create(0, 0, 0),
 
-            near: 0.1,
+            near: 1,
             far: 10000,
-            fogNear: 0.1,
+            fogNear: 1,
             fogFar: 10000,
 
             fov: Math.PI / 4,

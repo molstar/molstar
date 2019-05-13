@@ -85,6 +85,7 @@ namespace Renderer {
             uModelViewProjection: ValueCell.create(modelViewProjection),
             uInvModelViewProjection: ValueCell.create(invModelViewProjection),
 
+            uIsOrtho: ValueCell.create(camera.state.mode === 'orthographic' ? 1 : 0),
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
             uViewportHeight: ValueCell.create(viewport.height),
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
@@ -97,6 +98,8 @@ namespace Renderer {
             uReflectivity: ValueCell.create(p.reflectivity),
 
             uCameraPosition: ValueCell.create(Vec3.clone(camera.state.position)),
+            uNear: ValueCell.create(camera.state.near),
+            uFar: ValueCell.create(camera.state.far),
             uFogNear: ValueCell.create(camera.state.fogNear),
             uFogFar: ValueCell.create(camera.state.fogFar),
             uFogColor: ValueCell.create(bgColor),
@@ -162,7 +165,11 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection))
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection))
 
+            ValueCell.update(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0)
+
             ValueCell.update(globalUniforms.uCameraPosition, camera.state.position)
+            ValueCell.update(globalUniforms.uFar, camera.state.far)
+            ValueCell.update(globalUniforms.uNear, camera.state.near)
             ValueCell.update(globalUniforms.uFogFar, camera.state.fogFar)
             ValueCell.update(globalUniforms.uFogNear, camera.state.fogNear)
 

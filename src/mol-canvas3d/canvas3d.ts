@@ -130,7 +130,7 @@ namespace Canvas3D {
         const depthTexture = createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
         depthTexture.define(canvas.width, canvas.height)
         depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
-        
+
         const postprocessingTarget = createRenderTarget(webgl, canvas.width, canvas.height)
         const postprocessing = getPostprocessingRenderable(webgl, drawTarget.texture, depthTexture, p.postprocessing)
 
@@ -272,7 +272,7 @@ namespace Canvas3D {
                     renderPostprocessing()
                 }
 
-                // compose draw with hold target
+                // compose rendered scene with hold target
                 composeTarget.bind()
                 gl.viewport(0, 0, canvas.width, canvas.height)
                 state.enable(gl.BLEND)
@@ -291,7 +291,7 @@ namespace Canvas3D {
             ValueCell.update(compose.values.uWeight, 1.0)
             ValueCell.update(compose.values.tColor, composeTarget.texture)
             compose.update()
-            
+
             webgl.unbindFramebuffer()
             gl.viewport(0, 0, canvas.width, canvas.height)
             state.disable(gl.BLEND)

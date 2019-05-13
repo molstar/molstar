@@ -34,21 +34,6 @@ const mat4 D = mat4(
     0.0, 0.0, 0.0, -1.0
 );
 
-mat4 transpose2(in mat4 inMatrix) {
-    vec4 i0 = inMatrix[0];
-    vec4 i1 = inMatrix[1];
-    vec4 i2 = inMatrix[2];
-    vec4 i3 = inMatrix[3];
-
-    mat4 outMatrix = mat4(
-        vec4(i0.x, i1.x, i2.x, i3.x),
-        vec4(i0.y, i1.y, i2.y, i3.y),
-        vec4(i0.z, i1.z, i2.z, i3.z),
-        vec4(i0.w, i1.w, i2.w, i3.w)
-    );
-    return outMatrix;
-}
-
 /**
  * Compute point size and center using the technique described in:
  * "GPU-Based Ray-Casting of Quadratic Surfaces" http://dl.acm.org/citation.cfm?id=2386396
@@ -64,7 +49,7 @@ void quadraticProjection(const in float radius, const in vec3 position){
         position.x, position.y, position.z, 1.0
     );
 
-    mat4 R = transpose2(uProjection * uModelView * aTransform * T);
+    mat4 R = transpose(uProjection * uModelView * aTransform * T);
     float A = dot(R[3], D * R[3]);
     float B = -2.0 * dot(R[0], D * R[3]);
     float C = dot(R[0], D * R[0]);

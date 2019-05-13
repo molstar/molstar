@@ -12,14 +12,13 @@ precision highp int;
 #pragma glslify: import('./chunks/light-frag-params.glsl')
 
 uniform mat4 uProjection;
-// uniform vec3 interiorColor;
-// uniform float interiorDarkening;
-vec3 interiorColor = vec3(1.0, 0.5, 0.5);
-float interiorDarkening = 0.0;
+// uniform vec3 uInteriorColor;
+// uniform float uInteriorDarkening;
+vec3 uInteriorColor = vec3(0.5, 0.5, 0.5);
+float uInteriorDarkening = 0.0;
 
-uniform float clipNear;
-// uniform float ortho;
-float ortho = 0.0;
+uniform float uClipNear;
+uniform float uIsOrtho;
 
 varying float vRadius;
 varying float vRadiusSq;
@@ -38,16 +37,16 @@ float calcDepth(const in vec3 cameraPos){
 }
 
 float calcClip(const in vec3 cameraPos) {
-    return dot(vec4(cameraPos, 1.0), vec4(0.0, 0.0, 1.0, clipNear - 0.5));
+    return dot(vec4(cameraPos, 1.0), vec4(0.0, 0.0, 1.0, uClipNear - 0.5));
 }
 
 bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
     vec3 cameraSpherePos = -vPointViewPosition;
     cameraSpherePos.z += vRadius;
 
-    vec3 rayOrigin = mix(vec3(0.0, 0.0, 0.0), vPoint, ortho);
-    vec3 rayDirection = mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), ortho);
-    vec3 cameraSphereDir = mix(cameraSpherePos, rayOrigin - cameraSpherePos, ortho);
+    vec3 rayOrigin = mix(vec3(0.0, 0.0, 0.0), vPoint, uIsOrtho);
+    vec3 rayDirection = mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
+    vec3 cameraSphereDir = mix(cameraSpherePos, rayOrigin - cameraSpherePos, uIsOrtho);
 
     float B = dot(rayDirection, cameraSphereDir);
     float det = B * B + vRadiusSq - dot(cameraSphereDir, cameraSphereDir);
@@ -58,8 +57,8 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
     }
 
     float sqrtDet = sqrt(det);
-    float posT = mix(B + sqrtDet, B + sqrtDet, ortho);
-    float negT = mix(B - sqrtDet, sqrtDet - B, ortho);
+    float posT = mix(B + sqrtDet, B + sqrtDet, uIsOrtho);
+    float negT = mix(B - sqrtDet, sqrtDet - B, uIsOrtho);
 
     cameraPos = rayDirection * negT + rayOrigin;
 
@@ -85,10 +84,6 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
     return !interior;
 }
 
-void main2(void){
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-}
-
 void main(void){
     bool flag = Impostor(cameraPos, cameraNormal);
 
@@ -105,7 +100,7 @@ void main(void){
         // make spheres with a greater radius occlude smaller ones
         #ifdef NEAR_CLIP
             if( flag2 ){
-                gl_FragDepthEXT = max(0.0, calcDepth(vec3(-(clipNear - 0.5))) + (0.0000001 / vRadius));
+                gl_FragDepthEXT = max(0.0, calcDepth(vec3(-(uClipNear - 0.5))) + (0.0000001 / vRadius));
             }else if(gl_FragDepthEXT >= 0.0){
                 gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
             }
@@ -136,9 +131,9 @@ void main(void){
 
         if(interior){
             #ifdef USE_INTERIOR_COLOR
-                gl_FragColor.rgb = interiorColor;
+                gl_FragColor.rgb = uInteriorColor;
             #endif
-            gl_FragColor.rgb *= 1.0 - interiorDarkening;
+            gl_FragColor.rgb *= 1.0 - uInteriorDarkening;
         }
 
         #pragma glslify: import('./chunks/apply-marker-color.glsl')
