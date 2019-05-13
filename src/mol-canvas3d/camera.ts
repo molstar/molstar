@@ -233,25 +233,36 @@ namespace Camera {
 
 const _center = Vec3.zero();
 function updateOrtho(camera: Camera) {
-    const { viewport, state: { zoom, near, far } } = camera;
+    const { viewport, state: { zoom, near, far }, viewOffset } = camera
 
-    const fullLeft = (viewport.width - viewport.x) / -2
+    const fullLeft = -(viewport.width - viewport.x) / 2
     const fullRight = (viewport.width - viewport.x) / 2
     const fullTop = (viewport.height - viewport.y) / 2
-    const fullBottom = (viewport.height - viewport.y) / -2
+    const fullBottom = -(viewport.height - viewport.y) / 2
 
     const dx = (fullRight - fullLeft) / (2 * zoom)
     const dy = (fullTop - fullBottom) / (2 * zoom)
     const cx = (fullRight + fullLeft) / 2
     const cy = (fullTop + fullBottom) / 2
 
-    const left = cx - dx
-    const right = cx + dx
-    const top = cy + dy
-    const bottom = cy - dy
+    let left = cx - dx
+    let right = cx + dx
+    let top = cy + dy
+    let bottom = cy - dy
+
+    if (viewOffset && viewOffset.enabled) {
+        const zoomW = zoom / (viewOffset.width / viewOffset.fullWidth)
+        const zoomH = zoom / (viewOffset.height / viewOffset.fullHeight)
+        const scaleW = (fullRight - fullLeft) / viewOffset.width
+        const scaleH = (fullTop - fullBottom) / viewOffset.height
+        left += scaleW * (viewOffset.offsetX / zoomW)
+        right = left + scaleW * (viewOffset.width / zoomW)
+        top -= scaleH * (viewOffset.offsetY / zoomH)
+        bottom = top - scaleH * (viewOffset.height / zoomH)
+    }
 
     // build projection matrix
-    Mat4.ortho(camera.projection, left, right, bottom, top, Math.abs(near), Math.abs(far))
+    Mat4.ortho(camera.projection, left, right, top, bottom, near, far)
 
     // build view matrix
     Vec3.add(_center, camera.position, camera.direction)
@@ -261,7 +272,7 @@ function updateOrtho(camera: Camera) {
 function updatePers(camera: Camera) {
     const aspect = camera.viewport.width / camera.viewport.height
 
-    const { state: { fov, near, far }, viewOffset } = camera;
+    const { state: { fov, near, far }, viewOffset } = camera
 
     let top = near * Math.tan(0.5 * fov)
     let height = 2 * top
