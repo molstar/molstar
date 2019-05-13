@@ -806,51 +806,62 @@ namespace Mat4 {
     /**
      * Generates a perspective projection matrix with the given bounds
      */
-    export function perspective(out: Mat4, fovy: number, aspect: number, near: number, far: number) {
-        const f = 1.0 / Math.tan(fovy / 2);
-        const nf = 1 / (near - far);
-        out[0] = f / aspect;
+    export function perspective(out: Mat4, left: number, right: number, top: number, bottom: number, near: number, far: number) {
+        const x = 2 * near / (right - left);
+        const y = 2 * near / (top - bottom);
+
+        const a = (right + left) / (right - left);
+        const b = (top + bottom) / (top - bottom);
+        const c = - (far + near) / (far - near);
+        const d = - 2 * far * near / (far - near);
+
+        out[0] = x;
         out[1] = 0;
         out[2] = 0;
         out[3] = 0;
         out[4] = 0;
-        out[5] = f;
+        out[5] = y;
         out[6] = 0;
         out[7] = 0;
-        out[8] = 0;
-        out[9] = 0;
-        out[10] = (far + near) * nf;
+        out[8] = a;
+        out[9] = b;
+        out[10] = c;
         out[11] = -1;
-        out[12] = 0;
-        out[13] = 0;
-        out[14] = (2 * far * near) * nf;
-        out[15] = 0;
+        out[ 12 ] = 0;
+        out[ 13 ] = 0;
+        out[ 14 ] = d;
+        out[ 15 ] = 0;
         return out;
     }
-
+    
     /**
      * Generates a orthogonal projection matrix with the given bounds
      */
     export function ortho(out: Mat4, left: number, right: number, bottom: number, top: number, near: number, far: number) {
-        const lr = 1 / (left - right);
-        const bt = 1 / (bottom - top);
-        const nf = 1 / (near - far);
-        out[0] = -2 * lr;
-        out[1] = 0;
-        out[2] = 0;
-        out[3] = 0;
-        out[4] = 0;
-        out[5] = -2 * bt;
-        out[6] = 0;
-        out[7] = 0;
-        out[8] = 0;
-        out[9] = 0;
-        out[10] = 2 * nf;
-        out[11] = 0;
-        out[12] = (left + right) * lr;
-        out[13] = (top + bottom) * bt;
-        out[14] = (far + near) * nf;
-        out[15] = 1;
+        const w = 1.0 / (right - left);
+        const h = 1.0 / (top - bottom);
+        const p = 1.0 / (far - near);
+
+        const x = (right + left) * w;
+        const y = (top + bottom) * h;
+        const z = (far + near) * p;
+
+        out[ 0 ] = 2 * w;
+        out[ 1 ] = 0;
+        out[ 2 ] = 0;
+        out[ 3 ] = 0;
+        out[ 4 ] = 0;
+        out[ 5 ] = 2 * h;
+        out[ 6 ] = 0;
+        out[ 7 ] = 0;
+        out[ 8 ] = 0;
+        out[ 9 ] = 0;
+        out[ 10 ] = - 2 * p;
+        out[ 11 ] = 0;
+        out[ 12 ] = - x;
+        out[ 13 ] = - y;
+        out[ 14 ] = - z;
+        out[ 15 ] = 1;
         return out;
     }
 

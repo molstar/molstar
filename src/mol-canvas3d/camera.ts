@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -25,6 +25,12 @@ class Camera implements Object3D {
 
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
+    readonly viewOffset: Camera.ViewOffset = {
+        enabled: false,
+        fullWidth: 1, fullHeight: 1,
+        offsetX: 0, offsetY: 0,
+        width: 1, height: 1
+    }
 
     readonly transition: CameraTransitionManager = new CameraTransitionManager(this);
 
@@ -143,6 +149,30 @@ namespace Camera {
         fogFar: number
     }
 
+    /**
+     * Sets an offseted view in a larger frustum. This is useful for
+     * - multi-window or multi-monitor/multi-machine setups
+     * - jittering the camera position for 
+     */
+    export interface ViewOffset {
+        enabled: boolean,
+        fullWidth: number,
+        fullHeight: number,
+        offsetX: number,
+        offsetY: number,
+        width: number,
+        height: number
+    }
+
+    export function setViewOffset(out: ViewOffset, fullWidth: number, fullHeight: number, offsetX: number, offsetY: number, width: number, height: number) {
+        out.fullWidth = fullWidth
+        out.fullHeight = fullHeight
+        out.offsetX = offsetX
+        out.offsetY = offsetY
+        out.width = width
+        out.height = height
+    }
+
     export function createDefaultSnapshot(): Snapshot {
         return {
             mode: 'perspective',
@@ -159,7 +189,7 @@ namespace Camera {
             fogFar: 10000,
 
             fov: Math.PI / 4,
-            zoom: 1
+            zoom: 1,
         };
     }
 
@@ -178,7 +208,7 @@ namespace Camera {
         fogFar: number,
 
         fov: number,
-        zoom: number
+        zoom: number,
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
@@ -231,10 +261,22 @@ function updateOrtho(camera: Camera) {
 function updatePers(camera: Camera) {
     const aspect = camera.viewport.width / camera.viewport.height
 
-    const { fov, near, far } = camera.state;
+    const { state: { fov, near, far }, viewOffset } = camera;
+
+    let top = near * Math.tan(0.5 * fov)
+    let height = 2 * top
+    let width = aspect * height
+    let left = -0.5 * width
+
+    if (viewOffset && viewOffset.enabled) {
+        left += viewOffset.offsetX * width / viewOffset.fullWidth
+        top -= viewOffset.offsetY * height / viewOffset.fullHeight
+        width *= viewOffset.width / viewOffset.fullWidth
+        height *= viewOffset.height / viewOffset.fullHeight
+    }
 
     // build projection matrix
-    Mat4.perspective(camera.projection, fov, aspect, Math.abs(near), Math.abs(far))
+    Mat4.perspective(camera.projection, left, left + width, top, top - height, near, far)
 
     // build view matrix
     Vec3.add(_center, camera.position, camera.direction)
