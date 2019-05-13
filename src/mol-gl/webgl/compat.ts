@@ -227,7 +227,7 @@ export interface COMPAT_depth_texture {
 }
 
 export function getDepthTexture(gl: GLRenderingContext): COMPAT_depth_texture | null {
-    if(isWebGL2(gl)) {
+    if (isWebGL2(gl)) {
         return {
             UNSIGNED_INT_24_8: gl.UNSIGNED_INT_24_8
         }

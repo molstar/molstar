@@ -5,7 +5,8 @@
  */
 
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
-import { WebGLExtensions, WebGLState } from './context';
+import { WebGLState } from './state';
+import { WebGLExtensions } from './extensions';
 import { getUniformSetters, UniformsList, getUniformType } from './uniform';
 import { AttributeBuffers, getAttribType } from './buffer';
 import { TextureId, Textures } from './texture';

@@ -6,7 +6,7 @@
 
 import { ValueCell } from 'mol-util';
 import { idFactory } from 'mol-util/id-factory';
-import { WebGLExtensions } from './webgl/context';
+import { WebGLExtensions } from './webgl/extensions';
 import { isWebGL2, GLRenderingContext } from './webgl/compat';
 
 export type DefineKind = 'boolean' | 'string' | 'number'
