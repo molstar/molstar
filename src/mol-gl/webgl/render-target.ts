@@ -31,7 +31,7 @@ export interface RenderTarget {
     destroy: () => void
 }
 
-export function createRenderTarget (ctx: WebGLContext, _width: number, _height: number, enableDepthTexture: boolean = false): RenderTarget {
+export function createRenderTarget (ctx: WebGLContext, _width: number, _height: number): RenderTarget {
     const { gl, stats } = ctx
 
     const image: Mutable<TextureImage<Uint8Array>> = {

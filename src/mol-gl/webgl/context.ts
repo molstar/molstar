@@ -264,19 +264,52 @@ export type WebGLState = {
     currentMaterialId: number
     currentRenderItemId: number
 
+    /**
+     * specifies which WebGL capability to enable
+     * - `gl.BLEND`: blending of the computed fragment color values
+     * - `gl.CULL_FACE`: culling of polygons
+     * - `gl.DEPTH_TEST`: depth comparisons and updates to the depth buffer
+     * - `gl.DITHER`: dithering of color components before they get written to the color buffer
+     * - `gl.POLYGON_OFFSET_FILL`: adding an offset to depth values of polygon's fragments
+     * - `gl.SAMPLE_ALPHA_TO_COVERAGE`: computation of a temporary coverage value determined by the alpha value
+     * - `gl.SAMPLE_COVERAGE`: ANDing the fragment's coverage with the temporary coverage value
+     * - `gl.SCISSOR_TEST`: scissor test that discards fragments that are outside of the scissor rectangle
+     * - `gl.STENCIL_TEST`: stencil testing and updates to the stencil buffer
+     */
     enable: (cap: number) => void
+    /**
+     * specifies which WebGL capability to disable
+     * - `gl.BLEND`: blending of the computed fragment color values
+     * - `gl.CULL_FACE`: culling of polygons
+     * - `gl.DEPTH_TEST`: depth comparisons and updates to the depth buffer
+     * - `gl.DITHER`: dithering of color components before they get written to the color buffer
+     * - `gl.POLYGON_OFFSET_FILL`: adding an offset to depth values of polygon's fragments
+     * - `gl.SAMPLE_ALPHA_TO_COVERAGE`: computation of a temporary coverage value determined by the alpha value
+     * - `gl.SAMPLE_COVERAGE`: ANDing the fragment's coverage with the temporary coverage value
+     * - `gl.SCISSOR_TEST`: scissor test that discards fragments that are outside of the scissor rectangle
+     * - `gl.STENCIL_TEST`: stencil testing and updates to the stencil buffer
+     */
     disable: (cap: number) => void
 
+    /** specifies whether polygons are front- or back-facing by setting a winding orientation */
     frontFace: (mode: number) => void
+    /** specifies whether or not front- and/or back-facing polygons can be culled */
     cullFace: (mode: number) => void
+    /** sets whether writing into the depth buffer is enabled or disabled */
     depthMask: (flag: boolean) => void
+    /** sets which color components to enable or to disable */
     colorMask: (red: boolean, green: boolean, blue: boolean, alpha: boolean) => void
+    /** specifies the color values used when clearing color buffers, used when calling `gl.clear`, clamped to [0, 1] */
     clearColor: (red: number, green: number, blue: number, alpha: number) => void
 
+    /** defines which function is used for blending pixel arithmetic */
     blendFunc: (src: number, dst: number) => void
+    /** defines which function is used for blending pixel arithmetic for RGB and alpha components separately */
     blendFuncSeparate: (srcRGB: number, dstRGB: number, srcAlpha: number, dstAlpha: number) => void
 
+    /** set both the RGB blend equation and alpha blend equation to a single equation, determines how a new pixel is combined with an existing */
     blendEquation: (mode: number) => void
+    /** set the RGB blend equation and alpha blend equation separately, determines how a new pixel is combined with an existing */
     blendEquationSeparate: (modeRGB: number, modeAlpha: number) => void
 }
 
