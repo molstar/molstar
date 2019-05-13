@@ -32,6 +32,7 @@ import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { createTexture } from 'mol-gl/webgl/texture';
 import { ValueCell } from 'mol-util';
 import { getPostprocessingRenderable, PostprocessingParams } from './helper/postprocessing';
+import { JitterVectors, getComposeRenderable } from './helper/multi-sample';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -40,6 +41,8 @@ export const Canvas3DParams = {
     cameraClipDistance: PD.Numeric(0, { min: 0.0, max: 50.0, step: 0.1 }, { description: 'The distance between camera and scene at which to clip regardless of near clipping plane.' }),
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
+
+    sampleLevel: PD.Numeric(0, { min: 0, max: 5, step: 1 }),
 
     postprocessing: PD.Group(PostprocessingParams),
     renderer: PD.Group(RendererParams),
@@ -107,16 +110,17 @@ namespace Canvas3D {
             mode: p.cameraMode
         })
 
-        const gl = getGLContext(canvas, {
+        const _gl = getGLContext(canvas, {
             alpha: false,
             antialias: true,
             depth: true,
             preserveDrawingBuffer: true
         })
-        if (gl === null) {
+        if (_gl === null) {
             throw new Error('Could not create a WebGL rendering context')
         }
-        const webgl = createContext(gl)
+        const webgl = createContext(_gl)
+        const { state, gl } = webgl
 
         const scene = Scene.create(webgl)
         const controls = TrackballControls.create(input, camera, p.trackball)
@@ -126,9 +130,15 @@ namespace Canvas3D {
         const depthTexture = createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
         depthTexture.define(canvas.width, canvas.height)
         depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
+        
+        const postprocessingTarget = createRenderTarget(webgl, canvas.width, canvas.height)
         const postprocessing = getPostprocessingRenderable(webgl, drawTarget.texture, depthTexture, p.postprocessing)
 
-        let pickScale = 0.25 / webgl.pixelRatio
+        const composeTarget = createRenderTarget(webgl, canvas.width, canvas.height)
+        const compose = getComposeRenderable(webgl, drawTarget.texture)
+
+        const pickBaseScale = 0.25
+        let pickScale = pickBaseScale / webgl.pixelRatio
         let pickWidth = Math.round(canvas.width * pickScale)
         let pickHeight = Math.round(canvas.height * pickScale)
         const objectPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
@@ -189,9 +199,9 @@ namespace Canvas3D {
             let fogFar = cDist + (bRadius * fogFarFactor)
 
             if (camera.state.mode === 'perspective') {
-                near = Math.max(0.1, p.cameraClipDistance, near)
+                near = Math.max(1, p.cameraClipDistance, near)
                 far = Math.max(1, far)
-                fogNear = Math.max(0.1, fogNear)
+                fogNear = Math.max(1, fogNear)
                 fogFar = Math.max(1, fogFar)
             } else if (camera.state.mode === 'orthographic') {
                 if (p.cameraClipDistance > 0) {
@@ -203,6 +213,92 @@ namespace Canvas3D {
                 camera.setState({ near, far, fogNear, fogFar })
                 currentNear = near, currentFar = far, currentFogNear = fogNear, currentFogFar = fogFar
             }
+        }
+
+        function renderDraw() {
+            renderer.setViewport(0, 0, canvas.width, canvas.height)
+            renderer.render(scene, 'draw')
+            if (debugHelper.isEnabled) {
+                debugHelper.syncVisibility()
+                renderer.render(debugHelper.scene, 'draw')
+            }
+        }
+
+        function renderPostprocessing() {
+            gl.viewport(0, 0, canvas.width, canvas.height)
+            state.disable(gl.SCISSOR_TEST)
+            state.disable(gl.BLEND)
+            state.disable(gl.DEPTH_TEST)
+            state.depthMask(false)
+            postprocessing.render()
+        }
+
+        function renderMultiSample(postprocessingEnabled: boolean) {
+            // based on the Multisample Anti-Aliasing Render Pass
+            // contributed to three.js by bhouston / http://clara.io/
+            //
+            // This manual approach to MSAA re-renders the scene ones for
+            // each sample with camera jitter and accumulates the results.
+            const offsetList = JitterVectors[ Math.max(0, Math.min(p.sampleLevel, 5)) ]
+
+            const baseSampleWeight = 1.0 / offsetList.length
+            const roundingRange = 1 / 32
+
+            camera.viewOffset.enabled = true
+            ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessingTarget.texture : drawTarget.texture)
+            compose.update()
+
+            const { width, height } = drawTarget
+
+            // render the scene multiple times, each slightly jitter offset
+            // from the last and accumulate the results.
+            for (let i = 0; i < offsetList.length; ++i) {
+                const offset = offsetList[i]
+                Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height)
+                camera.updateMatrices()
+
+                // the theory is that equal weights for each sample lead to an accumulation of rounding
+                // errors. The following equation varies the sampleWeight per sample so that it is uniformly
+                // distributed across a range of values whose rounding errors cancel each other out.
+                const uniformCenteredDistribution = -0.5 + (i + 0.5) / offsetList.length
+                const sampleWeight = baseSampleWeight + roundingRange * uniformCenteredDistribution
+                ValueCell.update(compose.values.uWeight, sampleWeight)
+
+                // render scene and optionally postprocess
+                drawTarget.bind()
+                renderDraw()
+                if (postprocessingEnabled) {
+                    postprocessingTarget.bind()
+                    renderPostprocessing()
+                }
+
+                // compose draw with hold target
+                composeTarget.bind()
+                gl.viewport(0, 0, canvas.width, canvas.height)
+                state.enable(gl.BLEND)
+                state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD)
+                state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE)
+                state.disable(gl.DEPTH_TEST)
+                state.disable(gl.SCISSOR_TEST)
+                state.depthMask(false)
+                if (i === 0) {
+                    webgl.state.clearColor(0, 0, 0, 0)
+                    gl.clear(gl.COLOR_BUFFER_BIT)
+                }
+                compose.render()
+            }
+
+            ValueCell.update(compose.values.uWeight, 1.0)
+            ValueCell.update(compose.values.tColor, composeTarget.texture)
+            compose.update()
+            
+            webgl.unbindFramebuffer()
+            gl.viewport(0, 0, canvas.width, canvas.height)
+            state.disable(gl.BLEND)
+            compose.render()
+
+            camera.viewOffset.enabled = false
+            camera.updateMatrices()
         }
 
         function render(variant: 'pick' | 'draw', force: boolean) {
@@ -228,22 +324,16 @@ namespace Canvas3D {
                         break;
                     case 'draw':
                         renderer.setViewport(0, 0, canvas.width, canvas.height);
-                        if (postprocessingEnabled) {
-                            drawTarget.bind()
+                        if (p.sampleLevel > 0) {
+                            renderMultiSample(postprocessingEnabled)
                         } else {
-                            webgl.unbindFramebuffer();
-                        }
-                        renderer.render(scene, 'draw');
-                        if (debugHelper.isEnabled) {
-                            debugHelper.syncVisibility()
-                            renderer.render(debugHelper.scene, 'draw')
-                        }
-                        if (postprocessingEnabled) {
-                            webgl.unbindFramebuffer();
-                            webgl.state.disable(webgl.gl.SCISSOR_TEST)
-                            webgl.state.disable(webgl.gl.BLEND)
-                            webgl.state.disable(webgl.gl.DEPTH_TEST)
-                            postprocessing.render()
+                            if (postprocessingEnabled) drawTarget.bind()
+                            else webgl.unbindFramebuffer()
+                            renderDraw()
+                            if (postprocessingEnabled) {
+                                webgl.unbindFramebuffer()
+                                renderPostprocessing()
+                            }
                         }
                         pickDirty = true
                         break;
@@ -418,6 +508,8 @@ namespace Canvas3D {
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
+                if (props.sampleLevel !== undefined) p.sampleLevel = props.sampleLevel
+
                 if (props.postprocessing) {
                     if (props.postprocessing.occlusionEnable !== undefined) {
                         p.postprocessing.occlusionEnable = props.postprocessing.occlusionEnable
@@ -465,6 +557,8 @@ namespace Canvas3D {
                     clip: p.clip,
                     fog: p.fog,
 
+                    sampleLevel: p.sampleLevel,
+
                     postprocessing: { ...p.postprocessing },
                     renderer: { ...renderer.props },
                     trackball: { ...controls.props },
@@ -498,10 +592,13 @@ namespace Canvas3D {
             Viewport.set(controls.viewport, 0, 0, canvas.width, canvas.height)
 
             drawTarget.setSize(canvas.width, canvas.height)
+            postprocessingTarget.setSize(canvas.width, canvas.height)
+            composeTarget.setSize(canvas.width, canvas.height)
             depthTexture.define(canvas.width, canvas.height)
             ValueCell.update(postprocessing.values.uTexSize, Vec2.set(postprocessing.values.uTexSize.ref.value, canvas.width, canvas.height))
+            ValueCell.update(compose.values.uTexSize, Vec2.set(compose.values.uTexSize.ref.value, canvas.width, canvas.height))
 
-            pickScale = 0.25 / webgl.pixelRatio
+            pickScale = pickBaseScale / webgl.pixelRatio
             pickWidth = Math.round(canvas.width * pickScale)
             pickHeight = Math.round(canvas.height * pickScale)
             objectPickTarget.setSize(pickWidth, pickHeight)
