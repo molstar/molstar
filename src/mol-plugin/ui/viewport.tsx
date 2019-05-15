@@ -68,7 +68,7 @@ export class ViewportControls extends PluginUIComponent<{}, { isSettingsExpanded
                 {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}<br/>
                 {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}<br/>
                 {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}<br />
-                {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
+                {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}<br/>
             </div>
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-scene-options'>
                 <ControlGroup header='Layout' initialExpanded={true}>

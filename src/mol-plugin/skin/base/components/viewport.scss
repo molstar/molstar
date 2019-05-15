@@ -63,6 +63,8 @@
 }
 
 .msp-viewport-controls-scene-options {
+    overflow-y: auto;
+    max-height: 400px;
     width: 290px;
     background: $control-background;
 
