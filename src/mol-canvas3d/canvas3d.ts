@@ -31,7 +31,7 @@ import { SetUtils } from 'mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { createTexture } from 'mol-gl/webgl/texture';
 import { ValueCell } from 'mol-util';
-import { getPostprocessingRenderable, PostprocessingParams } from './helper/postprocessing';
+import { getPostprocessingRenderable, PostprocessingParams, setPostprocessingProps } from './helper/postprocessing';
 import { JitterVectors, getComposeRenderable } from './helper/multi-sample';
 
 export const Canvas3DParams = {
@@ -636,37 +636,7 @@ namespace Canvas3D {
                 if (props.sampleLevel !== undefined) p.sampleLevel = props.sampleLevel
 
                 if (props.postprocessing) {
-                    if (props.postprocessing.occlusionEnable !== undefined) {
-                        p.postprocessing.occlusionEnable = props.postprocessing.occlusionEnable
-                        ValueCell.update(postprocessing.values.dOcclusionEnable, props.postprocessing.occlusionEnable)
-                    }
-                    if (props.postprocessing.occlusionKernelSize !== undefined) {
-                        p.postprocessing.occlusionKernelSize = props.postprocessing.occlusionKernelSize
-                        ValueCell.update(postprocessing.values.dOcclusionKernelSize, props.postprocessing.occlusionKernelSize)
-                    }
-                    if (props.postprocessing.occlusionBias !== undefined) {
-                        p.postprocessing.occlusionBias = props.postprocessing.occlusionBias
-                        ValueCell.update(postprocessing.values.uOcclusionBias, props.postprocessing.occlusionBias)
-                    }
-                    if (props.postprocessing.occlusionRadius !== undefined) {
-                        p.postprocessing.occlusionRadius = props.postprocessing.occlusionRadius
-                        ValueCell.update(postprocessing.values.uOcclusionRadius, props.postprocessing.occlusionRadius)
-                    }
-
-                    if (props.postprocessing.outlineEnable !== undefined) {
-                        p.postprocessing.outlineEnable = props.postprocessing.outlineEnable
-                        ValueCell.update(postprocessing.values.dOutlineEnable, props.postprocessing.outlineEnable)
-                    }
-                    if (props.postprocessing.outlineScale !== undefined) {
-                        p.postprocessing.outlineScale = props.postprocessing.outlineScale
-                        ValueCell.update(postprocessing.values.uOutlineScale, props.postprocessing.outlineScale * webgl.pixelRatio)
-                    }
-                    if (props.postprocessing.outlineThreshold !== undefined) {
-                        p.postprocessing.outlineThreshold = props.postprocessing.outlineThreshold
-                        ValueCell.update(postprocessing.values.uOutlineThreshold, props.postprocessing.outlineThreshold)
-                    }
-
-                    postprocessing.update()
+                    setPostprocessingProps(props.postprocessing, postprocessing, p.postprocessing, webgl)
                 }
 
                 if (props.renderer) renderer.setProps(props.renderer)

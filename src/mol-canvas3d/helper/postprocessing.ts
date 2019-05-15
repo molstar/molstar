@@ -11,7 +11,7 @@ import { WebGLContext } from 'mol-gl/webgl/context';
 import { Texture } from 'mol-gl/webgl/texture';
 import { ValueCell } from 'mol-util';
 import { createComputeRenderItem } from 'mol-gl/webgl/render-item';
-import { createComputeRenderable } from 'mol-gl/renderable';
+import { createComputeRenderable, ComputeRenderable } from 'mol-gl/renderable';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
@@ -43,7 +43,9 @@ export const PostprocessingParams = {
 }
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
-export function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, props: Partial<PostprocessingProps>) {
+type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
+
+export function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, props: Partial<PostprocessingProps>): PostprocessingRenderable {
     const p = { ...PD.getDefaultValues(PostprocessingParams), props }
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
@@ -69,4 +71,38 @@ export function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Tex
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
     return createComputeRenderable(renderItem, values)
+}
+
+export function setPostprocessingProps(props: Partial<PostprocessingProps>, postprocessing: PostprocessingRenderable, currentProps: PostprocessingProps, webgl: WebGLContext) {
+    if (props.occlusionEnable !== undefined) {
+        currentProps.occlusionEnable = props.occlusionEnable
+        ValueCell.update(postprocessing.values.dOcclusionEnable, props.occlusionEnable)
+    }
+    if (props.occlusionKernelSize !== undefined) {
+        currentProps.occlusionKernelSize = props.occlusionKernelSize
+        ValueCell.update(postprocessing.values.dOcclusionKernelSize, props.occlusionKernelSize)
+    }
+    if (props.occlusionBias !== undefined) {
+        currentProps.occlusionBias = props.occlusionBias
+        ValueCell.update(postprocessing.values.uOcclusionBias, props.occlusionBias)
+    }
+    if (props.occlusionRadius !== undefined) {
+        currentProps.occlusionRadius = props.occlusionRadius
+        ValueCell.update(postprocessing.values.uOcclusionRadius, props.occlusionRadius)
+    }
+
+    if (props.outlineEnable !== undefined) {
+        currentProps.outlineEnable = props.outlineEnable
+        ValueCell.update(postprocessing.values.dOutlineEnable, props.outlineEnable)
+    }
+    if (props.outlineScale !== undefined) {
+        currentProps.outlineScale = props.outlineScale
+        ValueCell.update(postprocessing.values.uOutlineScale, props.outlineScale * webgl.pixelRatio)
+    }
+    if (props.outlineThreshold !== undefined) {
+        currentProps.outlineThreshold = props.outlineThreshold
+        ValueCell.update(postprocessing.values.uOutlineThreshold, props.outlineThreshold)
+    }
+
+    postprocessing.update()
 }
