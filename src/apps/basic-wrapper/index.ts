@@ -15,6 +15,7 @@ import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
 import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
 import { StateBuilder } from 'mol-state';
 import { StripedResidues } from './coloring';
+import { BasicWrapperControls } from './controls';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -30,6 +31,10 @@ class BasicWrapper {
                 initial: {
                     isExpanded: false,
                     showControls: false
+                },
+                controls: {
+                    left: 'none',
+                    right: BasicWrapperControls
                 }
             }
         });
@@ -57,16 +62,16 @@ class BasicWrapper {
     private visual(visualRoot: StateBuilder.To<PSO.Molecule.Structure>) {
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'cartoon'));
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'cartoon'), { ref: 'seq-visual' });
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'ball-and-stick'));
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'ball-and-stick'), { ref: 'het-visual' });
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'ball-and-stick', { alpha: 0.51 }));
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'ball-and-stick', { alpha: 0.51 }), { ref: 'water-visual' });
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'spacefill'));
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'spacefill'), { ref: 'ihm-visual' });
         return visualRoot;
     }
 
