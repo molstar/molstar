@@ -70,7 +70,7 @@ export const JitterVectors = [
         [ 2, 5 ], [ 7, 5 ], [ 5, 6 ], [ 3, 7 ]
     ]
 ]
-  
+
 JitterVectors.forEach(offsetList => {
     offsetList.forEach(offset => {
         // 0.0625 = 1 / 16

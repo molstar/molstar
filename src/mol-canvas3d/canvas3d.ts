@@ -42,7 +42,8 @@ export const Canvas3DParams = {
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
 
-    sampleLevel: PD.Numeric(0, { min: 0, max: 5, step: 1 }),
+    multiSample: PD.Select('off', [['off', 'Off'], ['on', 'On'], ['temporal', 'Temporal']]),
+    sampleLevel: PD.Numeric(2, { min: 0, max: 5, step: 1 }),
 
     postprocessing: PD.Group(PostprocessingParams),
     renderer: PD.Group(RendererParams),
@@ -135,6 +136,7 @@ namespace Canvas3D {
         const postprocessing = getPostprocessingRenderable(webgl, drawTarget.texture, depthTexture, p.postprocessing)
 
         const composeTarget = createRenderTarget(webgl, canvas.width, canvas.height)
+        const holdTarget = createRenderTarget(webgl, canvas.width, canvas.height)
         const compose = getComposeRenderable(webgl, drawTarget.texture)
 
         const pickBaseScale = 0.25
@@ -149,6 +151,9 @@ namespace Canvas3D {
         let isIdentifying = false
         let isUpdating = false
         let drawPending = false
+
+        let multiSampleIndex = -1
+        let multiSample = false
 
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
@@ -233,11 +238,112 @@ namespace Canvas3D {
             postprocessing.render()
         }
 
+        function renderTemporalMultiSample(postprocessingEnabled: boolean) {
+            // based on the Multisample Anti-Aliasing Render Pass
+            // contributed to three.js by bhouston / http://clara.io/
+            //
+            // This manual approach to MSAA re-renders the scene once for
+            // each sample with camera jitter and accumulates the results.
+            const offsetList = JitterVectors[ Math.max(0, Math.min(p.sampleLevel, 5)) ]
+
+            if (multiSampleIndex === -1) return
+            if (multiSampleIndex >= offsetList.length) {
+                multiSampleIndex = -1
+                return
+            }
+
+            const i = multiSampleIndex
+
+            if (i === 0) {
+                drawTarget.bind()
+                renderDraw()
+                if (postprocessingEnabled) {
+                    postprocessingTarget.bind()
+                    renderPostprocessing()
+                }
+                ValueCell.update(compose.values.uWeight, 1.0)
+                ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessingTarget.texture : drawTarget.texture)
+                compose.update()
+
+                holdTarget.bind()
+                state.disable(gl.BLEND)
+                compose.render()
+            }
+
+            const sampleWeight = 1.0 / offsetList.length
+
+            camera.viewOffset.enabled = true
+            ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessingTarget.texture : drawTarget.texture)
+            ValueCell.update(compose.values.uWeight, sampleWeight)
+            compose.update()
+
+            const { width, height } = drawTarget
+
+            // render the scene multiple times, each slightly jitter offset
+            // from the last and accumulate the results.
+            const numSamplesPerFrame = Math.pow(2, p.sampleLevel)
+            for (let i = 0; i < numSamplesPerFrame; ++i) {
+                const offset = offsetList[multiSampleIndex]
+                Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height)
+                camera.updateMatrices()
+
+                // render scene and optionally postprocess
+                drawTarget.bind()
+                renderDraw()
+                if (postprocessingEnabled) {
+                    postprocessingTarget.bind()
+                    renderPostprocessing()
+                }
+
+                // compose rendered scene with compose target
+                composeTarget.bind()
+                state.enable(gl.BLEND)
+                state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD)
+                state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE)
+                state.disable(gl.DEPTH_TEST)
+                state.disable(gl.SCISSOR_TEST)
+                state.depthMask(false)
+                if (multiSampleIndex === 0) {
+                    webgl.state.clearColor(0, 0, 0, 0)
+                    gl.clear(gl.COLOR_BUFFER_BIT)
+                }
+                compose.render()
+
+                multiSampleIndex += 1
+                if (multiSampleIndex >= offsetList.length ) break
+            }
+
+            const accumulationWeight = multiSampleIndex * sampleWeight
+            if (accumulationWeight > 0) {
+                ValueCell.update(compose.values.uWeight, 1.0)
+                ValueCell.update(compose.values.tColor, composeTarget.texture)
+                compose.update()
+                webgl.unbindFramebuffer()
+                gl.viewport(0, 0, canvas.width, canvas.height)
+                state.disable(gl.BLEND)
+                compose.render()
+            }
+            if (accumulationWeight < 1.0) {
+                ValueCell.update(compose.values.uWeight, 1.0 - accumulationWeight)
+                ValueCell.update(compose.values.tColor, holdTarget.texture)
+                compose.update()
+                webgl.unbindFramebuffer()
+                gl.viewport(0, 0, canvas.width, canvas.height)
+                if (accumulationWeight === 0) state.disable(gl.BLEND)
+                else state.enable(gl.BLEND)
+                compose.render()
+            }
+
+            camera.viewOffset.enabled = false
+            camera.updateMatrices()
+            if (multiSampleIndex >= offsetList.length) multiSampleIndex = -1
+        }
+
         function renderMultiSample(postprocessingEnabled: boolean) {
             // based on the Multisample Anti-Aliasing Render Pass
             // contributed to three.js by bhouston / http://clara.io/
             //
-            // This manual approach to MSAA re-renders the scene ones for
+            // This manual approach to MSAA re-renders the scene once for
             // each sample with camera jitter and accumulates the results.
             const offsetList = JitterVectors[ Math.max(0, Math.min(p.sampleLevel, 5)) ]
 
@@ -272,7 +378,7 @@ namespace Canvas3D {
                     renderPostprocessing()
                 }
 
-                // compose rendered scene with hold target
+                // compose rendered scene with compose target
                 composeTarget.bind()
                 gl.viewport(0, 0, canvas.width, canvas.height)
                 state.enable(gl.BLEND)
@@ -309,9 +415,22 @@ namespace Canvas3D {
             // TODO: is this a good fix? Also, setClipping does not work if the user has manually set a clipping plane.
             if (!camera.transition.inTransition) setClipping();
             const cameraChanged = camera.updateMatrices();
+            if (force || cameraChanged) lastRenderTime = now()
+            if (p.multiSample === 'temporal') {
+                if (currentTime - lastRenderTime > 200) {
+                    multiSample = multiSampleIndex !== -1
+                } else {
+                    multiSampleIndex = 0
+                    multiSample = false
+                }
+            } else if (p.multiSample === 'on') {
+                multiSample = true
+            } else {
+                multiSample = false
+            }
             const postprocessingEnabled = p.postprocessing.occlusionEnable || p.postprocessing.outlineEnable
 
-            if (force || cameraChanged) {
+            if (force || cameraChanged || multiSample) {
                 switch (variant) {
                     case 'pick':
                         renderer.setViewport(0, 0, pickWidth, pickHeight);
@@ -324,8 +443,12 @@ namespace Canvas3D {
                         break;
                     case 'draw':
                         renderer.setViewport(0, 0, canvas.width, canvas.height);
-                        if (p.sampleLevel > 0) {
-                            renderMultiSample(postprocessingEnabled)
+                        if (multiSample) {
+                            if (p.multiSample === 'temporal') {
+                                renderTemporalMultiSample(postprocessingEnabled)
+                            } else {
+                                renderMultiSample(postprocessingEnabled)
+                            }
                         } else {
                             if (postprocessingEnabled) drawTarget.bind()
                             else webgl.unbindFramebuffer()
@@ -346,6 +469,7 @@ namespace Canvas3D {
 
         let forceNextDraw = false;
         let currentTime = 0;
+        let lastRenderTime = 0;
 
         function draw(force?: boolean) {
             if (render('draw', !!force || forceNextDraw)) {
@@ -508,6 +632,7 @@ namespace Canvas3D {
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
+                if (props.multiSample !== undefined) p.multiSample = props.multiSample
                 if (props.sampleLevel !== undefined) p.sampleLevel = props.sampleLevel
 
                 if (props.postprocessing) {
@@ -557,6 +682,7 @@ namespace Canvas3D {
                     clip: p.clip,
                     fog: p.fog,
 
+                    multiSample: p.multiSample,
                     sampleLevel: p.sampleLevel,
 
                     postprocessing: { ...p.postprocessing },
@@ -594,6 +720,7 @@ namespace Canvas3D {
             drawTarget.setSize(canvas.width, canvas.height)
             postprocessingTarget.setSize(canvas.width, canvas.height)
             composeTarget.setSize(canvas.width, canvas.height)
+            holdTarget.setSize(canvas.width, canvas.height)
             depthTexture.define(canvas.width, canvas.height)
             ValueCell.update(postprocessing.values.uTexSize, Vec2.set(postprocessing.values.uTexSize.ref.value, canvas.width, canvas.height))
             ValueCell.update(compose.values.uTexSize, Vec2.set(compose.values.uTexSize.ref.value, canvas.width, canvas.height))
