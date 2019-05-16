@@ -13,6 +13,7 @@ import { ParameterControls } from './controls/parameters';
 import { Canvas3DParams } from 'mol-canvas3d/canvas3d';
 import { PluginLayoutStateParams } from 'mol-plugin/layout';
 import { ControlGroup, IconButton } from './controls/common';
+import { resizeCanvas } from 'mol-canvas3d/util';
 
 interface ViewportState {
     noWebGl: boolean
@@ -91,20 +92,12 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
     };
 
     private handleResize = () => {
-        let w = window.innerWidth
-        let h = window.innerHeight
-        const container = this.container.current
-        const canvas = this.canvas.current
-        if (!container || !canvas) return
-        if (container !== document.body) {
-            let bounds = container.getBoundingClientRect()
-            w = bounds.right - bounds.left
-            h = bounds.bottom - bounds.top
+        const container = this.container.current;
+        const canvas = this.canvas.current;
+        if (container && canvas) {
+            resizeCanvas(canvas, container);
+            this.plugin.canvas3d.handleResize();
         }
-        canvas.width = window.devicePixelRatio * w
-        canvas.height = window.devicePixelRatio * h
-        Object.assign(canvas.style, { width: `${w}px`, height: `${h}px` })
-        this.plugin.canvas3d.handleResize();
     }
 
     componentDidMount() {

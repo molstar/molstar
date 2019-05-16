@@ -13,15 +13,15 @@ import { createRenderObject } from 'mol-gl/render-object';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { LinesBuilder } from 'mol-geo/geometry/lines/lines-builder';
 import { DodecahedronCage } from 'mol-geo/primitive/dodecahedron';
+import { resizeCanvas } from 'mol-canvas3d/util';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
 parent.style.height = '100%'
 
 const canvas = document.createElement('canvas')
-canvas.style.width = '100%'
-canvas.style.height = '100%'
 parent.appendChild(canvas)
+resizeCanvas(canvas, parent)
 
 const canvas3d = Canvas3D.fromCanvas(canvas)
 canvas3d.animate()

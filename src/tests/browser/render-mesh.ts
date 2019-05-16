@@ -14,15 +14,15 @@ import { Color } from 'mol-util/color';
 import { createRenderObject } from 'mol-gl/render-object';
 import { SpikedBall } from 'mol-geo/primitive/spiked-ball';
 import { HexagonalPrismCage } from 'mol-geo/primitive/prism';
+import { resizeCanvas } from 'mol-canvas3d/util';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
 parent.style.height = '100%'
 
 const canvas = document.createElement('canvas')
-canvas.style.width = '100%'
-canvas.style.height = '100%'
 parent.appendChild(canvas)
+resizeCanvas(canvas, parent)
 
 const canvas3d = Canvas3D.fromCanvas(canvas)
 canvas3d.animate()

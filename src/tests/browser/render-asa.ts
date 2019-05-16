@@ -18,15 +18,15 @@ import { Location } from 'mol-model/location';
 import { ThemeDataContext } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
+import { resizeCanvas } from 'mol-canvas3d/util';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
 parent.style.height = '100%'
 
 const canvas = document.createElement('canvas')
-canvas.style.width = '100%'
-canvas.style.height = '100%'
 parent.appendChild(canvas)
+resizeCanvas(canvas, parent)
 
 const canvas3d = Canvas3D.fromCanvas(canvas)
 canvas3d.animate()

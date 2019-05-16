@@ -16,15 +16,15 @@ import { MolecularSurfaceRepresentationProvider } from 'mol-repr/structure/repre
 import { BallAndStickRepresentationProvider } from 'mol-repr/structure/representation/ball-and-stick';
 import { GaussianSurfaceRepresentationProvider } from 'mol-repr/structure/representation/gaussian-surface';
 import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
+import { resizeCanvas } from 'mol-canvas3d/util';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
 parent.style.height = '100%'
 
 const canvas = document.createElement('canvas')
-canvas.style.width = '100%'
-canvas.style.height = '100%'
 parent.appendChild(canvas)
+resizeCanvas(canvas, parent)
 
 const canvas3d = Canvas3D.fromCanvas(canvas)
 canvas3d.animate()

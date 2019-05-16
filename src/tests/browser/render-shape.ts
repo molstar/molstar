@@ -18,15 +18,15 @@ import { RuntimeContext, Progress } from 'mol-task';
 import { Representation } from 'mol-repr/representation';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { EveryLoci } from 'mol-model/loci';
+import { resizeCanvas } from 'mol-canvas3d/util';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
 parent.style.height = '100%'
 
 const canvas = document.createElement('canvas')
-canvas.style.width = '100%'
-canvas.style.height = '100%'
 parent.appendChild(canvas)
+resizeCanvas(canvas, parent)
 
 const info = document.createElement('div')
 info.style.position = 'absolute'
