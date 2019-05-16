@@ -12,11 +12,6 @@ const sharedConfig = {
                 test: /\.(glsl|frag|vert)$/,
                 include: [path.resolve(__dirname, 'build/src/')],
             },
-            {
-                loader: 'glslify-loader',
-                test: /\.(glsl|frag|vert)$/,
-                include: [path.resolve(__dirname, 'build/src/')]
-            },
 
             {
                 loader: 'file-loader',

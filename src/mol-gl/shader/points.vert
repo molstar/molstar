@@ -7,9 +7,11 @@
 precision highp float;
 precision highp int;
 
-#pragma glslify: import('./chunks/common-vert-params.glsl')
-#pragma glslify: import('./chunks/color-vert-params.glsl')
-#pragma glslify: import('./chunks/size-vert-params.glsl')
+#include common
+#include read_from_texture
+#include common_vert_params
+#include color_vert_params
+#include size_vert_params
 
 uniform float uPixelRatio;
 uniform float uViewportHeight;
@@ -20,11 +22,11 @@ attribute float aInstance;
 attribute float aGroup;
 
 void main(){
-    #pragma glslify: import('./chunks/assign-group.glsl')
-    #pragma glslify: import('./chunks/assign-color-varying.glsl')
-    #pragma glslify: import('./chunks/assign-marker-varying.glsl')
-    #pragma glslify: import('./chunks/assign-position.glsl')
-    #pragma glslify: import('./chunks/assign-size.glsl')
+    #include assign_group
+    #include assign_color_varying
+    #include assign_marker_varying
+    #include assign_position
+    #include assign_size
 
     #ifdef dPointSizeAttenuation
         gl_PointSize = size * uPixelRatio * ((uViewportHeight / 2.0) / -mvPosition.z) * 5.0;

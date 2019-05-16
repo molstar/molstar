@@ -7,11 +7,12 @@
 precision highp float;
 precision highp int;
 
-#pragma glslify: import('./chunks/common-frag-params.glsl')
-#pragma glslify: import('./chunks/color-frag-params.glsl')
+#include common
+#include common_frag_params
+#include color_frag_params
 
 void main(){
-    #pragma glslify: import('./chunks/assign-material-color.glsl')
+    #include assign_material_color
 
     #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
         if (uAlpha < uPickingAlphaThreshold)
@@ -20,7 +21,7 @@ void main(){
     #else
         gl_FragColor = material;
 
-        #pragma glslify: import('./chunks/apply-marker-color.glsl')
-        #pragma glslify: import('./chunks/apply-fog.glsl')
+        #include apply_marker_color
+        #include apply_fog
     #endif
 }

@@ -7,8 +7,9 @@
 precision highp float;
 precision highp int;
 
-#pragma glslify: import('./chunks/common-frag-params.glsl')
-#pragma glslify: import('./chunks/color-frag-params.glsl')
+#include common
+#include common_frag_params
+#include color_frag_params
 
 uniform sampler2D tFont;
 
@@ -27,7 +28,7 @@ void main2(){
 }
 
 void main(){
-    #pragma glslify: import('./chunks/assign-material-color.glsl')
+    #include assign_material_color
 
     if (vTexCoord.x > 1.0) {
         gl_FragColor = vec4(uBackgroundColor, uBackgroundOpacity);
@@ -58,7 +59,7 @@ void main(){
         if (uAlpha < uPickingAlphaThreshold)
             discard; // ignore so the element below can be picked
     #else
-        #pragma glslify: import('./chunks/apply-marker-color.glsl')
-        #pragma glslify: import('./chunks/apply-fog.glsl')
+        #include apply_marker_color
+        #include apply_fog
     #endif
 }

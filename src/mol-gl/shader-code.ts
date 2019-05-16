@@ -29,8 +29,51 @@ export interface ShaderCode {
     readonly extensions: ShaderExtensions
 }
 
+const ShaderChunks: { [k: string]: string } = {
+    'apply_fog': require('mol-gl/shader/chunks/apply-fog.glsl').default,
+    'apply_light_color': require('mol-gl/shader/chunks/apply-light-color.glsl').default,
+    'apply_marker_color': require('mol-gl/shader/chunks/apply-marker-color.glsl').default,
+    'assign_color_varying': require('mol-gl/shader/chunks/assign-color-varying.glsl').default,
+    'assign_group': require('mol-gl/shader/chunks/assign-group.glsl').default,
+    'assign_marker_varying': require('mol-gl/shader/chunks/assign-marker-varying.glsl').default,
+    'assign_material_color': require('mol-gl/shader/chunks/assign-material-color.glsl').default,
+    'assign_normal': require('mol-gl/shader/chunks/assign-normal.glsl').default,
+    'assign_position': require('mol-gl/shader/chunks/assign-position.glsl').default,
+    'assign_size': require('mol-gl/shader/chunks/assign-size.glsl').default,
+    'color_frag_params': require('mol-gl/shader/chunks/color-frag-params.glsl').default,
+    'color_vert_params': require('mol-gl/shader/chunks/color-vert-params.glsl').default,
+    'common_frag_params': require('mol-gl/shader/chunks/common-frag-params.glsl').default,
+    'common_vert_params': require('mol-gl/shader/chunks/common-vert-params.glsl').default,
+    'common': require('mol-gl/shader/chunks/common.glsl').default,
+    'light_frag_params': require('mol-gl/shader/chunks/light-frag-params.glsl').default,
+    'matrix_scale': require('mol-gl/shader/chunks/matrix-scale.glsl').default,
+    'normal_frag_params': require('mol-gl/shader/chunks/normal-frag-params.glsl').default,
+    'read_from_texture': require('mol-gl/shader/chunks/read-from-texture.glsl').default,
+    'size_vert_params': require('mol-gl/shader/chunks/size-vert-params.glsl').default,
+    'texture3d_from_2d_linear': require('mol-gl/shader/chunks/texture3d-from-2d-nearest.glsl').default,
+    'texture3d_from_2d_nearest': require('mol-gl/shader/chunks/texture3d-from-2d-nearest.glsl').default,
+}
+
+const reInclude = /^(?!\/\/)\s*#include\s+(\S+)/gmi
+const reSingleLineComment = /[ \t]*\/\/.*\n/g
+const reMultiLineComment = /[ \t]*\/\*[\s\S]*?\*\//g
+const reMultipleLinebreaks = /\n{2,}/g
+
+function addIncludes(text: string) {
+    return text
+        .replace(reInclude, (_, p1) => {
+            const chunk = ShaderChunks[p1]
+            if (!chunk) throw new Error(`empty chunk, '${p1}'`)
+            return chunk
+        })
+        .trim()
+        .replace(reSingleLineComment, '\n')
+        .replace(reMultiLineComment, '\n')
+        .replace(reMultipleLinebreaks, '\n')
+}
+
 export function ShaderCode(vert: string, frag: string, extensions: ShaderExtensions = {}): ShaderCode {
-    return { id: shaderCodeId(), vert, frag, extensions }
+    return { id: shaderCodeId(), vert: addIncludes(vert), frag: addIncludes(frag), extensions }
 }
 
 export const PointsShaderCode = ShaderCode(
@@ -67,7 +110,7 @@ export const DirectVolumeShaderCode = ShaderCode(
     { fragDepth: true }
 )
 
-
+//
 
 export type ShaderDefines = {
     [k: string]: ValueCell<DefineType>

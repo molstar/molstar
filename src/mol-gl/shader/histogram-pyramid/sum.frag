@@ -9,7 +9,7 @@ precision highp sampler2D;
 
 uniform sampler2D tTexture;
 
-#pragma glslify: encodeFloatRGB = require(../utils/encode-float-rgb.glsl)
+#include common
 
 void main(void) {
     gl_FragColor = vec4(encodeFloatRGB(texture2D(tTexture, vec2(0.5)).r), 1.0);

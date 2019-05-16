@@ -20,8 +20,7 @@ uniform vec2 uScale;
 
 // varying vec2 vCoordinate;
 
-#pragma glslify: import('../chunks/common.glsl')
-#pragma glslify: decodeFloatRGB = require(../utils/decode-float-rgb.glsl)
+#include common
 
 // cube corners
 const vec3 c0 = vec3(0., 0., 0.);

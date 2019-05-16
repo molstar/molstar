@@ -16,10 +16,7 @@ varying float vRadiusSqInv;
     varying float vGroup;
 #endif
 
-#pragma glslify: import('./chunks/common.glsl')
-// #pragma glslify: encodeFloatLog = require(./utils/encode-float-log.glsl)
-// #pragma glslify: decodeFloatLog = require(./utils/decode-float-log.glsl)
-#pragma glslify: encodeFloatRGB = require(./utils/encode-float-rgb.glsl)
+#include common
 
 uniform vec3 uGridDim;
 uniform vec2 uGridTexScale;
@@ -39,7 +36,6 @@ void main() {
         gl_FragColor.a = density;
     #elif defined(dCalcType_minDistance)
         gl_FragColor.a = 10000.0 - dist;
-        // gl_FragColor.a = 1.0 - encodeFloatLog(dist);
     #elif defined(dCalcType_groupId)
         float minDistance = 10000.0 - texture2D(tMinDistanceTex, (gl_FragCoord.xy) / (uGridTexDim.xy / uGridTexScale)).a;
         if (dist > minDistance + uResolution * 0.05)

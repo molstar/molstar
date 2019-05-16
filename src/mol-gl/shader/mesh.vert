@@ -7,8 +7,10 @@
 precision highp float;
 precision highp int;
 
-#pragma glslify: import('./chunks/common-vert-params.glsl')
-#pragma glslify: import('./chunks/color-vert-params.glsl')
+#include common
+#include read_from_texture
+#include common_vert_params
+#include color_vert_params
 
 #ifdef dGeoTexture
     uniform vec2 uGeoTexDim;
@@ -30,10 +32,10 @@ attribute float aGroup;
 #endif
 
 void main(){
-    #pragma glslify: import('./chunks/assign-group.glsl')
-    #pragma glslify: import('./chunks/assign-color-varying.glsl')
-    #pragma glslify: import('./chunks/assign-marker-varying.glsl')
-    #pragma glslify: import('./chunks/assign-position.glsl')
+    #include assign_group
+    #include assign_color_varying
+    #include assign_marker_varying
+    #include assign_position
 
     #ifndef dFlatShaded
         #ifdef dGeoTexture

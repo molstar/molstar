@@ -13,7 +13,6 @@
     #else
         flat out vec4 vColor;
     #endif
-    #pragma glslify: encodeFloatRGB = require(../utils/encode-float-rgb.glsl)
 #endif
 
 #ifdef dOverpaint

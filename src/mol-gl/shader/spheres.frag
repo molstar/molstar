@@ -7,9 +7,10 @@
 precision highp float;
 precision highp int;
 
-#pragma glslify: import('./chunks/common-frag-params.glsl')
-#pragma glslify: import('./chunks/color-frag-params.glsl')
-#pragma glslify: import('./chunks/light-frag-params.glsl')
+#include common
+#include common_frag_params
+#include color_frag_params
+#include light_frag_params
 
 uniform mat4 uProjection;
 // uniform vec3 uInteriorColor;
@@ -117,8 +118,7 @@ void main(void){
     if (gl_FragDepthEXT > 1.0)
         discard;
 
-    // material color
-    #pragma glslify: import('./chunks/assign-material-color.glsl')
+    #include assign_material_color
 
     #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
         if (uAlpha < uPickingAlphaThreshold)
@@ -127,7 +127,7 @@ void main(void){
     #else
         vec3 normal = cameraNormal;
         vec3 vViewPosition = -cameraPos;
-        #pragma glslify: import('./chunks/apply-light-color.glsl')
+        #include apply_light_color
 
         if(interior){
             #ifdef USE_INTERIOR_COLOR
@@ -136,7 +136,7 @@ void main(void){
             gl_FragColor.rgb *= 1.0 - uInteriorDarkening;
         }
 
-        #pragma glslify: import('./chunks/apply-marker-color.glsl')
-        #pragma glslify: import('./chunks/apply-fog.glsl')
+        #include apply_marker_color
+        #include apply_fog
     #endif
 }

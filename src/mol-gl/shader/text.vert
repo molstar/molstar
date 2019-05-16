@@ -7,9 +7,11 @@
 precision highp float;
 precision highp int;
 
-#pragma glslify: import('./chunks/common-vert-params.glsl')
-#pragma glslify: import('./chunks/color-vert-params.glsl')
-#pragma glslify: import('./chunks/size-vert-params.glsl')
+#include common
+#include read_from_texture
+#include common_vert_params
+#include color_vert_params
+#include size_vert_params
 
 uniform mat4 uModelView;
 
@@ -31,13 +33,13 @@ uniform float uViewportHeight;
 
 varying vec2 vTexCoord;
 
-#pragma glslify: matrixScale = require(./utils/matrix-scale.glsl)
+#include matrix_scale
 
 void main(void){
-    #pragma glslify: import('./chunks/assign-group.glsl')
-    #pragma glslify: import('./chunks/assign-color-varying.glsl')
-    #pragma glslify: import('./chunks/assign-marker-varying.glsl')
-    #pragma glslify: import('./chunks/assign-size.glsl')
+    #include assign_group
+    #include assign_color_varying
+    #include assign_marker_varying
+    #include assign_size
 
     vTexCoord = aTexCoord;
 

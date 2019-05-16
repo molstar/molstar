@@ -9,6 +9,25 @@ float intMod(const in float a, const in float b) { return a - b * float(int(a) /
 
 float pow2(const in float x) { return x*x; }
 
+const float maxFloat = 10000.0; // NOTE constant also set in TypeScript
+const float floatLogFactor = log(maxFloat + 1.0);
+float encodeFloatLog(const in float value) { return log(value + 1.0) / floatLogFactor; }
+float decodeFloatLog(const in float value) { return exp(value * floatLogFactor) - 1.0; }
+
+vec3 encodeFloatRGB(in float value) {
+    value = clamp(value, 0.0, 16777216.0 - 1.0) + 1.0;
+    vec3 c = vec3(0.0);
+    c.b = mod(value, 256.0);
+    value = floor(value / 256.0);
+    c.g = mod(value, 256.0);
+    value = floor(value / 256.0);
+    c.r = mod(value, 256.0);
+    return c / 255.0;
+}
+float decodeFloatRGB(const in vec3 rgb) {
+    return (rgb.r * 256.0 * 256.0 * 255.0 + rgb.g * 256.0 * 255.0 + rgb.b * 255.0) - 1.0;
+}
+
 #if __VERSION__ != 300
     // transpose
 

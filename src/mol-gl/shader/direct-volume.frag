@@ -45,14 +45,12 @@ uniform int uPickable;
     uniform sampler2D tColor;
 #endif
 
-#pragma glslify: import('./chunks/common.glsl')
-#pragma glslify: import('./chunks/light-frag-params.glsl')
+#include common
+#include light_frag_params
 
-#pragma glslify: readFromTexture = require(./utils/read-from-texture.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
-#pragma glslify: encodeFloatRGB = require(./utils/encode-float-rgb.glsl)
-#pragma glslify: decodeFloatRGB = require(./utils/decode-float-rgb.glsl)
-#pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
-#pragma glslify: texture3dFrom2dLinear = require(./utils/texture3d-from-2d-linear.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
+#include read_from_texture
+#include texture3d_from_2d_nearest
+#include texture3d_from_2d_linear
 
 #if defined(dGridTexType_2d)
     vec4 textureVal(vec3 pos) {
@@ -151,10 +149,10 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                     vec3 normal = normalize(gradient);
                     vec3 vViewPosition = normalize(viewDir);
                     vec4 material = vec4(color, uAlpha);
-                    #pragma glslify: import('./chunks/apply-light-color.glsl')
+                    #include apply_light_color
 
                     float vMarker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a;
-                    #pragma glslify: import('./chunks/apply-marker-color.glsl')
+                    #include apply_marker_color
 
                     src.rgb = gl_FragColor.rgb;
                     src.a = gl_FragColor.a;
