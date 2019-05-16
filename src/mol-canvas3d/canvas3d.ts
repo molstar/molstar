@@ -14,7 +14,6 @@ import { GraphicsRenderObject } from 'mol-gl/render-object'
 
 import { TrackballControls, TrackballControlsParams } from './controls/trackball'
 import { Viewport } from './camera/util'
-import { resizeCanvas } from './util';
 import { createContext, getGLContext, WebGLContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-repr/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
@@ -93,7 +92,7 @@ namespace Canvas3D {
     export interface HighlightEvent { current: Representation.Loci, prev: Representation.Loci, modifiers?: ModifiersKeys }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
 
-    export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DProps> = {}): Canvas3D {
+    export function create(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>()
@@ -682,7 +681,6 @@ namespace Canvas3D {
         }
 
         function handleResize() {
-            resizeCanvas(canvas, container)
             renderer.setViewport(0, 0, canvas.width, canvas.height)
             Viewport.set(camera.viewport, 0, 0, canvas.width, canvas.height)
             Viewport.set(controls.viewport, 0, 0, canvas.width, canvas.height)
