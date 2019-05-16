@@ -101,8 +101,8 @@ namespace Canvas3D {
             preserveDrawingBuffer: true
         })
         if (gl === null) throw new Error('Could not create a WebGL rendering context')
-        const input = InputObserver.create(canvas)
-        return Canvas3D.create(gl, input)
+        const input = InputObserver.fromElement(canvas)
+        return Canvas3D.create(gl, input, props)
     }
 
     export function create(gl: GLRenderingContext, input: InputObserver, props: Partial<Canvas3DProps> = {}): Canvas3D {
