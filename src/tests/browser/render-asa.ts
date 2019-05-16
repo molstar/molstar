@@ -28,7 +28,7 @@ canvas.style.width = '100%'
 canvas.style.height = '100%'
 parent.appendChild(canvas)
 
-const canvas3d = Canvas3D.create(canvas)
+const canvas3d = Canvas3D.fromCanvas(canvas)
 canvas3d.animate()
 
 

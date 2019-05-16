@@ -113,7 +113,7 @@ export class PluginContext {
         try {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
-            (this.canvas3d as Canvas3D) = Canvas3D.create(canvas);
+            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas);
             const renderer = this.canvas3d.props.renderer;
             PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { renderer: { ...renderer, backgroundColor: Color(0xFCFBF9) } } });
             this.canvas3d.animate();

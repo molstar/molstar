@@ -14,7 +14,7 @@ import { GraphicsRenderObject } from 'mol-gl/render-object'
 
 import { TrackballControls, TrackballControlsParams } from './controls/trackball'
 import { Viewport } from './camera/util'
-import { createContext, getGLContext, WebGLContext } from 'mol-gl/webgl/context';
+import { createContext, WebGLContext, getGLContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-repr/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
@@ -32,6 +32,7 @@ import { createTexture } from 'mol-gl/webgl/texture';
 import { ValueCell } from 'mol-util';
 import { getPostprocessingRenderable, PostprocessingParams, setPostprocessingProps } from './helper/postprocessing';
 import { JitterVectors, getComposeRenderable } from './helper/multi-sample';
+import { GLRenderingContext } from 'mol-gl/webgl/compat';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -92,7 +93,19 @@ namespace Canvas3D {
     export interface HighlightEvent { current: Representation.Loci, prev: Representation.Loci, modifiers?: ModifiersKeys }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
 
-    export function create(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}): Canvas3D {
+    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}) {
+        const gl = getGLContext(canvas, {
+            alpha: false,
+            antialias: true,
+            depth: true,
+            preserveDrawingBuffer: true
+        })
+        if (gl === null) throw new Error('Could not create a WebGL rendering context')
+        const input = InputObserver.create(canvas)
+        return Canvas3D.create(gl, input)
+    }
+
+    export function create(gl: GLRenderingContext, input: InputObserver, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>()
@@ -101,7 +114,6 @@ namespace Canvas3D {
 
         const startTime = now()
         const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp)
-        const input = InputObserver.create(canvas)
 
         const camera = new Camera({
             near: 0.1,
@@ -110,38 +122,32 @@ namespace Canvas3D {
             mode: p.cameraMode
         })
 
-        const _gl = getGLContext(canvas, {
-            alpha: false,
-            antialias: true,
-            depth: true,
-            preserveDrawingBuffer: true
-        })
-        if (_gl === null) {
-            throw new Error('Could not create a WebGL rendering context')
-        }
-        const webgl = createContext(_gl)
-        const { state, gl } = webgl
+        const webgl = createContext(gl)
+        const { state } = webgl
+
+        let width = gl.drawingBufferWidth
+        let height = gl.drawingBufferHeight
 
         const scene = Scene.create(webgl)
         const controls = TrackballControls.create(input, camera, p.trackball)
         const renderer = Renderer.create(webgl, camera, p.renderer)
 
-        const drawTarget = createRenderTarget(webgl, canvas.width, canvas.height)
+        const drawTarget = createRenderTarget(webgl, width, height)
         const depthTexture = createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
-        depthTexture.define(canvas.width, canvas.height)
+        depthTexture.define(width, height)
         depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
 
-        const postprocessingTarget = createRenderTarget(webgl, canvas.width, canvas.height)
+        const postprocessingTarget = createRenderTarget(webgl, width, height)
         const postprocessing = getPostprocessingRenderable(webgl, drawTarget.texture, depthTexture, p.postprocessing)
 
-        const composeTarget = createRenderTarget(webgl, canvas.width, canvas.height)
-        const holdTarget = createRenderTarget(webgl, canvas.width, canvas.height)
+        const composeTarget = createRenderTarget(webgl, width, height)
+        const holdTarget = createRenderTarget(webgl, width, height)
         const compose = getComposeRenderable(webgl, drawTarget.texture)
 
-        const pickBaseScale = 0.25
+        const pickBaseScale = 0.5
         let pickScale = pickBaseScale / webgl.pixelRatio
-        let pickWidth = Math.round(canvas.width * pickScale)
-        let pickHeight = Math.round(canvas.height * pickScale)
+        let pickWidth = Math.round(width * pickScale)
+        let pickHeight = Math.round(height * pickScale)
         const objectPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
         const instancePickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
         const groupPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
@@ -220,7 +226,7 @@ namespace Canvas3D {
         }
 
         function renderDraw() {
-            renderer.setViewport(0, 0, canvas.width, canvas.height)
+            renderer.setViewport(0, 0, width, height)
             renderer.render(scene, 'draw')
             if (debugHelper.isEnabled) {
                 debugHelper.syncVisibility()
@@ -229,7 +235,7 @@ namespace Canvas3D {
         }
 
         function renderPostprocessing() {
-            gl.viewport(0, 0, canvas.width, canvas.height)
+            gl.viewport(0, 0, width, height)
             state.disable(gl.SCISSOR_TEST)
             state.disable(gl.BLEND)
             state.disable(gl.DEPTH_TEST)
@@ -318,7 +324,7 @@ namespace Canvas3D {
                 ValueCell.update(compose.values.tColor, composeTarget.texture)
                 compose.update()
                 webgl.unbindFramebuffer()
-                gl.viewport(0, 0, canvas.width, canvas.height)
+                gl.viewport(0, 0, width, height)
                 state.disable(gl.BLEND)
                 compose.render()
             }
@@ -327,7 +333,7 @@ namespace Canvas3D {
                 ValueCell.update(compose.values.tColor, holdTarget.texture)
                 compose.update()
                 webgl.unbindFramebuffer()
-                gl.viewport(0, 0, canvas.width, canvas.height)
+                gl.viewport(0, 0, width, height)
                 if (accumulationWeight === 0) state.disable(gl.BLEND)
                 else state.enable(gl.BLEND)
                 compose.render()
@@ -379,7 +385,7 @@ namespace Canvas3D {
 
                 // compose rendered scene with compose target
                 composeTarget.bind()
-                gl.viewport(0, 0, canvas.width, canvas.height)
+                gl.viewport(0, 0, width, height)
                 state.enable(gl.BLEND)
                 state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD)
                 state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE)
@@ -398,7 +404,7 @@ namespace Canvas3D {
             compose.update()
 
             webgl.unbindFramebuffer()
-            gl.viewport(0, 0, canvas.width, canvas.height)
+            gl.viewport(0, 0, width, height)
             state.disable(gl.BLEND)
             compose.render()
 
@@ -441,7 +447,7 @@ namespace Canvas3D {
                         renderer.render(scene, 'pickGroup');
                         break;
                     case 'draw':
-                        renderer.setViewport(0, 0, canvas.width, canvas.height);
+                        renderer.setViewport(0, 0, width, height);
                         if (multiSample) {
                             if (p.multiSample === 'temporal') {
                                 renderTemporalMultiSample(postprocessingEnabled)
@@ -508,7 +514,7 @@ namespace Canvas3D {
 
             x *= webgl.pixelRatio
             y *= webgl.pixelRatio
-            y = canvas.height - y // flip y
+            y = height - y // flip y
 
             const xp = Math.round(x * pickScale)
             const yp = Math.round(y * pickScale)
@@ -681,21 +687,24 @@ namespace Canvas3D {
         }
 
         function handleResize() {
-            renderer.setViewport(0, 0, canvas.width, canvas.height)
-            Viewport.set(camera.viewport, 0, 0, canvas.width, canvas.height)
-            Viewport.set(controls.viewport, 0, 0, canvas.width, canvas.height)
+            width = gl.drawingBufferWidth
+            height = gl.drawingBufferHeight
 
-            drawTarget.setSize(canvas.width, canvas.height)
-            postprocessingTarget.setSize(canvas.width, canvas.height)
-            composeTarget.setSize(canvas.width, canvas.height)
-            holdTarget.setSize(canvas.width, canvas.height)
-            depthTexture.define(canvas.width, canvas.height)
-            ValueCell.update(postprocessing.values.uTexSize, Vec2.set(postprocessing.values.uTexSize.ref.value, canvas.width, canvas.height))
-            ValueCell.update(compose.values.uTexSize, Vec2.set(compose.values.uTexSize.ref.value, canvas.width, canvas.height))
+            renderer.setViewport(0, 0, width, height)
+            Viewport.set(camera.viewport, 0, 0, width, height)
+            Viewport.set(controls.viewport, 0, 0, width, height)
+
+            drawTarget.setSize(width, height)
+            postprocessingTarget.setSize(width, height)
+            composeTarget.setSize(width, height)
+            holdTarget.setSize(width, height)
+            depthTexture.define(width, height)
+            ValueCell.update(postprocessing.values.uTexSize, Vec2.set(postprocessing.values.uTexSize.ref.value, width, height))
+            ValueCell.update(compose.values.uTexSize, Vec2.set(compose.values.uTexSize.ref.value, width, height))
 
             pickScale = pickBaseScale / webgl.pixelRatio
-            pickWidth = Math.round(canvas.width * pickScale)
-            pickHeight = Math.round(canvas.height * pickScale)
+            pickWidth = Math.round(width * pickScale)
+            pickHeight = Math.round(height * pickScale)
             objectPickTarget.setSize(pickWidth, pickHeight)
             instancePickTarget.setSize(pickWidth, pickHeight)
             groupPickTarget.setSize(pickWidth, pickHeight)
