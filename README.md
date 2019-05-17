@@ -115,7 +115,18 @@ Run the image
 
 To see all available commands, use ``node build/model-server/preprocess -h``.
 
-## Editor
+## Development
+
+### Intallation
+
+If node complains about a missine acorn peer dependency, run the following commands
+
+    npm update acorn --depth 20
+    npm dedupe
+
+If the `gl` package does not compile on node 12 (there are currently no pre-built binaries) revert back to node 10.
+
+### Editor
 
 To get syntax highlighting for the shader files add the following to Visual Code's settings files
 
