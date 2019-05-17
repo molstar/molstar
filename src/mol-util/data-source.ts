@@ -2,12 +2,23 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
  * Adapted from LiteMol
  */
 
 import { Task, RuntimeContext } from 'mol-task';
 import { utf8Read } from 'mol-io/common/utf8';
+// polyfill XMLHttpRequest in node.js
+const XHR = typeof document === 'undefined' ? require('xhr2') as {
+    prototype: XMLHttpRequest;
+    new(): XMLHttpRequest;
+    readonly DONE: number;
+    readonly HEADERS_RECEIVED: number;
+    readonly LOADING: number;
+    readonly OPENED: number;
+    readonly UNSENT: number;
+} : XMLHttpRequest
 
 // export enum DataCompressionMethod {
 //     None,
@@ -39,6 +50,7 @@ export function ajaxGet(url: string): Task<string>
 export function ajaxGet(params: AjaxGetParams<'string'>): Task<string>
 export function ajaxGet(params: AjaxGetParams<'binary'>): Task<Uint8Array>
 export function ajaxGet<T = any>(params: AjaxGetParams<'json'>): Task<T>
+export function ajaxGet(params: AjaxGetParams<'string' | 'binary'>): Task<string | Uint8Array>
 export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json'>): Task<string | Uint8Array | object>
 export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json'> | string) {
     if (typeof params === 'string') return ajaxGetInternal(params, params, 'string', false);
@@ -121,7 +133,7 @@ class RequestPool {
         if (this.pool.length) {
             return this.pool.pop()!;
         }
-        return new XMLHttpRequest();
+        return new XHR();
     }
 
     static emptyFunc() { }
