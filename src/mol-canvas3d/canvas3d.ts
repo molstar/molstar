@@ -14,7 +14,6 @@ import { TrackballControls, TrackballControlsParams } from './controls/trackball
 import { Viewport } from './camera/util'
 import { createContext, WebGLContext, getGLContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-repr/representation';
-import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { GraphicsRenderVariant } from 'mol-gl/webgl/render-item';
 import { PickingId } from 'mol-geo/geometry/picking';
@@ -23,7 +22,6 @@ import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Camera } from './camera';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-sphere-helper';
-import { decodeFloatRGB } from 'mol-util/float-packing';
 import { SetUtils } from 'mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
@@ -32,6 +30,7 @@ import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { PixelData } from 'mol-util/image';
 import { readTexture } from 'mol-gl/compute/util';
 import { DrawPass } from './passes/draw';
+import { PickPass } from './passes/pick';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -62,7 +61,6 @@ interface Canvas3D {
     // draw: (force?: boolean) => void
     requestDraw: (force?: boolean) => void
     animate: () => void
-    pick: () => void
     identify: (x: number, y: number) => PickingId | undefined
     mark: (loci: Representation.Loci, action: MarkerAction) => void
     getLoci: (pickingId: PickingId) => Representation.Loci
@@ -133,19 +131,10 @@ namespace Canvas3D {
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
 
         const drawPass = new DrawPass(webgl, renderer, scene, debugHelper)
+        const pickPass = new PickPass(webgl, renderer, scene, 0.5)
         const postprocessing = new PostprocessingPass(webgl, drawPass, p.postprocessing)
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
 
-        const pickBaseScale = 0.5
-        let pickScale = pickBaseScale / webgl.pixelRatio
-        let pickWidth = Math.round(width * pickScale)
-        let pickHeight = Math.round(height * pickScale)
-        const objectPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
-        const instancePickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
-        const groupPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
-
-        let pickDirty = true
-        let isIdentifying = false
         let isUpdating = false
         let drawPending = false
 
@@ -173,9 +162,9 @@ namespace Canvas3D {
             }
             if (changed) {
                 scene.update(void 0, true)
-                const prevPickDirty = pickDirty
+                const prevPickDirty = pickPass.pickDirty
                 draw(true)
-                pickDirty = prevPickDirty // marking does not change picking buffers
+                pickPass.pickDirty = prevPickDirty // marking does not change picking buffers
             }
         }
 
@@ -212,7 +201,7 @@ namespace Canvas3D {
         }
 
         function render(variant: 'pick' | 'draw', force: boolean) {
-            if (isIdentifying || isUpdating) return false
+            if (isUpdating) return false
 
             let didRender = false
             controls.update(currentTime);
@@ -224,13 +213,7 @@ namespace Canvas3D {
             if (force || cameraChanged || multiSample.enabled) {
                 switch (variant) {
                     case 'pick':
-                        renderer.setViewport(0, 0, pickWidth, pickHeight);
-                        objectPickTarget.bind();
-                        renderer.render(scene, 'pickObject', true);
-                        instancePickTarget.bind();
-                        renderer.render(scene, 'pickInstance', true);
-                        groupPickTarget.bind();
-                        renderer.render(scene, 'pickGroup', true);
+                        pickPass.render()
                         break;
                     case 'draw':
                         renderer.setViewport(0, 0, width, height);
@@ -240,7 +223,7 @@ namespace Canvas3D {
                             drawPass.render(!postprocessing.enabled)
                             if (postprocessing.enabled) postprocessing.render(true)
                         }
-                        pickDirty = true
+                        pickPass.pickDirty = true
                         break;
                 }
                 didRender = true
@@ -274,45 +257,8 @@ namespace Canvas3D {
             requestAnimationFrame(animate)
         }
 
-        function pick() {
-            if (pickDirty) {
-                render('pick', true)
-                pickDirty = false
-            }
-        }
-
-        const readBuffer = new Uint8Array(4)
         function identify(x: number, y: number): PickingId | undefined {
-            if (isIdentifying) return
-
-            pick() // must be called before setting `isIdentifying = true`
-            isIdentifying = true
-
-            x *= webgl.pixelRatio
-            y *= webgl.pixelRatio
-            y = height - y // flip y
-
-            const xp = Math.round(x * pickScale)
-            const yp = Math.round(y * pickScale)
-
-            objectPickTarget.bind()
-            webgl.readPixels(xp, yp, 1, 1, readBuffer)
-            const objectId = decodeFloatRGB(readBuffer[0], readBuffer[1], readBuffer[2])
-            if (objectId === -1) { isIdentifying = false; return; }
-
-            instancePickTarget.bind()
-            webgl.readPixels(xp, yp, 1, 1, readBuffer)
-            const instanceId = decodeFloatRGB(readBuffer[0], readBuffer[1], readBuffer[2])
-            if (instanceId === -1) { isIdentifying = false; return; }
-
-            groupPickTarget.bind()
-            webgl.readPixels(xp, yp, 1, 1, readBuffer)
-            const groupId = decodeFloatRGB(readBuffer[0], readBuffer[1], readBuffer[2])
-            if (groupId === -1) { isIdentifying = false; return; }
-
-            isIdentifying = false
-
-            return { objectId, instanceId, groupId }
+            return pickPass.identify(x, y)
         }
 
         function add(repr: Representation.Any) {
@@ -382,7 +328,6 @@ namespace Canvas3D {
             // draw,
             requestDraw,
             animate,
-            pick,
             identify,
             mark,
             getLoci,
@@ -399,9 +344,9 @@ namespace Canvas3D {
             getPixelData: (variant: GraphicsRenderVariant) => {
                 switch (variant) {
                     case 'color': return webgl.getDrawingBufferPixelData()
-                    case 'pickObject': return objectPickTarget.getPixelData()
-                    case 'pickInstance': return instancePickTarget.getPixelData()
-                    case 'pickGroup': return groupPickTarget.getPixelData()
+                    case 'pickObject': return pickPass.objectPickTarget.getPixelData()
+                    case 'pickInstance': return pickPass.instancePickTarget.getPixelData()
+                    case 'pickGroup': return pickPass.groupPickTarget.getPixelData()
                     case 'depth': return readTexture(webgl, drawPass.depthTexture) as PixelData
                 }
             },
@@ -465,15 +410,9 @@ namespace Canvas3D {
             Viewport.set(controls.viewport, 0, 0, width, height)
 
             drawPass.setSize(width, height)
+            pickPass.setSize(width, height)
             postprocessing.setSize(width, height)
             multiSample.setSize(width, height)
-
-            pickScale = pickBaseScale / webgl.pixelRatio
-            pickWidth = Math.round(width * pickScale)
-            pickHeight = Math.round(height * pickScale)
-            objectPickTarget.setSize(pickWidth, pickHeight)
-            instancePickTarget.setSize(pickWidth, pickHeight)
-            groupPickTarget.setSize(pickWidth, pickHeight)
 
             requestDraw(true)
         }
