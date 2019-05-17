@@ -30,7 +30,7 @@ import { SetUtils } from 'mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { createTexture } from 'mol-gl/webgl/texture';
 import { ValueCell } from 'mol-util';
-import { getPostprocessingRenderable, PostprocessingParams, setPostprocessingProps } from './helper/postprocessing';
+import { PostprocessingParams, PostprocessingPass } from './helper/postprocessing';
 import { JitterVectors, getComposeRenderable } from './helper/multi-sample';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { PixelData } from 'mol-util/image';
@@ -144,8 +144,7 @@ namespace Canvas3D {
             depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
         }
 
-        const postprocessingTarget = createRenderTarget(webgl, width, height)
-        const postprocessing = getPostprocessingRenderable(webgl, drawTarget.texture, depthTexture, !!depthTarget, p.postprocessing)
+        const postprocessing = new PostprocessingPass(webgl, drawTarget.texture, depthTexture, !!depthTarget, p.postprocessing)
 
         const composeTarget = createRenderTarget(webgl, width, height)
         const holdTarget = createRenderTarget(webgl, width, height)
@@ -232,7 +231,7 @@ namespace Canvas3D {
             }
         }
 
-        function renderDraw(postprocessingEnabled: boolean) {
+        function renderDraw() {
             renderer.setViewport(0, 0, width, height)
             renderer.render(scene, 'draw', true)
             if (debugHelper.isEnabled) {
@@ -240,7 +239,7 @@ namespace Canvas3D {
                 renderer.render(debugHelper.scene, 'draw', false)
             }
 
-            if (postprocessingEnabled && depthTarget) {
+            if (postprocessing.enabled && depthTarget) {
                 depthTarget.bind()
                 renderer.render(scene, 'depth', true)
                 if (debugHelper.isEnabled) {
@@ -250,16 +249,7 @@ namespace Canvas3D {
             }
         }
 
-        function renderPostprocessing() {
-            gl.viewport(0, 0, width, height)
-            state.disable(gl.SCISSOR_TEST)
-            state.disable(gl.BLEND)
-            state.disable(gl.DEPTH_TEST)
-            state.depthMask(false)
-            postprocessing.render()
-        }
-
-        function renderTemporalMultiSample(postprocessingEnabled: boolean) {
+        function renderTemporalMultiSample() {
             // based on the Multisample Anti-Aliasing Render Pass
             // contributed to three.js by bhouston / http://clara.io/
             //
@@ -277,13 +267,10 @@ namespace Canvas3D {
 
             if (i === 0) {
                 drawTarget.bind()
-                renderDraw(postprocessingEnabled)
-                if (postprocessingEnabled) {
-                    postprocessingTarget.bind()
-                    renderPostprocessing()
-                }
+                renderDraw()
+                if (postprocessing.enabled) postprocessing.render(false)
                 ValueCell.update(compose.values.uWeight, 1.0)
-                ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessingTarget.texture : drawTarget.texture)
+                ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawTarget.texture)
                 compose.update()
 
                 holdTarget.bind()
@@ -294,7 +281,7 @@ namespace Canvas3D {
             const sampleWeight = 1.0 / offsetList.length
 
             camera.viewOffset.enabled = true
-            ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessingTarget.texture : drawTarget.texture)
+            ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawTarget.texture)
             ValueCell.update(compose.values.uWeight, sampleWeight)
             compose.update()
 
@@ -310,11 +297,8 @@ namespace Canvas3D {
 
                 // render scene and optionally postprocess
                 drawTarget.bind()
-                renderDraw(postprocessingEnabled)
-                if (postprocessingEnabled) {
-                    postprocessingTarget.bind()
-                    renderPostprocessing()
-                }
+                renderDraw()
+                if (postprocessing.enabled) postprocessing.render(false)
 
                 // compose rendered scene with compose target
                 composeTarget.bind()
@@ -360,7 +344,7 @@ namespace Canvas3D {
             if (multiSampleIndex >= offsetList.length) multiSampleIndex = -1
         }
 
-        function renderMultiSample(postprocessingEnabled: boolean) {
+        function renderMultiSample() {
             // based on the Multisample Anti-Aliasing Render Pass
             // contributed to three.js by bhouston / http://clara.io/
             //
@@ -372,7 +356,7 @@ namespace Canvas3D {
             const roundingRange = 1 / 32
 
             camera.viewOffset.enabled = true
-            ValueCell.update(compose.values.tColor, postprocessingEnabled ? postprocessingTarget.texture : drawTarget.texture)
+            ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawTarget.texture)
             compose.update()
 
             const { width, height } = drawTarget
@@ -393,11 +377,8 @@ namespace Canvas3D {
 
                 // render scene and optionally postprocess
                 drawTarget.bind()
-                renderDraw(postprocessingEnabled)
-                if (postprocessingEnabled) {
-                    postprocessingTarget.bind()
-                    renderPostprocessing()
-                }
+                renderDraw()
+                if (postprocessing.enabled) postprocessing.render(false)
 
                 // compose rendered scene with compose target
                 composeTarget.bind()
@@ -449,7 +430,6 @@ namespace Canvas3D {
             } else {
                 multiSample = false
             }
-            const postprocessingEnabled = p.postprocessing.occlusionEnable || p.postprocessing.outlineEnable
 
             if (force || cameraChanged || multiSample) {
                 switch (variant) {
@@ -466,18 +446,15 @@ namespace Canvas3D {
                         renderer.setViewport(0, 0, width, height);
                         if (multiSample) {
                             if (p.multiSample === 'temporal') {
-                                renderTemporalMultiSample(postprocessingEnabled)
+                                renderTemporalMultiSample()
                             } else {
-                                renderMultiSample(postprocessingEnabled)
+                                renderMultiSample()
                             }
                         } else {
-                            if (postprocessingEnabled) drawTarget.bind()
+                            if (postprocessing.enabled) drawTarget.bind()
                             else webgl.unbindFramebuffer()
-                            renderDraw(postprocessingEnabled)
-                            if (postprocessingEnabled) {
-                                webgl.unbindFramebuffer()
-                                renderPostprocessing()
-                            }
+                            renderDraw()
+                            if (postprocessing.enabled) postprocessing.render(true)
                         }
                         pickDirty = true
                         break;
@@ -662,9 +639,7 @@ namespace Canvas3D {
                 if (props.multiSample !== undefined) p.multiSample = props.multiSample
                 if (props.sampleLevel !== undefined) p.sampleLevel = props.sampleLevel
 
-                if (props.postprocessing) {
-                    setPostprocessingProps(props.postprocessing, postprocessing, p.postprocessing, webgl)
-                }
+                if (props.postprocessing) postprocessing.setProps(props.postprocessing)
 
                 if (props.renderer) renderer.setProps(props.renderer)
                 if (props.trackball) controls.setProps(props.trackball)
@@ -682,7 +657,7 @@ namespace Canvas3D {
                     multiSample: p.multiSample,
                     sampleLevel: p.sampleLevel,
 
-                    postprocessing: { ...p.postprocessing },
+                    postprocessing: { ...postprocessing.props },
                     renderer: { ...renderer.props },
                     trackball: { ...controls.props },
                     debug: { ...debugHelper.props }
@@ -717,7 +692,7 @@ namespace Canvas3D {
             Viewport.set(controls.viewport, 0, 0, width, height)
 
             drawTarget.setSize(width, height)
-            postprocessingTarget.setSize(width, height)
+            postprocessing.setSize(width, height)
             composeTarget.setSize(width, height)
             holdTarget.setSize(width, height)
             if (depthTarget) {
@@ -725,7 +700,6 @@ namespace Canvas3D {
             } else {
                 depthTexture.define(width, height)
             }
-            ValueCell.update(postprocessing.values.uTexSize, Vec2.set(postprocessing.values.uTexSize.ref.value, width, height))
             ValueCell.update(compose.values.uTexSize, Vec2.set(compose.values.uTexSize.ref.value, width, height))
 
             pickScale = pickBaseScale / webgl.pixelRatio
