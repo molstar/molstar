@@ -130,16 +130,16 @@ namespace Canvas3D {
         const controls = TrackballControls.create(input, camera, p.trackball)
         const renderer = Renderer.create(webgl, camera, p.renderer)
 
-        const drawTarget = createRenderTarget(webgl, width, height)
+        const colorTarget = createRenderTarget(webgl, width, height)
         const depthTarget = webgl.extensions.depthTexture ? null : createRenderTarget(webgl, width, height)
         const depthTexture = depthTarget ? depthTarget.texture : createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
         if (!depthTarget) {
             depthTexture.define(width, height)
-            depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
+            depthTexture.attachFramebuffer(colorTarget.framebuffer, 'depth')
         }
 
-        const postprocessing = new PostprocessingPass(webgl, drawTarget.texture, depthTexture, !!depthTarget, p.postprocessing)
-        const multiSample = new MultiSamplePass(webgl, camera, drawTarget, postprocessing, renderDraw, p.multiSample)
+        const postprocessing = new PostprocessingPass(webgl, colorTarget.texture, depthTexture, !!depthTarget, p.postprocessing)
+        const multiSample = new MultiSamplePass(webgl, camera, colorTarget, postprocessing, renderDraw, p.multiSample)
 
         const pickBaseScale = 0.5
         let pickScale = pickBaseScale / webgl.pixelRatio
@@ -221,10 +221,10 @@ namespace Canvas3D {
 
         function renderDraw() {
             renderer.setViewport(0, 0, width, height)
-            renderer.render(scene, 'draw', true)
+            renderer.render(scene, 'color', true)
             if (debugHelper.isEnabled) {
                 debugHelper.syncVisibility()
-                renderer.render(debugHelper.scene, 'draw', false)
+                renderer.render(debugHelper.scene, 'color', false)
             }
 
             if (postprocessing.enabled && depthTarget) {
@@ -263,7 +263,7 @@ namespace Canvas3D {
                         if (multiSample.enabled) {
                             multiSample.render()
                         } else {
-                            if (postprocessing.enabled) drawTarget.bind()
+                            if (postprocessing.enabled) colorTarget.bind()
                             else webgl.unbindFramebuffer()
                             renderDraw()
                             if (postprocessing.enabled) postprocessing.render(true)
@@ -426,7 +426,7 @@ namespace Canvas3D {
             },
             getPixelData: (variant: GraphicsRenderVariant) => {
                 switch (variant) {
-                    case 'draw': return webgl.getDrawingBufferPixelData()
+                    case 'color': return webgl.getDrawingBufferPixelData()
                     case 'pickObject': return objectPickTarget.getPixelData()
                     case 'pickInstance': return instancePickTarget.getPixelData()
                     case 'pickGroup': return groupPickTarget.getPixelData()
@@ -497,7 +497,7 @@ namespace Canvas3D {
             Viewport.set(camera.viewport, 0, 0, width, height)
             Viewport.set(controls.viewport, 0, 0, width, height)
 
-            drawTarget.setSize(width, height)
+            colorTarget.setSize(width, height)
             postprocessing.setSize(width, height)
             multiSample.setSize(width, height)
 

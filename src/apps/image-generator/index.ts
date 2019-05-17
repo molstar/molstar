@@ -19,8 +19,8 @@ import { Model, Structure } from 'mol-model/structure';
 import { ajaxGet } from 'mol-util/data-source';
 import { ColorNames } from 'mol-util/color/tables';
 
-const width = 1024
-const height = 768
+const width = 2048
+const height = 1536
 const gl = createContext(width, height, {
     alpha: false,
     antialias: true,
@@ -104,7 +104,7 @@ async function run(id: string, out: string) {
     }
 
     setTimeout(() => {
-        const pixelData = canvas3d.getPixelData('draw')
+        const pixelData = canvas3d.getPixelData('color')
         const png = new PNG({ width, height })
         png.data = Buffer.from(pixelData.array)
         png.pack().pipe(fs.createWriteStream(out)).on('finish', () => {

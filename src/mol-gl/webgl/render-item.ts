@@ -48,7 +48,7 @@ export interface RenderItem<T extends string> {
 //
 
 const GraphicsRenderVariantDefines = {
-    'draw': {},
+    'color': {},
     'pickObject': { dColorType: ValueCell.create('objectPicking') },
     'pickInstance': { dColorType: ValueCell.create('instancePicking') },
     'pickGroup': { dColorType: ValueCell.create('groupPicking') },

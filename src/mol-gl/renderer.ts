@@ -184,7 +184,7 @@ namespace Renderer {
             state.enable(gl.DEPTH_TEST)
 
             if (clear) {
-                if (variant === 'draw') {
+                if (variant === 'color') {
                     state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
                 } else {
                     state.clearColor(1, 1, 1, 1)
@@ -192,7 +192,7 @@ namespace Renderer {
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
             }
 
-            if (variant === 'draw') {
+            if (variant === 'color') {
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
                     if (r.state.opaque) renderObject(r, variant)

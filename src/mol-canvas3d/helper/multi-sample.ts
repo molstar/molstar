@@ -62,11 +62,11 @@ export class MultiSamplePass {
     private currentTime = 0
     private lastRenderTime = 0
 
-    constructor(private webgl: WebGLContext, private camera: Camera, private drawTarget: RenderTarget, private postprocessing: PostprocessingPass, private renderDraw: () => void, props: Partial<MultiSampleProps>) {
+    constructor(private webgl: WebGLContext, private camera: Camera, private colorTarget: RenderTarget, private postprocessing: PostprocessingPass, private renderDraw: () => void, props: Partial<MultiSampleProps>) {
         const { gl } = webgl
         this.composeTarget = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.holdTarget = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
-        this.compose = getComposeRenderable(webgl, drawTarget.texture)
+        this.compose = getComposeRenderable(webgl, colorTarget.texture)
         this.props = { ...PD.getDefaultValues(MultiSampleParams), ...props }
     }
 
@@ -110,7 +110,7 @@ export class MultiSamplePass {
     }
 
     private renderMultiSample() {
-        const { camera, compose, drawTarget, composeTarget, postprocessing, renderDraw, webgl } = this
+        const { camera, compose, colorTarget, composeTarget, postprocessing, renderDraw, webgl } = this
         const { gl, state } = webgl
 
         // based on the Multisample Anti-Aliasing Render Pass
@@ -124,10 +124,10 @@ export class MultiSamplePass {
         const roundingRange = 1 / 32
 
         camera.viewOffset.enabled = true
-        ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawTarget.texture)
+        ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : colorTarget.texture)
         compose.update()
 
-        const { width, height } = drawTarget
+        const { width, height } = colorTarget
 
         // render the scene multiple times, each slightly jitter offset
         // from the last and accumulate the results.
@@ -144,7 +144,7 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, sampleWeight)
 
             // render scene and optionally postprocess
-            drawTarget.bind()
+            colorTarget.bind()
             renderDraw()
             if (postprocessing.enabled) postprocessing.render(false)
 
@@ -178,7 +178,7 @@ export class MultiSamplePass {
     }
 
     private renderTemporalMultiSample() {
-        const { camera, compose, drawTarget, composeTarget, holdTarget, postprocessing, renderDraw, webgl } = this
+        const { camera, compose, colorTarget, composeTarget, holdTarget, postprocessing, renderDraw, webgl } = this
         const { gl, state } = webgl
 
         // based on the Multisample Anti-Aliasing Render Pass
@@ -197,11 +197,11 @@ export class MultiSamplePass {
         const i = this.sampleIndex
 
         if (i === 0) {
-            drawTarget.bind()
+            colorTarget.bind()
             renderDraw()
             if (postprocessing.enabled) postprocessing.render(false)
             ValueCell.update(compose.values.uWeight, 1.0)
-            ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawTarget.texture)
+            ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : colorTarget.texture)
             compose.update()
 
             holdTarget.bind()
@@ -212,11 +212,11 @@ export class MultiSamplePass {
         const sampleWeight = 1.0 / offsetList.length
 
         camera.viewOffset.enabled = true
-        ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawTarget.texture)
+        ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : colorTarget.texture)
         ValueCell.update(compose.values.uWeight, sampleWeight)
         compose.update()
 
-        const { width, height } = drawTarget
+        const { width, height } = colorTarget
 
         // render the scene multiple times, each slightly jitter offset
         // from the last and accumulate the results.
@@ -227,7 +227,7 @@ export class MultiSamplePass {
             camera.updateMatrices()
 
             // render scene and optionally postprocess
-            drawTarget.bind()
+            colorTarget.bind()
             renderDraw()
             if (postprocessing.enabled) postprocessing.render(false)
 

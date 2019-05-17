@@ -36,8 +36,8 @@ function calculateBoundingSphere(renderables: Renderable<RenderableValues & Base
 }
 
 function renderableSort(a: Renderable<RenderableValues & BaseValues>, b: Renderable<RenderableValues & BaseValues>) {
-    const drawProgramIdA = a.getProgram('draw').id
-    const drawProgramIdB = b.getProgram('draw').id
+    const drawProgramIdA = a.getProgram('color').id
+    const drawProgramIdB = b.getProgram('color').id
     const materialIdA = a.materialId
     const materialIdB = b.materialId
     const zA = a.values.boundingSphere.ref.value.center[2]
