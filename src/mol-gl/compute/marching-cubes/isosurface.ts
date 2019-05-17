@@ -15,6 +15,8 @@ import { Vec3, Vec2, Mat4 } from 'mol-math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util';
 import { HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
+import quad_vert from 'mol-gl/shader/quad.vert'
+import isosurface_frag from 'mol-gl/shader/marching-cubes/isosurface.frag'
 
 /** name for shared framebuffer used for gpu marching cubes operations */
 const FramebufferName = 'marching-cubes-isosurface'
@@ -63,11 +65,7 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
     }
 
     const schema = { ...IsosurfaceSchema }
-    const shaderCode = ShaderCode(
-        require('mol-gl/shader/quad.vert').default,
-        require('mol-gl/shader/marching-cubes/isosurface.frag').default,
-        { drawBuffers: true }
-    )
+    const shaderCode = ShaderCode(quad_vert, isosurface_frag, { drawBuffers: true })
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
     return createComputeRenderable(renderItem, values);

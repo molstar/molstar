@@ -8,12 +8,6 @@ const sharedConfig = {
     module: {
         rules: [
             {
-                loader: 'raw-loader',
-                test: /\.(glsl|frag|vert)$/,
-                include: [path.resolve(__dirname, 'build/src/')],
-            },
-
-            {
                 loader: 'file-loader',
                 test: /\.(woff2?|ttf|otf|eot|svg|html)$/,
                 include: [path.resolve(__dirname, 'build/src/')],

@@ -16,6 +16,8 @@ import { Vec2 } from 'mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
 import { Framebuffer, createFramebuffer } from 'mol-gl/webgl/framebuffer';
 import { isPowerOfTwo } from 'mol-math/misc';
+import quad_vert from 'mol-gl/shader/quad.vert'
+import reduction_frag from 'mol-gl/shader/histogram-pyramid/reduction.frag'
 
 const HistopyramidReductionSchema = {
     ...QuadSchema,
@@ -39,10 +41,7 @@ function getHistopyramidReductionRenderable(ctx: WebGLContext, initialTexture: T
         }
 
         const schema = { ...HistopyramidReductionSchema }
-        const shaderCode = ShaderCode(
-            require('mol-gl/shader/quad.vert').default,
-            require('mol-gl/shader/histogram-pyramid/reduction.frag').default
-        )
+        const shaderCode = ShaderCode(quad_vert, reduction_frag)
         const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
         HistopyramidReductionRenderable = createComputeRenderable(renderItem, values);

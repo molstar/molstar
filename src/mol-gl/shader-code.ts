@@ -29,29 +29,52 @@ export interface ShaderCode {
     readonly extensions: ShaderExtensions
 }
 
+import apply_fog from 'mol-gl/shader/chunks/apply-fog.glsl'
+import apply_light_color from 'mol-gl/shader/chunks/apply-light-color.glsl'
+import apply_marker_color from 'mol-gl/shader/chunks/apply-marker-color.glsl'
+import assign_color_varying from 'mol-gl/shader/chunks/assign-color-varying.glsl'
+import assign_group from 'mol-gl/shader/chunks/assign-group.glsl'
+import assign_marker_varying from 'mol-gl/shader/chunks/assign-marker-varying.glsl'
+import assign_material_color from 'mol-gl/shader/chunks/assign-material-color.glsl'
+import assign_normal from 'mol-gl/shader/chunks/assign-normal.glsl'
+import assign_position from 'mol-gl/shader/chunks/assign-position.glsl'
+import assign_size from 'mol-gl/shader/chunks/assign-size.glsl'
+import color_frag_params from 'mol-gl/shader/chunks/color-frag-params.glsl'
+import color_vert_params from 'mol-gl/shader/chunks/color-vert-params.glsl'
+import common_frag_params from 'mol-gl/shader/chunks/common-frag-params.glsl'
+import common_vert_params from 'mol-gl/shader/chunks/common-vert-params.glsl'
+import common from 'mol-gl/shader/chunks/common.glsl'
+import light_frag_params from 'mol-gl/shader/chunks/light-frag-params.glsl'
+import matrix_scale from 'mol-gl/shader/chunks/matrix-scale.glsl'
+import normal_frag_params from 'mol-gl/shader/chunks/normal-frag-params.glsl'
+import read_from_texture from 'mol-gl/shader/chunks/read-from-texture.glsl'
+import size_vert_params from 'mol-gl/shader/chunks/size-vert-params.glsl'
+import texture3d_from_2d_linear from 'mol-gl/shader/chunks/texture3d-from-2d-nearest.glsl'
+import texture3d_from_2d_nearest from 'mol-gl/shader/chunks/texture3d-from-2d-nearest.glsl'
+
 const ShaderChunks: { [k: string]: string } = {
-    'apply_fog': require('mol-gl/shader/chunks/apply-fog.glsl').default,
-    'apply_light_color': require('mol-gl/shader/chunks/apply-light-color.glsl').default,
-    'apply_marker_color': require('mol-gl/shader/chunks/apply-marker-color.glsl').default,
-    'assign_color_varying': require('mol-gl/shader/chunks/assign-color-varying.glsl').default,
-    'assign_group': require('mol-gl/shader/chunks/assign-group.glsl').default,
-    'assign_marker_varying': require('mol-gl/shader/chunks/assign-marker-varying.glsl').default,
-    'assign_material_color': require('mol-gl/shader/chunks/assign-material-color.glsl').default,
-    'assign_normal': require('mol-gl/shader/chunks/assign-normal.glsl').default,
-    'assign_position': require('mol-gl/shader/chunks/assign-position.glsl').default,
-    'assign_size': require('mol-gl/shader/chunks/assign-size.glsl').default,
-    'color_frag_params': require('mol-gl/shader/chunks/color-frag-params.glsl').default,
-    'color_vert_params': require('mol-gl/shader/chunks/color-vert-params.glsl').default,
-    'common_frag_params': require('mol-gl/shader/chunks/common-frag-params.glsl').default,
-    'common_vert_params': require('mol-gl/shader/chunks/common-vert-params.glsl').default,
-    'common': require('mol-gl/shader/chunks/common.glsl').default,
-    'light_frag_params': require('mol-gl/shader/chunks/light-frag-params.glsl').default,
-    'matrix_scale': require('mol-gl/shader/chunks/matrix-scale.glsl').default,
-    'normal_frag_params': require('mol-gl/shader/chunks/normal-frag-params.glsl').default,
-    'read_from_texture': require('mol-gl/shader/chunks/read-from-texture.glsl').default,
-    'size_vert_params': require('mol-gl/shader/chunks/size-vert-params.glsl').default,
-    'texture3d_from_2d_linear': require('mol-gl/shader/chunks/texture3d-from-2d-nearest.glsl').default,
-    'texture3d_from_2d_nearest': require('mol-gl/shader/chunks/texture3d-from-2d-nearest.glsl').default,
+    apply_fog,
+    apply_light_color,
+    apply_marker_color,
+    assign_color_varying,
+    assign_group,
+    assign_marker_varying,
+    assign_material_color,
+    assign_normal,
+    assign_position,
+    assign_size,
+    color_frag_params,
+    color_vert_params,
+    common_frag_params,
+    common_vert_params,
+    common,
+    light_frag_params,
+    matrix_scale,
+    normal_frag_params,
+    read_from_texture,
+    size_vert_params,
+    texture3d_from_2d_linear,
+    texture3d_from_2d_nearest
 }
 
 const reInclude = /^(?!\/\/)\s*#include\s+(\S+)/gmi
@@ -76,39 +99,29 @@ export function ShaderCode(vert: string, frag: string, extensions: ShaderExtensi
     return { id: shaderCodeId(), vert: addIncludes(vert), frag: addIncludes(frag), extensions }
 }
 
-export const PointsShaderCode = ShaderCode(
-    require('mol-gl/shader/points.vert').default,
-    require('mol-gl/shader/points.frag').default
-)
+import points_vert from 'mol-gl/shader/points.vert'
+import points_frag from 'mol-gl/shader/points.frag'
+export const PointsShaderCode = ShaderCode(points_vert, points_frag)
 
-export const SpheresShaderCode = ShaderCode(
-    require('mol-gl/shader/spheres.vert').default,
-    require('mol-gl/shader/spheres.frag').default,
-    { fragDepth: true }
-)
+import spheres_vert from 'mol-gl/shader/spheres.vert'
+import spheres_frag from 'mol-gl/shader/spheres.frag'
+export const SpheresShaderCode = ShaderCode(spheres_vert, spheres_frag, { fragDepth: true })
 
-export const TextShaderCode = ShaderCode(
-    require('mol-gl/shader/text.vert').default,
-    require('mol-gl/shader/text.frag').default,
-    { standardDerivatives: true }
-)
+import text_vert from 'mol-gl/shader/text.vert'
+import text_frag from 'mol-gl/shader/text.frag'
+export const TextShaderCode = ShaderCode(text_vert, text_frag, { standardDerivatives: true })
 
-export const LinesShaderCode = ShaderCode(
-    require('mol-gl/shader/lines.vert').default,
-    require('mol-gl/shader/lines.frag').default
-)
+import lines_vert from 'mol-gl/shader/lines.vert'
+import lines_frag from 'mol-gl/shader/lines.frag'
+export const LinesShaderCode = ShaderCode(lines_vert, lines_frag)
 
-export const MeshShaderCode = ShaderCode(
-    require('mol-gl/shader/mesh.vert').default,
-    require('mol-gl/shader/mesh.frag').default,
-    { standardDerivatives: true }
-)
+import mesh_vert from 'mol-gl/shader/mesh.vert'
+import mesh_frag from 'mol-gl/shader/mesh.frag'
+export const MeshShaderCode = ShaderCode(mesh_vert, mesh_frag, { standardDerivatives: true })
 
-export const DirectVolumeShaderCode = ShaderCode(
-    require('mol-gl/shader/direct-volume.vert').default,
-    require('mol-gl/shader/direct-volume.frag').default,
-    { fragDepth: true }
-)
+import direct_volume_vert from 'mol-gl/shader/direct-volume.vert'
+import direct_volume_frag from 'mol-gl/shader/direct-volume.frag'
+export const DirectVolumeShaderCode = ShaderCode(direct_volume_vert, direct_volume_frag, { fragDepth: true })
 
 //
 

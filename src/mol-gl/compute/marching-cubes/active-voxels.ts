@@ -14,6 +14,8 @@ import { ValueCell } from 'mol-util';
 import { Vec3, Vec2 } from 'mol-math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util';
 import { getTriCount } from './tables';
+import quad_vert from 'mol-gl/shader/quad.vert'
+import active_voxels_frag from 'mol-gl/shader/marching-cubes/active-voxels.frag'
 
 /** name for shared framebuffer used for gpu marching cubes operations */
 const FramebufferName = 'marching-cubes-active-voxels'
@@ -47,10 +49,7 @@ function getActiveVoxelsRenderable(ctx: WebGLContext, volumeData: Texture, gridD
     }
 
     const schema = { ...ActiveVoxelsSchema }
-    const shaderCode = ShaderCode(
-        require('mol-gl/shader/quad.vert').default,
-        require('mol-gl/shader/marching-cubes/active-voxels.frag').default
-    )
+    const shaderCode = ShaderCode(quad_vert, active_voxels_frag)
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
     return createComputeRenderable(renderItem, values);

@@ -13,6 +13,8 @@ import { ShaderCode } from 'mol-gl/shader-code';
 import { ValueCell } from 'mol-util';
 import { decodeFloatRGB } from 'mol-util/float-packing';
 import { QuadSchema, QuadValues } from '../util';
+import quad_vert from 'mol-gl/shader/quad.vert'
+import sum_frag from 'mol-gl/shader/histogram-pyramid/sum.frag'
 
 const HistopyramidSumSchema = {
     ...QuadSchema,
@@ -32,10 +34,7 @@ function getHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture) {
         }
 
         const schema = { ...HistopyramidSumSchema }
-        const shaderCode = ShaderCode(
-            require('mol-gl/shader/quad.vert').default,
-            require('mol-gl/shader/histogram-pyramid/sum.frag').default
-        )
+        const shaderCode = ShaderCode(quad_vert, sum_frag)
         const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
         HistopyramidSumRenderable = createComputeRenderable(renderItem, values)
@@ -71,7 +70,7 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
 
     const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture)
     ctx.state.currentRenderItemId = -1
-    
+
     const framebuffer = framebufferCache.get(FramebufferName).value
     const sumTexture = getSumTexture(ctx)
     sumTexture.attachFramebuffer(framebuffer, 0)

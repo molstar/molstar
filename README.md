@@ -73,7 +73,6 @@ From the root of the project:
 
 and navigate to `build/viewer`
 
-
 **Run via Docker**
 
 Build the docker image
@@ -83,8 +82,6 @@ Build the docker image
 Run the image
 
     docker run -d -p 80:80 molstar/proto:httpd
-
-
 
 ### Code generation
 **CIF schemas**
@@ -117,6 +114,16 @@ Run the image
     node build/model-server/preprocess -i file.cif -ob file.bcif
 
 To see all available commands, use ``node build/model-server/preprocess -h``.
+
+## Editor
+
+To get syntax highlighting for the shader files add the following to Visual Code's settings files
+
+    "files.associations": {
+        "*.glsl.ts": "glsl",
+        "*.frag.ts": "glsl",
+        "*.vert.ts": "glsl"
+    },
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.
