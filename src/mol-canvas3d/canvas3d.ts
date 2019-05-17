@@ -33,6 +33,7 @@ import { ValueCell } from 'mol-util';
 import { getPostprocessingRenderable, PostprocessingParams, setPostprocessingProps } from './helper/postprocessing';
 import { JitterVectors, getComposeRenderable } from './helper/multi-sample';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
+import { PixelData } from 'mol-util/image';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -77,7 +78,7 @@ interface Canvas3D {
     resetCamera: () => void
     readonly camera: Camera
     downloadScreenshot: () => void
-    getImageData: (variant: GraphicsRenderVariant) => ImageData
+    getPixelData: (variant: GraphicsRenderVariant) => PixelData
     setProps: (props: Partial<Canvas3DProps>) => void
 
     /** Returns a copy of the current Canvas3D instance props */
@@ -620,12 +621,12 @@ namespace Canvas3D {
             downloadScreenshot: () => {
                 // TODO
             },
-            getImageData: (variant: GraphicsRenderVariant) => {
+            getPixelData: (variant: GraphicsRenderVariant) => {
                 switch (variant) {
-                    case 'draw': return renderer.getImageData()
-                    case 'pickObject': return objectPickTarget.getImageData()
-                    case 'pickInstance': return instancePickTarget.getImageData()
-                    case 'pickGroup': return groupPickTarget.getImageData()
+                    case 'draw': return webgl.getDrawingBufferPixelData()
+                    case 'pickObject': return objectPickTarget.getPixelData()
+                    case 'pickInstance': return instancePickTarget.getPixelData()
+                    case 'pickGroup': return groupPickTarget.getPixelData()
                 }
             },
             didDraw,

@@ -4,13 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { WebGLContext, createImageData } from './context'
+import { WebGLContext } from './context'
 import { idFactory } from 'mol-util/id-factory';
 import { createTexture, Texture } from './texture';
 import { createFramebuffer, Framebuffer } from './framebuffer';
 import { createRenderbuffer } from './renderbuffer';
 import { TextureImage } from '../renderable/util';
 import { Mutable } from 'mol-util/type-helpers';
+import { PixelData } from 'mol-util/image';
 
 const getNextRenderTargetId = idFactory()
 
@@ -27,7 +28,7 @@ export interface RenderTarget {
     setSize: (width: number, height: number) => void
     readBuffer: (x: number, y: number, width: number, height: number, dst: Uint8Array) => void
     getBuffer: () => Uint8Array
-    getImageData: () => ImageData
+    getPixelData: () => PixelData
     destroy: () => void
 }
 
@@ -55,6 +56,7 @@ export function createRenderTarget (ctx: WebGLContext, _width: number, _height: 
 
     function readBuffer(x: number, y: number, width: number, height: number, dst: Uint8Array) {
         framebuffer.bind()
+        gl.viewport(0, 0, _width, _height)
         ctx.readPixels(x, y, width, height, dst)
     }
 
@@ -86,7 +88,7 @@ export function createRenderTarget (ctx: WebGLContext, _width: number, _height: 
         },
         readBuffer,
         getBuffer,
-        getImageData: () => createImageData(getBuffer(), _width, _height),
+        getPixelData: () => PixelData.flipY(PixelData.create(getBuffer(), _width, _height)),
         destroy: () => {
             if (destroyed) return
             targetTexture.destroy()

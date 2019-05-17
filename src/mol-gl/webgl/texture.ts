@@ -159,8 +159,8 @@ export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: Tex
 
     // check texture kind and type compatability
     if (
-        (kind.endsWith('float32') && _type !== 'float') || 
-        (kind.endsWith('uint8') && _type !== 'ubyte') || 
+        (kind.endsWith('float32') && _type !== 'float') ||
+        (kind.endsWith('uint8') && _type !== 'ubyte') ||
         (kind.endsWith('depth') && _type !== 'ushort')
     ) {
         throw new Error(`texture kind '${kind}' and type '${_type}' are incompatible`)

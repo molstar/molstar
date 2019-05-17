@@ -12,6 +12,7 @@ import { Scheduler } from 'mol-task';
 import { isDebugMode } from 'mol-util/debug';
 import { createExtensions, WebGLExtensions } from './extensions';
 import { WebGLState, createState } from './state';
+import { PixelData } from 'mol-util/image';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -134,19 +135,14 @@ function readPixels(gl: GLRenderingContext, x: number, y: number, width: number,
     if (isDebugMode) checkError(gl)
 }
 
-export function createImageData(buffer: ArrayLike<number>, width: number, height: number) {
-    const w = width * 4
-    const h = height
-    const data = new Uint8ClampedArray(width * height * 4)
-    for (let i = 0, maxI = h / 2; i < maxI; ++i) {
-        for (let j = 0, maxJ = w; j < maxJ; ++j) {
-            const index1 = i * w + j;
-            const index2 = (h-i-1) * w + j;
-            data[index1] = buffer[index2];
-            data[index2] = buffer[index1];
-        }
-    }
-    return new ImageData(data, width, height);
+function getDrawingBufferPixelData(gl: GLRenderingContext) {
+    const w = gl.drawingBufferWidth
+    const h = gl.drawingBufferHeight
+    const buffer = new Uint8Array(w * h * 4)
+    unbindFramebuffer(gl)
+    gl.viewport(0, 0, w, h)
+    readPixels(gl, 0, 0, w, h, buffer)
+    return PixelData.flipY(PixelData.create(buffer, w, h))
 }
 
 //
@@ -177,7 +173,7 @@ function createStats(): WebGLStats {
     }
 }
 
-
+//
 
 /** A WebGL context object, including the rendering context, resource caches and counts */
 export interface WebGLContext {
@@ -201,6 +197,7 @@ export interface WebGLContext {
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     waitForGpuCommandsComplete: () => Promise<void>
     waitForGpuCommandsCompleteSync: () => void
+    getDrawingBufferPixelData: () => PixelData
     destroy: () => void
 }
 
@@ -286,6 +283,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         readPixelsAsync,
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
         waitForGpuCommandsCompleteSync: () => waitForGpuCommandsCompleteSync(gl),
+        getDrawingBufferPixelData: () => getDrawingBufferPixelData(gl),
 
         destroy: () => {
             unbindResources(gl)

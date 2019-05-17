@@ -8,7 +8,7 @@ import { Viewport } from 'mol-canvas3d/camera/util';
 import { Camera } from 'mol-canvas3d/camera';
 
 import Scene from './scene';
-import { WebGLContext, createImageData } from './webgl/context';
+import { WebGLContext } from './webgl/context';
 import { Mat4, Vec3, Vec4 } from 'mol-math/linear-algebra';
 import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
@@ -41,7 +41,6 @@ interface Renderer {
     render: (scene: Scene, variant: GraphicsRenderVariant) => void
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
-    getImageData: () => ImageData
     dispose: () => void
 }
 
@@ -256,15 +255,6 @@ namespace Renderer {
                     ValueCell.update(globalUniforms.uViewportHeight, height)
                     ValueCell.update(globalUniforms.uViewport, Vec4.set(globalUniforms.uViewport.ref.value, x, y, width, height))
                 }
-            },
-            getImageData: () => {
-                const { x, y, width, height } = viewport
-                const dw = width - x
-                const dh = height - y
-                const buffer = new Uint8Array(dw * dh * 4)
-                ctx.unbindFramebuffer()
-                ctx.readPixels(x, y, width, height, buffer)
-                return createImageData(buffer, dw, dh)
             },
 
             get props() {

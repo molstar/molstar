@@ -53,7 +53,7 @@ export function printTextureImage(textureImage: TextureImage<any>, scale = 1) {
     return printImageData(new ImageData(data, width, height), scale)
 }
 
-export function printImageData(imageData: ImageData, scale = 1) {
+export function printImageData(imageData: ImageData, scale = 1, pixelated = false) {
     const canvas = document.createElement('canvas')
     canvas.width = imageData.width
     canvas.height = imageData.height
@@ -66,7 +66,7 @@ export function printImageData(imageData: ImageData, scale = 1) {
         img.src = objectURL
         img.style.width = imageData.width * scale + 'px'
         img.style.height = imageData.height * scale + 'px';
-        (img.style as any).imageRendering = 'pixelated' // works in Chrome
+        if (pixelated) (img.style as any).imageRendering = 'pixelated' // supported only in Chrome
         img.style.position = 'absolute'
         img.style.top = '0px'
         img.style.left = '0px'
