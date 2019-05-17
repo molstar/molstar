@@ -26,12 +26,12 @@ import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-spher
 import { decodeFloatRGB } from 'mol-util/float-packing';
 import { SetUtils } from 'mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
-import { PostprocessingParams, PostprocessingPass } from './helper/postprocessing';
-import { MultiSampleParams, MultiSamplePass } from './helper/multi-sample';
+import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
+import { MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { PixelData } from 'mol-util/image';
 import { readTexture } from 'mol-gl/compute/util';
-import { DrawPass } from './helper/draw';
+import { DrawPass } from './passes/draw';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?

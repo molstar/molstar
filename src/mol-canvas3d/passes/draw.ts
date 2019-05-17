@@ -8,7 +8,7 @@ import { WebGLContext } from 'mol-gl/webgl/context';
 import { createRenderTarget, RenderTarget } from 'mol-gl/webgl/render-target';
 import Renderer from 'mol-gl/renderer';
 import Scene from 'mol-gl/scene';
-import { BoundingSphereHelper } from './bounding-sphere-helper';
+import { BoundingSphereHelper } from '../helper/bounding-sphere-helper';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
 
 
