@@ -15,6 +15,7 @@ import { createComputeRenderable, ComputeRenderable } from 'mol-gl/renderable';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { createRenderTarget, RenderTarget } from 'mol-gl/webgl/render-target';
+import { DrawPass } from './draw';
 
 const PostprocessingSchema = {
     ...QuadSchema,
@@ -83,11 +84,12 @@ export class PostprocessingPass {
     props: PostprocessingProps
     renderable: PostprocessingRenderable
 
-    constructor(private webgl: WebGLContext, colorTexture: Texture, depthTexture: Texture, packedDepth: boolean, props: Partial<PostprocessingProps>) {
+    constructor(private webgl: WebGLContext, drawPass: DrawPass, props: Partial<PostprocessingProps>) {
         const { gl } = webgl
         this.target = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.props = { ...PD.getDefaultValues(PostprocessingParams), ...props }
-        this.renderable = getPostprocessingRenderable(webgl, colorTexture, depthTexture, packedDepth, this.props)
+        const { colorTarget, depthTexture, packedDepth } = drawPass
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture, packedDepth, this.props)
     }
 
     get enabled() {

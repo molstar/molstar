@@ -26,12 +26,12 @@ import { BoundingSphereHelper, DebugHelperParams } from './helper/bounding-spher
 import { decodeFloatRGB } from 'mol-util/float-packing';
 import { SetUtils } from 'mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
-import { createTexture } from 'mol-gl/webgl/texture';
 import { PostprocessingParams, PostprocessingPass } from './helper/postprocessing';
 import { MultiSampleParams, MultiSamplePass } from './helper/multi-sample';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { PixelData } from 'mol-util/image';
 import { readTexture } from 'mol-gl/compute/util';
+import { DrawPass } from './helper/draw';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -129,17 +129,12 @@ namespace Canvas3D {
         const scene = Scene.create(webgl)
         const controls = TrackballControls.create(input, camera, p.trackball)
         const renderer = Renderer.create(webgl, camera, p.renderer)
+        const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
+        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
 
-        const colorTarget = createRenderTarget(webgl, width, height)
-        const depthTarget = webgl.extensions.depthTexture ? null : createRenderTarget(webgl, width, height)
-        const depthTexture = depthTarget ? depthTarget.texture : createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
-        if (!depthTarget) {
-            depthTexture.define(width, height)
-            depthTexture.attachFramebuffer(colorTarget.framebuffer, 'depth')
-        }
-
-        const postprocessing = new PostprocessingPass(webgl, colorTarget.texture, depthTexture, !!depthTarget, p.postprocessing)
-        const multiSample = new MultiSamplePass(webgl, camera, colorTarget, postprocessing, renderDraw, p.multiSample)
+        const drawPass = new DrawPass(webgl, renderer, scene, debugHelper)
+        const postprocessing = new PostprocessingPass(webgl, drawPass, p.postprocessing)
+        const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
 
         const pickBaseScale = 0.5
         let pickScale = pickBaseScale / webgl.pixelRatio
@@ -153,9 +148,6 @@ namespace Canvas3D {
         let isIdentifying = false
         let isUpdating = false
         let drawPending = false
-
-        const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
-        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -219,24 +211,6 @@ namespace Canvas3D {
             }
         }
 
-        function renderDraw() {
-            renderer.setViewport(0, 0, width, height)
-            renderer.render(scene, 'color', true)
-            if (debugHelper.isEnabled) {
-                debugHelper.syncVisibility()
-                renderer.render(debugHelper.scene, 'color', false)
-            }
-
-            if (postprocessing.enabled && depthTarget) {
-                depthTarget.bind()
-                renderer.render(scene, 'depth', true)
-                if (debugHelper.isEnabled) {
-                    debugHelper.syncVisibility()
-                    renderer.render(debugHelper.scene, 'depth', false)
-                }
-            }
-        }
-
         function render(variant: 'pick' | 'draw', force: boolean) {
             if (isIdentifying || isUpdating) return false
 
@@ -263,9 +237,7 @@ namespace Canvas3D {
                         if (multiSample.enabled) {
                             multiSample.render()
                         } else {
-                            if (postprocessing.enabled) colorTarget.bind()
-                            else webgl.unbindFramebuffer()
-                            renderDraw()
+                            drawPass.render(!postprocessing.enabled)
                             if (postprocessing.enabled) postprocessing.render(true)
                         }
                         pickDirty = true
@@ -430,12 +402,7 @@ namespace Canvas3D {
                     case 'pickObject': return objectPickTarget.getPixelData()
                     case 'pickInstance': return instancePickTarget.getPixelData()
                     case 'pickGroup': return groupPickTarget.getPixelData()
-                    case 'depth':
-                        if (depthTarget) {
-                            return depthTarget.getPixelData()
-                        } else {
-                            return readTexture(webgl, depthTexture) as PixelData
-                        }
+                    case 'depth': return readTexture(webgl, drawPass.depthTexture) as PixelData
                 }
             },
             didDraw,
@@ -497,15 +464,9 @@ namespace Canvas3D {
             Viewport.set(camera.viewport, 0, 0, width, height)
             Viewport.set(controls.viewport, 0, 0, width, height)
 
-            colorTarget.setSize(width, height)
+            drawPass.setSize(width, height)
             postprocessing.setSize(width, height)
             multiSample.setSize(width, height)
-
-            if (depthTarget) {
-                depthTarget.setSize(width, height)
-            } else {
-                depthTexture.define(width, height)
-            }
 
             pickScale = pickBaseScale / webgl.pixelRatio
             pickWidth = Math.round(width * pickScale)
