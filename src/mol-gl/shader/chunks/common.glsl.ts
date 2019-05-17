@@ -36,14 +36,14 @@ float decodeFloatRGB(const in vec3 rgb) {
         return m;
     }
 
-    mat2 transpose(const in mat2 m) {
+    mat2 transpose2(const in mat2 m) {
         return mat2(
             m[0][0], m[1][0],
             m[0][1], m[1][1]
         );
     }
 
-    mat3 transpose(const in mat3 m) {
+    mat3 transpose3(const in mat3 m) {
         return mat3(
             m[0][0], m[1][0], m[2][0],
             m[0][1], m[1][1], m[2][1],
@@ -51,7 +51,7 @@ float decodeFloatRGB(const in vec3 rgb) {
         );
     }
 
-    mat4 transpose(const in mat4 m) {
+    mat4 transpose4(const in mat4 m) {
         return mat4(
             m[0][0], m[1][0], m[2][0], m[3][0],
             m[0][1], m[1][1], m[2][1], m[3][1],
@@ -60,18 +60,18 @@ float decodeFloatRGB(const in vec3 rgb) {
         );
     }
 
+    // inverse
+
     float inverse(const in float m) {
         return 1.0 / m;
     }
 
-    // inverse
-
-    mat2 inverse(const in mat2 m) {
+    mat2 inverse2(const in mat2 m) {
         return mat2(m[1][1],-m[0][1],
                 -m[1][0], m[0][0]) / (m[0][0]*m[1][1] - m[0][1]*m[1][0]);
     }
 
-    mat3 inverse(const in mat3 m) {
+    mat3 inverse3(const in mat3 m) {
         float a00 = m[0][0], a01 = m[0][1], a02 = m[0][2];
         float a10 = m[1][0], a11 = m[1][1], a12 = m[1][2];
         float a20 = m[2][0], a21 = m[2][1], a22 = m[2][2];
@@ -87,7 +87,7 @@ float decodeFloatRGB(const in vec3 rgb) {
                     b21, (-a21 * a00 + a01 * a20), (a11 * a00 - a01 * a10)) / det;
     }
 
-    mat4 inverse(const in mat4 m) {
+    mat4 inverse4(const in mat4 m) {
         float
             a00 = m[0][0], a01 = m[0][1], a02 = m[0][2], a03 = m[0][3],
             a10 = m[1][0], a11 = m[1][1], a12 = m[1][2], a13 = m[1][3],
@@ -127,5 +127,13 @@ float decodeFloatRGB(const in vec3 rgb) {
             a31 * b01 - a30 * b03 - a32 * b00,
             a20 * b03 - a21 * b01 + a22 * b00) / det;
     }
+#else
+    #define transpose2(m) transpose(m)
+    #define transpose3(m) transpose(m)
+    #define transpose4(m) transpose(m)
+
+    #define inverse2(m) inverse(m)
+    #define inverse3(m) inverse(m)
+    #define inverse4(m) inverse(m)
 #endif
 `

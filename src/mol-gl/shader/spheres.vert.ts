@@ -52,7 +52,7 @@ void quadraticProjection(const in float radius, const in vec3 position){
         position.x, position.y, position.z, 1.0
     );
 
-    mat4 R = transpose(uProjection * uModelView * aTransform * T);
+    mat4 R = transpose4(uProjection * uModelView * aTransform * T);
     float A = dot(R[3], D * R[3]);
     float B = -2.0 * dot(R[0], D * R[3]);
     float C = dot(R[0], D * R[0]);
