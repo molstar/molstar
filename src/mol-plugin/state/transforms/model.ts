@@ -108,7 +108,7 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse PDB', async ctx => {
-            const parsed = await parsePDB(a.data).runInContext(ctx);
+            const parsed = await parsePDB(a.data, a.label).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromPDB(parsed.result).runInContext(ctx);
             const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
@@ -222,7 +222,7 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
             const base = Structure.ofModel(model);
             if (!asm) {
                 await ensureSecondaryStructure(base)
-                const label = { label: a.data.label, description: structureDesc(base) };
+                const label = { label: 'Deposited', description: structureDesc(base) };
                 return new SO.Molecule.Structure(base, label);
             }
 

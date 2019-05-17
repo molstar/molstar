@@ -69,6 +69,8 @@ export const GroProvider: DataFormatProvider<any> = {
     }
 }
 
+type StructureFormat = 'pdb' | 'cif' | 'gro'
+
 //
 
 const DownloadStructurePdbIdSourceOptions = PD.Group({
@@ -99,6 +101,10 @@ const DownloadStructure = StateAction.build({
                 id: PD.Text('1tqn', { label: 'Id' }),
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
+            'swissmodel': PD.Group({
+                id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC' }),
+                options: DownloadStructurePdbIdSourceOptions
+            }, { isFlat: true, description: 'Loads the best homology model or experimental structure' }),
             'url': PD.Group({
                 url: PD.Text(''),
                 format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']]),
@@ -113,6 +119,7 @@ const DownloadStructure = StateAction.build({
                     ['rcsb', 'RCSB'],
                     ['pdb-dev', 'PDBDEV'],
                     ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
+                    ['swissmodel', 'SWISS-MODEL'],
                     ['url', 'URL']
                 ]
             })
@@ -121,12 +128,13 @@ const DownloadStructure = StateAction.build({
     const b = state.build();
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
-    let supportProps = false, asTrajectory = false;
+    let supportProps = false, asTrajectory = false, format: StructureFormat = 'cif';
 
     switch (src.name) {
         case 'url':
             downloadParams = [{ url: src.params.url, isBinary: src.params.isBinary }];
             supportProps = !!src.params.options.supportProps;
+            format = src.params.format
             break;
         case 'pdbe-updated':
             downloadParams = getDownloadParams(src.params.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id}`, false);
@@ -155,6 +163,12 @@ const DownloadStructure = StateAction.build({
             supportProps = !!src.params.options.supportProps;
             asTrajectory = !!src.params.options.asTrajectory;
             break;
+        case 'swissmodel':
+            downloadParams = getDownloadParams(src.params.id, id => `https://swissmodel.expasy.org/repository/uniprot/${id.toUpperCase()}.pdb`, id => `SWISS-MODEL: ${id}`, false);
+            supportProps = !!src.params.options.supportProps;
+            asTrajectory = !!src.params.options.asTrajectory;
+            format = 'pdb'
+            break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
@@ -164,7 +178,7 @@ const DownloadStructure = StateAction.build({
     } else {
         for (const download of downloadParams) {
             const data = b.toRoot().apply(StateTransforms.Data.Download, download, { state: { isGhost: true } });
-            const traj = createModelTree(data, src.name === 'url' ? src.params.format : 'cif');
+            const traj = createModelTree(data, format);
             createStructureTree(ctx, traj, supportProps)
         }
     }
@@ -192,7 +206,7 @@ function createSingleTrajectoryModel(sources: StateTransformer.Params<Download>[
         .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }
 
-export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: 'pdb' | 'cif' | 'gro' = 'cif') {
+export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, format: StructureFormat = 'cif') {
     let parsed: StateBuilder.To<PluginStateObject.Molecule.Trajectory>
     switch (format) {
         case 'cif':
