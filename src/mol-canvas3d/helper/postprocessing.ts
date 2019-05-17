@@ -48,7 +48,7 @@ export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
-export function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, packedDepth: boolean, props: Partial<PostprocessingProps>): PostprocessingRenderable {
+function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, packedDepth: boolean, props: Partial<PostprocessingProps>): PostprocessingRenderable {
     const p = { ...PD.getDefaultValues(PostprocessingParams), ...props }
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,

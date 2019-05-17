@@ -6,12 +6,10 @@
 
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { now } from 'mol-util/now';
-
-import { Vec3, Vec2 } from 'mol-math/linear-algebra'
+import { Vec3 } from 'mol-math/linear-algebra'
 import InputObserver, { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer'
 import Renderer, { RendererStats, RendererParams } from 'mol-gl/renderer'
 import { GraphicsRenderObject } from 'mol-gl/render-object'
-
 import { TrackballControls, TrackballControlsParams } from './controls/trackball'
 import { Viewport } from './camera/util'
 import { createContext, WebGLContext, getGLContext } from 'mol-gl/webgl/context';
@@ -29,9 +27,8 @@ import { decodeFloatRGB } from 'mol-util/float-packing';
 import { SetUtils } from 'mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { createTexture } from 'mol-gl/webgl/texture';
-import { ValueCell } from 'mol-util';
 import { PostprocessingParams, PostprocessingPass } from './helper/postprocessing';
-import { JitterVectors, getComposeRenderable } from './helper/multi-sample';
+import { MultiSampleParams, MultiSamplePass } from './helper/multi-sample';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { PixelData } from 'mol-util/image';
 import { readTexture } from 'mol-gl/compute/util';
@@ -44,9 +41,7 @@ export const Canvas3DParams = {
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
 
-    multiSample: PD.Select('off', [['off', 'Off'], ['on', 'On'], ['temporal', 'Temporal']]),
-    sampleLevel: PD.Numeric(2, { min: 0, max: 5, step: 1 }),
-
+    multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
@@ -127,7 +122,6 @@ namespace Canvas3D {
         })
 
         const webgl = createContext(gl)
-        const { state } = webgl
 
         let width = gl.drawingBufferWidth
         let height = gl.drawingBufferHeight
@@ -145,10 +139,7 @@ namespace Canvas3D {
         }
 
         const postprocessing = new PostprocessingPass(webgl, drawTarget.texture, depthTexture, !!depthTarget, p.postprocessing)
-
-        const composeTarget = createRenderTarget(webgl, width, height)
-        const holdTarget = createRenderTarget(webgl, width, height)
-        const compose = getComposeRenderable(webgl, drawTarget.texture)
+        const multiSample = new MultiSamplePass(webgl, camera, drawTarget, postprocessing, renderDraw, p.multiSample)
 
         const pickBaseScale = 0.5
         let pickScale = pickBaseScale / webgl.pixelRatio
@@ -162,9 +153,6 @@ namespace Canvas3D {
         let isIdentifying = false
         let isUpdating = false
         let drawPending = false
-
-        let multiSampleIndex = -1
-        let multiSample = false
 
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
@@ -249,166 +237,6 @@ namespace Canvas3D {
             }
         }
 
-        function renderTemporalMultiSample() {
-            // based on the Multisample Anti-Aliasing Render Pass
-            // contributed to three.js by bhouston / http://clara.io/
-            //
-            // This manual approach to MSAA re-renders the scene once for
-            // each sample with camera jitter and accumulates the results.
-            const offsetList = JitterVectors[ Math.max(0, Math.min(p.sampleLevel, 5)) ]
-
-            if (multiSampleIndex === -1) return
-            if (multiSampleIndex >= offsetList.length) {
-                multiSampleIndex = -1
-                return
-            }
-
-            const i = multiSampleIndex
-
-            if (i === 0) {
-                drawTarget.bind()
-                renderDraw()
-                if (postprocessing.enabled) postprocessing.render(false)
-                ValueCell.update(compose.values.uWeight, 1.0)
-                ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawTarget.texture)
-                compose.update()
-
-                holdTarget.bind()
-                state.disable(gl.BLEND)
-                compose.render()
-            }
-
-            const sampleWeight = 1.0 / offsetList.length
-
-            camera.viewOffset.enabled = true
-            ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawTarget.texture)
-            ValueCell.update(compose.values.uWeight, sampleWeight)
-            compose.update()
-
-            const { width, height } = drawTarget
-
-            // render the scene multiple times, each slightly jitter offset
-            // from the last and accumulate the results.
-            const numSamplesPerFrame = Math.pow(2, p.sampleLevel)
-            for (let i = 0; i < numSamplesPerFrame; ++i) {
-                const offset = offsetList[multiSampleIndex]
-                Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height)
-                camera.updateMatrices()
-
-                // render scene and optionally postprocess
-                drawTarget.bind()
-                renderDraw()
-                if (postprocessing.enabled) postprocessing.render(false)
-
-                // compose rendered scene with compose target
-                composeTarget.bind()
-                state.enable(gl.BLEND)
-                state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD)
-                state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE)
-                state.disable(gl.DEPTH_TEST)
-                state.disable(gl.SCISSOR_TEST)
-                state.depthMask(false)
-                if (multiSampleIndex === 0) {
-                    webgl.state.clearColor(0, 0, 0, 0)
-                    gl.clear(gl.COLOR_BUFFER_BIT)
-                }
-                compose.render()
-
-                multiSampleIndex += 1
-                if (multiSampleIndex >= offsetList.length ) break
-            }
-
-            const accumulationWeight = multiSampleIndex * sampleWeight
-            if (accumulationWeight > 0) {
-                ValueCell.update(compose.values.uWeight, 1.0)
-                ValueCell.update(compose.values.tColor, composeTarget.texture)
-                compose.update()
-                webgl.unbindFramebuffer()
-                gl.viewport(0, 0, width, height)
-                state.disable(gl.BLEND)
-                compose.render()
-            }
-            if (accumulationWeight < 1.0) {
-                ValueCell.update(compose.values.uWeight, 1.0 - accumulationWeight)
-                ValueCell.update(compose.values.tColor, holdTarget.texture)
-                compose.update()
-                webgl.unbindFramebuffer()
-                gl.viewport(0, 0, width, height)
-                if (accumulationWeight === 0) state.disable(gl.BLEND)
-                else state.enable(gl.BLEND)
-                compose.render()
-            }
-
-            camera.viewOffset.enabled = false
-            camera.updateMatrices()
-            if (multiSampleIndex >= offsetList.length) multiSampleIndex = -1
-        }
-
-        function renderMultiSample() {
-            // based on the Multisample Anti-Aliasing Render Pass
-            // contributed to three.js by bhouston / http://clara.io/
-            //
-            // This manual approach to MSAA re-renders the scene once for
-            // each sample with camera jitter and accumulates the results.
-            const offsetList = JitterVectors[ Math.max(0, Math.min(p.sampleLevel, 5)) ]
-
-            const baseSampleWeight = 1.0 / offsetList.length
-            const roundingRange = 1 / 32
-
-            camera.viewOffset.enabled = true
-            ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawTarget.texture)
-            compose.update()
-
-            const { width, height } = drawTarget
-
-            // render the scene multiple times, each slightly jitter offset
-            // from the last and accumulate the results.
-            for (let i = 0; i < offsetList.length; ++i) {
-                const offset = offsetList[i]
-                Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height)
-                camera.updateMatrices()
-
-                // the theory is that equal weights for each sample lead to an accumulation of rounding
-                // errors. The following equation varies the sampleWeight per sample so that it is uniformly
-                // distributed across a range of values whose rounding errors cancel each other out.
-                const uniformCenteredDistribution = -0.5 + (i + 0.5) / offsetList.length
-                const sampleWeight = baseSampleWeight + roundingRange * uniformCenteredDistribution
-                ValueCell.update(compose.values.uWeight, sampleWeight)
-
-                // render scene and optionally postprocess
-                drawTarget.bind()
-                renderDraw()
-                if (postprocessing.enabled) postprocessing.render(false)
-
-                // compose rendered scene with compose target
-                composeTarget.bind()
-                gl.viewport(0, 0, width, height)
-                state.enable(gl.BLEND)
-                state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD)
-                state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE)
-                state.disable(gl.DEPTH_TEST)
-                state.disable(gl.SCISSOR_TEST)
-                state.depthMask(false)
-                if (i === 0) {
-                    webgl.state.clearColor(0, 0, 0, 0)
-                    gl.clear(gl.COLOR_BUFFER_BIT)
-                }
-                compose.render()
-            }
-
-            ValueCell.update(compose.values.uWeight, 1.0)
-            ValueCell.update(compose.values.tColor, composeTarget.texture)
-            compose.update()
-
-            webgl.unbindFramebuffer()
-            gl.viewport(0, 0, width, height)
-            state.disable(gl.BLEND)
-            compose.render()
-
-            camera.viewOffset.enabled = false
-            camera.updateMatrices()
-        }
-
         function render(variant: 'pick' | 'draw', force: boolean) {
             if (isIdentifying || isUpdating) return false
 
@@ -417,21 +245,9 @@ namespace Canvas3D {
             // TODO: is this a good fix? Also, setClipping does not work if the user has manually set a clipping plane.
             if (!camera.transition.inTransition) setClipping();
             const cameraChanged = camera.updateMatrices();
-            if (force || cameraChanged) lastRenderTime = now()
-            if (p.multiSample === 'temporal') {
-                if (currentTime - lastRenderTime > 200) {
-                    multiSample = multiSampleIndex !== -1
-                } else {
-                    multiSampleIndex = 0
-                    multiSample = false
-                }
-            } else if (p.multiSample === 'on') {
-                multiSample = true
-            } else {
-                multiSample = false
-            }
+            multiSample.update(force || cameraChanged, currentTime)
 
-            if (force || cameraChanged || multiSample) {
+            if (force || cameraChanged || multiSample.enabled) {
                 switch (variant) {
                     case 'pick':
                         renderer.setViewport(0, 0, pickWidth, pickHeight);
@@ -444,12 +260,8 @@ namespace Canvas3D {
                         break;
                     case 'draw':
                         renderer.setViewport(0, 0, width, height);
-                        if (multiSample) {
-                            if (p.multiSample === 'temporal') {
-                                renderTemporalMultiSample()
-                            } else {
-                                renderMultiSample()
-                            }
+                        if (multiSample.enabled) {
+                            multiSample.render()
                         } else {
                             if (postprocessing.enabled) drawTarget.bind()
                             else webgl.unbindFramebuffer()
@@ -467,7 +279,6 @@ namespace Canvas3D {
 
         let forceNextDraw = false;
         let currentTime = 0;
-        let lastRenderTime = 0;
 
         function draw(force?: boolean) {
             if (render('draw', !!force || forceNextDraw)) {
@@ -636,11 +447,8 @@ namespace Canvas3D {
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
-                if (props.multiSample !== undefined) p.multiSample = props.multiSample
-                if (props.sampleLevel !== undefined) p.sampleLevel = props.sampleLevel
-
                 if (props.postprocessing) postprocessing.setProps(props.postprocessing)
-
+                if (props.multiSample) multiSample.setProps(props.multiSample)
                 if (props.renderer) renderer.setProps(props.renderer)
                 if (props.trackball) controls.setProps(props.trackball)
                 if (props.debug) debugHelper.setProps(props.debug)
@@ -654,10 +462,8 @@ namespace Canvas3D {
                     clip: p.clip,
                     fog: p.fog,
 
-                    multiSample: p.multiSample,
-                    sampleLevel: p.sampleLevel,
-
                     postprocessing: { ...postprocessing.props },
+                    multiSample: { ...multiSample.props },
                     renderer: { ...renderer.props },
                     trackball: { ...controls.props },
                     debug: { ...debugHelper.props }
@@ -693,14 +499,13 @@ namespace Canvas3D {
 
             drawTarget.setSize(width, height)
             postprocessing.setSize(width, height)
-            composeTarget.setSize(width, height)
-            holdTarget.setSize(width, height)
+            multiSample.setSize(width, height)
+
             if (depthTarget) {
                 depthTarget.setSize(width, height)
             } else {
                 depthTexture.define(width, height)
             }
-            ValueCell.update(compose.values.uTexSize, Vec2.set(compose.values.uTexSize.ref.value, width, height))
 
             pickScale = pickBaseScale / webgl.pixelRatio
             pickWidth = Math.round(width * pickScale)

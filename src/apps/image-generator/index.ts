@@ -30,8 +30,10 @@ const gl = createContext(width, height, {
 
 const input = InputObserver.create()
 const canvas3d = Canvas3D.create(gl, input, {
-    multiSample: 'on',
-    sampleLevel: 3,
+    multiSample: {
+        mode: 'on',
+        sampleLevel: 3
+    },
     renderer: {
         ...Canvas3DParams.renderer.defaultValue,
         lightIntensity: 0,
