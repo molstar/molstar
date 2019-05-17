@@ -15,6 +15,8 @@ uniform float uOutlineThreshold;
 
 const float noiseAmount = 0.0002;
 
+#include common
+
 float noise(vec2 coords) {
 	float a = 12.9898;
 	float b = 78.233;
@@ -25,6 +27,14 @@ float noise(vec2 coords) {
 	return fract(sin(sn) * c);
 }
 
+float getDepth(in vec2 coords) {
+	#ifdef dPackedDepth
+		return unpackRGBAToDepth(texture2D(tDepth, coords));
+	#else
+		return texture2D(tDepth, coords).r;
+	#endif
+}
+
 float calcSSAO(in vec2 coords, in float depth) {
 	float occlusionFactor = 0.0;
 
@@ -33,7 +43,7 @@ float calcSSAO(in vec2 coords, in float depth) {
 			vec2 coordsDelta = coords + uOcclusionRadius / float(dOcclusionKernelSize) * vec2(float(i) / uTexSize.x, float(j) / uTexSize.y);
             coordsDelta += noiseAmount * (noise(coordsDelta) - 0.5) / uTexSize;
             coordsDelta = clamp(coordsDelta, 0.5 / uTexSize, 1.0 - 1.0 / uTexSize);
-			if (texture2D(tDepth, coordsDelta).r < depth) occlusionFactor += 1.0;
+			if (getDepth(coordsDelta) < depth) occlusionFactor += 1.0;
 		}
 	}
 
@@ -50,10 +60,10 @@ float calcEdgeDepth(in vec2 coords) {
     vec2 bottomRightUV = coords + vec2(invTexSize.x * halfScaleCeil, -invTexSize.y * halfScaleFloor);
     vec2 topLeftUV = coords + vec2(-invTexSize.x * halfScaleFloor, invTexSize.y * halfScaleCeil);
 
-    float depth0 = texture2D(tDepth, bottomLeftUV).r;
-    float depth1 = texture2D(tDepth, topRightUV).r;
-    float depth2 = texture2D(tDepth, bottomRightUV).r;
-    float depth3 = texture2D(tDepth, topLeftUV).r;
+    float depth0 = getDepth(bottomLeftUV);
+    float depth1 = getDepth(topRightUV);
+    float depth2 = getDepth(bottomRightUV);
+    float depth3 = getDepth(topLeftUV);
 
     float depthFiniteDifference0 = depth1 - depth0;
     float depthFiniteDifference1 = depth3 - depth2;
@@ -66,7 +76,7 @@ void main(void) {
 	vec4 color = texture2D(tColor, coords);
 
 	#ifdef dOcclusionEnable
-		float depth = texture2D(tDepth, coords).r;
+		float depth = getDepth(coords);
 		if (depth != 1.0) {
 			float occlusionFactor = calcSSAO(coords, depth);
 			color = mix(color, vec4(0.0, 0.0, 0.0, 1.0), uOcclusionBias * occlusionFactor);

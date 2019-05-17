@@ -33,7 +33,7 @@ export const QuadValues: Values<typeof QuadSchema> = {
 
 //
 
-function getArrayForTexture(gl:GLRenderingContext, texture: Texture, size: number) {
+function getArrayForTexture(gl: GLRenderingContext, texture: Texture, size: number) {
     switch (texture.type) {
         case gl.UNSIGNED_BYTE: return new Uint8Array(size)
         case gl.FLOAT: return new Float32Array(size)

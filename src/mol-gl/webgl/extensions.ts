@@ -8,13 +8,13 @@ import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivative
 
 export type WebGLExtensions = {
     instancedArrays: COMPAT_instanced_arrays
-    standardDerivatives: COMPAT_standard_derivatives
-    blendMinMax: COMPAT_blend_minmax
     textureFloat: COMPAT_texture_float
-    textureFloatLinear: COMPAT_texture_float_linear
     elementIndexUint: COMPAT_element_index_uint
-    depthTexture: COMPAT_depth_texture
 
+    standardDerivatives: COMPAT_standard_derivatives | null
+    textureFloatLinear: COMPAT_texture_float_linear | null
+    depthTexture: COMPAT_depth_texture | null
+    blendMinMax: COMPAT_blend_minmax | null
     vertexArrayObject: COMPAT_vertex_array_object | null
     fragDepth: COMPAT_frag_depth | null
     colorBufferFloat: COMPAT_color_buffer_float | null
@@ -27,31 +27,35 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (instancedArrays === null) {
         throw new Error('Could not find support for "instanced_arrays"')
     }
-    const standardDerivatives = getStandardDerivatives(gl)
-    if (standardDerivatives === null) {
-        throw new Error('Could not find support for "standard_derivatives"')
-    }
-    const blendMinMax = getBlendMinMax(gl)
-    if (blendMinMax === null) {
-        throw new Error('Could not find support for "blend_minmax"')
-    }
     const textureFloat = getTextureFloat(gl)
     if (textureFloat === null) {
         throw new Error('Could not find support for "texture_float"')
-    }
-    const textureFloatLinear = getTextureFloatLinear(gl)
-    if (textureFloatLinear === null) {
-        throw new Error('Could not find support for "texture_float_linear"')
     }
     const elementIndexUint = getElementIndexUint(gl)
     if (elementIndexUint === null) {
         throw new Error('Could not find support for "element_index_uint"')
     }
+
+    const standardDerivatives = getStandardDerivatives(gl)
+    if (standardDerivatives === null) {
+        // TODO handle non-support downstream (e.g. no flat shading)
+        // throw new Error('Could not find support for "standard_derivatives"')
+        console.log('Could not find support for "standard_derivatives"')
+    }
+    const textureFloatLinear = getTextureFloatLinear(gl)
+    if (textureFloatLinear === null) {
+        // TODO handle non-support downstream (no gpu gaussian calc, no gpu mc???)
+        // throw new Error('Could not find support for "texture_float_linear"')
+        console.log('Could not find support for "texture_float_linear"')
+    }
     const depthTexture = getDepthTexture(gl)
     if (depthTexture === null) {
-        throw new Error('Could not find support for "depth_texture"')
+        console.log('Could not find support for "depth_texture"')
     }
-
+    const blendMinMax = getBlendMinMax(gl)
+    if (blendMinMax === null) {
+        console.log('Could not find support for "blend_minmax"')
+    }
     const vertexArrayObject = getVertexArrayObject(gl)
     if (vertexArrayObject === null) {
         console.log('Could not find support for "vertex_array_object"')
@@ -76,12 +80,12 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     return {
         instancedArrays,
         standardDerivatives,
-        blendMinMax,
         textureFloat,
         textureFloatLinear,
         elementIndexUint,
         depthTexture,
 
+        blendMinMax,
         vertexArrayObject,
         fragDepth,
         colorBufferFloat,

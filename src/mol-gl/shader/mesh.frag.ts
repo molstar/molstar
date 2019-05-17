@@ -21,6 +21,8 @@ void main() {
         if (uAlpha < uPickingAlphaThreshold)
             discard; // ignore so the element below can be picked
         gl_FragColor = material;
+    #elif defined(dColorType_depth)
+        gl_FragColor = material;
     #else
         #include assign_normal
         #include apply_light_color

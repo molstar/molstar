@@ -128,6 +128,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                 #elif defined(dColorType_groupPicking)
                     float group = floor(decodeFloatRGB(textureGroup(isoPos).rgb) + 0.5);
                     return vec4(encodeFloatRGB(group), 1.0);
+                #elif defined(dColorType_depth)
+                    return packDepthToRGBA(gl_FragCoord.z); // TODO calculate isosurface depth
                 #else
                     // compute gradient by central differences
                     gradient.x = textureVal(isoPos - dx).a - textureVal(isoPos + dx).a;

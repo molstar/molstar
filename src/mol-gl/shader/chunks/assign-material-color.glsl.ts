@@ -5,6 +5,12 @@ export default `
     vec4 material = vec4(vColor.rgb, uAlpha);
 #elif defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
     vec4 material = uPickable == 1 ? vColor : vec4(0.0, 0.0, 0.0, 1.0); // set to empty picking id
+#elif defined(dColorType_depth)
+    #ifdef enabledFragDepth
+        vec4 material = packDepthToRGBA(gl_FragDepthEXT);
+    #else
+        vec4 material = packDepthToRGBA(gl_FragCoord.z);
+    #endif
 #endif
 
 // mix material with overpaint

@@ -307,6 +307,9 @@ function setupMinDistanceRendering(webgl: WebGLContext, renderable: ComputeRende
     state.colorMask(false, false, false, true)
     state.blendFunc(gl.ONE, gl.ONE)
     // the shader writes 1 - dist so we set blending to MAX
+    if (!webgl.extensions.blendMinMax) {
+        throw new Error('GPU gaussian surface calculation requires EXT_blend_minmax')
+    }
     state.blendEquation(webgl.extensions.blendMinMax.MAX)
 }
 

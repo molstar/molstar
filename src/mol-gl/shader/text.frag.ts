@@ -59,6 +59,8 @@ void main(){
     #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
         if (uAlpha < uPickingAlphaThreshold)
             discard; // ignore so the element below can be picked
+    #elif defined(dColorType_depth)
+        gl_FragColor = material;
     #else
         #include apply_marker_color
         #include apply_fog

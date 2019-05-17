@@ -125,6 +125,8 @@ void main(void){
         if (uAlpha < uPickingAlphaThreshold)
             discard; // ignore so the element below can be picked
         gl_FragColor = material;
+    #elif defined(dColorType_depth)
+        gl_FragColor = material;
     #else
         vec3 normal = cameraNormal;
         vec3 vViewPosition = -cameraPos;

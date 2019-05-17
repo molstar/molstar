@@ -38,7 +38,7 @@ interface Renderer {
     readonly props: Readonly<RendererProps>
 
     clear: () => void
-    render: (scene: Scene, variant: GraphicsRenderVariant) => void
+    render: (scene: Scene, variant: GraphicsRenderVariant, clear: boolean) => void
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     dispose: () => void
@@ -153,7 +153,7 @@ namespace Renderer {
             }
         }
 
-        const render = (scene: Scene, variant: GraphicsRenderVariant) => {
+        const render = (scene: Scene, variant: GraphicsRenderVariant, clear: boolean) => {
             ValueCell.update(globalUniforms.uModel, scene.view)
             ValueCell.update(globalUniforms.uView, camera.view)
             ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view))
@@ -182,8 +182,15 @@ namespace Renderer {
             state.depthMask(true)
             state.colorMask(true, true, true, true)
             state.enable(gl.DEPTH_TEST)
-            state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+            if (clear) {
+                if (variant === 'draw') {
+                    state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
+                } else {
+                    state.clearColor(1, 1, 1, 1)
+                }
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+            }
 
             if (variant === 'draw') {
                 for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -198,8 +205,7 @@ namespace Renderer {
                     state.depthMask(r.values.uAlpha.ref.value === 1.0)
                     if (!r.state.opaque) renderObject(r, variant)
                 }
-            } else {
-                // picking
+            } else { // picking & depth
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     renderObject(renderables[i], variant)
                 }
@@ -211,6 +217,7 @@ namespace Renderer {
         return {
             clear: () => {
                 state.depthMask(true)
+                state.colorMask(true, true, true, true)
                 state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
             },

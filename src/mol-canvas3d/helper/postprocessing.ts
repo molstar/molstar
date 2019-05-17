@@ -29,6 +29,8 @@ const PostprocessingSchema = {
     dOutlineEnable: DefineSpec('boolean'),
     uOutlineScale: UniformSpec('f'),
     uOutlineThreshold: UniformSpec('f'),
+
+    dPackedDepth: DefineSpec('boolean'),
 }
 
 export const PostprocessingParams = {
@@ -45,8 +47,8 @@ export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
-export function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, props: Partial<PostprocessingProps>): PostprocessingRenderable {
-    const p = { ...PD.getDefaultValues(PostprocessingParams), props }
+export function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, packedDepth: boolean, props: Partial<PostprocessingProps>): PostprocessingRenderable {
+    const p = { ...PD.getDefaultValues(PostprocessingParams), ...props }
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
@@ -61,6 +63,8 @@ export function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Tex
         dOutlineEnable: ValueCell.create(p.outlineEnable),
         uOutlineScale: ValueCell.create(p.outlineScale * ctx.pixelRatio),
         uOutlineThreshold: ValueCell.create(p.outlineThreshold),
+
+        dPackedDepth: ValueCell.create(packedDepth),
     }
 
     const schema = { ...PostprocessingSchema }

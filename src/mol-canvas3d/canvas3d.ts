@@ -34,6 +34,7 @@ import { getPostprocessingRenderable, PostprocessingParams, setPostprocessingPro
 import { JitterVectors, getComposeRenderable } from './helper/multi-sample';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { PixelData } from 'mol-util/image';
+import { readTexture } from 'mol-gl/compute/util';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -90,6 +91,8 @@ interface Canvas3D {
     dispose: () => void
 }
 
+const requestAnimationFrame = typeof window !== 'undefined' ? window.requestAnimationFrame : (f: (time: number) => void) => setImmediate(()=>f(Date.now()))
+
 namespace Canvas3D {
     export interface HighlightEvent { current: Representation.Loci, prev: Representation.Loci, modifiers?: ModifiersKeys }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
@@ -134,12 +137,15 @@ namespace Canvas3D {
         const renderer = Renderer.create(webgl, camera, p.renderer)
 
         const drawTarget = createRenderTarget(webgl, width, height)
-        const depthTexture = createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
-        depthTexture.define(width, height)
-        depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
+        const depthTarget = webgl.extensions.depthTexture ? null : createRenderTarget(webgl, width, height)
+        const depthTexture = depthTarget ? depthTarget.texture : createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
+        if (!depthTarget) {
+            depthTexture.define(width, height)
+            depthTexture.attachFramebuffer(drawTarget.framebuffer, 'depth')
+        }
 
         const postprocessingTarget = createRenderTarget(webgl, width, height)
-        const postprocessing = getPostprocessingRenderable(webgl, drawTarget.texture, depthTexture, p.postprocessing)
+        const postprocessing = getPostprocessingRenderable(webgl, drawTarget.texture, depthTexture, !!depthTarget, p.postprocessing)
 
         const composeTarget = createRenderTarget(webgl, width, height)
         const holdTarget = createRenderTarget(webgl, width, height)
@@ -226,12 +232,21 @@ namespace Canvas3D {
             }
         }
 
-        function renderDraw() {
+        function renderDraw(postprocessingEnabled: boolean) {
             renderer.setViewport(0, 0, width, height)
-            renderer.render(scene, 'draw')
+            renderer.render(scene, 'draw', true)
             if (debugHelper.isEnabled) {
                 debugHelper.syncVisibility()
-                renderer.render(debugHelper.scene, 'draw')
+                renderer.render(debugHelper.scene, 'draw', false)
+            }
+
+            if (postprocessingEnabled && depthTarget) {
+                depthTarget.bind()
+                renderer.render(scene, 'depth', true)
+                if (debugHelper.isEnabled) {
+                    debugHelper.syncVisibility()
+                    renderer.render(debugHelper.scene, 'depth', false)
+                }
             }
         }
 
@@ -262,7 +277,7 @@ namespace Canvas3D {
 
             if (i === 0) {
                 drawTarget.bind()
-                renderDraw()
+                renderDraw(postprocessingEnabled)
                 if (postprocessingEnabled) {
                     postprocessingTarget.bind()
                     renderPostprocessing()
@@ -295,7 +310,7 @@ namespace Canvas3D {
 
                 // render scene and optionally postprocess
                 drawTarget.bind()
-                renderDraw()
+                renderDraw(postprocessingEnabled)
                 if (postprocessingEnabled) {
                     postprocessingTarget.bind()
                     renderPostprocessing()
@@ -378,7 +393,7 @@ namespace Canvas3D {
 
                 // render scene and optionally postprocess
                 drawTarget.bind()
-                renderDraw()
+                renderDraw(postprocessingEnabled)
                 if (postprocessingEnabled) {
                     postprocessingTarget.bind()
                     renderPostprocessing()
@@ -441,11 +456,11 @@ namespace Canvas3D {
                     case 'pick':
                         renderer.setViewport(0, 0, pickWidth, pickHeight);
                         objectPickTarget.bind();
-                        renderer.render(scene, 'pickObject');
+                        renderer.render(scene, 'pickObject', true);
                         instancePickTarget.bind();
-                        renderer.render(scene, 'pickInstance');
+                        renderer.render(scene, 'pickInstance', true);
                         groupPickTarget.bind();
-                        renderer.render(scene, 'pickGroup');
+                        renderer.render(scene, 'pickGroup', true);
                         break;
                     case 'draw':
                         renderer.setViewport(0, 0, width, height);
@@ -458,7 +473,7 @@ namespace Canvas3D {
                         } else {
                             if (postprocessingEnabled) drawTarget.bind()
                             else webgl.unbindFramebuffer()
-                            renderDraw()
+                            renderDraw(postprocessingEnabled)
                             if (postprocessingEnabled) {
                                 webgl.unbindFramebuffer()
                                 renderPostprocessing()
@@ -496,7 +511,7 @@ namespace Canvas3D {
             camera.transition.tick(currentTime);
             draw(false);
             if (!camera.transition.inTransition) interactionHelper.tick(currentTime);
-            window.requestAnimationFrame(animate)
+            requestAnimationFrame(animate)
         }
 
         function pick() {
@@ -627,6 +642,12 @@ namespace Canvas3D {
                     case 'pickObject': return objectPickTarget.getPixelData()
                     case 'pickInstance': return instancePickTarget.getPixelData()
                     case 'pickGroup': return groupPickTarget.getPixelData()
+                    case 'depth':
+                        if (depthTarget) {
+                            return depthTarget.getPixelData()
+                        } else {
+                            return readTexture(webgl, depthTexture) as PixelData
+                        }
                 }
             },
             didDraw,
@@ -699,7 +720,11 @@ namespace Canvas3D {
             postprocessingTarget.setSize(width, height)
             composeTarget.setSize(width, height)
             holdTarget.setSize(width, height)
-            depthTexture.define(width, height)
+            if (depthTarget) {
+                depthTarget.setSize(width, height)
+            } else {
+                depthTexture.define(width, height)
+            }
             ValueCell.update(postprocessing.values.uTexSize, Vec2.set(postprocessing.values.uTexSize.ref.value, width, height))
             ValueCell.update(compose.values.uTexSize, Vec2.set(compose.values.uTexSize.ref.value, width, height))
 

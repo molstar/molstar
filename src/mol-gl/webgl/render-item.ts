@@ -51,7 +51,8 @@ const GraphicsRenderVariantDefines = {
     'draw': {},
     'pickObject': { dColorType: ValueCell.create('objectPicking') },
     'pickInstance': { dColorType: ValueCell.create('instancePicking') },
-    'pickGroup': { dColorType: ValueCell.create('groupPicking') }
+    'pickGroup': { dColorType: ValueCell.create('groupPicking') },
+    'depth': { dColorType: ValueCell.create('depth') }
 }
 export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariantDefines
 
