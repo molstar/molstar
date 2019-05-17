@@ -4,19 +4,22 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State, StateTransform } from 'mol-state';
+import { State, StateTransform, StateTransformer } from 'mol-state';
 import { memoizeLatest } from 'mol-util/memoize';
 import { StateTransformParameters, TransformContolBase } from './common';
 import { Observable } from 'rxjs';
+import * as React from 'react';
+import { PluginUIComponent } from '../base';
 
-export { UpdateTransformContol };
+export { UpdateTransformContol, TransformUpdaterControl };
 
 namespace UpdateTransformContol {
     export interface Props {
         transform: StateTransform,
         state: State,
         toggleCollapsed?: Observable<any>,
-        initiallyCollapsed?: boolean
+        initiallyCollapsed?: boolean,
+        customHeader?: StateTransformer.Definition['display']
     }
 
     export interface ComponentState extends TransformContolBase.ComponentState {
@@ -28,7 +31,7 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
     applyAction() { return this.plugin.updateTransform(this.props.state, this.props.transform.ref, this.state.params); }
     getInfo() { return this._getInfo(this.props.transform); }
     getTransformerId() { return this.props.transform.transformer.id; }
-    getHeader() { return this.props.transform.transformer.definition.display; }
+    getHeader() { return this.props.customHeader || this.props.transform.transformer.definition.display; }
     canApply() { return !this.state.error && !this.state.busy && !this.state.isInitial; }
     applyText() { return this.canApply() ? 'Update' : 'Nothing to Update'; }
     isUpdate() { return true; }
@@ -73,5 +76,26 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
             error: void 0
         };
         return newState;
+    }
+}
+
+class TransformUpdaterControl extends PluginUIComponent<{ nodeRef: string, initiallyCollapsed?: boolean, header?: StateTransformer.Definition['display'] }> {
+    componentDidMount() {
+        this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
+            if (this.props.nodeRef !== ref || this.plugin.state.dataState !== state) return;
+            this.forceUpdate();
+        });
+    }
+
+    render() {
+        const state = this.plugin.state.dataState;
+        const ref = this.props.nodeRef;
+        const cell = state.cells.get(ref)!;
+
+        if (!cell || (cell.status !== 'ok' && cell.status !== 'error')) return null;
+
+        const transform = cell.transform;
+
+        return <UpdateTransformContol state={state} transform={transform} initiallyCollapsed={this.props.initiallyCollapsed} customHeader={this.props.header} />;
     }
 }
