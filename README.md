@@ -73,15 +73,6 @@ From the root of the project:
 
 and navigate to `build/viewer`
 
-**Run via Docker**
-
-Build the docker image
-
-    docker build -t molstar/proto:httpd .
-
-Run the image
-
-    docker run -d -p 80:80 molstar/proto:httpd
 
 ### Code generation
 **CIF schemas**
