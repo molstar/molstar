@@ -56,8 +56,12 @@ This project builds on experience from previous solutions:
 ### Build automatically on file save:
     npm run watch
 
-### With debug mode enabled:
+### Build with debug mode enabled:
     DEBUG=molstar npm run watch
+
+### Build for production:
+    npm run build
+    NODE_ENV=production npm run build-webpack
 
 **Run**
 
