@@ -10,7 +10,7 @@ before_install:
   - sudo apt-get install -y libosmesa6
   - sudo apt-get install -y gcc-4.9
   - sudo apt-get install -y libstdc++6
-  - sudo apt-get install -y libxi
+  - sudo apt-get install -y libxi-dev
 node_js:
   - "10"
   - "8"
