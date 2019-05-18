@@ -2,15 +2,13 @@ language: node_js
 os: linux
 sudo: required
 dist: trusty
-addons:
-  apt:
-    packages:
-    - mesa-utils
-    - xvfb
-    - libgl1-mesa-dri
-    - libglapi-mesa
-    - libosmesa6
-    - libstdc++6
+before_install:
+  - sudo apt-get install -y mesa-utils
+  - sudo apt-get install -y xvfb
+  - sudo apt-get install -y libgl1-mesa-dri
+  - sudo apt-get install -y libglapi-mesa
+  - sudo apt-get install -y libosmesa6
+  - sudo apt-get install -y libstdc++6
 node_js:
   - "10"
   - "8"
