@@ -25,17 +25,6 @@ import { Sphere3D } from 'mol-math/geometry';
 import { createEmptyOverpaint } from 'mol-geo/geometry/overpaint-data';
 import { createEmptyTransparency } from 'mol-geo/geometry/transparency-data';
 
-// function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
-//     const pixels = new Uint8Array(width * height * 4)
-//     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
-//     process.stdout.write(['P3\n# gl.ppm\n', width, ' ', height, '\n255\n'].join(''))
-//     for (let i = 0; i<pixels.length; i+=4) {
-//         for (let j = 0; j<3; ++j) {
-//             process.stdout.write(pixels[i+j] + ' ')
-//         }
-//     }
-// }
-
 function createRenderer(gl: WebGLRenderingContext) {
     const ctx = createContext(gl)
     const camera = new Camera({
@@ -139,22 +128,21 @@ describe('renderer', () => {
         scene.add(points)
         expect(ctx.stats.bufferCount).toBe(4);
         expect(ctx.stats.textureCount).toBe(5);
-        expect(ctx.stats.vaoCount).toBe(4);
-        expect(ctx.programCache.count).toBe(4);
-        expect(ctx.shaderCache.count).toBe(8);
+        expect(ctx.stats.vaoCount).toBe(5);
+        expect(ctx.programCache.count).toBe(5);
+        expect(ctx.shaderCache.count).toBe(10);
 
         scene.remove(points)
         expect(ctx.stats.bufferCount).toBe(0);
         expect(ctx.stats.textureCount).toBe(0);
         expect(ctx.stats.vaoCount).toBe(0);
-        expect(ctx.programCache.count).toBe(4);
-        expect(ctx.shaderCache.count).toBe(8);
+        expect(ctx.programCache.count).toBe(5);
+        expect(ctx.shaderCache.count).toBe(10);
 
         ctx.programCache.dispose()
         expect(ctx.programCache.count).toBe(0);
 
         ctx.shaderCache.clear()
         expect(ctx.shaderCache.count).toBe(0);
-        // console.log('moin', ctx)
     })
 })
