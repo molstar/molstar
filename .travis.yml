@@ -10,6 +10,7 @@ addons:
     - libgl1-mesa-dri
     - libglapi-mesa
     - libosmesa6
+    - libstdc++6
 node_js:
   - "10"
   - "8"
