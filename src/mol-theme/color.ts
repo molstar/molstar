@@ -27,7 +27,7 @@ import { UnitIndexColorThemeProvider } from './color/unit-index';
 import { ScaleLegend } from 'mol-util/color/scale';
 import { TableLegend } from 'mol-util/color/tables';
 import { UncertaintyColorThemeProvider } from './color/uncertainty';
-import { GeneColorThemeProvider } from './color/gene';
+import { EntitySourceColorThemeProvider } from './color/entity-source';
 import { IllustrativeColorThemeProvider } from './color/illustrative';
 import { HydrophobicityColorThemeProvider } from './color/hydrophobicity';
 
@@ -76,7 +76,7 @@ export const BuiltInColorThemes = {
     'cross-link': CrossLinkColorThemeProvider,
     'element-index': ElementIndexColorThemeProvider,
     'element-symbol': ElementSymbolColorThemeProvider,
-    'gene': GeneColorThemeProvider,
+    'entity-source': EntitySourceColorThemeProvider,
     'hydrophobicity': HydrophobicityColorThemeProvider,
     'illustrative': IllustrativeColorThemeProvider,
     'molecule-type': MoleculeTypeColorThemeProvider,

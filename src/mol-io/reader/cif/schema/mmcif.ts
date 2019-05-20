@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.309, IHM 0.141, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.310, IHM 0.141, CARB draft.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -1965,6 +1965,40 @@ export const mmCIF_Schema = {
         details: str,
     },
     /**
+     * Data items in the ENTITY_SRC_NAT category record details of
+     * the source from which the entity was obtained in cases
+     * where the entity was isolated directly from a natural tissue.
+     */
+    entity_src_nat: {
+        /**
+         * This data item is a pointer to _entity.id in the ENTITY category.
+         */
+        entity_id: str,
+        /**
+         * This data item is an ordinal identifier for entity_src_nat data records.
+         */
+        pdbx_src_id: int,
+        /**
+         * This data item identifies cases in which an alternative source
+         * modeled.
+         */
+        pdbx_alt_source_flag: Aliased<'sample' | 'model'>(str),
+        /**
+         * The beginning polymer sequence position for the polymer section corresponding
+         * to this source.
+         *
+         * A reference to the sequence position in the entity_poly category.
+         */
+        pdbx_beg_seq_num: int,
+        /**
+         * The ending polymer sequence position for the polymer section corresponding
+         * to this source.
+         *
+         * A reference to the sequence position in the entity_poly category.
+         */
+        pdbx_end_seq_num: int,
+    },
+    /**
      * Data items in the ENTITY_SRC_GEN category record details of
      * the source from which the entity was obtained in cases
      * where the source was genetically manipulated.  The
@@ -1995,6 +2029,39 @@ export const mmCIF_Schema = {
          * This data item povides additional information about the sequence type.
          */
         pdbx_seq_type: Aliased<'N-terminal tag' | 'C-terminal tag' | 'Biological sequence' | 'Linker'>(str),
+        /**
+         * The beginning polymer sequence position for the polymer section corresponding
+         * to this source.
+         *
+         * A reference to the sequence position in the entity_poly category.
+         */
+        pdbx_beg_seq_num: int,
+        /**
+         * The ending polymer sequence position for the polymer section corresponding
+         * to this source.
+         *
+         * A reference to the sequence position in the entity_poly category.
+         */
+        pdbx_end_seq_num: int,
+    },
+    /**
+     * The data items in category PDBX_ENTITY_SRC_SYN record the source details
+     * about chemically synthesized molecules.
+     */
+    pdbx_entity_src_syn: {
+        /**
+         * This data item is a pointer to _entity.id in the ENTITY category.
+         */
+        entity_id: str,
+        /**
+         * This data item is an ordinal identifier for pdbx_entity_src_syn data records.
+         */
+        pdbx_src_id: int,
+        /**
+         * This data item identifies cases in which an alternative source
+         * modeled.
+         */
+        pdbx_alt_source_flag: Aliased<'sample' | 'model'>(str),
         /**
          * The beginning polymer sequence position for the polymer section corresponding
          * to this source.
