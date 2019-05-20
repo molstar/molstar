@@ -20,7 +20,7 @@ export namespace Types {
     export const SecondaryStructureFlags = Core.Types.Flags(SecondaryStructureFlag, 'SecondaryStructureFlag');
 
     export const RingFingerprint = Type.Value('Structure', 'RingFingerprint');
-    export const EntityType = Type.OneOf('Structure', 'EntityType', Type.Str, ['polymer', 'non-polymer', 'water', 'unknown']);
+    export const EntityType = Type.OneOf('Structure', 'EntityType', Type.Str, ['polymer', 'non-polymer', 'water', 'branched', 'unknown']);
     export const ResidueId = Type.Value('Structure', 'ResidueId');
 
     export const ElementSet = Type.Value('Structure', 'ElementSet');

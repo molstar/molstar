@@ -35,7 +35,7 @@ export function ElementSymbol(s: string): ElementSymbol {
 
 /** Entity types as defined in the mmCIF dictionary */
 export const enum EntityType {
-    'unknown', 'polymer', 'non-polymer', 'macrolide', 'water'
+    'unknown', 'polymer', 'non-polymer', 'macrolide', 'water', 'branched'
 }
 
 export const enum MoleculeType {
@@ -224,7 +224,7 @@ export function getEntityType(compId: string): mmCIF_Schema['entity']['type']['T
     if (AminoAcidNames.has(compId) || RnaBaseNames.has(compId) || DnaBaseNames.has(compId)) {
         return 'polymer'
     } else if (SaccharideCompIdMap.has(compId)) {
-        return 'polymer' // TODO will be 'branched' in the future
+        return 'branched'
     } else if (WaterNames.has(compId)) {
         return 'water'
     } else {
