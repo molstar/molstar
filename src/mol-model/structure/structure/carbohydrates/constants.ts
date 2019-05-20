@@ -301,6 +301,7 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
 
 const UnknownSaccharideNames = [
     'NGZ', // via CCD
+    'LAT', // BETA-LACTOSE, Gal-Glc di-saccharide via GlyFinder
 ]
 
 export const SaccharideCompIdMap = (function () {
