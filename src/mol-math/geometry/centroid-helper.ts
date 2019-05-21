@@ -6,7 +6,9 @@
 
 import { Vec3 } from 'mol-math/linear-algebra/3d';
 
-export class CentroidHelper {
+export { CentroidHelper }
+
+class CentroidHelper {
     private count = 0;
 
     center: Vec3 = Vec3.zero();
@@ -35,5 +37,25 @@ export class CentroidHelper {
 
     constructor() {
 
+    }
+}
+
+namespace CentroidHelper {
+    const helper = new CentroidHelper(), p = Vec3.zero();
+
+    export function compute({ x, y, z }: { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }, to: Vec3) {
+        helper.reset();
+        const n = x.length;
+        for (let i = 0; i < n; i++) {
+            Vec3.set(p, x[i], y[i], z[i]);
+            helper.includeStep(p);
+        }
+        helper.finishedIncludeStep();
+        for (let i = 0; i < n; i++) {
+            Vec3.set(p, x[i], y[i], z[i]);
+            helper.radiusStep(p);
+        }
+        Vec3.copy(to, helper.center);
+        return to;
     }
 }
