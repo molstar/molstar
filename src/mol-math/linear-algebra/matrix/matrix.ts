@@ -14,6 +14,17 @@ namespace Matrix {
         return { data: new ctor(size), size, cols, rows }
     }
 
+    /** Get element assuming data are stored in column-major order */
+    export function get(m: Matrix, i: number, j: number) { return m.data[m.rows * j + i]; }
+    /** Set element assuming data are stored in column-major order */
+    export function set(m: Matrix, i: number, j: number, value: number) { m.data[m.rows * j + i] = value; }
+    /** Add to element assuming data are stored in column-major order */
+    export function add(m: Matrix, i: number, j: number, value: number) { m.data[m.rows * j + i] += value; }
+    /** Zero out the matrix */
+    export function makeZero(m: Matrix) {
+        for (let i = 0, _l = m.data.length; i < _l; i++) m.data[i] = 0.0;
+    }
+
     export function fromArray(data: NumberArray, cols: number, rows: number): Matrix {
         return { data, size: cols * rows, cols, rows }
     }
