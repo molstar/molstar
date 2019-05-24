@@ -31,6 +31,7 @@ export namespace VolumeStreaming {
         return PD.Group({
             isoValue: createIsoValueParam(defaultValue, stats),
             color: PD.Color(color),
+            wireframe: PD.Boolean(false),
             opacity: PD.Numeric(0.3, { min: 0, max: 1, step: 0.01 })
         }, { label, isExpanded: true });
     }
@@ -78,7 +79,7 @@ export namespace VolumeStreaming {
     type RT = typeof createParams extends (...args: any[]) => (infer T) ? T : never
     export type Params = RT extends PD.Params ? PD.Values<RT> : {}
 
-    type ChannelsInfo = { [name in ChannelType]?: { isoValue: VolumeIsoValue, color: Color, opacity: number } }
+    type ChannelsInfo = { [name in ChannelType]?: { isoValue: VolumeIsoValue, color: Color, wireframe: boolean, opacity: number } }
     type ChannelsData = { [name in 'EM' | '2FO-FC' | 'FO-FC']?: VolumeData }
 
     export type ChannelType = 'em' | '2fo-fc' | 'fo-fc(+ve)' | 'fo-fc(-ve)'
@@ -86,6 +87,7 @@ export namespace VolumeStreaming {
     interface ChannelInfo {
         data: VolumeData,
         color: Color,
+        wireframe: boolean,
         isoValue: VolumeIsoValue.Relative,
         opacity: number
     }
@@ -267,6 +269,7 @@ export namespace VolumeStreaming {
             return {
                 data,
                 color: i.color,
+                wireframe: i.wireframe,
                 opacity: i.opacity,
                 isoValue: i.isoValue.kind === 'relative' ? i.isoValue : VolumeIsoValue.toRelative(i.isoValue, stats)
             };

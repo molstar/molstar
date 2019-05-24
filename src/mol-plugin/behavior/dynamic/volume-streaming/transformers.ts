@@ -198,6 +198,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
 
 function createVolumeProps(streaming: VolumeStreaming.Behavior, channelName: VolumeStreaming.ChannelType) {
     const channel = streaming.channels[channelName]!;
-    return VolumeRepresentation3DHelpers.getDefaultParamsStatic(streaming.plugin, 'isosurface',
-        { isoValue: channel.isoValue, alpha: channel.opacity }, 'uniform', { value: channel.color });
+    return VolumeRepresentation3DHelpers.getDefaultParamsStatic(streaming.plugin,
+        'isosurface', { isoValue: channel.isoValue, alpha: channel.opacity, visuals: channel.wireframe ? ['wireframe'] : ['solid'] },
+        'uniform', { value: channel.color });
 }
