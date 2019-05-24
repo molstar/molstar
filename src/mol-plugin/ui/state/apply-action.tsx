@@ -47,6 +47,7 @@ class ApplyActionContol extends TransformContolBase<ApplyActionContol.Props, App
     canAutoApply() { return false; }
     applyText() { return 'Apply'; }
     isUpdate() { return false; }
+    getSourceAndTarget() { return { a: this.props.state.cells.get(this.props.nodeRef)!.obj }; }
 
     private _getInfo = memoizeLatest((t: StateTransform.Ref, v: string) => StateTransformParameters.infoFromAction(this.plugin, this.props.state, this.props.action, this.props.nodeRef));
 

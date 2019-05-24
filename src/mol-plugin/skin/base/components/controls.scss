@@ -253,12 +253,13 @@
     top: 0;
     width: $control-label-width + $control-spacing;
     text-align: left;
+    background: transparent;
     
     .msp-icon {
         line-height: $row-height - 3;
         width: $row-height - 1;
         text-align: center;
-        display: inline-block;
+        // display: inline-block;
         font-size: 100%;
     }
 }

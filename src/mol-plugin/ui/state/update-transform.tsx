@@ -35,6 +35,12 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
     canApply() { return !this.state.error && !this.state.busy && !this.state.isInitial; }
     applyText() { return this.canApply() ? 'Update' : 'Nothing to Update'; }
     isUpdate() { return true; }
+    getSourceAndTarget() {
+        return {
+            a: this.props.state.cells.get(this.props.transform.parent)!.obj,
+            b: this.props.state.cells.has(this.props.transform.ref)! ? this.props.state.cells.get(this.props.transform.ref)!.obj : void 0
+        };
+    }
 
     canAutoApply(newParams: any) {
         const autoUpdate = this.props.transform.transformer.definition.canAutoUpdate

@@ -76,15 +76,18 @@ export namespace VolumeStreaming {
         };
     }
 
-    type RT = typeof createParams extends (...args: any[]) => (infer T) ? T : never
-    export type Params = RT extends PD.Params ? PD.Values<RT> : {}
+    export type ParamDefinition = typeof createParams extends (...args: any[]) => (infer T) ? T : never
+    export type Params = ParamDefinition extends PD.Params ? PD.Values<ParamDefinition> : {}
+
+    type CT = typeof channelParam extends (...args: any[]) => (infer T) ? T : never
+    export type ChannelParams = CT extends PD.Group<infer T> ? T : {}
 
     type ChannelsInfo = { [name in ChannelType]?: { isoValue: VolumeIsoValue, color: Color, wireframe: boolean, opacity: number } }
     type ChannelsData = { [name in 'EM' | '2FO-FC' | 'FO-FC']?: VolumeData }
 
     export type ChannelType = 'em' | '2fo-fc' | 'fo-fc(+ve)' | 'fo-fc(-ve)'
     export const ChannelTypeOptions: [ChannelType, string][] = [['em', 'em'], ['2fo-fc', '2fo-fc'], ['fo-fc(+ve)', 'fo-fc(+ve)'], ['fo-fc(-ve)', 'fo-fc(-ve)']]
-    interface ChannelInfo {
+    export interface ChannelInfo {
         data: VolumeData,
         color: Color,
         wireframe: boolean,
@@ -96,7 +99,6 @@ export namespace VolumeStreaming {
     export class Behavior extends PluginBehavior.WithSubscribers<Params> {
         private cache = LRUCache.create<ChannelsData>(25);
         public params: Params = {} as any;
-        // private ref: string = '';
 
         channels: Channels = {}
 

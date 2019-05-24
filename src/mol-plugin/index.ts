@@ -17,6 +17,7 @@ import { StateActions } from './state/actions';
 import { InitVolumeStreaming, BoxifyVolumeStreaming, CreateVolumeStreamingBehavior } from './behavior/dynamic/volume-streaming/transformers';
 import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
 import { TransformStructureConformation } from './state/actions/structure';
+import { VolumeStreamingCustomControls } from './ui/custom/volume';
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
@@ -67,6 +68,9 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry, { autoAttach: true }),
         PluginSpec.Behavior(StructureRepresentationInteraction)
+    ],
+    customParamEditors: [
+        [CreateVolumeStreamingBehavior, VolumeStreamingCustomControls]
     ],
     animations: [
         AnimateModelIndex,

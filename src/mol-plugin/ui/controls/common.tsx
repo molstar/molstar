@@ -5,6 +5,7 @@
  */
 
 import * as React from 'react';
+import { Color } from 'mol-util/color';
 
 export class ControlGroup extends React.Component<{ header: string, initialExpanded?: boolean }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }
@@ -94,13 +95,46 @@ export function IconButton(props: {
     title?: string,
     toggleState?: boolean,
     disabled?: boolean,
+    customClass?: string,
     'data-id'?: string
 }) {
-    let className = `msp-btn-link msp-btn-icon${props.isSmall ? '-small' : ''}`;
+    let className = `msp-btn-link msp-btn-icon${props.isSmall ? '-small' : ''}${props.customClass ? ' ' + props.customClass : ''}`;
     if (typeof props.toggleState !== 'undefined') className += ` msp-btn-link-toggle-${props.toggleState ? 'on' : 'off'}`
     return <button className={className} onClick={props.onClick} title={props.title} disabled={props.disabled} data-id={props['data-id']}>
         <span className={`msp-icon msp-icon-${props.icon}`}/>
     </button>;
+}
+
+export class ExpandableGroup extends React.Component<{
+    label: string,
+    colorStripe?: Color,
+    pivot: JSX.Element,
+    controls: JSX.Element
+}, { isExpanded: boolean }> {
+    state = { isExpanded: false };
+
+    toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
+
+    render() {
+        const { label, pivot, controls } = this.props;
+        // TODO: fix the inline CSS
+        return <>
+            <div className='msp-control-row'>
+                <span>
+                    {label}
+                    <button className='msp-btn-link msp-btn-icon msp-conrol-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Less' : 'More'} options`}
+                        style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
+                        <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'minus' : 'plus'}`} style={{ display: 'inline-block' }} />
+                    </button>
+                </span>
+                <div>{pivot}</div>
+                {this.props.colorStripe && <div className='msp-expandable-group-color-stripe' style={{ backgroundColor: Color.toStyle(this.props.colorStripe) }} /> }
+            </div>
+            {this.state.isExpanded && <div className='msp-control-offset'>
+                {controls}
+            </div>}
+        </>;
+    }
 }
 
 

@@ -24,6 +24,7 @@ function init() {
         actions: [...DefaultPluginSpec.actions, PluginSpec.Action(CreateJoleculeState)],
         behaviors: [...DefaultPluginSpec.behaviors],
         animations: [...DefaultPluginSpec.animations || []],
+        customParamEditors: DefaultPluginSpec.customParamEditors,
         layout: {
             initial: {
                 isExpanded: true,
