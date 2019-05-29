@@ -118,6 +118,12 @@ namespace StructureElement {
     }
 
     export namespace Loci {
+        export function size(loci: Loci) {
+            let s = 0;
+            for (const u of loci.elements) s += OrderedSet.size(u.indices);
+            return s;
+        }
+
         export function all(structure: Structure): Loci {
             return Loci(structure, structure.units.map(unit => ({
                 unit,
