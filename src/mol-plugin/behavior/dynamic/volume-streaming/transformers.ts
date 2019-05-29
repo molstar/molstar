@@ -29,7 +29,7 @@ export const InitVolumeStreaming = StateAction.build({
         return {
             method: PD.Select<VolumeServerInfo.Kind>(getStreamingMethod(a && a.data), [['em', 'EM'], ['x-ray', 'X-Ray']]),
             id: PD.Text((a && a.data.models.length > 0 && a.data.models[0].label) || ''),
-            serverUrl: PD.Text('https://webchem.ncbr.muni.cz/DensityServer')
+            serverUrl: PD.Text('https://ds.litemol.org')
         };
     },
     isApplicable: (a) => a.data.models.length === 1
@@ -100,7 +100,7 @@ const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
     to: VolumeServerInfo,
     params(a) {
         return {
-            serverUrl: PD.Text('https://webchem.ncbr.muni.cz/DensityServer'),
+            serverUrl: PD.Text('https://ds.litemol.org'),
             source: PD.MappedStatic('x-ray', {
                 'em': PD.Group({
                     isoValue: createIsoValueParam(VolumeIsoValue.relative(1))

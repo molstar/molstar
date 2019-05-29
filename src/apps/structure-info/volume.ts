@@ -93,4 +93,4 @@ interface Args {
 }
 const args: Args = parser.parseArgs();
 
-run(`https://webchem.ncbr.muni.cz/DensityServer/em/emd-${args.emdb}/cell?detail=4`, args.mesh);
+run(`https://ds.litemol.org/em/emd-${args.emdb}/cell?detail=4`, args.mesh);
