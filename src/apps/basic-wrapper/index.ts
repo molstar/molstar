@@ -13,10 +13,10 @@ import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/re
 import { Color } from 'mol-util/color';
 import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
 import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
-import { StateBuilder } from 'mol-state';
+import { StateBuilder, StateTransform } from 'mol-state';
 import { StripedResidues } from './coloring';
 // import { BasicWrapperControls } from './controls';
-import { StaticSuperpositionTestData, buildStaticSuperposition } from './superposition';
+import { StaticSuperpositionTestData, buildStaticSuperposition, dynamicSuperpositionTest } from './superposition';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -146,7 +146,12 @@ class BasicWrapper {
         staticSuperposition: async () => {
             const state = this.plugin.state.dataState;
             const tree = buildStaticSuperposition(this.plugin, StaticSuperpositionTestData);
+            await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: StateTransform.RootRef });
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
+        },
+        dynamicSuperposition: async () => {
+            await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.plugin.state.dataState, ref: StateTransform.RootRef });
+            await dynamicSuperpositionTest(this.plugin, ['1tqn', '2hhb', '4hhb'], 'HEM');
         }
     }
 }

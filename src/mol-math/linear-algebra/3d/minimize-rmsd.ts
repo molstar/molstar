@@ -10,8 +10,7 @@ import { EVD } from '../matrix/evd';
 import { CentroidHelper } from 'mol-math/geometry/centroid-helper';
 import Matrix from '../matrix/matrix';
 
-export default MinimizeRmsd;
-
+export { MinimizeRmsd };
 namespace MinimizeRmsd {
     export interface Result {
         bTransform: Mat4,

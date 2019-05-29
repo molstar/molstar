@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MinimizeRmsd } from 'mol-math/linear-algebra';
+import { MinimizeRmsd } from 'mol-math/linear-algebra/3d/minimize-rmsd';
 import StructureElement from '../element';
 import { OrderedSet } from 'mol-data/int';
 

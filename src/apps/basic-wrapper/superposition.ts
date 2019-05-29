@@ -9,6 +9,14 @@
 import { PluginContext } from 'mol-plugin/context';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { StateHelper } from './helpers';
+import { PluginCommands } from 'mol-plugin/command';
+import { StateSelection, StateBuilder } from 'mol-state';
+import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
+import { MolScriptBuilder as MS } from 'mol-script/language/builder';
+import { compile } from 'mol-script/runtime/query/compiler';
+import { StructureSelection, QueryContext } from 'mol-model/structure';
+import { superposeStructures } from 'mol-model/structure/structure/util/superposition';
+import Expression from 'mol-script/language/expression';
 
 export type SuperpositionTestInput = {
     pdbId: string,
@@ -53,3 +61,48 @@ export const StaticSuperpositionTestData: SuperpositionTestInput = [
          [-0.949, -0.307, -0.074, 53.562],
          [0, 0, 0, 1]] )}
 ];
+
+export async function dynamicSuperpositionTest(ctx: PluginContext, src: string[], comp_id: string) {
+    const state = ctx.state.dataState;
+
+    const structures = state.build().toRoot();
+    for (const s of src) {
+        StateHelper.structure(
+            StateHelper.getModel(StateHelper.download(structures, `https://www.ebi.ac.uk/pdbe/static/entry/${s}_updated.cif`), 'cif'));
+    }
+
+    await PluginCommands.State.Update.dispatch(ctx, { state, tree: structures });
+
+    const pivot = MS.struct.filter.first([
+        MS.struct.generator.atomGroups({
+            'residue-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_comp_id(), comp_id]),
+            'group-by': MS.struct.atomProperty.macromolecular.residueKey()
+        })
+    ]);
+    const rest = MS.struct.modifier.exceptBy({
+        0: MS.struct.generator.all(),
+        by: pivot
+    });
+
+    const query = compile<StructureSelection>(pivot);
+    const xs = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure));
+    const selections = xs.map(s => StructureSelection.toLoci(query(new QueryContext(s.obj!.data))));
+
+    const transforms = superposeStructures(selections);
+    const visuals = state.build();
+
+    siteVisual(ctx, StateHelper.selectSurroundingsOfFirstResidue(visuals.to(xs[0].transform.ref), 'HEM', 7), pivot, rest);
+    for (let i = 1; i < selections.length; i++) {
+        const root = visuals.to(xs[i].transform.ref);
+        siteVisual(ctx,
+            StateHelper.transform(StateHelper.selectSurroundingsOfFirstResidue(root, 'HEM', 7), transforms[i - 1].bTransform),
+            pivot, rest);
+    }
+
+    await PluginCommands.State.Update.dispatch(ctx, { state, tree: visuals });
+}
+
+function siteVisual(ctx: PluginContext, b: StateBuilder.To<PSO.Molecule.Structure>, pivot: Expression, rest: Expression) {
+    StateHelper.ballsAndSticks(ctx, b, pivot, 'residue-name');
+    StateHelper.ballsAndSticks(ctx, b, rest, 'uniform');
+}

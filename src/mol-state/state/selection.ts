@@ -49,7 +49,7 @@ namespace StateSelection {
         parent(): Builder<C>;
         first(): Builder<C>;
         filter(p: (n: C) => boolean): Builder<C>;
-        withTag(tag: string): Builder<C>;
+        withTag<D extends StateObjectCell = C>(tag: string): Builder<D>;
         withTransformer<T extends StateTransformer<any, StateObjectCell.Obj<C>, any>>(t: T): Builder<StateObjectCell<StateObjectCell.Obj<C>, StateTransform<T>>>;
         withStatus(s: StateObjectCell.Status): Builder<C>;
         subtree(): Builder;

@@ -11,6 +11,8 @@ import { StateTransforms } from 'mol-plugin/state/transforms';
 import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
 import { MolScriptBuilder as MS } from 'mol-script/language/builder';
 import { StateBuilder } from 'mol-state';
+import Expression from 'mol-script/language/expression';
+import { BuiltInColorThemeName } from 'mol-theme/color';
 type SupportedFormats = 'cif' | 'pdb'
 
 export namespace StateHelper {
@@ -27,7 +29,7 @@ export namespace StateHelper {
     }
 
     export function structure(b: StateBuilder.To<PSO.Molecule.Model>) {
-        return b.apply(StateTransforms.Model.StructureFromModel, { tags: 'struct' })
+        return b.apply(StateTransforms.Model.StructureFromModel, { tags: 'structure' })
     };
 
     export function selectChain(b: StateBuilder.To<PSO.Molecule.Structure>, auth_asym_id: string) {
@@ -35,6 +37,23 @@ export namespace StateHelper {
             'chain-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.auth_asym_id(), auth_asym_id])
         })
         return b.apply(StateTransforms.Model.StructureSelection, { query, label: `Chain ${auth_asym_id}` });
+    }
+
+    export function select(b: StateBuilder.To<PSO.Molecule.Structure>, query: Expression) {
+        return b.apply(StateTransforms.Model.StructureSelection, { query });
+    }
+
+    export function selectSurroundingsOfFirstResidue(b: StateBuilder.To<PSO.Molecule.Structure>, comp_id: string, radius: number) {
+        const query = MS.struct.modifier.includeSurroundings({
+            0: MS.struct.filter.first([
+                MS.struct.generator.atomGroups({
+                    'residue-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_comp_id(), comp_id]),
+                    'group-by': MS.struct.atomProperty.macromolecular.residueKey()
+                })
+            ]),
+            radius
+        })
+        return b.apply(StateTransforms.Model.StructureSelection, { query, label: `Surr. ${comp_id} (${radius} ang)` });
     }
 
     export function identityTransform(b: StateBuilder.To<PSO.Molecule.Structure>, m: Mat4) {
@@ -61,6 +80,14 @@ export namespace StateHelper {
         // visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
         //     .apply(StateTransforms.Representation.StructureRepresentation3D,
         //         StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', { alpha: 0.51 }), { tags: 'water-visual' });
+        return visualRoot;
+    }
+
+    export function ballsAndSticks(ctx: PluginContext, visualRoot: StateBuilder.To<PSO.Molecule.Structure>, query: Expression, coloring?: BuiltInColorThemeName) {
+        visualRoot
+            .apply(StateTransforms.Model.StructureSelection, { query })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', void 0, coloring), { tags: 'het-visual' });
         return visualRoot;
     }
 

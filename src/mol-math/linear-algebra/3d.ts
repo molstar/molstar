@@ -23,7 +23,6 @@ import Vec2 from './3d/vec2'
 import Vec3 from './3d/vec3'
 import Vec4 from './3d/vec4'
 import Quat from './3d/quat'
-import MinimizeRmsd from './3d/minimize-rmsd'
 import { EPSILON } from './3d/common'
 
-export { Mat4, Mat3, Vec2, Vec3, Vec4, Quat, EPSILON, MinimizeRmsd }
+export { Mat4, Mat3, Vec2, Vec3, Vec4, Quat, EPSILON }
