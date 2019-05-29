@@ -36,7 +36,8 @@ export { ModelFromTrajectory };
 export { StructureFromModel };
 export { StructureAssemblyFromModel };
 export { StructureSymmetryFromModel };
-export { TransformStructureConformation }
+export { TransformStructureConformation };
+export { TransformStructureConformationByMatrix };
 export { StructureSelection };
 export { UserStructureSelection };
 export { StructureComplexElement };
@@ -304,6 +305,26 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
         const angle = Quat.getAxisAngle(axis, rot);
         const translation = Mat4.getTranslation(Vec3.zero(), m);
         return { axis, angle, translation };
+    }
+});
+
+type TransformStructureConformationByMatrix = typeof TransformStructureConformation
+const TransformStructureConformationByMatrix = PluginStateTransform.BuiltIn({
+    name: 'transform-structure-conformation-by-matrix',
+    display: { name: 'Transform Conformation' },
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: {
+        matrix: PD.Value<Mat4>(Mat4.identity(), { isHidden: true })
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const s = Structure.transform(a.data, params.matrix);
+        const props = { label: `${a.label}`, description: `Transformed` };
+        return new SO.Molecule.Structure(s, props);
     }
 });
 

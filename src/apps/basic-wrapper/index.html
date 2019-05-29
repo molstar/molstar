@@ -75,8 +75,9 @@
 
             BasicMolStarWrapper.init('app' /** or document.getElementById('app') */);
             BasicMolStarWrapper.setBackground(0xffffff);
-            BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId });
-            BasicMolStarWrapper.toggleSpin();
+            // BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId });
+            // BasicMolStarWrapper.toggleSpin();
+
 
             addControl('Load Asym Unit', () => BasicMolStarWrapper.load({ url: url, format: format }));
             addControl('Load Assembly', () => BasicMolStarWrapper.load({ url: url, format: format, assemblyId: assemblyId }));
@@ -103,6 +104,10 @@
             addHeader('Misc');
 
             addControl('Apply Stripes', () => BasicMolStarWrapper.coloring.applyStripes());
+
+            addHeader('Tests');
+
+            addControl('Static Super', () => BasicMolStarWrapper.tests.staticSuperposition());
 
             ////////////////////////////////////////////////////////
 

@@ -33,13 +33,13 @@ namespace SymmetryOperator {
     export const DefaultName = '1_555'
     export const Default: SymmetryOperator = create(DefaultName, Mat4.identity(), { id: '', operList: [] });
 
-    const RotationEpsilon = 0.0001;
+    export const RotationTranslationEpsilon = 0.005;
 
     export function create(name: string, matrix: Mat4, assembly: SymmetryOperator['assembly'], ncsId?: string, hkl?: Vec3): SymmetryOperator {
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3.zero();
         ncsId = ncsId || ''
         if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, ncsId };
-        if (!Mat4.isRotationAndTranslation(matrix, RotationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
+        if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
         return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl, ncsId };
     }
 
@@ -51,7 +51,7 @@ namespace SymmetryOperator {
             }
         }
         Mat4.setTranslation(matrix, offset);
-        return Mat4.isRotationAndTranslation(matrix, RotationEpsilon);
+        return Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon);
     }
 
     export function ofRotationAndOffset(name: string, rot: Mat3, offset: Vec3, ncsId?: string) {

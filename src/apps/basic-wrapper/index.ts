@@ -15,7 +15,8 @@ import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
 import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
 import { StateBuilder } from 'mol-state';
 import { StripedResidues } from './coloring';
-import { BasicWrapperControls } from './controls';
+// import { BasicWrapperControls } from './controls';
+import { StaticSuperpositionTestData, buildStaticSuperposition } from './superposition';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -33,8 +34,8 @@ class BasicWrapper {
                     showControls: false
                 },
                 controls: {
-                    left: 'none',
-                    right: BasicWrapperControls
+                    // left: 'none',
+                    // right: BasicWrapperControls
                 }
             }
         });
@@ -137,6 +138,14 @@ class BasicWrapper {
                 tree.to(v).update(old => ({ ...old, colorTheme }));
             }
 
+            await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
+        }
+    }
+
+    tests = {
+        staticSuperposition: async () => {
+            const state = this.plugin.state.dataState;
+            const tree = buildStaticSuperposition(this.plugin, StaticSuperpositionTestData);
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
         }
     }

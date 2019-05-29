@@ -428,7 +428,7 @@ namespace Structure {
 
     export function transform(s: Structure, transform: Mat4) {
         if (Mat4.isIdentity(transform)) return s;
-        if (!Mat4.isRotationAndTranslation(transform)) throw new Error('Only rotation/translation combination can be applied.');
+        if (!Mat4.isRotationAndTranslation(transform, SymmetryOperator.RotationTranslationEpsilon)) throw new Error('Only rotation/translation combination can be applied.');
 
         const units: Unit[] = [];
         for (const u of s.units) {
