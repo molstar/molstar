@@ -1,11 +1,13 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { NumberArray } from 'mol-util/type-helpers';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { Hcl } from './spaces/hcl';
+import { Lab } from './spaces/lab';
 
 /** RGB color triplet expressed as a single number */
 export type Color = { readonly '@type': 'color' } & number
@@ -81,7 +83,7 @@ export namespace Color {
         return out
     }
 
-    /** Linear interpolation between two colors */
+    /** Linear interpolation between two colors in rgb space */
     export function interpolate(c1: Color, c2: Color, t: number): Color {
         const r1 = c1 >> 16 & 255
         const g1 = c1 >> 8 & 255
@@ -96,6 +98,26 @@ export namespace Color {
 
         return ((r << 16) | (g << 8) | b) as Color
     }
+
+    const tmpSaturateHcl = [0, 0, 0] as Hcl
+    export function saturate(c: Color, amount: number): Color {
+        Hcl.fromColor(tmpSaturateHcl, c)
+        return Hcl.toColor(Hcl.saturate(tmpSaturateHcl, tmpSaturateHcl, amount))
+    }
+
+    export function desaturate(c: Color, amount: number): Color {
+        return saturate(c, -amount)
+    }
+
+    const tmpDarkenLab = [0, 0, 0] as Lab
+    export function darken(c: Color, amount: number): Color {
+        Lab.fromColor(tmpDarkenLab, c)
+        return Lab.toColor(Lab.darken(tmpDarkenLab, tmpDarkenLab, amount))
+    }
+
+    export function lighten(c: Color, amount: number): Color {
+        return darken(c, -amount)
+}
 }
 
 export type ColorTable<T extends { [k: string]: number[] }> = { [k in keyof T]: Color[] }
