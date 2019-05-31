@@ -12,16 +12,25 @@ import { Texture } from 'mol-gl/webgl/texture';
 import { ValueCell } from 'mol-util';
 import { createComputeRenderItem } from 'mol-gl/webgl/render-item';
 import { createComputeRenderable, ComputeRenderable } from 'mol-gl/renderable';
-import { Vec2 } from 'mol-math/linear-algebra';
+import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { createRenderTarget, RenderTarget } from 'mol-gl/webgl/render-target';
 import { DrawPass } from './draw';
+import { Camera } from 'mol-canvas3d/camera';
 
 const PostprocessingSchema = {
     ...QuadSchema,
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
+
+    dUseFog: DefineSpec('boolean'),
+    dOrthographic: DefineSpec('number'),
+    uNear: UniformSpec('f'),
+    uFar: UniformSpec('f'),
+    uFogNear: UniformSpec('f'),
+    uFogFar: UniformSpec('f'),
+    uFogColor: UniformSpec('v3'),
 
     dOcclusionEnable: DefineSpec('boolean'),
     dOcclusionKernelSize: DefineSpec('number'),
@@ -44,6 +53,8 @@ export const PostprocessingParams = {
     outlineEnable: PD.Boolean(false),
     outlineScale: PD.Numeric(1, { min: 0, max: 10, step: 1 }),
     outlineThreshold: PD.Numeric(0.8, { min: 0, max: 1, step: 0.01 }),
+
+    useFog: PD.Boolean(true),
 }
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
@@ -56,6 +67,14 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         tColor: ValueCell.create(colorTexture),
         tDepth: ValueCell.create(depthTexture),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.width, colorTexture.height)),
+
+        dUseFog: ValueCell.create(p.useFog),
+        dOrthographic: ValueCell.create(0),
+        uNear: ValueCell.create(1),
+        uFar: ValueCell.create(10000),
+        uFogNear: ValueCell.create(10000),
+        uFogFar: ValueCell.create(10000),
+        uFogColor: ValueCell.create(Vec3.create(1, 1, 1)),
 
         dOcclusionEnable: ValueCell.create(p.occlusionEnable),
         dOcclusionKernelSize: ValueCell.create(p.occlusionKernelSize),
@@ -84,7 +103,7 @@ export class PostprocessingPass {
     props: PostprocessingProps
     renderable: PostprocessingRenderable
 
-    constructor(private webgl: WebGLContext, drawPass: DrawPass, props: Partial<PostprocessingProps>) {
+    constructor(private webgl: WebGLContext, private camera: Camera, drawPass: DrawPass, props: Partial<PostprocessingProps>) {
         const { gl } = webgl
         this.target = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.props = { ...PD.getDefaultValues(PostprocessingParams), ...props }
@@ -132,10 +151,21 @@ export class PostprocessingPass {
             ValueCell.update(this.renderable.values.uOutlineThreshold, props.outlineThreshold)
         }
 
+        if (props.useFog !== undefined) {
+            this.props.useFog = props.useFog
+            ValueCell.update(this.renderable.values.dUseFog, props.useFog)
+        }
+
         this.renderable.update()
     }
 
     render(toDrawingBuffer: boolean) {
+        ValueCell.update(this.renderable.values.uFar, this.camera.state.far)
+        ValueCell.update(this.renderable.values.uNear, this.camera.state.near)
+        ValueCell.update(this.renderable.values.uFogFar, this.camera.state.fogFar)
+        ValueCell.update(this.renderable.values.uFogNear, this.camera.state.fogNear)
+        ValueCell.update(this.renderable.values.dOrthographic, this.camera.state.mode === 'orthographic' ? 1 : 0)
+
         const { gl, state } = this.webgl
         if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer()

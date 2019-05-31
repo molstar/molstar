@@ -132,7 +132,7 @@ namespace Canvas3D {
 
         const drawPass = new DrawPass(webgl, renderer, scene, debugHelper)
         const pickPass = new PickPass(webgl, renderer, scene, 0.5)
-        const postprocessing = new PostprocessingPass(webgl, drawPass, p.postprocessing)
+        const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing)
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
 
         let isUpdating = false
