@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,6 +9,7 @@ import { Color } from 'mol-util/color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from 'mol-util/color/tables';
+import { defaults } from 'mol-util';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives everything the same, uniform color.'
@@ -22,7 +23,7 @@ export function getUniformColorThemeParams(ctx: ThemeDataContext) {
 }
 
 export function UniformColorTheme(ctx: ThemeDataContext, props: PD.Values<UniformColorThemeParams>): ColorTheme<UniformColorThemeParams> {
-    const color = props.value || DefaultColor
+    const color = defaults(props.value, DefaultColor)
 
     return {
         factory: UniformColorTheme,
