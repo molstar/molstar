@@ -75,9 +75,7 @@ const DefaultServerConfig = {
 export type ServerConfig = typeof DefaultServerConfig
 export const ServerConfig = { ...DefaultServerConfig }
 export function setServerConfig(config: ServerConfig) {
-    for (const name in DefaultServerConfig) {
-        ServerConfig[name as keyof ServerConfig] = config[name as keyof ServerConfig]
-    }
+    Object.assign(ServerConfig, config)
 }
 
 const DefaultLimitsConfig = {
@@ -96,9 +94,7 @@ const DefaultLimitsConfig = {
 export type LimitsConfig = typeof DefaultLimitsConfig
 export const LimitsConfig = { ...DefaultLimitsConfig }
 export function setLimitsConfig(config: LimitsConfig) {
-    for (const name in DefaultLimitsConfig) {
-        LimitsConfig[name as keyof LimitsConfig] = config[name as keyof LimitsConfig]
-    }
+    Object.assign(LimitsConfig, config)
 }
 
 export function setConfig(config: ServerConfig & LimitsConfig) {

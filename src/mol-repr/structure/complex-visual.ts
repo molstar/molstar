@@ -6,7 +6,7 @@
 
 import { Structure } from 'mol-model/structure';
 import { Visual, VisualContext } from '../visual';
-import { createRenderObject, GraphicsRenderObject } from 'mol-gl/render-object';
+import { createRenderObject, RenderObjectValuesType, RenderObjectKindType } from 'mol-gl/render-object';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { StructureMeshParams, StructureParams, StructureDirectVolumeParams } from './representation';
 import { deepEqual, ValueCell } from 'mol-util';
@@ -65,7 +65,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
     const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
-    let renderObject: GraphicsRenderObject | undefined
+    let renderObject: RenderObjectKindType[G['kind']] | undefined
 
     let newProps: PD.Values<P>
     let newTheme: Theme
@@ -137,7 +137,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
             if (updateState.createGeometry) {
                 if (newGeometry) {
                     ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
-                    updateBoundingSphere(renderObject.values, newGeometry)
+                    updateBoundingSphere(renderObject.values as RenderObjectValuesType[G['kind']], newGeometry)
                 } else {
                     throw new Error('expected geometry to be given')
                 }
@@ -154,7 +154,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
                 createColors(locationIt, newTheme.color, renderObject.values)
             }
 
-            updateValues(renderObject.values, newProps)
+            updateValues(renderObject.values as RenderObjectValuesType[G['kind']], newProps)
             updateRenderableState(renderObject.state, newProps)
         }
 

@@ -13,7 +13,7 @@ import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { GraphicsRenderObject, createRenderObject, getNextMaterialId } from 'mol-gl/render-object';
+import { GraphicsRenderObject, createRenderObject, getNextMaterialId, RenderObjectKindType, RenderObjectValuesType } from 'mol-gl/render-object';
 import { Interval } from 'mol-data/int';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { VisualUpdateState } from 'mol-repr/util';
@@ -57,7 +57,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
     const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
-    let renderObject: GraphicsRenderObject | undefined
+    let renderObject: RenderObjectKindType[G['kind']] | undefined
 
     let newProps: PD.Values<P>
     let newTheme: Theme
@@ -119,7 +119,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             if (updateState.createGeometry) {
                 if (newGeometry) {
                     ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
-                    updateBoundingSphere(renderObject.values, newGeometry)
+                    updateBoundingSphere(renderObject.values as RenderObjectValuesType[G['kind']], newGeometry)
                 } else {
                     throw new Error('expected geometry to be given')
                 }
@@ -136,7 +136,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
                 createColors(locationIt, newTheme.color, renderObject.values)
             }
 
-            updateValues(renderObject.values, newProps)
+            updateValues(renderObject.values as RenderObjectValuesType[G['kind']], newProps)
             updateRenderableState(renderObject.state, newProps)
         }
 

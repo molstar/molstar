@@ -297,9 +297,9 @@ export namespace IntAdjacencyGraph {
             newOffsets[++vo] = eo;
         }
 
-        const newEdgeProps: P = {} as any;
-        for (const key of Object.keys(edgeProps)) {
-            newEdgeProps[key] = arrayPickIndices(edgeProps[key], edgeIndices);
+        const newEdgeProps = {} as P;
+        for (const key of Object.keys(edgeProps) as (keyof P)[]) {
+            newEdgeProps[key] = arrayPickIndices(edgeProps[key], edgeIndices) as P[keyof P];
         }
 
         return create(newOffsets, newA, newB, newEdgeCount, newEdgeProps);

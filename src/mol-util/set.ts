@@ -43,7 +43,7 @@ export namespace SetUtils {
 
     /** Create set containing elements of set a that are also in set b. */
     export function intersection<T>(setA: Set<T>, setB: Set<T>): Set<T> {
-        const intersection = new Set();
+        const intersection = new Set<T>();
         for (const elem of Array.from(setB)) {
             if (setA.has(elem)) intersection.add(elem);
         }

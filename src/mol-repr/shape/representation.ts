@@ -5,7 +5,7 @@
  */
 
 import { Task, RuntimeContext } from 'mol-task'
-import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from 'mol-gl/render-object';
+import { createRenderObject, getNextMaterialId, RenderObjectKindType, RenderObjectValuesType } from 'mol-gl/render-object';
 import { Representation } from '../representation';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { ValueCell } from 'mol-util';
@@ -36,8 +36,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     const updated = new Subject<number>()
     const _state = Representation.createState()
     const materialId = getNextMaterialId()
-    const renderObjects: GraphicsRenderObject[] = []
-    let _renderObject: GraphicsRenderObject | undefined
+    const renderObjects: RenderObjectKindType[G['kind']][] = []
+    let _renderObject: RenderObjectKindType[G['kind']] | undefined
     let _shape: Shape<G>
     let _theme = createEmptyTheme()
     let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P) // TODO avoid casting
@@ -122,7 +122,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 if (updateState.updateTransform || updateState.createGeometry) {
                     // console.log('updateBoundingSphere')
-                    geometryUtils.updateBoundingSphere(_renderObject.values, _shape.geometry)
+                    geometryUtils.updateBoundingSphere(_renderObject.values as RenderObjectValuesType[G['kind']], _shape.geometry)
                 }
 
                 if (updateState.updateColor) {
@@ -138,7 +138,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     }
                 }
 
-                geometryUtils.updateValues(_renderObject.values, newProps)
+                geometryUtils.updateValues(_renderObject.values as RenderObjectValuesType[G['kind']], newProps)
                 geometryUtils.updateRenderableState(_renderObject.state, newProps)
             }
 

@@ -20,14 +20,14 @@ const getNextId = idFactory(0, 0x7FFFFFFF)
 
 export const getNextMaterialId = idFactory(0, 0x7FFFFFFF)
 
-export interface BaseRenderObject { id: number, type: string, values: RenderableValues, state: RenderableState, materialId: number }
-export interface MeshRenderObject extends BaseRenderObject { type: 'mesh', values: MeshValues }
-export interface PointsRenderObject extends BaseRenderObject { type: 'points', values: PointsValues }
-export interface SpheresRenderObject extends BaseRenderObject { type: 'spheres', values: SpheresValues }
-export interface TextRenderObject extends BaseRenderObject { type: 'text', values: TextValues }
-export interface LinesRenderObject extends BaseRenderObject { type: 'lines', values: LinesValues }
-export interface DirectVolumeRenderObject extends BaseRenderObject { type: 'direct-volume', values: DirectVolumeValues }
-export interface TextureMeshRenderObject extends BaseRenderObject { type: 'texture-mesh', values: TextureMeshValues }
+export interface BaseRenderObject<T extends RenderableValues> { id: number, type: string, values: T, state: RenderableState, materialId: number }
+export interface MeshRenderObject extends BaseRenderObject<MeshValues> { type: 'mesh' }
+export interface PointsRenderObject extends BaseRenderObject<PointsValues> { type: 'points' }
+export interface SpheresRenderObject extends BaseRenderObject<SpheresValues> { type: 'spheres' }
+export interface TextRenderObject extends BaseRenderObject<TextValues> { type: 'text' }
+export interface LinesRenderObject extends BaseRenderObject<LinesValues> { type: 'lines' }
+export interface DirectVolumeRenderObject extends BaseRenderObject<DirectVolumeValues> { type: 'direct-volume' }
+export interface TextureMeshRenderObject extends BaseRenderObject<TextureMeshValues> { type: 'texture-mesh' }
 
 //
 

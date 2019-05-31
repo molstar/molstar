@@ -67,6 +67,11 @@
     "testRegex": "\\.spec\\.ts$"
   },
   "author": "Mol* Contributors",
+  "contributors": [
+    "Alexander Rose <alexander.rose@weirdbyte.de>",
+    "David Sehnal <david.sehnal@gmail.com>",
+    "Sebastian Bittrich <sebastian.bittrich@rcsb.org>"
+  ],
   "license": "MIT",
   "devDependencies": {
     "benchmark": "^2.1.4",
@@ -81,18 +86,18 @@
     "graphql-codegen-typescript-template": "^0.18.2",
     "jest": "^24.8.0",
     "jest-raw-loader": "^1.0.1",
-    "mini-css-extract-plugin": "^0.6.0",
+    "mini-css-extract-plugin": "^0.7.0",
     "node-sass": "^4.12.0",
     "raw-loader": "^2.0.0",
     "resolve-url-loader": "^3.1.0",
     "sass-loader": "^7.1.0",
     "style-loader": "^0.23.1",
     "ts-jest": "^24.0.2",
-    "tslint": "^5.16.0",
-    "typescript": "^3.4.5",
-    "uglify-js": "^3.5.13",
+    "tslint": "^5.17.0",
+    "typescript": "^3.5.1",
+    "uglify-js": "^3.6.0",
     "util.promisify": "^1.0.0",
-    "webpack": "^4.31.0",
+    "webpack": "^4.32.2",
     "webpack-cli": "^3.3.2"
   },
   "dependencies": {
@@ -102,25 +107,25 @@
     "@types/express": "^4.16.1",
     "@types/gl": "^4.1.0",
     "@types/jest": "^24.0.13",
-    "@types/node": "^12.0.2",
+    "@types/node": "^12.0.4",
     "@types/node-fetch": "^2.3.4",
     "@types/pngjs": "^3.3.2",
-    "@types/react": "^16.8.17",
+    "@types/react": "^16.8.19",
     "@types/react-dom": "^16.8.4",
     "@types/swagger-ui-dist": "3.0.0",
     "@types/webgl2": "0.0.4",
     "argparse": "^1.0.10",
     "compression": "^1.7.4",
-    "express": "^4.17.0",
-    "gl": "^4.2.2",
-    "graphql": "^14.3.0",
+    "express": "^4.17.1",
+    "gl": "^4.3.3",
+    "graphql": "^14.3.1",
     "immutable": "^3.8.2",
     "node-fetch": "^2.6.0",
     "pngjs": "^3.4.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "rxjs": "^6.5.2",
-    "swagger-ui-dist": "^3.22.1",
-    "xhr2": "^0.1.4"
+    "swagger-ui-dist": "^3.22.2",
+    "xhr2": "^0.2.0"
   }
 }

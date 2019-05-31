@@ -196,7 +196,7 @@ namespace Table {
         const row: Row<S> = Object.create(null);
         const { _columns: cols } = table;
         for (let i = 0; i < cols.length; i++) {
-            const c = cols[i];
+            const c = cols[i] as keyof S;
             row[c] = table[c].value(index);
         }
         return row;
