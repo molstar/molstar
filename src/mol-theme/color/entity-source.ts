@@ -5,20 +5,22 @@
  */
 
 import { StructureProperties, StructureElement, Link, Model } from 'mol-model/structure';
-import { ColorScale, Color } from 'mol-util/color';
+import { Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from 'mol-theme/theme';
-import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
+import { ScaleLegend } from 'mol-util/color/scale';
 import { Table, Column } from 'mol-data/db';
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
+import { getPaletteParams, getPalette } from './util';
+import { TableLegend } from 'mol-util/color/tables';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives ranges of a polymer chain a color based on the entity source it originates from. Genes get the same color per entity'
 
 export const EntitySourceColorThemeParams = {
-    list: PD.ColorScale<ColorListName>('RedYellowBlue', ColorListOptions),
+    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
 }
 export type EntitySourceColorThemeParams = typeof EntitySourceColorThemeParams
 export function getEntitySourceColorThemeParams(ctx: ThemeDataContext) {
@@ -77,7 +79,7 @@ function addSrc(seqToSrcByModelEntity: Map<string, Int16Array>, srcKeySerialMap:
 
 export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<EntitySourceColorThemeParams>): ColorTheme<EntitySourceColorThemeParams> {
     let color: LocationColor
-    const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
+    let legend: ScaleLegend | TableLegend | undefined
     const { structure } = ctx
 
     if (structure) {
@@ -94,8 +96,9 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
             addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_nat)
             addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, pdbx_entity_src_syn)
         }
-        scale.setDomain(1, srcKeySerialMap.size)
-        const scaleColor = scale.color
+
+        const palette = getPalette(srcKeySerialMap.size + 1, props)
+        legend = palette.legend
 
         const getSrcColor = (location: StructureElement) => {
             const modelIndex = structure.models.indexOf(location.unit.model)
@@ -104,7 +107,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
             const seqToSrc = seqToSrcByModelEntity.get(mK)
             if (seqToSrc) {
                 // minus 1 to convert seqId to array index
-                return scaleColor(seqToSrc[StructureProperties.residue.label_seq_id(location) - 1])
+                return palette.color(seqToSrc[StructureProperties.residue.label_seq_id(location) - 1])
             } else {
                 return DefaultColor
             }
@@ -130,7 +133,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
         color,
         props,
         description: Description,
-        legend: scale ? scale.legend : undefined
+        legend
     }
 }
 

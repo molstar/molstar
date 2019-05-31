@@ -1,24 +1,26 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/structure';
 
-import { ColorScale, Color } from 'mol-util/color';
+import { Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from 'mol-theme/theme';
-import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
+import { ScaleLegend } from 'mol-util/color/scale';
 import { Column } from 'mol-data/db';
+import { getPaletteParams, getPalette } from './util';
+import { TableLegend } from 'mol-util/color/tables';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every chain a color based on its `asym_id` value.'
 
 export const ChainIdColorThemeParams = {
-    list: PD.ColorScale<ColorListName>('RedYellowBlue', ColorListOptions),
+    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
 }
 export type ChainIdColorThemeParams = typeof ChainIdColorThemeParams
 export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
@@ -48,7 +50,7 @@ function addAsymIds(map: Map<string, number>, data: Column<string>) {
 
 export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainIdColorThemeParams>): ColorTheme<ChainIdColorThemeParams> {
     let color: LocationColor
-    const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
+    let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
         // TODO same asym ids in different models should get different color
@@ -63,18 +65,19 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
                 addAsymIds(asymIdSerialMap, m.coarseHierarchy.gaussians.asym_id)
             }
         }
-        scale.setDomain(0, asymIdSerialMap.size - 1)
-        const scaleColor = scale.color
+
+        const palette = getPalette(asymIdSerialMap.size, props)
+        legend = palette.legend
 
         color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
                 const asym_id = getAsymId(location.unit)
-                return scaleColor(asymIdSerialMap.get(asym_id(location)) || 0)
+                return palette.color(asymIdSerialMap.get(asym_id(location)) || 0)
             } else if (Link.isLocation(location)) {
                 const asym_id = getAsymId(location.aUnit)
                 l.unit = location.aUnit
                 l.element = location.aUnit.elements[location.aIndex]
-                return scaleColor(asymIdSerialMap.get(asym_id(l)) || 0)
+                return palette.color(asymIdSerialMap.get(asym_id(l)) || 0)
             }
             return DefaultColor
         }
@@ -88,7 +91,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
         color,
         props,
         description: Description,
-        legend: scale ? scale.legend : undefined
+        legend
     }
 }
 

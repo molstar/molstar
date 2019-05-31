@@ -1,22 +1,24 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ColorScale, Color } from 'mol-util/color';
+import { Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { StructureElement, Link } from 'mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from 'mol-theme/theme';
-import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
+import { ScaleLegend } from 'mol-util/color/scale';
+import { TableLegend } from 'mol-util/color/tables';
+import { getPaletteParams, getPalette } from './util';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
 
 export const PolymerIndexColorThemeParams = {
-    list: PD.ColorScale<ColorListName>('RedYellowBlue', ColorListOptions),
+    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
 }
 export type PolymerIndexColorThemeParams = typeof PolymerIndexColorThemeParams
 export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {
@@ -26,7 +28,7 @@ export type PolymerIndexColorThemeProps = PD.Values<typeof PolymerIndexColorThem
 
 export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<PolymerIndexColorThemeParams>): ColorTheme<PolymerIndexColorThemeParams> {
     let color: LocationColor
-    const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
+    let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
         const { units } = ctx.structure
@@ -34,11 +36,14 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
         for (let i = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) ++polymerCount
         }
-        scale.setDomain(0, polymerCount - 1)
+
+        const palette = getPalette(polymerCount, props)
+        legend = palette.legend
+        
         const unitIdColor = new Map<number, Color>()
         for (let i = 0, j = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) {
-                unitIdColor.set(units[i].id, scale.color(j))
+                unitIdColor.set(units[i].id, palette.color(j))
                 ++j
             }
         }
@@ -62,7 +67,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
         color,
         props,
         description: Description,
-        legend: scale ? scale.legend : undefined
+        legend
     }
 }
 
