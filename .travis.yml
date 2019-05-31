@@ -12,6 +12,7 @@ before_install:
   - sudo apt-get install -y libstdc++6
   - sudo apt-get install -y libxi-dev
 node_js:
+  - "12"
   - "10"
   - "8"
 before_script:
