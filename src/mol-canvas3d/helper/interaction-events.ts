@@ -39,7 +39,7 @@ export class Canvas3dInteractionHelper {
     private modifiers: ModifiersKeys = ModifiersKeys.None;
 
     private identify(isClick: boolean, t: number) {
-        if (this.lastX !== this.cX && this.lastY !== this.cY) {
+        if (this.lastX !== this.cX || this.lastY !== this.cY) {
             this.id = this.canvasIdentify(this.cX, this.cY);
             this.lastX = this.cX;
             this.lastY = this.cY;
