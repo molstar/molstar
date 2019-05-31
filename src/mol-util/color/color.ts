@@ -117,7 +117,7 @@ export namespace Color {
 
     export function lighten(c: Color, amount: number): Color {
         return darken(c, -amount)
-}
+    }
 }
 
 export type ColorTable<T extends { [k: string]: number[] }> = { [k in keyof T]: Color[] }
@@ -125,3 +125,13 @@ export function ColorTable<T extends { [k: string]: number[] }>(o: T) { return o
 
 export type ColorMap<T extends { [k: string]: number }> = { [k in keyof T]: Color }
 export function ColorMap<T extends { [k: string]: number }>(o: T) { return o as unknown as ColorMap<T> }
+export function getAdjustedColorMap<T extends { [k: string]: number }>(map: ColorMap<T>, saturation: number, lightness: number) {
+    const adjustedMap: { [k: string]: Color } = {}
+    for (const e in map) {
+        let c = map[e]
+        c = Color.saturate(c, saturation)
+        c = Color.darken(c, -lightness)
+        adjustedMap[e] = c
+    }
+    return adjustedMap as ColorMap<T>
+}

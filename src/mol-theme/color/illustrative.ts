@@ -11,7 +11,8 @@ import { Location } from 'mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { elementSymbolColor } from './element-symbol';
+import { elementSymbolColor, ElementSymbolColors } from './element-symbol';
+import { getAdjustedColorMap } from 'mol-util/color/color';
 
 const DefaultIllustrativeColor = Color(0xFFFFFF)
 const Description = `Assigns an illustrative color similar to David Goodsell's Molecule of the Month style.`
@@ -22,7 +23,7 @@ export function getIllustrativeColorThemeParams(ctx: ThemeDataContext) {
     return IllustrativeColorThemeParams // TODO return copy
 }
 
-function illustrativeColor(typeSymbol: ElementSymbol, moleculeType: MoleculeType) {
+export function illustrativeColor(colorMap: ElementSymbolColors, typeSymbol: ElementSymbol, moleculeType: MoleculeType) {
     if (isNucleic(moleculeType)) {
         if (typeSymbol === 'O') {
             return Color(0xFF8C8C)
@@ -38,24 +39,26 @@ function illustrativeColor(typeSymbol: ElementSymbol, moleculeType: MoleculeType
             return Color(0x6699FF)
         }
     } else {
-        return elementSymbolColor(typeSymbol)
+        return elementSymbolColor(colorMap, typeSymbol)
     }
 }
 
 export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<IllustrativeColorThemeParams>): ColorTheme<IllustrativeColorThemeParams> {
+    const colorMap = getAdjustedColorMap(ElementSymbolColors, 0, 0.7)
+
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const moleculeType = location.unit.model.atomicHierarchy.derived.residue.moleculeType[location.unit.residueIndex[location.element]]
                 const typeSymbol = location.unit.model.atomicHierarchy.atoms.type_symbol.value(location.element)
-                return illustrativeColor(typeSymbol, moleculeType)
+                return illustrativeColor(colorMap, typeSymbol, moleculeType)
             }
         } else if (Link.isLocation(location)) {
             if (Unit.isAtomic(location.aUnit)) {
                 const elementIndex = location.aUnit.elements[location.aIndex]
                 const moleculeType = location.aUnit.model.atomicHierarchy.derived.residue.moleculeType[location.aUnit.residueIndex[elementIndex]]
                 const typeSymbol = location.aUnit.model.atomicHierarchy.atoms.type_symbol.value(elementIndex)
-                return illustrativeColor(typeSymbol, moleculeType)
+                return illustrativeColor(colorMap, typeSymbol, moleculeType)
             }
         }
         return DefaultIllustrativeColor

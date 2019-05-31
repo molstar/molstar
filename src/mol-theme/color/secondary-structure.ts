@@ -14,6 +14,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from 'mol-util/color/tables';
 import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
+import { getAdjustedColorMap } from 'mol-util/color/color';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -31,17 +32,21 @@ const SecondaryStructureColors = ColorMap({
 
     'carbohydrate': 0xA6A6FA
 })
+export type SecondaryStructureColors = typeof SecondaryStructureColors
 
 const DefaultSecondaryStructureColor = Color(0x808080)
 const Description = 'Assigns a color based on the type of secondary structure and basic molecule type.'
 
-export const SecondaryStructureColorThemeParams = {}
+export const SecondaryStructureColorThemeParams = {
+    saturation: PD.Numeric(-1, { min: -6, max: 6, step: 0.1 }),
+    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 })
+}
 export type SecondaryStructureColorThemeParams = typeof SecondaryStructureColorThemeParams
 export function getSecondaryStructureColorThemeParams(ctx: ThemeDataContext) {
     return SecondaryStructureColorThemeParams // TODO return copy
 }
 
-export function secondaryStructureColor(unit: Unit, element: ElementIndex, computedSecondaryStructure: ComputedSecondaryStructure.Property | undefined): Color {
+export function secondaryStructureColor(colorMap: SecondaryStructureColors, unit: Unit, element: ElementIndex, computedSecondaryStructure: ComputedSecondaryStructure.Property | undefined): Color {
     let secStrucType = SecondaryStructureType.create(SecondaryStructureType.Flag.None)
     if (Unit.isAtomic(unit)) {
         secStrucType = unit.model.properties.secondaryStructure.type[unit.residueIndex[element]]
@@ -53,43 +58,44 @@ export function secondaryStructureColor(unit: Unit, element: ElementIndex, compu
 
     if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Helix)) {
         if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Helix3Ten)) {
-            return SecondaryStructureColors.threeTenHelix
+            return colorMap.threeTenHelix
         } else if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.HelixPi)) {
-            return SecondaryStructureColors.piHelix
+            return colorMap.piHelix
         }
-        return SecondaryStructureColors.alphaHelix
+        return colorMap.alphaHelix
     } else if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Beta)) {
-        return SecondaryStructureColors.betaStrand
+        return colorMap.betaStrand
     } else if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Bend)) {
-        return SecondaryStructureColors.bend
+        return colorMap.bend
     } else if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Turn)) {
-        return SecondaryStructureColors.turn
+        return colorMap.turn
     } else {
         const moleculeType = getElementMoleculeType(unit, element)
         if (moleculeType === MoleculeType.DNA) {
-            return SecondaryStructureColors.dna
+            return colorMap.dna
         } else if (moleculeType === MoleculeType.RNA) {
-            return SecondaryStructureColors.rna
+            return colorMap.rna
         } else if (moleculeType === MoleculeType.saccharide) {
-            return SecondaryStructureColors.carbohydrate
+            return colorMap.carbohydrate
         } else if (moleculeType === MoleculeType.protein) {
-            return SecondaryStructureColors.coil
+            return colorMap.coil
         }
     }
     return DefaultSecondaryStructureColor
 }
 
 export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Values<SecondaryStructureColorThemeParams>): ColorTheme<SecondaryStructureColorThemeParams> {
-
     const computedSecondaryStructure = ctx.structure && ComputedSecondaryStructure.get(ctx.structure)
     // use `computedSecondaryStructure.id` as context hash, when available
     const contextHash = computedSecondaryStructure && computedSecondaryStructure.id
 
+    const colorMap = getAdjustedColorMap(SecondaryStructureColors, props.saturation, props.lightness)
+
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
-            return secondaryStructureColor(location.unit, location.element, computedSecondaryStructure)
+            return secondaryStructureColor(colorMap, location.unit, location.element, computedSecondaryStructure)
         } else if (Link.isLocation(location)) {
-            return secondaryStructureColor(location.aUnit, location.aUnit.elements[location.aIndex], computedSecondaryStructure)
+            return secondaryStructureColor(colorMap, location.aUnit, location.aUnit.elements[location.aIndex], computedSecondaryStructure)
         }
         return DefaultSecondaryStructureColor
     }

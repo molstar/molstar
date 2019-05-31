@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,9 +11,10 @@ import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from 'mol-util/color/tables';
+import { getAdjustedColorMap } from 'mol-util/color/color';
 
 // protein colors from Jmol http://jmol.sourceforge.net/jscolors/
-const ResidueNameColors = ColorMap({
+export const ResidueNameColors = ColorMap({
     // standard amino acids
     'ALA': 0x8CFF8C,
     'ARG': 0x00007C,
@@ -58,19 +59,18 @@ const ResidueNameColors = ColorMap({
     'CPN': 0xFFD700,
     'TPN': 0x4169E1,
 })
+export type ResidueNameColors = typeof ResidueNameColors
 
 const DefaultResidueNameColor = Color(0xFF00FF)
 const Description = 'Assigns a color to every residue according to its name.'
 
-export const ResidueNameColorThemeParams = {}
+export const ResidueNameColorThemeParams = {
+    saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+    lightness: PD.Numeric(1, { min: -6, max: 6, step: 0.1 })
+}
 export type ResidueNameColorThemeParams = typeof ResidueNameColorThemeParams
 export function getResidueNameColorThemeParams(ctx: ThemeDataContext) {
     return ResidueNameColorThemeParams // TODO return copy
-}
-
-export function residueNameColor(residueName: string): Color {
-    const c = (ResidueNameColors as { [k: string]: Color })[residueName];
-    return c === undefined ? DefaultResidueNameColor : c
 }
 
 function getAtomicCompId(unit: Unit.Atomic, element: ElementIndex) {
@@ -93,21 +93,30 @@ function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIn
     }
 }
 
+export function residueNameColor(colorMap: ResidueNameColors, residueName: string): Color {
+    const c = colorMap[residueName as keyof ResidueNameColors]
+    return c === undefined ? DefaultResidueNameColor : c
+}
+
 export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<ResidueNameColorThemeParams>): ColorTheme<ResidueNameColorThemeParams> {
+    const colorMap = getAdjustedColorMap(ResidueNameColors, props.saturation, props.lightness)
+    
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {
-                return residueNameColor(getAtomicCompId(location.unit, location.element))
+                const compId = getAtomicCompId(location.unit, location.element)
+                return residueNameColor(colorMap, compId)
             } else {
                 const compId = getCoarseCompId(location.unit, location.element)
-                if (compId) return residueNameColor(compId)
+                if (compId) return residueNameColor(colorMap, compId)
             }
         } else if (Link.isLocation(location)) {
             if (Unit.isAtomic(location.aUnit)) {
-                return residueNameColor(getAtomicCompId(location.aUnit, location.aUnit.elements[location.aIndex]))
+                const compId = getAtomicCompId(location.aUnit, location.aUnit.elements[location.aIndex])
+                return residueNameColor(colorMap, compId)
             } else {
                 const compId = getCoarseCompId(location.aUnit, location.aUnit.elements[location.aIndex])
-                if (compId) return residueNameColor(compId)
+                if (compId) return residueNameColor(colorMap, compId)
             }
         }
         return DefaultResidueNameColor
