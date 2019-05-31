@@ -1,14 +1,14 @@
 {
-  "name": "mol-star-proto",
+  "name": "molstar-proto",
   "version": "0.1.0",
   "description": "Comprehensive molecular library.",
-  "homepage": "https://github.com/mol-star/mol-star-proto#readme",
+  "homepage": "https://github.com/molstar/molstar-proto#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mol-star/mol-star-proto.git"
+    "url": "https://github.com/molstar/molstar-proto.git"
   },
   "bugs": {
-    "url": "https://github.com/mol-star/mol-star-proto/issues"
+    "url": "https://github.com/molstar/molstar-proto/issues"
   },
   "scripts": {
     "lint": "tslint src/**/*.ts",
@@ -37,8 +37,7 @@
       "js"
     ],
     "transform": {
-      "\\.ts$": "ts-jest",
-      "\\.(glsl|frag|vert)$": "jest-raw-loader"
+      "\\.ts$": "ts-jest"
     },
     "moduleDirectories": [
       "node_modules",
@@ -67,12 +66,7 @@
     },
     "testRegex": "\\.spec\\.ts$"
   },
-  "glslify": {
-    "transform": [
-      "glslify-import"
-    ]
-  },
-  "author": "",
+  "author": "Mol* Contributors",
   "license": "MIT",
   "devDependencies": {
     "@types/argparse": "^1.0.36",
