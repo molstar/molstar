@@ -4,17 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../representation';
-import { VisualUpdateState } from '../../util';
-import { UnitsLinesVisual, UnitsLinesParams } from '../units-visual';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { VisualContext } from '../../visual';
+import { Unit, Structure } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { GaussianDensityProps } from '../../../mol-math/geometry/gaussian-density';
+import { Lines } from '../../../mol-geo/geometry/lines/lines';
+import { computeUnitGaussianDensity, GaussianDensityParams } from './util/gaussian';
+import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
+import { UnitsLinesParams, UnitsVisual, UnitsLinesVisual } from '../units-visual';
 import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Lines } from 'mol-geo/geometry/lines/lines';
-import { computeMarchingCubesLines } from 'mol-geo/util/marching-cubes/algorithm';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
-import { GaussianDensityProps, GaussianDensityParams, computeUnitGaussianDensity } from './util/gaussian';
+import { VisualUpdateState } from '../../util';
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props

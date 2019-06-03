@@ -5,7 +5,7 @@
  */
 
 import Matrix from './matrix';
-import { NumberArray } from 'mol-util/type-helpers';
+import { NumberArray } from '../../../mol-util/type-helpers';
 
 // svd method adapted from http://inspirit.github.io/jsfeat/ MIT Eugene Zatepyakin
 

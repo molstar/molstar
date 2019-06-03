@@ -6,11 +6,11 @@
 
 import { getElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
 import { UnitsRepresentation } from '../units-representation';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
-import { RepresentationParamsGetter, RepresentationContext, Representation } from 'mol-repr/representation';
-import { ThemeRegistryContext } from 'mol-theme/theme';
-import { Structure } from 'mol-model/structure';
+import { RepresentationParamsGetter, RepresentationContext, Representation } from '../../../mol-repr/representation';
+import { ThemeRegistryContext } from '../../../mol-theme/theme';
+import { Structure } from '../../../mol-model/structure';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const SpacefillVisuals = {

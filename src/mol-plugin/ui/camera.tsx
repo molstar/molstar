@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginCommands } from 'mol-plugin/command';
+import { PluginCommands } from '../../mol-plugin/command';
 import * as React from 'react';
 import { PluginUIComponent } from './base';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
 import { Icon } from './controls/common';
 

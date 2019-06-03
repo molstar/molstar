@@ -4,32 +4,32 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { createPlugin, DefaultPluginSpec } from 'mol-plugin';
+import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
 import './index.html'
-import { PluginContext } from 'mol-plugin/context';
-import { PluginCommands } from 'mol-plugin/command';
-import { StateTransforms } from 'mol-plugin/state/transforms';
-import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
-import { Color } from 'mol-util/color';
-import { PluginStateObject as PSO, PluginStateObject } from 'mol-plugin/state/objects';
-import { AnimateModelIndex } from 'mol-plugin/state/animation/built-in';
-import { StateBuilder, StateObject } from 'mol-state';
+import { PluginContext } from '../../mol-plugin/context';
+import { PluginCommands } from '../../mol-plugin/command';
+import { StateTransforms } from '../../mol-plugin/state/transforms';
+import { StructureRepresentation3DHelpers } from '../../mol-plugin/state/transforms/representation';
+import { Color } from '../../mol-util/color';
+import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin/state/objects';
+import { AnimateModelIndex } from '../../mol-plugin/state/animation/built-in';
+import { StateBuilder, StateObject } from '../../mol-state';
 import { EvolutionaryConservation } from './annotation';
 import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo, StateElements } from './helpers';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { RxEventHelper } from '../../mol-util/rx-event-helper';
 import { ControlsWrapper } from './ui/controls';
-import { PluginState } from 'mol-plugin/state';
-import { Scheduler } from 'mol-task';
+import { PluginState } from '../../mol-plugin/state';
+import { Scheduler } from '../../mol-task';
 import { createProteopediaCustomTheme } from './coloring';
-import { MolScriptBuilder as MS } from 'mol-script/language/builder';
-import { BuiltInStructureRepresentations } from 'mol-repr/structure/registry';
-import { BuiltInColorThemes } from 'mol-theme/color';
-import { BuiltInSizeThemes } from 'mol-theme/size';
-import { ColorNames } from 'mol-util/color/tables';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
+import { BuiltInStructureRepresentations } from '../../mol-repr/structure/registry';
+import { BuiltInColorThemes } from '../../mol-theme/color';
+import { BuiltInSizeThemes } from '../../mol-theme/size';
+import { ColorNames } from '../../mol-util/color/tables';
 // import { Vec3 } from 'mol-math/linear-algebra';
 // import { ParamDefinition } from 'mol-util/param-definition';
 // import { Text } from 'mol-geo/geometry/text/text';
-require('mol-plugin/skin/light.scss')
+require('../../mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 3;

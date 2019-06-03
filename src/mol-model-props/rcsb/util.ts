@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { Unit, Structure } from '../../mol-model/structure';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { AssemblySymmetry } from './assembly-symmetry';
 
 export function getAssemblyIds(units: ReadonlyArray<Unit>) {

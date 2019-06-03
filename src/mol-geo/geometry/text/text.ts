@@ -4,25 +4,25 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ValueCell } from 'mol-util';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { ValueCell } from '../../../mol-util';
 import { GeometryUtils } from '../geometry';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
+import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { TransformData } from '../transform-data';
-import { Theme } from 'mol-theme/theme';
+import { Theme } from '../../../mol-theme/theme';
 import { createColors } from '../color-data';
 import { createSizes, getMaxSize } from '../size-data';
 import { createMarkers } from '../marker-data';
-import { ColorNames } from 'mol-util/color/tables';
-import { Sphere3D } from 'mol-math/geometry';
-import { calculateBoundingSphere, TextureImage, createTextureImage } from 'mol-gl/renderable/util';
-import { TextValues } from 'mol-gl/renderable/text';
-import { Color } from 'mol-util/color';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { ColorNames } from '../../../mol-util/color/tables';
+import { Sphere3D } from '../../../mol-math/geometry';
+import { calculateBoundingSphere, TextureImage, createTextureImage } from '../../../mol-gl/renderable/util';
+import { TextValues } from '../../../mol-gl/renderable/text';
+import { Color } from '../../../mol-util/color';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 import { FontAtlasParams } from './font-atlas';
-import { RenderableState } from 'mol-gl/renderable';
-import { clamp } from 'mol-math/interpolate';
-import { createRenderObject as _createRenderObject } from 'mol-gl/render-object';
+import { RenderableState } from '../../../mol-gl/renderable';
+import { clamp } from '../../../mol-math/interpolate';
+import { createRenderObject as _createRenderObject } from '../../../mol-gl/render-object';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';

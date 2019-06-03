@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-import { Vec2 } from 'mol-math/linear-algebra'
-import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
-import { Transparency } from 'mol-theme/transparency';
+import { ValueCell } from '../../mol-util/value-cell'
+import { Vec2 } from '../../mol-math/linear-algebra'
+import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
+import { Transparency } from '../../mol-theme/transparency';
 
 export type TransparencyData = {
     tTransparency: ValueCell<TextureImage<Uint8Array>>

@@ -5,9 +5,9 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
-import { SecondaryStructureType } from 'mol-model/structure/model/types';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { SecondaryStructure } from '../../../mol-model/structure/model/properties/seconday-structure';
+import { SecondaryStructureType } from '../../../mol-model/structure/model/types';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition'
 import { assignBends } from './dssp/bends';
 import { calcUnitBackboneHbonds } from './dssp/backbone-hbonds';
 import { Ladder, Bridge, DSSPContext, DSSPType } from './dssp/common';
@@ -18,10 +18,10 @@ import { assignBridges } from './dssp/bridges';
 import { assignSheets } from './dssp/sheets';
 import { calculateUnitDihedralAngles } from './dssp/dihedral-angles';
 import { calcUnitProteinTraceLookup3D } from './dssp/trace-lookup';
-import { Unit } from 'mol-model/structure';
+import { Unit } from '../../../mol-model/structure';
 import { getUnitProteinInfo } from './dssp/protein-info';
-import { ResidueIndex } from 'mol-model/structure/model';
-import { SortedArray } from 'mol-data/int';
+import { ResidueIndex } from '../../../mol-model/structure/model';
+import { SortedArray } from '../../../mol-data/int';
 
 /**
  * TODO bugs to fix:

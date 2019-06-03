@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color } from 'mol-util/color';
-import { Location } from 'mol-model/location';
-import { ColorType } from 'mol-geo/geometry/color-data';
+import { Color } from '../mol-util/color';
+import { Location } from '../mol-model/location';
+import { ColorType } from '../mol-geo/geometry/color-data';
 import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbol';
 import { UniformColorThemeProvider } from './color/uniform';
-import { deepEqual } from 'mol-util';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { deepEqual } from '../mol-util';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { ThemeDataContext, ThemeRegistry, ThemeProvider } from './theme';
 import { ChainIdColorThemeProvider } from './color/chain-id';
 import { CrossLinkColorThemeProvider } from './color/cross-link';
@@ -24,8 +24,8 @@ import { SecondaryStructureColorThemeProvider } from './color/secondary-structur
 import { SequenceIdColorThemeProvider } from './color/sequence-id';
 import { ShapeGroupColorThemeProvider } from './color/shape-group';
 import { UnitIndexColorThemeProvider } from './color/unit-index';
-import { ScaleLegend } from 'mol-util/color/scale';
-import { TableLegend } from 'mol-util/color/tables';
+import { ScaleLegend } from '../mol-util/color/scale';
+import { TableLegend } from '../mol-util/color/tables';
 import { UncertaintyColorThemeProvider } from './color/uncertainty';
 import { EntitySourceColorThemeProvider } from './color/entity-source';
 import { IllustrativeColorThemeProvider } from './color/illustrative';

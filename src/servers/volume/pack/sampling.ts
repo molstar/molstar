@@ -12,9 +12,9 @@ import * as File from '../common/file'
 import * as Downsampling from './downsampling'
 import * as Writer from './writer'
 import * as DataFormat from '../common/data-format'
-import { FileHandle } from 'mol-io/common/file-handle';
-import { getElementByteSize, createTypedArray, TypedArrayValueType } from 'mol-io/common/typed-array';
-import { SimpleBuffer } from 'mol-io/common/simple-buffer';
+import { FileHandle } from '../../../mol-io/common/file-handle';
+import { getElementByteSize, createTypedArray, TypedArrayValueType } from '../../../mol-io/common/typed-array';
+import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
 
 export async function createContext(filename: string, channels: Format.Context[], blockSize: number, isPeriodic: boolean): Promise<Data.Context> {
     const { extent, valueType, grid, origin } = channels[0].data.header;

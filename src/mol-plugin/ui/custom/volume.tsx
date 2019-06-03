@@ -7,13 +7,13 @@
 import { PluginUIComponent } from '../base';
 import { StateTransformParameters } from '../state/common';
 import * as React from 'react';
-import { VolumeStreaming } from 'mol-plugin/behavior/dynamic/volume-streaming/behavior';
+import { VolumeStreaming } from '../../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
 import { ExpandableGroup } from '../controls/common';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Slider } from '../controls/slider';
-import { VolumeIsoValue, VolumeData } from 'mol-model/volume';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { VolumeIsoValue, VolumeData } from '../../../mol-model/volume';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 const ChannelParams = {
     color: PD.Color(0 as any),

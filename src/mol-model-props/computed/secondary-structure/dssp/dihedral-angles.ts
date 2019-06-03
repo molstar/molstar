@@ -5,10 +5,10 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { Unit } from 'mol-model/structure';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Unit } from '../../../../mol-model/structure';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { ProteinInfo } from './protein-info';
-import { ElementIndex } from 'mol-model/structure/model';
+import { ElementIndex } from '../../../../mol-model/structure/model';
 
 export interface DihedralAngles {
     phi: Float32Array

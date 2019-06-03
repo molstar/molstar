@@ -5,12 +5,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-data/db'
+import { Column } from '../../../mol-data/db'
 import { Tokenizer } from '../common/text/tokenizer'
 import FixedColumn from '../common/text/column/fixed'
 import * as Schema from './schema'
 import { ReaderResult as Result } from '../result'
-import { Task, RuntimeContext } from 'mol-task'
+import { Task, RuntimeContext } from '../../../mol-task'
 
 interface State {
     tokenizer: Tokenizer,

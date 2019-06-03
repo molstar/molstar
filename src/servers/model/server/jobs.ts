@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { UUID } from 'mol-util';
+import { UUID } from '../../../mol-util';
 import { getQueryByName, normalizeQueryParams, QueryDefinition, QueryName, QueryParams } from './api';
-import { LinkedList } from 'mol-data/generic';
+import { LinkedList } from '../../../mol-data/generic';
 
 export interface ResponseFormat {
     isBinary: boolean

@@ -5,7 +5,7 @@
  */
 
 import Expression from '../../language/expression';
-import { QueryContext, QueryFn, Structure, CustomPropertyDescriptor } from 'mol-model/structure';
+import { QueryContext, QueryFn, Structure, CustomPropertyDescriptor } from '../../../mol-model/structure';
 import { MSymbol } from '../../language/symbol';
 
 export class QueryRuntimeTable {

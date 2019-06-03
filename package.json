@@ -13,15 +13,15 @@
   "scripts": {
     "lint": "tslint src/**/*.ts",
     "test": "npm run lint && jest",
-    "build": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" build/src/ && tsc -b",
+    "build": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" lib/ && tsc -b",
     "postinstall": "npm run build",
     "watch": "concurrently --kill-others \"npm:watch-ts\" \"npm:watch-extra\" \"npm:watch-webpack\"",
     "watch-ts": "tsc -watch",
-    "watch-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" build/src/ --watch",
+    "watch-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" lib/ --watch",
     "build-webpack": "webpack --mode production",
     "watch-webpack": "webpack -w --mode development --display minimal",
-    "model-server": "node build/src/servers/model/server.js",
-    "model-server-watch": "nodemon --watch build/src build/src/servers/model/server.js"
+    "model-server": "node lib/servers/model/server.js",
+    "model-server-watch": "nodemon --watch lib lib/servers/model/server.js"
   },
   "nodemonConfig": {
     "ignoreRoot": [
@@ -41,29 +41,9 @@
     },
     "moduleDirectories": [
       "node_modules",
-      "build/src"
+      "lib"
     ],
     "testURL": "http://localhost/",
-    "moduleNameMapper": {
-      "mol-app($|/.*)": "<rootDir>/src/mol-app$1",
-      "mol-data($|/.*)": "<rootDir>/src/mol-data$1",
-      "mol-geo($|/.*)": "<rootDir>/src/mol-geo$1",
-      "mol-gl($|/.*)": "<rootDir>/src/mol-gl$1",
-      "mol-io($|/.*)": "<rootDir>/src/mol-io$1",
-      "mol-math($|/.*)": "<rootDir>/src/mol-math$1",
-      "mol-model($|/.*)": "<rootDir>/src/mol-model$1",
-      "mol-model-props($|/.*)": "<rootDir>/src/mol-model-props$1",
-      "mol-model-formats($|/.*)": "<rootDir>/src/mol-model-formats$1",
-      "mol-plugin($|/.*)": "<rootDir>/src/mol-plugin$1",
-      "mol-ql($|/.*)": "<rootDir>/src/mol-ql$1",
-      "mol-repr($|/.*)": "<rootDir>/src/mol-repr$1",
-      "mol-script($|/.*)": "<rootDir>/src/mol-script$1",
-      "mol-state($|/.*)": "<rootDir>/src/mol-state$1",
-      "mol-task($|/.*)": "<rootDir>/src/mol-task$1",
-      "mol-theme($|/.*)": "<rootDir>/src/mol-theme$1",
-      "mol-util($|/.*)": "<rootDir>/src/mol-util$1",
-      "mol-canvas3d($|/.*)": "<rootDir>/src/mol-canvas3d$1"
-    },
     "testRegex": "\\.spec\\.ts$"
   },
   "author": "Mol* Contributors",

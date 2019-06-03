@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column, ColumnHelpers } from 'mol-data/db'
-import { Tensor } from 'mol-math/linear-algebra'
+import { Column, ColumnHelpers } from '../../../mol-data/db'
+import { Tensor } from '../../../mol-math/linear-algebra'
 import { getNumberType, NumberType, parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser';
 import { Encoding } from '../../common/binary-cif';
 import { Tokens } from '../common/text/tokenizer';

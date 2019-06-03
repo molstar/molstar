@@ -20,7 +20,7 @@
 import Mat4 from './mat4';
 import { Quat, Mat3, EPSILON } from '../3d';
 import { spline as _spline, clamp } from '../../interpolate'
-import { NumberArray } from 'mol-util/type-helpers';
+import { NumberArray } from '../../../mol-util/type-helpers';
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 

@@ -5,7 +5,7 @@
  */
 
 import { Database, Filter, Column } from './schema'
-import { indentString } from 'mol-util/string';
+import { indentString } from '../../../mol-util/string';
 
 function header (name: string, info: string, importDatabasePath = 'mol-data/db') {
     return `/**

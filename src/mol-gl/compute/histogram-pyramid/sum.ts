@@ -8,13 +8,13 @@ import { createComputeRenderable, ComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
 import { Values, TextureSpec } from '../../renderable/schema';
-import { Texture, createTexture } from 'mol-gl/webgl/texture';
-import { ShaderCode } from 'mol-gl/shader-code';
-import { ValueCell } from 'mol-util';
-import { decodeFloatRGB } from 'mol-util/float-packing';
+import { Texture, createTexture } from '../../../mol-gl/webgl/texture';
+import { ShaderCode } from '../../../mol-gl/shader-code';
+import { ValueCell } from '../../../mol-util';
+import { decodeFloatRGB } from '../../../mol-util/float-packing';
 import { QuadSchema, QuadValues } from '../util';
-import quad_vert from 'mol-gl/shader/quad.vert'
-import sum_frag from 'mol-gl/shader/histogram-pyramid/sum.frag'
+import quad_vert from '../../../mol-gl/shader/quad.vert'
+import sum_frag from '../../../mol-gl/shader/histogram-pyramid/sum.frag'
 
 const HistopyramidSumSchema = {
     ...QuadSchema,

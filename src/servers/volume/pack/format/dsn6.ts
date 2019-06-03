@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { FileHandle } from 'mol-io/common/file-handle';
+import { FileHandle } from '../../../../mol-io/common/file-handle';
 import { Header, Provider, Data } from '../format';
-import { readDsn6Header, dsn6HeaderSize, parseDsn6Values, getDsn6Counts } from 'mol-io/reader/dsn6/parser';
-import { TypedArrayValueType } from 'mol-io/common/typed-array';
-import { Dsn6Header } from 'mol-io/reader/dsn6/schema';
+import { readDsn6Header, dsn6HeaderSize, parseDsn6Values, getDsn6Counts } from '../../../../mol-io/reader/dsn6/parser';
+import { TypedArrayValueType } from '../../../../mol-io/common/typed-array';
+import { Dsn6Header } from '../../../../mol-io/reader/dsn6/schema';
 
 async function readHeader(name: string, file: FileHandle) {
     const { header: dsn6Header, littleEndian } = await readDsn6Header(file)

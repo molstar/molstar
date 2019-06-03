@@ -5,20 +5,20 @@
  */
 
 import './index.html'
-import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { Sphere } from 'mol-geo/primitive/sphere';
-import { Mat4, Vec3 } from 'mol-math/linear-algebra';
-import { Shape } from 'mol-model/shape';
-import { ShapeRepresentation } from 'mol-repr/shape/representation';
-import { ColorNames } from 'mol-util/color/tables';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { labelFirst } from 'mol-theme/label';
-import { RuntimeContext, Progress } from 'mol-task';
-import { Representation } from 'mol-repr/representation';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { EveryLoci } from 'mol-model/loci';
-import { resizeCanvas } from 'mol-canvas3d/util';
+import { resizeCanvas } from '../../mol-canvas3d/util';
+import { Representation } from '../../mol-repr/representation';
+import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { labelFirst } from '../../mol-theme/label';
+import { MarkerAction } from '../../mol-geo/geometry/marker-data';
+import { EveryLoci } from '../../mol-model/loci';
+import { RuntimeContext, Progress } from '../../mol-task';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
+import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { Sphere } from '../../mol-geo/primitive/sphere';
+import { ColorNames } from '../../mol-util/color/tables';
+import { Shape } from '../../mol-model/shape';
+import { ShapeRepresentation } from '../../mol-repr/shape/representation';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'

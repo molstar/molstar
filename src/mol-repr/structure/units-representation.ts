@@ -5,20 +5,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, Unit } from 'mol-model/structure';
-import { Task } from 'mol-task'
-import { GraphicsRenderObject, getNextMaterialId } from 'mol-gl/render-object';
-import { RepresentationContext, RepresentationParamsGetter } from '../representation';
-import { Visual } from '../visual';
-import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
-import { StructureGroup } from './units-visual';
-import { StructureRepresentation, StructureParams, StructureRepresentationState, StructureRepresentationStateBuilder } from './representation';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { Theme, createEmptyTheme } from 'mol-theme/theme';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { StructureParams, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
+import { Visual } from '../visual';
+import { StructureGroup } from './units-visual';
+import { RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Structure, Unit } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
+import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
+import { createEmptyTheme, Theme } from '../../mol-theme/theme';
+import { Task } from '../../mol-task';
+import { PickingId } from '../../mol-geo/geometry/picking';
+import { Loci, EmptyLoci, isEmptyLoci } from '../../mol-model/loci';
+import { MarkerAction } from '../../mol-geo/geometry/marker-data';
 
 export const UnitsParams = {
     ...StructureParams,

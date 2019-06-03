@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util';
-import { Mat4 } from 'mol-math/linear-algebra';
-import { fillSerial } from 'mol-util/array';
+import { ValueCell } from '../../mol-util';
+import { Mat4 } from '../../mol-math/linear-algebra';
+import { fillSerial } from '../../mol-util/array';
 
 export type TransformData = {
     /**

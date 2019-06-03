@@ -5,13 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeIsoValue } from 'mol-model/volume';
-import { PluginContext } from 'mol-plugin/context';
-import { State, StateAction, StateBuilder, StateTransformer } from 'mol-state';
-import { Task } from 'mol-task';
-import { ColorNames } from 'mol-util/color/tables';
-import { FileInfo, getFileInfo } from 'mol-util/file-info';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { VolumeIsoValue } from '../../../mol-model/volume';
+import { PluginContext } from '../../../mol-plugin/context';
+import { State, StateAction, StateBuilder, StateTransformer } from '../../../mol-state';
+import { Task } from '../../../mol-task';
+import { ColorNames } from '../../../mol-util/color/tables';
+import { FileInfo, getFileInfo } from '../../../mol-util/file-info';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';

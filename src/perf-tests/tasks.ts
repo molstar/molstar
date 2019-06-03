@@ -1,6 +1,6 @@
 import * as B from 'benchmark'
-import { now } from 'mol-util/now';
-import { Scheduler } from 'mol-task/util/scheduler'
+import { now } from '../mol-util/now';
+import { Scheduler } from '../mol-task/util/scheduler'
 
 export namespace Tasks {
     export class Yielding {

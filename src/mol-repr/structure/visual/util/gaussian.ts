@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
-import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
-import { Task } from 'mol-task';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { GaussianDensityTexture, GaussianDensityTexture2d } from 'mol-math/geometry/gaussian-density/gpu';
-import { Texture } from 'mol-gl/webgl/texture';
-import { WebGLContext } from 'mol-gl/webgl/context';
+import { Unit, Structure } from '../../../../mol-model/structure';
+import { GaussianDensity } from '../../../../mol-math/geometry/gaussian-density';
+import { Task } from '../../../../mol-task';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { GaussianDensityTexture, GaussianDensityTexture2d } from '../../../../mol-math/geometry/gaussian-density/gpu';
+import { Texture } from '../../../../mol-gl/webgl/texture';
+import { WebGLContext } from '../../../../mol-gl/webgl/context';
 import { getUnitConformationAndRadius, getStructureConformationAndRadius } from './common';
 
 export const GaussianDensityParams = {

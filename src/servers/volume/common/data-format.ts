@@ -7,8 +7,8 @@
  */
 
 import * as Schema from './binary-schema'
-import { FileHandle } from 'mol-io/common/file-handle';
-import { TypedArrayValueType } from 'mol-io/common/typed-array';
+import { FileHandle } from '../../../mol-io/common/file-handle';
+import { TypedArrayValueType } from '../../../mol-io/common/typed-array';
 
 export interface Spacegroup {
     number: number,

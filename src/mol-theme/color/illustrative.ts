@@ -4,15 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ElementSymbol, isNucleic, isProtein, MoleculeType } from 'mol-model/structure/model/types';
-import { Color } from 'mol-util/color';
-import { StructureElement, Unit, Link } from 'mol-model/structure';
-import { Location } from 'mol-model/location';
+import { ElementSymbol, isNucleic, isProtein, MoleculeType } from '../../mol-model/structure/model/types';
+import { Color } from '../../mol-util/color';
+import { StructureElement, Unit, Link } from '../../mol-model/structure';
+import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
 import { elementSymbolColor, ElementSymbolColors } from './element-symbol';
-import { getAdjustedColorMap } from 'mol-util/color/color';
+import { getAdjustedColorMap } from '../../mol-util/color/color';
 
 const DefaultIllustrativeColor = Color(0xFFFFFF)
 const Description = `Assigns an illustrative color similar to David Goodsell's Molecule of the Month style.`

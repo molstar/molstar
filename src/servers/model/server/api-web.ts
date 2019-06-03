@@ -8,10 +8,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as express from 'express';
 import Config from '../config';
-import { ConsoleLogger } from 'mol-util/console-logger';
+import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
 import { JobManager } from './jobs';
-import { UUID } from 'mol-util';
+import { UUID } from '../../../mol-util';
 import { LandingPage } from './landing';
 
 function makePath(p: string) {

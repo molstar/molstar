@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util';
+import { ValueCell } from '../../mol-util';
 import { AttributeItemSize, ElementsKind, AttributeValues, AttributeKind } from '../webgl/buffer';
 import { UniformKind, UniformValues } from '../webgl/uniform';
 import { DefineKind, DefineValues } from '../shader-code';
-import { Vec2, Vec3, Vec4, Mat3, Mat4 } from 'mol-math/linear-algebra';
+import { Vec2, Vec3, Vec4, Mat3, Mat4 } from '../../mol-math/linear-algebra';
 import { TextureImage, TextureVolume } from './util';
 import { TextureValues, TextureType, TextureFormat, TextureFilter, TextureKind, Texture } from '../webgl/texture';
-import { Sphere3D } from 'mol-math/geometry';
+import { Sphere3D } from '../../mol-math/geometry';
 
 export type ValueKindType = {
     'number': number

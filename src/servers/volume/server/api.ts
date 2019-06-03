@@ -9,9 +9,9 @@
 import * as File from '../common/file'
 import execute from './query/execute'
 import * as Data from './query/data-model'
-import { ConsoleLogger } from 'mol-util/console-logger'
+import { ConsoleLogger } from '../../../mol-util/console-logger'
 import * as DataFormat from '../common/data-format'
-import { FileHandle } from 'mol-io/common/file-handle';
+import { FileHandle } from '../../../mol-io/common/file-handle';
 import { LimitsConfig } from '../config';
 
 export function getOutputFilename(source: string, id: string, { asBinary, box, detail, forcedSamplingLevel }: Data.QueryParams) {

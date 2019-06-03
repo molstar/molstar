@@ -5,13 +5,13 @@
  */
 
 import { PluginStateTransform, PluginStateObject } from '../state/objects';
-import { StateTransformer, StateTransform } from 'mol-state';
-import { Task } from 'mol-task';
-import { PluginContext } from 'mol-plugin/context';
+import { StateTransformer, StateTransform } from '../../mol-state';
+import { Task } from '../../mol-task';
+import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommand } from '../command';
 import { Observable } from 'rxjs';
-import { ParamDefinition } from 'mol-util/param-definition';
-import { shallowEqual } from 'mol-util';
+import { ParamDefinition } from '../../mol-util/param-definition';
+import { shallowEqual } from '../../mol-util';
 
 export { PluginBehavior }
 

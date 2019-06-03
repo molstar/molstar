@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PickingId } from 'mol-geo/geometry/picking';
-import { EmptyLoci } from 'mol-model/loci';
-import { Representation } from 'mol-repr/representation';
-import InputObserver, { ModifiersKeys, ButtonsType } from 'mol-util/input/input-observer';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { PickingId } from '../../mol-geo/geometry/picking';
+import { EmptyLoci } from '../../mol-model/loci';
+import { Representation } from '../../mol-repr/representation';
+import InputObserver, { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
+import { RxEventHelper } from '../../mol-util/rx-event-helper';
 
 type Canvas3D = import('../canvas3d').Canvas3D
 

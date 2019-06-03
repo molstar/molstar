@@ -6,7 +6,7 @@
  * Adapted from https://github.com/prisma/graphql-request, Copyright (c) 2017 Graphcool, MIT
  */
 
-import { RuntimeContext } from 'mol-task';
+import { RuntimeContext } from '../mol-task';
 
 type Variables = { [key: string]: any }
 
@@ -58,7 +58,7 @@ export class ClientError extends Error {
 }
 
 export class GraphQLClient {
-    constructor(private url: string, private fetch: import('mol-util/data-source').AjaxTask) {
+    constructor(private url: string, private fetch: import('../mol-util/data-source').AjaxTask) {
         this.url = url
     }
 

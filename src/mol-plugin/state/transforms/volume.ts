@@ -5,13 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import CIF from 'mol-io/reader/cif';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { volumeFromCcp4 } from 'mol-model-formats/volume/ccp4';
-import { volumeFromDensityServerData } from 'mol-model-formats/volume/density-server';
-import { volumeFromDsn6 } from 'mol-model-formats/volume/dsn6';
-import { Task } from 'mol-task';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { CIF } from '../../../mol-io/reader/cif';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { volumeFromCcp4 } from '../../../mol-model-formats/volume/ccp4';
+import { volumeFromDensityServerData } from '../../../mol-model-formats/volume/density-server';
+import { volumeFromDsn6 } from '../../../mol-model-formats/volume/dsn6';
+import { Task } from '../../../mol-task';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 
 export { VolumeFromCcp4 };

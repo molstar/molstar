@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, StructureSelection, QueryContext } from 'mol-model/structure';
-import { Color } from 'mol-util/color';
-import { Overpaint } from 'mol-theme/overpaint';
-import { parseMolScript } from 'mol-script/language/parser';
-import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
-import { compile } from 'mol-script/runtime/query/compiler';
-import { Transparency } from 'mol-theme/transparency';
-import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
+import { Structure, StructureSelection, QueryContext } from '../../../mol-model/structure';
+import { Color } from '../../../mol-util/color';
+import { Overpaint } from '../../../mol-theme/overpaint';
+import { parseMolScript } from '../../../mol-script/language/parser';
+import { transpileMolScript } from '../../../mol-script/script/mol-script/symbols';
+import { compile } from '../../../mol-script/runtime/query/compiler';
+import { Transparency } from '../../../mol-theme/transparency';
+import { ComputedSecondaryStructure } from '../../../mol-model-props/computed/secondary-structure';
 
 type Script = { language: string, expression: string }
 

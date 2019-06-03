@@ -8,18 +8,18 @@
 import { PositionData, DensityData, DensityTextureData } from '../common'
 import { Box3D } from '../../geometry'
 import { GaussianDensityGPUProps } from '../gaussian-density'
-import { OrderedSet } from 'mol-data/int'
+import { OrderedSet } from '../../../mol-data/int'
 import { Vec3, Tensor, Mat4, Vec2 } from '../../linear-algebra'
-import { ValueCell } from 'mol-util'
-import { createComputeRenderable, ComputeRenderable } from 'mol-gl/renderable'
-import { WebGLContext } from 'mol-gl/webgl/context';
-import { createTexture, Texture } from 'mol-gl/webgl/texture';
-import { decodeFloatRGB } from 'mol-util/float-packing';
-import { ShaderCode } from 'mol-gl/shader-code';
-import { createComputeRenderItem } from 'mol-gl/webgl/render-item';
-import { ValueSpec, AttributeSpec, UniformSpec, TextureSpec, DefineSpec, Values } from 'mol-gl/renderable/schema';
-import gaussian_density_vert from 'mol-gl/shader/gaussian-density.vert'
-import gaussian_density_frag from 'mol-gl/shader/gaussian-density.frag'
+import { ValueCell } from '../../../mol-util'
+import { createComputeRenderable, ComputeRenderable } from '../../../mol-gl/renderable'
+import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { createTexture, Texture } from '../../../mol-gl/webgl/texture';
+import { decodeFloatRGB } from '../../../mol-util/float-packing';
+import { ShaderCode } from '../../../mol-gl/shader-code';
+import { createComputeRenderItem } from '../../../mol-gl/webgl/render-item';
+import { ValueSpec, AttributeSpec, UniformSpec, TextureSpec, DefineSpec, Values } from '../../../mol-gl/renderable/schema';
+import gaussian_density_vert from '../../../mol-gl/shader/gaussian-density.vert'
+import gaussian_density_frag from '../../../mol-gl/shader/gaussian-density.frag'
 
 export const GaussianDensitySchema = {
     drawCount: ValueSpec('number'),

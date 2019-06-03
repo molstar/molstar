@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
-import { Location } from 'mol-model/location';
+import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { Location } from '../../mol-model/location';
 import { SizeTheme } from '../size';
-import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
+import { VdwRadius } from '../../mol-model/structure/model/properties/atomic';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
 
 const DefaultSize = 1
 const Description = 'Assigns a physical size.'

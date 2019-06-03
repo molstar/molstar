@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MonadicParser as P } from 'mol-util/monadic-parser'
+import { MonadicParser as P } from '../../mol-util/monadic-parser'
 import Expression from './expression'
 import { MolScriptBuilder as B } from './builder'
 

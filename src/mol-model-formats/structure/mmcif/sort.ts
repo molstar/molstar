@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
-import { createRangeArray, makeBuckets } from 'mol-data/util';
-import { Column, Table } from 'mol-data/db';
-import { RuntimeContext } from 'mol-task';
+import { mmCIF_Database } from '../../../mol-io/reader/cif/schema/mmcif';
+import { createRangeArray, makeBuckets } from '../../../mol-data/util';
+import { Column, Table } from '../../../mol-data/db';
+import { RuntimeContext } from '../../../mol-task';
 
 export type SortedAtomSite = mmCIF_Database['atom_site'] & { sourceIndex: Column<number> }
 

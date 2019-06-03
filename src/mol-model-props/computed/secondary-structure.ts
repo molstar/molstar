@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CustomPropertyDescriptor, Structure } from 'mol-model/structure';
-import { Task } from 'mol-task';
+import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
+import { Task } from '../../mol-task';
 import { DSSPComputationParams, computeUnitDSSP } from './secondary-structure/dssp';
-import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Unit } from 'mol-model/structure/structure';
-import { idFactory } from 'mol-util/id-factory';
+import { SecondaryStructure } from '../../mol-model/structure/model/properties/seconday-structure';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Unit } from '../../mol-model/structure/structure';
+import { idFactory } from '../../mol-util/id-factory';
 
 const nextSecondaryStructureId = idFactory()
 

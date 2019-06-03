@@ -5,20 +5,20 @@
  */
 
 import './index.html'
-import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import CIF, { CifFrame } from 'mol-io/reader/cif'
-import { Model, Structure, StructureElement, Unit } from 'mol-model/structure';
-import { ColorTheme, LocationColor } from 'mol-theme/color';
-import { SizeTheme } from 'mol-theme/size';
-import { CartoonRepresentationProvider } from 'mol-repr/structure/representation/cartoon';
-import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
-import { AccessibleSurfaceArea } from 'mol-model/structure/structure/accessible-surface-area';
-import { Color, ColorScale } from 'mol-util/color';
-import { Location } from 'mol-model/location';
-import { ThemeDataContext } from 'mol-theme/theme';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
-import { resizeCanvas } from 'mol-canvas3d/util';
+import { resizeCanvas } from '../../mol-canvas3d/util';
+import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { CIF, CifFrame } from '../../mol-io/reader/cif';
+import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
+import { Model, Structure, StructureElement, Unit } from '../../mol-model/structure';
+import { ColorTheme, LocationColor } from '../../mol-theme/color';
+import { SizeTheme } from '../../mol-theme/size';
+import { CartoonRepresentationProvider } from '../../mol-repr/structure/representation/cartoon';
+import { AccessibleSurfaceArea } from '../../mol-model/structure/structure/accessible-surface-area';
+import { Color, ColorScale } from '../../mol-util/color';
+import { ColorListName, ColorListOptions } from '../../mol-util/color/scale';
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Location } from '../../mol-model/location';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'

@@ -4,17 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ElementIndex, Model, CustomPropertyDescriptor } from 'mol-model/structure';
-import { StructureElement } from 'mol-model/structure/structure';
-import { Location } from 'mol-model/location';
+import { ElementIndex, Model, CustomPropertyDescriptor } from '../../mol-model/structure';
+import { StructureElement } from '../../mol-model/structure/structure';
+import { Location } from '../../mol-model/location';
 import { CustomPropertyRegistry } from './custom-property-registry';
-import { Task } from 'mol-task';
-import { ThemeDataContext, ThemeProvider } from 'mol-theme/theme';
-import { ColorTheme, LocationColor } from 'mol-theme/color';
-import { Color } from 'mol-util/color';
-import { TableLegend } from 'mol-util/color/tables';
-import { Loci } from 'mol-model/loci';
-import { OrderedSet } from 'mol-data/int';
+import { Task } from '../../mol-task';
+import { ThemeDataContext, ThemeProvider } from '../../mol-theme/theme';
+import { ColorTheme, LocationColor } from '../../mol-theme/color';
+import { Color } from '../../mol-util/color';
+import { TableLegend } from '../../mol-util/color/tables';
+import { Loci } from '../../mol-model/loci';
+import { OrderedSet } from '../../mol-data/int';
 
 export { CustomElementProperty };
 

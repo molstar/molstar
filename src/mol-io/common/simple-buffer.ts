@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { defaults } from 'mol-util';
+import { defaults } from '../../mol-util';
 
 export interface SimpleBuffer extends Uint8Array {
     readInt8: (offset: number) => number

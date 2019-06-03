@@ -5,17 +5,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
+import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
 import { Model } from '../model'
-import { GridLookup3D, Lookup3D } from 'mol-math/geometry'
+import { GridLookup3D, Lookup3D } from '../../../mol-math/geometry'
 import { IntraUnitLinks, computeIntraUnitBonds } from './unit/links'
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
-import { ValueRef } from 'mol-util';
+import { ValueRef } from '../../../mol-util';
 import { UnitRings } from './unit/rings';
 import StructureElement from './element'
 import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
-import { IntMap, SortedArray } from 'mol-data/int';
-import { hash2, hashFnv32a } from 'mol-data/util';
+import { IntMap, SortedArray } from '../../../mol-data/int';
+import { hash2, hashFnv32a } from '../../../mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements, getNucleotideElements, getProteinElements } from './util/polymer';
 
 /**

@@ -6,11 +6,11 @@
 
 import { PluginCommands } from '../../command';
 import { PluginContext } from '../../context';
-import { StateTree, StateTransform, State } from 'mol-state';
-import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
+import { StateTree, StateTransform, State } from '../../../mol-state';
+import { PluginStateSnapshotManager } from '../../../mol-plugin/state/snapshots';
 import { PluginStateObject as SO } from '../../state/objects';
-import { getFormattedTime } from 'mol-util/date';
-import { readFromFile } from 'mol-util/data-source';
+import { getFormattedTime } from '../../../mol-util/date';
+import { readFromFile } from '../../../mol-util/data-source';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);

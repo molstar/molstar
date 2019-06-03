@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CustomPropertyDescriptor, Model, Structure } from 'mol-model/structure';
+import { CustomPropertyDescriptor, Model, Structure } from '../../mol-model/structure';
 import { OrderedMap } from 'immutable';
-import { ParamDefinition } from 'mol-util/param-definition';
-import { Task } from 'mol-task';
+import { ParamDefinition } from '../../mol-util/param-definition';
+import { Task } from '../../mol-task';
 
 export { CustomPropertyRegistry }
 

@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { TriTable,  } from 'mol-geo/util/marching-cubes/tables';
-import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
+import { TriTable,  } from '../../../mol-geo/util/marching-cubes/tables';
+import { TextureImage, createTextureImage } from '../../../mol-gl/renderable/util';
 
 let TriCount: TextureImage<Uint8Array> | undefined
 export function getTriCount(): TextureImage<Uint8Array> {

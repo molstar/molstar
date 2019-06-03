@@ -5,7 +5,7 @@
  */
 
 import { StateTransformer } from './transformer';
-import { UUID } from 'mol-util';
+import { UUID } from '../mol-util';
 
 export { Transform as StateTransform }
 

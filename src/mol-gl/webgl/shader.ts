@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
-import { idFactory } from 'mol-util/id-factory';
+import { createReferenceCache, ReferenceCache } from '../../mol-util/reference-cache';
+import { idFactory } from '../../mol-util/id-factory';
 import { GLRenderingContext } from './compat';
-import { isDebugMode } from 'mol-util/debug';
+import { isDebugMode } from '../../mol-util/debug';
 
 const getNextShaderId = idFactory()
 

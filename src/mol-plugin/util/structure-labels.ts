@@ -4,18 +4,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, StructureElement, StructureProperties, Unit } from 'mol-model/structure';
-import { StateTransformer } from 'mol-state';
+import { Structure, StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
+import { StateTransformer } from '../../mol-state';
 import { StructureLabels3D } from '../state/transforms/representation';
-import { ShapeRepresentation } from 'mol-repr/shape/representation';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { Text } from 'mol-geo/geometry/text/text';
-import { TextBuilder } from 'mol-geo/geometry/text/text-builder';
-import { Shape } from 'mol-model/shape';
-import { ColorNames } from 'mol-util/color/tables';
-import { RuntimeContext } from 'mol-task';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
+import { ShapeRepresentation } from '../../mol-repr/shape/representation';
+import { Vec3 } from '../../mol-math/linear-algebra';
+import { Text } from '../../mol-geo/geometry/text/text';
+import { TextBuilder } from '../../mol-geo/geometry/text/text-builder';
+import { Shape } from '../../mol-model/shape';
+import { ColorNames } from '../../mol-util/color/tables';
+import { RuntimeContext } from '../../mol-task';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 
 interface LabelsData {
     texts: string[],

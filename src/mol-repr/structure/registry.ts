@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure } from 'mol-model/structure';
+import { Structure } from '../../mol-model/structure';
 import { RepresentationProvider, RepresentationRegistry } from '../representation';
 import { CartoonRepresentationProvider } from './representation/cartoon';
 import { BallAndStickRepresentationProvider } from './representation/ball-and-stick';

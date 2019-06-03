@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CifWriter } from 'mol-io/writer/cif'
-import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
+import { CifWriter } from '../../../mol-io/writer/cif'
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif'
 import { Structure } from '../structure'
 import { _atom_site } from './categories/atom_site';
 import CifCategory = CifWriter.Category

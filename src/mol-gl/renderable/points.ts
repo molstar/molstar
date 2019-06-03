@@ -9,7 +9,7 @@ import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema, SizeSchema, InternalValues } from './schema';
 import { PointsShaderCode } from '../shader-code';
-import { ValueCell } from 'mol-util';
+import { ValueCell } from '../../mol-util';
 
 export const PointsSchema = {
     ...BaseSchema,

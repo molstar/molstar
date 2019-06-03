@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { edt } from 'mol-math/geometry/distance-transform';
-import { createTextureImage, TextureImage } from 'mol-gl/renderable/util';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { edt } from '../../../mol-math/geometry/distance-transform';
+import { createTextureImage, TextureImage } from '../../../mol-gl/renderable/util';
 
 const TextAtlasCache: { [k: string]: FontAtlas } = {}
 

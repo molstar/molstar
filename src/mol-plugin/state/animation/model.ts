@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { PluginContext } from 'mol-plugin/context';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { PluginContext } from '../../../mol-plugin/context';
 
 export { PluginStateAnimation }
 

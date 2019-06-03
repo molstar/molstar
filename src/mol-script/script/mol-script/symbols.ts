@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { UniqueArray } from 'mol-data/generic';
+import { UniqueArray } from '../../../mol-data/generic';
 import Expression from '../../language/expression';
 import { Argument, MSymbol } from '../../language/symbol';
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';

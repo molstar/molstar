@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginContext } from 'mol-plugin/context';
-import { PluginCommands } from 'mol-plugin/command';
+import { PluginContext } from '../../../mol-plugin/context';
+import { PluginCommands } from '../../../mol-plugin/command';
 
 export function registerDefault(ctx: PluginContext) {
     Canvas3DSetSettings(ctx);

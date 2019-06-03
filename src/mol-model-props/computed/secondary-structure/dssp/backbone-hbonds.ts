@@ -5,13 +5,13 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { IntAdjacencyGraph } from 'mol-math/graph';
-import { Unit } from 'mol-model/structure';
-import { GridLookup3D } from 'mol-math/geometry';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { IntAdjacencyGraph } from '../../../../mol-math/graph';
+import { Unit } from '../../../../mol-model/structure';
+import { GridLookup3D } from '../../../../mol-math/geometry';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { DsspHbonds } from './common';
 import { ProteinInfo } from './protein-info';
-import { ElementIndex } from 'mol-model/structure/model';
+import { ElementIndex } from '../../../../mol-model/structure/model';
 
 /** max distance between two C-alpha atoms to check for hbond */
 const caMaxDist = 9.0;

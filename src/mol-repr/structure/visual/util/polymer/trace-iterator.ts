@@ -4,17 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureElement, ElementIndex, ResidueIndex, Structure } from 'mol-model/structure';
-import { Segmentation } from 'mol-data/int';
-import { MoleculeType, SecondaryStructureType } from 'mol-model/structure/model/types';
-import Iterator from 'mol-data/iterator';
-import { Vec3 } from 'mol-math/linear-algebra';
-import SortedRanges from 'mol-data/int/sorted-ranges';
-import { CoarseSphereConformation, CoarseGaussianConformation } from 'mol-model/structure/model/properties/coarse';
+import { Unit, StructureElement, ElementIndex, ResidueIndex, Structure } from '../../../../../mol-model/structure';
+import { Segmentation } from '../../../../../mol-data/int';
+import { MoleculeType, SecondaryStructureType } from '../../../../../mol-model/structure/model/types';
+import Iterator from '../../../../../mol-data/iterator';
+import { Vec3 } from '../../../../../mol-math/linear-algebra';
+import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
+import { CoarseSphereConformation, CoarseGaussianConformation } from '../../../../../mol-model/structure/model/properties/coarse';
 import { getPolymerRanges } from '../polymer';
-import { AtomicConformation } from 'mol-model/structure/model/properties/atomic';
-import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
-import { SecondaryStructure } from 'mol-model/structure/model/properties/seconday-structure';
+import { AtomicConformation } from '../../../../../mol-model/structure/model/properties/atomic';
+import { ComputedSecondaryStructure } from '../../../../../mol-model-props/computed/secondary-structure';
+import { SecondaryStructure } from '../../../../../mol-model/structure/model/properties/seconday-structure';
 
 /**
  * Iterates over individual residues/coarse elements in polymers of a unit while

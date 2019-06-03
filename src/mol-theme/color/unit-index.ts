@@ -4,15 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color } from 'mol-util/color';
-import { Location } from 'mol-model/location';
-import { StructureElement, Link } from 'mol-model/structure';
+import { Color } from '../../mol-util/color';
+import { Location } from '../../mol-model/location';
+import { StructureElement, Link } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
-import { ScaleLegend } from 'mol-util/color/scale';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { ScaleLegend } from '../../mol-util/color/scale';
 import { getPaletteParams, getPalette } from './util';
-import { TableLegend } from 'mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/tables';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'

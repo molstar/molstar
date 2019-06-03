@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from 'mol-math/linear-algebra'
+import { Vec3 } from '../../mol-math/linear-algebra'
 import { Primitive, PrimitiveBuilder } from './primitive';
 import { polygon } from './polygon'
 import { PrismCage } from './prism';

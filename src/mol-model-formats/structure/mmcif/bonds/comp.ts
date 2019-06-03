@@ -5,13 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from 'mol-model/structure/model/model'
-import { LinkType } from 'mol-model/structure/model/types'
-import { CustomPropertyDescriptor } from 'mol-model/structure';
-import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
-import { Structure, Unit, StructureProperties, StructureElement } from 'mol-model/structure';
-import { Segmentation } from 'mol-data/int';
-import { CifWriter } from 'mol-io/writer/cif'
+import { Model } from '../../../../mol-model/structure/model/model'
+import { LinkType } from '../../../../mol-model/structure/model/types'
+import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
+import { mmCIF_Database } from '../../../../mol-io/reader/cif/schema/mmcif';
+import { Structure, Unit, StructureProperties, StructureElement } from '../../../../mol-model/structure';
+import { Segmentation } from '../../../../mol-data/int';
+import { CifWriter } from '../../../../mol-io/writer/cif'
 
 export interface ComponentBond {
     entries: Map<string, ComponentBond.Entry>

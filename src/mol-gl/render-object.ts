@@ -6,7 +6,7 @@
 
 import { RenderableState, Renderable } from './renderable'
 import { RenderableValues } from './renderable/schema';
-import { idFactory } from 'mol-util/id-factory';
+import { idFactory } from '../mol-util/id-factory';
 import { WebGLContext } from './webgl/context';
 import { DirectVolumeValues, DirectVolumeRenderable } from './renderable/direct-volume';
 import { MeshValues, MeshRenderable } from './renderable/mesh';

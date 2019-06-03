@@ -4,17 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/structure';
-
-import { Color } from 'mol-util/color';
-import { Location } from 'mol-model/location';
+import { Unit, StructureProperties, StructureElement, Link } from '../../mol-model/structure';
+import { Color } from '../../mol-util/color';
+import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
-import { ScaleLegend } from 'mol-util/color/scale';
-import { Column } from 'mol-data/db';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { ScaleLegend } from '../../mol-util/color/scale';
+import { Column } from '../../mol-data/db';
 import { getPaletteParams, getPalette } from './util';
-import { TableLegend } from 'mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/tables';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every chain a color based on its `asym_id` value.'

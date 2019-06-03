@@ -6,9 +6,9 @@
  */
 
 import * as File from '../common/file'
-import { FileHandle } from 'mol-io/common/file-handle';
+import { FileHandle } from '../../../mol-io/common/file-handle';
 import { Ccp4Provider } from './format/ccp4';
-import { TypedArrayBufferContext, TypedArrayValueArray, TypedArrayValueType, getElementByteSize, createTypedArrayBufferContext } from 'mol-io/common/typed-array';
+import { TypedArrayBufferContext, TypedArrayValueArray, TypedArrayValueType, getElementByteSize, createTypedArrayBufferContext } from '../../../mol-io/common/typed-array';
 import { Dsn6Provider } from './format/dsn6';
 
 export interface Header {

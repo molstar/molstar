@@ -5,15 +5,15 @@
  */
 
 import * as React from 'react';
-import { PluginCommands } from 'mol-plugin/command';
-import { UpdateTrajectory } from 'mol-plugin/state/actions/structure';
+import { PluginCommands } from '../../mol-plugin/command';
+import { UpdateTrajectory } from '../../mol-plugin/state/actions/structure';
 import { PluginUIComponent } from './base';
-import { LociLabelEntry } from 'mol-plugin/util/loci-label-manager';
+import { LociLabelEntry } from '../../mol-plugin/util/loci-label-manager';
 import { IconButton } from './controls/common';
-import { PluginStateObject } from 'mol-plugin/state/objects';
-import { StateTransforms } from 'mol-plugin/state/transforms';
-import { StateTransformer } from 'mol-state';
-import { ModelFromTrajectory } from 'mol-plugin/state/transforms/model';
+import { PluginStateObject } from '../../mol-plugin/state/objects';
+import { StateTransforms } from '../../mol-plugin/state/transforms';
+import { StateTransformer } from '../../mol-state';
+import { ModelFromTrajectory } from '../../mol-plugin/state/transforms/model';
 import { AnimationControls } from './state/animation';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {

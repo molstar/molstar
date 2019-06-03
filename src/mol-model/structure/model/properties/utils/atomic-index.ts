@@ -5,12 +5,12 @@
  */
 
 import { AtomicData, AtomicSegments } from '../atomic'
-import { Interval, Segmentation, SortedArray } from 'mol-data/int'
+import { Interval, Segmentation, SortedArray } from '../../../../../mol-data/int'
 import { Entities } from '../common'
 import { ChainIndex, ResidueIndex, EntityIndex, ElementIndex } from '../../indexing';
 import { AtomicIndex, AtomicHierarchy } from '../atomic/hierarchy';
-import { cantorPairing } from 'mol-data/util';
-import { Column } from 'mol-data/db';
+import { cantorPairing } from '../../../../../mol-data/util';
+import { Column } from '../../../../../mol-data/db';
 
 function getResidueId(seq_id: number, ins_code: string) {
     if (!ins_code) return seq_id;

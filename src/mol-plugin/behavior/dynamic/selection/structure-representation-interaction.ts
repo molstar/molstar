@@ -4,21 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, StructureElement } from 'mol-model/structure';
-import { PluginBehavior } from 'mol-plugin/behavior';
-import { PluginCommands } from 'mol-plugin/command';
-import { PluginContext } from 'mol-plugin/context';
-import { PluginStateObject } from 'mol-plugin/state/objects';
-import { StateTransforms } from 'mol-plugin/state/transforms';
-import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
-import { BuiltInStructureRepresentations } from 'mol-repr/structure/registry';
-import { MolScriptBuilder as MS } from 'mol-script/language/builder';
-import { StateObjectCell, StateSelection, StateTransform } from 'mol-state';
-import { BuiltInColorThemes } from 'mol-theme/color';
-import { BuiltInSizeThemes } from 'mol-theme/size';
-import { ColorNames } from 'mol-util/color/tables';
-import { ButtonsType } from 'mol-util/input/input-observer';
-import { Representation } from 'mol-repr/representation';
+import { Structure, StructureElement } from '../../../../mol-model/structure';
+import { PluginBehavior } from '../../../../mol-plugin/behavior';
+import { PluginCommands } from '../../../../mol-plugin/command';
+import { PluginContext } from '../../../../mol-plugin/context';
+import { PluginStateObject } from '../../../../mol-plugin/state/objects';
+import { StateTransforms } from '../../../../mol-plugin/state/transforms';
+import { StructureRepresentation3DHelpers } from '../../../../mol-plugin/state/transforms/representation';
+import { BuiltInStructureRepresentations } from '../../../../mol-repr/structure/registry';
+import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
+import { StateObjectCell, StateSelection, StateTransform } from '../../../../mol-state';
+import { BuiltInColorThemes } from '../../../../mol-theme/color';
+import { BuiltInSizeThemes } from '../../../../mol-theme/size';
+import { ColorNames } from '../../../../mol-util/color/tables';
+import { ButtonsType } from '../../../../mol-util/input/input-observer';
+import { Representation } from '../../../../mol-repr/representation';
 
 type Params = { }
 

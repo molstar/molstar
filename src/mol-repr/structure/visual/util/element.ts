@@ -4,21 +4,21 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from 'mol-math/linear-algebra';
-import { Unit, StructureElement, Structure } from 'mol-model/structure';
-import { Loci, EmptyLoci } from 'mol-model/loci';
-import { Interval, OrderedSet } from 'mol-data/int';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { sphereVertexCount } from 'mol-geo/primitive/sphere';
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
-import { StructureGroup } from 'mol-repr/structure/units-visual';
-import { Spheres } from 'mol-geo/geometry/spheres/spheres';
-import { SpheresBuilder } from 'mol-geo/geometry/spheres/spheres-builder';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { Unit, StructureElement, Structure } from '../../../../mol-model/structure';
+import { Loci, EmptyLoci } from '../../../../mol-model/loci';
+import { Interval, OrderedSet } from '../../../../mol-data/int';
+import { Mesh } from '../../../../mol-geo/geometry/mesh/mesh';
+import { sphereVertexCount } from '../../../../mol-geo/primitive/sphere';
+import { MeshBuilder } from '../../../../mol-geo/geometry/mesh/mesh-builder';
+import { addSphere } from '../../../../mol-geo/geometry/mesh/builder/sphere';
+import { PickingId } from '../../../../mol-geo/geometry/picking';
+import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
+import { VisualContext } from '../../../../mol-repr/visual';
+import { Theme } from '../../../../mol-theme/theme';
+import { StructureGroup } from '../../../../mol-repr/structure/units-visual';
+import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
+import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-builder';
 
 export interface ElementSphereMeshProps {
     detail: number,

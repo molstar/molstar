@@ -1,11 +1,11 @@
-import { Color, ColorMap } from 'mol-util/color';
-
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
+
+import { Color, ColorMap } from '../../../../mol-util/color';
 
 // follows community standard from https://www.ncbi.nlm.nih.gov/glycans/snfg.html
 

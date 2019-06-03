@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column } from 'mol-data/db';
+import { Column } from '../../../mol-data/db';
 
 // http://paulbourke.net/dataformats/ply/
 // https://en.wikipedia.org/wiki/PLY_(file_format)

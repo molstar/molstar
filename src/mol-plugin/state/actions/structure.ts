@@ -5,18 +5,18 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginContext } from 'mol-plugin/context';
-import { StateAction, StateBuilder, StateSelection, StateTransformer, State } from 'mol-state';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateAction, StateBuilder, StateSelection, StateTransformer, State } from '../../../mol-state';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
 import { CustomModelProperties, StructureSelection, CustomStructureProperties } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant } from './data-format';
-import { FileInfo } from 'mol-util/file-info';
-import { Task } from 'mol-task';
-import { StructureElement } from 'mol-model/structure';
+import { FileInfo } from '../../../mol-util/file-info';
+import { Task } from '../../../mol-task';
+import { StructureElement } from '../../../mol-model/structure';
 
 export const MmcifProvider: DataFormatProvider<any> = {
     label: 'mmCIF',

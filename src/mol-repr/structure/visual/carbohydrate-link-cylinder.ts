@@ -4,22 +4,22 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, Link, StructureElement } from 'mol-model/structure';
-import { Loci, EmptyLoci } from 'mol-model/loci';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Structure, Link, StructureElement } from '../../../mol-model/structure';
+import { Loci, EmptyLoci } from '../../../mol-model/loci';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 import { createLinkCylinderMesh, LinkCylinderParams } from './util/link';
-import { OrderedSet, Interval } from 'mol-data/int';
+import { OrderedSet, Interval } from '../../../mol-data/int';
 import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
-import { LinkType } from 'mol-model/structure/model/types';
-import { BitFlags } from 'mol-util';
+import { LinkType } from '../../../mol-model/structure/model/types';
+import { BitFlags } from '../../../mol-util';
 import { UnitsMeshParams } from '../units-visual';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { PickingId } from 'mol-geo/geometry/picking';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { PickingId } from '../../../mol-geo/geometry/picking';
 import { VisualUpdateState } from '../../util';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
+import { VisualContext } from '../../../mol-repr/visual';
+import { Theme } from '../../../mol-theme/theme';
 
 function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateLinkParams>, mesh?: Mesh) {
     const { links, elements } = structure.carbohydrates

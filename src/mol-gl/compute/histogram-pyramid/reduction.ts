@@ -8,16 +8,16 @@ import { createComputeRenderable, ComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
 import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
-import { Texture, createTexture } from 'mol-gl/webgl/texture';
-import { ShaderCode } from 'mol-gl/shader-code';
-import { ValueCell } from 'mol-util';
+import { Texture, createTexture } from '../../../mol-gl/webgl/texture';
+import { ShaderCode } from '../../../mol-gl/shader-code';
+import { ValueCell } from '../../../mol-util';
 import { QuadSchema, QuadValues } from '../util';
-import { Vec2 } from 'mol-math/linear-algebra';
+import { Vec2 } from '../../../mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
-import { Framebuffer, createFramebuffer } from 'mol-gl/webgl/framebuffer';
-import { isPowerOfTwo } from 'mol-math/misc';
-import quad_vert from 'mol-gl/shader/quad.vert'
-import reduction_frag from 'mol-gl/shader/histogram-pyramid/reduction.frag'
+import { Framebuffer, createFramebuffer } from '../../../mol-gl/webgl/framebuffer';
+import { isPowerOfTwo } from '../../../mol-math/misc';
+import quad_vert from '../../../mol-gl/shader/quad.vert'
+import reduction_frag from '../../../mol-gl/shader/histogram-pyramid/reduction.frag'
 
 const HistopyramidReductionSchema = {
     ...QuadSchema,

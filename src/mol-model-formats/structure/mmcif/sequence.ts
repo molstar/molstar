@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
-import StructureSequence from 'mol-model/structure/model/properties/sequence'
-import { Column } from 'mol-data/db';
-import { AtomicHierarchy } from 'mol-model/structure/model/properties/atomic';
-import { Entities } from 'mol-model/structure/model/properties/common';
-import { Sequence } from 'mol-model/sequence';
+import { mmCIF_Database as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
+import StructureSequence from '../../../mol-model/structure/model/properties/sequence'
+import { Column } from '../../../mol-data/db';
+import { AtomicHierarchy } from '../../../mol-model/structure/model/properties/atomic';
+import { Entities } from '../../../mol-model/structure/model/properties/common';
+import { Sequence } from '../../../mol-model/sequence';
 
 // TODO how to handle microheterogeneity
 //    see http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly_seq.html

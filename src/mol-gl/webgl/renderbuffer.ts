@@ -5,7 +5,7 @@
  */
 
 import { WebGLContext } from './context'
-import { idFactory } from 'mol-util/id-factory';
+import { idFactory } from '../../mol-util/id-factory';
 
 const getNextRenderbufferId = idFactory()
 

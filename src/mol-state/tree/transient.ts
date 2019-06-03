@@ -7,7 +7,7 @@
 import { Map as ImmutableMap, OrderedSet } from 'immutable';
 import { StateTransform } from '../transform';
 import { StateTree } from './immutable';
-import { shallowEqual } from 'mol-util/object';
+import { shallowEqual } from '../../mol-util/object';
 
 export { TransientTree }
 

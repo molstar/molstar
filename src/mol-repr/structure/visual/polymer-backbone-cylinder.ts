@@ -4,21 +4,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../representation';
-import { VisualUpdateState } from '../../util';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { VisualContext } from '../../visual';
+import { Unit, Structure } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
 import { PolymerBackboneIterator } from './util/polymer';
-import { getElementLoci, eachElement, StructureElementIterator } from './util/element';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { OrderedSet } from 'mol-data/int';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { CylinderProps } from 'mol-geo/primitive/cylinder';
-import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
+import { OrderedSet } from '../../../mol-data/int';
+import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
+import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
+import { VisualUpdateState } from '../../util';
 
 export const PolymerBackboneCylinderParams = {
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),

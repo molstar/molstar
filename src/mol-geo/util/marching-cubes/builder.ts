@@ -7,7 +7,7 @@
  */
 
 import { ChunkedArray } from '../../../mol-data/util';
-import { ValueCell, noop } from 'mol-util';
+import { ValueCell, noop } from '../../../mol-util';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { AllowedContours } from './tables';
 import { LinesBuilder } from '../../geometry/lines/lines-builder';

@@ -4,22 +4,22 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task } from 'mol-task'
-import { ValueCell } from 'mol-util'
-import { Vec3, Mat4 } from 'mol-math/linear-algebra'
-import { Sphere3D } from 'mol-math/geometry'
+import { Task } from '../../../mol-task'
+import { ValueCell } from '../../../mol-util'
+import { Vec3, Mat4 } from '../../../mol-math/linear-algebra'
+import { Sphere3D } from '../../../mol-math/geometry'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { createColors } from '../color-data';
-import { ChunkedArray } from 'mol-data/util';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { calculateBoundingSphere } from 'mol-gl/renderable/util';
-import { Theme } from 'mol-theme/theme';
-import { MeshValues } from 'mol-gl/renderable/mesh';
-import { Color } from 'mol-util/color';
+import { ChunkedArray } from '../../../mol-data/util';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { calculateBoundingSphere } from '../../../mol-gl/renderable/util';
+import { Theme } from '../../../mol-theme/theme';
+import { MeshValues } from '../../../mol-gl/renderable/mesh';
+import { Color } from '../../../mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';

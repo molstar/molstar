@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginContext } from 'mol-plugin/context';
-import { State, StateBuilder } from 'mol-state';
-import { Task } from 'mol-task';
-import { FileInfo } from 'mol-util/file-info';
+import { PluginContext } from '../../../mol-plugin/context';
+import { State, StateBuilder } from '../../../mol-state';
+import { Task } from '../../../mol-task';
+import { FileInfo } from '../../../mol-util/file-info';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { DataFormatProvider } from './data-format';

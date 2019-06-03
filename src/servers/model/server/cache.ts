@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ConsoleLogger } from 'mol-util/console-logger'
-import { LinkedList } from 'mol-data/generic';
+import { ConsoleLogger } from '../../../mol-util/console-logger'
+import { LinkedList } from '../../../mol-data/generic';
 import ServerConfig from '../config';
 
 interface CacheEntry<T> {

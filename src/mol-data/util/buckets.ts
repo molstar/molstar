@@ -5,7 +5,7 @@
  */
 
 import { sort, arraySwap } from './sort';
-import { AssignableArrayLike } from 'mol-util/type-helpers';
+import { AssignableArrayLike } from '../../mol-util/type-helpers';
 
 type Bucket = {
     key: any,

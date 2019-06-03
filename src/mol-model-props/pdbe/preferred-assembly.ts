@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column, Table } from 'mol-data/db';
-import { toTable } from 'mol-io/reader/cif/schema';
-import { CifWriter } from 'mol-io/writer/cif';
-import { Model, CustomPropertyDescriptor } from 'mol-model/structure';
+import { Column, Table } from '../../mol-data/db';
+import { toTable } from '../../mol-io/reader/cif/schema';
+import { CifWriter } from '../../mol-io/writer/cif';
+import { Model, CustomPropertyDescriptor } from '../../mol-model/structure';
 
 export namespace PDBePreferredAssembly {
     export type Property = string

@@ -9,8 +9,8 @@ import * as argparse from 'argparse'
 import * as fs from 'fs'
 import fetch from 'node-fetch'
 
-import Csv from 'mol-io/reader/csv/parser'
-import CIF, { CifFrame } from 'mol-io/reader/cif'
+import { parseCsv } from '../../mol-io/reader/csv/parser'
+import { CIF, CifFrame } from '../../mol-io/reader/cif'
 import { generateSchema } from './util/cif-dic'
 import { generate } from './util/generate'
 import { Filter } from './util/schema'
@@ -52,7 +52,7 @@ async function runGenerateSchema(name: string, fieldNamesPath?: string, typescri
 
 async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
     const fieldNamesStr = fs.readFileSync(fieldNamesPath, 'utf8')
-    const parsed = await Csv(fieldNamesStr, { noColumnNames: true }).run();
+    const parsed = await parseCsv(fieldNamesStr, { noColumnNames: true }).run();
     if (parsed.isError) throw parser.error
     const csvFile = parsed.result;
 

@@ -4,22 +4,21 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure, ElementIndex } from 'mol-model/structure';
-import { UnitsVisual } from '../representation';
-import { Vec3, Mat4 } from 'mol-math/linear-algebra';
-import { Segmentation } from 'mol-data/int';
-import { isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
-import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { NucleotideLocationIterator, eachNucleotideElement, getNucleotideElementLoci } from './util/nucleotide';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Box } from 'mol-geo/primitive/box';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
-import { VisualUpdateState } from 'mol-repr/util';
-import { CylinderProps } from 'mol-geo/primitive/cylinder';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
+import { Box } from '../../../mol-geo/primitive/box';
+import { VisualContext } from '../../visual';
+import { Unit, Structure, ElementIndex } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
+import { Segmentation } from '../../../mol-data/int';
+import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
+import { isNucleic, isPurinBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
+import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
+import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement } from './util/nucleotide';
+import { VisualUpdateState } from '../../util';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()

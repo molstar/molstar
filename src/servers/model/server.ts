@@ -7,8 +7,8 @@
 import * as express from 'express'
 import * as compression from 'compression'
 import ServerConfig from './config'
-import { ConsoleLogger } from 'mol-util/console-logger';
-import { PerformanceMonitor } from 'mol-util/performance-monitor';
+import { ConsoleLogger } from '../../mol-util/console-logger';
+import { PerformanceMonitor } from '../../mol-util/performance-monitor';
 import { initWebApi } from './server/api-web';
 import Version from './version'
 

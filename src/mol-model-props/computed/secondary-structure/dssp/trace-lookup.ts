@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GridLookup3D } from 'mol-math/geometry';
-import { SortedArray } from 'mol-data/int';
-import { Unit } from 'mol-model/structure/structure';
-import { ResidueIndex } from 'mol-model/structure';
+import { GridLookup3D } from '../../../../mol-math/geometry';
+import { SortedArray } from '../../../../mol-data/int';
+import { Unit } from '../../../../mol-model/structure/structure';
+import { ResidueIndex } from '../../../../mol-model/structure';
 
 export function calcUnitProteinTraceLookup3D(unit: Unit.Atomic, unitProteinResidues: SortedArray<ResidueIndex>): GridLookup3D {
     const { x, y, z } = unit.model.atomicConformation;

@@ -8,8 +8,8 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
-import { FileHandle } from 'mol-io/common/file-handle';
-import { SimpleBuffer } from 'mol-io/common/simple-buffer';
+import { FileHandle } from '../../../mol-io/common/file-handle';
+import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
 
 export async function openRead(filename: string) {
     return new Promise<number>((res, rej) => {

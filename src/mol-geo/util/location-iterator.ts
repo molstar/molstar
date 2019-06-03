@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Iterator } from 'mol-data';
-import { NullLocation, Location } from 'mol-model/location';
+import { Iterator } from '../../mol-data';
+import { NullLocation, Location } from '../../mol-model/location';
 
 export interface LocationValue {
     location: Location

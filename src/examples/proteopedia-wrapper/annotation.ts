@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CustomElementProperty } from 'mol-model-props/common/custom-element-property';
-import { Model, ElementIndex, ResidueIndex } from 'mol-model/structure';
-import { Color } from 'mol-util/color';
+import { CustomElementProperty } from '../../mol-model-props/common/custom-element-property';
+import { Model, ElementIndex, ResidueIndex } from '../../mol-model/structure';
+import { Color } from '../../mol-util/color';
 
 const EvolutionaryConservationPalette: Color[] = [
     [255, 255, 129], // insufficient

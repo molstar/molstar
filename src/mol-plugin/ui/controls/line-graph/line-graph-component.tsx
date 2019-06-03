@@ -6,7 +6,7 @@
 import PointComponent from './point-component';
 
 import * as React from 'react';
-import { Vec2 } from 'mol-math/linear-algebra';
+import { Vec2 } from '../../../../mol-math/linear-algebra';
 
 interface LineGraphComponentState {
     points: Vec2[],
@@ -43,12 +43,12 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.selected = undefined;
         this.ghostPoints = [];
         this.namespace = 'http://www.w3.org/2000/svg';
-    
+
         for (const point of this.props.data){
             this.state.points.push(point);
         }
-        
-        this.state.points.sort((a, b) => { 
+
+        this.state.points.sort((a, b) => {
             if(a[0] === b[0]){
                 if(a[0] === 0){
                     return a[1]-b[1];
@@ -70,28 +70,28 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.handleKeyUp = this.handleKeyUp.bind(this);
         this.handleLeave = this.handleLeave.bind(this);
         this.handleEnter = this.handleEnter.bind(this);
-        
+
     }
 
     public render() {
         const points = this.renderPoints();
         const lines = this.renderLines();
-        
+
         return ([
-            <div key="LineGraph">                
+            <div key="LineGraph">
                 <svg
                     className="msp-canvas"
-                    ref={this.refCallBack} 
+                    ref={this.refCallBack}
                     viewBox={`0 0 ${this.width+this.padding} ${this.height+this.padding}`}
-                    onMouseMove={this.handleDrag} 
+                    onMouseMove={this.handleDrag}
                     onMouseUp={this.handlePointUpdate}
                     onMouseLeave={this.handleLeave}
                     onMouseEnter={this.handleEnter}
                     tabIndex={0}
                     onKeyDown={this.handleKeyDown}
                     onKeyUp={this.handleKeyUp}
-                    onDoubleClick={this.handleDoubleClick}>  
-            
+                    onDoubleClick={this.handleDoubleClick}>
+
                     <g stroke="black" fill="black">
                         {lines}
                         {points}
@@ -112,7 +112,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         let copyPoints = points.slice();
         copyPoints.shift();
         copyPoints.pop();
-        this.props.onChange(copyPoints);    
+        this.props.onChange(copyPoints);
     }
 
     private handleKeyDown = (event: any) => {
@@ -135,7 +135,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         if (this.state.canSelectMultiple) {
             return;
         }
-        
+
         const copyPoint: Vec2 = this.normalizePoint(Vec2.create(this.state.points[id][0], this.state.points[id][1]));
         this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
         this.ghostPoints[0].setAttribute('r', '10');
@@ -145,7 +145,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         this.ghostPoints[0].setAttribute('style', 'display: none');
         this.gElement.appendChild(this.ghostPoints[0]);
         this.updatedX = copyPoint[0];
-        this.updatedY = copyPoint[1]; 
+        this.updatedY = copyPoint[1];
         this.selected = [id];
     }
 
@@ -179,14 +179,14 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         } else {
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
         }
-        
+
         this.updatedX = updatedCopyPoint[0];
         this.updatedY = updatedCopyPoint[1];
         const unNormalizePoint = this.unNormalizePoint(updatedCopyPoint);
         this.ghostPoints[0].setAttribute('style', 'display: visible');
         this.ghostPoints[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
         this.ghostPoints[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
-        
+
 
         this.props.onDrag(unNormalizePoint);
     }
@@ -197,8 +197,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
     private handlePointUpdate(event: any) {
         const selected = this.selected;
-        if (this.state.canSelectMultiple) { 
-            return; 
+        if (this.state.canSelectMultiple) {
+            return;
         }
 
         if(selected === undefined || selected[0] === 0 || selected[0] === this.state.points.length-1) {
@@ -208,11 +208,11 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             return;
         }
         this.selected = undefined;
-        
+
         const updatedPoint = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
         const points = this.state.points.filter((_,i) => i !== selected[0]);
         points.push(updatedPoint);;
-        points.sort((a, b) => { 
+        points.sort((a, b) => {
             if(a[0] === b[0]){
                 if(a[0] === 0){
                     return a[1]-b[1];
@@ -241,17 +241,17 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         pt.y = event.clientY;
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
         const points = this.state.points;
-        const padding = this.padding/2; 
+        const padding = this.padding/2;
 
-        if( svgP.x < (padding) || 
-            svgP.x > (this.width+(padding)) || 
-            svgP.y > (this.height+(padding)) || 
+        if( svgP.x < (padding) ||
+            svgP.x > (this.width+(padding)) ||
+            svgP.y > (this.height+(padding)) ||
             svgP.y < (this.padding/2)) {
             return;
         }
         newPoint = this.unNormalizePoint(Vec2.create(svgP.x, svgP.y));
         points.push(newPoint);
-        points.sort((a, b) => { 
+        points.sort((a, b) => {
             if(a[0] === b[0]){
                 if(a[0] === 0){
                     return a[1]-b[1];
@@ -270,7 +270,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private deletePoint = (i:number) => (event: any) => {
     if(i===0 || i===this.state.points.length-1){ return; }
         const points = this.state.points.filter((_,j) => j !== i);
-        points.sort((a, b) => { 
+        points.sort((a, b) => {
             if(a[0] === b[0]){
                 if(a[0] === 0){
                     return a[1]-b[1];
@@ -304,8 +304,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
     private normalizePoint(point: Vec2) {
         const min = this.padding/2;
         const maxX = this.width+min;
-        const maxY = this.height+min; 
-        const normalizedX = (point[0]*(maxX-min))+min; 
+        const maxY = this.height+min;
+        const normalizedX = (point[0]*(maxX-min))+min;
         const normalizedY = (point[1]*(maxY-min))+min;
         const reverseY = (this.height+this.padding)-normalizedY;
         const newPoint = Vec2.create(normalizedX, reverseY);
@@ -314,12 +314,12 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
 
     private unNormalizePoint(point: Vec2) {
         const min = this.padding/2;
-        const maxX = this.width+min; 
+        const maxX = this.width+min;
         const maxY = this.height+min;
         const unNormalizedX = (point[0]-min)/(maxX-min);
 
         // we have to take into account that we reversed y when we first normalized it.
-        const unNormalizedY = ((this.height+this.padding)-point[1]-min)/(maxY-min); 
+        const unNormalizedY = ((this.height+this.padding)-point[1]-min)/(maxY-min);
 
         return Vec2.create(unNormalizedX, unNormalizedY);
     }
@@ -339,7 +339,7 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
                 points.push(<PointComponent
                         key={i}
                         id={i}
-                        x={point[0]} 
+                        x={point[0]}
                         y={point[1]}
                         nX={this.state.points[i][0]}
                         nY={this.state.points[i][1]}
@@ -367,8 +367,8 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
         for(const point of this.state.points){
             min = this.padding/2;
             maxX = this.width+min;
-            maxY = this.height+min; 
-            normalizedX = (point[0]*(maxX-min))+min; 
+            maxY = this.height+min;
+            normalizedX = (point[0]*(maxX-min))+min;
             normalizedY = (point[1]*(maxY-min))+min;
             reverseY = this.height+this.padding-normalizedY;
             points.push(Vec2.create(normalizedX, reverseY));
@@ -382,10 +382,10 @@ export default class LineGraphComponent extends React.Component<any, LineGraphCo
             const y1 = data[i][1];
             const x2 = data[i+1][0];
             const y2 = data[i+1][1];
-    
+
             lines.push(<line key={`lineOf${i}`} x1={x1} x2={x2} y1={y1} y2={y2} stroke="#cec9ba" strokeWidth="5"/>)
         }
-        
+
         return lines;
     }
 }

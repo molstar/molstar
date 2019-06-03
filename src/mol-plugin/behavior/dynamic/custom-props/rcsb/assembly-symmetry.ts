@@ -4,15 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginBehavior } from 'mol-plugin/behavior';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { AssemblySymmetry } from 'mol-model-props/rcsb/assembly-symmetry';
-import { AssemblySymmetryClusterColorThemeProvider } from 'mol-model-props/rcsb/themes/assembly-symmetry-cluster';
-import { AssemblySymmetryAxesRepresentationProvider } from 'mol-model-props/rcsb/representations/assembly-symmetry-axes';
-import { Loci, isDataLoci } from 'mol-model/loci';
-import { OrderedSet } from 'mol-data/int';
-import { Table } from 'mol-data/db';
-import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
+import { ParamDefinition as PD } from '../../../../../mol-util/param-definition'
+import { AssemblySymmetry } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
+import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
+import { AssemblySymmetryAxesRepresentationProvider } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry-axes';
+import { Loci, isDataLoci } from '../../../../../mol-model/loci';
+import { OrderedSet } from '../../../../../mol-data/int';
+import { Table } from '../../../../../mol-data/db';
+import { CustomPropertyRegistry } from '../../../../../mol-model-props/common/custom-property-registry';
+import { PluginBehavior } from '../../../behavior';
 
 export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'rcsb-assembly-symmetry-prop',

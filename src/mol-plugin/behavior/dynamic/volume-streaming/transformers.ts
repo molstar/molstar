@@ -6,21 +6,21 @@
 
 import { PluginStateObject as SO, PluginStateTransform } from '../../../state/objects';
 import { VolumeServerInfo, VolumeServerHeader } from './model';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Task } from 'mol-task';
-import { PluginContext } from 'mol-plugin/context';
-import { urlCombine } from 'mol-util/url';
-import { createIsoValueParam } from 'mol-repr/volume/isosurface';
-import { VolumeIsoValue } from 'mol-model/volume';
-import { StateAction, StateObject, StateTransformer } from 'mol-state';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { Task } from '../../../../mol-task';
+import { PluginContext } from '../../../../mol-plugin/context';
+import { urlCombine } from '../../../../mol-util/url';
+import { createIsoValueParam } from '../../../../mol-repr/volume/isosurface';
+import { VolumeIsoValue } from '../../../../mol-model/volume';
+import { StateAction, StateObject, StateTransformer } from '../../../../mol-state';
 import { getStreamingMethod, getEmdbIdAndContourLevel } from './util';
 import { VolumeStreaming } from './behavior';
-import { VolumeRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
-import { BuiltInVolumeRepresentations } from 'mol-repr/volume/registry';
-import { createTheme } from 'mol-theme/theme';
-import { Box3D } from 'mol-math/geometry';
-import { Vec3 } from 'mol-math/linear-algebra';
-// import { PluginContext } from 'mol-plugin/context';
+import { VolumeRepresentation3DHelpers } from '../../../../mol-plugin/state/transforms/representation';
+import { BuiltInVolumeRepresentations } from '../../../../mol-repr/volume/registry';
+import { createTheme } from '../../../../mol-theme/theme';
+import { Box3D } from '../../../../mol-math/geometry';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
+// import { PluginContext } from '../../../../mol-plugin/context';
 
 export const InitVolumeStreaming = StateAction.build({
     display: { name: 'Volume Streaming' },

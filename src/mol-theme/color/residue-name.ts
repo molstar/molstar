@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color, ColorMap } from 'mol-util/color';
-import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
-import { Location } from 'mol-model/location';
+import { Color, ColorMap } from '../../mol-util/color';
+import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { TableLegend } from 'mol-util/color/tables';
-import { getAdjustedColorMap } from 'mol-util/color/color';
+import { TableLegend } from '../../mol-util/color/tables';
+import { getAdjustedColorMap } from '../../mol-util/color/color';
 
 // protein colors from Jmol http://jmol.sourceforge.net/jscolors/
 export const ResidueNameColors = ColorMap({
@@ -100,7 +100,7 @@ export function residueNameColor(colorMap: ResidueNameColors, residueName: strin
 
 export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<ResidueNameColorThemeParams>): ColorTheme<ResidueNameColorThemeParams> {
     const colorMap = getAdjustedColorMap(ResidueNameColors, props.saturation, props.lightness)
-    
+
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {

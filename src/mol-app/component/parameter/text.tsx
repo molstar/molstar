@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 export interface TextParamComponentProps {
     label: string

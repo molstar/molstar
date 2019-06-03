@@ -5,7 +5,7 @@
  */
 
 import { Task } from '../task'
-import { isProductionMode } from 'mol-util/debug';
+import { isProductionMode } from '../../mol-util/debug';
 
 const hasPerformance = typeof performance !== 'undefined'
 const timingEnabled = hasPerformance && !isProductionMode

@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task } from 'mol-task';
-import { UUID } from 'mol-util';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { Task } from '../mol-task';
+import { UUID } from '../mol-util';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { StateObject, StateObjectCell } from './object';
 import { State } from './state';
 import { StateTransformer } from './transformer';

@@ -4,17 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PolymerTraceVisual,  PolymerTraceParams } from '../visual/polymer-trace-mesh';
-import { PolymerGapVisual, PolymerGapParams } from '../visual/polymer-gap-cylinder';
-import { NucleotideBlockVisual, NucleotideBlockParams } from '../visual/nucleotide-block-mesh';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { UnitsRepresentation } from '../units-representation';
+import { Structure, Unit } from '../../../mol-model/structure';
+import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../../mol-repr/representation';
+import { ThemeRegistryContext } from '../../../mol-theme/theme';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
-import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
-import { PolymerDirectionVisual, PolymerDirectionParams } from '../visual/polymer-direction-wedge';
-import { Structure, Unit } from 'mol-model/structure';
-import { ThemeRegistryContext } from 'mol-theme/theme';
+import { UnitsRepresentation } from '../units-representation';
+import { NucleotideBlockParams, NucleotideBlockVisual } from '../visual/nucleotide-block-mesh';
 import { NucleotideRingParams, NucleotideRingVisual } from '../visual/nucleotide-ring-mesh';
+import { PolymerDirectionParams, PolymerDirectionVisual } from '../visual/polymer-direction-wedge';
+import { PolymerGapParams, PolymerGapVisual } from '../visual/polymer-gap-cylinder';
+import { PolymerTraceParams, PolymerTraceVisual } from '../visual/polymer-trace-mesh';
 
 const CartoonVisuals = {
     'polymer-trace': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTraceParams>) => UnitsRepresentation('Polymer trace mesh', ctx, getParams, PolymerTraceVisual),

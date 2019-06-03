@@ -5,19 +5,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { RuntimeContext, Task } from 'mol-task';
-import { ShapeProvider } from 'mol-model/shape/provider';
-import { Color } from 'mol-util/color';
-import { PlyFile, PlyTable, PlyList } from 'mol-io/reader/ply/schema';
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { Shape } from 'mol-model/shape';
-import { ChunkedArray } from 'mol-data/util';
-import { arrayMax, fillSerial } from 'mol-util/array';
-import { Column } from 'mol-data/db';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ColorNames } from 'mol-util/color/tables';
-import { deepClone } from 'mol-util/object';
+import { RuntimeContext, Task } from '../../mol-task';
+import { ShapeProvider } from '../../mol-model/shape/provider';
+import { Color } from '../../mol-util/color';
+import { PlyFile, PlyTable, PlyList } from '../../mol-io/reader/ply/schema';
+import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { Shape } from '../../mol-model/shape';
+import { ChunkedArray } from '../../mol-data/util';
+import { arrayMax, fillSerial } from '../../mol-util/array';
+import { Column } from '../../mol-data/db';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { ColorNames } from '../../mol-util/color/tables';
+import { deepClone } from '../../mol-util/object';
 
 // TODO support 'edge' element, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
 // TODO support missing face element

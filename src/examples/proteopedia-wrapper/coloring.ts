@@ -6,14 +6,14 @@
  */
 
 
-import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/structure';
+import { Unit, StructureProperties, StructureElement, Link } from '../../mol-model/structure';
 
-import { Color } from 'mol-util/color';
-import { Location } from 'mol-model/location';
-import { ColorTheme, LocationColor } from 'mol-theme/color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
-import { Column } from 'mol-data/db';
+import { Color } from '../../mol-util/color';
+import { Location } from '../../mol-model/location';
+import { ColorTheme, LocationColor } from '../../mol-theme/color';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { Column } from '../../mol-data/db';
 
 const Description = 'Gives every chain a color from a list based on its `asym_id` value.'
 

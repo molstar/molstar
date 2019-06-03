@@ -3,7 +3,7 @@
  */
 
 import * as Coords from './coordinate'
-import { SpacegroupCell } from 'mol-math/geometry';
+import { SpacegroupCell } from '../../../../mol-math/geometry';
 
 export interface Box<C extends Coords.Coord<Coords.Space>> { a: C, b: C }
 

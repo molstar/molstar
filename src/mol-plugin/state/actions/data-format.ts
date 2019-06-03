@@ -4,16 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginContext } from 'mol-plugin/context';
-import { State, StateBuilder, StateAction } from 'mol-state';
-import { Task } from 'mol-task';
-import { FileInfo, getFileInfo } from 'mol-util/file-info';
+import { PluginContext } from '../../../mol-plugin/context';
+import { State, StateBuilder, StateAction } from '../../../mol-state';
+import { Task } from '../../../mol-task';
+import { FileInfo, getFileInfo } from '../../../mol-util/file-info';
 import { PluginStateObject } from '../objects';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Ccp4Provider, Dsn6Provider, DscifProvider } from './volume';
 import { StateTransforms } from '../transforms';
 import { MmcifProvider, PdbProvider, GroProvider } from './structure';
-import msgpackDecode from 'mol-io/common/msgpack/decode'
+import msgpackDecode from '../../../mol-io/common/msgpack/decode'
 import { PlyProvider } from './shape';
 
 export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String> {

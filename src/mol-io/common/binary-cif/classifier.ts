@@ -6,7 +6,7 @@
  */
 
 import { ArrayEncoder, ArrayEncoding as E } from './array-encoder';
-import { getArrayDigitCount } from 'mol-util/number';
+import { getArrayDigitCount } from '../../../mol-util/number';
 
 export function classifyIntArray(xs: ArrayLike<number>) {
     return IntClassifier.classify(xs as number[]);

@@ -7,13 +7,13 @@
 import { getElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
 import { IntraUnitLinkVisual, IntraUnitLinkParams } from '../visual/intra-unit-link-cylinder';
 import { InterUnitLinkVisual, InterUnitLinkParams } from '../visual/inter-unit-link-cylinder';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { ComplexRepresentation } from '../complex-representation';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
-import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
-import { ThemeRegistryContext } from 'mol-theme/theme';
-import { Structure } from 'mol-model/structure';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
+import { ThemeRegistryContext } from '../../../mol-theme/theme';
+import { Structure } from '../../../mol-model/structure';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const BallAndStickVisuals = {

@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { defaults, noop } from 'mol-util';
+import { defaults, noop } from '../../mol-util';
 import { SimpleBuffer } from './simple-buffer';
 // only import 'fs' in node.js
 const fs = typeof document === 'undefined' ? require('fs') as typeof import('fs') : void 0;

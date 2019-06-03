@@ -7,8 +7,8 @@
  */
 
 import * as Data from './data-model'
-import { getElementByteSize } from 'mol-io/common/typed-array';
-import { SimpleBuffer } from 'mol-io/common/simple-buffer';
+import { getElementByteSize } from '../../../mol-io/common/typed-array';
+import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
 
 /** Converts a layer to blocks and writes them to the output file. */
 export async function writeBlockLayer(ctx: Data.Context, sampling: Data.Sampling) {

@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util';
-import { Vec2 } from 'mol-math/linear-algebra';
-import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
+import { ValueCell } from '../../mol-util';
+import { Vec2 } from '../../mol-math/linear-algebra';
+import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
 import { LocationIterator } from '../util/location-iterator';
-import { Location, NullLocation } from 'mol-model/location';
-import { SizeTheme } from 'mol-theme/size';
+import { Location, NullLocation } from '../../mol-model/location';
+import { SizeTheme } from '../../mol-theme/size';
 import { Geometry } from './geometry';
-import { encodeFloatLog, decodeFloatLog } from 'mol-util/float-packing';
+import { encodeFloatLog, decodeFloatLog } from '../../mol-util/float-packing';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 

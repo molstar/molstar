@@ -7,15 +7,15 @@
 
 import { PluginStateTransform } from '../objects';
 import { PluginStateObject as SO } from '../objects';
-import { Task } from 'mol-task';
-import CIF from 'mol-io/reader/cif'
-import { PluginContext } from 'mol-plugin/context';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { StateTransformer } from 'mol-state';
-import { readFromFile, ajaxGetMany } from 'mol-util/data-source';
-import * as CCP4 from 'mol-io/reader/ccp4/parser'
-import * as DSN6 from 'mol-io/reader/dsn6/parser'
-import * as PLY from 'mol-io/reader/ply/parser'
+import { Task } from '../../../mol-task';
+import { CIF } from '../../../mol-io/reader/cif'
+import { PluginContext } from '../../../mol-plugin/context';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { StateTransformer } from '../../../mol-state';
+import { readFromFile, ajaxGetMany } from '../../../mol-util/data-source';
+import * as CCP4 from '../../../mol-io/reader/ccp4/parser'
+import * as DSN6 from '../../../mol-io/reader/dsn6/parser'
+import * as PLY from '../../../mol-io/reader/ply/parser'
 
 export { Download }
 type Download = typeof Download

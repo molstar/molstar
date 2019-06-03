@@ -9,7 +9,7 @@ import BitFlags from './bit-flags'
 import StringBuilder from './string-builder'
 import UUID from './uuid'
 import Mask from './mask'
-import { Progress } from 'mol-task';
+import { Progress } from '../mol-task';
 
 export * from './value-cell'
 export { BitFlags, StringBuilder, UUID, Mask }

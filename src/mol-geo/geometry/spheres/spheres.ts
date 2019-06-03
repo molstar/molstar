@@ -4,19 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util';
+import { ValueCell } from '../../../mol-util';
 import { GeometryUtils } from '../geometry';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { TransformData } from '../transform-data';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { Theme } from 'mol-theme/theme';
-import { SpheresValues } from 'mol-gl/renderable/spheres';
+import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { Theme } from '../../../mol-theme/theme';
+import { SpheresValues } from '../../../mol-gl/renderable/spheres';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
-import { calculateBoundingSphere } from 'mol-gl/renderable/util';
-import { Sphere3D } from 'mol-math/geometry';
+import { calculateBoundingSphere } from '../../../mol-gl/renderable/util';
+import { Sphere3D } from '../../../mol-math/geometry';
 import { createSizes, getMaxSize } from '../size-data';
-import { Color } from 'mol-util/color';
+import { Color } from '../../../mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';

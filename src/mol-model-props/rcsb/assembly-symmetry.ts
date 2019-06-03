@@ -7,18 +7,18 @@
 import { AssemblySymmetry as AssemblySymmetryGraphQL } from './graphql/types';
 import query from './graphql/symmetry.gql';
 
-import { Model, CustomPropertyDescriptor } from 'mol-model/structure';
-import { CifWriter } from 'mol-io/writer/cif';
-import { Database as _Database, Column, Table } from 'mol-data/db'
-import { Category } from 'mol-io/writer/cif/encoder';
-import { Tensor } from 'mol-math/linear-algebra';
-import { CifExportContext } from 'mol-model/structure/export/mmcif';
-import { toTable } from 'mol-io/reader/cif/schema';
-import { CifCategory } from 'mol-io/reader/cif';
-import { PropertyWrapper } from 'mol-model-props/common/wrapper';
-import { Task, RuntimeContext } from 'mol-task';
-import { GraphQLClient } from 'mol-util/graphql-client';
-import { ajaxGet } from 'mol-util/data-source';
+import { Model, CustomPropertyDescriptor } from '../../mol-model/structure';
+import { CifWriter } from '../../mol-io/writer/cif';
+import { Database as _Database, Column, Table } from '../../mol-data/db'
+import { Category } from '../../mol-io/writer/cif/encoder';
+import { Tensor } from '../../mol-math/linear-algebra';
+import { CifExportContext } from '../../mol-model/structure/export/mmcif';
+import { toTable } from '../../mol-io/reader/cif/schema';
+import { CifCategory } from '../../mol-io/reader/cif';
+import { PropertyWrapper } from '../../mol-model-props/common/wrapper';
+import { Task, RuntimeContext } from '../../mol-task';
+import { GraphQLClient } from '../../mol-util/graphql-client';
+import { ajaxGet } from '../../mol-util/data-source';
 
 const { str, int, float, Aliased, Vector, List } = Column.Schema;
 
@@ -283,7 +283,7 @@ export namespace AssemblySymmetry {
         return true;
     }
 
-    export function createAttachTask(fetch: import('mol-util/data-source').AjaxTask) {
+    export function createAttachTask(fetch: import('../../mol-util/data-source').AjaxTask) {
         return (model: Model) => Task.create('RCSB Assembly Symmetry', async ctx => {
             if (get(model)) return true;
 

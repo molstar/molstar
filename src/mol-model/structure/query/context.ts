@@ -5,7 +5,7 @@
  */
 
 import { Structure, StructureElement, Unit } from '../structure';
-import { now } from 'mol-util/now';
+import { now } from '../../../mol-util/now';
 import { ElementIndex } from '../model';
 import { Link } from '../structure/unit/links';
 

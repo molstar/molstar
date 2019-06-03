@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure } from 'mol-model/structure';
-import { State, StateObject, StateSelection, StateObjectCell } from 'mol-state';
+import { Structure } from '../../mol-model/structure';
+import { State, StateObject, StateSelection, StateObjectCell } from '../../mol-state';
 import { PluginContext } from '../context';
 import { PluginStateObject } from '../state/objects';
 

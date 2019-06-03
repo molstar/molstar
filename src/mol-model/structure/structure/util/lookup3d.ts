@@ -5,10 +5,10 @@
  */
 
 import Structure from '../structure'
-import { Lookup3D, GridLookup3D, Box3D, Sphere3D, Result } from 'mol-math/geometry';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Lookup3D, GridLookup3D, Box3D, Sphere3D, Result } from '../../../../mol-math/geometry';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { computeStructureBoundary } from './boundary';
-import { OrderedSet } from 'mol-data/int';
+import { OrderedSet } from '../../../../mol-data/int';
 import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
 import StructureElement from '../element';
 import Unit from '../unit';

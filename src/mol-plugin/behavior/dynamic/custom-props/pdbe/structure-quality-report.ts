@@ -4,15 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OrderedSet } from 'mol-data/int';
-import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-report';
-import { StructureQualityReportColorTheme } from 'mol-model-props/pdbe/themes/structure-quality-report';
-import { Loci } from 'mol-model/loci';
-import { StructureElement } from 'mol-model/structure';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { OrderedSet } from '../../../../../mol-data/int';
+import { StructureQualityReport } from '../../../../../mol-model-props/pdbe/structure-quality-report';
+import { StructureQualityReportColorTheme } from '../../../../../mol-model-props/pdbe/themes/structure-quality-report';
+import { Loci } from '../../../../../mol-model/loci';
+import { StructureElement } from '../../../../../mol-model/structure';
+import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
 import { PluginBehavior } from '../../../behavior';
-import { ThemeDataContext } from 'mol-theme/theme';
-import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
+import { ThemeDataContext } from '../../../../../mol-theme/theme';
+import { CustomPropertyRegistry } from '../../../../../mol-model-props/common/custom-property-registry';
 
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'pdbe-structure-quality-report-prop',

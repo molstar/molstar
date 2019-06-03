@@ -1,8 +1,10 @@
 build/
+lib/
 
 node_modules/
 debug.log
 npm-debug.log
+tsconfig.tsbuildinfo
 
 *.sublime-workspace
 .idea

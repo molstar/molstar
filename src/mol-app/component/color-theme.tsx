@@ -5,8 +5,8 @@
  */
 
 import * as React from 'react'
-import { ColorTheme } from 'mol-theme/color';
-import { Color } from 'mol-util/color';
+import { ColorTheme } from '../../mol-theme/color';
+import { Color } from '../../mol-util/color';
 
 export interface ColorThemeComponentProps {
     colorTheme: ColorTheme<any>

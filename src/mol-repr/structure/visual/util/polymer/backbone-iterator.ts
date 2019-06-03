@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureElement, ElementIndex, ResidueIndex } from 'mol-model/structure';
-import { Segmentation } from 'mol-data/int';
-import Iterator from 'mol-data/iterator';
-import SortedRanges from 'mol-data/int/sorted-ranges';
+import { Unit, StructureElement, ElementIndex, ResidueIndex } from '../../../../../mol-model/structure';
+import { Segmentation } from '../../../../../mol-data/int';
+import Iterator from '../../../../../mol-data/iterator';
+import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
 import { getPolymerRanges } from '../polymer';
 
 /** Iterates over consecutive pairs of residues/coarse elements in polymers */

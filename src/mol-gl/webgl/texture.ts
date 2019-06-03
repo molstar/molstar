@@ -6,12 +6,12 @@
 
 import { WebGLContext } from './context'
 import { TextureImage, TextureVolume } from '../renderable/util';
-import { ValueCell } from 'mol-util';
+import { ValueCell } from '../../mol-util';
 import { RenderableSchema } from '../renderable/schema';
-import { idFactory } from 'mol-util/id-factory';
+import { idFactory } from '../../mol-util/id-factory';
 import { Framebuffer } from './framebuffer';
 import { isWebGL2 } from './compat';
-import { ValueOf } from 'mol-util/type-helpers';
+import { ValueOf } from '../../mol-util/type-helpers';
 
 const getNextTextureId = idFactory()
 

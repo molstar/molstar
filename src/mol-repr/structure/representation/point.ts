@@ -6,11 +6,11 @@
 
 import { ElementPointVisual, ElementPointParams } from '../visual/element-point';
 import { UnitsRepresentation } from '../units-representation';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
-import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
-import { ThemeRegistryContext } from 'mol-theme/theme';
-import { Structure } from 'mol-model/structure';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
+import { ThemeRegistryContext } from '../../../mol-theme/theme';
+import { Structure } from '../../../mol-model/structure';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const PointVisuals = {

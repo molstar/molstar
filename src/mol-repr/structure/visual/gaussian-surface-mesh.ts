@@ -4,23 +4,23 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../representation';
-import { VisualUpdateState } from '../../util';
-import { UnitsMeshVisual, UnitsMeshParams, UnitsTextureMeshParams, UnitsTextureMeshVisual } from '../units-visual';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual, UnitsTextureMeshVisual } from '../units-visual';
+import { GaussianDensityParams, computeUnitGaussianDensity, GaussianDensityTextureProps, computeUnitGaussianDensityTexture2d } from './util/gaussian';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { VisualContext } from '../../visual';
+import { Unit, Structure } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { GaussianDensityProps } from '../../../mol-math/geometry/gaussian-density';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
-import { GaussianDensityProps, computeUnitGaussianDensity, GaussianDensityParams, computeUnitGaussianDensityTexture2d, GaussianDensityTextureProps } from './util/gaussian';
-import { WebGLContext } from 'mol-gl/webgl/context';
-import { TextureMesh } from 'mol-geo/geometry/texture-mesh/texture-mesh';
-import { calcActiveVoxels } from 'mol-gl/compute/marching-cubes/active-voxels';
-import { createHistogramPyramid } from 'mol-gl/compute/histogram-pyramid/reduction';
-import { createIsosurfaceBuffers } from 'mol-gl/compute/marching-cubes/isosurface';
-import { Sphere3D } from 'mol-math/geometry';
+import { VisualUpdateState } from '../../util';
+import { TextureMesh } from '../../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { calcActiveVoxels } from '../../../mol-gl/compute/marching-cubes/active-voxels';
+import { createHistogramPyramid } from '../../../mol-gl/compute/histogram-pyramid/reduction';
+import { createIsosurfaceBuffers } from '../../../mol-gl/compute/marching-cubes/isosurface';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 export const GaussianSurfaceMeshParams = {
     ...UnitsMeshParams,

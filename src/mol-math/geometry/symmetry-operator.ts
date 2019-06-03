@@ -5,7 +5,7 @@
  */
 
 import { Vec3, Mat4, Mat3, Quat } from '../linear-algebra/3d'
-import { lerp as scalar_lerp } from 'mol-math/interpolate';
+import { lerp as scalar_lerp } from '../../mol-math/interpolate';
 
 interface SymmetryOperator {
     readonly name: string,

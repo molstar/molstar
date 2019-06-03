@@ -5,11 +5,11 @@
  */
 
 import { Box3D } from '../geometry';
-import { RuntimeContext, Task } from 'mol-task';
+import { RuntimeContext, Task } from '../../mol-task';
 import { PositionData, DensityData } from './common';
 import { GaussianDensityCPU } from './gaussian-density/cpu';
-import { WebGLContext } from 'mol-gl/webgl/context';
-import { Texture } from 'mol-gl/webgl/texture';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { Texture } from '../../mol-gl/webgl/texture';
 import { GaussianDensityTexture2d, GaussianDensityTexture3d } from './gaussian-density/gpu';
 
 // import { GaussianDensityGPU, GaussianDensityTexture } from './gaussian-density/gpu';

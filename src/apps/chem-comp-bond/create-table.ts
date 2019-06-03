@@ -14,13 +14,13 @@ require('util.promisify').shim()
 const readFile = util.promisify(fs.readFile)
 const writeFile = util.promisify(fs.writeFile)
 
-import { Progress } from 'mol-task'
-import { Database, Table, DatabaseCollection, Column } from 'mol-data/db'
-import CIF from 'mol-io/reader/cif'
-import { CifWriter } from 'mol-io/writer/cif'
-import { CCD_Schema } from 'mol-io/reader/cif/schema/ccd'
-import { SetUtils } from 'mol-util/set'
-import { DefaultMap } from 'mol-util/map'
+import { Progress } from '../../mol-task'
+import { Database, Table, DatabaseCollection, Column } from '../../mol-data/db'
+import { CIF } from '../../mol-io/reader/cif'
+import { CifWriter } from '../../mol-io/writer/cif'
+import { CCD_Schema } from '../../mol-io/reader/cif/schema/ccd'
+import { SetUtils } from '../../mol-util/set'
+import { DefaultMap } from '../../mol-util/map'
 
 export async function ensureAvailable(path: string, url: string) {
     if (FORCE_DOWNLOAD || !fs.existsSync(path)) {

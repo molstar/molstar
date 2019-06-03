@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Iterator } from 'mol-data'
+import { Iterator } from '../../../../mol-data'
 import { Field, Category } from '../encoder';
 
 export function getFieldDigitCount(field: Field) {

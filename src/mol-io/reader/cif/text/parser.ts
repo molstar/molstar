@@ -25,7 +25,7 @@
 import * as Data from '../data-model'
 import { Tokens, TokenBuilder } from '../../common/text/tokenizer'
 import { ReaderResult as Result } from '../../result'
-import { Task, RuntimeContext, chunkedSubtask } from 'mol-task'
+import { Task, RuntimeContext, chunkedSubtask } from '../../../../mol-task'
 
 /**
  * Types of supported mmCIF tokens.

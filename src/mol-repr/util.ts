@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { defaults } from 'mol-util';
-import { Structure } from 'mol-model/structure';
-import { VisualQuality } from 'mol-geo/geometry/base';
+import { defaults } from '../mol-util';
+import { Structure } from '../mol-model/structure';
+import { VisualQuality } from '../mol-geo/geometry/base';
 
 export interface VisualUpdateState {
     updateTransform: boolean

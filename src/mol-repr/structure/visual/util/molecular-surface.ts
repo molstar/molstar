@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
-import { Task, RuntimeContext } from 'mol-task';
+import { Unit } from '../../../../mol-model/structure';
+import { Task, RuntimeContext } from '../../../../mol-task';
 import { getUnitConformationAndRadius } from './common';
-import { PositionData, DensityData } from 'mol-math/geometry';
-import { MolecularSurfaceCalculationProps, calcMolecularSurface } from 'mol-math/geometry/molecular-surface';
-import { OrderedSet } from 'mol-data/int';
+import { PositionData, DensityData } from '../../../../mol-math/geometry';
+import { MolecularSurfaceCalculationProps, calcMolecularSurface } from '../../../../mol-math/geometry/molecular-surface';
+import { OrderedSet } from '../../../../mol-data/int';
 
 function getPositionDataAndMaxRadius(unit: Unit, props: MolecularSurfaceCalculationProps) {
     const { position, radius } = getUnitConformationAndRadius(unit)

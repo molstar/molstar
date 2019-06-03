@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Task, RuntimeContext } from 'mol-task';
+import { Task, RuntimeContext } from '../../../mol-task';
 import { Dsn6File, Dsn6Header } from './schema'
 import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
-import { SimpleBuffer } from 'mol-io/common/simple-buffer';
+import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
 
 export const dsn6HeaderSize = 512;
 

@@ -8,11 +8,11 @@ import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
 import { GLRenderingContext, isWebGL2 } from './compat';
 import { createFramebufferCache, FramebufferCache, checkFramebufferStatus } from './framebuffer';
-import { Scheduler } from 'mol-task';
-import { isDebugMode } from 'mol-util/debug';
+import { Scheduler } from '../../mol-task';
+import { isDebugMode } from '../../mol-util/debug';
 import { createExtensions, WebGLExtensions } from './extensions';
 import { WebGLState, createState } from './state';
-import { PixelData } from 'mol-util/image';
+import { PixelData } from '../../mol-util/image';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {

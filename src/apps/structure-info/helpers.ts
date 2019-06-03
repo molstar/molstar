@@ -9,8 +9,8 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 require('util.promisify').shim();
 
-import CIF from 'mol-io/reader/cif'
-import { Progress } from 'mol-task'
+import { CIF } from '../../mol-io/reader/cif'
+import { Progress } from '../../mol-task'
 
 const readFileAsync = util.promisify(fs.readFile);
 

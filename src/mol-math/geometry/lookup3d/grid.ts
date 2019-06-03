@@ -10,7 +10,7 @@ import { Box3D } from '../primitives/box3d';
 import { Sphere3D } from '../primitives/sphere3d';
 import { PositionData } from '../common';
 import { Vec3 } from '../../linear-algebra';
-import { OrderedSet } from 'mol-data/int';
+import { OrderedSet } from '../../../mol-data/int';
 import { BoundaryHelper } from '../boundary-helper';
 
 interface GridLookup3D<T = number> extends Lookup3D<T> {

@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PdbFile } from 'mol-io/reader/pdb/schema';
+import { PdbFile } from '../../mol-io/reader/pdb/schema';
 import { pdbToMmCif } from './pdb/to-cif';
-import { Model } from 'mol-model/structure/model';
-import { Task } from 'mol-task';
+import { Model } from '../../mol-model/structure/model';
+import { Task } from '../../mol-task';
 import { ModelFormat } from './format';
 import { _parse_mmCif } from './mmcif/parser';
 

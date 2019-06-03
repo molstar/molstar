@@ -6,9 +6,9 @@
 
 import { Model, ResidueIndex, ElementIndex } from './model';
 import { MoleculeType, AtomRole, MoleculeTypeAtomRoleId, getMoleculeType } from './model/types';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { Unit } from './structure';
-import Matrix from 'mol-math/linear-algebra/matrix/matrix';
+import Matrix from '../../mol-math/linear-algebra/matrix/matrix';
 
 export function getCoarseBegCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIndex) {
     const entityKey = unit.coarseElements.entityKey[element]

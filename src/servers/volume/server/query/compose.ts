@@ -9,7 +9,7 @@
 import * as Data from './data-model'
 import * as Box from '../algebra/box'
 import * as Coords from '../algebra/coordinate'
-import { createTypedArrayBufferContext, getElementByteSize, readTypedArray } from 'mol-io/common/typed-array';
+import { createTypedArrayBufferContext, getElementByteSize, readTypedArray } from '../../../../mol-io/common/typed-array';
 
 export default async function compose(query: Data.QueryContext.Data) {
     for (const block of query.samplingInfo.blocks) {

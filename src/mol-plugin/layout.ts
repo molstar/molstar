@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginComponent } from './component';
 import { PluginContext } from './context';
 import { PluginCommands } from './command';

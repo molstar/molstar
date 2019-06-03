@@ -2,17 +2,17 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * 
+ *
  * adapted from https://github.com/internalfx/distinct-colors (ISC License Copyright (c) 2015, InternalFX Inc.)
  * which is heavily inspired by http://tools.medialab.sciences-po.fr/iwanthue/
  */
 
 import { Lab } from './spaces/lab';
 import { Hcl } from './spaces/hcl';
-import { deepClone } from 'mol-util/object';
-import { deepEqual } from 'mol-util';
-import { arraySum } from 'mol-util/array';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { deepClone } from '../../mol-util/object';
+import { deepEqual } from '../../mol-util';
+import { arraySum } from '../../mol-util/array';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
 
 export const DistinctColorsParams = {
     hue: PD.Interval([1, 360], { min: 0, max: 360, step: 1 }),

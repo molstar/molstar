@@ -4,18 +4,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State } from 'mol-state';
+import { State } from '../mol-state';
 import { PluginStateObject as SO } from './state/objects';
-import { Camera } from 'mol-canvas3d/camera';
+import { Camera } from '../mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
 import { CameraSnapshotManager } from './state/camera';
 import { PluginStateSnapshotManager } from './state/snapshots';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
-import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
+import { RxEventHelper } from '../mol-util/rx-event-helper';
+import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from './command';
 import { PluginAnimationManager } from './state/animation/manager';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { UUID } from 'mol-util';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { UUID } from '../mol-util';
 export { PluginState }
 
 class PluginState {

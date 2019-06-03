@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { idFactory } from 'mol-util/id-factory'
+import { idFactory } from '../../mol-util/id-factory'
 
 const c = {
     ACTIVE_ATTRIBUTE_MAX_LENGTH: 35722,

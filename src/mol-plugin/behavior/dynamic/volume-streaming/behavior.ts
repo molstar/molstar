@@ -4,25 +4,25 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import CIF from 'mol-io/reader/cif';
-import { Box3D } from 'mol-math/geometry';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { volumeFromDensityServerData } from 'mol-model-formats/volume/density-server';
-import { StructureElement } from 'mol-model/structure';
-import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
-import { PluginBehavior } from 'mol-plugin/behavior';
-import { PluginContext } from 'mol-plugin/context';
-import { PluginStateObject } from 'mol-plugin/state/objects';
-import { createIsoValueParam } from 'mol-repr/volume/isosurface';
-import { Color } from 'mol-util/color';
-import { LRUCache } from 'mol-util/lru-cache';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { urlCombine } from 'mol-util/url';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { PluginStateObject } from '../../../state/objects';
+import { VolumeIsoValue, VolumeData } from '../../../../mol-model/volume';
+import { createIsoValueParam } from '../../../../mol-repr/volume/isosurface';
 import { VolumeServerHeader, VolumeServerInfo } from './model';
-import { ButtonsType } from 'mol-util/input/input-observer';
-import { PluginCommands } from 'mol-plugin/command';
-import { StateSelection } from 'mol-state';
-import { Representation } from 'mol-repr/representation';
+import { Box3D } from '../../../../mol-math/geometry';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { Color } from '../../../../mol-util/color';
+import { PluginBehavior } from '../../behavior';
+import { LRUCache } from '../../../../mol-util/lru-cache';
+import { urlCombine } from '../../../../mol-util/url';
+import { CIF } from '../../../../mol-io/reader/cif';
+import { volumeFromDensityServerData } from '../../../../mol-model-formats/volume/density-server';
+import { PluginCommands } from '../../../command';
+import { StateSelection } from '../../../../mol-state';
+import { Representation } from '../../../../mol-repr/representation';
+import { ButtonsType } from '../../../../mol-util/input/input-observer';
+import { StructureElement } from '../../../../mol-model/structure';
+import { PluginContext } from '../../../context';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 

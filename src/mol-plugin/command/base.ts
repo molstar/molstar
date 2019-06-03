@@ -5,7 +5,7 @@
  */
 
 import { PluginContext } from '../context';
-import { UUID } from 'mol-util';
+import { UUID } from '../../mol-util';
 
 export { PluginCommand }
 

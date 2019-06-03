@@ -5,9 +5,9 @@
  */
 
 import * as fs from 'fs'
-import { Model } from 'mol-model/structure';
+import { Model } from '../../mol-model/structure';
 import Config from './config';
-import { ConsoleLogger } from 'mol-util/console-logger';
+import { ConsoleLogger } from '../../mol-util/console-logger';
 
 export interface ModelPropertyProviderConfig {
     sources: string[],

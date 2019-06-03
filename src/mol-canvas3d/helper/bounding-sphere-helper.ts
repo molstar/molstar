@@ -4,20 +4,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from 'mol-gl/render-object'
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import Scene from 'mol-gl/scene';
-import { WebGLContext } from 'mol-gl/webgl/context';
-import { Sphere3D } from 'mol-math/geometry';
-import { Color } from 'mol-util/color';
-import { ColorNames } from 'mol-util/color/tables';
-import { TransformData } from 'mol-geo/geometry/transform-data';
-import { sphereVertexCount } from 'mol-geo/primitive/sphere';
-import { ValueCell } from 'mol-util';
-import { Geometry } from 'mol-geo/geometry/geometry';
+import { createRenderObject, GraphicsRenderObject, getNextMaterialId } from '../../mol-gl/render-object'
+import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
+import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import Scene from '../../mol-gl/scene';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { Sphere3D } from '../../mol-math/geometry';
+import { Color } from '../../mol-util/color';
+import { ColorNames } from '../../mol-util/color/tables';
+import { TransformData } from '../../mol-geo/geometry/transform-data';
+import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
+import { ValueCell } from '../../mol-util';
+import { Geometry } from '../../mol-geo/geometry/geometry';
 
 export const DebugHelperParams = {
     sceneBoundingSpheres: PD.Boolean(false, { description: 'Show scene bounding spheres.' }),

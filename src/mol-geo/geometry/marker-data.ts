@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-import { Vec2 } from 'mol-math/linear-algebra'
-import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
+import { ValueCell } from '../../mol-util/value-cell'
+import { Vec2 } from '../../mol-math/linear-algebra'
+import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
 
 export type MarkerData = {
     tMarker: ValueCell<TextureImage<Uint8Array>>

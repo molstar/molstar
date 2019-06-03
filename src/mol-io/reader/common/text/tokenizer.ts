@@ -6,7 +6,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { chunkedSubtask, RuntimeContext } from 'mol-task'
+import { chunkedSubtask, RuntimeContext } from '../../../../mol-task'
 
 export { Tokenizer }
 

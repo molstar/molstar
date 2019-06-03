@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Task, RuntimeContext } from 'mol-task';
+import { Task, RuntimeContext } from '../../../mol-task';
 import { Ccp4File, Ccp4Header } from './schema'
 import { ReaderResult as Result } from '../result'
 import { FileHandle } from '../../common/file-handle';
-import { SimpleBuffer } from 'mol-io/common/simple-buffer';
-import { TypedArrayValueType, getElementByteSize, TypedArrayBufferContext, readTypedArray, createTypedArrayBufferContext } from 'mol-io/common/typed-array';
+import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
+import { TypedArrayValueType, getElementByteSize, TypedArrayBufferContext, readTypedArray, createTypedArrayBufferContext } from '../../../mol-io/common/typed-array';
 
 export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4Header, littleEndian: boolean }> {
     const headerSize = 1024;

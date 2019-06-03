@@ -4,17 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginCommands } from 'mol-plugin/command';
+import { PluginCommands } from '../../mol-plugin/command';
 import * as React from 'react';
 import { PluginUIComponent, PurePluginUIComponent } from './base';
-import { shallowEqual } from 'mol-util';
+import { shallowEqual } from '../../mol-util';
 import { OrderedMap } from 'immutable';
 import { ParameterControls } from './controls/parameters';
-import { ParamDefinition as PD} from 'mol-util/param-definition';
-import { PluginState } from 'mol-plugin/state';
-import { urlCombine } from 'mol-util/url';
+import { ParamDefinition as PD} from '../../mol-util/param-definition';
+import { PluginState } from '../../mol-plugin/state';
+import { urlCombine } from '../../mol-util/url';
 import { IconButton, Icon } from './controls/common';
-import { formatTimespan } from 'mol-util/now';
+import { formatTimespan } from '../../mol-util/now';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
     downloadToFile = () => {

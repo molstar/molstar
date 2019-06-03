@@ -5,9 +5,9 @@
  */
 
 import * as React from 'react';
-import { PluginStateObject } from 'mol-plugin/state/objects';
-import { State, StateObject, StateTransform, StateObjectCell } from 'mol-state'
-import { PluginCommands } from 'mol-plugin/command';
+import { PluginStateObject } from '../../../mol-plugin/state/objects';
+import { State, StateObject, StateTransform, StateObjectCell } from '../../../mol-state'
+import { PluginCommands } from '../../../mol-plugin/command';
 import { PluginUIComponent, _Props, _State } from '../base';
 import { StateObjectActions } from './actions';
 

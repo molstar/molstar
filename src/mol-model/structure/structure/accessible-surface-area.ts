@@ -5,10 +5,10 @@
  */
 
 import Structure from './structure';
-import { Task, RuntimeContext } from 'mol-task';
-import { BitFlags } from 'mol-util';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Task, RuntimeContext } from '../../../mol-task';
+import { BitFlags } from '../../../mol-util';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition'
+import { Vec3 } from '../../../mol-math/linear-algebra';
 import { isPolymer, ElementSymbol, isNucleic, MoleculeType } from '../model/types';
 import { VdwRadius } from '../model/properties/atomic';
 import { isHydrogen, getElementIdx } from './unit/links/common';

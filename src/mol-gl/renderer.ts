@@ -4,19 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Viewport } from 'mol-canvas3d/camera/util';
-import { Camera } from 'mol-canvas3d/camera';
+import { Viewport } from '../mol-canvas3d/camera/util';
+import { Camera } from '../mol-canvas3d/camera';
 
 import Scene from './scene';
 import { WebGLContext } from './webgl/context';
-import { Mat4, Vec3, Vec4 } from 'mol-math/linear-algebra';
+import { Mat4, Vec3, Vec4 } from '../mol-math/linear-algebra';
 import { Renderable } from './renderable';
-import { Color } from 'mol-util/color';
-import { ValueCell } from 'mol-util';
+import { Color } from '../mol-util/color';
+import { ValueCell } from '../mol-util';
 import { RenderableValues, GlobalUniformValues, BaseValues } from './renderable/schema';
 import { GraphicsRenderVariant } from './webgl/render-item';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { deepClone } from 'mol-util/object';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { deepClone } from '../mol-util/object';
 
 export interface RendererStats {
     programCount: number

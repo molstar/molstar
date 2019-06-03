@@ -4,21 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTree, StateBuilder, StateAction, State } from 'mol-state';
-import { StateTransforms } from 'mol-plugin/state/transforms';
-import { createModelTree, complexRepresentation } from 'mol-plugin/state/actions/structure';
-import { PluginContext } from 'mol-plugin/context';
-import { PluginStateObject } from 'mol-plugin/state/objects';
-import { ParamDefinition } from 'mol-util/param-definition';
-import { PluginCommands } from 'mol-plugin/command';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
-import { MolScriptBuilder as MS } from 'mol-script/language/builder';
-import { Text } from 'mol-geo/geometry/text/text';
-import { UUID } from 'mol-util';
-import { ColorNames } from 'mol-util/color/tables';
-import { Camera } from 'mol-canvas3d/camera';
-import { StructureRepresentation3DHelpers } from 'mol-plugin/state/transforms/representation';
+import { StateTree, StateBuilder, StateAction, State } from '../../../mol-state';
+import { StateTransforms } from '../../../mol-plugin/state/transforms';
+import { createModelTree, complexRepresentation } from '../../../mol-plugin/state/actions/structure';
+import { PluginContext } from '../../../mol-plugin/context';
+import { PluginStateObject } from '../../../mol-plugin/state/objects';
+import { ParamDefinition } from '../../../mol-util/param-definition';
+import { PluginCommands } from '../../../mol-plugin/command';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { PluginStateSnapshotManager } from '../../../mol-plugin/state/snapshots';
+import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
+import { Text } from '../../../mol-geo/geometry/text/text';
+import { UUID } from '../../../mol-util';
+import { ColorNames } from '../../../mol-util/color/tables';
+import { Camera } from '../../../mol-canvas3d/camera';
+import { StructureRepresentation3DHelpers } from '../../../mol-plugin/state/transforms/representation';
 
 export const CreateJoleculeState = StateAction.build({
     display: { name: 'Jolecule State Import' },

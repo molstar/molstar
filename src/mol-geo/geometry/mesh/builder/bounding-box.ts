@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from 'mol-math/linear-algebra';
-import { Box3D } from 'mol-math/geometry';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { Box3D } from '../../../../mol-math/geometry';
 import { MeshBuilder } from '../mesh-builder';
 import { CylinderProps } from '../../../primitive/cylinder';
 import { addCylinder } from './cylinder';

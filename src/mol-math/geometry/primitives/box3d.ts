@@ -7,7 +7,7 @@
 
 import { Vec3, Mat4 } from '../../linear-algebra'
 import { PositionData } from '../common'
-import { OrderedSet } from 'mol-data/int';
+import { OrderedSet } from '../../../mol-data/int';
 
 interface Box3D { min: Vec3, max: Vec3 }
 

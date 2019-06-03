@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CifCategory, CifField } from 'mol-io/reader/cif';
-import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
-import { Tokens } from 'mol-io/reader/common/text/tokenizer';
+import { CifCategory, CifField } from '../../../mol-io/reader/cif';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
+import { Tokens } from '../../../mol-io/reader/common/text/tokenizer';
 
 const HelixTypes: {[k: string]: mmCIF_Schema['struct_conf']['conf_type_id']['T']} = {
     // CLASS NUMBER

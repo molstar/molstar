@@ -8,7 +8,7 @@ import { RuntimeContext } from './execution/runtime-context'
 import { Progress } from './execution/progress'
 import { ExecuteObservable, ExecuteObservableChild, ExecuteInContext } from './execution/observable';
 import { SyncRuntimeContext } from './execution/synchronous';
-import { idFactory } from 'mol-util/id-factory';
+import { idFactory } from '../mol-util/id-factory';
 
 /** A "named function wrapper" with built in "computation tree progress tracking". */
 interface Task<T> {

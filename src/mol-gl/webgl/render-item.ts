@@ -10,13 +10,13 @@ import { WebGLContext, checkError } from './context';
 import { ShaderCode } from '../shader-code';
 import { Program } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values } from '../renderable/schema';
-import { idFactory } from 'mol-util/id-factory';
+import { idFactory } from '../../mol-util/id-factory';
 import { deleteVertexArray, createVertexArray } from './vertex-array';
-import { ValueCell } from 'mol-util';
-import { ReferenceItem } from 'mol-util/reference-cache';
-import { TextureImage, TextureVolume } from 'mol-gl/renderable/util';
+import { ValueCell } from '../../mol-util';
+import { ReferenceItem } from '../../mol-util/reference-cache';
+import { TextureImage, TextureVolume } from '../../mol-gl/renderable/util';
 import { checkFramebufferStatus } from './framebuffer';
-import { isDebugMode } from 'mol-util/debug';
+import { isDebugMode } from '../../mol-util/debug';
 
 const getNextRenderItemId = idFactory()
 

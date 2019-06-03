@@ -7,11 +7,11 @@
 import { GaussianSurfaceMeshVisual, GaussianSurfaceTextureMeshVisual, GaussianSurfaceMeshParams } from '../visual/gaussian-surface-mesh';
 import { UnitsRepresentation } from '../units-representation';
 import { GaussianWireframeVisual, GaussianWireframeParams } from '../visual/gaussian-surface-wireframe';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
-import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
-import { ThemeRegistryContext } from 'mol-theme/theme';
-import { Structure } from 'mol-model/structure';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
+import { ThemeRegistryContext } from '../../../mol-theme/theme';
+import { Structure } from '../../../mol-model/structure';
 
 const GaussianSurfaceVisuals = {
     'gaussian-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceMeshParams>) => UnitsRepresentation('Gaussian surface', ctx, getParams, GaussianSurfaceMeshVisual),

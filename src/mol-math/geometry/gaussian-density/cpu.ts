@@ -6,9 +6,9 @@
 
 import { Box3D, fillGridDim } from '../../geometry';
 import { Vec3, Mat4, Tensor } from '../../linear-algebra';
-import { RuntimeContext } from 'mol-task';
+import { RuntimeContext } from '../../../mol-task';
 import { PositionData, DensityData } from '../common';
-import { OrderedSet } from 'mol-data/int';
+import { OrderedSet } from '../../../mol-data/int';
 import { GaussianDensityProps } from '../gaussian-density';
 
 export async function GaussianDensityCPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<DensityData> {

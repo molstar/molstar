@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Loci, EmptyLoci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from '../mol-model/loci';
 
 export { Transparency }
 

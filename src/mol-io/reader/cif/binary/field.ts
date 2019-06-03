@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column, ColumnHelpers } from 'mol-data/db'
+import { Column, ColumnHelpers } from '../../../../mol-data/db'
 import * as Data from '../data-model'
 import { EncodedColumn, decode } from '../../../common/binary-cif'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../common/text/number-parser'

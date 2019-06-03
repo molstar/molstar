@@ -2,13 +2,13 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * 
+ *
  * Color conversion code adapted from chroma.js (https://github.com/gka/chroma.js)
  * Copyright (c) 2011-2018, Gregor Aisch, BSD license
  */
 
 import { Color } from '../color';
-import { degToRad } from 'mol-math/misc';
+import { degToRad } from '../../../mol-math/misc';
 import { Lab } from './lab';
 
 export { Hcl }
@@ -17,11 +17,11 @@ interface Hcl extends Array<number> { [d: number]: number, '@type': 'hcl', lengt
 
 /**
  * CIE HCL (Hue-Chroma-Luminance) color
- * 
+ *
  * - H [0..360]
  * - C [0..100]
  * - L [0..100]
- * 
+ *
  * Cylindrical representation of CIELUV (see https://en.wikipedia.org/wiki/CIELUV)
  */
 function Hcl() {
@@ -59,12 +59,12 @@ namespace Hcl {
 
     /**
      * Convert from a qualitative parameter h and a quantitative parameter l to a 24-bit pixel.
-     * 
+     *
      * These formulas were invented by David Dalrymple to obtain maximum contrast without going
      * out of gamut if the parameters are in the range 0-1.
      * A saturation multiplier was added by Gregor Aisch
      */
-    export function toLab(out: Lab, hcl: Hcl): Lab {        
+    export function toLab(out: Lab, hcl: Hcl): Lab {
         let [h, c, l] = hcl
         if (isNaN(h)) h = 0
         h = degToRad(h)

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Database, Column } from 'mol-data/db'
+import { Database, Column } from '../../../../mol-data/db'
 
 import Schema = Column.Schema
 

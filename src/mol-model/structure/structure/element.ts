@@ -4,19 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { UniqueArray } from 'mol-data/generic';
-import { OrderedSet, SortedArray } from 'mol-data/int';
-import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { MolScriptBuilder as MS } from 'mol-script/language/builder';
+import { UniqueArray } from '../../../mol-data/generic';
+import { OrderedSet, SortedArray } from '../../../mol-data/int';
+import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { ElementIndex } from '../model';
 import { ChainIndex, ResidueIndex } from '../model/indexing';
 import Structure from './structure';
 import Unit from './unit';
 import { Boundary } from './util/boundary';
 import { StructureProperties } from '../structure';
-import { sortArray } from 'mol-data/util';
-import Expression from 'mol-script/language/expression';
+import { sortArray } from '../../../mol-data/util';
+import Expression from '../../../mol-script/language/expression';
 
 interface StructureElement<U = Unit> {
     readonly kind: 'element-location',

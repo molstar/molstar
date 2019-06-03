@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ColorScale, Color } from 'mol-util/color';
-import { Location } from 'mol-model/location';
-import { StructureElement, Link } from 'mol-model/structure';
-import { OrderedSet } from 'mol-data/int';
+import { ColorScale, Color } from '../../mol-util/color';
+import { Location } from '../../mol-model/location';
+import { StructureElement, Link } from '../../mol-model/structure';
+import { OrderedSet } from '../../mol-data/int';
 import { ColorTheme, LocationColor } from '../color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
-import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { ColorListOptions, ColorListName } from '../../mol-util/color/scale';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every element (atom or coarse sphere/gaussian) a unique color based on the position (index) of the element in the list of elements in the structure.'

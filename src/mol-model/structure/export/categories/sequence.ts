@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-data/db';
-import { CifWriter } from 'mol-io/writer/cif';
+import { Column } from '../../../../mol-data/db';
+import { CifWriter } from '../../../../mol-io/writer/cif';
 import { Structure } from '../../structure';
 import { CifExportContext } from '../mmcif';
 import { getModelMmCifCategory, getUniqueEntityIdsFromStructures } from './utils';
@@ -33,4 +33,3 @@ function getCategoryInstance(structures: Structure[], categoryName: 'struct_asym
     return CifCategory.ofTable(category, indices);
 
 }
-

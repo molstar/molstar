@@ -7,8 +7,8 @@
 
 import { Vec3, Mat4, EPSILON } from '../../linear-algebra'
 import { PositionData } from '../common'
-import { OrderedSet } from 'mol-data/int';
-import { NumberArray } from 'mol-util/type-helpers';
+import { OrderedSet } from '../../../mol-data/int';
+import { NumberArray } from '../../../mol-util/type-helpers';
 import { Box3D } from './box3d';
 
 interface Sphere3D { center: Vec3, radius: number }

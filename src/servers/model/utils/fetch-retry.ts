@@ -5,7 +5,7 @@
  */
 
 import fetch from 'node-fetch';
-import { retryIf } from 'mol-util/retry-if';
+import { retryIf } from '../../../mol-util/retry-if';
 
 const RETRIABLE_NETWORK_ERRORS = [
     'ECONNRESET', 'ENOTFOUND', 'ESOCKETTIMEDOUT', 'ETIMEDOUT',

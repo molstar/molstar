@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, Progress } from 'mol-task';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
-import { now } from 'mol-util/now';
+import { Task, Progress } from '../../mol-task';
+import { RxEventHelper } from '../../mol-util/rx-event-helper';
+import { now } from '../../mol-util/now';
 
 export { TaskManager }
 

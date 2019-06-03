@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CifWriter } from 'mol-io/writer/cif';
-import { Model } from 'mol-model/structure';
-import { dateToUtcString } from 'mol-util/date';
+import { CifWriter } from '../../mol-io/writer/cif';
+import { Model } from '../../mol-model/structure';
+import { dateToUtcString } from '../../mol-util/date';
 
 interface PropertyWrapper<Data> {
     info: PropertyWrapper.Info,

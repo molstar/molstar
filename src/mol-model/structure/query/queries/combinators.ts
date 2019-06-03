@@ -7,7 +7,7 @@
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { none } from './generators';
-import { HashSet } from 'mol-data/generic';
+import { HashSet } from '../../../../mol-data/generic';
 import { Structure } from '../../structure';
 
 export function merge(queries: ArrayLike<StructureQuery>): StructureQuery {

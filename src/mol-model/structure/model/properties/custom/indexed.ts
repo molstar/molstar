@@ -6,9 +6,9 @@
 
 import { ResidueIndex, ChainIndex, ElementIndex, EntityIndex } from '../../indexing';
 import { Unit, Structure, StructureElement } from '../../../structure';
-import { Segmentation } from 'mol-data/int';
-import { UUID } from 'mol-util';
-import { CifWriter } from 'mol-io/writer/cif';
+import { Segmentation } from '../../../../../mol-data/int';
+import { UUID } from '../../../../../mol-util';
+import { CifWriter } from '../../../../../mol-io/writer/cif';
 import { Model } from '../../model';
 
 export interface IndexedCustomProperty<Idx extends IndexedCustomProperty.Index, T = any> {

@@ -5,7 +5,7 @@
  */
 
 import { Structure, Unit } from '../../structure'
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { QueryFn, QueryContext } from '../context';
 
 export function checkStructureMinMaxDistance(ctx: QueryContext, a: Structure, b: Structure, minDist: number, maxDist: number, elementRadius: QueryFn<number>) {

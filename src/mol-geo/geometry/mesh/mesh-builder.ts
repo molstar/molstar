@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-import { Vec3, Mat4, Mat3 } from 'mol-math/linear-algebra';
-import { ChunkedArray } from 'mol-data/util';
+import { ValueCell } from '../../../mol-util/value-cell'
+import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra';
+import { ChunkedArray } from '../../../mol-data/util';
 import { Mesh } from './mesh';
 import { getNormalMatrix } from '../../util';
 import { Primitive } from '../../primitive/primitive';
-import { Cage } from 'mol-geo/primitive/cage';
+import { Cage } from '../../../mol-geo/primitive/cage';
 import { addSphere } from './builder/sphere';
 import { addCylinder } from './builder/cylinder';
 

@@ -5,7 +5,7 @@
  */
 
 import { PdbFile } from './schema';
-import { Task } from 'mol-task';
+import { Task } from '../../../mol-task';
 import { ReaderResult } from '../result';
 import { Tokenizer } from '../common/text/tokenizer';
 

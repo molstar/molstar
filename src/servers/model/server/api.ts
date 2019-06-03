@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Queries, Structure, StructureQuery, StructureSymmetry } from 'mol-model/structure';
+import { Queries, Structure, StructureQuery, StructureSymmetry } from '../../../mol-model/structure';
 import { getAtomsTests } from '../query/atoms';
 
 export enum QueryParamType {
@@ -190,5 +190,5 @@ export const QueryList = (function () {
 
 export function normalizeQueryParams(query: QueryDefinition, params: any) {
     return params;
-    //return _normalizeQueryParams(params, query.params);
+    // return _normalizeQueryParams(params, query.params);
 }

@@ -5,20 +5,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Unit, Link, StructureElement, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../representation';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { VisualContext } from '../../visual';
+import { Unit, Structure, StructureElement, Link } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { BitFlags } from '../../../mol-util';
+import { createLinkCylinderMesh, LinkCylinderParams, LinkIterator } from './util/link';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
-import { createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { Loci, EmptyLoci } from 'mol-model/loci';
-import { UnitsMeshVisual, UnitsMeshParams, StructureGroup } from '../units-visual';
-import { Interval, OrderedSet } from 'mol-data/int';
-import { BitFlags } from 'mol-util';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
+import { PickingId } from '../../../mol-geo/geometry/picking';
+import { EmptyLoci, Loci } from '../../../mol-model/loci';
+import { Interval, OrderedSet } from '../../../mol-data/int';
 
 function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitLinkParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)

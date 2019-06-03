@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
+import { mmCIF_Database as mmCIF } from '../../../../mol-io/reader/cif/schema/mmcif'
 import { EntityIndex } from '../indexing';
 
 export interface Entities {

@@ -5,9 +5,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { DatabaseCollection, Database, Table, Column, ColumnHelpers } from 'mol-data/db'
-import { Tensor } from 'mol-math/linear-algebra'
-import { arrayEqual } from 'mol-util'
+import { DatabaseCollection, Database, Table, Column, ColumnHelpers } from '../../../mol-data/db'
+import { Tensor } from '../../../mol-math/linear-algebra'
+import { arrayEqual } from '../../../mol-util'
 import * as Data from './data-model'
 
 export function toDatabaseCollection<Schema extends Database.Schema>(schema: Schema, file: Data.CifFile): DatabaseCollection<Schema> {

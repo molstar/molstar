@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { OrderedSet } from 'mol-data/int'
+import { OrderedSet } from '../../mol-data/int'
 import { Mat4, Tensor, Vec3, Vec2 } from '../linear-algebra';
 import { Box3D } from '../geometry';
-import { Texture } from 'mol-gl/webgl/texture';
+import { Texture } from '../../mol-gl/webgl/texture';
 
 export interface PositionData {
     x: ArrayLike<number>,

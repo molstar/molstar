@@ -1,5 +1,5 @@
-// import { State, StateObject, StateTree, Transformer } from 'mol-state';
-// import { Task } from 'mol-task';
+// import { State, StateObject, StateTree, Transformer } from '../mol-state';
+// import { Task } from '../mol-task';
 // import * as util from 'util';
 
 // export type TypeClass = 'root' | 'shape' | 'prop'

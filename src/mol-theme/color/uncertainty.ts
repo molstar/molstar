@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color, ColorScale } from 'mol-util/color';
-import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
-import { Location } from 'mol-model/location';
+import { Color, ColorScale } from '../../mol-util/color';
+import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
+import { ColorListName, ColorListOptions } from '../../mol-util/color/scale';
 
 const DefaultUncertaintyColor = Color(0xffff99)
 const Description = `Assigns a color based on the uncertainty of an element's position, , e.g. B-factor or RMSF, depending on the data availability and experimental technique.`

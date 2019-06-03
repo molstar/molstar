@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State, StateTransform, StateTransformer, StateAction, StateObject } from 'mol-state';
+import { State, StateTransform, StateTransformer, StateAction, StateObject } from '../../../mol-state';
 import * as React from 'react';
 import { PurePluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
-import { PluginContext } from 'mol-plugin/context';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { PluginContext } from '../../../mol-plugin/context';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Subject } from 'rxjs';
 import { Icon } from '../controls/common';
 

@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import UUID from 'mol-util/uuid';
+import UUID from '../../../mol-util/uuid';
 import StructureSequence from './properties/sequence';
 import { AtomicHierarchy, AtomicConformation } from './properties/atomic';
 import { ModelSymmetry } from './properties/symmetry';
@@ -14,7 +14,7 @@ import { Entities } from './properties/common';
 import { CustomProperties } from '../common/custom-property';
 import { SecondaryStructure } from './properties/seconday-structure';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
-import { ModelFormat } from 'mol-model-formats/structure/format';
+import { ModelFormat } from '../../../mol-model-formats/structure/format';
 import { ChemicalComponentMap } from './properties/chemical-component';
 
 /**

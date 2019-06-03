@@ -5,11 +5,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { FileHandle } from 'mol-io/common/file-handle';
-import { readCcp4Header, readCcp4Slices, getCcp4DataOffset, getCcp4ValueType } from 'mol-io/reader/ccp4/parser';
+import { FileHandle } from '../../../../mol-io/common/file-handle';
+import { readCcp4Header, readCcp4Slices, getCcp4DataOffset, getCcp4ValueType } from '../../../../mol-io/reader/ccp4/parser';
 import { Header, Provider, Data } from '../format';
-import { getCcp4Origin } from 'mol-model-formats/volume/ccp4';
-import { Ccp4Header } from 'mol-io/reader/ccp4/schema';
+import { getCcp4Origin } from '../../../../mol-model-formats/volume/ccp4';
+import { Ccp4Header } from '../../../../mol-io/reader/ccp4/schema';
 
 async function readHeader(name: string, file: FileHandle) {
     const { header: ccp4Header, littleEndian } = await readCcp4Header(file)

@@ -4,14 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-data/db';
-import { CifWriter } from 'mol-io/writer/cif';
-import { StructureQuery, StructureSelection, Structure } from 'mol-model/structure';
-import { encode_mmCIF_categories } from 'mol-model/structure/export/mmcif';
-import { Progress } from 'mol-task';
-import { now } from 'mol-util/now';
-import { ConsoleLogger } from 'mol-util/console-logger';
-import { PerformanceMonitor } from 'mol-util/performance-monitor';
+import { Column } from '../../../mol-data/db';
+import { CifWriter } from '../../../mol-io/writer/cif';
+import { StructureQuery, StructureSelection, Structure } from '../../../mol-model/structure';
+import { encode_mmCIF_categories } from '../../../mol-model/structure/export/mmcif';
+import { Progress } from '../../../mol-task';
+import { now } from '../../../mol-util/now';
+import { ConsoleLogger } from '../../../mol-util/console-logger';
+import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import Config from '../config';
 import Version from '../version';
 import { Job } from './jobs';

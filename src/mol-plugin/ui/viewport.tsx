@@ -7,13 +7,13 @@
 
 import * as React from 'react';
 import { PluginUIComponent } from './base';
-import { PluginCommands } from 'mol-plugin/command';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { PluginCommands } from '../../mol-plugin/command';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
-import { Canvas3DParams } from 'mol-canvas3d/canvas3d';
-import { PluginLayoutStateParams } from 'mol-plugin/layout';
+import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
+import { PluginLayoutStateParams } from '../../mol-plugin/layout';
 import { ControlGroup, IconButton } from './controls/common';
-import { resizeCanvas } from 'mol-canvas3d/util';
+import { resizeCanvas } from '../../mol-canvas3d/util';
 
 interface ViewportState {
     noWebGl: boolean

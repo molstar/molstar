@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { shallowMergeArray } from 'mol-util/object';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { shallowMergeArray } from '../mol-util/object';
+import { RxEventHelper } from '../mol-util/rx-event-helper';
 
 export class PluginComponent<State> {
     private _ev: RxEventHelper;

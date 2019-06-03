@@ -12,7 +12,7 @@ import * as compression from 'compression'
 
 import init from './server/web-api'
 import VERSION from './server/version'
-import { ConsoleLogger } from 'mol-util/console-logger'
+import { ConsoleLogger } from '../../mol-util/console-logger'
 import { State } from './server/state'
 import { addServerArgs, addLimitsArgs, LimitsConfig, setConfig, ServerConfig } from './config';
 import * as argparse from 'argparse'

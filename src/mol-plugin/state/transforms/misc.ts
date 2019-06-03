@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTransformer } from 'mol-state';
-import { shallowEqual } from 'mol-util';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { StateTransformer } from '../../../mol-state';
+import { shallowEqual } from '../../../mol-util';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 
 export { CreateGroup };

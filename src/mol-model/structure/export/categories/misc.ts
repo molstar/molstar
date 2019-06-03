@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-data/db';
-import { CifWriter } from 'mol-io/writer/cif';
+import { Column } from '../../../../mol-data/db';
+import { CifWriter } from '../../../../mol-io/writer/cif';
 import { CifExportContext } from '../mmcif';
 import { getModelMmCifCategory, getUniqueResidueNamesFromStructures } from './utils';
 import CifCategory = CifWriter.Category

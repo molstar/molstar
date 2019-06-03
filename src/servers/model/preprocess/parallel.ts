@@ -6,8 +6,8 @@
 
 import * as path from 'path'
 import * as cluster from 'cluster'
-import { now } from 'mol-util/now';
-import { PerformanceMonitor } from 'mol-util/performance-monitor';
+import { now } from '../../../mol-util/now';
+import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { preprocessFile } from './preprocess';
 import { createModelPropertiesProvider } from '../property-provider';
 
@@ -85,4 +85,3 @@ function partitionArray<T>(xs: T[], count: number): T[][] {
     }
     return ret;
 }
-

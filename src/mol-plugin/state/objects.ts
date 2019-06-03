@@ -5,20 +5,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CifFile } from 'mol-io/reader/cif';
-import { PlyFile } from 'mol-io/reader/ply/schema';
-import { Model as _Model, Structure as _Structure } from 'mol-model/structure';
-import { VolumeData } from 'mol-model/volume';
-import { PluginBehavior } from 'mol-plugin/behavior/behavior';
-import { Representation } from 'mol-repr/representation';
-import { StructureRepresentation, StructureRepresentationState } from 'mol-repr/structure/representation';
-import { VolumeRepresentation } from 'mol-repr/volume/representation';
-import { StateObject, StateTransformer } from 'mol-state';
-import { Ccp4File } from 'mol-io/reader/ccp4/schema';
-import { Dsn6File } from 'mol-io/reader/dsn6/schema';
-import { ShapeRepresentation } from 'mol-repr/shape/representation';
-import { Shape as _Shape } from 'mol-model/shape';
-import { ShapeProvider } from 'mol-model/shape/provider';
+import { CifFile } from '../../mol-io/reader/cif';
+import { PlyFile } from '../../mol-io/reader/ply/schema';
+import { Model as _Model, Structure as _Structure } from '../../mol-model/structure';
+import { VolumeData } from '../../mol-model/volume';
+import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
+import { Representation } from '../../mol-repr/representation';
+import { StructureRepresentation, StructureRepresentationState } from '../../mol-repr/structure/representation';
+import { VolumeRepresentation } from '../../mol-repr/volume/representation';
+import { StateObject, StateTransformer } from '../../mol-state';
+import { Ccp4File } from '../../mol-io/reader/ccp4/schema';
+import { Dsn6File } from '../../mol-io/reader/dsn6/schema';
+import { ShapeRepresentation } from '../../mol-repr/shape/representation';
+import { Shape as _Shape } from '../../mol-model/shape';
+import { ShapeProvider } from '../../mol-model/shape/provider';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 

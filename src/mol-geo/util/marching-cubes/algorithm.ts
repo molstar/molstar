@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Task, RuntimeContext } from 'mol-task'
-import { Tensor } from 'mol-math/linear-algebra'
+import { Task, RuntimeContext } from '../../../mol-task'
+import { Tensor } from '../../../mol-math/linear-algebra'
 import { Mesh } from '../../geometry/mesh/mesh'
 import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables'
-import { defaults } from 'mol-util'
+import { defaults } from '../../../mol-util'
 import { MarchinCubesBuilder, MarchinCubesMeshBuilder, MarchinCubesLinesBuilder } from './builder';
 import { Lines } from '../../geometry/lines/lines';
 

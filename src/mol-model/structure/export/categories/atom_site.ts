@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CifWriter } from 'mol-io/writer/cif';
+import { CifWriter } from '../../../../mol-io/writer/cif';
 import { StructureElement, Structure, StructureProperties as P } from '../../structure';
 import { CifExportContext } from '../mmcif';
 import CifField = CifWriter.Field

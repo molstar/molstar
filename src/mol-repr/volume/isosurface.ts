@@ -5,19 +5,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeData, VolumeIsoValue } from 'mol-model/volume'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { VolumeData, VolumeIsoValue } from '../../mol-model/volume';
+import { VisualContext } from '../visual';
+import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { computeMarchingCubesMesh, computeMarchingCubesLines } from '../../mol-geo/util/marching-cubes/algorithm';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
-import { EmptyLoci } from 'mol-model/loci';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { computeMarchingCubesMesh, computeMarchingCubesLines } from 'mol-geo/util/marching-cubes/algorithm';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { VisualUpdateState } from 'mol-repr/util';
-import { RepresentationContext, RepresentationParamsGetter, Representation } from 'mol-repr/representation';
-import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
-import { VisualContext } from 'mol-repr/visual';
-import { NullLocation } from 'mol-model/location';
-import { Lines } from 'mol-geo/geometry/lines/lines';
+import { LocationIterator } from '../../mol-geo/util/location-iterator';
+import { NullLocation } from '../../mol-model/location';
+import { EmptyLoci } from '../../mol-model/loci';
+import { VisualUpdateState } from '../util';
+import { Lines } from '../../mol-geo/geometry/lines/lines';
+import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 
 const defaultStats: VolumeData['dataStats'] = { min: -1, max: 1, mean: 0, sigma: 0.1  };
 export function createIsoValueParam(defaultValue: VolumeIsoValue, stats?: VolumeData['dataStats']) {

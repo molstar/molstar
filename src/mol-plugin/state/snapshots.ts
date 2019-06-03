@@ -5,10 +5,10 @@
  */
 
 import { List } from 'immutable';
-import { UUID } from 'mol-util';
+import { UUID } from '../../mol-util';
 import { PluginState } from '../state';
-import { PluginComponent } from 'mol-plugin/component';
-import { PluginContext } from 'mol-plugin/context';
+import { PluginComponent } from '../../mol-plugin/component';
+import { PluginContext } from '../../mol-plugin/context';
 
 export { PluginStateSnapshotManager }
 

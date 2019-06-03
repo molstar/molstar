@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ValueCell } from 'mol-util/value-cell'
-import { ChunkedArray } from 'mol-data/util';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { ValueCell } from '../../../mol-util/value-cell'
+import { ChunkedArray } from '../../../mol-data/util';
 import { Text } from './text';
 import { getFontAtlas } from './font-atlas';
 

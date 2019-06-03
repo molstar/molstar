@@ -5,24 +5,24 @@
  */
 
 import './index.html'
-import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { Representation } from 'mol-repr/representation';
-import { Color } from 'mol-util/color';
-import { createRenderObject } from 'mol-gl/render-object';
-import { computeGaussianDensity, computeGaussianDensityTexture2d } from 'mol-math/geometry/gaussian-density';
-import { PositionData, Box3D, Sphere3D } from 'mol-math/geometry';
-import { OrderedSet } from 'mol-data/int';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { ColorNames } from 'mol-util/color/tables';
-import { TextureMesh } from 'mol-geo/geometry/texture-mesh/texture-mesh';
-import { calcActiveVoxels } from 'mol-gl/compute/marching-cubes/active-voxels';
-import { createHistogramPyramid } from 'mol-gl/compute/histogram-pyramid/reduction';
-import { createIsosurfaceBuffers } from 'mol-gl/compute/marching-cubes/isosurface';
-import { RendererParams } from 'mol-gl/renderer';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { resizeCanvas } from 'mol-canvas3d/util';
+import { resizeCanvas } from '../../mol-canvas3d/util';
+import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { RendererParams } from '../../mol-gl/renderer';
+import { ColorNames } from '../../mol-util/color/tables';
+import { PositionData, Box3D, Sphere3D } from '../../mol-math/geometry';
+import { OrderedSet } from '../../mol-data/int';
+import { Vec3 } from '../../mol-math/linear-algebra';
+import { computeGaussianDensityTexture2d, computeGaussianDensity } from '../../mol-math/geometry/gaussian-density';
+import { calcActiveVoxels } from '../../mol-gl/compute/marching-cubes/active-voxels';
+import { createHistogramPyramid } from '../../mol-gl/compute/histogram-pyramid/reduction';
+import { createIsosurfaceBuffers } from '../../mol-gl/compute/marching-cubes/isosurface';
+import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { Color } from '../../mol-util/color';
+import { createRenderObject } from '../../mol-gl/render-object';
+import { Representation } from '../../mol-repr/representation';
+import { computeMarchingCubesMesh } from '../../mol-geo/util/marching-cubes/algorithm';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'

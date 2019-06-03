@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CifWriter } from 'mol-io/writer/cif'
+import { CifWriter } from '../mol-io/writer/cif'
 import * as fs from 'fs'
 
 const category1fields: CifWriter.Field[] = [

@@ -5,18 +5,18 @@
  */
 
 import './index.html'
-import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import CIF, { CifFrame } from 'mol-io/reader/cif'
-import { Model, Structure } from 'mol-model/structure';
-import { ColorTheme } from 'mol-theme/color';
-import { SizeTheme } from 'mol-theme/size';
-import { CartoonRepresentationProvider } from 'mol-repr/structure/representation/cartoon';
-import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
-import { MolecularSurfaceRepresentationProvider } from 'mol-repr/structure/representation/molecular-surface';
-import { BallAndStickRepresentationProvider } from 'mol-repr/structure/representation/ball-and-stick';
-import { GaussianSurfaceRepresentationProvider } from 'mol-repr/structure/representation/gaussian-surface';
-import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
-import { resizeCanvas } from 'mol-canvas3d/util';
+import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { CIF, CifFrame } from '../../mol-io/reader/cif'
+import { Model, Structure } from '../../mol-model/structure';
+import { ColorTheme } from '../../mol-theme/color';
+import { SizeTheme } from '../../mol-theme/size';
+import { CartoonRepresentationProvider } from '../../mol-repr/structure/representation/cartoon';
+import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
+import { MolecularSurfaceRepresentationProvider } from '../../mol-repr/structure/representation/molecular-surface';
+import { BallAndStickRepresentationProvider } from '../../mol-repr/structure/representation/ball-and-stick';
+import { GaussianSurfaceRepresentationProvider } from '../../mol-repr/structure/representation/gaussian-surface';
+import { ComputedSecondaryStructure } from '../../mol-model-props/computed/secondary-structure';
+import { resizeCanvas } from '../../mol-canvas3d/util';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'

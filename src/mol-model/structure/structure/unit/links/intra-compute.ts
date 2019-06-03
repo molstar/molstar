@@ -7,10 +7,10 @@
 import { LinkType } from '../../../model/types'
 import { IntraUnitLinks } from './data'
 import Unit from '../../unit'
-import { IntAdjacencyGraph } from 'mol-math/graph';
+import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import { LinkComputationParameters, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold } from './common';
-import { SortedArray } from 'mol-data/int';
-import { StructConn, ComponentBond } from 'mol-model-formats/structure/mmcif/bonds';
+import { SortedArray } from '../../../../../mol-data/int';
+import { StructConn, ComponentBond } from '../../../../../mol-model-formats/structure/mmcif/bonds';
 
 function getGraph(atomA: number[], atomB: number[], _order: number[], _flags: number[], atomCount: number): IntraUnitLinks {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);

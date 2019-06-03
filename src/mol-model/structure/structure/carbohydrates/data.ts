@@ -5,7 +5,7 @@
  */
 
 import Unit from '../unit';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { ResidueIndex, ElementIndex } from '../../model';
 import { SaccharideComponent } from './constants';
 import StructureElement from '../element';

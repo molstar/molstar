@@ -8,16 +8,16 @@ import * as argparse from 'argparse'
 import createContext = require('gl')
 import fs = require('fs')
 import { PNG } from 'pngjs'
-import { Canvas3D, Canvas3DParams } from 'mol-canvas3d/canvas3d';
-import InputObserver from 'mol-util/input/input-observer';
-import { ColorTheme } from 'mol-theme/color';
-import { SizeTheme } from 'mol-theme/size';
-import { CartoonRepresentationProvider } from 'mol-repr/structure/representation/cartoon';
-import CIF, { CifFrame } from 'mol-io/reader/cif'
-import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
-import { Model, Structure } from 'mol-model/structure';
-import { ajaxGet } from 'mol-util/data-source';
-import { ColorNames } from 'mol-util/color/tables';
+import { Canvas3D, Canvas3DParams } from '../../mol-canvas3d/canvas3d';
+import InputObserver from '../../mol-util/input/input-observer';
+import { ColorTheme } from '../../mol-theme/color';
+import { SizeTheme } from '../../mol-theme/size';
+import { CartoonRepresentationProvider } from '../../mol-repr/structure/representation/cartoon';
+import { CIF, CifFrame } from '../../mol-io/reader/cif'
+import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
+import { Model, Structure } from '../../mol-model/structure';
+import { ajaxGet } from '../../mol-util/data-source';
+import { ColorNames } from '../../mol-util/color/tables';
 
 const width = 2048
 const height = 1536

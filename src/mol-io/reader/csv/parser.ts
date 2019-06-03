@@ -7,9 +7,9 @@
 // import { Column } from 'mol-data/db'
 import { Tokens, TokenBuilder, Tokenizer } from '../common/text/tokenizer'
 import * as Data from './data-model'
-import Field from './field'
+import { Field } from './field'
 import { ReaderResult as Result } from '../result'
-import { Task, RuntimeContext, chunkedSubtask, } from 'mol-task'
+import { Task, RuntimeContext, chunkedSubtask, } from '../../../mol-task'
 
 const enum CsvTokenType {
     Value = 0,
@@ -276,11 +276,9 @@ interface CsvOptions {
     noColumnNames: boolean;
 }
 
-export function parse(data: string, opts?: Partial<CsvOptions>) {
+export function parseCsv(data: string, opts?: Partial<CsvOptions>) {
     const completeOpts = Object.assign({}, { quote: '"', comment: '#', delimiter: ',', noColumnNames: false }, opts)
     return Task.create<Result<Data.CsvFile>>('Parse CSV', async ctx => {
         return await parseInternal(data, ctx, completeOpts);
     });
 }
-
-export default parse;

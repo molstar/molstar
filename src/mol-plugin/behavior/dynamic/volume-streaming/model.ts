@@ -5,8 +5,8 @@
  */
 
 import { PluginStateObject } from '../../../state/objects';
-import { VolumeIsoValue } from 'mol-model/volume';
-import { Structure } from 'mol-model/structure';
+import { VolumeIsoValue } from '../../../../mol-model/volume';
+import { Structure } from '../../../../mol-model/structure';
 
 export class VolumeServerInfo extends PluginStateObject.Create<VolumeServerInfo.Data>({ name: 'Volume Streaming', typeClass: 'Object' }) { }
 

@@ -4,18 +4,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column, Table } from 'mol-data/db';
-import { Interval, Segmentation } from 'mol-data/int';
-import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
-import UUID from 'mol-util/uuid';
-import { ElementIndex } from 'mol-model/structure';
-import { Model } from 'mol-model/structure/model/model';
-import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from 'mol-model/structure/model/properties/atomic';
-import { getAtomicIndex } from 'mol-model/structure/model/properties/utils/atomic-index';
-import { ElementSymbol } from 'mol-model/structure/model/types';
-import { Entities } from 'mol-model/structure/model/properties/common';
-import { getAtomicRanges } from 'mol-model/structure/model/properties/utils/atomic-ranges';
-import { getAtomicDerivedData } from 'mol-model/structure/model/properties/utils/atomic-derived';
+import { Column, Table } from '../../../mol-data/db';
+import { Interval, Segmentation } from '../../../mol-data/int';
+import { mmCIF_Database } from '../../../mol-io/reader/cif/schema/mmcif';
+import UUID from '../../../mol-util/uuid';
+import { ElementIndex } from '../../../mol-model/structure';
+import { Model } from '../../../mol-model/structure/model/model';
+import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../../../mol-model/structure/model/properties/atomic';
+import { getAtomicIndex } from '../../../mol-model/structure/model/properties/utils/atomic-index';
+import { ElementSymbol } from '../../../mol-model/structure/model/types';
+import { Entities } from '../../../mol-model/structure/model/properties/common';
+import { getAtomicRanges } from '../../../mol-model/structure/model/properties/utils/atomic-ranges';
+import { getAtomicDerivedData } from '../../../mol-model/structure/model/properties/utils/atomic-derived';
 import { FormatData } from './parser';
 
 type AtomSite = mmCIF_Database['atom_site']

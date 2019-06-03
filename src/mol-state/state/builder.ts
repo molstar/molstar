@@ -9,7 +9,7 @@ import { TransientTree } from '../tree/transient';
 import { StateObject, StateObjectCell } from '../object';
 import { StateTransform } from '../transform';
 import { StateTransformer } from '../transformer';
-import { State } from 'mol-state/state';
+import { State } from '../state';
 
 export { StateBuilder }
 

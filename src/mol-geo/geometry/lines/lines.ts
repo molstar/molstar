@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util'
-import { Mat4 } from 'mol-math/linear-algebra'
+import { ValueCell } from '../../../mol-util'
+import { Mat4 } from '../../../mol-math/linear-algebra'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
@@ -13,14 +13,14 @@ import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { LinesValues } from 'mol-gl/renderable/lines';
+import { LinesValues } from '../../../mol-gl/renderable/lines';
 import { Mesh } from '../mesh/mesh';
 import { LinesBuilder } from './lines-builder';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { calculateBoundingSphere } from 'mol-gl/renderable/util';
-import { Sphere3D } from 'mol-math/geometry';
-import { Theme } from 'mol-theme/theme';
-import { Color } from 'mol-util/color';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { calculateBoundingSphere } from '../../../mol-gl/renderable/util';
+import { Sphere3D } from '../../../mol-math/geometry';
+import { Theme } from '../../../mol-theme/theme';
+import { Color } from '../../../mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';

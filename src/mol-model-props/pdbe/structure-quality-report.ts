@@ -4,18 +4,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column, Table } from 'mol-data/db';
-import { toTable } from 'mol-io/reader/cif/schema';
-import { mmCIF_residueId_schema } from 'mol-io/reader/cif/schema/mmcif-extras';
-import { CifWriter } from 'mol-io/writer/cif';
-import { Model, CustomPropertyDescriptor, ResidueIndex, Unit, IndexedCustomProperty } from 'mol-model/structure';
-import { residueIdFields } from 'mol-model/structure/export/categories/atom_site';
-import { StructureElement, CifExportContext } from 'mol-model/structure/structure';
-import { CustomPropSymbol } from 'mol-script/language/symbol';
-import Type from 'mol-script/language/type';
-import { QuerySymbolRuntime } from 'mol-script/runtime/query/compiler';
+import { Column, Table } from '../../mol-data/db';
+import { toTable } from '../../mol-io/reader/cif/schema';
+import { mmCIF_residueId_schema } from '../../mol-io/reader/cif/schema/mmcif-extras';
+import { CifWriter } from '../../mol-io/writer/cif';
+import { Model, CustomPropertyDescriptor, ResidueIndex, Unit, IndexedCustomProperty } from '../../mol-model/structure';
+import { residueIdFields } from '../../mol-model/structure/export/categories/atom_site';
+import { StructureElement, CifExportContext } from '../../mol-model/structure/structure';
+import { CustomPropSymbol } from '../../mol-script/language/symbol';
+import Type from '../../mol-script/language/type';
+import { QuerySymbolRuntime } from '../../mol-script/runtime/query/compiler';
 import { PropertyWrapper } from '../common/wrapper';
-import { Task } from 'mol-task';
+import { Task } from '../../mol-task';
 
 export namespace StructureQualityReport {
     export type IssueMap = IndexedCustomProperty.Residue<string[]>
@@ -83,7 +83,7 @@ export namespace StructureQualityReport {
         }
     }
 
-    export function createAttachTask(mapUrl: (model: Model) => string, fetch: import('mol-util/data-source').AjaxTask) {
+    export function createAttachTask(mapUrl: (model: Model) => string, fetch: import('../../mol-util/data-source').AjaxTask) {
         return (model: Model) => Task.create('PDBe Structure Quality Report', async ctx => {
             if (get(model)) return true;
 

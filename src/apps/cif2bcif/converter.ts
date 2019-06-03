@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import CIF, { CifCategory, getCifFieldType, CifField } from 'mol-io/reader/cif'
-import { CifWriter } from 'mol-io/writer/cif'
+import { CIF, CifCategory, getCifFieldType, CifField } from '../../mol-io/reader/cif'
+import { CifWriter } from '../../mol-io/writer/cif'
 import * as fs from 'fs'
-import { Progress, Task, RuntimeContext } from 'mol-task';
-import { classifyFloatArray, classifyIntArray } from 'mol-io/common/binary-cif';
+import { Progress, Task, RuntimeContext } from '../../mol-task';
+import { classifyFloatArray, classifyIntArray } from '../../mol-io/common/binary-cif';
 
 function showProgress(p: Progress) {
     process.stdout.write(`\r${new Array(80).join(' ')}`);

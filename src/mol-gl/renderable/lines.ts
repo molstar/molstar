@@ -8,7 +8,7 @@ import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, ElementsSpec, InternalValues } from './schema';
-import { ValueCell } from 'mol-util';
+import { ValueCell } from '../../mol-util';
 import { LinesShaderCode } from '../shader-code';
 
 export const LinesSchema = {

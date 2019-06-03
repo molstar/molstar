@@ -4,21 +4,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../representation';
-import { VisualUpdateState } from '../../util';
-import { PolymerGapIterator, PolymerGapLocationIterator, eachPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { VisualContext } from '../../visual';
+import { Unit, Structure } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
+import { PolymerGapIterator, PolymerGapLocationIterator, getPolymerGapElementLoci, eachPolymerGapElement } from './util/polymer';
+import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
+import { addFixedCountDashedCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { LinkCylinderParams } from './util/link';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { CylinderProps } from 'mol-geo/primitive/cylinder';
-import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
-import { addFixedCountDashedCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
+import { VisualUpdateState } from '../../util';
 
 const segmentCount = 10
 

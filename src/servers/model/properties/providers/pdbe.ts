@@ -6,14 +6,14 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
-import { Model } from 'mol-model/structure';
-import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-report';
+import { Model } from '../../../../mol-model/structure';
+import { StructureQualityReport } from '../../../../mol-model-props/pdbe/structure-quality-report';
 import { fetchRetry } from '../../utils/fetch-retry';
-import { UUID } from 'mol-util';
-import { PDBePreferredAssembly } from 'mol-model-props/pdbe/preferred-assembly';
-import { PDBeStructRefDomain } from 'mol-model-props/pdbe/struct-ref-domain';
+import { UUID } from '../../../../mol-util';
+import { PDBePreferredAssembly } from '../../../../mol-model-props/pdbe/preferred-assembly';
+import { PDBeStructRefDomain } from '../../../../mol-model-props/pdbe/struct-ref-domain';
 import { AttachModelProperty } from '../../property-provider';
-import { ConsoleLogger } from 'mol-util/console-logger';
+import { ConsoleLogger } from '../../../../mol-util/console-logger';
 
 export const PDBe_structureQualityReport: AttachModelProperty = ({ model, params, cache }) => {
     const PDBe_apiSourceJson = useFileSource(params)

@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { HashSet } from 'mol-data/generic'
+import { HashSet } from '../../../mol-data/generic'
 import { Structure, StructureElement, Unit } from '../structure'
 import { structureUnion } from './utils/structure-set';
-import { OrderedSet, SortedArray } from 'mol-data/int';
+import { OrderedSet, SortedArray } from '../../../mol-data/int';
 
 // A selection is a pair of a Structure and a sequence of unique AtomSets
 type StructureSelection = StructureSelection.Singletons | StructureSelection.Sequence

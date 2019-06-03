@@ -9,10 +9,10 @@
 import * as DataFormat from '../../common/data-format'
 import * as Coords from '../algebra/coordinate'
 import * as Box from '../algebra/box'
-import Writer from 'mol-io/writer/writer'
-import { SpacegroupCell } from 'mol-math/geometry';
-import { FileHandle } from 'mol-io/common/file-handle';
-import { TypedArrayValueArray } from 'mol-io/common/typed-array';
+import Writer from '../../../../mol-io/writer/writer'
+import { SpacegroupCell } from '../../../../mol-math/geometry';
+import { FileHandle } from '../../../../mol-io/common/file-handle';
+import { TypedArrayValueArray } from '../../../../mol-io/common/typed-array';
 
 //////////////////////////////////////
 // DATA

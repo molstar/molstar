@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { TokenBuilder } from 'mol-io/reader/common/text/tokenizer';
+import { TokenBuilder } from '../../../mol-io/reader/common/text/tokenizer';
 import { guessElementSymbolTokens } from '../util';
 
 const records = [

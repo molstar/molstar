@@ -4,18 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../representation';
-import { VisualUpdateState } from '../../util';
-import { UnitsMeshVisual, UnitsMeshParams, UnitsTextureMeshParams } from '../units-visual';
-import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
+import { MolecularSurfaceCalculationParams, MolecularSurfaceCalculationProps } from '../../../mol-math/geometry/molecular-surface';
+import { VisualContext } from '../../visual';
+import { Unit, Structure } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { computeUnitMolecularSurface } from './util/molecular-surface';
-import { MolecularSurfaceCalculationParams, MolecularSurfaceCalculationProps } from 'mol-math/geometry/molecular-surface';
+import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
+import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
+import { VisualUpdateState } from '../../util';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,

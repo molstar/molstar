@@ -8,13 +8,13 @@
 import * as argparse from 'argparse'
 require('util.promisify').shim();
 
-import { CifFrame } from 'mol-io/reader/cif'
-import { Model, Structure, StructureElement, Unit, StructureProperties, UnitRing } from 'mol-model/structure'
-// import { Run, Progress } from 'mol-task'
-import { OrderedSet } from 'mol-data/int';
+import { CifFrame } from '../../mol-io/reader/cif'
+import { Model, Structure, StructureElement, Unit, StructureProperties, UnitRing } from '../../mol-model/structure'
+// import { Run, Progress } from '../../mol-task'
+import { OrderedSet } from '../../mol-data/int';
 import { openCif, downloadCif } from './helpers';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
+import { Vec3 } from '../../mol-math/linear-algebra';
+import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 
 
 async function downloadFromPdb(pdb: string) {

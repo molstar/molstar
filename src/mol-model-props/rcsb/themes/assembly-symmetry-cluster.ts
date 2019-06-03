@@ -4,15 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ThemeDataContext } from 'mol-theme/theme';
-import { ColorTheme, LocationColor } from 'mol-theme/color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { Table } from 'mol-data/db';
+import { ThemeDataContext } from '../../../mol-theme/theme';
+import { ColorTheme, LocationColor } from '../../../mol-theme/color';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition'
+import { Table } from '../../../mol-data/db';
 import { AssemblySymmetry } from '../assembly-symmetry';
-import { ColorScale, Color } from 'mol-util/color';
-import { Unit, StructureElement, StructureProperties } from 'mol-model/structure';
-import { Location } from 'mol-model/location';
-import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
+import { ColorScale, Color } from '../../../mol-util/color';
+import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
+import { Location } from '../../../mol-model/location';
+import { ColorListName, ColorListOptions } from '../../../mol-util/color/scale';
 import { getSymmetrySelectParam } from '../util';
 
 const DefaultColor = Color(0xCCCCCC)

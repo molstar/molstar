@@ -6,17 +6,17 @@
 
 // TODO: move to an "example"
 
-import { PluginContext } from 'mol-plugin/context';
-import { Mat4 } from 'mol-math/linear-algebra';
+import { PluginContext } from '../../mol-plugin/context';
+import { Mat4 } from '../../mol-math/linear-algebra';
 import { StateHelper } from './helpers';
-import { PluginCommands } from 'mol-plugin/command';
-import { StateSelection, StateBuilder } from 'mol-state';
-import { PluginStateObject as PSO } from 'mol-plugin/state/objects';
-import { MolScriptBuilder as MS } from 'mol-script/language/builder';
-import { compile } from 'mol-script/runtime/query/compiler';
-import { StructureSelection, QueryContext } from 'mol-model/structure';
-import { superposeStructures } from 'mol-model/structure/structure/util/superposition';
-import Expression from 'mol-script/language/expression';
+import { PluginCommands } from '../../mol-plugin/command';
+import { StateSelection, StateBuilder } from '../../mol-state';
+import { PluginStateObject as PSO } from '../../mol-plugin/state/objects';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
+import { compile } from '../../mol-script/runtime/query/compiler';
+import { StructureSelection, QueryContext } from '../../mol-model/structure';
+import { superposeStructures } from '../../mol-model/structure/structure/util/superposition';
+import Expression from '../../mol-script/language/expression';
 
 export type SuperpositionTestInput = {
     pdbId: string,

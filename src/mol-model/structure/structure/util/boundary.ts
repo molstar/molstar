@@ -5,9 +5,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Box3D, Sphere3D } from 'mol-math/geometry';
-import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
+import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 import Structure from '../structure';
 
 export type Boundary = { box: Box3D, sphere: Sphere3D }

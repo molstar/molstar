@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Segmentation, SortedArray } from 'mol-data/int';
-import { IntAdjacencyGraph } from 'mol-math/graph';
+import { Segmentation, SortedArray } from '../../../../../mol-data/int';
+import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import { LinkType } from '../../../model/types';
 import { StructureElement } from '../../../structure';
 import Unit from '../../unit';
 import { IntraUnitLinks } from '../links/data';
-import { sortArray } from 'mol-data/util';
+import { sortArray } from '../../../../../mol-data/util';
 
 export function computeRings(unit: Unit.Atomic) {
     const size = largestResidue(unit);

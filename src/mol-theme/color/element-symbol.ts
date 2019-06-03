@@ -4,15 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ElementSymbol } from 'mol-model/structure/model/types';
-import { Color, ColorMap } from 'mol-util/color';
-import { StructureElement, Unit, Link } from 'mol-model/structure';
-import { Location } from 'mol-model/location';
+import { ElementSymbol } from '../../mol-model/structure/model/types';
+import { Color, ColorMap } from '../../mol-util/color';
+import { StructureElement, Unit, Link } from '../../mol-model/structure';
+import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { TableLegend } from 'mol-util/color/tables';
-import { getAdjustedColorMap } from 'mol-util/color/color';
+import { TableLegend } from '../../mol-util/color/tables';
+import { getAdjustedColorMap } from '../../mol-util/color/color';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors = ColorMap({

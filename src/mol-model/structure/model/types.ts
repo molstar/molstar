@@ -5,10 +5,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import BitFlags from 'mol-util/bit-flags'
+import BitFlags from '../../../mol-util/bit-flags'
 import { SaccharideCompIdMap } from '../structure/carbohydrates/constants';
-import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
-import { SetUtils } from 'mol-util/set';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
+import { SetUtils } from '../../../mol-util/set';
 
 const _esCache = (function () {
     const cache = Object.create(null);

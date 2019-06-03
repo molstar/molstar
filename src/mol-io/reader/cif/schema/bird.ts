@@ -6,7 +6,7 @@
  * @author mol-star package (src/apps/schema-generator/generate)
  */
 
-import { Database, Column } from 'mol-data/db'
+import { Database, Column } from '../../../../mol-data/db'
 
 import Schema = Column.Schema
 

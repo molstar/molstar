@@ -7,8 +7,8 @@
  * Adapted from LiteMol
  */
 
-import { Task, RuntimeContext } from 'mol-task';
-import { utf8Read } from 'mol-io/common/utf8';
+import { Task, RuntimeContext } from '../mol-task';
+import { utf8Read } from '../mol-io/common/utf8';
 // polyfill XMLHttpRequest in node.js
 const XHR = typeof document === 'undefined' ? require('xhr2') as {
     prototype: XMLHttpRequest;

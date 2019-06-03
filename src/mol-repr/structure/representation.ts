@@ -5,17 +5,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure } from 'mol-model/structure';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Representation, RepresentationProps, RepresentationProvider } from '../representation';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { BaseGeometry } from 'mol-geo/geometry/base';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { Points } from 'mol-geo/geometry/points/points';
-import { Lines } from 'mol-geo/geometry/lines/lines';
-import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { Spheres } from 'mol-geo/geometry/spheres/spheres';
-import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
-import { TextureMesh } from 'mol-geo/geometry/texture-mesh/texture-mesh';
+import { StructureUnitTransforms } from '../../mol-model/structure/structure/util/unit-transforms';
+import { Structure } from '../../mol-model/structure';
+import { BaseGeometry } from '../../mol-geo/geometry/base';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
+import { Points } from '../../mol-geo/geometry/points/points';
+import { Lines } from '../../mol-geo/geometry/lines/lines';
+import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
+import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 
 export interface StructureRepresentationState extends Representation.State {
     unitTransforms: StructureUnitTransforms | null

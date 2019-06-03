@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Segmentation } from 'mol-data/int';
-import { CifWriter } from 'mol-io/writer/cif';
+import { Segmentation } from '../../../../mol-data/int';
+import { CifWriter } from '../../../../mol-io/writer/cif';
 import { StructureElement, StructureProperties as P, Unit } from '../../../structure';
 import { CifExportContext } from '../mmcif';
 

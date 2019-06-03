@@ -4,17 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color, ColorMap } from 'mol-util/color';
-import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
-import { Location } from 'mol-model/location';
+import { Color, ColorMap } from '../../mol-util/color';
+import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
-import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
-import { getElementMoleculeType } from 'mol-model/structure/util';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { SecondaryStructureType, MoleculeType } from '../../mol-model/structure/model/types';
+import { getElementMoleculeType } from '../../mol-model/structure/util';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { TableLegend } from 'mol-util/color/tables';
-import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
-import { getAdjustedColorMap } from 'mol-util/color/color';
+import { TableLegend } from '../../mol-util/color/tables';
+import { ComputedSecondaryStructure } from '../../mol-model-props/computed/secondary-structure';
+import { getAdjustedColorMap } from '../../mol-util/color/color';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({

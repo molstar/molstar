@@ -5,18 +5,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure } from 'mol-model/structure';
-import { Task } from 'mol-task'
-import { Loci, EmptyLoci } from 'mol-model/loci';
-import { StructureRepresentation, StructureParams, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
-import { ComplexVisual } from './complex-visual';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
-import { Theme, createEmptyTheme } from 'mol-theme/theme';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { StructureParams, ComplexVisual, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
+import { RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Structure } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
-import { GraphicsRenderObject, getNextMaterialId } from 'mol-gl/render-object';
+import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
+import { createEmptyTheme, Theme } from '../../mol-theme/theme';
+import { Task } from '../../mol-task';
+import { PickingId } from '../../mol-geo/geometry/picking';
+import { EmptyLoci, Loci } from '../../mol-model/loci';
+import { MarkerAction } from '../../mol-geo/geometry/marker-data';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0

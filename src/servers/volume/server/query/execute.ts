@@ -11,18 +11,18 @@ import * as File from '../../common/file'
 import * as Data from './data-model'
 import * as Coords from '../algebra/coordinate'
 import * as Box from '../algebra/box'
-import { ConsoleLogger } from 'mol-util/console-logger'
+import { ConsoleLogger } from '../../../../mol-util/console-logger'
 import { State } from '../state'
 
 import identify from './identify'
 import compose from './compose'
 import encode from './encode'
-import { SpacegroupCell } from 'mol-math/geometry';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { UUID } from 'mol-util';
-import { FileHandle } from 'mol-io/common/file-handle';
-import { createTypedArray, TypedArrayValueType } from 'mol-io/common/typed-array';
-import { LimitsConfig } from 'servers/volume/config';
+import { SpacegroupCell } from '../../../../mol-math/geometry';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { UUID } from '../../../../mol-util';
+import { FileHandle } from '../../../../mol-io/common/file-handle';
+import { createTypedArray, TypedArrayValueType } from '../../../../mol-io/common/typed-array';
+import { LimitsConfig } from '../../config';
 
 export default async function execute(params: Data.QueryParams, outputProvider: () => Data.QueryOutputStream) {
     const start = getTime();

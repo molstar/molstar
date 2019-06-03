@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { IntMap, SortedArray } from 'mol-data/int';
-import { sortArray } from 'mol-data/util';
+import { IntMap, SortedArray } from '../../../../mol-data/int';
+import { sortArray } from '../../../../mol-data/util';
 import StructureElement from '../element';
 import StructureSymmetry from '../symmetry';
 import Unit from '../unit';

@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as _ from 'mol-plugin/state/transforms'
-import { StateTransformer, StateObject } from 'mol-state';
-import { StringBuilder } from 'mol-util';
+import * as _ from '../../mol-plugin/state/transforms'
+import { StateTransformer, StateObject } from '../../mol-state';
+import { StringBuilder } from '../../mol-util';
 import * as fs from 'fs';
 import { paramsToMd } from './pd-to-md';
-import { PluginContext } from 'mol-plugin/context';
-import { ParamDefinition } from 'mol-util/param-definition';
+import { PluginContext } from '../../mol-plugin/context';
+import { ParamDefinition } from '../../mol-util/param-definition';
 
 // force the transform to be evaluated
 _.StateTransforms.Data.Download.id

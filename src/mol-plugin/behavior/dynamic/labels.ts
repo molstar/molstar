@@ -4,23 +4,23 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginContext } from 'mol-plugin/context';
+import { PluginContext } from '../../../mol-plugin/context';
 import { PluginBehavior } from '../behavior';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { Mat4, Vec3 } from 'mol-math/linear-algebra';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition'
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
-import { StateObjectCell, State, StateSelection } from 'mol-state';
-import { RuntimeContext } from 'mol-task';
-import { Shape } from 'mol-model/shape';
-import { Text } from 'mol-geo/geometry/text/text';
-import { ShapeRepresentation } from 'mol-repr/shape/representation';
-import { ColorNames } from 'mol-util/color/tables';
-import { TextBuilder } from 'mol-geo/geometry/text/text-builder';
-import { Unit, StructureElement, StructureProperties } from 'mol-model/structure';
-import { SetUtils } from 'mol-util/set';
-import { arrayEqual } from 'mol-util';
-import { MoleculeType } from 'mol-model/structure/model/types';
-import { getElementMoleculeType } from 'mol-model/structure/util';
+import { StateObjectCell, State, StateSelection } from '../../../mol-state';
+import { RuntimeContext } from '../../../mol-task';
+import { Shape } from '../../../mol-model/shape';
+import { Text } from '../../../mol-geo/geometry/text/text';
+import { ShapeRepresentation } from '../../../mol-repr/shape/representation';
+import { ColorNames } from '../../../mol-util/color/tables';
+import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
+import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
+import { SetUtils } from '../../../mol-util/set';
+import { arrayEqual } from '../../../mol-util';
+import { MoleculeType } from '../../../mol-model/structure/model/types';
+import { getElementMoleculeType } from '../../../mol-model/structure/util';
 
 // TODO
 // - support more object types than structures

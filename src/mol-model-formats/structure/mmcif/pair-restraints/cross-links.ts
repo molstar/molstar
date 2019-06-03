@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from 'mol-model/structure/model/model'
-import { Table } from 'mol-data/db'
-import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
+import { Model } from '../../../../mol-model/structure/model/model'
+import { Table } from '../../../../mol-data/db'
+import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { findAtomIndexByLabelName } from '../util';
-import { Unit } from 'mol-model/structure';
-import { ElementIndex } from 'mol-model/structure/model/indexing';
+import { Unit } from '../../../../mol-model/structure';
+import { ElementIndex } from '../../../../mol-model/structure/model/indexing';
 
 function findAtomIndex(model: Model, entityId: string, asymId: string, seqId: number, atomId: string) {
     if (!model.atomicHierarchy.atoms.auth_atom_id.isDefined) return -1

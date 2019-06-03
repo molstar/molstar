@@ -4,32 +4,32 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure } from 'mol-model/structure';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { StructureParams, StructureMeshParams, StructureDirectVolumeParams } from './representation';
 import { Visual, VisualContext } from '../visual';
-import { createRenderObject, RenderObjectValuesType, RenderObjectKindType } from 'mol-gl/render-object';
+import { Structure } from '../../mol-model/structure';
+import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
+import { LocationIterator } from '../../mol-geo/util/location-iterator';
+import { Theme, createEmptyTheme } from '../../mol-theme/theme';
+import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
+import { createRenderObject, RenderObjectKindType, RenderObjectValuesType } from '../../mol-gl/render-object';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
-import { StructureMeshParams, StructureParams, StructureDirectVolumeParams } from './representation';
-import { deepEqual, ValueCell } from 'mol-util';
-import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { Interval } from 'mol-data/int';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { createSizes } from 'mol-geo/geometry/size-data';
-import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { createColors } from 'mol-geo/geometry/color-data';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { VisualUpdateState } from 'mol-repr/util';
-import { Theme, createEmptyTheme } from 'mol-theme/theme';
-import { ColorTheme } from 'mol-theme/color';
-import { SizeTheme } from 'mol-theme/size';
+import { PickingId } from '../../mol-geo/geometry/picking';
+import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
+import { Interval } from '../../mol-data/int';
+import { VisualUpdateState } from '../util';
 import { UnitsParams } from './units-representation';
-import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { Mat4 } from 'mol-math/linear-algebra';
-import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
-import { Overpaint } from 'mol-theme/overpaint';
-import { Transparency } from 'mol-theme/transparency';
+import { ColorTheme } from '../../mol-theme/color';
+import { ValueCell, deepEqual } from '../../mol-util';
+import { createSizes } from '../../mol-geo/geometry/size-data';
+import { createColors } from '../../mol-geo/geometry/color-data';
+import { MarkerAction } from '../../mol-geo/geometry/marker-data';
+import { Mat4 } from '../../mol-math/linear-algebra';
+import { Overpaint } from '../../mol-theme/overpaint';
+import { Transparency } from '../../mol-theme/transparency';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { SizeTheme } from '../../mol-theme/size';
+import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 

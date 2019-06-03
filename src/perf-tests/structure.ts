@@ -9,16 +9,16 @@ import * as B from 'benchmark'
 import * as util from 'util'
 import * as fs from 'fs'
 import fetch from 'node-fetch'
-import CIF from 'mol-io/reader/cif'
+import { CIF } from '../mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, StructureElement, StructureSelection, StructureSymmetry, StructureQuery, StructureProperties as SP } from 'mol-model/structure'
-// import { Segmentation, OrderedSet } from 'mol-data/int'
+import { Structure, Model, Queries as Q, StructureElement, StructureSelection, StructureSymmetry, StructureQuery, StructureProperties as SP } from '../mol-model/structure'
+// import { Segmentation, OrderedSet } from '../mol-data/int'
 
-import to_mmCIF from 'mol-model/structure/export/mmcif'
-import { Vec3 } from 'mol-math/linear-algebra';
-import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
-// import { printUnits } from 'apps/structure-info/model';
-// import { EquivalenceClasses } from 'mol-data/util';
+import to_mmCIF from '../mol-model/structure/export/mmcif'
+import { Vec3 } from '../mol-math/linear-algebra';
+import { trajectoryFromMmCIF } from '../mol-model-formats/structure/mmcif';
+// import { printUnits } from '../apps/structure-info/model';
+// import { EquivalenceClasses } from '../mol-data/util';
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);

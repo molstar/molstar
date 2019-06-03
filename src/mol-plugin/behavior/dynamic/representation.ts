@@ -5,13 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { EmptyLoci } from 'mol-model/loci';
-import { StructureElement } from 'mol-model/structure';
-import { PluginContext } from 'mol-plugin/context';
-import { Representation } from 'mol-repr/representation';
-import { labelFirst } from 'mol-theme/label';
-import { ButtonsType } from 'mol-util/input/input-observer';
+import { MarkerAction } from '../../../mol-geo/geometry/marker-data';
+import { EmptyLoci } from '../../../mol-model/loci';
+import { StructureElement } from '../../../mol-model/structure';
+import { PluginContext } from '../../../mol-plugin/context';
+import { Representation } from '../../../mol-repr/representation';
+import { labelFirst } from '../../../mol-theme/label';
+import { ButtonsType } from '../../../mol-util/input/input-observer';
 import { PluginBehavior } from '../behavior';
 
 export const HighlightLoci = PluginBehavior.create({

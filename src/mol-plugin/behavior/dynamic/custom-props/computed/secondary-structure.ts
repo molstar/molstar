@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
 import { PluginBehavior } from '../../../behavior';
-import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
-import { ComputedSecondaryStructure } from 'mol-model-props/computed/secondary-structure';
+import { CustomPropertyRegistry } from '../../../../../mol-model-props/common/custom-property-registry';
+import { ComputedSecondaryStructure } from '../../../../../mol-model-props/computed/secondary-structure';
 
 export const MolstarSecondaryStructure = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'molstar-computed-secondary-structure-prop',

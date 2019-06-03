@@ -15,7 +15,7 @@ import { BIRD_Schema, BIRD_Database } from './cif/schema/bird'
 import { dic_Schema, dic_Database } from './cif/schema/dic'
 import { DensityServer_Data_Schema, DensityServer_Data_Database } from './cif/schema/density-server'
 
-export default {
+export const CIF = {
     parse: (data: string|Uint8Array) => typeof data === 'string' ? parseText(data) : parseBinary(data),
     parseText,
     parseBinary,

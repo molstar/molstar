@@ -12,12 +12,12 @@ import * as express from 'express'
 import * as Api from './api'
 import * as Data from './query/data-model'
 import * as Coords from './algebra/coordinate'
-import { ConsoleLogger } from 'mol-util/console-logger'
+import { ConsoleLogger } from '../../../mol-util/console-logger'
 import { State } from './state'
 import { LimitsConfig, ServerConfig } from '../config';
-import { interpolate } from 'mol-util/string';
+import { interpolate } from '../../../mol-util/string';
 import { getSchema, shortcutIconLink } from './web-schema';
-import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from 'servers/common/swagger-ui';
+import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from '../../common/swagger-ui';
 
 export default function init(app: express.Express) {
     app.locals.mapFile = getMapFileFn()

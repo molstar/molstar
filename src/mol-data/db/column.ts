@@ -6,7 +6,7 @@
  */
 
 import * as ColumnHelpers from './column-helpers'
-import { Tensor as Tensors } from 'mol-math/linear-algebra'
+import { Tensor as Tensors } from '../../mol-math/linear-algebra'
 
 interface Column<T> {
     readonly schema: Column.Schema,

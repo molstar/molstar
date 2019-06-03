@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ResidueIndex, Model } from 'mol-model/structure';
-import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
-import { BuiltInColorThemeName } from 'mol-theme/color';
-import { AminoAcidNames } from 'mol-model/structure/model/types';
-import { PluginContext } from 'mol-plugin/context';
+import { ResidueIndex, Model } from '../../mol-model/structure';
+import { BuiltInStructureRepresentationsName } from '../../mol-repr/structure/registry';
+import { BuiltInColorThemeName } from '../../mol-theme/color';
+import { AminoAcidNames } from '../../mol-model/structure/model/types';
+import { PluginContext } from '../../mol-plugin/context';
 
 export interface ModelInfo {
     hetResidues: { name: string, indices: ResidueIndex[] }[],

@@ -5,8 +5,8 @@
  */
 
 import { SizeTheme } from '../size';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
 
 const Description = 'Gives everything the same, uniform size.'
 

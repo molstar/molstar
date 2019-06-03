@@ -5,16 +5,16 @@
  */
 
 import './index.html'
-import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { Mat4 } from 'mol-math/linear-algebra';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { Representation } from 'mol-repr/representation';
-import { Color } from 'mol-util/color';
-import { createRenderObject } from 'mol-gl/render-object';
-import { SpikedBall } from 'mol-geo/primitive/spiked-ball';
-import { HexagonalPrismCage } from 'mol-geo/primitive/prism';
-import { resizeCanvas } from 'mol-canvas3d/util';
+import { resizeCanvas } from '../../mol-canvas3d/util';
+import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
+import { Mat4 } from '../../mol-math/linear-algebra';
+import { HexagonalPrismCage } from '../../mol-geo/primitive/prism';
+import { SpikedBall } from '../../mol-geo/primitive/spiked-ball';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { Color } from '../../mol-util/color';
+import { createRenderObject } from '../../mol-gl/render-object';
+import { Representation } from '../../mol-repr/representation';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'

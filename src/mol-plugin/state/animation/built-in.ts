@@ -7,10 +7,10 @@
 import { PluginStateAnimation } from './model';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
-import { StateSelection, StateTransform } from 'mol-state';
-import { PluginCommands } from 'mol-plugin/command';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { PluginContext } from 'mol-plugin/context';
+import { StateSelection, StateTransform } from '../../../mol-state';
+import { PluginCommands } from '../../../mol-plugin/command';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { PluginContext } from '../../../mol-plugin/context';
 
 export const AnimateModelIndex = PluginStateAnimation.create({
     name: 'built-in.animate-model-index',

@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Loci } from 'mol-model/loci';
-import { Color } from 'mol-util/color';
+import { Loci } from '../mol-model/loci';
+import { Color } from '../mol-util/color';
 
 export { Overpaint }
 

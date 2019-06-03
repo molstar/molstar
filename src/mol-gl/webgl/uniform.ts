@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat3, Mat4, Vec2, Vec3, Vec4 } from 'mol-math/linear-algebra'
-import { ValueCell } from 'mol-util';
+import { Mat3, Mat4, Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra'
+import { ValueCell } from '../../mol-util';
 import { GLRenderingContext } from './compat';
-import { RenderableSchema } from 'mol-gl/renderable/schema';
+import { RenderableSchema } from '../../mol-gl/renderable/schema';
 
 export type UniformKindValue = {
     'f': number

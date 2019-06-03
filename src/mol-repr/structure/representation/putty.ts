@@ -6,12 +6,12 @@
 
 import { PolymerTubeVisual,  PolymerTubeParams } from '../visual/polymer-tube-mesh';
 import { PolymerGapVisual, PolymerGapParams } from '../visual/polymer-gap-cylinder';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
-import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
-import { Structure, Unit } from 'mol-model/structure';
-import { ThemeRegistryContext } from 'mol-theme/theme';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
+import { Structure, Unit } from '../../../mol-model/structure';
+import { ThemeRegistryContext } from '../../../mol-theme/theme';
 
 const PuttyVisuals = {
     'polymer-tube': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTubeParams>) => UnitsRepresentation('Polymer tube mesh', ctx, getParams, PolymerTubeVisual),

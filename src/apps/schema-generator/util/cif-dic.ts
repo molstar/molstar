@@ -5,8 +5,8 @@
  */
 
 import { Database, Column, EnumCol, StrCol, IntCol, ListCol, FloatCol, CoordCol, MatrixCol, VectorCol } from './schema'
-import * as Data from 'mol-io/reader/cif/data-model'
-import { CifFrame } from 'mol-io/reader/cif/data-model';
+import * as Data from '../../../mol-io/reader/cif/data-model'
+import { CifFrame } from '../../../mol-io/reader/cif/data-model';
 
 export function getFieldType (type: string, description: string, values?: string[]): Column {
     switch (type) {

@@ -5,14 +5,14 @@
  */
 
 import * as React from 'react'
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { BooleanParamComponent } from './parameter/boolean';
 import { NumberParamComponent } from './parameter/number';
 import { SelectParamComponent } from './parameter/select';
 import { MultiSelectParamComponent } from './parameter/multi-select';
 import { TextParamComponent } from './parameter/text';
 import { ColorParamComponent } from './parameter/color';
-import { camelCaseToWords } from 'mol-util/string';
+import { camelCaseToWords } from '../../mol-util/string';
 
 interface ParametersProps<P extends PD.Params> {
     params: P

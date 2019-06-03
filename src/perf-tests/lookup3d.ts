@@ -1,13 +1,13 @@
 import * as util from 'util'
 import * as fs from 'fs'
-import CIF from 'mol-io/reader/cif'
+import { CIF } from '../mol-io/reader/cif'
 
-import { Structure } from 'mol-model/structure'
+import { Structure } from '../mol-model/structure'
 
-import { GridLookup3D } from 'mol-math/geometry';
+import { GridLookup3D } from '../mol-math/geometry';
 // import { sortArray } from 'mol-data/util';
-import { OrderedSet } from 'mol-data/int';
-import { trajectoryFromMmCIF } from 'mol-model-formats/structure/mmcif';
+import { OrderedSet } from '../mol-data/int';
+import { trajectoryFromMmCIF } from '../mol-model-formats/structure/mmcif';
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);

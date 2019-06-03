@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { UUID } from 'mol-util';
+import { UUID } from '../mol-util';
 import { StateTransform } from './transform';
-import { ParamDefinition } from 'mol-util/param-definition';
+import { ParamDefinition } from '../mol-util/param-definition';
 import { State } from './state';
-import { StateSelection, StateTransformer } from 'mol-state';
+import { StateSelection, StateTransformer } from '../mol-state';
 
 export { StateObject, StateObjectCell }
 

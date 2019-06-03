@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Mat4 } from 'mol-math/linear-algebra';
+import { Vec3, Mat4 } from '../../../../mol-math/linear-algebra';
 import { MeshBuilder } from '../mesh-builder';
 import { Primitive } from '../../../primitive/primitive';
 import { Cylinder, CylinderProps } from '../../../primitive/cylinder';

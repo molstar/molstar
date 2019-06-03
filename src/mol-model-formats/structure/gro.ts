@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from 'mol-model/structure/model';
-import { Task } from 'mol-task';
+import { Model } from '../../mol-model/structure/model';
+import { Task } from '../../mol-task';
 import { ModelFormat } from './format';
 import { _parse_mmCif } from './mmcif/parser';
-import { GroFile, GroAtoms } from 'mol-io/reader/gro/schema';
-import { CifCategory, CifField } from 'mol-io/reader/cif';
-import { Column } from 'mol-data/db';
-import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
+import { GroFile, GroAtoms } from '../../mol-io/reader/gro/schema';
+import { CifCategory, CifField } from '../../mol-io/reader/cif';
+import { Column } from '../../mol-data/db';
+import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { guessElementSymbolString } from './util';
 
 // TODO multi model files

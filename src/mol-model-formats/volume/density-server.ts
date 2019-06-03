@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DensityServer_Data_Database } from 'mol-io/reader/cif/schema/density-server'
-import { VolumeData } from 'mol-model/volume/data'
-import { Task } from 'mol-task';
-import { SpacegroupCell, Box3D } from 'mol-math/geometry';
-import { Tensor, Vec3 } from 'mol-math/linear-algebra';
+import { DensityServer_Data_Database } from '../../mol-io/reader/cif/schema/density-server'
+import { VolumeData } from '../../mol-model/volume/data'
+import { Task } from '../../mol-task';
+import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
+import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
 
 function volumeFromDensityServerData(source: DensityServer_Data_Database): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async ctx => {

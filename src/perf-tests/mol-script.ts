@@ -1,14 +1,14 @@
-import { MolScriptBuilder } from 'mol-script/language/builder';
-import { compile, QuerySymbolRuntime, DefaultQueryRuntimeTable } from 'mol-script/runtime/query/compiler';
-import { QueryContext, Structure, StructureQuery, CustomPropertyDescriptor } from 'mol-model/structure';
+import { MolScriptBuilder } from '../mol-script/language/builder';
+import { compile, QuerySymbolRuntime, DefaultQueryRuntimeTable } from '../mol-script/runtime/query/compiler';
+import { QueryContext, Structure, StructureQuery, CustomPropertyDescriptor } from '../mol-model/structure';
 import { readCifFile, getModelsAndStructure } from '../apps/structure-info/model';
-import { CustomPropSymbol } from 'mol-script/language/symbol';
-import Type from 'mol-script/language/type';
-import { parseMolScript } from 'mol-script/language/parser';
+import { CustomPropSymbol } from '../mol-script/language/symbol';
+import Type from '../mol-script/language/type';
+import { parseMolScript } from '../mol-script/language/parser';
 import * as util from 'util'
-import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
-import { formatMolScript } from 'mol-script/language/expression-formatter';
-import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-report';
+import { transpileMolScript } from '../mol-script/script/mol-script/symbols';
+import { formatMolScript } from '../mol-script/language/expression-formatter';
+import { StructureQualityReport } from '../mol-model-props/pdbe/structure-quality-report';
 import fetch from 'node-fetch';
 
 // import Examples from 'mol-script/script/mol-script/examples'

@@ -4,14 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Segmentation } from 'mol-data/int';
-import { CifWriter } from 'mol-io/writer/cif';
+import { Segmentation } from '../../../../mol-data/int';
+import { CifWriter } from '../../../../mol-io/writer/cif';
 import { SecondaryStructure } from '../../model/properties/seconday-structure';
 import { StructureElement, Unit } from '../../structure';
 import { CifExportContext } from '../mmcif';
 import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
-import { Column } from 'mol-data/db';
+import { Column } from '../../../../mol-data/db';
 import { residueIdFields } from './atom_site';
 
 export const _struct_conf: CifCategory<CifExportContext> = {

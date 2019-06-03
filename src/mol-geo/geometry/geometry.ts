@@ -7,20 +7,20 @@
 import { Mesh } from './mesh/mesh';
 import { Points } from './points/points';
 import { Text } from './text/text';
-import { RenderableState } from 'mol-gl/renderable';
+import { RenderableState } from '../../mol-gl/renderable';
 import { LocationIterator } from '../util/location-iterator';
 import { ColorType } from './color-data';
 import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { DirectVolume } from './direct-volume/direct-volume';
-import { Color } from 'mol-util/color';
+import { Color } from '../../mol-util/color';
 import { Spheres } from './spheres/spheres';
-import { arrayMax } from 'mol-util/array';
+import { arrayMax } from '../../mol-util/array';
 import { TransformData } from './transform-data';
-import { Theme } from 'mol-theme/theme';
-import { RenderObjectValuesType } from 'mol-gl/render-object';
-import { ValueOf } from 'mol-util/type-helpers';
+import { Theme } from '../../mol-theme/theme';
+import { RenderObjectValuesType } from '../../mol-gl/render-object';
+import { ValueOf } from '../../mol-util/type-helpers';
 import { TextureMesh } from './texture-mesh/texture-mesh';
 
 export type GeometryKindType = {

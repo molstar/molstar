@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task } from 'mol-task';
+import { Task } from '../mol-task';
 import { StateObject, StateObjectCell } from './object';
 import { StateTransform } from './transform';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { StateAction } from './action';
-import { capitalize } from 'mol-util/string';
+import { capitalize } from '../mol-util/string';
 import { StateTreeSpine } from './tree/spine';
 
 export { Transformer as StateTransformer }

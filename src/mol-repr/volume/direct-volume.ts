@@ -4,23 +4,23 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeData } from 'mol-model/volume'
-import { RuntimeContext } from 'mol-task'
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
+import { Box3D } from '../../mol-math/geometry';
+import { VolumeData } from '../../mol-model/volume';
+import { RuntimeContext } from '../../mol-task';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
+import { createTexture } from '../../mol-gl/webgl/texture';
+import { VisualContext } from '../visual';
+import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
+import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
-import { EmptyLoci } from 'mol-model/loci';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Vec3, Mat4 } from 'mol-math/linear-algebra';
-import { Box3D } from 'mol-math/geometry';
-import { WebGLContext } from 'mol-gl/webgl/context';
-import { createTexture } from 'mol-gl/webgl/texture';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { BaseGeometry } from 'mol-geo/geometry/base';
-import { VisualUpdateState } from 'mol-repr/util';
-import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
-import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
-import { VisualContext } from 'mol-repr/visual';
-import { NullLocation } from 'mol-model/location';
+import { LocationIterator } from '../../mol-geo/util/location-iterator';
+import { NullLocation } from '../../mol-model/location';
+import { EmptyLoci } from '../../mol-model/loci';
+import { VisualUpdateState } from '../util';
+import { RepresentationContext, RepresentationParamsGetter } from '../representation';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty()

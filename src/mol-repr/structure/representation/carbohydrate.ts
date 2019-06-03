@@ -4,15 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CarbohydrateSymbolVisual, CarbohydrateSymbolParams } from '../visual/carbohydrate-symbol-mesh';
-import { CarbohydrateLinkVisual, CarbohydrateLinkParams } from '../visual/carbohydrate-link-cylinder';
-import { CarbohydrateTerminalLinkParams, CarbohydrateTerminalLinkVisual } from '../visual/carbohydrate-terminal-link-cylinder';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { Structure } from '../../../mol-model/structure';
+import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../../mol-repr/representation';
+import { ThemeRegistryContext } from '../../../mol-theme/theme';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ComplexRepresentation } from '../complex-representation';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
-import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
-import { ThemeRegistryContext } from 'mol-theme/theme';
-import { Structure } from 'mol-model/structure';
+import { CarbohydrateLinkParams, CarbohydrateLinkVisual } from '../visual/carbohydrate-link-cylinder';
+import { CarbohydrateSymbolParams, CarbohydrateSymbolVisual } from '../visual/carbohydrate-symbol-mesh';
+import { CarbohydrateTerminalLinkParams, CarbohydrateTerminalLinkVisual } from '../visual/carbohydrate-terminal-link-cylinder';
 
 const CarbohydrateVisuals = {
     'carbohydrate-symbol': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateSymbolParams>) => ComplexRepresentation('Carbohydrate symbol mesh', ctx, getParams, CarbohydrateSymbolVisual),

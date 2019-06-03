@@ -6,9 +6,9 @@
 
 import { Subject, Observable } from 'rxjs';
 
-import { Vec2 } from 'mol-math/linear-algebra';
+import { Vec2 } from '../../mol-math/linear-algebra';
 
-import { BitFlags, noop } from 'mol-util';
+import { BitFlags, noop } from '../../mol-util';
 
 function getButtons(event: MouseEvent | Touch) {
     if (typeof event === 'object') {

@@ -5,9 +5,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat4, Vec3, Vec4, EPSILON } from 'mol-math/linear-algebra'
+import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra'
 import { Viewport, cameraProject, cameraUnproject } from './camera/util';
-import { Object3D } from 'mol-gl/object3d';
+import { Object3D } from '../mol-gl/object3d';
 import { BehaviorSubject } from 'rxjs';
 import { CameraTransitionManager } from './camera/transition';
 

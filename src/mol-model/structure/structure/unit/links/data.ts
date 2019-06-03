@@ -6,7 +6,7 @@
  */
 
 import { LinkType } from '../../../model/types'
-import { IntAdjacencyGraph } from 'mol-math/graph';
+import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import Unit from '../../unit';
 import StructureElement from '../../element';
 import { Link } from '../links';

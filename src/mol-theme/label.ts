@@ -5,9 +5,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Unit, StructureElement, StructureProperties as Props, Link } from 'mol-model/structure';
-import { Loci } from 'mol-model/loci';
-import { OrderedSet } from 'mol-data/int';
+import { Unit, StructureElement, StructureProperties as Props, Link } from '../mol-model/structure';
+import { Loci } from '../mol-model/loci';
+import { OrderedSet } from '../mol-data/int';
 
 // for `labelFirst`, don't create right away to avoid problems with circular dependencies/imports
 let elementLocA: StructureElement

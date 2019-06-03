@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from 'mol-math/linear-algebra';
-import { NumberArray } from 'mol-util/type-helpers';
-import { lerp } from 'mol-math/interpolate';
+import { Vec3 } from '../../../../../mol-math/linear-algebra';
+import { NumberArray } from '../../../../../mol-util/type-helpers';
+import { lerp } from '../../../../../mol-math/interpolate';
 
 export interface CurveSegmentState {
     curvePoints: NumberArray,

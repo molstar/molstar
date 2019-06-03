@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react';
-import { Color } from 'mol-util/color';
+import { Color } from '../../../mol-util/color';
 
 export class ControlGroup extends React.Component<{ header: string, initialExpanded?: boolean }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }

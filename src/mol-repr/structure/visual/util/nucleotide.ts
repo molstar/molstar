@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureElement, Structure } from 'mol-model/structure';
-import { Loci, EmptyLoci } from 'mol-model/loci';
-import { OrderedSet, Interval } from 'mol-data/int';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { StructureGroup } from 'mol-repr/structure/units-visual';
+import { Unit, StructureElement, Structure } from '../../../../mol-model/structure';
+import { Loci, EmptyLoci } from '../../../../mol-model/loci';
+import { OrderedSet, Interval } from '../../../../mol-data/int';
+import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
+import { PickingId } from '../../../../mol-geo/geometry/picking';
+import { StructureGroup } from '../../../../mol-repr/structure/units-visual';
 import { getResidueLoci } from './common';
 
 export namespace NucleotideLocationIterator {

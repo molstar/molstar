@@ -9,7 +9,7 @@ import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
 import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec, InternalValues } from './schema';
 import { DirectVolumeShaderCode } from '../shader-code';
-import { ValueCell } from 'mol-util';
+import { ValueCell } from '../../mol-util';
 
 export const DirectVolumeSchema = {
     uColor: UniformSpec('v3'),

@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SortedArray } from 'mol-data/int';
-import { EquivalenceClasses } from 'mol-data/util';
-import { Spacegroup, SpacegroupCell, SymmetryOperator } from 'mol-math/geometry';
-import { Vec3, Mat4 } from 'mol-math/linear-algebra';
-import { RuntimeContext, Task } from 'mol-task';
+import { SortedArray } from '../../../mol-data/int';
+import { EquivalenceClasses } from '../../../mol-data/util';
+import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/geometry';
+import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
+import { RuntimeContext, Task } from '../../../mol-task';
 import { ModelSymmetry } from '../model';
 import { QueryContext, StructureSelection } from '../query';
 import Structure from './structure';

@@ -5,13 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { substringStartsWith } from 'mol-util/string';
-import { CifField, CifCategory, CifFrame } from 'mol-io/reader/cif';
-import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
-import { TokenBuilder, Tokenizer } from 'mol-io/reader/common/text/tokenizer';
-import { PdbFile } from 'mol-io/reader/pdb/schema';
+import { substringStartsWith } from '../../../mol-util/string';
+import { CifField, CifCategory, CifFrame } from '../../../mol-io/reader/cif';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
+import { TokenBuilder, Tokenizer } from '../../../mol-io/reader/common/text/tokenizer';
+import { PdbFile } from '../../../mol-io/reader/pdb/schema';
 import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
-import { WaterNames } from 'mol-model/structure/model/types';
+import { WaterNames } from '../../../mol-model/structure/model/types';
 import { parseHelix, parseSheet } from './secondary-structure';
 import { guessElementSymbolTokens } from '../util';
 

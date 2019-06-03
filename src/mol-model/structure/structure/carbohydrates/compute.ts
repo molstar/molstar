@@ -5,12 +5,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Segmentation, SortedArray } from 'mol-data/int';
-import { combinations } from 'mol-data/util/combination';
-import { IntAdjacencyGraph } from 'mol-math/graph';
-import { Vec3 } from 'mol-math/linear-algebra';
-import PrincipalAxes from 'mol-math/linear-algebra/matrix/principal-axes';
-import { fillSerial } from 'mol-util/array';
+import { Segmentation, SortedArray } from '../../../../mol-data/int';
+import { combinations } from '../../../../mol-data/util/combination';
+import { IntAdjacencyGraph } from '../../../../mol-math/graph';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
+import PrincipalAxes from '../../../../mol-math/linear-algebra/matrix/principal-axes';
+import { fillSerial } from '../../../../mol-util/array';
 import { ResidueIndex, Model } from '../../model';
 import { ElementSymbol } from '../../model/types';
 import { getPositionMatrix } from '../../util';

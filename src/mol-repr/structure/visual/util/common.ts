@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure, ElementIndex, StructureElement } from 'mol-model/structure';
-import { Mat4 } from 'mol-math/linear-algebra';
-import { TransformData, createTransform } from 'mol-geo/geometry/transform-data';
-import { OrderedSet, SortedArray } from 'mol-data/int';
-import { EmptyLoci, Loci } from 'mol-model/loci';
-import { PhysicalSizeTheme } from 'mol-theme/size/physical';
+import { Unit, Structure, ElementIndex, StructureElement } from '../../../../mol-model/structure';
+import { Mat4 } from '../../../../mol-math/linear-algebra';
+import { TransformData, createTransform } from '../../../../mol-geo/geometry/transform-data';
+import { OrderedSet, SortedArray } from '../../../../mol-data/int';
+import { EmptyLoci, Loci } from '../../../../mol-model/loci';
+import { PhysicalSizeTheme } from '../../../../mol-theme/size/physical';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {

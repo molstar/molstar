@@ -6,11 +6,11 @@
 
 import { MolecularSurfaceMeshVisual, MolecularSurfaceMeshParams } from '../visual/molecular-surface-mesh';
 import { UnitsRepresentation } from '../units-representation';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
-import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
-import { ThemeRegistryContext } from 'mol-theme/theme';
-import { Structure } from 'mol-model/structure';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
+import { ThemeRegistryContext } from '../../../mol-theme/theme';
+import { Structure } from '../../../mol-model/structure';
 
 const MolecularSurfaceVisuals = {
     'molecular-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceMeshParams>) => UnitsRepresentation('Molecular surface', ctx, getParams, MolecularSurfaceMeshVisual),

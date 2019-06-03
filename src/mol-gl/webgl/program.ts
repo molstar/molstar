@@ -10,11 +10,11 @@ import { WebGLExtensions } from './extensions';
 import { getUniformSetters, UniformsList, getUniformType } from './uniform';
 import { AttributeBuffers, getAttribType } from './buffer';
 import { TextureId, Textures } from './texture';
-import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
-import { idFactory } from 'mol-util/id-factory';
+import { createReferenceCache, ReferenceCache } from '../../mol-util/reference-cache';
+import { idFactory } from '../../mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
-import { hashFnv32a, hashString } from 'mol-data/util';
-import { isDebugMode } from 'mol-util/debug';
+import { hashFnv32a, hashString } from '../../mol-data/util';
+import { isDebugMode } from '../../mol-util/debug';
 import { GLRenderingContext } from './compat';
 import { ShaderCache } from './shader';
 

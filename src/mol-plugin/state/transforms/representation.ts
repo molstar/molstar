@@ -5,32 +5,32 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure } from 'mol-model/structure';
-import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
-import { PluginContext } from 'mol-plugin/context';
-import { RepresentationProvider } from 'mol-repr/representation';
-import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
-import { StructureParams } from 'mol-repr/structure/representation';
-import { BuiltInVolumeRepresentationsName } from 'mol-repr/volume/registry';
-import { VolumeParams } from 'mol-repr/volume/representation';
-import { StateTransformer } from 'mol-state';
-import { Task } from 'mol-task';
-import { BuiltInColorThemeName, ColorTheme, BuiltInColorThemes } from 'mol-theme/color';
-import { BuiltInSizeThemeName, SizeTheme } from 'mol-theme/size';
-import { createTheme, ThemeRegistryContext } from 'mol-theme/theme';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { Structure } from '../../../mol-model/structure';
+import { VolumeData, VolumeIsoValue } from '../../../mol-model/volume';
+import { PluginContext } from '../../../mol-plugin/context';
+import { RepresentationProvider } from '../../../mol-repr/representation';
+import { BuiltInStructureRepresentationsName } from '../../../mol-repr/structure/registry';
+import { StructureParams } from '../../../mol-repr/structure/representation';
+import { BuiltInVolumeRepresentationsName } from '../../../mol-repr/volume/registry';
+import { VolumeParams } from '../../../mol-repr/volume/representation';
+import { StateTransformer } from '../../../mol-state';
+import { Task } from '../../../mol-task';
+import { BuiltInColorThemeName, ColorTheme, BuiltInColorThemes } from '../../../mol-theme/color';
+import { BuiltInSizeThemeName, SizeTheme } from '../../../mol-theme/size';
+import { createTheme, ThemeRegistryContext } from '../../../mol-theme/theme';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
-import { Text } from 'mol-geo/geometry/text/text';
-import { ColorNames } from 'mol-util/color/tables';
-import { getLabelRepresentation } from 'mol-plugin/util/structure-labels';
-import { ShapeRepresentation } from 'mol-repr/shape/representation';
-import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
+import { Text } from '../../../mol-geo/geometry/text/text';
+import { ColorNames } from '../../../mol-util/color/tables';
+import { getLabelRepresentation } from '../../../mol-plugin/util/structure-labels';
+import { ShapeRepresentation } from '../../../mol-repr/shape/representation';
+import { StructureUnitTransforms } from '../../../mol-model/structure/structure/util/unit-transforms';
 import { unwindStructureAssembly, explodeStructure } from '../animation/helpers';
-import { Color } from 'mol-util/color';
-import { Overpaint } from 'mol-theme/overpaint';
-import { Transparency } from 'mol-theme/transparency';
+import { Color } from '../../../mol-util/color';
+import { Overpaint } from '../../../mol-theme/overpaint';
+import { Transparency } from '../../../mol-theme/transparency';
 import { getStructureOverpaint, getStructureTransparency } from './helpers';
-import { BaseGeometry } from 'mol-geo/geometry/base';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }

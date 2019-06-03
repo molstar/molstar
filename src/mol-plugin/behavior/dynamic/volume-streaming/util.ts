@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure } from 'mol-model/structure';
+import { Structure } from '../../../../mol-model/structure';
 import { VolumeServerInfo } from './model';
-import { PluginContext } from 'mol-plugin/context';
-import { RuntimeContext } from 'mol-task';
+import { PluginContext } from '../../../../mol-plugin/context';
+import { RuntimeContext } from '../../../../mol-task';
 
 export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.Kind = 'x-ray'): VolumeServerInfo.Kind {
     if (!s) return defaultKind;

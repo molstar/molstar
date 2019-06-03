@@ -1,5 +1,5 @@
 import * as B from 'benchmark'
-import { Tuple, Segmentation, OrderedSet as OrdSet } from 'mol-data/int'
+import { Tuple, Segmentation, OrderedSet as OrdSet } from '../mol-data/int'
 // import { ElementSet } from 'mol-model/structure'
 
 // export namespace Iteration {

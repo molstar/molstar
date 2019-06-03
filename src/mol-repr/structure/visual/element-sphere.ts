@@ -5,12 +5,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { UnitsVisual } from '../representation';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { UnitsMeshParams, UnitsSpheresParams, UnitsVisual, UnitsSpheresVisual, UnitsMeshVisual } from '../units-visual';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { createElementSphereImpostor, StructureElementIterator, getElementLoci, eachElement, createElementSphereMesh } from './util/element';
 import { VisualUpdateState } from '../../util';
-import { createElementSphereMesh, eachElement, getElementLoci, StructureElementIterator, createElementSphereImpostor } from './util/element';
-import { UnitsMeshVisual, UnitsMeshParams, UnitsSpheresVisual, UnitsSpheresParams } from '../units-visual';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { WebGLContext } from 'mol-gl/webgl/context';
 
 export const ElementSphereParams = {
     ...UnitsMeshParams,

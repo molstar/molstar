@@ -5,10 +5,10 @@
  */
 
 import * as React from 'react';
-import { PluginUIComponent } from 'mol-plugin/ui/base';
-import { CurrentObject } from 'mol-plugin/ui/plugin';
-import { AnimationControls } from 'mol-plugin/ui/state/animation';
-import { CameraSnapshots } from 'mol-plugin/ui/camera';
+import { PluginUIComponent } from '../../../mol-plugin/ui/base';
+import { CurrentObject } from '../../../mol-plugin/ui/plugin';
+import { AnimationControls } from '../../../mol-plugin/ui/state/animation';
+import { CameraSnapshots } from '../../../mol-plugin/ui/camera';
 
 export class ControlsWrapper extends PluginUIComponent {
     render() {

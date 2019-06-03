@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginContext } from 'mol-plugin/context';
-import { PluginCommands } from 'mol-plugin/command';
-import { CameraSnapshotManager } from 'mol-plugin/state/camera';
+import { PluginContext } from '../../../mol-plugin/context';
+import { PluginCommands } from '../../../mol-plugin/command';
+import { CameraSnapshotManager } from '../../../mol-plugin/state/camera';
 
 export function registerDefault(ctx: PluginContext) {
     Reset(ctx);

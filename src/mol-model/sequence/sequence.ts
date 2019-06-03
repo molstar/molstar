@@ -5,7 +5,7 @@
  */
 
 import { AminoAlphabet, NuclecicAlphabet, getProteinOneLetterCode, getRnaOneLetterCode, getDnaOneLetterCode } from './constants';
-import { Column } from 'mol-data/db'
+import { Column } from '../../mol-data/db'
 
 // TODO add mapping support to other sequence spaces, e.g. uniprot
 // TODO sequence alignment (take NGL code as starting point)

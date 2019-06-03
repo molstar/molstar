@@ -6,7 +6,7 @@
 
 // adapted from three.js, MIT License Copyright 2010-2018 three.js authors
 
-import { Vec3 } from 'mol-math/linear-algebra'
+import { Vec3 } from '../../mol-math/linear-algebra'
 import { computeIndexedVertexNormals, appplyRadius } from '../util'
 import { Primitive } from './primitive';
 

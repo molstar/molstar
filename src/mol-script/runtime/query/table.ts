@@ -6,12 +6,12 @@
 
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
 import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './compiler';
-import { Queries, StructureProperties, StructureElement, QueryContext } from 'mol-model/structure';
-import { ElementSymbol } from 'mol-model/structure/model/types';
-import { SetUtils } from 'mol-util/set';
-import toUpperCase from 'mol-util/upper-case';
-import { VdwRadius, AtomWeight, AtomNumber } from 'mol-model/structure/model/properties/atomic';
-import { cantorPairing } from 'mol-data/util';
+import { Queries, StructureProperties, StructureElement, QueryContext } from '../../../mol-model/structure';
+import { ElementSymbol } from '../../../mol-model/structure/model/types';
+import { SetUtils } from '../../../mol-util/set';
+import toUpperCase from '../../../mol-util/upper-case';
+import { VdwRadius, AtomWeight, AtomNumber } from '../../../mol-model/structure/model/properties/atomic';
+import { cantorPairing } from '../../../mol-data/util';
 import C = QuerySymbolRuntime.Const
 import D = QuerySymbolRuntime.Dynamic
 

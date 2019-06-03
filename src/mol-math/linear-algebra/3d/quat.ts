@@ -25,7 +25,7 @@
 import Mat3 from './mat3';
 import Vec3 from './vec3';
 import { EPSILON } from './common';
-import { NumberArray } from 'mol-util/type-helpers';
+import { NumberArray } from '../../../mol-util/type-helpers';
 
 interface Quat extends Array<number> { [d: number]: number, '@type': 'quat', length: 4 }
 

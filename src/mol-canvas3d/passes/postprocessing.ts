@@ -4,19 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { QuadSchema, QuadValues } from 'mol-gl/compute/util';
-import { TextureSpec, Values, UniformSpec, DefineSpec } from 'mol-gl/renderable/schema';
-import { ShaderCode } from 'mol-gl/shader-code';
-import { WebGLContext } from 'mol-gl/webgl/context';
-import { Texture } from 'mol-gl/webgl/texture';
-import { ValueCell } from 'mol-util';
-import { createComputeRenderItem } from 'mol-gl/webgl/render-item';
-import { createComputeRenderable, ComputeRenderable } from 'mol-gl/renderable';
-import { Vec2, Vec3 } from 'mol-math/linear-algebra';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { createRenderTarget, RenderTarget } from 'mol-gl/webgl/render-target';
+import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
+import { TextureSpec, Values, UniformSpec, DefineSpec } from '../../mol-gl/renderable/schema';
+import { ShaderCode } from '../../mol-gl/shader-code';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { Texture } from '../../mol-gl/webgl/texture';
+import { ValueCell } from '../../mol-util';
+import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
+import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/renderable';
+import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { createRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-target';
 import { DrawPass } from './draw';
-import { Camera } from 'mol-canvas3d/camera';
+import { Camera } from '../../mol-canvas3d/camera';
 
 const PostprocessingSchema = {
     ...QuadSchema,

@@ -21,7 +21,7 @@ import { EPSILON, equalEps } from './common'
 import Vec3 from './vec3';
 import Quat from './quat';
 import { degToRad } from '../../misc';
-import { NumberArray } from 'mol-util/type-helpers';
+import { NumberArray } from '../../../mol-util/type-helpers';
 import Mat3 from './mat3';
 
 interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }

@@ -4,19 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { RenderableState } from 'mol-gl/renderable';
-import { ValueCell } from 'mol-util';
-import { BaseValues } from 'mol-gl/renderable/schema';
+import { RenderableState } from '../../mol-gl/renderable';
+import { ValueCell } from '../../mol-util';
+import { BaseValues } from '../../mol-gl/renderable/schema';
 import { LocationIterator } from '../util/location-iterator';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { Color } from 'mol-util/color';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { Color } from '../../mol-util/color';
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { TransformData, createIdentityTransform } from './transform-data';
-import { Theme } from 'mol-theme/theme';
-import { ColorNames } from 'mol-util/color/tables';
-import { NullLocation } from 'mol-model/location';
-import { UniformColorTheme } from 'mol-theme/color/uniform';
-import { UniformSizeTheme } from 'mol-theme/size/uniform';
+import { Theme } from '../../mol-theme/theme';
+import { ColorNames } from '../../mol-util/color/tables';
+import { NullLocation } from '../../mol-model/location';
+import { UniformColorTheme } from '../../mol-theme/color/uniform';
+import { UniformSizeTheme } from '../../mol-theme/size/uniform';
 
 export const VisualQualityInfo = {
     'custom': {},

@@ -7,9 +7,9 @@
 import { Program } from './webgl/program';
 import { RenderableValues, Values, RenderableSchema } from './renderable/schema';
 import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant } from './webgl/render-item';
-import { ValueCell } from 'mol-util';
-import { idFactory } from 'mol-util/id-factory';
-import { clamp } from 'mol-math/interpolate';
+import { ValueCell } from '../mol-util';
+import { idFactory } from '../mol-util/id-factory';
+import { clamp } from '../mol-math/interpolate';
 
 const getNextRenderableId = idFactory()
 

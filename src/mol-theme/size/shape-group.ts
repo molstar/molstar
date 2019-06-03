@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Location } from 'mol-model/location';
-import { ShapeGroup } from 'mol-model/shape';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
-import { SizeTheme } from 'mol-theme/size';
+import { Location } from '../../mol-model/location';
+import { ShapeGroup } from '../../mol-model/shape';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { SizeTheme } from '../../mol-theme/size';
 
 const DefaultSize = 1
 const Description = 'Assigns sizes as defined by the shape object.'

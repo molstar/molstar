@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color } from 'mol-util/color';
-import { Location } from 'mol-model/location';
-import { StructureElement, Link } from 'mol-model/structure';
+import { Color } from '../../mol-util/color';
+import { Location } from '../../mol-model/location';
+import { StructureElement, Link } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
-import { ScaleLegend } from 'mol-util/color/scale';
-import { TableLegend } from 'mol-util/color/tables';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { ScaleLegend } from '../../mol-util/color/scale';
+import { TableLegend } from '../../mol-util/color/tables';
 import { getPaletteParams, getPalette } from './util';
 
 const DefaultColor = Color(0xCCCCCC)
@@ -39,7 +39,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
 
         const palette = getPalette(polymerCount, props)
         legend = palette.legend
-        
+
         const unitIdColor = new Map<number, Color>()
         for (let i = 0, j = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) {

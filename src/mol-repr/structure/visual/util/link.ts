@@ -4,16 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from 'mol-math/linear-algebra';
-import { LinkType } from 'mol-model/structure/model/types';
-import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { CylinderProps } from 'mol-geo/primitive/cylinder';
-import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { VisualContext } from 'mol-repr/visual';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { LinkType } from '../../../../mol-model/structure/model/types';
+import { Unit, StructureElement, Structure, Link } from '../../../../mol-model/structure';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { Mesh } from '../../../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../../../mol-geo/geometry/mesh/mesh-builder';
+import { CylinderProps } from '../../../../mol-geo/primitive/cylinder';
+import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../mol-geo/geometry/mesh/builder/cylinder';
+import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
+import { VisualContext } from '../../../../mol-repr/visual';
 
 export const LinkCylinderParams = {
     linkScale: PD.Numeric(0.4, { min: 0, max: 1, step: 0.1 }),

@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Mat4, Mat3 } from 'mol-math/linear-algebra'
-import { NumberArray } from 'mol-util/type-helpers';
+import { Vec3, Mat4, Mat3 } from '../mol-math/linear-algebra'
+import { NumberArray } from '../mol-util/type-helpers';
 
 export function normalizeVec3Array<T extends NumberArray> (a: T) {
     const n = a.length

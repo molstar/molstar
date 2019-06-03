@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeData } from 'mol-model/volume/data'
-import { Task } from 'mol-task';
-import { SpacegroupCell, Box3D } from 'mol-math/geometry';
-import { Tensor, Vec3 } from 'mol-math/linear-algebra';
-import { degToRad } from 'mol-math/misc';
-import { Dsn6File } from 'mol-io/reader/dsn6/schema';
-import { arrayMin, arrayMax, arrayMean, arrayRms } from 'mol-util/array';
+import { VolumeData } from '../../mol-model/volume/data'
+import { Task } from '../../mol-task';
+import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
+import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
+import { degToRad } from '../../mol-math/misc';
+import { Dsn6File } from '../../mol-io/reader/dsn6/schema';
+import { arrayMin, arrayMax, arrayMean, arrayRms } from '../../mol-util/array';
 
 function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3 }): Task<VolumeData> {
     return Task.create<VolumeData>('Create Volume Data', async ctx => {

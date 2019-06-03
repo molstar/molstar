@@ -7,9 +7,9 @@
 import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { OrderedMap } from 'immutable';
-import { TaskManager } from 'mol-plugin/util/task-manager';
+import { TaskManager } from '../../mol-plugin/util/task-manager';
 import { filter } from 'rxjs/operators';
-import { Progress } from 'mol-task';
+import { Progress } from '../../mol-task';
 
 export class BackgroundTaskProgress extends PluginUIComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
     componentDidMount() {

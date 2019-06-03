@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ShapeGetter } from 'mol-repr/shape/representation';
-import { Geometry, GeometryUtils } from 'mol-geo/geometry/geometry';
+import { ShapeGetter } from '../../mol-repr/shape/representation';
+import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 
 export interface ShapeProvider<D, G extends Geometry, P extends Geometry.Params<G>> {
     label: string

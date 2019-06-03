@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { WebGLContext } from 'mol-gl/webgl/context';
-import { Texture } from 'mol-gl/webgl/texture';
-import { printTextureImage } from 'mol-gl/renderable/util';
-import { defaults, ValueCell } from 'mol-util';
-import { ValueSpec, AttributeSpec, UniformSpec, Values } from 'mol-gl/renderable/schema';
-import { Vec2 } from 'mol-math/linear-algebra';
-import { GLRenderingContext } from 'mol-gl/webgl/compat';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { Texture } from '../../mol-gl/webgl/texture';
+import { printTextureImage } from '../../mol-gl/renderable/util';
+import { defaults, ValueCell } from '../../mol-util';
+import { ValueSpec, AttributeSpec, UniformSpec, Values } from '../../mol-gl/renderable/schema';
+import { Vec2 } from '../../mol-math/linear-algebra';
+import { GLRenderingContext } from '../../mol-gl/webgl/compat';
 
 export const QuadPositions = new Float32Array([
      1.0,  1.0,  -1.0,  1.0,  -1.0, -1.0, // First triangle

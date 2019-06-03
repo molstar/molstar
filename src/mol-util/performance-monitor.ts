@@ -5,7 +5,7 @@
  * Copyright (c) 2016 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
  */
 
-import { now } from 'mol-util/now';
+import { now } from '../mol-util/now';
 
 export class PerformanceMonitor {
     private starts = new Map<string, number>();

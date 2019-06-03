@@ -5,9 +5,9 @@
  */
 
 import * as React from 'react'
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ColorNames } from 'mol-util/color/tables';
-import { Color } from 'mol-util/color';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { ColorNames } from '../../../mol-util/color/tables';
+import { Color } from '../../../mol-util/color';
 
 export interface ColorParamComponentProps {
     label: string

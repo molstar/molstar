@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { WebGLContext } from 'mol-gl/webgl/context';
-import { createRenderTarget, RenderTarget } from 'mol-gl/webgl/render-target';
-import Renderer from 'mol-gl/renderer';
-import Scene from 'mol-gl/scene';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { decodeFloatRGB } from 'mol-util/float-packing';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { createRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-target';
+import Renderer from '../../mol-gl/renderer';
+import Scene from '../../mol-gl/scene';
+import { PickingId } from '../../mol-geo/geometry/picking';
+import { decodeFloatRGB } from '../../mol-util/float-packing';
 
 const readBuffer = new Uint8Array(4)
 

@@ -18,7 +18,7 @@
  */
 
 import { Mat4 } from '../3d'
-import { NumberArray } from 'mol-util/type-helpers';
+import { NumberArray } from '../../../mol-util/type-helpers';
 
 interface Mat3 extends Array<number> { [d: number]: number, '@type': 'mat3', length: 9 }
 

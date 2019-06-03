@@ -8,9 +8,9 @@ import fetch from 'node-fetch';
 import * as fs from 'fs'
 import * as path from 'path'
 import * as argparse from 'argparse'
-import { makeDir } from 'mol-util/make-dir';
-import { now } from 'mol-util/now';
-import { PerformanceMonitor } from 'mol-util/performance-monitor';
+import { makeDir } from '../../../mol-util/make-dir';
+import { now } from '../../../mol-util/now';
+import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 
 const cmdParser = new argparse.ArgumentParser({
     addHelp: true,
@@ -79,9 +79,9 @@ async function process() {
                 console.error(ee, '' + e);
              }
         }
-        //const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry`, { method: 'POST', body });
-        //console.log(query.status);
-        //const data = await query.text();
+        // const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry`, { method: 'POST', body });
+        // console.log(query.status);
+        // const data = await query.text();
         fs.writeFileSync(path.join(cmdArgs.out, e.key + '.json'), JSON.stringify(data));
         const time = now() - started;
         console.log(`${++prog}/${entries.length} in ${PerformanceMonitor.format(time)} (last ${PerformanceMonitor.format(now() - ts)}, avg ${PerformanceMonitor.format(time / prog)})`);

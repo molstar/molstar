@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Camera } from 'mol-canvas3d/camera';
+import { Camera } from '../mol-canvas3d/camera';
 import { PluginCommand } from './command/base';
-import { StateTransform, State, StateAction } from 'mol-state';
-import { Canvas3DProps } from 'mol-canvas3d/canvas3d';
+import { StateTransform, State, StateAction } from '../mol-state';
+import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginLayoutStateProps } from './layout';
-import { StructureElement } from 'mol-model/structure';
+import { StructureElement } from '../mol-model/structure';
 import { PluginState } from './state';
 
 export * from './command/base';

@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginContext } from 'mol-plugin/context';
-import { Loci } from 'mol-model/loci';
-import { Representation } from 'mol-repr/representation';
+import { PluginContext } from '../../mol-plugin/context';
+import { Loci } from '../../mol-model/loci';
+import { Representation } from '../../mol-repr/representation';
 
 export type LociLabelEntry = JSX.Element | string
 export type LociLabelProvider = (info: Loci, repr?: Representation<any>) => LociLabelEntry | undefined

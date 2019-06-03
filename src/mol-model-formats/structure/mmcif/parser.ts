@@ -5,16 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column, Table } from 'mol-data/db';
-import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
-import { Spacegroup, SpacegroupCell, SymmetryOperator } from 'mol-math/geometry';
-import { Tensor, Vec3 } from 'mol-math/linear-algebra';
-import { RuntimeContext } from 'mol-task';
-import UUID from 'mol-util/uuid';
-import { Model } from 'mol-model/structure/model/model';
-import { Entities } from 'mol-model/structure/model/properties/common';
-import { CustomProperties } from 'mol-model/structure';
-import { ModelSymmetry } from 'mol-model/structure/model/properties/symmetry';
+import { Column, Table } from '../../../mol-data/db';
+import { mmCIF_Database, mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
+import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/geometry';
+import { Tensor, Vec3 } from '../../../mol-math/linear-algebra';
+import { RuntimeContext } from '../../../mol-task';
+import UUID from '../../../mol-util/uuid';
+import { Model } from '../../../mol-model/structure/model/model';
+import { Entities } from '../../../mol-model/structure/model/properties/common';
+import { CustomProperties } from '../../../mol-model/structure';
+import { ModelSymmetry } from '../../../mol-model/structure/model/properties/symmetry';
 import { createAssemblies } from './assembly';
 import { getAtomicHierarchyAndConformation } from './atomic';
 import { ComponentBond } from './bonds';
@@ -23,13 +23,13 @@ import { getSecondaryStructure } from './secondary-structure';
 import { getSequence } from './sequence';
 import { sortAtomSite } from './sort';
 import { StructConn } from './bonds/struct_conn';
-import { ChemicalComponent } from 'mol-model/structure/model/properties/chemical-component';
-import { getMoleculeType, MoleculeType, getEntityType } from 'mol-model/structure/model/types';
+import { ChemicalComponent } from '../../../mol-model/structure/model/properties/chemical-component';
+import { getMoleculeType, MoleculeType, getEntityType } from '../../../mol-model/structure/model/types';
 import { ModelFormat } from '../format';
-import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from 'mol-model/structure/structure/carbohydrates/constants';
+import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from '../../../mol-model/structure/structure/carbohydrates/constants';
 import mmCIF_Format = ModelFormat.mmCIF
-import { memoize1 } from 'mol-util/memoize';
-import { ElementIndex } from 'mol-model/structure/model';
+import { memoize1 } from '../../../mol-util/memoize';
+import { ElementIndex } from '../../../mol-model/structure/model';
 
 export async function _parse_mmCif(format: mmCIF_Format, ctx: RuntimeContext) {
     const formatData = getFormatData(format)

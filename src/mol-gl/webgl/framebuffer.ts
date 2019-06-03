@@ -5,8 +5,8 @@
  */
 
 import { WebGLStats } from './context'
-import { idFactory } from 'mol-util/id-factory';
-import { ReferenceCache, createReferenceCache } from 'mol-util/reference-cache';
+import { idFactory } from '../../mol-util/id-factory';
+import { ReferenceCache, createReferenceCache } from '../../mol-util/reference-cache';
 import { GLRenderingContext, isWebGL2 } from './compat';
 
 const getNextFramebufferId = idFactory()

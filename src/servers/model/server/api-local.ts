@@ -7,11 +7,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { JobManager, Job } from './jobs';
-import { ConsoleLogger } from 'mol-util/console-logger';
+import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
 import { StructureCache } from './structure-wrapper';
-import { now } from 'mol-util/now';
-import { PerformanceMonitor } from 'mol-util/performance-monitor';
+import { now } from '../../../mol-util/now';
+import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { QueryName } from './api';
 
 export type LocalInput = {

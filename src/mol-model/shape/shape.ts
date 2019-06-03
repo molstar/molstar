@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color } from 'mol-util/color';
-import { UUID } from 'mol-util';
-import { OrderedSet } from 'mol-data/int';
-import { Geometry } from 'mol-geo/geometry/geometry';
-import { Mat4 } from 'mol-math/linear-algebra';
+import { Color } from '../../mol-util/color';
+import { UUID } from '../../mol-util';
+import { OrderedSet } from '../../mol-data/int';
+import { Geometry } from '../../mol-geo/geometry/geometry';
+import { Mat4 } from '../../mol-math/linear-algebra';
 
 export interface Shape<G extends Geometry = Geometry> {
     /** A uuid to identify a shape object */

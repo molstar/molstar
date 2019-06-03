@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-data/db'
+import { Column } from '../../../../mol-data/db'
 import { AtomicHierarchy } from './atomic/hierarchy';
 import { Entities } from './common';
 import { Sequence } from '../../../sequence';

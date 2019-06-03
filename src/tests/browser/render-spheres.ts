@@ -5,13 +5,13 @@
  */
 
 import './index.html'
-import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { SpheresBuilder } from 'mol-geo/geometry/spheres/spheres-builder';
-import { Representation } from 'mol-repr/representation';
-import { Spheres } from 'mol-geo/geometry/spheres/spheres';
-import { Color } from 'mol-util/color';
-import { createRenderObject } from 'mol-gl/render-object';
-import { resizeCanvas } from 'mol-canvas3d/util';
+import { resizeCanvas } from '../../mol-canvas3d/util';
+import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
+import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
+import { Color } from '../../mol-util/color';
+import { createRenderObject } from '../../mol-gl/render-object';
+import { Representation } from '../../mol-repr/representation';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'

@@ -4,14 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
-import { SetUtils } from 'mol-util/set';
+import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
+import { SetUtils } from '../../../../mol-util/set';
 import { Model } from '../../model';
 import { Structure } from '../../structure';
 import { EntityIndex } from '../../model/indexing';
-import { UniqueArray } from 'mol-data/generic';
-import { sortArray } from 'mol-data/util';
-import { CifWriter } from 'mol-io/writer/cif';
+import { UniqueArray } from '../../../../mol-data/generic';
+import { sortArray } from '../../../../mol-data/util';
+import { CifWriter } from '../../../../mol-io/writer/cif';
 import { CifExportContext } from '../mmcif';
 
 export function getModelMmCifCategory<K extends keyof mmCIF_Schema>(model: Model, name: K): mmCIF_Database[K] | undefined {

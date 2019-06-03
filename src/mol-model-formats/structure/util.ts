@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { TokenBuilder, Tokens } from 'mol-io/reader/common/text/tokenizer';
+import { TokenBuilder, Tokens } from '../../mol-io/reader/common/text/tokenizer';
 
 export function guessElementSymbolTokens(tokens: Tokens, str: string, start: number, end: number) {
     let s = start, e = end - 1

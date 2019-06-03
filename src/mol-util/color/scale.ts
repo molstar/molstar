@@ -6,8 +6,8 @@
 
 import { Color } from './color'
 import { ColorBrewer, ColorMatplotlib, ColorOther } from './tables'
-import { defaults } from 'mol-util';
-import { NumberArray } from 'mol-util/type-helpers';
+import { defaults } from '../../mol-util';
+import { NumberArray } from '../../mol-util/type-helpers';
 
 export type ColorListName = (
     keyof typeof ColorBrewer | keyof typeof ColorMatplotlib | keyof typeof ColorOther

@@ -4,16 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mmCIF_Database as mmCIF, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
-import { CoarseHierarchy, CoarseConformation, CoarseElementData, CoarseSphereConformation, CoarseGaussianConformation } from 'mol-model/structure/model/properties/coarse'
-import { Entities } from 'mol-model/structure/model/properties/common';
-import { Column } from 'mol-data/db';
-import { getCoarseKeys } from 'mol-model/structure/model/properties/utils/coarse-keys';
-import { UUID } from 'mol-util';
-import { Segmentation, Interval } from 'mol-data/int';
-import { Mat3, Tensor } from 'mol-math/linear-algebra';
-import { ElementIndex, ChainIndex } from 'mol-model/structure/model/indexing';
-import { getCoarseRanges } from 'mol-model/structure/model/properties/utils/coarse-ranges';
+import { mmCIF_Database as mmCIF, mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif'
+import { CoarseHierarchy, CoarseConformation, CoarseElementData, CoarseSphereConformation, CoarseGaussianConformation } from '../../../mol-model/structure/model/properties/coarse'
+import { Entities } from '../../../mol-model/structure/model/properties/common';
+import { Column } from '../../../mol-data/db';
+import { getCoarseKeys } from '../../../mol-model/structure/model/properties/utils/coarse-keys';
+import { UUID } from '../../../mol-util';
+import { Segmentation, Interval } from '../../../mol-data/int';
+import { Mat3, Tensor } from '../../../mol-math/linear-algebra';
+import { ElementIndex, ChainIndex } from '../../../mol-model/structure/model/indexing';
+import { getCoarseRanges } from '../../../mol-model/structure/model/properties/utils/coarse-ranges';
 import { FormatData } from './parser';
 
 export interface IHMData {

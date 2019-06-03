@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Segmentation } from 'mol-data/int';
-import StructureElement from 'mol-model/structure/structure/element';
+import { Segmentation } from '../../../../mol-data/int';
+import StructureElement from '../../../../mol-model/structure/structure/element';
 import { StructureProperties as P, Unit } from '../../structure';
 import Structure from '../../structure/structure';
 import { StructureQuery } from '../query';

@@ -5,8 +5,8 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { Unit, ResidueIndex, ElementIndex } from 'mol-model/structure';
-import { SortedArray } from 'mol-data/int';
+import { Unit, ResidueIndex, ElementIndex } from '../../../../mol-model/structure';
+import { SortedArray } from '../../../../mol-data/int';
 
 export interface ProteinInfo {
     readonly residueIndices: SortedArray<ResidueIndex>

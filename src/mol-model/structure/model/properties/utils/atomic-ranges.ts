@@ -6,13 +6,13 @@
 
 import { AtomicSegments } from '../atomic';
 import { AtomicData, AtomicRanges, AtomicIndex } from '../atomic/hierarchy';
-import { Segmentation, Interval } from 'mol-data/int';
-import SortedRanges from 'mol-data/int/sorted-ranges';
+import { Segmentation, Interval } from '../../../../../mol-data/int';
+import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
 import { MoleculeType, isPolymer } from '../../types';
 import { ElementIndex, ResidueIndex } from '../../indexing';
 import { getAtomIdForAtomRole } from '../../../util';
 import { AtomicConformation } from '../atomic/conformation';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3 } from '../../../../../mol-math/linear-algebra';
 
 // TODO add gaps at the ends of the chains by comparing to the polymer sequence data
 

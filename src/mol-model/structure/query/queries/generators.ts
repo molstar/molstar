@@ -7,13 +7,13 @@
 import { StructureQuery } from '../query'
 import { StructureSelection } from '../selection'
 import { Unit, StructureProperties as P } from '../../structure'
-import { Segmentation, SortedArray } from 'mol-data/int'
+import { Segmentation, SortedArray } from '../../../../mol-data/int'
 import { LinearGroupingBuilder } from '../utils/builders';
 import { QueryPredicate, QueryFn, QueryContextView } from '../context';
 import { UnitRing } from '../../structure/unit/rings';
 import Structure from '../../structure/structure';
 import { ElementIndex } from '../../model';
-import { UniqueArray } from 'mol-data/generic';
+import { UniqueArray } from '../../../../mol-data/generic';
 import { structureSubtract } from '../utils/structure-set';
 
 export const none: StructureQuery = ctx => StructureSelection.Sequence(ctx.inputStructure, []);

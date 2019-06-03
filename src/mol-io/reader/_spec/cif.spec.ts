@@ -7,7 +7,7 @@
 
 import * as Data from '../cif/data-model'
 import * as Schema from '../cif/schema'
-import { Column } from 'mol-data/db'
+import { Column } from '../../../mol-data/db'
 
 const columnData = `123abc d,e,f '4 5 6'`;
 // 123abc d,e,f '4 5 6'

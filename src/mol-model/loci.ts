@@ -7,10 +7,10 @@
 import { StructureElement } from './structure'
 import { Link } from './structure/structure/unit/links'
 import { Shape, ShapeGroup } from './shape';
-import { Sphere3D } from 'mol-math/geometry';
-import { CentroidHelper } from 'mol-math/geometry/centroid-helper';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { OrderedSet } from 'mol-data/int';
+import { Sphere3D } from '../mol-math/geometry';
+import { CentroidHelper } from '../mol-math/geometry/centroid-helper';
+import { Vec3 } from '../mol-math/linear-algebra';
+import { OrderedSet } from '../mol-data/int';
 import { Structure } from './structure/structure';
 
 /** A Loci that includes every loci */

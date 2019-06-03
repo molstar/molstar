@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat4, Tensor } from 'mol-math/linear-algebra'
-import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
-import { Assembly, OperatorGroup, OperatorGroups } from 'mol-model/structure/model/properties/symmetry'
-import { Queries as Q } from 'mol-model/structure'
-import { StructureProperties } from 'mol-model/structure';
+import { Mat4, Tensor } from '../../../mol-math/linear-algebra'
+import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
+import { Assembly, OperatorGroup, OperatorGroups } from '../../../mol-model/structure/model/properties/symmetry'
+import { Queries as Q } from '../../../mol-model/structure'
+import { StructureProperties } from '../../../mol-model/structure';
 import { ModelFormat } from '../format';
 import mmCIF_Format = ModelFormat.mmCIF
 

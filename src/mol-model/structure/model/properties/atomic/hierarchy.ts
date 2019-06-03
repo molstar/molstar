@@ -5,12 +5,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column, Table } from 'mol-data/db'
-import { Segmentation } from 'mol-data/int'
-import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
+import { Column, Table } from '../../../../../mol-data/db'
+import { Segmentation } from '../../../../../mol-data/int'
+import { mmCIF_Schema as mmCIF } from '../../../../../mol-io/reader/cif/schema/mmcif'
 import { ElementSymbol, MoleculeType } from '../../types'
 import { ChainIndex, EntityIndex, ResidueIndex, ElementIndex } from '../../indexing';
-import SortedRanges from 'mol-data/int/sorted-ranges';
+import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
 
 export const AtomsSchema = {
     /**

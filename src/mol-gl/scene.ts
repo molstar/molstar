@@ -9,9 +9,9 @@ import { WebGLContext } from './webgl/context';
 import { RenderableValues, BaseValues } from './renderable/schema';
 import { GraphicsRenderObject, createRenderable } from './render-object';
 import { Object3D } from './object3d';
-import { Sphere3D } from 'mol-math/geometry';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
+import { Sphere3D } from '../mol-math/geometry';
+import { Vec3 } from '../mol-math/linear-algebra';
+import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 
 const boundaryHelper = new BoundaryHelper();
 function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D): Sphere3D {

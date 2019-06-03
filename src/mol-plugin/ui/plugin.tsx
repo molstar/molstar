@@ -5,9 +5,9 @@
  */
 
 import { List } from 'immutable';
-import { PluginState } from 'mol-plugin/state';
-import { formatTime } from 'mol-util';
-import { LogEntry } from 'mol-util/log-entry';
+import { PluginState } from '../../mol-plugin/state';
+import { formatTime } from '../../mol-util';
+import { LogEntry } from '../../mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
@@ -17,7 +17,7 @@ import { StateObjectActions } from './state/actions';
 import { StateTree } from './state/tree';
 import { BackgroundTaskProgress } from './task';
 import { Viewport, ViewportControls } from './viewport';
-import { StateTransform } from 'mol-state';
+import { StateTransform } from '../../mol-state';
 import { UpdateTransformContol } from './state/update-transform';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {

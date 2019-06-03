@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { VolumeData } from 'mol-model/volume/data'
-import { Task } from 'mol-task';
-import { SpacegroupCell, Box3D } from 'mol-math/geometry';
-import { Tensor, Vec3 } from 'mol-math/linear-algebra';
-import { Ccp4File, Ccp4Header } from 'mol-io/reader/ccp4/schema';
-import { degToRad } from 'mol-math/misc';
-import { getCcp4ValueType } from 'mol-io/reader/ccp4/parser';
-import { TypedArrayValueType } from 'mol-io/common/typed-array';
+import { VolumeData } from '../../mol-model/volume/data'
+import { Task } from '../../mol-task';
+import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
+import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
+import { Ccp4File, Ccp4Header } from '../../mol-io/reader/ccp4/schema';
+import { degToRad } from '../../mol-math/misc';
+import { getCcp4ValueType } from '../../mol-io/reader/ccp4/parser';
+import { TypedArrayValueType } from '../../mol-io/common/typed-array';
 
 /** When available (e.g. in MRC files) use ORIGIN records instead of N[CRS]START */
 export function getCcp4Origin(header: Ccp4Header) {

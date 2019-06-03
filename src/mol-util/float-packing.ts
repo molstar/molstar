@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { clamp } from 'mol-math/interpolate';
+import { clamp } from '../mol-math/interpolate';
 
 const maxFloat = 10000.0; // NOTE same constant is set in shaders
 const floatLogFactor = Math.log(maxFloat + 1.0);

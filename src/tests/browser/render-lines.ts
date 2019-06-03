@@ -5,15 +5,15 @@
  */
 
 import './index.html'
-import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { Mat4 } from 'mol-math/linear-algebra';
-import { Representation } from 'mol-repr/representation';
-import { Color } from 'mol-util/color';
-import { createRenderObject } from 'mol-gl/render-object';
-import { Lines } from 'mol-geo/geometry/lines/lines';
-import { LinesBuilder } from 'mol-geo/geometry/lines/lines-builder';
-import { DodecahedronCage } from 'mol-geo/primitive/dodecahedron';
-import { resizeCanvas } from 'mol-canvas3d/util';
+import { resizeCanvas } from '../../mol-canvas3d/util';
+import { Canvas3D } from '../../mol-canvas3d/canvas3d';
+import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
+import { Mat4 } from '../../mol-math/linear-algebra';
+import { DodecahedronCage } from '../../mol-geo/primitive/dodecahedron';
+import { Lines } from '../../mol-geo/geometry/lines/lines';
+import { Color } from '../../mol-util/color';
+import { createRenderObject } from '../../mol-gl/render-object';
+import { Representation } from '../../mol-repr/representation';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'

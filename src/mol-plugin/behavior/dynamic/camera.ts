@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Loci } from 'mol-model/loci';
-import { ParamDefinition } from 'mol-util/param-definition';
+import { Loci } from '../../../mol-model/loci';
+import { ParamDefinition } from '../../../mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
-import { ButtonsType, ModifiersKeys } from 'mol-util/input/input-observer';
+import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 
 export const FocusLociOnSelect = PluginBehavior.create<{ minRadius: number, extraRadius: number }>({
     name: 'focus-loci-on-select',

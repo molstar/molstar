@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { arrayPickIndices, cantorPairing } from 'mol-data/util';
-import { LinkedIndex, SortedArray } from 'mol-data/int';
+import { arrayPickIndices, cantorPairing } from '../../mol-data/util';
+import { LinkedIndex, SortedArray } from '../../mol-data/int';
 
 /**
  * Represent a graph using vertex adjacency list.

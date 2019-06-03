@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SymmetryOperator } from 'mol-math/geometry';
-import { Mat4, Vec3 } from 'mol-math/linear-algebra';
-import { Structure } from 'mol-model/structure';
-import { StructureUnitTransforms } from 'mol-model/structure/structure/util/unit-transforms';
+import { SymmetryOperator } from '../../../mol-math/geometry';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { Structure } from '../../../mol-model/structure';
+import { StructureUnitTransforms } from '../../../mol-model/structure/structure/util/unit-transforms';
 
 const _unwindMatrix = Mat4.zero();
 export function unwindStructureAssembly(structure: Structure, unitTransforms: StructureUnitTransforms, t: number) {

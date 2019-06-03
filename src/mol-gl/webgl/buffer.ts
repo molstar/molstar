@@ -5,10 +5,10 @@
  */
 
 import { WebGLContext } from './context'
-import { ValueCell } from 'mol-util';
+import { ValueCell } from '../../mol-util';
 import { RenderableSchema } from '../renderable/schema';
-import { idFactory } from 'mol-util/id-factory';
-import { ValueOf } from 'mol-util/type-helpers';
+import { idFactory } from '../../mol-util/id-factory';
+import { ValueOf } from '../../mol-util/type-helpers';
 import { GLRenderingContext } from './compat';
 
 const getNextBufferId = idFactory()

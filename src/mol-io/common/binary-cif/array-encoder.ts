@@ -7,10 +7,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ChunkedArray } from 'mol-data/util'
+import { ChunkedArray } from '../../../mol-data/util'
 import { Encoding, EncodedData } from './encoding'
 import { classifyIntArray } from './classifier';
-import { TypedIntArray, TypedFloatArray } from 'mol-util/type-helpers';
+import { TypedIntArray, TypedFloatArray } from '../../../mol-util/type-helpers';
 
 export interface ArrayEncoder {
     and(f: ArrayEncoding.Provider): ArrayEncoder,

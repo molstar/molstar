@@ -4,15 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureElement, Link, ElementIndex, Unit } from 'mol-model/structure';
-
-import { SaccharideColors, MonosaccharidesColorTable } from 'mol-model/structure/structure/carbohydrates/constants';
-import { Location } from 'mol-model/location';
+import { StructureElement, Link, ElementIndex, Unit } from '../../mol-model/structure';
+import { SaccharideColors, MonosaccharidesColorTable } from '../../mol-model/structure/structure/carbohydrates/constants';
+import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
-import { Color } from 'mol-util/color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { Color } from '../../mol-util/color';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { TableLegend } from 'mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/tables';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Assigns colors according to the Symbol Nomenclature for Glycans (SNFG).'

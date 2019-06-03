@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
-import { arrayFind } from 'mol-data/util'
+import { SymmetryOperator } from '../../../../mol-math/geometry/symmetry-operator'
+import { arrayFind } from '../../../../mol-data/util'
 import { StructureQuery } from '../../query'
 import { Model } from '../../model'
-import { Spacegroup } from 'mol-math/geometry';
+import { Spacegroup } from '../../../../mol-math/geometry';
 
 /** Determine an atom set and a list of operators that should be applied to that set  */
 export interface OperatorGroup {

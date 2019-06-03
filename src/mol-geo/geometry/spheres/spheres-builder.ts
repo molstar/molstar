@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-import { ChunkedArray } from 'mol-data/util';
+import { ValueCell } from '../../../mol-util/value-cell'
+import { ChunkedArray } from '../../../mol-data/util';
 import { Spheres } from './spheres';
 
 const quadMapping = new Float32Array([

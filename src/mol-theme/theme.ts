@@ -6,10 +6,10 @@
 
 import { ColorTheme } from './color';
 import { SizeTheme } from './size';
-import { Structure } from 'mol-model/structure';
-import { VolumeData } from 'mol-model/volume';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Shape } from 'mol-model/shape';
+import { Structure } from '../mol-model/structure';
+import { VolumeData } from '../mol-model/volume';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { Shape } from '../mol-model/shape';
 
 export interface ThemeRegistryContext {
     colorThemeRegistry: ColorTheme.Registry

@@ -8,11 +8,11 @@
  * copyright (c) 2010-2018 three.js authors. MIT License
  */
 
-import { Quat, Vec2, Vec3, EPSILON } from 'mol-math/linear-algebra';
+import { Quat, Vec2, Vec3, EPSILON } from '../../mol-math/linear-algebra';
 import { cameraLookAt, Viewport } from '../camera/util';
-import InputObserver, { DragInput, WheelInput, ButtonsType, PinchInput } from 'mol-util/input/input-observer';
-import { Object3D } from 'mol-gl/object3d';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import InputObserver, { DragInput, WheelInput, ButtonsType, PinchInput } from '../../mol-util/input/input-observer';
+import { Object3D } from '../../mol-gl/object3d';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 export const TrackballControlsParams = {
     noScroll: PD.Boolean(true, { isHidden: true }),

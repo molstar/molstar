@@ -5,19 +5,19 @@
  */
 
 import { List } from 'immutable';
-import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { CustomPropertyRegistry } from 'mol-model-props/common/custom-property-registry';
-import { StructureRepresentationRegistry } from 'mol-repr/structure/registry';
-import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
-import { State, StateTransform, StateTransformer } from 'mol-state';
-import { Task } from 'mol-task';
-import { ColorTheme } from 'mol-theme/color';
-import { SizeTheme } from 'mol-theme/size';
-import { ThemeRegistryContext } from 'mol-theme/theme';
-import { Color } from 'mol-util/color';
-import { ajaxGet } from 'mol-util/data-source';
-import { LogEntry } from 'mol-util/log-entry';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { Canvas3D } from '../mol-canvas3d/canvas3d';
+import { CustomPropertyRegistry } from '../mol-model-props/common/custom-property-registry';
+import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
+import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
+import { State, StateTransform, StateTransformer } from '../mol-state';
+import { Task } from '../mol-task';
+import { ColorTheme } from '../mol-theme/color';
+import { SizeTheme } from '../mol-theme/size';
+import { ThemeRegistryContext } from '../mol-theme/theme';
+import { Color } from '../mol-util/color';
+import { ajaxGet } from '../mol-util/data-source';
+import { LogEntry } from '../mol-util/log-entry';
+import { RxEventHelper } from '../mol-util/rx-event-helper';
 import { merge } from 'rxjs';
 import { BuiltInPluginBehaviors } from './behavior';
 import { PluginBehavior } from './behavior/behavior';
@@ -32,10 +32,10 @@ import { TaskManager } from './util/task-manager';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { StructureElementSelectionManager } from './util/structure-element-selection';
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
-import { Representation } from 'mol-repr/representation';
-import { ModifiersKeys } from 'mol-util/input/input-observer';
-import { isProductionMode, isDebugMode } from 'mol-util/debug';
-import { Model, Structure } from 'mol-model/structure';
+import { Representation } from '../mol-repr/representation';
+import { ModifiersKeys } from '../mol-util/input/input-observer';
+import { isProductionMode, isDebugMode } from '../mol-util/debug';
+import { Model, Structure } from '../mol-model/structure';
 
 export class PluginContext {
     private disposed = false;

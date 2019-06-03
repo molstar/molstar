@@ -2,15 +2,15 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * 
+ *
  * Color conversion code adapted from chroma.js (https://github.com/gka/chroma.js)
  * Copyright (c) 2011-2018, Gregor Aisch, BSD license
  */
 
 import { Color } from '../color';
 import { Hcl } from './hcl';
-import { radToDeg } from 'mol-math/misc';
-import { clamp } from 'mol-math/interpolate';
+import { radToDeg } from '../../../mol-math/misc';
+import { clamp } from '../../../mol-math/interpolate';
 
 export { Lab }
 
@@ -18,11 +18,11 @@ interface Lab extends Array<number> { [d: number]: number, '@type': 'lab', lengt
 
 /**
  * CIE LAB color
- * 
+ *
  * - L* [0..100] - lightness from black to white
  * - a [-100..100] - green (-) to red (+)
  * - b [-100..100] - blue (-) to yellow (+)
- * 
+ *
  * see https://en.wikipedia.org/wiki/CIELAB_color_space
  */
 function Lab() {
@@ -139,19 +139,19 @@ namespace Lab {
     function lab_xyz(t: number) {
         return t > T1 ? t * t * t : T2 * (t - T0)
     }
-    
+
     /** convert component from rgb to xyz */
     function rgb_xyz(c: number) {
         if ((c /= 255) <= 0.04045) return c / 12.92
         return Math.pow((c + 0.055) / 1.055, 2.4)
     }
-    
+
     /** convert component from xyz to lab */
     function xyz_lab(t: number) {
         if (t > T3) return Math.pow(t, 1 / 3)
         return t / T2 + T0
     }
-    
+
     function rgbToXyz(r: number, g: number, b: number) {
         r = rgb_xyz(r)
         g = rgb_xyz(g)

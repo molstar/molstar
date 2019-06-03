@@ -5,9 +5,9 @@
  */
 
 import { PluginStateObject as SO } from '../../state/objects';
-import { PluginContext } from 'mol-plugin/context';
-import { Representation } from 'mol-repr/representation';
-import { StateObjectCell } from 'mol-state';
+import { PluginContext } from '../../../mol-plugin/context';
+import { Representation } from '../../../mol-repr/representation';
+import { StateObjectCell } from '../../../mol-state';
 
 export function registerDefault(ctx: PluginContext) {
     SyncRepresentationToCanvas(ctx);

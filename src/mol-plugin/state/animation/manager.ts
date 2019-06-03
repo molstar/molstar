@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginComponent } from 'mol-plugin/component';
-import { PluginContext } from 'mol-plugin/context';
+import { PluginComponent } from '../../../mol-plugin/component';
+import { PluginContext } from '../../../mol-plugin/context';
 import { PluginStateAnimation } from './model';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 export { PluginAnimationManager }
 

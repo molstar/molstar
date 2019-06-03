@@ -4,15 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Link } from 'mol-model/structure';
-
-import { Color, ColorScale } from 'mol-util/color';
-import { Location } from 'mol-model/location';
+import { Link } from '../../mol-model/structure';
+import { Color, ColorScale } from '../../mol-util/color';
+import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
-import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
+import { Vec3 } from '../../mol-math/linear-algebra';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { ColorListName, ColorListOptions } from '../../mol-util/color/scale';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Colors cross-links by the deviation of the observed distance versus the modeled distance (e.g. `ihm_cross_link_restraint.distance_threshold`).'

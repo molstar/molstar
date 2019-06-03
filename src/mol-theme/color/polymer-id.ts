@@ -4,18 +4,18 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/structure';
+import { Unit, StructureProperties, StructureElement, Link } from '../../mol-model/structure';
 
-import { Color } from 'mol-util/color';
-import { Location } from 'mol-model/location';
+import { Color } from '../../mol-util/color';
+import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
-import { Column } from 'mol-data/db';
-import { Entities } from 'mol-model/structure/model/properties/common';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { Column } from '../../mol-data/db';
+import { Entities } from '../../mol-model/structure/model/properties/common';
 import { getPalette, getPaletteParams } from './util';
-import { ScaleLegend } from 'mol-util/color/scale';
-import { TableLegend } from 'mol-util/color/tables';
+import { ScaleLegend } from '../../mol-util/color/scale';
+import { TableLegend } from '../../mol-util/color/tables';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer chain a color based on its `asym_id` value.'

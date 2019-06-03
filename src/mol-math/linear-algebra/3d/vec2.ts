@@ -1,10 +1,10 @@
-import { NumberArray } from 'mol-util/type-helpers';
-
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
+
+import { NumberArray } from '../../../mol-util/type-helpers';
 
 /*
  * This code has been modified from https://github.com/toji/gl-matrix/,

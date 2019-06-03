@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util';
-import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
-import { Color } from 'mol-util/color';
-import { Vec2, Vec3 } from 'mol-math/linear-algebra';
+import { ValueCell } from '../../mol-util';
+import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
+import { Color } from '../../mol-util/color';
+import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
-import { NullLocation } from 'mol-model/location';
-import { LocationColor, ColorTheme } from 'mol-theme/color';
+import { NullLocation } from '../../mol-model/location';
+import { LocationColor, ColorTheme } from '../../mol-theme/color';
 import { Geometry } from './geometry';
 
 export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'

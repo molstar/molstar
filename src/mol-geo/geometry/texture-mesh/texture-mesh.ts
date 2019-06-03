@@ -4,24 +4,24 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util'
-import { Sphere3D } from 'mol-math/geometry'
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
+import { ValueCell } from '../../../mol-util'
+import { Sphere3D } from '../../../mol-math/geometry'
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { TransformData } from '../transform-data';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
 import { GeometryUtils } from '../geometry';
-import { Theme } from 'mol-theme/theme';
-import { Color } from 'mol-util/color';
+import { Theme } from '../../../mol-theme/theme';
+import { Color } from '../../../mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
-import { TextureMeshValues } from 'mol-gl/renderable/texture-mesh';
-import { calculateTransformBoundingSphere } from 'mol-gl/renderable/util';
-import { Texture } from 'mol-gl/webgl/texture';
-import { Vec2 } from 'mol-math/linear-algebra';
-import { fillSerial } from 'mol-util/array';
+import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
+import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
+import { Texture } from '../../../mol-gl/webgl/texture';
+import { Vec2 } from '../../../mol-math/linear-algebra';
+import { fillSerial } from '../../../mol-util/array';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',

@@ -6,7 +6,7 @@
 
 import { createPrimitive, Primitive } from './primitive';
 import { dodecahedronVertices, dodecahedronFaces } from './dodecahedron';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3 } from '../../mol-math/linear-algebra';
 
 function calcCenter(out: Vec3, ...vec3s: Vec3[]) {
     Vec3.set(out, 0, 0, 0)

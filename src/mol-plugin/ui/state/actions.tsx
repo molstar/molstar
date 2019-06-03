@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { ApplyActionContol } from './apply-action';
-import { State } from 'mol-state';
+import { State } from '../../../mol-state';
 import { Icon } from '../controls/common';
 
 export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRef: string, hideHeader?: boolean, initiallyColapsed?: boolean }> {

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { now } from 'mol-util/now';
+import { now } from '../mol-util/now';
 
 type UUID = string & { '@type': 'uuid' }
 

@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { DistinctColorsParams, distinctColors } from 'mol-util/color/distinct';
-import { ColorListName, ColorListOptions, ScaleLegend, ColorScale } from 'mol-util/color/scale';
-import { Color } from 'mol-util/color';
-import { TableLegend } from 'mol-util/color/tables';
+import { ParamDefinition as PD } from '../../mol-util/param-definition'
+import { DistinctColorsParams, distinctColors } from '../../mol-util/color/distinct';
+import { ColorListName, ColorListOptions, ScaleLegend, ColorScale } from '../../mol-util/color/scale';
+import { Color } from '../../mol-util/color';
+import { TableLegend } from '../../mol-util/color/tables';
 
 const DefaultGetPaletteProps = {
     scaleList: 'RedYellowBlue' as ColorListName

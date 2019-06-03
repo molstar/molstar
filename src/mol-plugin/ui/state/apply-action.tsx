@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginCommands } from 'mol-plugin/command';
-import { PluginContext } from 'mol-plugin/context';
-import { State, StateTransform, StateAction } from 'mol-state';
-import { memoizeLatest } from 'mol-util/memoize';
+import { PluginCommands } from '../../../mol-plugin/command';
+import { PluginContext } from '../../../mol-plugin/context';
+import { State, StateTransform, StateAction } from '../../../mol-state';
+import { memoizeLatest } from '../../../mol-util/memoize';
 import { StateTransformParameters, TransformContolBase } from './common';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 export { ApplyActionContol };
 

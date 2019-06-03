@@ -5,13 +5,13 @@
  */
 
 import { WebGLContext } from './context'
-import { idFactory } from 'mol-util/id-factory';
+import { idFactory } from '../../mol-util/id-factory';
 import { createTexture, Texture } from './texture';
 import { createFramebuffer, Framebuffer } from './framebuffer';
 import { createRenderbuffer } from './renderbuffer';
 import { TextureImage } from '../renderable/util';
-import { Mutable } from 'mol-util/type-helpers';
-import { PixelData } from 'mol-util/image';
+import { Mutable } from '../../mol-util/type-helpers';
+import { PixelData } from '../../mol-util/image';
 
 const getNextRenderTargetId = idFactory()
 

@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Camera } from 'mol-canvas3d/camera';
+import { Camera } from '../../mol-canvas3d/camera';
 import { OrderedMap } from 'immutable';
-import { UUID } from 'mol-util';
-import { PluginComponent } from 'mol-plugin/component';
+import { UUID } from '../../mol-util';
+import { PluginComponent } from '../../mol-plugin/component';
 
 export { CameraSnapshotManager }
 

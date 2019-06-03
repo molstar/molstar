@@ -4,12 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SizeType, LocationSize } from 'mol-geo/geometry/size-data';
+import { SizeType, LocationSize } from '../mol-geo/geometry/size-data';
 import { UniformSizeThemeProvider } from './size/uniform';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ThemeDataContext, ThemeRegistry, ThemeProvider } from 'mol-theme/theme';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { ThemeDataContext, ThemeRegistry, ThemeProvider } from '../mol-theme/theme';
 import { PhysicalSizeThemeProvider } from './size/physical';
-import { deepEqual } from 'mol-util';
+import { deepEqual } from '../mol-util';
 import { ShapeGroupSizeThemeProvider } from './size/shape-group';
 import { UncertaintySizeThemeProvider } from './size/uncertainty';
 

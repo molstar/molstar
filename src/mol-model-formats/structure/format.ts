@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
-import CIF, { CifFrame } from 'mol-io/reader/cif';
+import { mmCIF_Database } from '../../mol-io/reader/cif/schema/mmcif';
+import { CIF, CifFrame } from '../../mol-io/reader/cif';
 
 type ModelFormat =
     | ModelFormat.mmCIF

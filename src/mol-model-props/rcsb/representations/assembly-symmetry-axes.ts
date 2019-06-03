@@ -4,26 +4,26 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
-import { VisualContext } from 'mol-repr/visual';
-import { ThemeRegistryContext, Theme } from 'mol-theme/theme';
-import { Structure } from 'mol-model/structure';
-import { StructureRepresentationProvider, StructureRepresentation, ComplexRepresentation, ComplexVisual } from 'mol-repr/structure/representation';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
+import { VisualContext } from '../../../mol-repr/visual';
+import { ThemeRegistryContext, Theme } from '../../../mol-theme/theme';
+import { Structure } from '../../../mol-model/structure';
+import { StructureRepresentationProvider, StructureRepresentation, ComplexRepresentation, ComplexVisual } from '../../../mol-repr/structure/representation';
 import { AssemblySymmetry } from '../assembly-symmetry';
-import { Table } from 'mol-data/db';
-import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { Tensor } from 'mol-math/linear-algebra';
-import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
-import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { VisualUpdateState } from 'mol-repr/util';
-import { ComplexMeshVisual, ComplexMeshParams } from 'mol-repr/structure/complex-visual';
-import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { EmptyLoci, createDataLoci, Loci, isDataLoci } from 'mol-model/loci';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { NullLocation } from 'mol-model/location';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { OrderedSet, Interval } from 'mol-data/int';
+import { Table } from '../../../mol-data/db';
+import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
+import { Tensor } from '../../../mol-math/linear-algebra';
+import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
+import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { VisualUpdateState } from '../../../mol-repr/util';
+import { ComplexMeshVisual, ComplexMeshParams } from '../../../mol-repr/structure/complex-visual';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { EmptyLoci, createDataLoci, Loci, isDataLoci } from '../../../mol-model/loci';
+import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { NullLocation } from '../../../mol-model/location';
+import { PickingId } from '../../../mol-geo/geometry/picking';
+import { OrderedSet, Interval } from '../../../mol-data/int';
 import { getSymmetrySelectParam, getAssemblyIds } from '../util';
 
 export const AssemblySymmetryAxesParams = {

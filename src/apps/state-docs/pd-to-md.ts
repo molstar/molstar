@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 export function paramsToMd(params: PD.Params) {
     return getParams(params, 0);

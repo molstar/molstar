@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, ElementIndex, StructureElement, Link, Structure } from 'mol-model/structure';
-import SortedRanges from 'mol-data/int/sorted-ranges';
-import { OrderedSet, Interval } from 'mol-data/int';
-import { EmptyLoci, Loci } from 'mol-model/loci';
-import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { StructureGroup } from 'mol-repr/structure/units-visual';
+import { Unit, ElementIndex, StructureElement, Link, Structure } from '../../../../mol-model/structure';
+import SortedRanges from '../../../../mol-data/int/sorted-ranges';
+import { OrderedSet, Interval } from '../../../../mol-data/int';
+import { EmptyLoci, Loci } from '../../../../mol-model/loci';
+import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
+import { PickingId } from '../../../../mol-geo/geometry/picking';
+import { StructureGroup } from '../../../structure/units-visual';
 import { getResidueLoci } from './common';
 
 export * from './polymer/backbone-iterator'

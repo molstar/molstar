@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Csv from '../csv/parser'
+import { parseCsv } from '../csv/parser'
 
 const csvStringBasic = `StrCol,IntCol,FloatCol
 # comment
@@ -23,7 +23,7 @@ string2\t42\t2.44`
 
 describe('csv reader', () => {
     it('basic', async () => {
-        const parsed = await Csv(csvStringBasic).run();
+        const parsed = await parseCsv(csvStringBasic).run();
         if (parsed.isError) return;
         const csvFile = parsed.result;
 
@@ -45,7 +45,7 @@ describe('csv reader', () => {
     });
 
     it('advanced', async () => {
-        const parsed = await Csv(csvStringAdvanced).run();
+        const parsed = await parseCsv(csvStringAdvanced).run();
         if (parsed.isError) return;
         const csvFile = parsed.result;
 
@@ -62,7 +62,7 @@ describe('csv reader', () => {
     });
 
     it('tabs', async () => {
-        const parsed = await Csv(tabString, { delimiter: '\t' }).run();
+        const parsed = await parseCsv(tabString, { delimiter: '\t' }).run();
         if (parsed.isError) return;
         const csvFile = parsed.result;
 

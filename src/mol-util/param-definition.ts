@@ -6,8 +6,8 @@
  */
 
 import { Color as ColorData } from './color';
-import { shallowEqual } from 'mol-util';
-import { Vec2 as Vec2Data, Vec3 as Vec3Data } from 'mol-math/linear-algebra';
+import { shallowEqual } from './index';
+import { Vec2 as Vec2Data, Vec3 as Vec3Data } from '../mol-math/linear-algebra';
 import { deepClone } from './object';
 
 export namespace ParamDefinition {

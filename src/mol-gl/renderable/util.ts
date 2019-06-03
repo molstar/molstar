@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Sphere3D } from 'mol-math/geometry'
-import { Vec3 } from 'mol-math/linear-algebra'
-import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
+import { Sphere3D } from '../../mol-math/geometry'
+import { Vec3 } from '../../mol-math/linear-algebra'
+import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
     const sqN = Math.sqrt(n)

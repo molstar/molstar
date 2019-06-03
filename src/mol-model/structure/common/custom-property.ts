@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CifWriter } from 'mol-io/writer/cif'
+import { CifWriter } from '../../../mol-io/writer/cif'
 import { CifExportContext } from '../export/mmcif';
-import { QuerySymbolRuntime } from 'mol-script/runtime/query/compiler';
-import { UUID } from 'mol-util';
+import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
+import { UUID } from '../../../mol-util';
 
 export { CustomPropertyDescriptor, CustomProperties }
 

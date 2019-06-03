@@ -4,17 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../representation';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { UnitsPointsParams, UnitsVisual, UnitsPointsVisual } from '../units-visual';
+import { VisualContext } from '../../visual';
+import { Unit, Structure } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { Points } from '../../../mol-geo/geometry/points/points';
+import { PointsBuilder } from '../../../mol-geo/geometry/points/points-builder';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
-import { getElementLoci, StructureElementIterator, eachElement } from './util/element';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Points } from 'mol-geo/geometry/points/points';
-import { PointsBuilder } from 'mol-geo/geometry/points/points-builder';
-import { VisualContext } from 'mol-repr/visual';
-import { Theme } from 'mol-theme/theme';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,

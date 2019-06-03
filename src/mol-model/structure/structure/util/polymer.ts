@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, ElementIndex } from 'mol-model/structure';
-import { Segmentation, OrderedSet, Interval, SortedArray } from 'mol-data/int';
-import SortedRanges from 'mol-data/int/sorted-ranges';
-import { isNucleic, isProtein } from 'mol-model/structure/model/types';
+import { Unit, ElementIndex } from '../../../../mol-model/structure';
+import { Segmentation, OrderedSet, Interval, SortedArray } from '../../../../mol-data/int';
+import SortedRanges from '../../../../mol-data/int/sorted-ranges';
+import { isNucleic, isProtein } from '../../../../mol-model/structure/model/types';
 
 export function getAtomicPolymerElements(unit: Unit.Atomic) {
     const indices: ElementIndex[] = []

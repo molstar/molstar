@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OrderedSet } from 'mol-data/int';
-import { EmptyLoci, Loci } from 'mol-model/loci';
-import { Structure, StructureElement } from 'mol-model/structure';
-import { StateObject } from 'mol-state';
+import { OrderedSet } from '../../mol-data/int';
+import { EmptyLoci, Loci } from '../../mol-model/loci';
+import { Structure, StructureElement } from '../../mol-model/structure';
+import { StateObject } from '../../mol-state';
 import { PluginContext } from '../context';
 import { PluginStateObject } from '../state/objects';
 

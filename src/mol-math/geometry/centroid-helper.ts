@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Vec3 } from 'mol-math/linear-algebra/3d';
+import { Vec3 } from '../../mol-math/linear-algebra/3d';
 
 export { CentroidHelper }
 

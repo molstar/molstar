@@ -19,7 +19,7 @@
 
 import Mat4 from './mat4';
 import { EPSILON } from '../3d';
-import { NumberArray } from 'mol-util/type-helpers';
+import { NumberArray } from '../../../mol-util/type-helpers';
 
 interface Vec4 extends Array<number> { [d: number]: number, '@type': 'vec4', length: 4 }
 

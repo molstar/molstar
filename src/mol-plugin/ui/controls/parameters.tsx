@@ -5,13 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec2, Vec3 } from 'mol-math/linear-algebra';
-import { Color } from 'mol-util/color';
-import { ColorListName, getColorListFromName } from 'mol-util/color/scale';
-import { ColorNames, ColorNamesValueMap } from 'mol-util/color/tables';
-import { memoize1 } from 'mol-util/memoize';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { camelCaseToWords } from 'mol-util/string';
+import { Vec2, Vec3 } from '../../../mol-math/linear-algebra';
+import { Color } from '../../../mol-util/color';
+import { ColorListName, getColorListFromName } from '../../../mol-util/color/scale';
+import { ColorNames, ColorNamesValueMap } from '../../../mol-util/color/tables';
+import { memoize1 } from '../../../mol-util/memoize';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { camelCaseToWords } from '../../../mol-util/string';
 import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
