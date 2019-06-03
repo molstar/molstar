@@ -1,14 +1,14 @@
 {
-  "name": "molstar-proto",
+  "name": "molstar",
   "version": "0.1.0",
-  "description": "Comprehensive molecular library.",
-  "homepage": "https://github.com/molstar/molstar-proto#readme",
+  "description": "A comprehensive macromolecular library.",
+  "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/molstar/molstar-proto.git"
+    "url": "https://github.com/molstar/molstar.git"
   },
   "bugs": {
-    "url": "https://github.com/molstar/molstar-proto/issues"
+    "url": "https://github.com/molstar/molstar/issues"
   },
   "scripts": {
     "lint": "tslint src/**/*.ts",

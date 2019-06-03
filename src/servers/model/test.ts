@@ -43,7 +43,7 @@ async function run() {
     try {
         // const testFile = '1crn.cif'
         // const testFile = '1grm_updated.cif'
-        // const testFile = 'C:/Projects/mol-star/molstar-proto/build/test/in/1grm_updated.cif'
+        // const testFile = 'C:/Projects/mol-star/molstar/build/test/in/1grm_updated.cif'
         // const request = createJob({
         //     entryId: testFile,
         //     queryName: 'full',

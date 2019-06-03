@@ -8,7 +8,7 @@ Installing and Running
 
 Getting the code (use node 8+):
 ```
-git clone https://github.com/molstar/molstar-proto
+git clone https://github.com/molstar/molstar
 npm install
 ```
 
@@ -53,7 +53,7 @@ Single files:
 node build\node_modules\servers\model\preprocess -i input.cif [-oc output.cif] [-ob output.bcif] [--cfg config.json]
 ```
 
-Folder: 
+Folder:
 ```
 node build\node_modules\servers\model\preprocess -fin input_folder [-foc output_cif_folder] [-fob output_bcif_folder] [--cfg config.json]
 ```
@@ -98,7 +98,7 @@ The server can be run in local/file based mode:
 node build/node_modules/servers/model/server jobs.json
 ```
 
-where ``jobs.json`` is an array of 
+where ``jobs.json`` is an array of
 
 ```ts
 type LocalInput = {
