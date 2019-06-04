@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ModelPropertyProviderConfig } from './property-provider';
+
 const config = {
     /**
      * Determine if and how long to cache entries after a request.
@@ -50,7 +52,7 @@ const config = {
     /**
      * Provide a property config or a path a JSON file with the config.
      */
-    customProperties: <import('./property-provider').ModelPropertyProviderConfig | string>{
+    customProperties: <ModelPropertyProviderConfig | string>{
         sources: [
             './properties/pdbe',
             './properties/rcsb'

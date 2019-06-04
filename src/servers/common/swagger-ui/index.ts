@@ -9,8 +9,9 @@ import * as fs from 'fs'
 import { getAbsoluteFSPath } from 'swagger-ui-dist'
 import { ServeStaticOptions } from 'serve-static';
 import { interpolate } from '../../../mol-util/string';
+import { Handler } from 'express-serve-static-core';
 
-export function swaggerUiAssetsHandler(options?: ServeStaticOptions) {
+export function swaggerUiAssetsHandler(options?: ServeStaticOptions): Handler {
     const opts = options || {}
     opts.index = false
     return express.static(getAbsoluteFSPath(), opts)

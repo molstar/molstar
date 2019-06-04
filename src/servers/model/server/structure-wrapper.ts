@@ -8,7 +8,7 @@ import { Structure, Model } from '../../../mol-model/structure';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { Cache } from './cache';
 import Config from '../config';
-import { CIF, CifFrame } from '../../../mol-io/reader/cif'
+import { CIF, CifFrame, CifBlock } from '../../../mol-io/reader/cif'
 import * as util from 'util'
 import * as fs from 'fs'
 import * as zlib from 'zlib'
@@ -90,7 +90,7 @@ async function parseCif(data: string|Uint8Array) {
     return parsed.result;
 }
 
-export async function readDataAndFrame(filename: string, key?: string) {
+export async function readDataAndFrame(filename: string, key?: string): Promise<{ data: string | Uint8Array, frame: CifBlock }> {
     perf.start('read');
     let data;
     try {
