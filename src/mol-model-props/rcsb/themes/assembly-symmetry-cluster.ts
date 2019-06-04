@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,11 +9,13 @@ import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition'
 import { Table } from '../../../mol-data/db';
 import { AssemblySymmetry } from '../assembly-symmetry';
-import { ColorScale, Color } from '../../../mol-util/color';
+import { Color } from '../../../mol-util/color';
 import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
-import { ColorListName, ColorListOptions } from '../../../mol-util/color/scale';
+import { ScaleLegend } from '../../../mol-util/color/scale';
 import { getSymmetrySelectParam } from '../util';
+import { getPalette, getPaletteParams } from '../../../mol-theme/color/util';
+import { TableLegend } from '../../../mol-util/color/tables';
 
 const DefaultColor = Color(0xCCCCCC)
 
@@ -32,7 +34,7 @@ function clusterMemberKey(assemblyId: string, asymId: string, operList: string[]
 }
 
 export const AssemblySymmetryClusterColorThemeParams = {
-    list: PD.Select<ColorListName>('Viridis', ColorListOptions),
+    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
     symmetryId: getSymmetrySelectParam(),
 }
 export type AssemblySymmetryClusterColorThemeParams = typeof AssemblySymmetryClusterColorThemeParams
@@ -44,6 +46,7 @@ export function getAssemblySymmetryClusterColorThemeParams(ctx: ThemeDataContext
 
 export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: PD.Values<AssemblySymmetryClusterColorThemeParams>): ColorTheme<AssemblySymmetryClusterColorThemeParams> {
     let color: LocationColor = () => DefaultColor
+    let legend: ScaleLegend | TableLegend | undefined
 
     const { symmetryId } = props
 
@@ -68,7 +71,8 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
                     }
                 }
 
-                const scale = ColorScale.create({ listOrName: props.list, domain: [ 0, clusters._rowCount - 1 ] })
+                const palette = getPalette(clusters._rowCount, props)
+                legend = palette.legend
 
                 color = (location: Location): Color => {
                     if (StructureElement.isLocation(location)) {
@@ -76,7 +80,7 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
                         if (assembly && assembly.id === symmetry.assembly_id) {
                             const asymId = getAsymId(location.unit)(location)
                             const cluster = clusterByMember.get(clusterMemberKey(assembly.id, asymId, assembly.operList))
-                            return cluster !== undefined ? scale.color(cluster) : DefaultColor
+                            return cluster !== undefined ? palette.color(cluster) : DefaultColor
                         }
                     }
                     return DefaultColor
@@ -91,6 +95,7 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
         color,
         props,
         description: 'Assigns chain colors according to assembly symmetry cluster membership.',
+        legend
     }
 }
 

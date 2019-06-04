@@ -3,6 +3,7 @@
     "files.associations": {
         "*.glsl.ts": "glsl",
         "*.frag.ts": "glsl",
-        "*.vert.ts": "glsl"
+        "*.vert.ts": "glsl",
+        "*.gql.ts": "graphql"
     },
 }

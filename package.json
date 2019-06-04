@@ -13,11 +13,11 @@
   "scripts": {
     "lint": "tslint src/**/*.ts",
     "test": "npm run lint && jest",
-    "build": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" lib/ && tsc",
+    "build": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/ && tsc",
     "postinstall": "npm run build",
     "watch": "concurrently --kill-others \"npm:watch-ts\" \"npm:watch-extra\" \"npm:watch-webpack\"",
     "watch-ts": "tsc -watch",
-    "watch-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html,gql}\" lib/ --watch",
+    "watch-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/ --watch",
     "build-webpack": "webpack --mode production",
     "watch-webpack": "webpack -w --mode development --display minimal",
     "model-server": "node lib/servers/model/server.js",

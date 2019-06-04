@@ -120,12 +120,13 @@ If node complains about a missine acorn peer dependency, run the following comma
 
 ### Editor
 
-To get syntax highlighting for the shader files add the following to Visual Code's settings files
+To get syntax highlighting for shader and graphql files add the following to Visual Code's settings files and make sure relevant extanesions are installed in the editor.
 
     "files.associations": {
         "*.glsl.ts": "glsl",
         "*.frag.ts": "glsl",
-        "*.vert.ts": "glsl"
+        "*.vert.ts": "glsl",
+        "*.gql.ts": "graphql"
     },
 
 ## Contributing

@@ -1,4 +1,4 @@
-// Generated in 2019-03-01T14:48:33-08:00
+// Generated in 2019-06-04T12:44:49-07:00
 export type Maybe<T> = T | null;
 
 /** Built-in scalar representing an instant in time */
@@ -18,6 +18,12 @@ export namespace AssemblySymmetry {
 
   export type Query = {
     __typename?: "Query";
+
+    entry: Maybe<Entry>;
+  };
+
+  export type Entry = {
+    __typename?: "CoreEntry";
 
     assemblies: Maybe<(Maybe<Assemblies>)[]>;
   };

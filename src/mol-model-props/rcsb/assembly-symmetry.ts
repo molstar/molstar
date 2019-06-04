@@ -273,9 +273,9 @@ export namespace AssemblySymmetry {
                 console.error(e)
                 return false;
             }
-            if (!result || !result.assemblies) return false;
+            if (!result || !result.entry || !result.entry.assemblies) return false;
 
-            db = createDatabaseFromJson(result.assemblies as ReadonlyArray<AssemblySymmetryGraphQL.Assemblies>)
+            db = createDatabaseFromJson(result.entry.assemblies as ReadonlyArray<AssemblySymmetryGraphQL.Assemblies>)
         }
 
         model.customProperties.add(Descriptor);
