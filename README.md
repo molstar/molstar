@@ -80,12 +80,11 @@ and navigate to `build/viewer`
 
 ### Code generation
 **CIF schemas**
+Install CIFTools `npm install ciftools -g`
 
-    export NODE_PATH="build/src"; node build/src/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/mmcif.ts --fieldNamesPath data/mmcif-field-names.csv --name mmCIF
-
-    export NODE_PATH="build/src"; node build/src/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/ccd.ts --fieldNamesPath data/ccd-field-names.csv --name CCD
-
-    export NODE_PATH="build/src"; node build/src/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/bird.ts --fieldNamesPath data/bird-field-names.csv --name BIRD
+    cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/mmcif.ts -p mmCIF
+    cifschema -mip ../../../../mol-data-o src/mol-io/reader/cif/schema/ccd.ts -p CCD
+    cifschema -mip ../../../../mol-data -o src/mol-io/reader/cif/schema/bird.ts -p BIRD
 
 **GraphQL schemas**
 

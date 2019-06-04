@@ -1,9 +1,9 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.309, IHM 0.141, CARB draft.
+ * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.311, IHM 1.0, CARB draft.
  *
- * @author mol-star package (src/apps/schema-generator/generate)
+ * @author molstar/ciftools package
  */
 
 import { Database, Column } from '../../../../mol-data/db'
@@ -167,6 +167,10 @@ export const CCD_Schema = {
          * Date component was last modified.
          */
         pdbx_modified_date: str,
+        /**
+         * This data item holds the current release status for the component.
+         */
+        pdbx_release_status: Aliased<'REL' | 'HOLD' | 'HPUB' | 'OBS' | 'DEL' | 'REF_ONLY'>(str),
         /**
          * This data item identifies the deposition site that processed
          * this chemical component defintion.

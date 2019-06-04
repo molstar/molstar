@@ -1,9 +1,9 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.310, IHM 0.141, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.311, IHM 1.0, CARB draft.
  *
- * @author mol-star package (src/apps/schema-generator/generate)
+ * @author molstar/ciftools package
  */
 
 import { Database, Column } from '../../../../mol-data/db'
@@ -590,7 +590,8 @@ export const mmCIF_Schema = {
      */
     entity_poly_seq: {
         /**
-         * This data item is a pointer to _entity.id in the ENTITY category.
+         * This data item is a pointer to _entity_poly.entity_id in the
+         * ENTITY_POLY category.
          */
         entity_id: str,
         /**
@@ -2137,15 +2138,11 @@ export const mmCIF_Schema = {
          */
         asym_id: str,
         /**
-         * The leading residue index for the sequence segment modeled using this starting model.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
+         * The identifier for the polymeric segment modeled using this starting model.
+         * This data item is a pointer to _ihm_entity_poly_segment.id in the
+         * IHM_ENTITY_POLY_SEGMENT category.
          */
-        seq_id_begin: int,
-        /**
-         * The trailing residue index for the sequence segment modeled using this starting model.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
-         */
-        seq_id_end: int,
+        entity_poly_segment_id: int,
         /**
          * The source of the starting model.
          */
@@ -2180,7 +2177,7 @@ export const mmCIF_Schema = {
         /**
          * A unique identifier for the starting comparative model.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * The identifier for the starting structural model.
          * This data item is a pointer to _ihm_starting_model_details.starting_model_id
@@ -2244,7 +2241,7 @@ export const mmCIF_Schema = {
         /**
          * A unique identifier for the entry.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * A unique identifier for the distinct molecular entities.
          * This data item is a pointer to _entity_poly_seq.entity_id in the ENTITY_POLY category.
@@ -2293,25 +2290,46 @@ export const mmCIF_Schema = {
         details: str,
     },
     /**
-     * Data items in the IHM_MODEL_REPRESENTATION category records the
-     * details about the architecture and representation of structural
-     * models created by the integrative model building tasks. This
-     * category handles the multi-scale model representation, if employed.
+     * Data items in the IHM_MODEL_REPRESENTATION category lists the
+     * various mono or multi-scale model representations used in the
+     * integrative modeling study.
      */
     ihm_model_representation: {
         /**
-         * A unique identifier for the model details record.
+         * A unique identifier for the model representation.
          */
-        ordinal_id: int,
+        id: int,
+        /**
+         * Name/brief description for the model representation.
+         */
+        name: str,
+        /**
+         * Additional details about the model representation.
+         */
+        details: str,
+    },
+    /**
+     * Data items in the IHM_MODEL_REPRESENTATION_DETAILS category records the
+     * details about the architecture and representation of structural
+     * models involved in the integrative modeling study.
+     */
+    ihm_model_representation_details: {
+        /**
+         * A unique identifier for the category.
+         */
+        id: int,
         /**
          * An identifier that collects or groups together a set of representations.
-         * This data item may be used to identify a complete model representation.
+         * This data item is a pointer to _ihm_model_representation.id in the
+         * IHM_MODEL_REPRESENTATION category.
          */
         representation_id: int,
         /**
-         * An identifier for the residue range segment within the structural model.
+         * The identifier for the polymeric segment in the representation.
+         * This data item is a pointer to _ihm_entity_poly_segment.id in the
+         * IHM_ENTITY_POLY_SEGMENT category.
          */
-        segment_id: int,
+        entity_poly_segment_id: int,
         /**
          * A unique identifier distinct molecular entities.
          * This data item is a pointer to _entity.id in the
@@ -2328,16 +2346,6 @@ export const mmCIF_Schema = {
          * STRUCT_ASYM category.
          */
         entity_asym_id: str,
-        /**
-         * The leading residue index for the sequence segment modeled using this starting model.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
-         */
-        seq_id_begin: int,
-        /**
-         * The trailing residue index for the sequence segment modeled using this starting model.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
-         */
-        seq_id_end: int,
         /**
          * The primitive object used to model this segment.
          */
@@ -2362,31 +2370,33 @@ export const mmCIF_Schema = {
         model_object_count: int,
     },
     /**
-     * Data items in the IHM_STRUCT_ASSEMBLY category records the
-     * details of the structural assemblies and used in the
-     * IHM modeling.
+     * Data items in the IHM_STRUCT_ASSEMBLY_DETAILS category records
+     * the details of the structural assemblies and used in the
+     * integrative modeling.
      */
-    ihm_struct_assembly: {
+    ihm_struct_assembly_details: {
         /**
          * A unique identifier for the structural assembly description.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * An identifier for the structural assembly.
          * This data item will remain the same for all components
          * of an assembly.
+         * This data item is a pointer to _ihm_struct_assembly.id
+         * in the IHM_STRUCT_ASSEMBLY category.
          */
         assembly_id: int,
         /**
          * The parent of this assembly in a hierarchy.
-         * This data item is an internal category pointer to
-         * _ihm_struct_assembly.assembly_id
+         * This data item is a pointer to _ihm_struct_assembly.id in the
+         * IHM_STRUCT_ASSEMBLY category.
          * This data item should point to the assembly id of the immediate
          * parent in a hierarchy.
          * By convention, the full assembly (top of hierarchy) is assigned parent id 0 (zero).
          * In case of assemblies that do not conform to a hierarchy,
-         * _ihm_struct_assembly.parent_assembly_id is the same as
-         * _ihm_struct_assembly.assembly_id indicating a self-parent.
+         * _ihm_struct_assembly_details.parent_assembly_id is the same as
+         * _ihm_struct_assembly_details.assembly_id indicating a self-parent.
          */
         parent_assembly_id: int,
         /**
@@ -2406,47 +2416,62 @@ export const mmCIF_Schema = {
          */
         asym_id: str,
         /**
-         * The starting residue index for the sequence segment of the entity instance
-         * that is part of the assembly.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
+         * The identifier for the polymeric segment in the assembly.
+         * This data item is a pointer to _ihm_entity_poly_segment.id in the
+         * IHM_ENTITY_POLY_SEGMENT category.
          */
-        seq_id_begin: int,
-        /**
-         * The ending residue index for the sequence segment of the entity instance
-         * that is part of the assembly.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
-         */
-        seq_id_end: int,
+        entity_poly_segment_id: int,
     },
     /**
-     * Data items in the IHM_STRUCT_ASSEMBLY_DETAILS category provides
-     * additional details regarding the structure assembly.
+     * Data items in the IHM_STRUCT_ASSEMBLY category lists
+     * all the structural assemblies used in the integrative
+     * modeling study.
      */
-    ihm_struct_assembly_details: {
+    ihm_struct_assembly: {
         /**
          * A unique identifier for the structural assembly.
          */
-        assembly_id: int,
+        id: int,
         /**
          * A name for the structural assembly.
          */
-        assembly_name: str,
+        name: str,
         /**
          * Description of the structural assembly.
          */
-        assembly_description: str,
+        description: str,
     },
     /**
-     * Data items in the IHM_MODELING_PROTOCOL category records the
-     * step-wise details of the integrative modeling workflow.
+     * Data items in the IHM_MODELING_PROTOCOL category lists all
+     * modeling protocols used in the integrative modeling study.
      */
     ihm_modeling_protocol: {
         /**
+         * A unique identifier for the modeling protocol.
+         */
+        id: int,
+        /**
+         * Number of independent steps in the modeling protocol.
+         */
+        num_steps: int,
+        /**
+         * The name for the modeling protocol.
+         */
+        protocol_name: str,
+    },
+    /**
+     * Data items in the IHM_MODELING_PROTOCOL_DETAILS category records the
+     * step-wise details of the integrative modeling workflow.
+     */
+    ihm_modeling_protocol_details: {
+        /**
          * A unique identifier for the modeling protocol/step combination.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * An index for the modeling protocol carried out.
+         * This data item is a pointer to _ihm_modeling_protocol.id in the
+         * IHM_MODELING_PROTOCOL category.
          */
         protocol_id: int,
         /**
@@ -2457,7 +2482,7 @@ export const mmCIF_Schema = {
          * An index for the structural assembly being modeled.
          * This is an indicator to whether the whole assembly is modeled
          * or if only a subset of the structural assembly is modeled.
-         * This data item is a pointer to _ihm_struct_assembly.assembly_id in the
+         * This data item is a pointer to _ihm_struct_assembly.id in the
          * IHM_STRUCT_ASSEMBLY category. The IHM_STRUCT_ASSEMBLY category provides the
          * details regarding the different structural assemblies used in the modeling.
          * The default value for this data item is "1", indicating that the entire
@@ -2466,7 +2491,7 @@ export const mmCIF_Schema = {
         struct_assembly_id: int,
         /**
          * An index for the dataset group being used in the modeling protocol.
-         * This data item is a pointer to the _ihm_dataset_group.group_id in the
+         * This data item is a pointer to the _ihm_dataset_group.id in the
          * IHM_DATASET_GROUP category.
          */
         dataset_group_id: int,
@@ -2474,10 +2499,6 @@ export const mmCIF_Schema = {
          * A textual description of the structural assembly being modeled.
          */
         struct_assembly_description: str,
-        /**
-         * The name for the modeling protocol.
-         */
-        protocol_name: str,
         /**
          * The name or type of the modeling step.
          */
@@ -2506,6 +2527,17 @@ export const mmCIF_Schema = {
          * A flag to indicate if the modeling involves an ensemble ordered by time or other order.
          */
         ordered_flag: Aliased<'YES' | 'NO'>(str),
+        /**
+         * The file id corresponding to the script used in the modeling protocol step.
+         * This data item is a pointer to _ihm_external_files.id in the IHM_EXTERNAL_FILES category.
+         */
+        script_file_id: int,
+        /**
+         * Identifier to the software used in the modeling protocol step.
+         * This data item is a pointer to the _software.pdbx_ordinal in the
+         * SOFTWARE category.
+         */
+        software_id: int,
     },
     /**
      * Data items in the IHM_MULTI_STATE_MODELING category records the
@@ -2513,24 +2545,23 @@ export const mmCIF_Schema = {
      */
     ihm_multi_state_modeling: {
         /**
-         * A unique identifier for the multiple states being described.
-         */
-        ordinal_id: int,
-        /**
-         * An identifier for the particular state in the multi-state modeling.
+         * A unique identifier for a particular state in the multi-state modeling.
          */
         state_id: int,
         /**
          * An identifier for a collections of states in the multi-state modeling.
-         * If the states do not need to be grouped into collections, then
-         * _ihm_multi_state_modeling.state_group_id is the same as
-         * _ihm_multi_state_modeling.state_id.
+         * This data item can be used when structural models belong to diffent
+         * multi-state modeling types.
          */
         state_group_id: int,
         /**
          * A fraction representing the population of the particular state.
          */
         population_fraction: float,
+        /**
+         * The standard deviation of the population fraction.
+         */
+        population_fraction_sd: float,
         /**
          * The type that the multiple states being modeled belong to.
          */
@@ -2539,14 +2570,6 @@ export const mmCIF_Schema = {
          * A descriptive name for the state.
          */
         state_name: str,
-        /**
-         * The model group id corresponding to the particular state in the multi-state model.
-         * This data item is a pointer to _ihm_model_list.model_group_id in the
-         * IHM_MODEL_LIST category.
-         * If there is only a single model corresponding to a particular state, then the
-         * _ihm_model_list.model_group_id is the same as the _ihm_model_list.model_id.
-         */
-        model_group_id: int,
         /**
          * The type of multi-state modeling experiment carried out.
          */
@@ -2569,7 +2592,7 @@ export const mmCIF_Schema = {
         /**
          * An identifier for the modeling protocol, whose post modeling analysis
          * is being carried out.
-         * This data item is a pointer to the _ihm_modeling_protocol.protocol_id
+         * This data item is a pointer to the _ihm_modeling_protocol.id
          * in the IHM_MODELING_PROTOCOL category.
          */
         protocol_id: int,
@@ -2622,8 +2645,8 @@ export const mmCIF_Schema = {
         post_process_id: int,
         /**
          * An identifier for the cluster or group of models being deposited.
-         * This data item is a pointer to the _ihm_model_list.model_group_id
-         * in the IHM_MODEL_LIST category.
+         * This data item is a pointer to the _ihm_model_group.id
+         * in the IHM_MODEL_GROUP category.
          */
         model_group_id: int,
         /**
@@ -2671,56 +2694,78 @@ export const mmCIF_Schema = {
      */
     ihm_model_list: {
         /**
-         * A unique identifier for the model / model group combination.
-         */
-        ordinal_id: int,
-        /**
          * A unique identifier for the structural model being deposited.
          */
         model_id: int,
         /**
-         * An identifier to group structural models into collections or sets.
+         * A decsriptive name for the model.
+         */
+        model_name: str,
+        /**
+         * An identifier to the structure assembly corresponding to the model.
+         * This data item is a pointer to the _ihm_struct_assembly.id
+         * in the IHM_STRUCT_ASSEMBLY category.
+         */
+        assembly_id: int,
+        /**
+         * An identifier to the modeling protocol that produced the model.
+         * This data item is a pointer to the _ihm_modeling_protocol.id
+         * in the IHM_MODELING_PROTOCOL category.
+         */
+        protocol_id: int,
+        /**
+         * An identifier to the multi-scale model representation id of the model.
+         * This data item is a pointer to the _ihm_model_representation.id
+         * in the IHM_MODEL_REPRESENTATION category.
+         */
+        representation_id: int,
+    },
+    /**
+     * IHM_MODEL_GROUP category defines collections or groups of integrative
+     * structural models.
+     */
+    ihm_model_group: {
+        /**
+         * A unique identifier for a collection or group of structural models.
          * This data item can be used to group models into structural clusters
          * or using other criteria based on experimental data or other
          * relationships such as those belonging to the same state or time stamp.
          * An ensemble of models and its representative can either be grouped together
-         * or can be separate groups in the ihm_model_list table. The choice between
+         * or can be separate groups in the ihm_model_group table. The choice between
          * the two options should be decided based on how the modeling was carried out
          * and how the representative was chosen. If the representative is a member of
          * the ensemble (i.e., best scoring model), then it is recommended that the
          * representative and the ensemble belong to the same model group. If the
          * representative is calculated from the ensemble (i.e., centroid), then it is
          * recommended that the representative be separated into a different group.
-         * If the models do not need to be grouped into collections, then the
-         * _ihm_model_list.model_group_id is the same as _ihm_model_list.model_id.
          */
-        model_group_id: int,
+        id: int,
         /**
-         * A decsriptive name for the model.
+         * A name for the collection of models.
          */
-        model_name: str,
+        name: str,
         /**
-         * A decsriptive name for the model group.
+         * Additional details about the collection of models.
          */
-        model_group_name: str,
+        details: str,
+    },
+    /**
+     * IHM_MODEL_GROUP_LINK category provides the list of models present in
+     * a particular model group.
+     */
+    ihm_model_group_link: {
         /**
-         * An identifier to the structure assembly corresponding to the model.
-         * This data item is a pointer to the _ihm_struct_assembly.assembly_id
-         * in the IHM_STRUCT_ASSEMBLY category.
+         * An identifier for the structural model.
+         * This data item is a pointer to _ihm_model_list.model_id in the
+         * IHM_MODEL_LIST category.
          */
-        assembly_id: int,
+        model_id: int,
         /**
-         * An identifier to the modeling protocol that produced the model.
-         * This data item is a pointer to the _ihm_modeling_protocol.protocol_id
-         * in the IHM_MODELING_PROTOCOL category.
+         * An identifier for the structural model group.
+         * This data item is a pointer to _ihm_model_group.id in the
+         * IHM_MODEL_GROUP category.
          */
-        protocol_id: int,
-        /**
-         * An identifier to the multi-scale model representation id of the model.
-         * This data item is a pointer to the _ihm_model_representation.representation_id
-         * in the IHM_MODEL_REPRESENTATION category.
-         */
-        representation_id: int,
+        group_id: int,
     },
     /**
      * Data items in the IHM_MODEL_REPRESENTATIVE category record the
@@ -2733,8 +2778,8 @@ export const mmCIF_Schema = {
         id: int,
         /**
          * The model group identifier corresponding to the representative model.
-         * This data item is a pointer to _ihm_model_list.model_group_id in the
-         * IHM_MODEL_LIST category.
+         * This data item is a pointer to _ihm_model_group.id in the
+         * IHM_MODEL_GROUP category.
          */
         model_group_id: int,
         /**
@@ -2773,31 +2818,48 @@ export const mmCIF_Schema = {
         database_hosted: Aliased<'YES' | 'NO'>(str),
     },
     /**
-     * Category provides a mechanism to group datasets.
+     * Category to define groups or collections of input datasets.
      */
     ihm_dataset_group: {
         /**
-         * A unique identifier for the entry.
+         * A unique identifier for the dataset group.
          */
-        ordinal_id: int,
+        id: int,
         /**
-         * An identifier for the dataset group.
+         * A name for the dataset group.
          */
-        group_id: int,
+        name: str,
         /**
-         * An identifier to the dataset. This data item is a pointer to
-         * _ihm_dataset_list.id in the IHM_DATASET_LIST category.
+         * The application / utilization of the dataset group in modeling.
+         */
+        application: Aliased<'restraint' | 'validation' | 'filter' | 'representation' | 'sampling' | 'other'>(str),
+        /**
+         * Additional details regarding the dataset group.
+         */
+        details: str,
+    },
+    /**
+     * IHM_DATASET_GROUP_LINK category provides the list of datasets present in
+     * a particular group.
+     */
+    ihm_dataset_group_link: {
+        /**
+         * An identifier for the dataset.
+         * This data item is a pointer to _ihm_dataset_list.id in the
+         * IHM_DATASET_LIST category.
          */
         dataset_list_id: int,
+        /**
+         * An identifier for the dataset group.
+         * This data item is a pointer to _ihm_dataset_group.id in the
+         * IHM_DATASET_GROUP category.
+         */
+        group_id: int,
     },
     /**
      * Category holds information about related datasets, where one is derived from the other.
      */
     ihm_related_datasets: {
-        /**
-         * A unique identifier for the entry.
-         */
-        ordinal_id: int,
         /**
          * The dataset list id corresponding to the derived dataset.
          * This data item is a pointer to _ihm_dataset_list.id in the
@@ -2978,15 +3040,12 @@ export const mmCIF_Schema = {
          */
         entity_id: str,
         /**
-         * The leading sequence index corresponding to this localization density.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY category.
+         * The identifier for the polymeric segment corresponding to this
+         * localization density.
+         * This data item is a pointer to _ihm_entity_poly_segment.id in the
+         * IHM_ENTITY_POLY_SEGMENT category.
          */
-        seq_id_begin: int,
-        /**
-         * The trailing sequence index corresponding to this localization density.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY category.
-         */
-        seq_id_end: int,
+        entity_poly_segment_id: int,
         /**
          * An asym/strand identifier corresponding to this localization density.
          * This data item is a pointer to _struct_asym.id in the STRUCT_ASYM category.
@@ -3053,17 +3112,15 @@ export const mmCIF_Schema = {
          */
         seq_id_2: int,
         /**
-         * The atom id of the first partner in the predicted contact.
-         * This data item is a pointer to _chem_comp_atom.atom_id in the
-         * CHEM_COMP_ATOM category.
+         * If _ihm_predicted_contact_restraint.model_granularity is by-residue, then indicate the atom
+         * used to represent the first monomer partner in three-dimension. Default is the C-alpha atom.
          */
-        atom_id_1: str,
+        rep_atom_1: Aliased<'CA' | 'CB'>(str),
         /**
-         * The atom id of the second partner in the predicted contact.
-         * This data item is a pointer to _chem_comp_atom.atom_id in the
-         * CHEM_COMP_ATOM category.
+         * If _ihm_predicted_contact_restraint.model_granularity is by-residue, then indicate the atom
+         * used to represent the second monomer partner in three-dimension. Default is the C-alpha atom.
          */
-        atom_id_2: str,
+        rep_atom_2: Aliased<'CA' | 'CB'>(str),
         /**
          * The lower limit to the distance threshold applied to this predicted contact restraint
          * in the integrative modeling task.
@@ -3086,7 +3143,7 @@ export const mmCIF_Schema = {
         /**
          * The granularity of the predicted contact as applied to the multi-scale model.
          */
-        model_granularity: Aliased<'by-residue' | 'by-feature' | 'by-atom'>(str),
+        model_granularity: Aliased<'by-residue' | 'by-feature'>(str),
         /**
          * Identifier to the predicted contacts dataset.
          * This data item is a pointer to the _ihm_dataset_list.id in the
@@ -3296,7 +3353,7 @@ export const mmCIF_Schema = {
         /**
          * A unique identifier for the restraint/model combination.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * An identifier for the crosslink restraint between a pair of residues.
          * This data item is a pointer to _ihm_cross_link_restraint.id in the
@@ -3373,7 +3430,7 @@ export const mmCIF_Schema = {
         /**
          * An indicator to whether the whole assembly that is modeled is fit into the image
          * or if only a subset of the structural assembly is fit into the image.
-         * This data item is a pointer to _ihm_struct_assembly.assembly_id in the
+         * This data item is a pointer to _ihm_struct_assembly.id in the
          * IHM_STRUCT_ASSEMBLY category. The IHM_STRUCT_ASSEMBLY category provides the
          * details regarding the different structural assemblies used in the modeling.
          * The default value for this data item is "1" indicating that the entire assembly
@@ -3407,7 +3464,7 @@ export const mmCIF_Schema = {
         /**
          * A unique identifier for the 2dem class average fitting data.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * Identifier to the 2dem class average restraint.
          * This data item is a pointer to the _ihm_2dem_class_average_restraint.id in the
@@ -3442,7 +3499,7 @@ export const mmCIF_Schema = {
         /**
          * A unique identifier for the 3DEM restraint description.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * Identifier to the 3DEM map used.
          * This data item is a pointer to the _ihm_dataset_list.id in the
@@ -3458,7 +3515,7 @@ export const mmCIF_Schema = {
         /**
          * An indicator to whether the whole assembly that is modeled is fit into the 3DEM map
          * or if only a subset of the structural assembly is fit into the map.
-         * This data item is a pointer to _ihm_struct_assembly.assembly_id in the
+         * This data item is a pointer to _ihm_struct_assembly.id in the
          * IHM_STRUCT_ASSEMBLY category. The IHM_STRUCT_ASSEMBLY category provides the
          * details regarding the different structural assemblies used in the modeling.
          * The default value for this data item is "1" indicating that the entire assembly
@@ -3490,7 +3547,7 @@ export const mmCIF_Schema = {
         /**
          * A unique identifier for the SAS restraint description.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * Identifier to the SAS data used.
          * This data item is a pointer to the _ihm_dataset_list.id in the
@@ -3506,7 +3563,7 @@ export const mmCIF_Schema = {
         /**
          * An indicator to whether the whole assembly that is modeled is fit into the SAS data
          * or if only a subset of the structural assembly is fit into the data.
-         * This data item is a pointer to _ihm_struct_assembly.assembly_id in the
+         * This data item is a pointer to _ihm_struct_assembly.id in the
          * IHM_STRUCT_ASSEMBLY category. The IHM_STRUCT_ASSEMBLY category provides the
          * details regarding the different structural assemblies used in the modeling.
          * The default value for this data item is "1" indicating that the entire assembly
@@ -3587,13 +3644,13 @@ export const mmCIF_Schema = {
         atom_id: str,
         /**
          * The component identifier corresponding to this coordinate position.
-         * This data item is a pointer to _chem_comp.id in the CHEM_COMP category.
+         * This data item is a pointer to _chem_comp.id in the
+         * CHEM_COMP category.
          */
         comp_id: str,
         /**
          * The sequence index corresponding this to coordinate position.
-         *
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY category.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id: int,
         /**
@@ -3627,7 +3684,7 @@ export const mmCIF_Schema = {
         /**
          * A unique identifier for this pseudo atom / sphere object.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * The entity identifier corresponding to this sphere object.
          * This data item is a pointer to _entity.id in the ENTITY category.
@@ -3635,12 +3692,12 @@ export const mmCIF_Schema = {
         entity_id: str,
         /**
          * The leading sequence index corresponding to this sphere object.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY category.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_begin: int,
         /**
          * The trailing sequence index corresponding to this sphere object.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY category.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_end: int,
         /**
@@ -3684,7 +3741,7 @@ export const mmCIF_Schema = {
         /**
          * A unique identifier for this gaussian object in the model.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * The entity identifier corresponding to this gaussian object.
          * This data item is a pointer to _entity.id in the ENTITY category.
@@ -3692,12 +3749,12 @@ export const mmCIF_Schema = {
         entity_id: str,
         /**
          * The leading sequence index corresponding to this gaussian object.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY category.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_begin: int,
         /**
          * The trailing sequence index corresponding to this gaussian object.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY category.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_end: int,
         /**
@@ -3740,7 +3797,7 @@ export const mmCIF_Schema = {
         /**
          * A unique identifier for this gaussian object.
          */
-        ordinal_id: int,
+        id: int,
         /**
          * The entity identifier corresponding to this gaussian object.
          * This data item is a pointer to _entity.id in the ENTITY category.
@@ -3748,12 +3805,12 @@ export const mmCIF_Schema = {
         entity_id: str,
         /**
          * The leading sequence index corresponding to this gaussian object.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY category.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_begin: int,
         /**
          * The trailing sequence index corresponding to this gaussian object.
-         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY category.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_end: int,
         /**
@@ -4065,6 +4122,11 @@ export const mmCIF_Schema = {
          * PDBX_ENTITY_BRANCH_LIST category.
          */
         num: int,
+        /**
+         * This data item is a pointer to _atom_site.pdbx_auth_asym_id in the
+         * ATOM_SITE category.
+         */
+        auth_asym_id: str,
         /**
          * This data item is a pointer to _atom_site.pdbx_auth_seq_id in the
          * ATOM_SITE category.

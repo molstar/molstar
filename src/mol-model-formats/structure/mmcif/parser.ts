@@ -329,6 +329,17 @@ function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
     return ret;
 }
 
+function getModelGroupName(model_id: number, format: mmCIF_Format) {
+    const { ihm_model_group, ihm_model_group_link } = format.data;
+
+    const link = Table.pickRow(ihm_model_group_link, i => ihm_model_group_link.model_id.value(i) === model_id)
+    if (link) {
+        const group = Table.pickRow(ihm_model_group, i => ihm_model_group.id.value(i) === link.group_id)
+        if (group) return group.name
+    }
+    return ''
+}
+
 async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: FormatData) {
     // when `atom_site.ihm_model_id` is undefined fall back to `atom_site.pdbx_PDB_model_num`
     const atom_sites_modelColumn = format.data.atom_site.ihm_model_id.isDefined ? format.data.atom_site.ihm_model_id : format.data.atom_site.pdbx_PDB_model_num
@@ -345,7 +356,7 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
 
     const models: Model[] = [];
 
-    const { model_id, model_name, model_group_name } = ihm_model_list;
+    const { model_id, model_name } = ihm_model_list;
     for (let i = 0; i < ihm_model_list._rowCount; i++) {
         const id = model_id.value(i);
 
@@ -364,7 +375,7 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: Fo
         const data: IHMData = {
             model_id: id,
             model_name: model_name.value(i),
-            model_group_name: model_group_name.value(i),
+            model_group_name: getModelGroupName(id, format),
             entities: entities,
             atom_site,
             atom_site_sourceIndex,
