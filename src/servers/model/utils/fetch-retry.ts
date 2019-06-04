@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import fetch from 'node-fetch';
+import fetch, { Response } from 'node-fetch';
 import { retryIf } from '../../../mol-util/retry-if';
 
 const RETRIABLE_NETWORK_ERRORS = [
@@ -16,7 +16,7 @@ function isRetriableNetworkError(error: any) {
     return error && RETRIABLE_NETWORK_ERRORS.includes(error.code);
 }
 
-export async function fetchRetry(url: string, timeout: number, retryCount: number) {
+export async function fetchRetry(url: string, timeout: number, retryCount: number): Promise<Response> {
     const result = await retryIf(() => fetch(url, { timeout }), {
         retryThenIf: r => r.status >= 500 && r.status < 600,
         // TODO test retryCatchIf
