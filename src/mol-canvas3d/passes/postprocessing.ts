@@ -18,6 +18,9 @@ import { createRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-targ
 import { DrawPass } from './draw';
 import { Camera } from '../../mol-canvas3d/camera';
 
+import quad_vert from '../../mol-gl/shader/quad.vert'
+import postprocessing_frag from '../../mol-gl/shader/postprocessing.frag'
+
 const PostprocessingSchema = {
     ...QuadSchema,
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -89,10 +92,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
     }
 
     const schema = { ...PostprocessingSchema }
-    const shaderCode = ShaderCode(
-        require('mol-gl/shader/quad.vert').default,
-        require('mol-gl/shader/postprocessing.frag').default
-    )
+    const shaderCode = ShaderCode(quad_vert, postprocessing_frag)
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
     return createComputeRenderable(renderItem, values)

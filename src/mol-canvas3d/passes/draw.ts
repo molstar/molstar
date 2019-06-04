@@ -11,7 +11,6 @@ import Scene from '../../mol-gl/scene';
 import { BoundingSphereHelper } from '../helper/bounding-sphere-helper';
 import { createTexture, Texture } from '../../mol-gl/webgl/texture';
 
-
 export class DrawPass {
     colorTarget: RenderTarget
     depthTexture: Texture

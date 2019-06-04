@@ -19,6 +19,9 @@ import { Camera } from '../../mol-canvas3d/camera';
 import { PostprocessingPass } from './postprocessing';
 import { DrawPass } from './draw';
 
+import quad_vert from '../../mol-gl/shader/quad.vert'
+import compose_frag from '../../mol-gl/shader/compose.frag'
+
 const ComposeSchema = {
     ...QuadSchema,
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -37,10 +40,7 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): Compose
     }
 
     const schema = { ...ComposeSchema }
-    const shaderCode = ShaderCode(
-        require('mol-gl/shader/quad.vert').default,
-        require('mol-gl/shader/compose.frag').default
-    )
+    const shaderCode = ShaderCode(quad_vert, compose_frag)
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values)
 
     return createComputeRenderable(renderItem, values)
