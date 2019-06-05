@@ -13,16 +13,24 @@
   "scripts": {
     "lint": "tslint src/**/*.ts",
     "test": "npm run lint && jest",
-    "build": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/ && tsc",
-    "postinstall": "npm run build",
-    "watch": "concurrently --kill-others \"npm:watch-ts\" \"npm:watch-extra\" \"npm:watch-webpack\"",
-    "watch-ts": "tsc -watch",
-    "watch-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/ --watch",
+    "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
+    "build-tsc": "tsc",
+    "build-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/",
     "build-webpack": "webpack --mode production",
+    "watch": "concurrently --kill-others \"npm:watch-tsc\" \"npm:watch-extra\" \"npm:watch-webpack\"",
+    "watch-tsc": "tsc -watch",
+    "watch-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/ --watch",
     "watch-webpack": "webpack -w --mode development --display minimal",
     "model-server": "node lib/servers/model/server.js",
-    "model-server-watch": "nodemon --watch lib lib/servers/model/server.js"
+    "model-server-watch": "nodemon --watch lib lib/servers/model/server.js",
+    "postinstall": "npm run build",
+    "preversion": "npm run test",
+    "postversion": "git push && git push --tags",
+    "prepublishOnly": "npm run test && npm run build"
   },
+  "files": [
+    "lib/"
+  ],
   "nodemonConfig": {
     "ignoreRoot": [
       "./node_modules",
