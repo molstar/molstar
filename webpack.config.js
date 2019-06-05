@@ -98,4 +98,5 @@ module.exports = [
     createBrowserTest('render-spheres'),
     createBrowserTest('render-structure'),
     createBrowserTest('render-text'),
+    createBrowserTest('encoding-config')
 ]
