@@ -9,6 +9,8 @@ The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that will
 
 This particular project is the implementation of this technology (still under development).
 
+*If you are looking for the "MOLeculAR structure annoTator", that package is now available on NPM as [MolArt](https://www.npmjs.com/package/molart).*
+
 ## Project Overview
 
 The core of Mol* currently consists of these modules (see under `src/`):
