@@ -1,4 +1,5 @@
 [![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](./LICENSE)
+[![npm version](https://badge.fury.io/js/molstar.svg)](https://www.npmjs.com/package/molstar)
 [![Build Status](https://travis-ci.org/molstar/molstar.svg?branch=master)](https://travis-ci.org/molstar/molstar)
 [![Gitter](https://badges.gitter.im/molstar/Lobby.svg)](https://gitter.im/molstar/Lobby)
 
@@ -6,11 +7,11 @@
 
 The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that will serve as basis for the next-generation data delivery and analysis tools for macromolecular structure data. This is a collaboration between PDBe and RCSB PDB teams and the development will be open source and available to anyone who wants to use it for developing visualisation tools for macromolecular structure data available from [PDB](https://www.wwpdb.org/) and other institutions.
 
-This particular project is a prototype implementation of this technology (still under development).
+This particular project is the implementation of this technology (still under development).
 
 ## Project Overview
 
-The core of Mol* currently consists of these modules:
+The core of Mol* currently consists of these modules (see under `src/`):
 
 - `mol-task` Computation abstraction with progress tracking and cancellation support.
 - `mol-data` Collections (integer based sets, interface to columns/tables, etc.)
@@ -21,8 +22,8 @@ The core of Mol* currently consists of these modules:
 - `mol-model-props` Common "custom properties".
 - `mol-script` A scriting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
 - `mol-geo` Creating (molecular) geometries.
-- `mol-theme` Molecular representation themeing.
-- `mol-repr` Molecular representations.
+- `mol-theme` Theming for structure, volume and shape representations.
+- `mol-repr` Molecular representations for structures, volumes and shapes.
 - `mol-gl` A wrapper around WebGL.
 - `mol-canvas3d` A low level 3d view component. Uses `mol-geo` to generate geometries.
 - `mol-state` State representation tree with state saving and automatic updates.
@@ -93,15 +94,15 @@ Install CIFTools `npm install ciftools -g`
 ### Other scripts
 **Create chem comp bond table**
 
-    export NODE_PATH="build/src"; node --max-old-space-size=8192 build/src/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+    export NODE_PATH="lib"; node --max-old-space-size=8192 build/src/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
 
 **Test model server**
 
-    export NODE_PATH="build/src"; node build/src/servers/model/test.js
+    export NODE_PATH="lib"; node build/src/servers/model/test.js
 
 **State Transformer Docs**
 
-    export NODE_PATH="build/src"; node build/state-docs
+    export NODE_PATH="lib"; node build/state-docs
 
 **Convert any CIF to BinaryCIF**
 
@@ -128,6 +129,16 @@ To get syntax highlighting for shader and graphql files add the following to Vis
         "*.vert.ts": "glsl",
         "*.gql.ts": "graphql"
     },
+
+## Publish
+
+## Prerelease
+    npm version prerelease # asumes the current version ends with '-dev.X'
+    npm publish --tag next
+
+## Release
+    npm version 0.X.0 # provide valid semver string
+    npm publish
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.
