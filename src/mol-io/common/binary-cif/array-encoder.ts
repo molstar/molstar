@@ -172,7 +172,7 @@ export namespace ArrayEncoding {
         for (let i = 0, n = data.length; i < n; i++) {
             const v = data[i];
             if (v <= min) output[i] = 0;
-            else if (v >= max) output[i] = numSteps;
+            else if (v >= max) output[i] = numSteps - 1;
             else output[i] = (Math.round((v - min) / delta)) | 0;
         }
 
