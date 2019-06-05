@@ -63,8 +63,7 @@ This project builds on experience from previous solutions:
     DEBUG=molstar npm run watch
 
 ### Build for production:
-    npm run build
-    NODE_ENV=production npm run build-webpack
+    NODE_ENV=production npm run build
 
 **Run**
 

@@ -23,7 +23,6 @@
     "watch-webpack": "webpack -w --mode development --display minimal",
     "model-server": "node lib/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/servers/model/server.js",
-    "postinstall": "npm run build",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags",
     "prepublishOnly": "npm run test && npm run build"
