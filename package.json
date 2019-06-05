@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -13,16 +13,24 @@
   "scripts": {
     "lint": "tslint src/**/*.ts",
     "test": "npm run lint && jest",
-    "build": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/ && tsc",
-    "postinstall": "npm run build",
-    "watch": "concurrently --kill-others \"npm:watch-ts\" \"npm:watch-extra\" \"npm:watch-webpack\"",
-    "watch-ts": "tsc -watch",
-    "watch-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/ --watch",
+    "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
+    "build-tsc": "tsc",
+    "build-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/",
     "build-webpack": "webpack --mode production",
+    "watch": "concurrently --kill-others \"npm:watch-tsc\" \"npm:watch-extra\" \"npm:watch-webpack\"",
+    "watch-tsc": "tsc -watch",
+    "watch-extra": "cpx \"src/**/*.{scss,woff,woff2,ttf,otf,eot,svg,html}\" lib/ --watch",
     "watch-webpack": "webpack -w --mode development --display minimal",
     "model-server": "node lib/servers/model/server.js",
-    "model-server-watch": "nodemon --watch lib lib/servers/model/server.js"
+    "model-server-watch": "nodemon --watch lib lib/servers/model/server.js",
+    "postinstall": "npm run build",
+    "preversion": "npm run test",
+    "postversion": "git push && git push --tags",
+    "prepublishOnly": "npm run test && npm run build"
   },
+  "files": [
+    "lib/"
+  ],
   "nodemonConfig": {
     "ignoreRoot": [
       "./node_modules",
@@ -85,11 +93,9 @@
     "@types/benchmark": "^1.0.31",
     "@types/compression": "0.0.36",
     "@types/express": "^4.16.1",
-    "@types/gl": "^4.1.0",
     "@types/jest": "^24.0.13",
     "@types/node": "^12.0.4",
     "@types/node-fetch": "^2.3.4",
-    "@types/pngjs": "^3.3.2",
     "@types/react": "^16.8.19",
     "@types/react-dom": "^16.8.4",
     "@types/swagger-ui-dist": "3.0.0",
@@ -97,11 +103,9 @@
     "argparse": "^1.0.10",
     "compression": "^1.7.4",
     "express": "^4.17.1",
-    "gl": "^4.3.3",
     "graphql": "^14.3.1",
     "immutable": "^3.8.2",
     "node-fetch": "^2.6.0",
-    "pngjs": "^3.4.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "rxjs": "^6.5.2",
