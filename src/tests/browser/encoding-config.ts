@@ -1,7 +1,6 @@
 import './index.html'
 import { CIF, CifCategory, CifField, getCifFieldType } from '../../mol-io/reader/cif';
 import { CifWriter } from '../../mol-io/writer/cif';
-import { classifyFloatArray, classifyIntArray } from '../../mol-io/common/binary-cif';
 
 async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data);
@@ -25,7 +24,14 @@ async function init(props = {}) {
     const encoder = CifWriter.createEncoder({
         binary: true,
         encoderName: 'mol*',
+        binaryAutoClassifyEncoding: true,
         binaryEncodingPovider: CifWriter.createEncodingProviderFromJsonConfig([
+            // {
+            //     'categoryName': 'atom_site',
+            //     'columnName': 'Cartn_x',
+            //     'encoding': 'delta',
+            //     'precision': 3
+            // },
             {
                 'categoryName': 'atom_site',
                 'columnName': 'Cartn_y',
@@ -51,7 +57,7 @@ async function init(props = {}) {
         const cat = cif.categories[c];
         const fields: CifWriter.Field[] = [];
         for (const f of cat.fieldNames) {
-            fields.push(classify(f, cat.getField(f)!))
+            fields.push(wrap(f, cat.getField(f)!))
         }
 
         encoder.writeCategory(getCategoryInstanceProvider(cif.categories[c], fields));
@@ -59,12 +65,13 @@ async function init(props = {}) {
     const ret = encoder.getData() as Uint8Array;
 
     const cif2 = (await parseCif(ret)).blocks[0];
-    // should be untouched
+    // should be untouched: delta encoding
     console.log(cif2.categories['atom_site'].getField('Cartn_x'));
-    // should have integer precision
+    // should have rle encoding, 0 decimal places
     console.log(cif2.categories['atom_site'].getField('Cartn_y'));
-    // should have 1 decimal place
+    // should have delta encoding, 1 decimal place
     console.log(cif2.categories['atom_site'].getField('Cartn_z'));
+    // should use delta-rle encoding
     console.log(cif2.categories['atom_site'].getField('label_seq_id'));
 }
 
@@ -77,15 +84,13 @@ function getCategoryInstanceProvider(cat: CifCategory, fields: CifWriter.Field[]
     };
 }
 
-function classify(name: string, field: CifField): CifWriter.Field {
+function wrap(name: string, field: CifField): CifWriter.Field {
     const type = getCifFieldType(field);
     if (type['@type'] === 'str') {
         return { name, type: CifWriter.Field.Type.Str, value: field.str, valueKind: field.valueKind };
     } else if (type['@type'] === 'float') {
-        const encoder = classifyFloatArray(field.toFloatArray({ array: Float64Array }));
-        return CifWriter.Field.float(name, field.float, { valueKind: field.valueKind, encoder, typedArray: Float64Array });
+        return { name, type: CifWriter.Field.Type.Float, value: field.float, valueKind: field.valueKind };
     } else {
-        const encoder = classifyIntArray(field.toIntArray({ array: Int32Array }));
-        return CifWriter.Field.int(name, field.int, { valueKind: field.valueKind, encoder, typedArray: Int32Array });
+        return { name, type: CifWriter.Field.Type.Int, value: field.int, valueKind: field.valueKind };
     }
 }

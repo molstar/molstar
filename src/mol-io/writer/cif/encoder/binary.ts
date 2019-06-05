@@ -111,13 +111,12 @@ function getDefaultEncoder(type: Field.Type): ArrayEncoder {
 }
 
 function tryGetEncoder(categoryName: string, field: Field, format: Field.Format | undefined, provider: EncodingProvider | undefined) {
-    // TODO made provider the first check - might break servers/model/query
-    if (provider && provider.get(categoryName, field.name)) {
-        return provider.get(categoryName, field.name);
-    } else if (format && format.encoder) {
+    if (format && format.encoder) {
         return format.encoder;
     } else if (field.defaultFormat && field.defaultFormat.encoder) {
         return field.defaultFormat.encoder;
+    } else if (provider) {
+        return provider.get(categoryName, field.name);
     } else {
         return void 0;
     }
