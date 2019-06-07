@@ -103,8 +103,9 @@ export namespace CifWriter {
 export interface EncodingStrategyHint {
     categoryName: string,
     columnName: string,
-    // 'pack', 'rle', 'delta', or 'delta-rle'
-    encoding: string,
+    encoding: EncodingType,
     // number of decimal places to keep - must be specified to float columns
     precision?: number
 }
+
+type EncodingType = 'pack' | 'rle' | 'delta' | 'delta-rle'
