@@ -132,6 +132,36 @@ export namespace Category {
         includeField(categoryName: string, fieldName: string): boolean,
     }
 
+    export function whitelistBlacklistFilter(cat_whitelist: String[], cat_blacklist: String[], field_whitelist: String[], field_blacklist: String[]): Filter {
+        const wlcatcol = field_whitelist.map(it => it.split('.')[0]);
+        // blacklist has higher priority
+        return {
+            includeCategory(cat) {
+                // block if category in black
+                if (cat_blacklist.includes(cat)) {
+                    return false;
+                } else {
+                    // if there is a whitelist, the category has to be explicitly allowed
+                    return cat_whitelist.length <= 0 ||
+                            // otherwise include if whitelist contains category
+                            cat_whitelist.indexOf(cat) !== -1;
+                }
+            },
+            includeField(cat, field) {
+                // column names are assumed to follow the pattern 'category_name.column_name'
+                const full = cat + '.' + field;
+                if (field_blacklist.includes(full)) {
+                    return false;
+                } else {
+                    // if for this category no whitelist entries exist
+                    return !wlcatcol.includes(cat) ||
+                            // otherwise must be specifically allowed
+                            field_whitelist.includes(full);
+                }
+            }
+        }
+    }
+
     export const DefaultFilter: Filter = {
         includeCategory(cat) { return true; },
         includeField(cat, field) { return true; }

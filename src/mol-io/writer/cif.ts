@@ -68,7 +68,7 @@ export namespace CifWriter {
         }
     }
 
-    function resolveEncoding(hint: EncodingStrategyHint): ArrayEncoder | undefined {
+    function resolveEncoding(hint: EncodingStrategyHint): ArrayEncoder {
         const precision: number | undefined = hint.precision;
         if (precision !== void 0) {
             const multiplier = Math.pow(10, precision);
@@ -95,6 +95,7 @@ export namespace CifWriter {
                     return E.by(E.delta).and(E.runLength).and(E.integerPacking);
             }
         }
+        throw new Error('cannot be reached');
     }
 }
 
