@@ -133,13 +133,16 @@ To get syntax highlighting for shader and graphql files add the following to Vis
 
 ## Publish
 
-## Prerelease
+### Prerelease
     npm version prerelease # asumes the current version ends with '-dev.X'
     npm publish --tag next
 
-## Release
+### Release
     npm version 0.X.0 # provide valid semver string
     npm publish
+
+## Deploy
+    node ./scripts/deploy.js # currently updates the viewer on molstar.org/viewer
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.
