@@ -14,69 +14,46 @@ const buildDir = path.resolve(__dirname, '../build/')
 const deployDir = path.resolve(buildDir, 'deploy/')
 const localPath = path.resolve(deployDir, 'molstar.github.io/')
 
-if (!fs.existsSync(localPath) || !git(localPath).checkIsRepo()) {
-    fs.mkdirSync(localPath, { recursive: true })
-    git(deployDir)
-        .silent(false)
-        .clone(remoteUrl)
-        .fetch(['--all'])
-} else {
-    git(localPath)
-        .silent(false)
-        .fetch(['--all'])
-        .reset(['--hard', 'origin/master'])
+function log(command, stdout, stderr) {
+    if (command) {
+        console.log('\n###', command)
+        stdout.pipe(process.stdout)
+        stderr.pipe(process.stderr)
+    }
 }
 
-const viewerBuildPath = path.resolve(buildDir, '../build/viewer/')
-const viewerDeployPath = path.resolve(localPath, 'viewer/')
-fse.copySync(viewerBuildPath, viewerDeployPath, { overwrite: true })
+function copyViewer() {
+    console.log('\n###', 'copy viewer files')
+    const viewerBuildPath = path.resolve(buildDir, '../build/viewer/')
+    const viewerDeployPath = path.resolve(localPath, 'viewer/')
+    fse.copySync(viewerBuildPath, viewerDeployPath, { overwrite: true })
+}
 
-git(localPath)
-    .silent(false)
-    .add(['-A'])
-    .commit('updated viewer')
-    .push()
+if (!fs.existsSync(localPath)) {
+    console.log('\n###', 'create localPath')
+    fs.mkdirSync(localPath, { recursive: true })
+}
 
-// #!/usr/bin/env bash
+process.chdir(localPath);
 
-// LEVEL=$1
-// DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
-
-// cd ${DIR};
-// mkdir -p ../build/;
-// cd ../build/;
-
-// if [ -d "arose.github.io" ]; then
-// 	cd ./arose.github.io/;
-// 	git fetch --all;
-// 	git reset --hard origin/master;
-// 	cd ../
-// else
-// 	git clone "https://github.com/arose/arose.github.io.git";
-// fi
-
-// if [ "$LEVEL" = "prerelease" ]; then
-// 	cd ./arose.github.io/ngldev/;
-// else
-// 	cd ./arose.github.io/ngl/;
-// fi
-
-// cp -r ${DIR}/../data/. ./data/;
-// cp -r ${DIR}/../examples/css/. ./css/;
-// cp -r ${DIR}/../examples/fonts/. ./fonts/;
-// cp -r ${DIR}/../examples/js/. ./js/;
-// cp -r ${DIR}/../examples/scripts/. ./scripts/;
-// cp -r ${DIR}/../build/docs/. ./api/;
-// cp -r ${DIR}/../build/gallery/. ./gallery/;
-// cp ${DIR}/../build/scriptsList.json ./scripts/list.json;
-
-// cp ${DIR}/../dist/ngl.js ./js/ngl.js;
-
-// cd ../;
-// git add -A;
-// if [ "$LEVEL" = "prerelease" ]; then
-// 	git commit -m "ngldev update";
-// else
-// 	git commit -m "ngl update";
-// fi
-// git push;
+if (!fs.existsSync(path.resolve(localPath, '.git/'))) {
+    console.log('\n###', 'clone repository')
+    git()
+        .outputHandler(log)
+        .clone(remoteUrl, localPath)
+        .fetch(['--all'])
+        .exec(copyViewer)
+        .add(['-A'])
+        .commit('updated viewer')
+        .push()
+} else {
+    console.log('\n###', 'update repository')
+    git()
+        .outputHandler(log)
+        .fetch(['--all'])
+        .reset(['--hard', 'origin/master'])
+        .exec(copyViewer)
+        .add(['-A'])
+        .commit('updated viewer')
+        .push()
+}
