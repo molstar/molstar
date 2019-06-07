@@ -132,7 +132,28 @@ export namespace Category {
         includeField(categoryName: string, fieldName: string): boolean,
     }
 
-    export function whitelistBlacklistFilter(cat_whitelist: String[], cat_blacklist: String[], field_whitelist: String[], field_blacklist: String[]): Filter {
+    export interface FilteringDirective {
+        categoryName: string,
+        columnName?: string,
+        behavior: FilteringBehavior
+    }
+
+    export type FilteringBehavior = 'whitelist' | 'blacklist';
+
+    export function filterOf(directives: FilteringDirective[]): Filter {
+        const cat_whitelist: string[] = [];
+        const cat_blacklist: string[] = [];
+        const field_whitelist: string[] = [];
+        const field_blacklist: string[] = [];
+
+        for (const d of directives) {
+            const field = d.columnName;
+            const name = field ? d.categoryName + '.' + d.columnName : d.categoryName;
+            const list = d.behavior === 'whitelist' ? (field ? field_whitelist : cat_whitelist) : (field ? field_blacklist : cat_blacklist);
+
+            list[list.length] = name;
+        }
+
         const wlcatcol = field_whitelist.map(it => it.split('.')[0]);
         // blacklist has higher priority
         return {

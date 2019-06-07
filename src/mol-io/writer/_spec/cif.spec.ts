@@ -78,18 +78,34 @@ const filter_aware_encoder1 = CifWriter.createEncoder({
     binary: true,
     binaryAutoClassifyEncoding: true
 });
-filter_aware_encoder1.setFilter(C.Category.whitelistBlacklistFilter(['atom_site'], // allow only category atom_site
-    [], // blacklist no categories
-    ['atom_site.Cartn_x', 'atom_site.Cartn_y'], // for atom_site: allow only Cartn_x and Cartn_y
-    [])); // blacklist no fields
+filter_aware_encoder1.setFilter(C.Category.filterOf([
+    { // allow only category atom_site
+        categoryName: 'atom_site',
+        behavior: 'whitelist'
+    }, { // for atom_site: allow only Cartn_x and Cartn_y
+        categoryName: 'atom_site',
+        columnName: 'Cartn_x',
+        behavior: 'whitelist'
+    }, {
+        categoryName: 'atom_site',
+        columnName: 'Cartn_y',
+        behavior: 'whitelist'
+    }
+]));
 
 const filter_aware_encoder2 = CifWriter.createEncoder({
     binary: true
 });
-filter_aware_encoder2.setFilter(C.Category.whitelistBlacklistFilter([],
-    ['atom_site'], // ignore atom_site category
-    [],
-    ['other_fields.field2'])); // exclude field2
+filter_aware_encoder2.setFilter(C.Category.filterOf([
+    { // ignore atom_site category
+        categoryName: 'atom_site',
+        behavior: 'blacklist'
+    }, { // exclude field2
+        categoryName: 'other_fields',
+        columnName: 'field2',
+        behavior: 'blacklist'
+    }
+]));
 
 describe('filtering-config', () => {
     const decoded1 = process(filter_aware_encoder1);
