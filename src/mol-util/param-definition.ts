@@ -76,11 +76,11 @@ export namespace ParamDefinition {
         return setInfo<MultiSelect<E, T>>({ type: 'multi-select', defaultValue, options }, info)
     }
 
-    export interface Boolean extends Base<boolean> {
+    export interface BooleanParam extends Base<boolean> {
         type: 'boolean'
     }
-    export function Boolean(defaultValue: boolean, info?: Info): Boolean {
-        return setInfo<Boolean>({ type: 'boolean', defaultValue }, info)
+    export function Boolean(defaultValue: boolean, info?: Info): BooleanParam {
+        return setInfo<BooleanParam>({ type: 'boolean', defaultValue }, info)
     }
 
     export interface Text<T extends string = string> extends Base<T> {
@@ -237,7 +237,7 @@ export namespace ParamDefinition {
     }
 
     export type Any =
-        | Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph
+        | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph
         | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression | ObjectList
 
     export type Params = { [k: string]: Any }

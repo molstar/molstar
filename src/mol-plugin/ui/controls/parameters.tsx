@@ -97,7 +97,7 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
     }
 }
 
-export class BoolControl extends SimpleParam<PD.Boolean> {
+export class BoolControl extends SimpleParam<PD.BooleanParam> {
     onClick = (e: React.MouseEvent<HTMLButtonElement>) => { this.update(!this.props.value); e.currentTarget.blur(); }
     renderControl() {
         return <button onClick={this.onClick} disabled={this.props.isDisabled}>
