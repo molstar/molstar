@@ -85,7 +85,6 @@
     "tslint": "^5.17.0",
     "typescript": "^3.5.1",
     "uglify-js": "^3.6.0",
-    "util.promisify": "^1.0.0",
     "webpack": "^4.32.2",
     "webpack-cli": "^3.3.2"
   },
@@ -111,6 +110,7 @@
     "react-dom": "^16.8.6",
     "rxjs": "^6.5.2",
     "swagger-ui-dist": "^3.22.2",
+    "util.promisify": "^1.0.0",
     "xhr2": "^0.2.0"
   }
 }

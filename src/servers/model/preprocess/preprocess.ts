@@ -21,7 +21,6 @@ export function preprocessFile(filename: string, propertyProvider?: ModelPropert
         : convert(filename, outputCif, outputBcif);
 }
 
-
 async function preprocess(filename: string, propertyProvider?: ModelPropertiesProvider, outputCif?: string, outputBcif?: string) {
     const input = await readStructureWrapper('entry', '_local_', filename, propertyProvider);
     const categories = await classifyCif(input.cifFrame);

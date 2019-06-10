@@ -16,7 +16,7 @@ import { LimitsConfig, addLimitsArgs, setLimitsConfig } from './config';
 console.log(`VolumeServer Local ${VERSION}, (c) 2018-2019, Mol* contributors`);
 console.log();
 
-function help() {
+function description() {
     const exampleJobs: LocalApi.JobEntry[] = [{
         source: {
             filename: `g:/test/mdb/xray-1tqn.mdb`,
@@ -55,7 +55,7 @@ function help() {
 
 const parser = new argparse.ArgumentParser({
     addHelp: true,
-    description: help()
+    description: description()
 });
 addLimitsArgs(parser)
 parser.addArgument(['jobs'], {

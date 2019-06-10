@@ -14,6 +14,7 @@ import { PDBePreferredAssembly } from '../../../../mol-model-props/pdbe/preferre
 import { PDBeStructRefDomain } from '../../../../mol-model-props/pdbe/struct-ref-domain';
 import { AttachModelProperty } from '../../property-provider';
 import { ConsoleLogger } from '../../../../mol-util/console-logger';
+import { getParam } from '../../../common/util';
 
 export const PDBe_structureQualityReport: AttachModelProperty = ({ model, params, cache }) => {
     const PDBe_apiSourceJson = useFileSource(params)
@@ -67,20 +68,6 @@ function getFilePrefix(params: any, name: string) {
 function useFileSource(params: any) {
     return !!getParam<boolean>(params, 'PDBe', 'UseFileSource')
 }
-
-function getParam<T>(params: any, ...path: string[]): T | undefined {
-    try {
-        let current = params;
-        for (const p of path) {
-            if (typeof current === 'undefined') return;
-            current = current[p];
-        }
-        return current;
-    } catch (e) {
-        ConsoleLogger.error('Config', `Unable to retrieve property ${path.join('.')} from ${JSON.stringify(params)}`);
-    }
-}
-
 
 function apiQueryProvider(urlPrefix: string, cache: any) {
     const cacheKey = UUID.create22();

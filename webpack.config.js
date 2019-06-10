@@ -73,6 +73,12 @@ function createNodeEntryPoint(name, dir, out) {
         target: 'node',
         entry: path.resolve(__dirname, `lib/${dir}/${name}.js`),
         output: { filename: `${name}.js`, path: path.resolve(__dirname, `build/${out}`) },
+        externals: {
+            argparse: 'require("argparse")',
+            'node-fetch': 'require("node-fetch")',
+            'util.promisify': 'require("util.promisify")',
+            xhr2: 'require("xhr2")',
+        },
         ...sharedConfig
     }
 }
