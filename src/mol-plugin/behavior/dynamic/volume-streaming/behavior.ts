@@ -43,13 +43,13 @@ export namespace VolumeStreaming {
         valuesInfo: [{ mean: 0, min: -1, max: 1, sigma: 0.1 }, { mean: 0, min: -1, max: 1, sigma: 0.1 }]
     };
 
-    export function createParams(data?: VolumeServerInfo.Data) {
+    export function createParams(data?: VolumeServerInfo.Data, defaultView?: ViewTypes) {
         // fake the info
         const info = data || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: VolumeIsoValue.relative(0) };
         const box = (data && data.structure.boundary.box) || Box3D.empty();
 
         return {
-            view: PD.MappedStatic(info.kind === 'em' ? 'cell' : 'selection-box', {
+            view: PD.MappedStatic(defaultView || (info.kind === 'em' ? 'cell' : 'selection-box'), {
                 'box': PD.Group({
                     bottomLeft: PD.Vec3(box.min),
                     topRight: PD.Vec3(box.max),
@@ -75,6 +75,8 @@ export namespace VolumeStreaming {
                 }, { isFlat: true })
         };
     }
+
+    export type ViewTypes = 'box' | 'selection-box' | 'cell'
 
     export type ParamDefinition = typeof createParams extends (...args: any[]) => (infer T) ? T : never
     export type Params = ParamDefinition extends PD.Params ? PD.Values<ParamDefinition> : {}

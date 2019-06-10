@@ -105,6 +105,8 @@ export enum StateElements {
     ModelProps = 'model-props',
     Assembly = 'assembly',
 
+    VolumeStreaming = 'volume-streaming',
+
     Sequence = 'sequence',
     SequenceVisual = 'sequence-visual',
     Het = 'het',

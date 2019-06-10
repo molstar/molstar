@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as ReactDOM from 'react-dom';
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
 import './index.html'
 import { PluginContext } from '../../mol-plugin/context';
@@ -13,11 +14,11 @@ import { StructureRepresentation3DHelpers } from '../../mol-plugin/state/transfo
 import { Color } from '../../mol-util/color';
 import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin/state/objects';
 import { AnimateModelIndex } from '../../mol-plugin/state/animation/built-in';
-import { StateBuilder, StateObject } from '../../mol-state';
+import { StateBuilder, StateObject, StateSelection } from '../../mol-state';
 import { EvolutionaryConservation } from './annotation';
 import { LoadParams, SupportedFormats, RepresentationStyle, ModelInfo, StateElements } from './helpers';
 import { RxEventHelper } from '../../mol-util/rx-event-helper';
-import { ControlsWrapper } from './ui/controls';
+import { ControlsWrapper, volumeStreamingControls } from './ui/controls';
 import { PluginState } from '../../mol-plugin/state';
 import { Scheduler } from '../../mol-task';
 import { createProteopediaCustomTheme } from './coloring';
@@ -26,6 +27,8 @@ import { BuiltInStructureRepresentations } from '../../mol-repr/structure/regist
 import { BuiltInColorThemes } from '../../mol-theme/color';
 import { BuiltInSizeThemes } from '../../mol-theme/size';
 import { ColorNames } from '../../mol-util/color/tables';
+import { InitVolumeStreaming, CreateVolumeStreamingInfo } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
+import { ParamDefinition } from '../../mol-util/param-definition';
 // import { Vec3 } from 'mol-math/linear-algebra';
 // import { ParamDefinition } from 'mol-util/param-definition';
 // import { Text } from 'mol-geo/geometry/text/text';
@@ -261,6 +264,28 @@ class MolStarProteopediaWrapper {
             // }
 
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
+        }
+    }
+
+    private experimentalDataElement?: Element = void 0;
+    experimentalData = {
+        init: async (parent: Element) => {
+            const asm = this.state.select(StateElements.Assembly)[0].obj!;
+            const params = ParamDefinition.getDefaultValues(InitVolumeStreaming.definition.params!(asm, this.plugin));
+            params.behaviorRef = StateElements.VolumeStreaming;
+            params.defaultView = 'box';
+            await this.plugin.runTask(this.state.applyAction(InitVolumeStreaming, params, StateElements.Assembly));
+            this.experimentalDataElement = parent;
+            volumeStreamingControls(this.plugin, parent);
+        },
+        remove: () => {
+            const r = this.state.select(StateSelection.Generators.ofTransformer(CreateVolumeStreamingInfo))[0];
+            if (!r) return;
+            PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.state, ref: r.transform.ref });
+            if (this.experimentalDataElement) {
+                ReactDOM.unmountComponentAtNode(this.experimentalDataElement);
+                this.experimentalDataElement = void 0;
+            }
         }
     }
 

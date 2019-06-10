@@ -9,8 +9,7 @@ import { memoizeLatest } from '../../../mol-util/memoize';
 import { StateTransformParameters, TransformContolBase } from './common';
 import { Observable } from 'rxjs';
 import * as React from 'react';
-import { PluginUIComponent, PluginReactContext } from '../base';
-import { PluginContext } from '../../context';
+import { PluginUIComponent } from '../base';
 
 export { UpdateTransformContol, TransformUpdaterControl };
 
@@ -86,7 +85,7 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
     }
 }
 
-class TransformUpdaterControl extends PluginUIComponent<{ plugin?: PluginContext, nodeRef: string, initiallyCollapsed?: boolean, header?: StateTransformer.Definition['display'] }> {
+class TransformUpdaterControl extends PluginUIComponent<{ nodeRef: string, initiallyCollapsed?: boolean, header?: StateTransformer.Definition['display'] }> {
     componentDidMount() {
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
             if (this.props.nodeRef !== ref || this.plugin.state.dataState !== state) return;
@@ -102,15 +101,6 @@ class TransformUpdaterControl extends PluginUIComponent<{ plugin?: PluginContext
         if (!cell || (cell.status !== 'ok' && cell.status !== 'error')) return null;
 
         const transform = cell.transform;
-
-        if (this.props.plugin) {
-            return <PluginReactContext.Provider value={this.props.plugin}>
-                <div className='msp-plugin'>
-                    <UpdateTransformContol state={state} transform={transform} initiallyCollapsed={this.props.initiallyCollapsed} customHeader={this.props.header} />
-                </div>
-            </PluginReactContext.Provider>;
-        }
-
         return <UpdateTransformContol state={state} transform={transform} initiallyCollapsed={this.props.initiallyCollapsed} customHeader={this.props.header} />;
     }
 }

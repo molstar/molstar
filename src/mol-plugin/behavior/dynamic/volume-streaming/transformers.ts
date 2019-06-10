@@ -26,10 +26,13 @@ export const InitVolumeStreaming = StateAction.build({
     display: { name: 'Volume Streaming' },
     from: SO.Molecule.Structure,
     params(a) {
+        const method = getStreamingMethod(a && a.data);
         return {
-            method: PD.Select<VolumeServerInfo.Kind>(getStreamingMethod(a && a.data), [['em', 'EM'], ['x-ray', 'X-Ray']]),
+            method: PD.Select<VolumeServerInfo.Kind>(method, [['em', 'EM'], ['x-ray', 'X-Ray']]),
             id: PD.Text((a && a.data.models.length > 0 && a.data.models[0].label) || ''),
-            serverUrl: PD.Text('https://ds.litemol.org')
+            serverUrl: PD.Text('https://ds.litemol.org'),
+            defaultView: PD.Text<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box'),
+            behaviorRef: PD.Text('', { isHidden: true })
         };
     },
     isApplicable: (a) => a.data.models.length === 1
@@ -56,7 +59,8 @@ export const InitVolumeStreaming = StateAction.build({
     const infoObj = await state.updateTree(infoTree).runInContext(taskCtx);
 
     const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior,
-        PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data)));
+        PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data, params.defaultView)),
+        { ref: params.behaviorRef ? params.behaviorRef : void 0 });
 
     if (params.method === 'em') {
         behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { state: { isGhost: true } });
