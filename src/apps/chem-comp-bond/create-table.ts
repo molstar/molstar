@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,12 +15,13 @@ const readFile = util.promisify(fs.readFile)
 const writeFile = util.promisify(fs.writeFile)
 
 import { Progress } from '../../mol-task'
-import { Database, Table, DatabaseCollection, Column } from '../../mol-data/db'
+import { Database, Table, DatabaseCollection } from '../../mol-data/db'
 import { CIF } from '../../mol-io/reader/cif'
 import { CifWriter } from '../../mol-io/writer/cif'
 import { CCD_Schema } from '../../mol-io/reader/cif/schema/ccd'
 import { SetUtils } from '../../mol-util/set'
 import { DefaultMap } from '../../mol-util/map'
+import { mmCIF_chemCompBond_schema } from '../../mol-io/reader/cif/schema/mmcif-extras';
 
 export async function ensureAvailable(path: string, url: string) {
     if (FORCE_DOWNLOAD || !fs.existsSync(path)) {
@@ -73,16 +74,6 @@ export function getEncodedCif(name: string, database: Database<Database.Schema>,
 
 type CCB = Table<CCD_Schema['chem_comp_bond']>
 type CCA = Table<CCD_Schema['chem_comp_atom']>
-
-const ChemCompBond_Schema = {
-    comp_id: CCD_Schema['chem_comp_bond'].comp_id,
-    atom_id_1: CCD_Schema['chem_comp_bond'].atom_id_1,
-    atom_id_2: CCD_Schema['chem_comp_bond'].atom_id_2,
-    value_order: CCD_Schema['chem_comp_bond'].value_order,
-    pdbx_aromatic_flag: CCD_Schema['chem_comp_bond'].pdbx_aromatic_flag,
-    pdbx_stereo_config: CCD_Schema['chem_comp_bond'].pdbx_stereo_config,
-    molstar_protonation_variant: Column.Schema.Str()
-}
 
 function ccbKey(compId: string, atomId1: string, atomId2: string) {
     return atomId1 < atomId2 ? `${compId}:${atomId1}-${atomId2}` : `${compId}:${atomId2}-${atomId1}`
@@ -202,14 +193,14 @@ async function createBonds() {
         }
     }
 
-    const bondTable = Table.ofArrays(ChemCompBond_Schema, {
+    const bondTable = Table.ofArrays(mmCIF_chemCompBond_schema, {
         comp_id, atom_id_1, atom_id_2, value_order,
         pdbx_aromatic_flag, pdbx_stereo_config, molstar_protonation_variant
     })
 
     const bondDatabase =  Database.ofTables(
         TABLE_NAME,
-        { chem_comp_bond: ChemCompBond_Schema },
+        { chem_comp_bond: mmCIF_chemCompBond_schema },
         { chem_comp_bond: bondTable }
     )
 
@@ -220,12 +211,15 @@ async function run(out: string, binary = false) {
     const bonds = await createBonds()
 
     const cif = getEncodedCif(TABLE_NAME, bonds, binary)
+    if (!fs.existsSync(path.dirname(out))) {
+        fs.mkdirSync(path.dirname(out));
+    }
     writeFile(out, cif)
 }
 
 const TABLE_NAME = 'CHEM_COMP_BONDS'
 
-const DATA_DIR = path.join(__dirname, '..', '..', '..', 'data')
+const DATA_DIR = path.join(__dirname, '..', '..', '..', 'build/data')
 const CCD_PATH = path.join(DATA_DIR, 'components.cif')
 const PVCD_PATH = path.join(DATA_DIR, 'aa-variants-v1.cif')
 const CCD_URL = 'http://ftp.wwpdb.org/pub/pdb/data/monomers/components.cif'

@@ -95,7 +95,7 @@ Install CIFTools `npm install ciftools -g`
 ### Other scripts
 **Create chem comp bond table**
 
-    export NODE_PATH="lib"; node --max-old-space-size=8192 build/src/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+    export NODE_PATH="lib"; node --max-old-space-size=4096 lib/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
 
 **Test model server**
 
