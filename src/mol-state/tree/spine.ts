@@ -19,7 +19,7 @@ interface StateTreeSpine {
 namespace StateTreeSpine {
     export class Impl implements StateTreeSpine {
         private current: StateObjectCell | undefined = void 0;
-        setSurrent(cell?: StateObjectCell) {
+        setCurrent(cell?: StateObjectCell) {
             this.current = cell;
         }
 
