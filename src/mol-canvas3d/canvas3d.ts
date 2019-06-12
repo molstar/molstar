@@ -87,7 +87,7 @@ interface Canvas3D {
 const requestAnimationFrame = typeof window !== 'undefined' ? window.requestAnimationFrame : (f: (time: number) => void) => setImmediate(()=>f(Date.now()))
 
 namespace Canvas3D {
-    export interface HighlightEvent { current: Representation.Loci, prev: Representation.Loci, modifiers?: ModifiersKeys }
+    export interface HighlightEvent { current: Representation.Loci, modifiers?: ModifiersKeys }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
 
     export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}) {

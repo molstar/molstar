@@ -59,7 +59,7 @@ export class Canvas3dInteractionHelper {
 
         const loci = this.getLoci(this.id);
         if (!Representation.Loci.areEqual(this.prevLoci, loci)) {
-            this.events.highlight.next({ current: loci, prev: this.prevLoci, modifiers: this.modifiers });
+            this.events.highlight.next({ current: loci, modifiers: this.modifiers });
             this.prevLoci = loci;
         }
     }
@@ -75,9 +75,8 @@ export class Canvas3dInteractionHelper {
     leave() {
         this.inside = false;
         if (this.prevLoci.loci !== EmptyLoci) {
-            const prev = this.prevLoci;
             this.prevLoci = Representation.Loci.Empty;
-            this.events.highlight.next({ current: this.prevLoci, prev });
+            this.events.highlight.next({ current: this.prevLoci });
         }
     }
 
@@ -99,7 +98,7 @@ export class Canvas3dInteractionHelper {
     modify(modifiers: ModifiersKeys) {
         if (this.prevLoci.loci === EmptyLoci || ModifiersKeys.areEqual(modifiers, this.modifiers)) return;
         this.modifiers = modifiers;
-        this.events.highlight.next({ current: this.prevLoci, prev: this.prevLoci, modifiers: this.modifiers });
+        this.events.highlight.next({ current: this.prevLoci, modifiers: this.modifiers });
     }
 
     dispose() {

@@ -73,7 +73,7 @@ export class PluginContext {
             isUpdating: this.ev.behavior<boolean>(false)
         },
         canvas3d: {
-            highlight: this.ev.behavior<Canvas3D.HighlightEvent>({ current: Representation.Loci.Empty, prev: Representation.Loci.Empty }),
+            highlight: this.ev.behavior<Canvas3D.HighlightEvent>({ current: Representation.Loci.Empty }),
             click: this.ev.behavior<Canvas3D.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
         },
         labels: {
