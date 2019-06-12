@@ -152,6 +152,11 @@ export namespace Category {
             const list = d.behavior === 'whitelist' ? (field ? field_whitelist : cat_whitelist) : (field ? field_blacklist : cat_blacklist);
 
             list[list.length] = name;
+
+            // ensure categories are aware about whitelisted columns
+            if (field && !cat_whitelist.includes(d.categoryName)) {
+                cat_whitelist[cat_whitelist.length] = d.categoryName;
+            }
         }
 
         const wlcatcol = field_whitelist.map(it => it.split('.')[0]);
