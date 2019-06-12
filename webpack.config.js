@@ -9,7 +9,6 @@ const sharedConfig = {
         rules: [
             {
                 test: /\.(woff2?|ttf|otf|eot|svg|html)$/,
-                include: [path.resolve(__dirname, 'build/src/')],
                 use: [{
                     loader: 'file-loader',
                     options: { name: '[name].[ext]' }
