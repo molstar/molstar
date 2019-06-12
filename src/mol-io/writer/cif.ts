@@ -99,13 +99,17 @@ export namespace CifWriter {
     }
 }
 
-// defines the information needed to encode certain fields: category and column name as well as encoding tag, precision is optional and identifies float columns
-// TODO would be nice to infer strategy and precision if needed
+/**
+ * Defines the information needed to encode certain fields: category and column name as well as encoding tag, precision is optional and identifies float columns.
+ */
 export interface EncodingStrategyHint {
     categoryName: string,
     columnName: string,
+    // TODO would be nice to infer strategy and precision if needed
     encoding: EncodingType,
-    // number of decimal places to keep - must be specified to float columns
+    /**
+     * number of decimal places to keep - must be specified to float columns
+     */
     precision?: number
 }
 
