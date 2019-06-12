@@ -101,7 +101,6 @@ class TransformUpdaterControl extends PluginUIComponent<{ nodeRef: string, initi
         if (!cell || (cell.status !== 'ok' && cell.status !== 'error')) return null;
 
         const transform = cell.transform;
-
         return <UpdateTransformContol state={state} transform={transform} initiallyCollapsed={this.props.initiallyCollapsed} customHeader={this.props.header} />;
     }
 }

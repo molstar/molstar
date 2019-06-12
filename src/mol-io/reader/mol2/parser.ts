@@ -84,7 +84,7 @@ function handleMolecule(state: State) {
     molecule.mol_comment = getTokenString(tokenizer)
 }
 
-function isStatus_bit(aString: String): Boolean {
+function isStatus_bit(aString: string): boolean {
     if (aString.includes('DSPMOD') || aString.includes('TYPECOL') || aString.includes('CAP')
         || aString.includes('BACKBONE') || aString.includes('DICT') || aString.includes('ESSENTIAL')
         || aString.includes('WATER') || aString.includes('DIRECT')) {

@@ -24,7 +24,7 @@ export function applyOverpaintColor(array: Uint8Array, start: number, end: numbe
 }
 
 export function clearOverpaint(array: Uint8Array, start: number, end: number) {
-    array.fill(0, start, end)
+    array.fill(0, start * 4, end * 4)
 }
 
 export function createOverpaint(count: number, overpaintData?: OverpaintData): OverpaintData {

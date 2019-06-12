@@ -6,6 +6,7 @@
         ],
         "arrow-parens": false,
         "no-var-keyword": true,
+        "no-construct": true,
         "ordered-imports": [false],
         "trailing-comma": [false],
         "class-name": false,
@@ -16,6 +17,12 @@
         "indent": [
             true,
             "spaces"
+        ],
+        "ban-types": [
+            true,
+            ["String", "Use primitive 'string' instead."],
+            ["Boolean", "Use primitive 'boolean' instead."],
+            ["Number", "Use primitive 'number' instead."]
         ],
         "no-eval": true,
         "no-internal-module": true,

@@ -40,6 +40,13 @@
                 width: 100%;
                 display: block;
             }
+
+            #volume-streaming-wrapper {
+                position: absolute;
+                top: 100px;
+                left: 780px;
+                width: 300px;
+            }
         </style>
         <link rel="stylesheet" type="text/css" href="app.css" />
         <script type="text/javascript" src="./index.js"></script>
@@ -55,6 +62,7 @@
             </select>
         </div>
         <div id="app"></div>
+        <div id="volume-streaming-wrapper"></div>
         <script>
             // it might be a good idea to define these colors in a separate script file 
             var CustomColors = [0x00ff00, 0x0000ff];
@@ -66,7 +74,7 @@
 
             function $(id) { return document.getElementById(id); }
         
-            var pdbId = '1eve', assemblyId= 'preferred';
+            var pdbId = '1cbs', assemblyId= 'preferred';
             var url = 'https://www.ebi.ac.uk/pdbe/static/entry/' + pdbId + '_updated.cif';
             var format = 'cif';
             
@@ -151,6 +159,11 @@
             addHetGroupsContainer();
 
             addSeparator();
+            addHeader('Exp. Data');
+            addControl('Init', () => PluginWrapper.experimentalData.init($('volume-streaming-wrapper')));
+            addControl('Remove', () => PluginWrapper.experimentalData.remove());
+
+            addSeparator(); 
             addHeader('State');
 
             var snapshot;

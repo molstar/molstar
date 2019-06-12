@@ -9,6 +9,8 @@ The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that will
 
 This particular project is the implementation of this technology (still under development).
 
+*If you are looking for the "MOLeculAR structure annoTator", that package is now available on NPM as [MolArt](https://www.npmjs.com/package/molart).*
+
 ## Project Overview
 
 The core of Mol* currently consists of these modules (see under `src/`):
@@ -61,8 +63,7 @@ This project builds on experience from previous solutions:
     DEBUG=molstar npm run watch
 
 ### Build for production:
-    npm run build
-    NODE_ENV=production npm run build-webpack
+    NODE_ENV=production npm run build
 
 **Run**
 
@@ -94,7 +95,7 @@ Install CIFTools `npm install ciftools -g`
 ### Other scripts
 **Create chem comp bond table**
 
-    export NODE_PATH="lib"; node --max-old-space-size=8192 build/src/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+    export NODE_PATH="lib"; node --max-old-space-size=4096 lib/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
 
 **Test model server**
 
@@ -132,13 +133,16 @@ To get syntax highlighting for shader and graphql files add the following to Vis
 
 ## Publish
 
-## Prerelease
+### Prerelease
     npm version prerelease # asumes the current version ends with '-dev.X'
     npm publish --tag next
 
-## Release
+### Release
     npm version 0.X.0 # provide valid semver string
     npm publish
+
+## Deploy
+    node ./scripts/deploy.js # currently updates the viewer on molstar.org/viewer
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.

@@ -37,6 +37,16 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     }
 }
 
+export class PluginContextContainer extends React.Component<{ plugin: PluginContext }> {
+    render() {
+        return <PluginReactContext.Provider value={this.props.plugin}>
+            <div className='msp-plugin'>
+                {this.props.children}
+            </div>
+        </PluginReactContext.Provider>;
+    }
+}
+
 class Layout extends PluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());

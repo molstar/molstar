@@ -9,7 +9,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 export interface BooleanParamComponentProps {
     label: string
-    param: PD.Boolean
+    param: PD.BooleanParam
     value: boolean
     onChange(v: boolean): void
 }

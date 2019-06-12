@@ -54,8 +54,9 @@ const config = {
      */
     customProperties: <ModelPropertyProviderConfig | string>{
         sources: [
-            './properties/pdbe',
-            './properties/rcsb'
+            'pdbe',
+            'rcsb',
+            'wwpdb'
         ],
         params: {
             PDBe: {
@@ -68,6 +69,14 @@ const config = {
                 File: {
                     residuewise_outlier_summary: 'e:/test/mol-star/model/props/'
                 }
+            },
+            RCSB: {
+                API: {
+                    assembly_symmetry: 'https://rest-staging.rcsb.org/graphql'
+                }
+            },
+            wwPDB: {
+                chemCompBondTablePath: ''
             }
         }
     },

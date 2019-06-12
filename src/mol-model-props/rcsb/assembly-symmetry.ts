@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,7 +18,6 @@ import { CifCategory } from '../../mol-io/reader/cif';
 import { PropertyWrapper } from '../../mol-model-props/common/wrapper';
 import { Task, RuntimeContext } from '../../mol-task';
 import { GraphQLClient } from '../../mol-util/graphql-client';
-import { ajaxGet } from '../../mol-util/data-source';
 
 const { str, int, float, Aliased, Vector, List } = Column.Schema;
 
@@ -183,13 +182,12 @@ export function AssemblySymmetry(db: AssemblySymmetry.Database): AssemblySymmetr
 type SymmetryKind = 'GLOBAL' | 'LOCAL' | 'PSEUDO'
 type SymmetryType = 'ASYMMETRIC' | 'CYCLIC' | 'DIHEDRAL' | 'HELICAL' | 'ICOSAHEDRAL' | 'OCTAHEDRAL' | 'TETRAHEDRAL'
 
-const Client = new GraphQLClient(AssemblySymmetry.GraphQLEndpointURL, ajaxGet)
-
 export namespace AssemblySymmetry {
     export function is(x: any): x is AssemblySymmetry {
         return x['@type'] === 'rcsb_assembly_symmetry'
     }
-    export const GraphQLEndpointURL = '//rest-dev.rcsb.org/graphql'
+    export const GraphQLEndpointURL = '//rest-staging.rcsb.org/graphql'
+
     export const Schema = {
         rcsb_assembly_symmetry_info: {
             updated_datetime_utc: Column.Schema.str
@@ -257,7 +255,7 @@ export namespace AssemblySymmetry {
 
     export const Descriptor = _Descriptor;
 
-    export async function attachFromCifOrAPI(model: Model, client: GraphQLClient = Client, ctx?: RuntimeContext) {
+    export async function attachFromCifOrAPI(model: Model, client: GraphQLClient, ctx?: RuntimeContext) {
         if (model.customProperties.has(Descriptor)) return true;
 
         let db: Database
@@ -266,8 +264,10 @@ export namespace AssemblySymmetry {
             db = createDatabaseFromCif(model)
         } else {
             let result: AssemblySymmetryGraphQL.Query
+            console.log('model.label.toLowerCase()', model.label.toLowerCase())
             const variables: AssemblySymmetryGraphQL.Variables = { pdbId: model.label.toLowerCase() };
             try {
+                console.log('foo', client)
                 result = await client.request<AssemblySymmetryGraphQL.Query>(ctx || RuntimeContext.Synchronous, query, variables);
             } catch (e) {
                 console.error(e)

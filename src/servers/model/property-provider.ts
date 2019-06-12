@@ -9,6 +9,17 @@ import { Model } from '../../mol-model/structure';
 import Config from './config';
 import { ConsoleLogger } from '../../mol-util/console-logger';
 
+// TODO enable dynamic imports again
+import * as pdbeProps from './properties/pdbe'
+import * as rcsbProps from './properties/rcsb'
+import * as wwpdbProps from './properties/wwpdb'
+
+const attachModelProperties: { [k: string]: AttachModelProperties } = {
+    pdbe: pdbeProps.attachModelProperties,
+    rcsb: rcsbProps.attachModelProperties,
+    wwpdb: wwpdbProps.attachModelProperties
+}
+
 export interface ModelPropertyProviderConfig {
     sources: string[],
     params?: { [name: string]: any }
@@ -39,7 +50,11 @@ export function createModelPropertiesProvider(configOrPath: ModelPropertyProvide
 
     const ps: AttachModelProperties[] = [];
     for (const p of config.sources) {
-        ps.push(require(p).attachModelProperties);
+        if (p in attachModelProperties) {
+            ps.push(attachModelProperties[p]);
+        } else {
+            ConsoleLogger.error('Config', `Could not find property provider '${p}', ignoring.`);
+        }
     }
 
     return (model, cache) => {

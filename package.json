@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -23,7 +23,6 @@
     "watch-webpack": "webpack -w --mode development --display minimal",
     "model-server": "node lib/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/servers/model/server.js",
-    "postinstall": "npm run build",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags",
     "prepublishOnly": "npm run test && npm run build"
@@ -66,9 +65,10 @@
     "circular-dependency-plugin": "^5.0.2",
     "concurrently": "^4.1.0",
     "cpx": "^1.5.0",
-    "css-loader": "^2.1.1",
+    "css-loader": "^3.0.0",
     "extra-watch-webpack-plugin": "^1.0.3",
-    "file-loader": "^3.0.1",
+    "file-loader": "^4.0.0",
+    "fs-extra": "^8.0.1",
     "graphql-code-generator": "^0.18.2",
     "graphql-codegen-time": "^0.18.2",
     "graphql-codegen-typescript-template": "^0.18.2",
@@ -76,26 +76,25 @@
     "jest-raw-loader": "^1.0.1",
     "mini-css-extract-plugin": "^0.7.0",
     "node-sass": "^4.12.0",
-    "raw-loader": "^2.0.0",
+    "raw-loader": "^3.0.0",
     "resolve-url-loader": "^3.1.0",
     "sass-loader": "^7.1.0",
+    "simple-git": "^1.113.0",
     "style-loader": "^0.23.1",
     "ts-jest": "^24.0.2",
     "tslint": "^5.17.0",
     "typescript": "^3.5.1",
-    "uglify-js": "^3.6.0",
-    "util.promisify": "^1.0.0",
-    "webpack": "^4.32.2",
-    "webpack-cli": "^3.3.2"
+    "webpack": "^4.33.0",
+    "webpack-cli": "^3.3.4"
   },
   "dependencies": {
     "@types/argparse": "^1.0.36",
     "@types/benchmark": "^1.0.31",
     "@types/compression": "0.0.36",
-    "@types/express": "^4.16.1",
+    "@types/express": "^4.17.0",
     "@types/jest": "^24.0.13",
-    "@types/node": "^12.0.4",
-    "@types/node-fetch": "^2.3.4",
+    "@types/node": "^12.0.8",
+    "@types/node-fetch": "^2.3.5",
     "@types/react": "^16.8.19",
     "@types/react-dom": "^16.8.4",
     "@types/swagger-ui-dist": "3.0.0",
@@ -109,7 +108,8 @@
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "rxjs": "^6.5.2",
-    "swagger-ui-dist": "^3.22.2",
+    "swagger-ui-dist": "^3.22.3",
+    "util.promisify": "^1.0.0",
     "xhr2": "^0.2.0"
   }
 }

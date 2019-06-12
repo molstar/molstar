@@ -8,16 +8,19 @@ const sharedConfig = {
     module: {
         rules: [
             {
-                loader: 'file-loader',
                 test: /\.(woff2?|ttf|otf|eot|svg|html)$/,
-                include: [path.resolve(__dirname, 'lib/')],
-                options: {
-                    name: '[name].[ext]'
-                }
+                include: [path.resolve(__dirname, 'build/src/')],
+                use: [{
+                    loader: 'file-loader',
+                    options: { name: '[name].[ext]' }
+                }]
             },
             {
                 test: /\.(s*)css$/,
-                use: [MiniCssExtractPlugin.loader, 'css-loader', 'resolve-url-loader', 'sass-loader']
+                use: [
+                    MiniCssExtractPlugin.loader,
+                    'css-loader', 'resolve-url-loader', 'sass-loader'
+                ]
             }
         ]
     },
@@ -73,6 +76,12 @@ function createNodeEntryPoint(name, dir, out) {
         target: 'node',
         entry: path.resolve(__dirname, `lib/${dir}/${name}.js`),
         output: { filename: `${name}.js`, path: path.resolve(__dirname, `build/${out}`) },
+        externals: {
+            argparse: 'require("argparse")',
+            'node-fetch': 'require("node-fetch")',
+            'util.promisify': 'require("util.promisify")',
+            xhr2: 'require("xhr2")',
+        },
         ...sharedConfig
     }
 }

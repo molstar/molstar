@@ -15,7 +15,7 @@ import { camelCaseToWords } from '../../../mol-util/string';
 import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
-import { NumericInput, IconButton } from './common';
+import { NumericInput, IconButton, ControlGroup } from './common';
 import { _Props, _State } from '../base';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
@@ -97,7 +97,7 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
     }
 }
 
-export class BoolControl extends SimpleParam<PD.Boolean> {
+export class BoolControl extends SimpleParam<PD.BooleanParam> {
     onClick = (e: React.MouseEvent<HTMLButtonElement>) => { this.update(!this.props.value); e.currentTarget.blur(); }
     renderControl() {
         return <button onClick={this.onClick} disabled={this.props.isDisabled}>
@@ -461,8 +461,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
             </div>
             {this.state.isExpanded && <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 {controls}
-            </div>
-            }
+            </div>}
         </div>
     }
 }
@@ -655,9 +654,12 @@ export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectL
                     <button onClick={this.toggleExpanded}>{value}</button>
                 </div>
             </div>
+
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.props.value.map((v, i) => <ObjectListItem key={i} param={this.props.param} value={v} index={i} actions={this.actions} />)}
-                <ObjectListEditor params={this.props.param.element} apply={this.add} value={this.props.param.ctor()} isDisabled={this.props.isDisabled} />
+                <ControlGroup header='New Item'>
+                    <ObjectListEditor params={this.props.param.element} apply={this.add} value={this.props.param.ctor()} isDisabled={this.props.isDisabled} />
+                </ControlGroup>
             </div>}
         </>;
     }

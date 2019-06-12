@@ -25,7 +25,7 @@ export namespace ConsoleLogger {
         console.log(`[${tag}] ${msg}`);
     }
 
-    export function logId(guid: string | String, tag: string, msg: string) {
+    export function logId(guid: string, tag: string, msg: string) {
         console.log(`[${guid}][${tag}] ${msg}`);
     }
 
@@ -38,7 +38,7 @@ export namespace ConsoleLogger {
         console.error(`[Warn] (${ctx}) ${e}`);
     }
 
-    export function errorId(guid: string | String, e: any) {
+    export function errorId(guid: string, e: any) {
         console.error(`[${guid}][Error] ${e}`);
         if (e.stack) console.error(e.stack);
     }

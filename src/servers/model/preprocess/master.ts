@@ -10,9 +10,27 @@ import * as argparse from 'argparse'
 import { runMaster, PreprocessEntry } from './parallel';
 import { ModelPropertyProviderConfig } from '../property-provider';
 
+function description() {
+    const exampleCfg = {
+        numProcesses: 1,
+        customProperties: {
+            sources: [
+                'wwpdb'
+            ],
+            params: {
+                wwPDB: {
+                    chemCompBondTablePath: './build/data/ccb.bcif'
+                }
+            }
+        }
+    }
+
+    return `Preprocess CIF files to include custom properties and convert them to BinaryCIF format.\n\nExample cfg.json: ${JSON.stringify(exampleCfg, null, 2)}`
+}
+
 const cmdParser = new argparse.ArgumentParser({
     addHelp: true,
-    description: 'Preprocess CIF files to include custom properties and convert them to BinaryCIF format.'
+    description: description()
 });
 cmdParser.addArgument(['--input', '-i'], { help: 'Input filename', required: false });
 cmdParser.addArgument(['--outCIF', '-oc'], { help: 'Output CIF filename', required: false });
