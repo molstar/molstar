@@ -59,33 +59,37 @@ export const enum MoleculeType {
     saccharide
 }
 
-export type AtomRole = 'trace' | 'direction' | 'backboneStart' | 'backboneEnd' | 'coarseBackbone'
+export type AtomRole = 'trace' | 'directionFrom' | 'directionTo' | 'backboneStart' | 'backboneEnd' | 'coarseBackbone'
 
 export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: Set<string> } } = {
     [MoleculeType.protein]: {
         trace: new Set(['CA']),
-        direction: new Set(['O', 'OC1', 'O1', 'OX1', 'OXT']),
+        directionFrom: new Set(['C']),
+        directionTo: new Set(['O', 'OC1', 'O1', 'OX1', 'OXT']),
         backboneStart: new Set(['N']),
         backboneEnd: new Set(['C']),
         coarseBackbone: new Set(['CA', 'BB'])
     },
     [MoleculeType.RNA]: {
         trace: new Set(['C4\'', 'C4*']),
-        direction: new Set(['C3\'', 'C3*']),
+        directionFrom: new Set(['C4\'', 'C4*']),
+        directionTo: new Set(['C3\'', 'C3*']),
         backboneStart: new Set(['P']),
         backboneEnd: new Set(['O3\'', 'O3*']),
         coarseBackbone: new Set(['P'])
     },
     [MoleculeType.DNA]: {
         trace: new Set(['C3\'', 'C3*']),
-        direction: new Set(['C1\'', 'C1*']),
+        directionFrom: new Set(['C3\'', 'C3*']),
+        directionTo: new Set(['C1\'', 'C1*']),
         backboneStart: new Set(['P']),
         backboneEnd: new Set(['O3\'', 'O3*']),
         coarseBackbone: new Set(['P'])
     },
     [MoleculeType.PNA]: {
         trace: new Set(['N4\'', 'N4*']),
-        direction: new Set(['C7\'', 'C7*']),
+        directionFrom: new Set(['N4\'', 'N4*']),
+        directionTo: new Set(['C7\'', 'C7*']),
         backboneStart: new Set(['N1\'', 'N1*']),
         backboneEnd: new Set(['C\'', 'C*']),
         coarseBackbone: new Set(['P'])

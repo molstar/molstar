@@ -15,7 +15,8 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
     const { label_comp_id, _rowCount: n } = data.residues
 
     const traceElementIndex = new Int32Array(n)
-    const directionElementIndex = new Int32Array(n)
+    const directionFromElementIndex = new Int32Array(n)
+    const directionToElementIndex = new Int32Array(n)
     const moleculeType = new Uint8Array(n)
 
     const moleculeTypeMap = new Map<string, MoleculeType>()
@@ -44,14 +45,18 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
         }
         traceElementIndex[i] = traceIndex
 
-        const directionAtomId = getAtomIdForAtomRole(molType, 'direction')
-        directionElementIndex[i] = index.findAtomsOnResidue(i as ResidueIndex, directionAtomId)
+        const directionFromAtomId = getAtomIdForAtomRole(molType, 'directionFrom')
+        directionFromElementIndex[i] = index.findAtomsOnResidue(i as ResidueIndex, directionFromAtomId)
+
+        const directionToAtomId = getAtomIdForAtomRole(molType, 'directionTo')
+        directionToElementIndex[i] = index.findAtomsOnResidue(i as ResidueIndex, directionToAtomId)
     }
 
     return {
         residue: {
             traceElementIndex: traceElementIndex as unknown as ArrayLike<ElementIndex | -1>,
-            directionElementIndex: directionElementIndex as unknown as ArrayLike<ElementIndex | -1>,
+            directionFromElementIndex: directionFromElementIndex as unknown as ArrayLike<ElementIndex | -1>,
+            directionToElementIndex: directionToElementIndex as unknown as ArrayLike<ElementIndex | -1>,
             moleculeType: moleculeType as unknown as ArrayLike<MoleculeType>,
         }
     }
