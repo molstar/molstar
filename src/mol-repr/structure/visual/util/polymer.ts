@@ -95,7 +95,7 @@ export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, a
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
-    if (!Structure.areEquivalent(loci.structure, structure)) return false
+    if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
     const { polymerElements, model, elements } = group.units[0]
     const { index, offsets } = model.atomicHierarchy.residueAtomSegments
     const { traceElementIndex } = model.atomicHierarchy.derived.residue
@@ -156,7 +156,7 @@ export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup
     let changed = false
     if (Link.isLoci(loci)) {
         const { structure, group } = structureGroup
-        if (!Structure.areEquivalent(loci.structure, structure)) return false
+        if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
         const groupCount = group.units[0].gapElements.length
         for (const b of loci.links) {
             const unitIdx = group.unitIndexMap.get(b.aUnit.id)
@@ -170,7 +170,7 @@ export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup
         }
     } else if (StructureElement.isLoci(loci)) {
         const { structure, group } = structureGroup
-        if (!Structure.areEquivalent(loci.structure, structure)) return false
+        if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
         const groupCount = group.units[0].gapElements.length
         for (const e of loci.elements) {
             const unitIdx = group.unitIndexMap.get(e.unit.id)

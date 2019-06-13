@@ -165,7 +165,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
-        if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areEquivalent(loci.structure, currentStructure))) {
+        if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areParentsEquivalent(loci.structure, currentStructure))) {
             return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount))
         } else {
             return eachLocation(loci, currentStructure, apply)

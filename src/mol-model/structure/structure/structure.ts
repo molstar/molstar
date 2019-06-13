@@ -507,6 +507,11 @@ namespace Structure {
         )
     }
 
+    /** Check if the structures or their parents are equivalent */
+    export function areParentsEquivalent(a: Structure, b: Structure) {
+        return areEquivalent(a.parent || a, b.parent || b)
+    }
+
     export class ElementLocationIterator implements Iterator<StructureElement> {
         private current = StructureElement.create();
         private unitIndex = 0;
