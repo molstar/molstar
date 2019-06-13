@@ -68,7 +68,9 @@ export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: Set<strin
         directionTo: new Set(['O', 'OC1', 'O1', 'OX1', 'OXT']),
         backboneStart: new Set(['N']),
         backboneEnd: new Set(['C']),
-        coarseBackbone: new Set(['CA', 'BB'])
+        // CA1 is used e.g. in GFP chromophores
+        // BB is often used for coarse grained models
+        coarseBackbone: new Set(['CA', 'BB', 'CA1'])
     },
     [MoleculeType.RNA]: {
         trace: new Set(['C4\'', 'C4*']),
