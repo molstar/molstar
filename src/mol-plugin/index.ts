@@ -77,7 +77,10 @@ export const DefaultPluginSpec: PluginSpec = {
         AnimateAssemblyUnwind,
         AnimateUnitsExplode,
         AnimateStateInterpolation
-    ]
+    ],
+    layout: {
+        controls: { top: 'none' }
+    }
 }
 
 export function createPlugin(target: HTMLElement, spec?: PluginSpec): PluginContext {

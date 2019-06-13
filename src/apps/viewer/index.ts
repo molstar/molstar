@@ -29,6 +29,9 @@ function init() {
             initial: {
                 isExpanded: true,
                 showControls: !hideControls
+            },
+            controls: {
+                ...DefaultPluginSpec.layout && DefaultPluginSpec.layout.controls
             }
         }
     };

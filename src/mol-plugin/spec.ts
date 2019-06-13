@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StateTransformer, StateAction } from '../mol-state';
@@ -18,11 +19,7 @@ interface PluginSpec {
     customParamEditors?: [StateAction | StateTransformer, StateTransformParameters.Class][],
     layout?: {
         initial?: Partial<PluginLayoutStateProps>,
-        controls?: {
-            left?: React.ComponentClass | 'none',
-            right?: React.ComponentClass | 'none',
-            bottom?: React.ComponentClass | 'none'
-        }
+        controls?: PluginSpec.LayoutControls
     }
 }
 
@@ -47,6 +44,7 @@ namespace PluginSpec {
     }
 
     export interface LayoutControls {
+        top?: React.ComponentClass | 'none',
         left?: React.ComponentClass | 'none',
         right?: React.ComponentClass | 'none',
         bottom?: React.ComponentClass | 'none'

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { List } from 'immutable';
@@ -47,17 +48,40 @@ export class PluginContextContainer extends React.Component<{ plugin: PluginCont
     }
 }
 
+type RegionKind = 'top' | 'left' | 'right' | 'bottom' | 'main'
+
 class Layout extends PluginUIComponent {
     componentDidMount() {
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
     }
 
-    region(kind: 'left' | 'right' | 'bottom' | 'main', Element: React.ComponentClass) {
+    region(kind: RegionKind, Element?: React.ComponentClass) {
         return <div className={`msp-layout-region msp-layout-${kind}`}>
             <div className='msp-layout-static'>
-                <Element />
+                {Element ? <Element /> : null}
             </div>
         </div>;
+    }
+
+    get layoutVisibilityClassName() {
+        const layout = this.plugin.layout.state;
+        const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || { };
+
+        const classList: string[] = []
+        if (controls.top === 'none' || !layout.showControls) {
+            classList.push('msp-layout-hide-top')
+        }
+        if (controls.left === 'none' || !layout.showControls) {
+            classList.push('msp-layout-hide-left')
+        }
+        if (controls.right === 'none' || !layout.showControls) {
+            classList.push('msp-layout-hide-right')
+        }
+        if (controls.bottom === 'none' || !layout.showControls) {
+            classList.push('msp-layout-hide-bottom')
+        }
+
+        return classList.join(' ')
     }
 
     render() {
@@ -66,8 +90,9 @@ class Layout extends PluginUIComponent {
 
         return <div className='msp-plugin'>
             <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
-                <div className={layout.showControls ? 'msp-layout-hide-top' : 'msp-layout-hide-top msp-layout-hide-right msp-layout-hide-bottom msp-layout-hide-left'}>
+                <div className={this.layoutVisibilityClassName}>
                     {this.region('main', ViewportWrapper)}
+                    {layout.showControls && controls.top !== 'none' && this.region('top', controls.top)}
                     {layout.showControls && controls.left !== 'none' && this.region('left', controls.left || State)}
                     {layout.showControls && controls.right !== 'none' && this.region('right', controls.right || ControlsWrapper)}
                     {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
@@ -76,7 +101,6 @@ class Layout extends PluginUIComponent {
         </div>;
     }
 }
-
 
 export class ControlsWrapper extends PluginUIComponent {
     render() {

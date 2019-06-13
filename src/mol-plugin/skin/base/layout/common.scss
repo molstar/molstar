@@ -33,34 +33,34 @@
     overflow: hidden;
 }
 
-.msp-layout-main, .msp-layout-bottom {
-    .msp-layout-static {        
+.msp-layout-top, .msp-layout-main, .msp-layout-bottom {
+    .msp-layout-static {
         left: 0;
         right: 0;
         top: 0;
         bottom: 0;
-    }    
+    }
 }
 
-.msp-layout-right {        
-    .msp-layout-static {        
+.msp-layout-right {
+    .msp-layout-static {
         left: 0;
         right: 0;
         top: 0;
         bottom: 0; // height: $row-height + $control-spacing;
     }
-    
+
     .msp-layout-scrollable {
         left: 0;
         right: 0;
         top: $row-height + $control-spacing + 1;
         bottom: 0;
-     }   
-    
+     }
+
 }
 
-.msp-layout-left {    
-    .msp-layout-static {        
+.msp-layout-left {
+    .msp-layout-static {
         left: 0;
         right: 0;
         bottom: 0;
