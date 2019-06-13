@@ -13,7 +13,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Subject } from 'rxjs';
 import { Icon } from '../controls/common';
 
-export { StateTransformParameters, TransformContolBase };
+export { StateTransformParameters, TransformControlBase };
 
 class StateTransformParameters extends PurePluginUIComponent<StateTransformParameters.Props> {
     validate(params: any) {
@@ -89,7 +89,7 @@ namespace StateTransformParameters {
     }
 }
 
-namespace TransformContolBase {
+namespace TransformControlBase {
     export interface ComponentState {
         params: any,
         error?: string,
@@ -99,7 +99,7 @@ namespace TransformContolBase {
     }
 }
 
-abstract class TransformContolBase<P, S extends TransformContolBase.ComponentState> extends PurePluginUIComponent<P, S> {
+abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): StateTransformer.Definition['display'];

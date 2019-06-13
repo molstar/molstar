@@ -19,7 +19,7 @@ import { StateTree } from './state/tree';
 import { BackgroundTaskProgress } from './task';
 import { Viewport, ViewportControls } from './viewport';
 import { StateTransform } from '../../mol-state';
-import { UpdateTransformContol } from './state/update-transform';
+import { UpdateTransformControl } from './state/update-transform';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
@@ -227,7 +227,7 @@ export class CurrentObject extends PluginUIComponent {
         if (!showActions) return null;
 
         return <>
-            {(cell.status === 'ok' || cell.status === 'error') && <UpdateTransformContol state={current.state} transform={transform} /> }
+            {(cell.status === 'ok' || cell.status === 'error') && <UpdateTransformControl state={current.state} transform={transform} /> }
             {cell.status === 'ok' && <StateObjectActions state={current.state} nodeRef={ref} initiallyColapsed />}
         </>;
     }

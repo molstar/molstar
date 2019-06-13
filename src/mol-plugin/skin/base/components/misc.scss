@@ -4,17 +4,17 @@
     background: $default-background;
     text-align: center;
     //font-style: italic;
-    
-    -webkit-user-select: none; /* Chrome/Safari */        
+
+    -webkit-user-select: none; /* Chrome/Safari */
     -moz-user-select: none; /* Firefox */
     -ms-user-select: none; /* IE10+ */
 
     /* Rules below not implemented in browsers yet */
     -o-user-select: none;
     user-select: none;
-    
+
     font-weight: light;
-    
+
     cursor: default;
 }
 
@@ -34,10 +34,10 @@
     top: 0;
     display: table;
     text-align: center;
-    
+
     > div {
         b {
-            font-size: 120%; 
+            font-size: 120%;
         }
         display: table-cell;
         vertical-align: middle;
@@ -68,6 +68,6 @@
     display: block;
 }
 
-.msp-contols-section {
+.msp-controls-section {
     margin-bottom: $control-spacing;
 }

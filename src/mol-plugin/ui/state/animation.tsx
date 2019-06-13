@@ -13,7 +13,7 @@ export class AnimationControlsWrapper extends PluginUIComponent<{ }> {
     render() {
         const anim = this.plugin.state.animation;
         if (anim.isEmpty) return null;
-        return <div className='msp-contols-section'>
+        return <div className='msp-controls-section'>
             <div className='msp-section-header'><Icon name='code' /> Animations</div>
             <AnimationControls />
         </div>

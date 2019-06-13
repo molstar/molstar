@@ -6,14 +6,14 @@
 
 import { State, StateTransform, StateTransformer } from '../../../mol-state';
 import { memoizeLatest } from '../../../mol-util/memoize';
-import { StateTransformParameters, TransformContolBase } from './common';
+import { StateTransformParameters, TransformControlBase } from './common';
 import { Observable } from 'rxjs';
 import * as React from 'react';
 import { PluginUIComponent } from '../base';
 
-export { UpdateTransformContol, TransformUpdaterControl };
+export { UpdateTransformControl, TransformUpdaterControl };
 
-namespace UpdateTransformContol {
+namespace UpdateTransformControl {
     export interface Props {
         transform: StateTransform,
         state: State,
@@ -22,12 +22,12 @@ namespace UpdateTransformContol {
         customHeader?: StateTransformer.Definition['display']
     }
 
-    export interface ComponentState extends TransformContolBase.ComponentState {
+    export interface ComponentState extends TransformControlBase.ComponentState {
         transform: StateTransform
     }
 }
 
-class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Props, UpdateTransformContol.ComponentState> {
+class UpdateTransformControl extends TransformControlBase<UpdateTransformControl.Props, UpdateTransformControl.ComponentState> {
     applyAction() { return this.plugin.updateTransform(this.props.state, this.props.transform.ref, this.state.params); }
     getInfo() { return this._getInfo(this.props.transform); }
     getTransformerId() { return this.props.transform.transformer.id; }
@@ -70,12 +70,12 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
 
     private _getInfo = memoizeLatest((t: StateTransform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, t));
 
-    state: UpdateTransformContol.ComponentState = { transform: this.props.transform, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
+    state: UpdateTransformControl.ComponentState = { transform: this.props.transform, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
 
-    static getDerivedStateFromProps(props: UpdateTransformContol.Props, state: UpdateTransformContol.ComponentState) {
+    static getDerivedStateFromProps(props: UpdateTransformControl.Props, state: UpdateTransformControl.ComponentState) {
         if (props.transform === state.transform) return null;
         const cell = props.state.cells.get(props.transform.ref)!;
-        const newState: Partial<UpdateTransformContol.ComponentState> = {
+        const newState: Partial<UpdateTransformControl.ComponentState> = {
             transform: props.transform,
             params: (cell.params && cell.params.values) || { },
             isInitial: true,
@@ -101,6 +101,6 @@ class TransformUpdaterControl extends PluginUIComponent<{ nodeRef: string, initi
         if (!cell || (cell.status !== 'ok' && cell.status !== 'error')) return null;
 
         const transform = cell.transform;
-        return <UpdateTransformContol state={state} transform={transform} initiallyCollapsed={this.props.initiallyCollapsed} customHeader={this.props.header} />;
+        return <UpdateTransformControl state={state} transform={transform} initiallyCollapsed={this.props.initiallyCollapsed} customHeader={this.props.header} />;
     }
 }
