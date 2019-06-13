@@ -435,6 +435,10 @@ namespace Quat {
 
         return normalize(out, Quat.fromMat3(out, axesTmpMat));
     }
+
+    export function toString(a: Quat, precision?: number) {
+        return `[${a[0].toPrecision(precision)} ${a[1].toPrecision(precision)} ${a[2].toPrecision(precision)}  ${a[3].toPrecision(precision)}]`;
+    }
 }
 
 export default Quat

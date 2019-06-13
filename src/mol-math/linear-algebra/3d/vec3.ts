@@ -19,7 +19,7 @@
 
 import Mat4 from './mat4';
 import { Quat, Mat3, EPSILON } from '../3d';
-import { spline as _spline, clamp } from '../../interpolate'
+import { spline as _spline, quadraticBezier as _quadraticBezier, clamp } from '../../interpolate'
 import { NumberArray } from '../../../mol-util/type-helpers';
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
@@ -344,6 +344,14 @@ namespace Vec3 {
         return out;
     }
 
+    export function quadraticBezier(out: Vec3, a: Vec3, b: Vec3, c: Vec3, t: number) {
+        out[0] = _quadraticBezier(a[0], b[0], c[0], t);
+        out[1] = _quadraticBezier(a[1], b[1], c[1], t);
+        out[2] = _quadraticBezier(a[2], b[2], c[2], t);
+
+        return out;
+    }
+
     /**
      * Performs a spline interpolation with two control points and a tension parameter
      */
@@ -525,8 +533,8 @@ namespace Vec3 {
         return normalize(out, cross(out, triangleNormalTmpAB, triangleNormalTmpAC));
     }
 
-    export function toString(a: Vec3) {
-        return `[${a[0]} ${a[1]} ${a[2]}]`;
+    export function toString(a: Vec3, precision?: number) {
+        return `[${a[0].toPrecision(precision)} ${a[1].toPrecision(precision)} ${a[2].toPrecision(precision)}]`;
     }
 }
 
