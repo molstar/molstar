@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -8,7 +8,6 @@ import * as Base from './impl/ordered-set'
 import Interval from './interval'
 import SortedArray from './sorted-array';
 
-/** test */
 namespace OrderedSet {
     export const Empty: OrderedSet = Base.Empty as any;
     export const ofSingleton: <T extends number = number>(value: T) => OrderedSet<T> = Base.ofSingleton as any;
@@ -62,10 +61,12 @@ namespace OrderedSet {
         OrderedSet.forEach(set, v => array.push(v))
         return array
     }
+
+    export function toString<T extends number = number>(set: OrderedSet<T>): string {
+        return Base.toString(set)
+    }
 }
 
-/** Represents bla */
 type OrderedSet<T extends number = number> = SortedArray<T> | Interval<T>
-
 
 export default OrderedSet

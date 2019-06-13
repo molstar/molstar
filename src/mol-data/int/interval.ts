@@ -34,6 +34,8 @@ namespace Interval {
     export const size: <T extends number = number>(interval: Interval<T>) => number = Impl.size as any;
     /** Hash code describing the interval */
     export const hashCode: <T extends number = number>(interval: Interval<T>) => number = Impl.hashCode as any;
+    /** String representation of the interval */
+    export const toString: <T extends number = number>(interval: Interval<T>) => string = Impl.toString as any;
 
     /** Test if two intervals are identical */
     export const areEqual: <T extends number = number>(a: Interval<T>, b: Interval<T>) => boolean = Impl.areEqual as any;

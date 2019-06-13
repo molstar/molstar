@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -17,6 +17,7 @@ export const min = Tuple.fst;
 export function max(i: Tuple) { return Tuple.snd(i) - 1; }
 export function size(i: Tuple) { return Tuple.snd(i) - Tuple.fst(i); }
 export const hashCode = Tuple.hashCode;
+export const toString = Tuple.toString;
 
 export function has(int: Tuple, v: number) { return Tuple.fst(int) <= v && v < Tuple.snd(int); }
 /** Returns the index of `x` in `set` or -1 if not found. */

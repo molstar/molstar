@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -31,6 +31,7 @@ namespace SortedArray {
     export const max: <T extends number = number>(array: SortedArray<T>) => T = Impl.max as any;
     export const size: <T extends number = number>(array: SortedArray<T>) => number = Impl.size as any;
     export const hashCode: <T extends number = number>(array: SortedArray<T>) => number = Impl.hashCode as any;
+    export const toString: <T extends number = number>(array: SortedArray<T>) => string = Impl.toString as any;
 
     export const areEqual: <T extends number = number>(a: SortedArray<T>, b: SortedArray<T>) => boolean = Impl.areEqual as any;
     export const areIntersecting: <T extends number = number>(a: SortedArray<T>, b: SortedArray<T>) => boolean = Impl.areIntersecting as any;

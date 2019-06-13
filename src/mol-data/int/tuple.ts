@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -72,6 +72,11 @@ namespace IntTuple {
     export function hashCode(t: IntTuple) {
         _float64[0] = t as any;
         return hash2(_int32[0], _int32[1]);
+    }
+
+    export function toString(t: IntTuple) {
+        _float64[0] = t as any;
+        return `(${_int32[0]}, ${_int32[1]})`;
     }
 }
 

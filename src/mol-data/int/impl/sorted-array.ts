@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -34,6 +34,11 @@ export function hashCode(xs: Nums) {
     if (!s) return 0;
     if (s > 2) return hash4(s, xs[0], xs[s - 1], xs[s >> 1]);
     return hash3(s, xs[0], xs[s - 1]);
+}
+export function toString(xs: Nums) {
+    const s = xs.length;
+    if (s > 5) return `[${xs[0]}, ${xs[1]}, ..., ${xs[s - 1]}], length ${s}`;
+    return `[${(xs as number[]).join(', ')}]`;
 }
 
 /** Returns the index of `x` in `set` or -1 if not found. */

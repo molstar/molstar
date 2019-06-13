@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -35,6 +35,8 @@ export function end(set: OrderedSetImpl) { return I.is(set) ? I.end(set) : S.end
 
 export function hashCode(set: OrderedSetImpl) { return I.is(set) ? I.hashCode(set) : S.hashCode(set); }
 // TODO: possibly add more hash functions to allow for multilevel hashing.
+
+export function toString(set: OrderedSetImpl) { return I.is(set) ? I.toString(set) : S.toString(set); }
 
 export function areEqual(a: OrderedSetImpl, b: OrderedSetImpl) {
     if (I.is(a)) {
