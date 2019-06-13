@@ -4,7 +4,7 @@ const path = require('path')
 const basePath = path.join(__dirname, '..', '..', 'src', 'mol-model-props', 'rcsb', 'graphql')
 
 generate({
-    schema: 'http://rest-dev.rcsb.org/graphql',
+    schema: 'http://rest-staging.rcsb.org/graphql',
     documents: {
         [path.join(basePath, 'symmetry.gql.ts')]: {
             loader: path.join(__dirname, 'loader.js')
