@@ -57,12 +57,15 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
         moleculeType: MoleculeType.unknown,
         coarseBackboneFirst: false, coarseBackboneLast: false,
         isCoarseBackbone: false,
-        p0: Vec3.zero(), p1: Vec3.zero(), p2: Vec3.zero(), p3: Vec3.zero(), p4: Vec3.zero(),
-        d12: Vec3.create(1, 0, 0), d23: Vec3.create(1, 0, 0),
+        p0: Vec3(), p1: Vec3(), p2: Vec3(), p3: Vec3(), p4: Vec3(),
+        d12: Vec3(), d23: Vec3()
     }
 }
 
 const enum AtomicPolymerTraceIteratorState { nextPolymer, nextResidue }
+
+const tmpVecA = Vec3()
+const tmpVecB = Vec3()
 
 export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement> {
     private value: PolymerTraceElement
@@ -83,22 +86,23 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
     private residueAtomSegments: Segmentation<ElementIndex, ResidueIndex>
     private traceElementIndex: ArrayLike<ElementIndex>
-    private directionElementIndex: ArrayLike<ElementIndex | -1>
+    private directionFromElementIndex: ArrayLike<ElementIndex | -1>
+    private directionToElementIndex: ArrayLike<ElementIndex | -1>
     private moleculeType: ArrayLike<MoleculeType>
     private atomicConformation: AtomicConformation
 
-    private p0 = Vec3.zero();
-    private p1 = Vec3.zero();
-    private p2 = Vec3.zero();
-    private p3 = Vec3.zero();
-    private p4 = Vec3.zero();
-    private p5 = Vec3.zero();
-    private p6 = Vec3.zero();
+    private p0 = Vec3()
+    private p1 = Vec3()
+    private p2 = Vec3()
+    private p3 = Vec3()
+    private p4 = Vec3()
+    private p5 = Vec3()
+    private p6 = Vec3()
 
-    // private v01 = Vec3.zero();
-    private v12 = Vec3.create(1, 0, 0);
-    private v23 = Vec3.create(1, 0, 0);
-    // private v34 = Vec3.zero();
+    private d01 = Vec3()
+    private d12 = Vec3()
+    private d23 = Vec3()
+    private d34 = Vec3()
 
     hasNext: boolean = false;
 
@@ -148,6 +152,20 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         }
     }
 
+    private setFromToVector(out: Vec3, residueIndex: ResidueIndex) {
+        this.pos(tmpVecA, this.directionFromElementIndex[residueIndex])
+        this.pos(tmpVecB, this.directionToElementIndex[residueIndex])
+        Vec3.sub(out, tmpVecB, tmpVecA)
+    }
+
+    private setDirection(out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3) {
+        Vec3.copy(tmpVecA, v1)
+        Vec3.copy(tmpVecB, v3)
+        if (Vec3.dot(v2, tmpVecA) < 0) Vec3.scale(tmpVecA, tmpVecA, -1)
+        if (Vec3.dot(v2, tmpVecB) < 0) Vec3.scale(tmpVecB, tmpVecB, -1)
+        Vec3.scale(out, Vec3.add(out, tmpVecA, Vec3.add(out, tmpVecB, Vec3.add(out, v2, v2))), 1/4)
+    }
+
     move() {
         const { residueIt, polymerIt, value } = this
 
@@ -161,7 +179,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                     this.currSecStrucType = SecStrucTypeNA
                     this.nextSecStrucType = this.getSecStruc(this.residueSegmentMin)
                     this.currCoarseBackbone = false
-                    this.nextCoarseBackbone = this.directionElementIndex[this.residueSegmentMin] === -1
+                    this.nextCoarseBackbone = this.directionFromElementIndex[this.residueSegmentMin] === -1 || this.directionToElementIndex[this.residueSegmentMin] === -1
                     break
                 }
             }
@@ -175,7 +193,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
             this.prevCoarseBackbone = this.currCoarseBackbone
             this.currCoarseBackbone = this.nextCoarseBackbone
-            this.nextCoarseBackbone = residueIt.hasNext ? this.directionElementIndex[residueIndex + 1] === -1 : false
+            this.nextCoarseBackbone = residueIt.hasNext ? (this.directionFromElementIndex[residueIndex + 1] === -1 || this.directionToElementIndex[residueIndex + 1] === -1) : false
 
             value.secStrucType = this.currSecStrucType
             value.secStrucFirst = this.prevSecStrucType !== this.currSecStrucType
@@ -205,7 +223,9 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 this.pos(this.p4, this.traceElementIndex[residueIndexNext1])
                 this.pos(this.p5, this.traceElementIndex[residueIndexNext2])
 
-                this.pos(this.v12, this.directionElementIndex[residueIndexPrev1])
+                this.setFromToVector(this.d01, residueIndexPrev1)
+                this.setFromToVector(this.d12, residueIndex)
+                this.setFromToVector(this.d23, residueIndexNext1)
             } else {
                 value.centerPrev.element = value.center.element
                 value.center.element = value.centerNext.element
@@ -217,12 +237,14 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 Vec3.copy(this.p4, this.p5)
                 Vec3.copy(this.p5, this.p6)
 
-                Vec3.copy(this.v12, this.v23)
+                Vec3.copy(this.d01, this.d12)
+                Vec3.copy(this.d12, this.d23)
+                Vec3.copy(this.d23, this.d34)
             }
             value.centerNext.element = this.traceElementIndex[residueIndexNext1]
-            this.pos(this.p6,  this.traceElementIndex[residueIndexNext3])
-            this.pos(this.v23, this.directionElementIndex[residueIndex])
-            value.isCoarseBackbone = this.directionElementIndex[residueIndex] === -1
+            this.pos(this.p6, this.traceElementIndex[residueIndexNext3])
+            this.setFromToVector(this.d34, residueIndexNext2)
+            value.isCoarseBackbone = this.directionFromElementIndex[residueIndex] === -1 || this.directionToElementIndex[residueIndex] === -1
 
             this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndexPrev2)
             this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndexPrev1)
@@ -230,8 +252,8 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.setControlPoint(value.p3, this.p3, this.p4, this.p5, residueIndexNext1)
             this.setControlPoint(value.p4, this.p4, this.p5, this.p6, residueIndexNext2)
 
-            Vec3.copy(value.d12, this.v12)
-            Vec3.copy(value.d23, this.v23)
+            this.setDirection(value.d12, this.d01, this.d12, this.d23)
+            this.setDirection(value.d23, this.d12, this.d23, this.d34)
 
             if (!residueIt.hasNext) {
                 this.state = AtomicPolymerTraceIteratorState.nextPolymer
@@ -247,7 +269,8 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.atomicConformation = unit.model.atomicConformation
         this.residueAtomSegments = unit.model.atomicHierarchy.residueAtomSegments
         this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex as ArrayLike<ElementIndex> // can assume it won't be -1 for polymer residues
-        this.directionElementIndex = unit.model.atomicHierarchy.derived.residue.directionElementIndex
+        this.directionFromElementIndex = unit.model.atomicHierarchy.derived.residue.directionFromElementIndex
+        this.directionToElementIndex = unit.model.atomicHierarchy.derived.residue.directionToElementIndex
         this.moleculeType = unit.model.atomicHierarchy.derived.residue.moleculeType
         this.cyclicPolymerMap = unit.model.atomicHierarchy.cyclicPolymerMap
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)

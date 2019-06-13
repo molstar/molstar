@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,7 @@ export interface CurveSegmentState {
 }
 
 export interface CurveSegmentControls {
+    secStrucFirst: boolean, secStrucLast: boolean
     p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, p4: Vec3,
     d12: Vec3, d23: Vec3
 }
@@ -48,20 +49,25 @@ const curvePoint = Vec3.zero()
 
 export function interpolatePointsAndTangents(state: CurveSegmentState, controls: CurveSegmentControls, tension: number, shift: number) {
     const { curvePoints, tangentVectors, linearSegments } = state
-    const { p0, p1, p2, p3, p4 } = controls
+    const { p0, p1, p2, p3, p4, secStrucFirst, secStrucLast } = controls
 
     const shift1 = 1 - shift
+
+    const tensionBeg = secStrucFirst ? 0.5 : tension
+    const tensionEnd = secStrucLast ? 0.5 : tension
 
     for (let j = 0; j <= linearSegments; ++j) {
         const t = j * 1.0 / linearSegments;
         if (t < shift1) {
-            Vec3.spline(curvePoint, p0, p1, p2, p3, t + shift, tension)
-            Vec3.spline(tanA, p0, p1, p2, p3, t + shift + 0.01, tension)
-            Vec3.spline(tanB, p0, p1, p2, p3, t + shift - 0.01, tension)
+            const te = lerp(tensionBeg, tension, t)
+            Vec3.spline(curvePoint, p0, p1, p2, p3, t + shift, te)
+            Vec3.spline(tanA, p0, p1, p2, p3, t + shift + 0.01, tensionBeg)
+            Vec3.spline(tanB, p0, p1, p2, p3, t + shift - 0.01, tensionBeg)
         } else {
-            Vec3.spline(curvePoint, p1, p2, p3, p4, t - shift1, tension)
-            Vec3.spline(tanA, p1, p2, p3, p4, t - shift1 + 0.01, tension)
-            Vec3.spline(tanB, p1, p2, p3, p4, t - shift1 - 0.01, tension)
+            const te = lerp(tension, tensionEnd, t)
+            Vec3.spline(curvePoint, p1, p2, p3, p4, t - shift1, te)
+            Vec3.spline(tanA, p1, p2, p3, p4, t - shift1 + 0.01, te)
+            Vec3.spline(tanB, p1, p2, p3, p4, t - shift1 - 0.01, te)
         }
         Vec3.toArray(curvePoint, curvePoints, j * 3)
         Vec3.normalize(tangentVec, Vec3.sub(tangentVec, tanA, tanB))
@@ -69,17 +75,15 @@ export function interpolatePointsAndTangents(state: CurveSegmentState, controls:
     }
 }
 
-const tmpNormal = Vec3.zero()
-const tangentVec = Vec3.zero()
-const normalVec = Vec3.zero()
-const binormalVec = Vec3.zero()
-const prevNormal = Vec3.zero()
-const firstControlPoint = Vec3.zero()
-const lastControlPoint = Vec3.zero()
-const firstTangentVec = Vec3.zero()
-const lastTangentVec = Vec3.zero()
-const firstNormalVec = Vec3.zero()
-const lastNormalVec = Vec3.zero()
+const tmpNormal = Vec3()
+const tangentVec = Vec3()
+const normalVec = Vec3()
+const binormalVec = Vec3()
+const prevNormal = Vec3()
+const firstTangentVec = Vec3()
+const lastTangentVec = Vec3()
+const firstNormalVec = Vec3()
+const lastNormalVec = Vec3()
 
 /**
  * Populate normalVectors by interpolating from firstDirection to lastDirection with
@@ -91,13 +95,11 @@ export function interpolateNormals(state: CurveSegmentState, controls: CurveSegm
 
     const n = curvePoints.length / 3
 
-    Vec3.fromArray(firstControlPoint, curvePoints, 0)
-    Vec3.fromArray(lastControlPoint, curvePoints, (n - 1) * 3)
     Vec3.fromArray(firstTangentVec, tangentVectors, 0)
-    Vec3.fromArray(lastTangentVec, tangentVectors,  (n - 1) * 3)
+    Vec3.fromArray(lastTangentVec, tangentVectors, (n - 1) * 3)
 
-    Vec3.orthogonalize(firstNormalVec, firstTangentVec, Vec3.sub(tmpNormal, firstControlPoint, firstDirection))
-    Vec3.orthogonalize(lastNormalVec, lastTangentVec, Vec3.sub(tmpNormal, lastControlPoint, lastDirection))
+    Vec3.orthogonalize(firstNormalVec, firstTangentVec, firstDirection)
+    Vec3.orthogonalize(lastNormalVec, lastTangentVec, lastDirection)
 
     if (Vec3.dot(firstNormalVec, lastNormalVec) < 0) {
         Vec3.scale(lastNormalVec, lastNormalVec, -1)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -113,7 +113,8 @@ export interface AtomicData {
 export interface AtomicDerivedData {
     readonly residue: {
         readonly traceElementIndex: ArrayLike<ElementIndex | -1>
-        readonly directionElementIndex: ArrayLike<ElementIndex | -1>
+        readonly directionFromElementIndex: ArrayLike<ElementIndex | -1>
+        readonly directionToElementIndex: ArrayLike<ElementIndex | -1>
         readonly moleculeType: ArrayLike<MoleculeType>
     }
 }
