@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StructureQuery } from '../query'
@@ -24,7 +25,7 @@ export interface AtomsQueryParams {
     entityTest: QueryPredicate,
     /** Query to be executed for each chain once */
     chainTest: QueryPredicate,
-    /** Query to be executed for each residue once */
+    /** Query to be executed for each residue (or coarse element) once */
     residueTest: QueryPredicate,
     /** Query to be executed for each atom */
     atomTest: QueryPredicate,
@@ -86,31 +87,51 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
         const builder = inputStructure.subsetBuilder(true);
 
         for (const unit of units) {
-            if (unit.kind !== Unit.Kind.Atomic) continue;
-
             l.unit = unit;
-            const elements = unit.elements;
-
+            const { elements, model } = unit;
             builder.beginUnit(unit.id);
-            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
-            const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
-            while (chainsIt.hasNext) {
-                const chainSegment = chainsIt.move();
-                l.element = elements[chainSegment.start];
-                // test entity and chain
-                if (!entityTest(ctx) || !chainTest(ctx)) continue;
 
-                residuesIt.setSegment(chainSegment);
-                while (residuesIt.hasNext) {
-                    const residueSegment = residuesIt.move();
-                    l.element = elements[residueSegment.start];
+            if (unit.kind === Unit.Kind.Atomic) {
+                const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
+                const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
 
-                    // test residue
-                    if (!residueTest(ctx)) continue;
+                while (chainsIt.hasNext) {
+                    const chainSegment = chainsIt.move();
+                    l.element = elements[chainSegment.start];
+                    // test entity and chain
+                    if (!entityTest(ctx) || !chainTest(ctx)) continue;
 
-                    for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
+                    residuesIt.setSegment(chainSegment);
+                    while (residuesIt.hasNext) {
+                        const residueSegment = residuesIt.move();
+                        l.element = elements[residueSegment.start];
+
+                        // test residue
+                        if (!residueTest(ctx)) continue;
+
+                        for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
+                            l.element = elements[j];
+                            // test atom
+                            if (atomTest(ctx)) {
+                                builder.addElement(l.element);
+                            }
+                        }
+                    }
+                }
+            } else {
+                const { chainElementSegments } = Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians
+                const chainsIt = Segmentation.transientSegments(chainElementSegments, elements);
+
+                while (chainsIt.hasNext) {
+                    const chainSegment = chainsIt.move();
+                    l.element = elements[chainSegment.start];
+                    // test entity and chain
+                    if (!entityTest(ctx) || !chainTest(ctx)) continue;
+
+                    for (let j = chainSegment.start, _j = chainSegment.end; j < _j; j++) {
                         l.element = elements[j];
-                        if (atomTest(ctx)) {
+                        // test residue/coarse element
+                        if (residueTest(ctx)) {
                             builder.addElement(l.element);
                         }
                     }
@@ -133,30 +154,51 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
         const builder = new LinearGroupingBuilder(inputStructure);
 
         for (const unit of units) {
-            if (unit.kind !== Unit.Kind.Atomic) continue;
-
             l.unit = unit;
-            const elements = unit.elements;
+            const { elements, model } = unit;
 
-            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
-            const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
-            while (chainsIt.hasNext) {
-                const chainSegment = chainsIt.move();
-                l.element = elements[chainSegment.start];
-                // test entity and chain
-                if (!entityTest(ctx) || !chainTest(ctx)) continue;
+            if (unit.kind === Unit.Kind.Atomic) {
+                const chainsIt = Segmentation.transientSegments(model.atomicHierarchy.chainAtomSegments, elements);
+                const residuesIt = Segmentation.transientSegments(model.atomicHierarchy.residueAtomSegments, elements);
 
-                residuesIt.setSegment(chainSegment);
-                while (residuesIt.hasNext) {
-                    const residueSegment = residuesIt.move();
-                    l.element = elements[residueSegment.start];
+                while (chainsIt.hasNext) {
+                    const chainSegment = chainsIt.move();
+                    l.element = elements[chainSegment.start];
+                    // test entity and chain
+                    if (!entityTest(ctx) || !chainTest(ctx)) continue;
 
-                    // test residue
-                    if (!residueTest(ctx)) continue;
+                    residuesIt.setSegment(chainSegment);
+                    while (residuesIt.hasNext) {
+                        const residueSegment = residuesIt.move();
+                        l.element = elements[residueSegment.start];
 
-                    for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
+                        // test residue
+                        if (!residueTest(ctx)) continue;
+
+                        for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
+                            l.element = elements[j];
+                            // test atom
+                            if (atomTest(ctx)) {
+                                builder.add(groupBy(ctx), unit.id, l.element);
+                            }
+                        }
+                    }
+                }
+            } else {
+                const { chainElementSegments } = Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians
+                const chainsIt = Segmentation.transientSegments(chainElementSegments, elements);
+                while (chainsIt.hasNext) {
+                    const chainSegment = chainsIt.move();
+                    l.element = elements[chainSegment.start];
+                    // test entity and chain
+                    if (!entityTest(ctx) || !chainTest(ctx)) continue;
+
+                    for (let j = chainSegment.start, _j = chainSegment.end; j < _j; j++) {
                         l.element = elements[j];
-                        if (atomTest(ctx)) builder.add(groupBy(ctx), unit.id, l.element);
+                        // test residue/coarse element
+                        if (residueTest(ctx)) {
+                            builder.add(groupBy(ctx), unit.id, l.element);
+                        }
                     }
                 }
             }
