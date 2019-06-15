@@ -78,38 +78,22 @@ const filter_aware_encoder1 = CifWriter.createEncoder({
     binary: true,
     binaryAutoClassifyEncoding: true
 });
-filter_aware_encoder1.setFilter(C.Category.filterOf([
-    { // allow only category atom_site
-        categoryName: 'atom_site',
-        behavior: 'whitelist'
-    }, { // for atom_site: allow only Cartn_x and Cartn_y
-        categoryName: 'atom_site',
-        columnName: 'Cartn_x',
-        behavior: 'whitelist'
-    }, {
-        categoryName: 'atom_site',
-        columnName: 'Cartn_y',
-        behavior: 'whitelist'
-    }
-]));
+filter_aware_encoder1.setFilter(C.Category.filterOf('atom_site\n' +
+'\n' +
+'atom_site.Cartn_x\n' +
+'atom_site.Cartn_y\n'));
 
 const filter_aware_encoder2 = CifWriter.createEncoder({
     binary: true
 });
-filter_aware_encoder2.setFilter(C.Category.filterOf([
-    { // ignore atom_site category
-        categoryName: 'atom_site',
-        behavior: 'blacklist'
-    }, { // exclude field2
-        categoryName: 'other_fields',
-        columnName: 'field2',
-        behavior: 'blacklist'
-    }
-]));
+filter_aware_encoder2.setFilter(C.Category.filterOf('!atom_site\n' +
+'\n' +
+'!other_fields.field2\n'));
 
 describe('filtering-config', () => {
     const decoded1 = process(filter_aware_encoder1);
 
+    console.log(decoded1.blocks[0]);
     const atom_site1 = decoded1.blocks[0].categories['atom_site'];
     const cartn_x1 = atom_site1.getField('Cartn_x');
     const cartn_y1 = atom_site1.getField('Cartn_y');

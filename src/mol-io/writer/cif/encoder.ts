@@ -140,22 +140,27 @@ export namespace Category {
 
     export type FilteringBehavior = 'whitelist' | 'blacklist';
 
-    export function filterOf(directives: FilteringDirective[]): Filter {
+    export function filterOf(directives: string): Filter {
         const cat_whitelist: string[] = [];
         const cat_blacklist: string[] = [];
         const field_whitelist: string[] = [];
         const field_blacklist: string[] = [];
 
-        for (const d of directives) {
-            const field = d.columnName;
-            const name = field ? d.categoryName + '.' + d.columnName : d.categoryName;
-            const list = d.behavior === 'whitelist' ? (field ? field_whitelist : cat_whitelist) : (field ? field_blacklist : cat_blacklist);
+        for (let d of directives.split(/[\r\n]+/)) {
+            // allow for empty lines in config
+            if (d.length === 0) continue;
+            // let ! denote blacklisted entries
+            const blacklist = /^!/.test(d);
+            if (blacklist) d = d.substr(1);
+            const split = d.split(/\./);
+            const field = split[1];
+            const list = blacklist ? (field ? field_blacklist : cat_blacklist) : (field ? field_whitelist : cat_whitelist);
 
-            list[list.length] = name;
+            list[list.length] = d;
 
             // ensure categories are aware about whitelisted columns
-            if (field && !cat_whitelist.includes(d.categoryName)) {
-                cat_whitelist[cat_whitelist.length] = d.categoryName;
+            if (field && !cat_whitelist.includes(split[0])) {
+                cat_whitelist[cat_whitelist.length] = split[0];
             }
         }
 
