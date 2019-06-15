@@ -139,6 +139,7 @@ export namespace Category {
         const field_blacklist: string[] = [];
 
         for (let d of directives.split(/[\r\n]+/)) {
+            d = d.trim();
             // allow for empty lines in config
             if (d.length === 0) continue;
             // let ! denote blacklisted entries
