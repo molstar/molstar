@@ -93,7 +93,6 @@ filter_aware_encoder2.setFilter(C.Category.filterOf('!atom_site\n' +
 describe('filtering-config', () => {
     const decoded1 = process(filter_aware_encoder1);
 
-    console.log(decoded1.blocks[0]);
     const atom_site1 = decoded1.blocks[0].categories['atom_site'];
     const cartn_x1 = atom_site1.getField('Cartn_x');
     const cartn_y1 = atom_site1.getField('Cartn_y');
