@@ -132,14 +132,6 @@ export namespace Category {
         includeField(categoryName: string, fieldName: string): boolean,
     }
 
-    export interface FilteringDirective {
-        categoryName: string,
-        columnName?: string,
-        behavior: FilteringBehavior
-    }
-
-    export type FilteringBehavior = 'whitelist' | 'blacklist';
-
     export function filterOf(directives: string): Filter {
         const cat_whitelist: string[] = [];
         const cat_blacklist: string[] = [];
