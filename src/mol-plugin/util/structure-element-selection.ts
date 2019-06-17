@@ -108,22 +108,7 @@ class StructureElementSelectionManager {
         }
         if (!e) return;
 
-        let predIdx = OrderedSet.findPredecessorIndex(e.indices, OrderedSet.min(xs.indices));
-        if (predIdx === 0) return;
-
-        let fst;
-
-        if (predIdx < OrderedSet.size(e.indices)) {
-            fst = OrderedSet.getAt(e.indices, predIdx)
-            if (fst > OrderedSet.min(xs.indices)) fst = OrderedSet.getAt(e.indices, predIdx - 1) + 1 as StructureElement.UnitIndex;
-        } else {
-            fst = OrderedSet.getAt(e.indices, predIdx - 1) + 1 as StructureElement.UnitIndex;
-        }
-
-        return StructureElement.Loci(entry.selection.structure, [{
-            unit: e.unit,
-            indices: OrderedSet.ofRange(fst, OrderedSet.max(xs.indices))
-        }]);
+        return tryGetElementRange(entry.selection.structure, e, xs)
     }
 
     private prevHighlight: StructureElement.Loci | undefined = void 0;
@@ -186,4 +171,34 @@ function remapSelectionEntry(e: SelectionEntry, s: Structure): SelectionEntry {
     return {
         selection: StructureElement.Loci.remap(e.selection, s)
     };
+}
+
+/**
+ * Assumes `ref` and `ext` belong to the same unit in the same structure
+ */
+function tryGetElementRange(structure: Structure, ref: StructureElement.Loci['elements'][0], ext: StructureElement.Loci['elements'][0]) {
+
+    const refMin = OrderedSet.min(ref.indices)
+    const refMax = OrderedSet.max(ref.indices)
+    const extMin = OrderedSet.min(ext.indices)
+    const extMax = OrderedSet.max(ext.indices)
+
+    let min: number
+    let max: number
+
+    if (refMax < extMin) {
+        min = refMax + 1
+        max = extMax
+    } else if (extMax < refMin) {
+        min = extMin
+        max = refMin - 1
+    } else {
+        // TODO handle range overlap cases
+        return
+    }
+
+    return StructureElement.Loci(structure, [{
+        unit: ref.unit,
+        indices: OrderedSet.ofRange(min as StructureElement.UnitIndex, max as StructureElement.UnitIndex)
+    }]);
 }
