@@ -18,14 +18,14 @@ interface StateTreeSpine {
 
 namespace StateTreeSpine {
     export class Impl implements StateTreeSpine {
-        private current: StateObjectCell | undefined = void 0;
-        setCurrent(cell?: StateObjectCell) {
-            this.current = cell;
-        }
+        private _current: StateObjectCell | undefined = void 0;
+
+        get current() { return this._current; }
+        set current(cell: StateObjectCell | undefined) { this._current = cell; }
 
         getAncestorOfType<T extends StateObject.Ctor>(t: T): StateObject.From<T> | undefined {
-            if (!this.current) return void 0;
-            let cell = this.current;
+            if (!this._current) return void 0;
+            let cell = this._current;
             while (true) {
                 cell = this.cells.get(cell.transform.parent)!;
                 if (!cell.obj) return void 0;
@@ -35,8 +35,8 @@ namespace StateTreeSpine {
         }
 
         getRootOfType<T extends StateObject.Ctor>(t: T): StateObject.From<T> | undefined {
-            if (!this.current) return void 0;
-            let cell = this.current;
+            if (!this._current) return void 0;
+            let cell = this._current;
             let ret: StateObjectCell | undefined = void 0;
             while (true) {
                 cell = this.cells.get(cell.transform.parent)!;

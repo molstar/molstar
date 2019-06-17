@@ -162,7 +162,7 @@ class State {
                 return cell && cell.obj;
             }
         } finally {
-            this.spine.setCurrent();
+            this.spine.current = undefined;
 
             if (updated) this.events.changed.next();
             this.events.isUpdating.next(false);
@@ -607,7 +607,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         throw new Error(`No suitable parent found for '${currentRef}'`);
     }
 
-    ctx.spine.setCurrent(current);
+    ctx.spine.current = current;
 
     const parent = parentCell.obj!;
     current.sourceRef = parentCell.transform.ref;
