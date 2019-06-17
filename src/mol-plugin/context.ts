@@ -38,6 +38,15 @@ import { isProductionMode, isDebugMode } from '../mol-util/debug';
 import { Model, Structure } from '../mol-model/structure';
 import { Interaction } from './util/interaction';
 
+interface Log {
+    entries: List<LogEntry>
+    readonly entry: (e: LogEntry) => void
+    readonly error: (msg: string) => void
+    readonly message: (msg: string) => void
+    readonly info: (msg: string) => void
+    readonly warn: (msg: string) => void
+}
+
 export class PluginContext {
     private disposed = false;
     private ev = RxEventHelper.create();
@@ -66,7 +75,7 @@ export class PluginContext {
         canvas3d: {
             settingsUpdated: this.ev()
         }
-    };
+    } as const
 
     readonly behaviors = {
         state: {
@@ -80,7 +89,7 @@ export class PluginContext {
         labels: {
             highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
         }
-    };
+    } as const
 
     readonly canvas3d: Canvas3D;
     readonly layout: PluginLayout = new PluginLayout(this);
@@ -92,16 +101,16 @@ export class PluginContext {
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
         themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
-    }
+    } as const
 
     readonly volumeRepresentation = {
         registry: new VolumeRepresentationRegistry(),
         themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
-    }
+    } as const
 
     readonly dataFormat = {
         registry: new DataFormatRegistry()
-    }
+    } as const
 
     readonly customModelProperties = new CustomPropertyRegistry<Model>();
     readonly customStructureProperties = new CustomPropertyRegistry<Structure>();
@@ -110,7 +119,7 @@ export class PluginContext {
     readonly helpers = {
         structureSelection: new StructureElementSelectionManager(this),
         substructureParent: new SubstructureParentHelper(this)
-    };
+    } as const;
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
@@ -128,7 +137,7 @@ export class PluginContext {
         }
     }
 
-    readonly log = {
+    readonly log: Log = {
         entries: List<LogEntry>(),
         entry: (e: LogEntry) => this.events.log.next(e),
         error: (msg: string) => this.events.log.next(LogEntry.error(msg)),
