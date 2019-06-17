@@ -1,5 +1,5 @@
 
-// measures 
+// measures
 
 $control-label-width:   110px;
 $row-height:            32px;
@@ -28,14 +28,14 @@ $standard-top-height:    2 * $row-height + 1;
 // TypeClass = 'Root' | 'Group' | 'Data' | 'Object' | 'Visual' | 'Selection' | 'Action' | 'Behaviour'
 
 // DO NOT CHANGE THESE!!
-$entity-color-Root:      $default-background;    
-$entity-color-Data:      color-lower-contrast(#95a5a6, 15%); 
-$entity-color-Selection: color-lower-contrast(#e74c3c, 15%); 
-$entity-color-Action:    color-lower-contrast(#34495e, 10%); 
-$entity-color-Object:    color-lower-contrast(#2ecc71, 10%); 
-$entity-color-Behaviour: color-lower-contrast(#9b59b6, 10%);   
-$entity-color-Visual:    color-lower-contrast(#3498db, 5%); 
-$entity-color-Group:     color-lower-contrast(#e67e22, 5%); 
+$entity-color-Root:      $default-background;
+$entity-color-Data:      color-lower-contrast(#95a5a6, 15%);
+$entity-color-Selection: color-lower-contrast(#e74c3c, 15%);
+$entity-color-Action:    color-lower-contrast(#34495e, 10%);
+$entity-color-Object:    color-lower-contrast(#2ecc71, 10%);
+$entity-color-Behaviour: color-lower-contrast(#9b59b6, 10%);
+$entity-color-Visual:    color-lower-contrast(#3498db, 5%);
+$entity-color-Group:     color-lower-contrast(#e67e22, 5%);
 
 //////////////////////////////////////////////////
 // COLORS and COMPUTED COLORS
@@ -43,8 +43,8 @@ $entity-color-Group:     color-lower-contrast(#e67e22, 5%);
 $slider-disabledColor: #ccc;
 
 $control-background: color-increase-contrast($default-background, 6.5%);
-$border-color: color-increase-contrast($default-background, 15%);  
-$msp-form-control-background: color-lower-contrast($default-background, 2.5%); 
+$border-color: color-increase-contrast($default-background, 15%);
+$msp-form-control-background: color-lower-contrast($default-background, 2.5%);
 
 // buttons
 $msp-btn-link-font-color: $font-color;
@@ -72,7 +72,10 @@ $highlight-info-font-color: $hover-font-color;
 $highlight-info-additional-font-color: color-lower-contrast($hover-font-color, 20%);
 
 // entity state
-$entity-color-fully-visible: $font-color; 
+$entity-color-fully-visible: $font-color;
 $entity-color-not-visible: color-lower-contrast($font-color, 66%);
 $entity-color-partialy-visible: color-lower-contrast($font-color, 33%);
 $entity-tag-color: color-lower-contrast($font-color, 20%);
+
+// sequence
+$sequence-background: $default-background;

@@ -1,0 +1,23 @@
+.msp-sequence {
+    position: absolute;
+    right: 0;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    font-size: 90%;
+    background: $sequence-background;
+}
+
+.msp-sequence-entity {
+    word-break: break-word;
+    padding: $info-vertical-padding $control-spacing $info-vertical-padding $control-spacing;
+    user-select: none;
+}
+
+.msp-sequence-entity {
+    span {
+        cursor: pointer;
+    }
+}

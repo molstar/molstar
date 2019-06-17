@@ -20,6 +20,7 @@ import { BackgroundTaskProgress } from './task';
 import { Viewport, ViewportControls } from './viewport';
 import { StateTransform } from '../../mol-state';
 import { UpdateTransformControl } from './state/update-transform';
+import { SequenceView } from './sequence';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
@@ -92,7 +93,7 @@ class Layout extends PluginUIComponent {
             <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
                 <div className={this.layoutVisibilityClassName}>
                     {this.region('main', ViewportWrapper)}
-                    {layout.showControls && controls.top !== 'none' && this.region('top', controls.top)}
+                    {layout.showControls && controls.top !== 'none' && this.region('top', controls.top || SequenceView)}
                     {layout.showControls && controls.left !== 'none' && this.region('left', controls.left || State)}
                     {layout.showControls && controls.right !== 'none' && this.region('right', controls.right || ControlsWrapper)}
                     {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
