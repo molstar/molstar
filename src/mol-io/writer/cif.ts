@@ -53,5 +53,64 @@ export namespace CifWriter {
                 return ff && ff.binaryEncoding ? ArrayEncoder.fromEncoding(ff.binaryEncoding) : void 0;
             }
         }
+    };
+
+    export function createEncodingProviderFromJsonConfig(hints: EncodingStrategyHint[]): EncodingProvider {
+        return {
+            get(c, f) {
+                for (let i = 0; i < hints.length; i++) {
+                    const hint = hints[i];
+                    if (hint.categoryName === c && hint.columnName === f) {
+                        return resolveEncoding(hint);
+                    }
+                }
+            }
+        }
+    }
+
+    function resolveEncoding(hint: EncodingStrategyHint): ArrayEncoder {
+        const precision: number | undefined = hint.precision;
+        if (precision !== void 0) {
+            const multiplier = Math.pow(10, precision);
+            const fixedPoint = E.by(E.fixedPoint(multiplier));
+            switch (hint.encoding) {
+                case 'pack':
+                    return fixedPoint.and(E.integerPacking);
+                case 'rle':
+                    return fixedPoint.and(E.runLength).and(E.integerPacking);
+                case 'delta':
+                    return fixedPoint.and(E.delta).and(E.integerPacking);
+                case 'delta-rle':
+                    return fixedPoint.and(E.delta).and(E.runLength).and(E.integerPacking);
+            };
+        } else {
+            switch (hint.encoding) {
+                case 'pack':
+                    return E.by(E.integerPacking);
+                case 'rle':
+                    return E.by(E.runLength).and(E.integerPacking);
+                case 'delta':
+                    return E.by(E.delta).and(E.integerPacking);
+                case 'delta-rle':
+                    return E.by(E.delta).and(E.runLength).and(E.integerPacking);
+            }
+        }
+        throw new Error('cannot be reached');
     }
 }
+
+/**
+ * Defines the information needed to encode certain fields: category and column name as well as encoding tag, precision is optional and identifies float columns.
+ */
+export interface EncodingStrategyHint {
+    categoryName: string,
+    columnName: string,
+    // TODO would be nice to infer strategy and precision if needed
+    encoding: EncodingType,
+    /**
+     * number of decimal places to keep - must be specified to float columns
+     */
+    precision?: number
+}
+
+type EncodingType = 'pack' | 'rle' | 'delta' | 'delta-rle'

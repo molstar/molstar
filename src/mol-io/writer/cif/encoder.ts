@@ -132,6 +132,60 @@ export namespace Category {
         includeField(categoryName: string, fieldName: string): boolean,
     }
 
+    export function filterOf(directives: string): Filter {
+        const cat_whitelist: string[] = [];
+        const cat_blacklist: string[] = [];
+        const field_whitelist: string[] = [];
+        const field_blacklist: string[] = [];
+
+        for (let d of directives.split(/[\r\n]+/)) {
+            d = d.trim();
+            // allow for empty lines in config
+            if (d.length === 0) continue;
+            // let ! denote blacklisted entries
+            const blacklist = /^!/.test(d);
+            if (blacklist) d = d.substr(1);
+            const split = d.split(/\./);
+            const field = split[1];
+            const list = blacklist ? (field ? field_blacklist : cat_blacklist) : (field ? field_whitelist : cat_whitelist);
+
+            list[list.length] = d;
+
+            // ensure categories are aware about whitelisted columns
+            if (field && !cat_whitelist.includes(split[0])) {
+                cat_whitelist[cat_whitelist.length] = split[0];
+            }
+        }
+
+        const wlcatcol = field_whitelist.map(it => it.split('.')[0]);
+        // blacklist has higher priority
+        return {
+            includeCategory(cat) {
+                // block if category in black
+                if (cat_blacklist.includes(cat)) {
+                    return false;
+                } else {
+                    // if there is a whitelist, the category has to be explicitly allowed
+                    return cat_whitelist.length <= 0 ||
+                            // otherwise include if whitelist contains category
+                            cat_whitelist.indexOf(cat) !== -1;
+                }
+            },
+            includeField(cat, field) {
+                // column names are assumed to follow the pattern 'category_name.column_name'
+                const full = cat + '.' + field;
+                if (field_blacklist.includes(full)) {
+                    return false;
+                } else {
+                    // if for this category no whitelist entries exist
+                    return !wlcatcol.includes(cat) ||
+                            // otherwise must be specifically allowed
+                            field_whitelist.includes(full);
+                }
+            }
+        }
+    }
+
     export const DefaultFilter: Filter = {
         includeCategory(cat) { return true; },
         includeField(cat, field) { return true; }
