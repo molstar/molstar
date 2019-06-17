@@ -10,7 +10,7 @@ import { Vec2 } from '../../mol-math/linear-algebra';
 
 import { BitFlags, noop } from '../../mol-util';
 
-function getButtons(event: MouseEvent | Touch) {
+export function getButtons(event: MouseEvent | Touch) {
     if (typeof event === 'object') {
         if ('buttons' in event) {
             return event.buttons
@@ -35,6 +35,15 @@ function getButtons(event: MouseEvent | Touch) {
         }
     }
     return 0
+}
+
+export function getModifiers(event: MouseEvent | Touch) {
+    return {
+        alt: 'altKey' in event ? event.altKey : false,
+        shift: 'shiftKey' in event ? event.shiftKey : false,
+        control: 'ctrlKey' in event ? event.ctrlKey : false,
+        meta: 'metaKey' in event ? event.metaKey : false
+    }
 }
 
 export const DefaultInputObserverProps = {
