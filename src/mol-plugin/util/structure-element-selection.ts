@@ -2,6 +2,7 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { OrderedSet } from '../../mol-data/int';
@@ -29,25 +30,37 @@ class StructureElementSelectionManager {
         return this.entries.get(ref)!;
     }
 
-    add(loci: StructureElement.Loci): Loci {
-        const entry = this.getEntry(loci.structure);
-        if (!entry) return EmptyLoci;
-        entry.selection = StructureElement.Loci.union(entry.selection, loci);
-        return entry.selection;
+    add(loci: Loci): Loci {
+        if (StructureElement.isLoci(loci)) {
+            const entry = this.getEntry(loci.structure);
+            if (entry) {
+                entry.selection = StructureElement.Loci.union(entry.selection, loci);
+                return entry.selection;
+            }
+        }
+        return EmptyLoci
     }
 
-    remove(loci: StructureElement.Loci): Loci {
-        const entry = this.getEntry(loci.structure);
-        if (!entry) return EmptyLoci;
-        entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
-        return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
+    remove(loci: Loci): Loci {
+        if (StructureElement.isLoci(loci)) {
+            const entry = this.getEntry(loci.structure);
+            if (entry) {
+                entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
+                return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
+            }
+        }
+        return EmptyLoci
     }
 
-    set(loci: StructureElement.Loci): Loci {
-        const entry = this.getEntry(loci.structure);
-        if (!entry) return EmptyLoci;
-        entry.selection = loci;
-        return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
+    set(loci: Loci): Loci {
+        if (StructureElement.isLoci(loci)) {
+            const entry = this.getEntry(loci.structure);
+            if (entry) {
+                entry.selection = loci;
+                return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
+            }
+        }
+        return EmptyLoci;
     }
 
     clear() {
@@ -69,13 +82,18 @@ class StructureElementSelectionManager {
         return entry.selection;
     }
 
-    has(loci: StructureElement.Loci) {
-        const entry = this.getEntry(loci.structure);
-        if (!entry) return false;
-        return StructureElement.Loci.areIntersecting(loci, entry.selection);
+    has(loci: Loci) {
+        if (StructureElement.isLoci(loci)) {
+            const entry = this.getEntry(loci.structure);
+            if (entry) {
+                return StructureElement.Loci.areIntersecting(loci, entry.selection);
+            }
+        }
+        return false;
     }
 
-    tryGetRange(loci: StructureElement.Loci): StructureElement.Loci | undefined {
+    tryGetRange(loci: Loci): StructureElement.Loci | undefined {
+        if (!StructureElement.isLoci(loci)) return;
         if (loci.elements.length !== 1) return;
         const entry = this.getEntry(loci.structure);
         if (!entry) return;
@@ -110,11 +128,13 @@ class StructureElementSelectionManager {
 
     private prevHighlight: StructureElement.Loci | undefined = void 0;
 
-    accumulateInteractiveHighlight(loci: StructureElement.Loci) {
-        if (this.prevHighlight) {
-            this.prevHighlight = StructureElement.Loci.union(this.prevHighlight, loci);
-        } else {
-            this.prevHighlight = loci;
+    accumulateInteractiveHighlight(loci: Loci) {
+        if (StructureElement.isLoci(loci)) {
+            if (this.prevHighlight) {
+                this.prevHighlight = StructureElement.Loci.union(this.prevHighlight, loci);
+            } else {
+                this.prevHighlight = loci;
+            }
         }
         return this.prevHighlight;
     }
