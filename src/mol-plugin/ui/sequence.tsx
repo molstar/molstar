@@ -16,9 +16,15 @@ import { Loci } from '../../mol-model/loci';
 import { applyMarkerAction, MarkerAction } from '../../mol-geo/geometry/marker-data';
 import { ButtonsType, ModifiersKeys, getButtons, getModifiers } from '../../mol-util/input/input-observer';
 
+function getStructureSeqKey(structureSeq: StructureSeq) {
+    const { structure, seq } = structureSeq
+    const strucHash = structure.parent ? structure.parent.hashCode : structure.hashCode
+    return `${strucHash}|${seq.entityId}`
+}
 
 export class SequenceView extends PluginUIComponent<{ }, { }> {
     private spine: StateTreeSpine.Impl
+    private markerArrays = new Map<string, Uint8Array>()
 
     componentDidMount() {
         this.spine = new StateTreeSpine.Impl(this.plugin.state.dataState.cells);
@@ -42,14 +48,23 @@ export class SequenceView extends PluginUIComponent<{ }, { }> {
     }
 
     render() {
-        const s = this.getStructure();
-        if (!s) return <div className='msp-sequence'>
+        const structure = this.getStructure();
+        if (!structure) return <div className='msp-sequence'>
             <div className='msp-sequence-entity'>No structure available</div>
         </div>;
 
-        const seqs = s.models[0].sequence.sequences;
+        const seqs = structure.models[0].sequence.sequences;
         return <div className='msp-sequence'>
-            {seqs.map((seq, i) => <EntitySequence key={i} seq={seq} structure={s} /> )}
+            {seqs.map((seq, i) => {
+                const structureSeq = { structure, seq }
+                const key = getStructureSeqKey(structureSeq)
+                let markerArray = this.markerArrays.get(key)
+                if (!markerArray) {
+                    markerArray = new Uint8Array(seq.sequence.sequence.length)
+                    this.markerArrays.set(key, markerArray)
+                }
+                return <EntitySequence key={i} structureSeq={structureSeq} markerArray={markerArray} />
+            })}
         </div>;
     }
 }
@@ -127,24 +142,34 @@ function markResidue(loci: Loci, structureSeq: StructureSeq, array: Uint8Array, 
     })
 }
 
+type EntitySequenceProps = { structureSeq: StructureSeq, markerArray: Uint8Array }
+type EntitySequenceState = { markerData: { array: Uint8Array } }
+
 // TODO: this is really inefficient and should be done using a canvas.
-class EntitySequence extends PluginUIComponent<{ seq: StructureSequence.Entity, structure: Structure }, { markerData: { array: Uint8Array } }> {
+class EntitySequence extends PluginUIComponent<EntitySequenceProps, EntitySequenceState> {
     state = {
-        markerData: { array: new Uint8Array(this.props.seq.sequence.sequence.length) }
+        markerData: { array: new Uint8Array(this.props.markerArray) }
     }
 
     private lociHighlightProvider = (loci: Interaction.Loci, action: MarkerAction) => {
         const { array } = this.state.markerData;
-        const { structure, seq } = this.props
-        const changed = markResidue(loci.loci, { structure , seq }, array, action)
+        const { structureSeq } = this.props
+        const changed = markResidue(loci.loci, structureSeq, array, action)
         if (changed) this.setState({ markerData: { array } })
     }
 
     private lociSelectionProvider = (loci: Interaction.Loci, action: MarkerAction) => {
         const { array } = this.state.markerData;
-        const { structure, seq } = this.props
-        const changed = markResidue(loci.loci, { structure , seq }, array, action)
+        const { structureSeq } = this.props
+        const changed = markResidue(loci.loci, structureSeq, array, action)
         if (changed) this.setState({ markerData: { array } })
+    }
+
+    static getDerivedStateFromProps(nextProps: EntitySequenceProps, prevState: EntitySequenceState) {
+        if (prevState.markerData.array !== nextProps.markerArray) {
+            return { markerData: { array: nextProps.markerArray } }
+        }
+        return null
     }
 
     componentDidMount() {
@@ -158,8 +183,9 @@ class EntitySequence extends PluginUIComponent<{ seq: StructureSequence.Entity, 
     }
 
     getLoci(seqId: number) {
-        const query = createQuery(this.props.seq.entityId, seqId);
-        return StructureSelection.toLoci2(StructureQuery.run(query, this.props.structure));
+        const { structure, seq } = this.props.structureSeq
+        const query = createQuery(seq.entityId, seqId);
+        return StructureSelection.toLoci2(StructureQuery.run(query, structure));
     }
 
     highlight(seqId?: number, modifiers?: ModifiersKeys) {
@@ -192,7 +218,7 @@ class EntitySequence extends PluginUIComponent<{ seq: StructureSequence.Entity, 
 
     render() {
         const { markerData } = this.state;
-        const { seq } = this.props;
+        const { seq } = this.props.structureSeq;
         const { offset, sequence } = seq.sequence;
 
         const elems: JSX.Element[] = [];
@@ -205,7 +231,7 @@ class EntitySequence extends PluginUIComponent<{ seq: StructureSequence.Entity, 
             onContextMenu={this.contextMenu}
             onMouseDown={this.mouseDown}
         >
-            <span style={{ fontWeight: 'bold' }}>{this.props.seq.entityId}:{offset}&nbsp;</span>
+            <span style={{ fontWeight: 'bold' }}>{seq.entityId}:{offset}&nbsp;</span>
             {elems}
         </div>;
     }
@@ -233,6 +259,7 @@ class Residue extends PluginUIComponent<{ seqId: number, letter: string, parent:
         // TODO make marker color configurable
         if (this.props.marker === 0) return ''
         if (this.props.marker % 2 === 0) return 'rgb(51, 255, 25)' // selected
+        if (this.props.marker === undefined) console.error('unexpected marker value')
         return 'rgb(255, 102, 153)' // highlighted
     }
 
