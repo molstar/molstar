@@ -195,7 +195,7 @@ export namespace VolumeStreaming {
                 }
             });
 
-            this.subscribeObservable(this.plugin.behaviors.canvas3d.click, ({ current, buttons, modifiers }) => {
+            this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
                 if (buttons !== ButtonsType.Flag.Secondary || this.params.view.name !== 'selection-box') return;
 
                 if (current.loci.kind === 'empty-loci') {

@@ -121,7 +121,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
             }
         });
 
-        this.subscribeObservable(this.plugin.behaviors.canvas3d.click, ({ current, buttons, modifiers }) => {
+        this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
             if (buttons !== ButtonsType.Flag.Secondary) return;
 
             if (current.loci.kind === 'empty-loci') {

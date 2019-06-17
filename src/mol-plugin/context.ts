@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { List } from 'immutable';
@@ -32,10 +33,10 @@ import { TaskManager } from './util/task-manager';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { StructureElementSelectionManager } from './util/structure-element-selection';
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
-import { Representation } from '../mol-repr/representation';
 import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { isProductionMode, isDebugMode } from '../mol-util/debug';
 import { Model, Structure } from '../mol-model/structure';
+import { Interaction } from './util/interaction';
 
 export class PluginContext {
     private disposed = false;
@@ -72,9 +73,9 @@ export class PluginContext {
             isAnimating: this.ev.behavior<boolean>(false),
             isUpdating: this.ev.behavior<boolean>(false)
         },
-        canvas3d: {
-            highlight: this.ev.behavior<Canvas3D.HighlightEvent>({ current: Representation.Loci.Empty }),
-            click: this.ev.behavior<Canvas3D.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
+        interaction: {
+            highlight: this.ev.behavior<Interaction.HighlightEvent>({ current: Interaction.Loci.Empty }),
+            click: this.ev.behavior<Interaction.ClickEvent>({ current: Interaction.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
         },
         labels: {
             highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
@@ -85,6 +86,8 @@ export class PluginContext {
     readonly layout: PluginLayout = new PluginLayout(this);
 
     readonly lociLabels: LociLabelManager;
+    readonly lociSelections: Interaction.LociSelectionManager;
+    readonly lociHighlights: Interaction.LociHighlightManager;
 
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
@@ -227,6 +230,8 @@ export class PluginContext {
         this.initCustomParamEditors();
 
         this.lociLabels = new LociLabelManager(this);
+        this.lociSelections = new Interaction.LociSelectionManager(this);
+        this.lociHighlights = new Interaction.LociHighlightManager(this);
 
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
         if (!isProductionMode) this.log.message(`Development mode enabled`);
