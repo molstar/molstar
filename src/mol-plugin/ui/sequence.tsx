@@ -15,6 +15,7 @@ import { OrderedSet, Interval } from '../../mol-data/int';
 import { Loci } from '../../mol-model/loci';
 import { applyMarkerAction, MarkerAction } from '../../mol-util/marker-action';
 import { ButtonsType, ModifiersKeys, getButtons, getModifiers } from '../../mol-util/input/input-observer';
+import { ValueBox } from '../../mol-util';
 
 function getStructureSeqKey(structureSeq: StructureSeq) {
     const { structure, seq } = structureSeq
@@ -42,6 +43,20 @@ export class SequenceView extends PluginUIComponent<{ }, { }> {
         });
     }
 
+    private getMarkerArray(structureSeq: StructureSeq): Uint8Array {
+        const { structure, seq } = structureSeq
+        const key = getStructureSeqKey(structureSeq)
+        let markerArray = this.markerArrays.get(key)
+        if (!markerArray) {
+            markerArray = new Uint8Array(seq.sequence.sequence.length)
+            this.markerArrays.set(key, markerArray)
+        }
+        const loci = this.plugin.helpers.structureSelection.get(structure)
+        markerArray.fill(0)
+        markResidue(loci, structureSeq, markerArray, MarkerAction.Select)
+        return markerArray
+    }
+
     private getStructure() {
         const so = this.spine && this.spine.getRootOfType(SO.Molecule.Structure)
         return so && so.data
@@ -57,12 +72,7 @@ export class SequenceView extends PluginUIComponent<{ }, { }> {
         return <div className='msp-sequence'>
             {seqs.map((seq, i) => {
                 const structureSeq = { structure, seq }
-                const key = getStructureSeqKey(structureSeq)
-                let markerArray = this.markerArrays.get(key)
-                if (!markerArray) {
-                    markerArray = new Uint8Array(seq.sequence.sequence.length)
-                    this.markerArrays.set(key, markerArray)
-                }
+                const markerArray = this.getMarkerArray(structureSeq)
                 return <EntitySequence key={i} structureSeq={structureSeq} markerArray={markerArray} />
             })}
         </div>;
@@ -138,31 +148,29 @@ function markResidue(loci: Loci, structureSeq: StructureSeq, array: Uint8Array, 
 }
 
 type EntitySequenceProps = { structureSeq: StructureSeq, markerArray: Uint8Array }
-type EntitySequenceState = { markerData: { array: Uint8Array } }
+type EntitySequenceState = { markerData: ValueBox<Uint8Array> }
 
 // TODO: this is really inefficient and should be done using a canvas.
 class EntitySequence extends PluginUIComponent<EntitySequenceProps, EntitySequenceState> {
     state = {
-        markerData: { array: new Uint8Array(this.props.markerArray) }
+        markerData: ValueBox.create(new Uint8Array(this.props.markerArray))
     }
 
     private lociHighlightProvider = (loci: Interaction.Loci, action: MarkerAction) => {
-        const { array } = this.state.markerData;
-        const { structureSeq } = this.props
-        const changed = markResidue(loci.loci, structureSeq, array, action)
-        if (changed) this.setState({ markerData: { array } })
+        const { markerData } = this.state;
+        const changed = markResidue(loci.loci, this.props.structureSeq, markerData.value, action)
+        if (changed) this.setState({ markerData: ValueBox.withValue(markerData, markerData.value) })
     }
 
     private lociSelectionProvider = (loci: Interaction.Loci, action: MarkerAction) => {
-        const { array } = this.state.markerData;
-        const { structureSeq } = this.props
-        const changed = markResidue(loci.loci, structureSeq, array, action)
-        if (changed) this.setState({ markerData: { array } })
+        const { markerData } = this.state;
+        const changed = markResidue(loci.loci, this.props.structureSeq, markerData.value, action)
+        if (changed) this.setState({ markerData: ValueBox.withValue(markerData, markerData.value) })
     }
 
-    static getDerivedStateFromProps(nextProps: EntitySequenceProps, prevState: EntitySequenceState) {
-        if (prevState.markerData.array !== nextProps.markerArray) {
-            return { markerData: { array: nextProps.markerArray } }
+    static getDerivedStateFromProps(nextProps: EntitySequenceProps, prevState: EntitySequenceState): EntitySequenceState | null {
+        if (prevState.markerData.value !== nextProps.markerArray) {
+            return { markerData: ValueBox.create(nextProps.markerArray) }
         }
         return null
     }
@@ -218,7 +226,7 @@ class EntitySequence extends PluginUIComponent<EntitySequenceProps, EntitySequen
 
         const elems: JSX.Element[] = [];
         for (let i = 0, _i = sequence.length; i < _i; i++) {
-            elems[elems.length] = <Residue seqId={offset + i + 1} letter={sequence[i]} parent={this} marker={markerData.array[i]} key={i} />;
+            elems[elems.length] = <Residue seqId={offset + i + 1} letter={sequence[i]} parent={this} marker={markerData.value[i]} key={i} />;
         }
 
         return <div
