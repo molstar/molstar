@@ -36,7 +36,7 @@ require('../../mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 3;
-    static VERSION_MINOR = 1;
+    static VERSION_MINOR = 2;
 
     private _ev = RxEventHelper.create();
 
@@ -81,7 +81,7 @@ class MolStarProteopediaWrapper {
         return b.apply(StateTransforms.Data.Download, { url, isBinary: false })
     }
 
-    private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats, assemblyId: string) {
+    private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats) {
         const parsed = format === 'cif'
             ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
             : b.apply(StateTransforms.Model.TrajectoryFromPDB);
@@ -190,7 +190,7 @@ class MolStarProteopediaWrapper {
     }
 
     private loadedParams: LoadParams = { url: '', format: 'cif', assemblyId: '' };
-    async load({ url, format = 'cif', assemblyId = '', representationStyle }: LoadParams) {
+    async load({ url, format = 'cif', assemblyId = 'deposited', representationStyle }: LoadParams) {
         let loadType: 'full' | 'update' = 'full';
 
         const state = this.plugin.state.dataState;
@@ -203,14 +203,17 @@ class MolStarProteopediaWrapper {
 
         if (loadType === 'full') {
             await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: state.tree.root.ref });
-            const modelTree = this.model(this.download(state.build().toRoot(), url), format, assemblyId);
+            const modelTree = this.model(this.download(state.build().toRoot(), url), format);
             await this.applyState(modelTree);
             const info = await this.doInfo(true);
-            const structureTree = this.structure((assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId);
+            const asmId = (assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId;
+            const structureTree = this.structure(asmId);
             await this.applyState(structureTree);
         } else {
             const tree = state.build();
-            tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId || 'deposited' }));
+            const info = await this.doInfo(true);
+            const asmId = (assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId;
+            tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: asmId }));
             await this.applyState(tree);
         }
 
@@ -295,30 +298,30 @@ class MolStarProteopediaWrapper {
             PluginCommands.State.Update.dispatch(this.plugin, { state: this.state, tree: update });
             PluginCommands.Camera.Reset.dispatch(this.plugin, { });
         },
-        focusFirst: async (resn: string) => {
+        focusFirst: async (compId: string) => {
             if (!this.state.transforms.has(StateElements.Assembly)) return;
+            await PluginCommands.Camera.Reset.dispatch(this.plugin, { });
 
             // const asm = (this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure).data;
 
             const update = this.state.build();
 
-            update.delete(StateElements.HetGroupFocus);
+            update.delete(StateElements.HetGroupFocusGroup);
 
-            const surroundings = MS.struct.modifier.includeSurroundings({
-                0: MS.struct.filter.first([
-                    MS.struct.generator.atomGroups({
-                        'residue-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_comp_id(), resn]),
-                        'group-by': MS.struct.atomProperty.macromolecular.residueKey()
-                    })
-                ]),
-                radius: 5,
-                'as-whole-residues': true
-            });
+            const core = MS.struct.filter.first([
+                MS.struct.generator.atomGroups({
+                    'residue-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_comp_id(), compId]),
+                    'group-by': MS.core.str.concat([MS.struct.atomProperty.core.operatorName(), MS.struct.atomProperty.macromolecular.residueKey()])
+                })
+            ]);
+            const surroundings = MS.struct.modifier.includeSurroundings({ 0: core, radius: 5, 'as-whole-residues': true });
 
-            const sel = update.to(StateElements.Assembly)
-                .apply(StateTransforms.Model.StructureSelection, { label: resn, query: surroundings }, { ref: StateElements.HetGroupFocus });
+            const group = update.to(StateElements.Assembly).group(StateTransforms.Misc.CreateGroup, { label: compId }, { ref: StateElements.HetGroupFocusGroup });
 
-            sel.apply(StateTransforms.Representation.StructureRepresentation3D, this.createSurVisualParams());
+            group.apply(StateTransforms.Model.StructureSelection, { label: 'Core', query: core }, { ref: StateElements.HetGroupFocus })
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.createCoreVisualParams());
+            group.apply(StateTransforms.Model.StructureSelection, { label: 'Surroundings', query: surroundings })
+                .apply(StateTransforms.Representation.StructureRepresentation3D, this.createSurVisualParams());
             // sel.apply(StateTransforms.Representation.StructureLabels3D, {
             //     target: { name: 'residues', params: { } },
             //     options: {
@@ -338,7 +341,7 @@ class MolStarProteopediaWrapper {
             // const position = Vec3.sub(Vec3.zero(), sphere.center, asmCenter);
             // Vec3.normalize(position, position);
             // Vec3.scaleAndAdd(position, sphere.center, position, sphere.radius);
-            const snapshot = this.plugin.canvas3d.camera.getFocus(sphere.center, 0.75 * sphere.radius);
+            const snapshot = this.plugin.canvas3d.camera.getFocus(sphere.center, Math.max(sphere.radius, 5));
             PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, { snapshot, durationMs: 250 });
         }
     }
@@ -349,6 +352,15 @@ class MolStarProteopediaWrapper {
             repr: BuiltInStructureRepresentations['ball-and-stick'],
             color: [BuiltInColorThemes.uniform, () => ({ value: ColorNames.gray })],
             size: [BuiltInSizeThemes.uniform, () => ({ value: 0.33 } )]
+        });
+    }
+
+    private createCoreVisualParams() {
+        const asm = this.state.select(StateElements.Assembly)[0].obj as PluginStateObject.Molecule.Structure;
+        return StructureRepresentation3DHelpers.createParams(this.plugin, asm.data, {
+            repr: BuiltInStructureRepresentations['ball-and-stick'],
+            // color: [BuiltInColorThemes.uniform, () => ({ value: ColorNames.gray })],
+            // size: [BuiltInSizeThemes.uniform, () => ({ value: 0.33 } )]
         });
     }
 

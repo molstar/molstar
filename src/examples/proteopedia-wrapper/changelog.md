@@ -1,3 +1,8 @@
+== v3.2 ==
+
+* Fixed assembly loading.
+* Better HET group focus.
+
 == v3.0 ==
 
 * Fixed initial camera zoom.

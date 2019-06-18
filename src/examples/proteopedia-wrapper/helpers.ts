@@ -115,5 +115,6 @@ export enum StateElements {
     Water = 'water',
     WaterVisual = 'water-visual',
 
-    HetGroupFocus = 'het-group-focus'
+    HetGroupFocus = 'het-group-focus',
+    HetGroupFocusGroup = 'het-group-focus-group'
 }
