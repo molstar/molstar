@@ -81,7 +81,7 @@ class MolStarProteopediaWrapper {
         return b.apply(StateTransforms.Data.Download, { url, isBinary: false })
     }
 
-    private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats, assemblyId: string) {
+    private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats) {
         const parsed = format === 'cif'
             ? b.apply(StateTransforms.Data.ParseCif).apply(StateTransforms.Model.TrajectoryFromMmCif)
             : b.apply(StateTransforms.Model.TrajectoryFromPDB);
@@ -203,14 +203,17 @@ class MolStarProteopediaWrapper {
 
         if (loadType === 'full') {
             await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state, ref: state.tree.root.ref });
-            const modelTree = this.model(this.download(state.build().toRoot(), url), format, assemblyId);
+            const modelTree = this.model(this.download(state.build().toRoot(), url), format);
             await this.applyState(modelTree);
             const info = await this.doInfo(true);
-            const structureTree = this.structure((assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId);
+            const asmId = (assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId;
+            const structureTree = this.structure(asmId);
             await this.applyState(structureTree);
         } else {
             const tree = state.build();
-            tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: assemblyId || 'deposited' }));
+            const info = await this.doInfo(true);
+            const asmId = (assemblyId === 'preferred' && info && info.preferredAssemblyId) || assemblyId;
+            tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureAssemblyFromModel, p => ({ ...p, id: asmId }));
             await this.applyState(tree);
         }
 
