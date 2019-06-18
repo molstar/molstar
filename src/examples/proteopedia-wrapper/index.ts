@@ -29,7 +29,6 @@ import { BuiltInSizeThemes } from '../../mol-theme/size';
 import { ColorNames } from '../../mol-util/color/tables';
 import { InitVolumeStreaming, CreateVolumeStreamingInfo } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { ParamDefinition } from '../../mol-util/param-definition';
-import { ResidueIndex } from '../../mol-model/structure';
 // import { Vec3 } from 'mol-math/linear-algebra';
 // import { ParamDefinition } from 'mol-util/param-definition';
 // import { Text } from 'mol-geo/geometry/text/text';
@@ -299,7 +298,7 @@ class MolStarProteopediaWrapper {
             PluginCommands.State.Update.dispatch(this.plugin, { state: this.state, tree: update });
             PluginCommands.Camera.Reset.dispatch(this.plugin, { });
         },
-        focusFirst: async (resn: string, resIdx: ResidueIndex) => {
+        focusFirst: async (compId: string) => {
             if (!this.state.transforms.has(StateElements.Assembly)) return;
             await PluginCommands.Camera.Reset.dispatch(this.plugin, { });
 
@@ -311,17 +310,13 @@ class MolStarProteopediaWrapper {
 
             const core = MS.struct.filter.first([
                 MS.struct.generator.atomGroups({
-                    'residue-test': MS.core.logic.and([
-                        MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_comp_id(), resn]),
-                        // the resIdx isn't very clear solution and is based on current implementation of residueKey()
-                        MS.core.rel.eq([MS.struct.atomProperty.macromolecular.residueKey(), resIdx])
-                    ]),
+                    'residue-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_comp_id(), compId]),
                     'group-by': MS.core.str.concat([MS.struct.atomProperty.core.operatorName(), MS.struct.atomProperty.macromolecular.residueKey()])
                 })
             ]);
             const surroundings = MS.struct.modifier.includeSurroundings({ 0: core, radius: 5, 'as-whole-residues': true });
 
-            const group = update.to(StateElements.Assembly).group(StateTransforms.Misc.CreateGroup, { label: resn }, { ref: StateElements.HetGroupFocusGroup });
+            const group = update.to(StateElements.Assembly).group(StateTransforms.Misc.CreateGroup, { label: compId }, { ref: StateElements.HetGroupFocusGroup });
 
             group.apply(StateTransforms.Model.StructureSelection, { label: 'Core', query: core }, { ref: StateElements.HetGroupFocus })
                 .apply(StateTransforms.Representation.StructureRepresentation3D, this.createCoreVisualParams());
