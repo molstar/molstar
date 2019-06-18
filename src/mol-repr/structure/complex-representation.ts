@@ -15,7 +15,7 @@ import { createEmptyTheme, Theme } from '../../mol-theme/theme';
 import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { MarkerAction } from '../../mol-geo/geometry/marker-data';
+import { MarkerAction } from '../../mol-util/marker-action';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0

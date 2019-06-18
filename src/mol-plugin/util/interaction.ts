@@ -9,7 +9,7 @@ import { Loci as ModelLoci, EmptyLoci } from '../../mol-model/loci';
 import { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
 import { Representation } from '../../mol-repr/representation';
 import { StructureElement } from '../../mol-model/structure';
-import { MarkerAction } from '../../mol-geo/geometry/marker-data';
+import { MarkerAction } from '../../mol-util/marker-action';
 import { StructureElementSelectionManager } from './structure-element-selection';
 import { PluginContext } from '../context';
 

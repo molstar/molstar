@@ -13,7 +13,7 @@ import { PluginStateObject as SO } from '../state/objects';
 import { Interaction } from '../util/interaction';
 import { OrderedSet, Interval } from '../../mol-data/int';
 import { Loci } from '../../mol-model/loci';
-import { applyMarkerAction, MarkerAction } from '../../mol-geo/geometry/marker-data';
+import { applyMarkerAction, MarkerAction } from '../../mol-util/marker-action';
 import { ButtonsType, ModifiersKeys, getButtons, getModifiers } from '../../mol-util/input/input-observer';
 
 function getStructureSeqKey(structureSeq: StructureSeq) {
@@ -87,6 +87,7 @@ function createQuery(entityId: string, label_seq_id: number) {
     });
 }
 
+/** Zero-indexed */
 function getSeqIdInterval(location: StructureElement): Interval {
     const { unit, element } = location
     const { model } = unit
@@ -94,16 +95,16 @@ function getSeqIdInterval(location: StructureElement): Interval {
         case Unit.Kind.Atomic:
             const residueIndex = model.atomicHierarchy.residueAtomSegments.index[element]
             const seqId = model.atomicHierarchy.residues.label_seq_id.value(residueIndex)
-            return Interval.ofSingleton(seqId)
+            return Interval.ofSingleton(seqId - 1)
         case Unit.Kind.Spheres:
             return Interval.ofRange(
-                model.coarseHierarchy.spheres.seq_id_begin.value(element),
-                model.coarseHierarchy.spheres.seq_id_end.value(element)
+                model.coarseHierarchy.spheres.seq_id_begin.value(element) - 1,
+                model.coarseHierarchy.spheres.seq_id_end.value(element) - 1
             )
         case Unit.Kind.Gaussians:
             return Interval.ofRange(
-                model.coarseHierarchy.gaussians.seq_id_begin.value(element),
-                model.coarseHierarchy.gaussians.seq_id_end.value(element)
+                model.coarseHierarchy.gaussians.seq_id_begin.value(element) - 1,
+                model.coarseHierarchy.gaussians.seq_id_end.value(element) - 1
             )
     }
 }
@@ -132,13 +133,7 @@ function eachResidue(loci: Loci, structureSeq: StructureSeq, apply: (interval: I
 function markResidue(loci: Loci, structureSeq: StructureSeq, array: Uint8Array, action: MarkerAction) {
     const { structure, seq } = structureSeq
     return eachResidue(loci, { structure , seq }, (i: Interval) => {
-        let changed = false
-        OrderedSet.forEach(i, (v: number) => {
-            const start = Interval.start(i) - 1
-            const end = Interval.end(i) - 1
-            if (applyMarkerAction(array, start, end, action)) changed = true
-        })
-        return changed
+        return applyMarkerAction(array, i, action)
     })
 }
 

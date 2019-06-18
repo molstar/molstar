@@ -17,7 +17,7 @@ import { Representation } from '../mol-repr/representation';
 import Scene from '../mol-gl/scene';
 import { GraphicsRenderVariant } from '../mol-gl/webgl/render-item';
 import { PickingId } from '../mol-geo/geometry/picking';
-import { MarkerAction } from '../mol-geo/geometry/marker-data';
+import { MarkerAction } from '../mol-util/marker-action';
 import { Loci, EmptyLoci, isEmptyLoci } from '../mol-model/loci';
 import { Camera } from './camera';
 import { ParamDefinition as PD } from '../mol-util/param-definition';

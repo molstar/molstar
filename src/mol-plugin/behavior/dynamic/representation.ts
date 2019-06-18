@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { MarkerAction } from '../../../mol-geo/geometry/marker-data';
+import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
 import { labelFirst } from '../../../mol-theme/label';
 import { PluginBehavior } from '../behavior';

@@ -23,7 +23,7 @@ import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell, deepEqual } from '../../mol-util';
 import { createSizes } from '../../mol-geo/geometry/size-data';
 import { createColors } from '../../mol-geo/geometry/color-data';
-import { MarkerAction } from '../../mol-geo/geometry/marker-data';
+import { MarkerAction } from '../../mol-util/marker-action';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';

@@ -13,7 +13,7 @@ import { Subject } from 'rxjs';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
 import { Task } from '../mol-task';
 import { PickingId } from '../mol-geo/geometry/picking';
-import { MarkerAction } from '../mol-geo/geometry/marker-data';
+import { MarkerAction } from '../mol-util/marker-action';
 import { Loci as ModelLoci, EmptyLoci, isEmptyLoci } from '../mol-model/loci';
 import { Overpaint } from '../mol-theme/overpaint';
 import { Transparency } from '../mol-theme/transparency';

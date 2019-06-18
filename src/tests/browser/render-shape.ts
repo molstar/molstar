@@ -9,7 +9,7 @@ import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Representation } from '../../mol-repr/representation';
 import { Canvas3D } from '../../mol-canvas3d/canvas3d';
 import { labelFirst } from '../../mol-theme/label';
-import { MarkerAction } from '../../mol-geo/geometry/marker-data';
+import { MarkerAction } from '../../mol-util/marker-action';
 import { EveryLoci } from '../../mol-model/loci';
 import { RuntimeContext, Progress } from '../../mol-task';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
