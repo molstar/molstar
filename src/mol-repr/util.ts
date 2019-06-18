@@ -82,37 +82,37 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             detail = 3
             radialSegments = 36
             linearSegments = 18
-            resolution = 0.3
+            resolution = 0.1
             break
         case 'higher':
             detail = 3
             radialSegments = 28
             linearSegments = 14
-            resolution = 0.5
+            resolution = 0.3
             break
         case 'high':
             detail = 2
             radialSegments = 20
             linearSegments = 10
-            resolution = 1.0
+            resolution = 0.5
             break
         case 'medium':
             detail = 1
             radialSegments = 12
             linearSegments = 8
-            resolution = 2.0
+            resolution = 1
             break
         case 'low':
             detail = 0
             radialSegments = 8
             linearSegments = 3
-            resolution = 3
+            resolution = 2
             break
         case 'lower':
             detail = 0
             radialSegments = 4
             linearSegments = 2
-            resolution = 5
+            resolution = 4
             break
         case 'lowest':
             detail = 0
