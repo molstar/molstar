@@ -212,7 +212,7 @@
                     var l = document.createElement('button');
                     l.innerText = r.name;
                     l.onclick = function () {
-                        PluginWrapper.hetGroups.focusFirst(r.name);
+                        PluginWrapper.hetGroups.focusFirst(r.name, r.indices[0]);
                     };
                     div.appendChild(l);
                 });
