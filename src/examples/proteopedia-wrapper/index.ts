@@ -190,7 +190,7 @@ class MolStarProteopediaWrapper {
     }
 
     private loadedParams: LoadParams = { url: '', format: 'cif', assemblyId: '' };
-    async load({ url, format = 'cif', assemblyId = '', representationStyle }: LoadParams) {
+    async load({ url, format = 'cif', assemblyId = 'deposited', representationStyle }: LoadParams) {
         let loadType: 'full' | 'update' = 'full';
 
         const state = this.plugin.state.dataState;
