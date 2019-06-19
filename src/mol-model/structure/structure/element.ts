@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { UniqueArray } from '../../../mol-data/generic';
@@ -213,6 +214,44 @@ namespace StructureElement {
                     }
 
                     for (let j = residueOffsets[rI], _j = residueOffsets[rI + 1]; j < _j; j++) {
+                        const idx = OrderedSet.indexOf(unitElements, j);
+                        if (idx >= 0) newIndices[newIndices.length] = idx as UnitIndex;
+                    }
+                }
+
+                elements[elements.length] = { unit: lociElement.unit, indices: SortedArray.ofSortedArray(newIndices) };
+            }
+
+            return Loci(loci.structure, elements);
+        }
+
+        function getChainSegments(unit: Unit) {
+            switch (unit.kind) {
+                case Unit.Kind.Atomic: return unit.model.atomicHierarchy.chainAtomSegments
+                case Unit.Kind.Spheres: return unit.model.coarseHierarchy.spheres.chainElementSegments
+                case Unit.Kind.Gaussians: return unit.model.coarseHierarchy.gaussians.chainElementSegments
+            }
+        }
+
+        export function extendToWholeChains(loci: Loci): Loci {
+            const elements: Loci['elements'][0][] = [];
+
+            for (const lociElement of loci.elements) {
+                const newIndices: UnitIndex[] = [];
+                const unitElements = lociElement.unit.elements;
+
+                const { index: chainIndex, offsets: chainOffsets } = getChainSegments(lociElement.unit)
+
+                const indices = lociElement.indices, len = OrderedSet.size(indices);
+                let i = 0;
+                while (i < len) {
+                    const cI = chainIndex[unitElements[OrderedSet.getAt(indices, i)]];
+                    i++;
+                    while (i < len && chainIndex[unitElements[OrderedSet.getAt(indices, i)]] === cI) {
+                        i++;
+                    }
+
+                    for (let j = chainOffsets[cI], _j = chainOffsets[cI + 1]; j < _j; j++) {
                         const idx = OrderedSet.indexOf(unitElements, j);
                         if (idx >= 0) newIndices[newIndices.length] = idx as UnitIndex;
                     }

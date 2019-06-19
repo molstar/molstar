@@ -14,6 +14,7 @@ import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { PluginLayoutStateParams } from '../../mol-plugin/layout';
 import { ControlGroup, IconButton } from './controls/common';
 import { resizeCanvas } from '../../mol-canvas3d/util';
+import { Interactivity } from '../util/interactivity';
 
 interface ViewportState {
     noWebGl: boolean
@@ -49,14 +50,14 @@ export class ViewportControls extends PluginUIComponent<{}, { isSettingsExpanded
         PluginCommands.Layout.Update.dispatch(this.plugin, { state: { [p.name]: p.value } });
     }
 
-    componentDidMount() {
-        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, e => {
-            this.forceUpdate();
-        });
+    setInteractivityProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
+        PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { [p.name]: p.value } });
+    }
 
-        this.subscribe(this.plugin.layout.events.updated, () => {
-            this.forceUpdate();
-        });
+    componentDidMount() {
+        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
+        this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
+        this.subscribe(this.plugin.events.interactivity.propsUpdated, () => this.forceUpdate());
     }
 
     icon(name: string, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
@@ -74,6 +75,9 @@ export class ViewportControls extends PluginUIComponent<{}, { isSettingsExpanded
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-scene-options'>
                 <ControlGroup header='Layout' initialExpanded={true}>
                     <ParameterControls params={PluginLayoutStateParams} values={this.plugin.layout.state} onChange={this.setLayout} />
+                </ControlGroup>
+                <ControlGroup header='Interactivity' initialExpanded={true}>
+                    <ParameterControls params={Interactivity.Params} values={this.plugin.interactivity.props} onChange={this.setInteractivityProps} />
                 </ControlGroup>
                 <ControlGroup header='Viewport' initialExpanded={true}>
                     <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />

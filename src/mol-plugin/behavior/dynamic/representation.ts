@@ -10,22 +10,22 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { PluginStateObject as SO } from '../../state/objects';
 import { labelFirst } from '../../../mol-theme/label';
 import { PluginBehavior } from '../behavior';
-import { Interaction } from '../../util/interaction';
+import { Interactivity } from '../../util/interactivity';
 import { StateTreeSpine } from '../../../mol-state/tree/spine';
 
 export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
-        private lociMarkProvider = (loci: Interaction.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (interactionLoci: Interactivity.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
-            this.ctx.canvas3d.mark({ ...loci, repr: undefined }, action)
+            this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
         }
         register() {
-            this.ctx.lociHighlights.addProvider(this.lociMarkProvider)
+            this.ctx.interactivity.lociHighlights.addProvider(this.lociMarkProvider)
         }
         unregister() {
-            this.ctx.lociHighlights.removeProvider(this.lociMarkProvider)
+            this.ctx.interactivity.lociHighlights.removeProvider(this.lociMarkProvider)
         }
     },
     display: { name: 'Highlight Loci on Canvas' }
@@ -36,14 +36,14 @@ export const SelectLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler {
         private spine: StateTreeSpine.Impl
-        private lociMarkProvider = (loci: Interaction.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (interactionLoci: Interactivity.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
-            this.ctx.canvas3d.mark({ ...loci, repr: undefined }, action)
+            this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
         }
         register() {
-            this.ctx.lociSelections.addProvider(this.lociMarkProvider)
+            this.ctx.interactivity.lociSelections.addProvider(this.lociMarkProvider)
 
-            this.subscribeObservable(this.ctx.events.state.object.created, ({ ref, state }) => {
+            this.subscribeObservable(this.ctx.events.state.object.created, ({ ref }) => {
                 const cell = this.ctx.state.dataState.cells.get(ref)
                 if (cell && SO.isRepresentation3D(cell.obj)) {
                     this.spine.current = cell
@@ -56,7 +56,7 @@ export const SelectLoci = PluginBehavior.create({
             });
         }
         unregister() {
-            this.ctx.lociSelections.removeProvider(this.lociMarkProvider)
+            this.ctx.interactivity.lociSelections.removeProvider(this.lociMarkProvider)
         }
         constructor(ctx: PluginContext, params: {}) {
             super(ctx, params)

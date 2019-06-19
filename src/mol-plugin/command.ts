@@ -11,6 +11,7 @@ import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginLayoutStateProps } from './layout';
 import { StructureElement } from '../mol-model/structure';
 import { PluginState } from './state';
+import { Interactivity } from './util/interactivity';
 
 export * from './command/base';
 
@@ -43,6 +44,7 @@ export const PluginCommands = {
         }
     },
     Interactivity: {
+        SetProps: PluginCommand<{ props: Partial<Interactivity.Props> }>(),
         Structure: {
             Highlight: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>(),
             Select: PluginCommand<{ loci: StructureElement.Loci, isOff?: boolean }>()

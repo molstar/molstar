@@ -36,7 +36,7 @@ import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { isProductionMode, isDebugMode } from '../mol-util/debug';
 import { Model, Structure } from '../mol-model/structure';
-import { Interaction } from './util/interaction';
+import { Interactivity } from './util/interactivity';
 
 interface Log {
     entries: List<LogEntry>
@@ -74,6 +74,9 @@ export class PluginContext {
         task: this.tasks.events,
         canvas3d: {
             settingsUpdated: this.ev()
+        },
+        interactivity: {
+            propsUpdated: this.ev()
         }
     } as const
 
@@ -83,8 +86,8 @@ export class PluginContext {
             isUpdating: this.ev.behavior<boolean>(false)
         },
         interaction: {
-            highlight: this.ev.behavior<Interaction.HighlightEvent>({ current: Interaction.Loci.Empty }),
-            click: this.ev.behavior<Interaction.ClickEvent>({ current: Interaction.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
+            highlight: this.ev.behavior<Interactivity.HighlightEvent>({ current: Interactivity.Loci.Empty }),
+            click: this.ev.behavior<Interactivity.ClickEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
         },
         labels: {
             highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
@@ -93,10 +96,9 @@ export class PluginContext {
 
     readonly canvas3d: Canvas3D;
     readonly layout: PluginLayout = new PluginLayout(this);
+    readonly interactivity: Interactivity;
 
     readonly lociLabels: LociLabelManager;
-    readonly lociSelections: Interaction.LociSelectionManager;
-    readonly lociHighlights: Interaction.LociHighlightManager;
 
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
@@ -238,9 +240,8 @@ export class PluginContext {
         this.initAnimations();
         this.initCustomParamEditors();
 
+        this.interactivity = new Interactivity(this);
         this.lociLabels = new LociLabelManager(this);
-        this.lociSelections = new Interaction.LociSelectionManager(this);
-        this.lociHighlights = new Interaction.LociHighlightManager(this);
 
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
         if (!isProductionMode) this.log.message(`Development mode enabled`);

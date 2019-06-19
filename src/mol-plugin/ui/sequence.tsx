@@ -10,7 +10,7 @@ import { Structure, StructureSequence, Queries, StructureSelection, StructurePro
 import { PluginUIComponent } from './base';
 import { StateTreeSpine } from '../../mol-state/tree/spine';
 import { PluginStateObject as SO } from '../state/objects';
-import { Interaction } from '../util/interaction';
+import { Interactivity } from '../util/interactivity';
 import { OrderedSet, Interval } from '../../mol-data/int';
 import { Loci } from '../../mol-model/loci';
 import { applyMarkerAction, MarkerAction } from '../../mol-util/marker-action';
@@ -156,13 +156,13 @@ class EntitySequence extends PluginUIComponent<EntitySequenceProps, EntitySequen
         markerData: ValueBox.create(new Uint8Array(this.props.markerArray))
     }
 
-    private lociHighlightProvider = (loci: Interaction.Loci, action: MarkerAction) => {
+    private lociHighlightProvider = (loci: Interactivity.Loci, action: MarkerAction) => {
         const { markerData } = this.state;
         const changed = markResidue(loci.loci, this.props.structureSeq, markerData.value, action)
         if (changed) this.setState({ markerData: ValueBox.withValue(markerData, markerData.value) })
     }
 
-    private lociSelectionProvider = (loci: Interaction.Loci, action: MarkerAction) => {
+    private lociSelectionProvider = (loci: Interactivity.Loci, action: MarkerAction) => {
         const { markerData } = this.state;
         const changed = markResidue(loci.loci, this.props.structureSeq, markerData.value, action)
         if (changed) this.setState({ markerData: ValueBox.withValue(markerData, markerData.value) })
@@ -176,13 +176,13 @@ class EntitySequence extends PluginUIComponent<EntitySequenceProps, EntitySequen
     }
 
     componentDidMount() {
-        this.plugin.lociHighlights.addProvider(this.lociHighlightProvider)
-        this.plugin.lociSelections.addProvider(this.lociSelectionProvider)
+        this.plugin.interactivity.lociHighlights.addProvider(this.lociHighlightProvider)
+        this.plugin.interactivity.lociSelections.addProvider(this.lociSelectionProvider)
     }
 
     componentWillUnmount() {
-        this.plugin.lociHighlights.removeProvider(this.lociHighlightProvider)
-        this.plugin.lociSelections.removeProvider(this.lociSelectionProvider)
+        this.plugin.interactivity.lociHighlights.removeProvider(this.lociHighlightProvider)
+        this.plugin.interactivity.lociSelections.removeProvider(this.lociSelectionProvider)
     }
 
     getLoci(seqId: number) {
@@ -192,7 +192,7 @@ class EntitySequence extends PluginUIComponent<EntitySequenceProps, EntitySequen
     }
 
     highlight(seqId?: number, modifiers?: ModifiersKeys) {
-        const ev = { current: Interaction.Loci.Empty, modifiers }
+        const ev = { current: Interactivity.Loci.Empty, modifiers }
         if (seqId !== undefined) {
             const loci = this.getLoci(seqId);
             if (loci.elements.length > 0) ev.current = { loci };
@@ -201,7 +201,7 @@ class EntitySequence extends PluginUIComponent<EntitySequenceProps, EntitySequen
     }
 
     click(seqId: number | undefined, buttons: ButtonsType, modifiers: ModifiersKeys) {
-        const ev = { current: Interaction.Loci.Empty, buttons, modifiers }
+        const ev = { current: Interactivity.Loci.Empty, buttons, modifiers }
         if (seqId !== undefined) {
             const loci = this.getLoci(seqId);
             if (loci.elements.length > 0) ev.current = { loci };
