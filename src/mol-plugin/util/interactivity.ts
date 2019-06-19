@@ -52,17 +52,17 @@ namespace Interactivity {
         export const Empty: Loci = { loci: EmptyLoci };
     }
 
-    const LociExpansion = {
-        'none': (loci: ModelLoci) => loci,
+    const Granularity = {
+        'element': (loci: ModelLoci) => loci,
         'residue': (loci: ModelLoci) => SE.isLoci(loci) ? SE.Loci.extendToWholeResidues(loci) : loci,
         'chain': (loci: ModelLoci) => SE.isLoci(loci) ? SE.Loci.extendToWholeChains(loci) : loci,
         'structure': (loci: ModelLoci) => SE.isLoci(loci) ? Structure.Loci(loci.structure) : loci
     }
-    type LociExpansion = keyof typeof LociExpansion
-    const LociExpansionOptions = Object.keys(LociExpansion).map(n => [n, capitalize(n)]) as [LociExpansion, string][]
+    type Granularity = keyof typeof Granularity
+    const GranularityOptions = Object.keys(Granularity).map(n => [n, capitalize(n)]) as [Granularity, string][]
 
     export const Params = {
-        lociExpansion: PD.Select('residue', LociExpansionOptions),
+        granularity: PD.Select('residue', GranularityOptions),
     }
     export type Props = PD.Values<typeof Params>
 
@@ -92,10 +92,10 @@ namespace Interactivity {
 
         normalizedLoci(interactivityLoci: Loci) {
             let { loci, repr } = interactivityLoci
-            if (this.props.lociExpansion !== 'none' && Link.isLoci(loci)) {
+            if (this.props.granularity !== 'element' && Link.isLoci(loci)) {
                 loci = Link.toStructureElementLoci(loci)
             }
-            loci = LociExpansion[this.props.lociExpansion](loci)
+            loci = Granularity[this.props.granularity](loci)
             return { loci, repr }
         }
 
