@@ -8,7 +8,7 @@
 import { Loci as ModelLoci, EmptyLoci } from '../../mol-model/loci';
 import { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
 import { Representation } from '../../mol-repr/representation';
-import { StructureElement } from '../../mol-model/structure';
+import { StructureElement, Link } from '../../mol-model/structure';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { StructureElementSelectionManager } from './structure-element-selection';
 import { PluginContext } from '../context';
@@ -90,8 +90,13 @@ namespace Interactivity {
             // TODO clear, then re-apply remaining providers
         }
 
-        expandLoci(loci: ModelLoci) {
-            return LociExpansion[this.props.lociExpansion](loci)
+        normalizedLoci(interactivityLoci: Loci) {
+            let { loci, repr } = interactivityLoci
+            if (this.props.lociExpansion !== 'none' && Link.isLoci(loci)) {
+                loci = Link.toStructureElementLoci(loci)
+            }
+            loci = LociExpansion[this.props.lociExpansion](loci)
+            return { loci, repr }
         }
 
         protected mark(current: Loci<ModelLoci>, action: MarkerAction) {
@@ -111,22 +116,23 @@ namespace Interactivity {
 
         apply(e: HighlightEvent) {
             const { current, modifiers } = e
-            const expanded: Loci<ModelLoci> = { loci: this.expandLoci(current.loci), repr: current.repr }
-            if (StructureElement.isLoci(expanded.loci)) {
-                let loci: StructureElement.Loci = expanded.loci;
+
+            const normalized: Loci<ModelLoci> = this.normalizedLoci(current)
+            if (StructureElement.isLoci(normalized.loci)) {
+                let loci: StructureElement.Loci = normalized.loci;
                 if (modifiers && modifiers.shift) {
                     loci = this.sel.tryGetRange(loci) || loci;
                 }
 
                 this.mark(this.prev, MarkerAction.RemoveHighlight);
-                const toHighlight = { loci, repr: expanded.repr };
+                const toHighlight = { loci, repr: normalized.repr };
                 this.mark(toHighlight, MarkerAction.Highlight);
                 this.prev = toHighlight;
             } else {
-                if (!Loci.areEqual(this.prev, expanded)) {
+                if (!Loci.areEqual(this.prev, normalized)) {
                     this.mark(this.prev, MarkerAction.RemoveHighlight);
-                    this.mark(expanded, MarkerAction.Highlight);
-                    this.prev = expanded;
+                    this.mark(normalized, MarkerAction.Highlight);
+                    this.prev = normalized;
                 }
             }
         }
@@ -150,34 +156,34 @@ namespace Interactivity {
 
         apply(e: ClickEvent) {
             const { current, buttons, modifiers } = e
-            const expanded: Loci<ModelLoci> = { loci: this.expandLoci(current.loci), repr: current.repr }
-            if (expanded.loci.kind === 'empty-loci') {
+            const normalized: Loci<ModelLoci> = this.normalizedLoci(current)
+            if (normalized.loci.kind === 'empty-loci') {
                 if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
                     // clear the selection on Ctrl + Right-Click on empty
                     const sels = this.sel.clear();
                     for (const s of sels) this.mark({ loci: s }, MarkerAction.Deselect);
                 }
-            } else if (StructureElement.isLoci(expanded.loci)) {
+            } else if (StructureElement.isLoci(normalized.loci)) {
                 if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
                     // select only the current element on Ctrl + Right-Click
-                    const old = this.sel.get(expanded.loci.structure);
+                    const old = this.sel.get(normalized.loci.structure);
                     this.mark({ loci: old }, MarkerAction.Deselect);
-                    this.sel.set(expanded.loci);
-                    this.mark(expanded, MarkerAction.Select);
+                    this.sel.set(normalized.loci);
+                    this.mark(normalized, MarkerAction.Select);
                 } else if (modifiers.control && buttons === ButtonsType.Flag.Primary) {
                     // toggle current element on Ctrl + Left-Click
-                    this.toggleSel(expanded as Representation.Loci<StructureElement.Loci>);
+                    this.toggleSel(normalized as Representation.Loci<StructureElement.Loci>);
                 } else if (modifiers.shift && buttons === ButtonsType.Flag.Primary) {
                     // try to extend sequence on Shift + Left-Click
-                    let loci: StructureElement.Loci = expanded.loci;
+                    let loci: StructureElement.Loci = normalized.loci;
                     if (modifiers && modifiers.shift) {
                         loci = this.sel.tryGetRange(loci) || loci;
                     }
-                    this.toggleSel({ loci, repr: expanded.repr });
+                    this.toggleSel({ loci, repr: normalized.repr });
                 }
             } else {
                 if (!ButtonsType.has(buttons, ButtonsType.Flag.Secondary)) return;
-                for (let p of this.providers) p(expanded, MarkerAction.Toggle);
+                for (let p of this.providers) p(normalized, MarkerAction.Toggle);
             }
         }
 

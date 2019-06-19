@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,6 +8,7 @@
 import { Unit, StructureElement } from '../../structure'
 import Structure from '../structure';
 import { LinkType } from '../../model/types';
+import { SortedArray } from '../../../../mol-data/int';
 
 export * from './links/data'
 export * from './links/intra-compute'
@@ -59,6 +60,34 @@ namespace Link {
             if (!areLocationsEqual(a.links[i], b.links[i])) return false
         }
         return true
+    }
+
+    // TODO
+    export function toStructureElementLoci(loci: Loci): StructureElement.Loci {
+        const elements: StructureElement.Loci['elements'][0][] = []
+        const map = new Map<number, number[]>()
+
+        for (const lociLink of loci.links) {
+            const { aIndex, aUnit, bIndex, bUnit } = lociLink
+            if (aUnit === bUnit) {
+                if (map.has(aUnit.id)) map.get(aUnit.id)!.push(aIndex, bIndex)
+                else map.set(aUnit.id, [aIndex, bIndex])
+            } else {
+                if (map.has(aUnit.id)) map.get(aUnit.id)!.push(aIndex)
+                else map.set(aUnit.id, [aIndex])
+                if (map.has(bUnit.id)) map.get(bUnit.id)!.push(bIndex)
+                else map.set(bUnit.id, [bIndex])
+            }
+        }
+
+        map.forEach((indices: number[], id: number) => {
+            elements.push({
+                unit: loci.structure.unitMap.get(id)!,
+                indices: SortedArray.deduplicate(SortedArray.ofUnsortedArray(indices))
+            })
+        })
+
+        return StructureElement.Loci(loci.structure, elements);
     }
 
     export function getType(structure: Structure, link: Location<Unit.Atomic>): LinkType {

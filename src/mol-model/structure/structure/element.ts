@@ -196,30 +196,33 @@ namespace StructureElement {
             const elements: Loci['elements'][0][] = [];
 
             for (const lociElement of loci.elements) {
-                if (lociElement.unit.kind !== Unit.Kind.Atomic) elements[elements.length] = lociElement;
+                if (lociElement.unit.kind === Unit.Kind.Atomic) {
+                    const unitElements = lociElement.unit.elements;
+                    const h = lociElement.unit.model.atomicHierarchy;
 
-                const unitElements = lociElement.unit.elements;
-                const h = lociElement.unit.model.atomicHierarchy;
+                    const { index: residueIndex, offsets: residueOffsets } = h.residueAtomSegments;
 
-                const { index: residueIndex, offsets: residueOffsets } = h.residueAtomSegments;
-
-                const newIndices: UnitIndex[] = [];
-                const indices = lociElement.indices, len = OrderedSet.size(indices);
-                let i = 0;
-                while (i < len) {
-                    const rI = residueIndex[unitElements[OrderedSet.getAt(indices, i)]];
-                    i++;
-                    while (i < len && residueIndex[unitElements[OrderedSet.getAt(indices, i)]] === rI) {
+                    const newIndices: UnitIndex[] = [];
+                    const indices = lociElement.indices, len = OrderedSet.size(indices);
+                    let i = 0;
+                    while (i < len) {
+                        const rI = residueIndex[unitElements[OrderedSet.getAt(indices, i)]];
                         i++;
+                        while (i < len && residueIndex[unitElements[OrderedSet.getAt(indices, i)]] === rI) {
+                            i++;
+                        }
+
+                        for (let j = residueOffsets[rI], _j = residueOffsets[rI + 1]; j < _j; j++) {
+                            const idx = OrderedSet.indexOf(unitElements, j);
+                            if (idx >= 0) newIndices[newIndices.length] = idx as UnitIndex;
+                        }
                     }
 
-                    for (let j = residueOffsets[rI], _j = residueOffsets[rI + 1]; j < _j; j++) {
-                        const idx = OrderedSet.indexOf(unitElements, j);
-                        if (idx >= 0) newIndices[newIndices.length] = idx as UnitIndex;
-                    }
+                    elements[elements.length] = { unit: lociElement.unit, indices: SortedArray.ofSortedArray(newIndices) };
+                } else {
+                    // coarse elements are already by-residue
+                    elements[elements.length] = lociElement;
                 }
-
-                elements[elements.length] = { unit: lociElement.unit, indices: SortedArray.ofSortedArray(newIndices) };
             }
 
             return Loci(loci.structure, elements);
