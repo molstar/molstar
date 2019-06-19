@@ -7,7 +7,7 @@
 
 import * as React from 'react'
 import { Structure, StructureSequence, Queries, StructureSelection, StructureProperties as SP, StructureQuery, StructureElement, Unit } from '../../mol-model/structure';
-import { PluginUIComponent } from './base';
+import { PluginUIComponent, PurePluginUIComponent } from './base';
 import { StateTreeSpine } from '../../mol-state/tree/spine';
 import { PluginStateObject as SO } from '../state/objects';
 import { Interactivity } from '../util/interactivity';
@@ -240,7 +240,7 @@ class EntitySequence extends PluginUIComponent<EntitySequenceProps, EntitySequen
     }
 }
 
-class Residue extends PluginUIComponent<{ seqId: number, letter: string, parent: EntitySequence, marker: number }> {
+class Residue extends PurePluginUIComponent<{ seqId: number, letter: string, parent: EntitySequence, marker: number }> {
 
     mouseEnter = (e: React.MouseEvent) => {
         const modifiers = getModifiers(e.nativeEvent)
