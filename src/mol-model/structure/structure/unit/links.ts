@@ -62,7 +62,6 @@ namespace Link {
         return true
     }
 
-    // TODO
     export function toStructureElementLoci(loci: Loci): StructureElement.Loci {
         const elements: StructureElement.Loci['elements'][0][] = []
         const map = new Map<number, number[]>()
