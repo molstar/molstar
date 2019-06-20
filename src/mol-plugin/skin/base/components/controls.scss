@@ -8,42 +8,42 @@
     select, button, input[type=text] {
         @extend .msp-form-control;
     }
-    
+
     button {
         @extend .msp-btn;
         @extend .msp-btn-block;
     }
 }
 
-.msp-control-row {    
+.msp-control-row {
     position: relative;
     height: $row-height;
     background: $default-background;
     margin-top: 1px;
-    
+
     > span {
         line-height: $row-height;
         display: block;
         width: $control-label-width + $control-spacing;
         text-align: right;
-        padding: 0 $control-spacing; 
+        padding: 0 $control-spacing;
         color: color-lower-contrast($font-color, 15%);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        
-        @include non-selectable;        
+
+        @include non-selectable;
     }
-    
+
     select, button, input[type=text] {
         @extend .msp-form-control;
     }
-    
+
     button {
         @extend .msp-btn;
         @extend .msp-btn-block;
     }
-    
+
     > div:nth-child(2) {
         background: $msp-form-control-background;
         position: absolute;
@@ -58,21 +58,21 @@
     position: relative;
 }
 
-.msp-toggle-button {    
+.msp-toggle-button {
     .msp-icon {
         display: inline-block;
         margin-right: 6px;
     }
-    
+
     > div > button:hover {
         border-color: color-increase-contrast($msp-form-control-background, 5%) !important;
         border: none;
         outline-offset: -1px  !important;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;  
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
     }
 }
 
-.msp-slider {    
+.msp-slider {
     > div:first-child {
         position: absolute;
         top: 0;
@@ -91,14 +91,14 @@
         top: 0;
         bottom: 0;
     }
-    
+
     input[type=text] {
         padding-right: 6px;
         padding-left: 4px;
         font-size: 80%;
         text-align: right;
     }
-    
+
     // input[type=range] {
     //     width: 100%;
     // }
@@ -135,14 +135,14 @@
         bottom: 0;
         font-size: 80%;
     }
-    
+
     input[type=text] {
         padding-right: 4px;
         padding-left: 4px;
         font-size: 80%;
         text-align: center;
     }
-    
+
     // input[type=range] {
     //     width: 100%;
     // }
@@ -154,24 +154,24 @@
         margin: 0;
         text-align: center;
         padding-right: $control-spacing;
-        padding-left: $control-spacing;        
-        
+        padding-left: $control-spacing;
+
         &:hover {
             border-color: color-increase-contrast($msp-form-control-background, 5%) !important;
             border: none;
             outline-offset: -1px  !important;
-            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;  
+            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
         }
     }
-    
+
     .msp-color-picker {
         position: absolute;
         z-index: 100000;
         background: $default-background;
         border-top: 1px solid $default-background;
         padding-bottom: $control-spacing / 2;
-        width: 100%;        
-        
+        width: 100%;
+
         // input[type=text] {
         //     background: $msp-form-control-background !important;
         // }
@@ -217,7 +217,7 @@
         height: 2 * $row-height / 3 !important;
         line-height: 2 * $row-height / 3 !important;
         font-size: 70% !important;
-        background: $default-background !important;        
+        background: $default-background !important;
         color: color-lower-contrast($font-color, 15%) !important;
     }
 }
@@ -231,13 +231,13 @@
 
 .msp-control-subgroup {
     margin-top: 1px;
-    
+
     .msp-control-row {
         margin-left: $control-spacing !important;
         > span {
             width: $control-label-width !important;
         }
-        
+
         > div:nth-child(2) {
             left: $control-label-width !important;
         }
@@ -254,7 +254,7 @@
     width: $control-label-width + $control-spacing;
     text-align: left;
     background: transparent;
-    
+
     .msp-icon {
         line-height: $row-height - 3;
         width: $row-height - 1;

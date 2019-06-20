@@ -19,11 +19,11 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
     eachResidue(loci: Loci, apply: (interval: Interval) => boolean) {
         let changed = false
-        const { structure } = this.data
+        const { structure, unit } = this.data
         if (!StructureElement.isLoci(loci)) return false
         if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
 
-        const { location, entityId, label_asym_id } = this
+        const { location, label_asym_id } = this
         for (const e of loci.elements) {
             let rIprev = -1
             location.unit = e.unit
@@ -35,7 +35,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
                 const rI = residueIndex[location.element]
                 // avoid checking for the same residue multiple times
                 if (rI !== rIprev) {
-                    if (SP.entity.id(location) !== entityId) return
+                    if (SP.unit.id(location) !== unit.id) return
                     if (SP.chain.label_asym_id(location) !== label_asym_id) return
 
                     if (apply(getSeqIdInterval(location))) changed = true
@@ -47,7 +47,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 
     getLoci(seqId: number) {
-        const query = createResidueQuery(this.entityId, seqId, this.label_asym_id);
+        const query = createResidueQuery(this.data.unit.id, seqId);
         return StructureSelection.toLoci2(StructureQuery.run(query, this.data.structure));
     }
 
@@ -67,13 +67,10 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 }
 
-function createResidueQuery(entityId: string, label_seq_id: number, label_asym_id: string) {
+function createResidueQuery(unitId: number, label_seq_id: number) {
     return Queries.generators.atoms({
-        entityTest: ctx => {
-            return SP.entity.id(ctx.element) === entityId
-        },
-        chainTest: ctx => {
-            return SP.chain.label_asym_id(ctx.element) === label_asym_id
+        unitTest: ctx => {
+            return SP.unit.id(ctx.element) === unitId
         },
         residueTest: ctx => {
             if (ctx.element.unit.kind === Unit.Kind.Atomic) {
