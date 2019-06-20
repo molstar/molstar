@@ -88,7 +88,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P, Sequ
 
     render() {
         const { markerData } = this.state;
-        const { label } = this.props.sequenceWrapper
         const { offset, sequence } = this.props.sequenceWrapper.sequence;
 
         const elems: JSX.Element[] = [];
@@ -101,7 +100,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P, Sequ
             onContextMenu={this.contextMenu}
             onMouseDown={this.mouseDown}
         >
-            <span style={{ fontWeight: 'bold' }}>{label}:{offset}&nbsp;</span>
             {elems}
         </div>;
     }

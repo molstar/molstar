@@ -10,28 +10,51 @@ import { PluginUIComponent } from './base';
 import { StateTreeSpine } from '../../mol-state/tree/spine';
 import { PluginStateObject as SO } from '../state/objects';
 import { Sequence } from './sequence/sequence';
-import { Structure } from '../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties as SP } from '../../mol-model/structure';
 import { SequenceWrapper } from './sequence/util';
 import { PolymerSequenceWrapper } from './sequence/polymer';
 import { StructureElementSelectionManager } from '../util/structure-element-selection';
 import { MarkerAction } from '../../mol-util/marker-action';
+import { ParameterControls } from './controls/parameters';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
-function getSequenceWrappersForStructure(structure: Structure, structureSelection: StructureElementSelectionManager) {
-    const sequenceWrappers: SequenceWrapper.Any[] = []
+function getSequenceWrapperForStructure(index: number, structure: Structure, structureSelection: StructureElementSelectionManager): SequenceWrapper.Any | undefined {
+    let j = 0
+    for (let i = 0, il = structure.units.length; i < il; ++i) {
+        const unit = structure.units[i]
+        if (unit.polymerElements.length === 0) continue
+        if (j === index) {
+            const sw = new PolymerSequenceWrapper({ structure, unit })
+            sw.markResidue(structureSelection.get(structure), MarkerAction.Select)
+            return sw
+        }
+        j += 1
+    }
+}
 
+function getPolymerOptionsForStructure(structure: Structure) {
+    const options: [number, string][] = []
+
+    let i = 0
     structure.units.forEach(unit => {
         if (unit.polymerElements.length === 0) return
 
-        const sw = new PolymerSequenceWrapper({ structure, unit })
-        sw.markResidue(structureSelection.get(structure), MarkerAction.Select)
-        sequenceWrappers.push(sw)
+        const l = StructureElement.create(unit, unit.elements[0])
+        const entityDescription = SP.entity.pdbx_description(l)
+        const label_asym_id = SP.chain.label_asym_id(l)
+        const label = `${label_asym_id}: ${entityDescription}`
+
+        options.push([ i, label ])
+        i += 1
     })
 
-    return sequenceWrappers
+    return options
 }
 
-export class SequenceView extends PluginUIComponent<{ }, { }> {
+export class SequenceView extends PluginUIComponent<{ }, { polymer: number }> {
     private spine: StateTreeSpine.Impl
+
+    state = { polymer: 0 }
 
     componentDidMount() {
         this.spine = new StateTreeSpine.Impl(this.plugin.state.dataState.cells);
@@ -54,6 +77,18 @@ export class SequenceView extends PluginUIComponent<{ }, { }> {
         return so && so.data
     }
 
+    private getParams(structure: Structure) {
+        return {
+            polymer: PD.Select(0, getPolymerOptionsForStructure(structure))
+        }
+    }
+
+    private setParamProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
+        if (p.name === 'polymer') {
+            this.setState({ polymer: p.value })
+        }
+    }
+
     render() {
         const structure = this.getStructure();
         if (!structure) return <div className='msp-sequence'>
@@ -61,11 +96,14 @@ export class SequenceView extends PluginUIComponent<{ }, { }> {
         </div>;
 
         const { structureSelection } = this.plugin.helpers
-        const sequenceWrappers = getSequenceWrappersForStructure(structure, structureSelection)
+        const params = this.getParams(structure)
+        const sequenceWrapper = getSequenceWrapperForStructure(this.state.polymer, structure, structureSelection)
+
         return <div className='msp-sequence'>
-            {sequenceWrappers.map((sequenceWrapper, i) => {
-                return <Sequence key={i} sequenceWrapper={sequenceWrapper} />
-            })}
+            <ParameterControls params={params} values={this.state} onChange={this.setParamProps} />
+            {sequenceWrapper !== undefined
+                ? <Sequence sequenceWrapper={sequenceWrapper} />
+                : <div className='msp-sequence-entity'>No sequence available</div>}
         </div>;
     }
 }
