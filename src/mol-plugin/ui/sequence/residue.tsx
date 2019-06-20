@@ -8,9 +8,9 @@
 import * as React from 'react'
 import { PurePluginUIComponent } from '../base';
 import { getButtons, getModifiers } from '../../../mol-util/input/input-observer';
-import { BaseSequence } from './base';
+import { Sequence } from './sequence';
 
-export class Residue extends PurePluginUIComponent<{ seqId: number, letter: string, parent: BaseSequence, marker: number }> {
+export class Residue extends PurePluginUIComponent<{ seqId: number, letter: string, parent: Sequence<any>, marker: number }> {
 
     mouseEnter = (e: React.MouseEvent) => {
         const modifiers = getModifiers(e.nativeEvent)
