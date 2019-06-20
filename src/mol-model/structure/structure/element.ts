@@ -31,6 +31,12 @@ namespace StructureElement {
         return { kind: 'element-location', unit: unit!, element: element || (0 as ElementIndex) };
     }
 
+    export function set(a: StructureElement, unit?: Unit, element?: ElementIndex): StructureElement {
+        if (unit) a.unit = unit
+        if (element !== undefined) a.element = element
+        return a;
+    }
+
     // TODO: when nominal types are available, make this indexed by UnitIndex
     export type Set = SortedArray<ElementIndex>
 
