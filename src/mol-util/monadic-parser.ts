@@ -323,10 +323,9 @@ export namespace MonadicParser {
         return RegExp('^(?:' + re.source + ')', flags(re));
     }
 
-    export function regexp(re: RegExp, groupNumber?: number) {
+    export function regexp(re: RegExp, group = 0) {
         const anchored = anchoredRegexp(re);
         const expected = '' + re;
-        const group = groupNumber || 0;
         return new MonadicParser(function (input, i) {
             const match = anchored.exec(input.slice(i));
             if (match) {

@@ -250,7 +250,7 @@ function updateOrtho(camera: Camera) {
     let top = cy + dy
     let bottom = cy - dy
 
-    if (viewOffset && viewOffset.enabled) {
+    if (viewOffset.enabled) {
         const zoomW = zoom / (viewOffset.width / viewOffset.fullWidth)
         const zoomH = zoom / (viewOffset.height / viewOffset.fullHeight)
         const scaleW = (fullRight - fullLeft) / viewOffset.width
@@ -279,7 +279,7 @@ function updatePers(camera: Camera) {
     let width = aspect * height
     let left = -0.5 * width
 
-    if (viewOffset && viewOffset.enabled) {
+    if (viewOffset.enabled) {
         left += viewOffset.offsetX * width / viewOffset.fullWidth
         top -= viewOffset.offsetY * height / viewOffset.fullHeight
         width *= viewOffset.width / viewOffset.fullWidth

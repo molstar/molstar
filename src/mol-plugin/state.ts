@@ -53,12 +53,10 @@ class PluginState {
             camera: p.camera ? {
                 current: this.plugin.canvas3d.camera.getSnapshot(),
                 transitionStyle: p.cameraTranstion.name,
-                transitionDurationInMs: (params && params.cameraTranstion && params.cameraTranstion.name === 'animate' && params.cameraTranstion.params.durationInMs) || void 0
+                transitionDurationInMs: (params && params.cameraTranstion && params.cameraTranstion.name === 'animate') ? params.cameraTranstion.params.durationInMs : undefined
             } : void 0,
             cameraSnapshots: p.cameraSnapshots ? this.cameraSnapshots.getStateSnapshot() : void 0,
-            canvas3d: p.canvas3d ? {
-                props: this.plugin.canvas3d.props
-            } : void 0,
+            canvas3d: p.canvas3d ? { props: this.plugin.canvas3d.props } : void 0,
             durationInMs: params && params.durationInMs
         };
     }
@@ -69,7 +67,7 @@ class PluginState {
         if (snapshot.behaviour) await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
         if (snapshot.data) await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));
         if (snapshot.canvas3d) {
-            if (snapshot.canvas3d.props) await PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: snapshot.canvas3d.props || { } });
+            if (snapshot.canvas3d.props) await PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: snapshot.canvas3d.props });
         }
         if (snapshot.cameraSnapshots) this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         if (snapshot.animation) {

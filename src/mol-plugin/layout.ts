@@ -54,7 +54,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
         this.events.updated.next();
     }
 
-    private root: HTMLElement;
+    private root: HTMLElement | undefined;
     private rootState: RootState | undefined = void 0;
     private expandedViewport: HTMLMetaElement;
 
@@ -78,7 +78,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
             let body = document.getElementsByTagName('body')[0];
             let head = document.getElementsByTagName('head')[0];
 
-            if (!body || !head) return;
+            if (!body || !head || !this.root) return;
 
             if (this.state.isExpanded) {
                 let children = head.children;

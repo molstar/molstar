@@ -176,7 +176,7 @@ namespace Interactivity {
                 } else if (modifiers.shift && buttons === ButtonsType.Flag.Primary) {
                     // try to extend sequence on Shift + Left-Click
                     let loci: StructureElement.Loci = normalized.loci;
-                    if (modifiers && modifiers.shift) {
+                    if (modifiers.shift) {
                         loci = this.sel.tryGetRange(loci) || loci;
                     }
                     this.toggleSel({ loci, repr: normalized.repr });

@@ -293,8 +293,6 @@ export namespace ParamDefinition {
             return areEqual(p.params, a, b);
         } else if (p.type === 'mapped') {
             const u = a as NamedParams, v = b as NamedParams;
-            if (!u) return !v;
-            if (!u || !v) return false;
             if (u.name !== v.name) return false;
             const map = p.map(u.name);
             return isParamEqual(map, u.params, v.params);

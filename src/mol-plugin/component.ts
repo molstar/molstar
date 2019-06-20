@@ -8,7 +8,7 @@ import { shallowMergeArray } from '../mol-util/object';
 import { RxEventHelper } from '../mol-util/rx-event-helper';
 
 export class PluginComponent<State> {
-    private _ev: RxEventHelper;
+    private _ev: RxEventHelper | undefined;
 
     protected get ev() {
         return this._ev || (this._ev = RxEventHelper.create());

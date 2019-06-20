@@ -34,8 +34,8 @@ namespace Task {
     class Impl<T> implements Task<T> {
         readonly id: number;
 
-        run(observer?: Progress.Observer, updateRateMs?: number): Promise<T> {
-            if (observer) return ExecuteObservable(this, observer, updateRateMs as number || 250);
+        run(observer?: Progress.Observer, updateRateMs = 250): Promise<T> {
+            if (observer) return ExecuteObservable(this, observer, updateRateMs);
             return this.f(SyncRuntimeContext);
         }
 
