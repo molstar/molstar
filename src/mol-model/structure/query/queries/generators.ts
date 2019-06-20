@@ -21,6 +21,8 @@ export const none: StructureQuery = ctx => StructureSelection.Sequence(ctx.input
 export const all: StructureQuery = ctx => StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure);
 
 export interface AtomsQueryParams {
+    /** Query to be executed for each unit once */
+    unitTest: QueryPredicate,
     /** Query to be executed for each entity once */
     entityTest: QueryPredicate,
     /** Query to be executed for each chain once */
@@ -39,10 +41,11 @@ function _true(ctx: QueryContextView) { return true; }
 function _zero(ctx: QueryContextView) { return 0; }
 
 export function atoms(params?: Partial<AtomsQueryParams>): StructureQuery {
-    if (!params || (!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy)) return all;
-    if (!!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy) return atomGroupsLinear(params.atomTest);
+    if (!params || (!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.unitTest && !params.groupBy)) return all;
+    if (!!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.unitTest && !params.groupBy) return atomGroupsLinear(params.atomTest);
 
     const normalized: AtomsQueryParams = {
+        unitTest: params.unitTest || _true,
         entityTest: params.entityTest || _true,
         chainTest: params.chainTest || _true,
         residueTest: params.residueTest || _true,
@@ -79,7 +82,7 @@ function atomGroupsLinear(atomTest: QueryPredicate): StructureQuery {
     };
 }
 
-function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomsQueryParams): StructureQuery {
+function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, atomTest }: AtomsQueryParams): StructureQuery {
     return ctx => {
         const { inputStructure } = ctx;
         const { units } = inputStructure;
@@ -88,6 +91,8 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
 
         for (const unit of units) {
             l.unit = unit;
+            if (!unitTest(ctx)) continue;
+
             const { elements, model } = unit;
             builder.beginUnit(unit.id);
 
@@ -146,7 +151,7 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
     };
 }
 
-function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomsQueryParams): StructureQuery {
+function atomGroupsGrouped({ unitTest, entityTest, chainTest, residueTest, atomTest, groupBy }: AtomsQueryParams): StructureQuery {
     return ctx => {
         const { inputStructure } = ctx;
         const { units } = inputStructure;
@@ -155,6 +160,8 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
 
         for (const unit of units) {
             l.unit = unit;
+            if (!unitTest(ctx)) continue;
+
             const { elements, model } = unit;
 
             if (unit.kind === Unit.Kind.Atomic) {
