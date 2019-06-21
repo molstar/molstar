@@ -14,16 +14,13 @@ export type StructureUnit = { structure: Structure, unit: Unit }
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly location = StructureElement.create()
 
-    private entityId: string
-    private label_asym_id: string
-
     eachResidue(loci: Loci, apply: (interval: Interval) => boolean) {
         let changed = false
         const { structure, unit } = this.data
         if (!StructureElement.isLoci(loci)) return false
         if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
 
-        const { location, label_asym_id } = this
+        const { location } = this
         for (const e of loci.elements) {
             let rIprev = -1
             location.unit = e.unit
@@ -36,7 +33,6 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
                 // avoid checking for the same residue multiple times
                 if (rI !== rIprev) {
                     if (SP.unit.id(location) !== unit.id) return
-                    if (SP.chain.label_asym_id(location) !== label_asym_id) return
 
                     if (apply(getSeqIdInterval(location))) changed = true
                     rIprev = rI
@@ -58,10 +54,6 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         l.unit = data.unit
         l.element = data.unit.elements[0]
 
-        this.entityId = SP.entity.id(l)
-        this.label_asym_id = SP.chain.label_asym_id(l)
-
-        this.label = `${this.label_asym_id}|${this.entityId}`
         this.sequence = data.unit.model.sequence.byEntityKey[SP.entity.key(l)].sequence
         this.markerArray = new Uint8Array(this.sequence.sequence.length)
     }

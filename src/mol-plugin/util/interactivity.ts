@@ -93,9 +93,13 @@ namespace Interactivity {
         normalizedLoci(interactivityLoci: Loci) {
             let { loci, repr } = interactivityLoci
             if (this.props.granularity !== 'element' && Link.isLoci(loci)) {
+                // convert Link.Loci to a StructureElement.Loci so granularity can be applied
                 loci = Link.toStructureElementLoci(loci)
             }
             loci = Granularity[this.props.granularity](loci)
+            if (StructureElement.isLoci(loci) && loci.structure.parent) {
+                loci = StructureElement.Loci.remap(loci, loci.structure.parent)
+            }
             return { loci, repr }
         }
 

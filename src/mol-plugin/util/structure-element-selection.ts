@@ -167,6 +167,7 @@ function SelectionEntry(s: Structure): SelectionEntry {
     };
 }
 
+/** remap `selection-entry` to be related to `structure` if possible */
 function remapSelectionEntry(e: SelectionEntry, s: Structure): SelectionEntry {
     return {
         selection: StructureElement.Loci.remap(e.selection, s)
