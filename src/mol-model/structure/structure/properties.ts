@@ -113,6 +113,8 @@ const entity = {
 const unit = {
     id: StructureElement.property(l => l.unit.id),
     operator_name: StructureElement.property(l => l.unit.conformation.operator.name),
+    hkl: StructureElement.property(l => l.unit.conformation.operator.hkl),
+    spgrOp: StructureElement.property(l => l.unit.conformation.operator.spgrOp),
 
     model_num: StructureElement.property(l => l.unit.model.modelNum),
     pdbx_struct_assembly_id: StructureElement.property(l => l.unit.conformation.operator.assembly.id),

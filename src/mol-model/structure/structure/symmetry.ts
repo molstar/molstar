@@ -117,7 +117,7 @@ function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
                         for (let u = 0; u < ncsCount; ++u) {
                             const ncsOp = ncsOperators![u]
                             const matrix = Mat4.mul(Mat4.zero(), symOp.matrix, ncsOp.matrix)
-                            const operator = SymmetryOperator.create(`${symOp.name} ${ncsOp.name}`, matrix, symOp.assembly, ncsOp.ncsId, symOp.hkl);
+                            const operator = SymmetryOperator.create(`${symOp.name} ${ncsOp.name}`, matrix, symOp.assembly, ncsOp.ncsId, symOp.hkl, symOp.spgrOp);
                             operators[operators.length] = operator;
                         }
                     } else {

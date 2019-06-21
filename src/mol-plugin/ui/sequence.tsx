@@ -18,8 +18,12 @@ import { MarkerAction } from '../../mol-util/marker-action';
 import { ParameterControls } from './controls/parameters';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
-function opKey(ids: string[]) {
-    return ids.sort().join(',')
+function opKey(l: StructureElement) {
+    const ids = SP.unit.pdbx_struct_oper_list_ids(l)
+    const ncs = SP.unit.struct_ncs_oper_id(l)
+    const hkl = SP.unit.hkl(l)
+    const spgrOp = SP.unit.spgrOp(l)
+    return `${ids.sort().join(',')}|${ncs}|${hkl}|${spgrOp}`
 }
 
 function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureElementSelectionManager): SequenceWrapper.Any | undefined {
@@ -32,7 +36,7 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
         StructureElement.set(l, unit, unit.elements[0])
         if (SP.entity.id(l) !== entity) continue
         if (SP.chain.label_asym_id(l) !== chain) continue
-        if (opKey(SP.unit.pdbx_struct_oper_list_ids(l)) !== operator) continue
+        if (opKey(l) !== operator) continue
 
         // console.log('new PolymerSequenceWrapper', structureSelection.get(structure))
         const sw = new PolymerSequenceWrapper({ structure, unit })
@@ -96,10 +100,10 @@ function getOperatorOptions(structure: Structure, entityId: string, label_asym_i
         if (SP.entity.id(l) !== entityId) return
         if (SP.chain.label_asym_id(l) !== label_asym_id) return
 
-        const id = opKey(SP.unit.pdbx_struct_oper_list_ids(l))
+        const id = opKey(l)
         if (seen.has(id)) return
 
-        const label = `${SP.unit.pdbx_struct_oper_list_ids(l).join(', ')}`
+        const label = unit.conformation.operator.name
         options.push([ id, label ])
         seen.add(id)
     })

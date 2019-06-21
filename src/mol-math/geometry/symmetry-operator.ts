@@ -6,6 +6,7 @@
 
 import { Vec3, Mat4, Mat3, Quat } from '../linear-algebra/3d'
 import { lerp as scalar_lerp } from '../../mol-math/interpolate';
+import { defaults } from '../../mol-util';
 
 interface SymmetryOperator {
     readonly name: string,
@@ -21,6 +22,8 @@ interface SymmetryOperator {
     readonly ncsId: string,
 
     readonly hkl: Vec3,
+    /** spacegroup symmetry operator index, -1 if not applicable */
+    readonly spgrOp: number,
 
     readonly matrix: Mat4,
     // cache the inverse of the transform
@@ -35,12 +38,13 @@ namespace SymmetryOperator {
 
     export const RotationTranslationEpsilon = 0.005;
 
-    export function create(name: string, matrix: Mat4, assembly: SymmetryOperator['assembly'], ncsId?: string, hkl?: Vec3): SymmetryOperator {
+    export function create(name: string, matrix: Mat4, assembly: SymmetryOperator['assembly'], ncsId?: string, hkl?: Vec3, spgrOp?: number): SymmetryOperator {
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3.zero();
+        spgrOp = defaults(spgrOp, -1)
         ncsId = ncsId || ''
-        if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, ncsId };
+        if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
-        return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl, ncsId };
+        return { name, assembly, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId };
     }
 
     export function checkIfRotationAndTranslation(rot: Mat3, offset: Vec3) {
@@ -106,11 +110,11 @@ namespace SymmetryOperator {
 
     /**
      * Apply the 1st and then 2nd operator. ( = second.matrix * first.matrix).
-     * Keep `name`, `assembly`, `ncsId` and `hkl` properties from second.
+     * Keep `name`, `assembly`, `ncsId`, `hkl` and `spgrOpId` properties from second.
      */
     export function compose(first: SymmetryOperator, second: SymmetryOperator) {
         const matrix = Mat4.mul(Mat4.zero(), second.matrix, first.matrix);
-        return create(second.name, matrix, second.assembly, second.ncsId, second.hkl);
+        return create(second.name, matrix, second.assembly, second.ncsId, second.hkl, second.spgrOp);
     }
 
     export interface CoordinateMapper<T extends number> { (index: T, slot: Vec3): Vec3 }
