@@ -128,7 +128,9 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         this.subscribe(this.plugin.state.behavior.currentObject, o => {
             const current = this.plugin.state.dataState.cells.get(o.ref)!;
             this.spine.current = current
-            this.setState(this.getInitialState())
+            if (!Structure.areParentsEqual(this.state.structure, this.getStructure())) {
+                this.setState(this.getInitialState())
+            }
         });
 
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {

@@ -513,6 +513,11 @@ namespace Structure {
         return areEquivalent(a.parent || a, b.parent || b)
     }
 
+    /** Check if the structures or their parents are equal */
+    export function areParentsEqual(a: Structure, b: Structure) {
+        return (a.parent || a) === (b.parent || b)
+    }
+
     export class ElementLocationIterator implements Iterator<StructureElement> {
         private current = StructureElement.create();
         private unitIndex = 0;

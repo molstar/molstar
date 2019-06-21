@@ -36,15 +36,15 @@ namespace StateTreeSpine {
 
         getRootOfType<T extends StateObject.Ctor>(t: T): StateObject.From<T> | undefined {
             if (!this._current) return void 0;
-            let cell = this._current;
+            let cell = this._current; // check current first
             let ret: StateObjectCell | undefined = void 0;
             while (true) {
-                cell = this.cells.get(cell.transform.parent)!;
                 if (!cell.obj) return void 0;
                 if (cell.obj.type === t.type) {
                     ret = cell;
                 }
                 if (cell.transform.ref === StateTransform.RootRef) return ret ? ret.obj as StateObject.From<T> : void 0;
+                cell = this.cells.get(cell.transform.parent)!; // assign parent for next check
             }
         }
 
