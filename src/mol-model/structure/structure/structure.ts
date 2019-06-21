@@ -141,6 +141,7 @@ class Structure {
         return new Structure.ElementLocationIterator(this);
     }
 
+    /** the root/top-most parent or `undefined` in case this is the root */
     get parent() {
         return this._props.parent;
     }
@@ -240,7 +241,7 @@ class Structure {
     constructor(units: ArrayLike<Unit>, parent: Structure | undefined, coordinateSystem?: SymmetryOperator) {
         this.unitMap = this.initUnits(units);
         this.units = units as ReadonlyArray<Unit>;
-        if (parent) this._props.parent = parent;
+        if (parent) this._props.parent = parent.parent || parent;
         if (coordinateSystem) this._props.coordinateSystem = coordinateSystem;
         else if (parent) this._props.coordinateSystem = parent.coordinateSystem;
     }

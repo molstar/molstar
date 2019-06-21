@@ -157,10 +157,15 @@ namespace StructureElement {
             for (const e of ys.elements) {
                 if (map.has(e.unit.id)) {
                     elements[elements.length] = { unit: e.unit, indices: OrderedSet.union(map.get(e.unit.id)!, e.indices) };
+                    map.delete(e.unit.id)
                 } else {
                     elements[elements.length] = e;
                 }
             }
+
+            map.forEach((indices, id) => {
+                elements[elements.length] = { unit: xs.structure.unitMap.get(id)!, indices };
+            });
 
             return Loci(xs.structure, elements);
         }
