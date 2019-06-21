@@ -9,13 +9,18 @@ import { SequenceWrapper } from './util';
 import { OrderedSet, Interval } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { Sequence } from '../../../mol-model/sequence';
-import { Color } from '../../../mol-util/color';
+import { MissingResidues } from '../../../mol-model/structure/model/properties/common';
+import { ColorNames } from '../../../mol-util/color/tables';
 
 export type StructureUnit = { structure: Structure, unit: Unit }
 
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly location: StructureElement
     private readonly sequence: Sequence
+    private readonly missing: MissingResidues
+
+    private readonly modelNum: number
+    private readonly asymId: string
 
     seqId(i: number) {
         return this.sequence.offset + i + 1
@@ -24,7 +29,9 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return this.sequence.sequence[i]
     }
     residueColor(i: number) {
-        return Color(0)
+        return this.missing.has(this.modelNum, this.asymId, this.seqId(i))
+            ? ColorNames.grey
+            : ColorNames.black
     }
 
     eachResidue(loci: Loci, apply: (interval: Interval) => boolean) {
@@ -69,6 +76,10 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
         this.sequence = sequence
         this.location = StructureElement.create()
+        this.missing = data.unit.model.properties.missingResidues
+
+        this.modelNum = data.unit.model.modelNum
+        this.asymId = SP.chain.label_asym_id(l)
     }
 }
 

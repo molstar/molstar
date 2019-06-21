@@ -5,11 +5,11 @@
  */
 
 import { AtomicData } from '../atomic';
-import { ChemicalComponentMap } from '../chemical-component';
 import { AtomicIndex, AtomicDerivedData } from '../atomic/hierarchy';
 import { ElementIndex, ResidueIndex } from '../../indexing';
 import { MoleculeType, getMoleculeType, getComponentType } from '../../types';
 import { getAtomIdForAtomRole } from '../../../../../mol-model/structure/util';
+import { ChemicalComponentMap } from '../common';
 
 export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemicalComponentMap: ChemicalComponentMap): AtomicDerivedData {
     const { label_comp_id, _rowCount: n } = data.residues

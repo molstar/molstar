@@ -12,7 +12,7 @@ import { Tensor, Vec3 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../mol-task';
 import UUID from '../../../mol-util/uuid';
 import { Model } from '../../../mol-model/structure/model/model';
-import { Entities } from '../../../mol-model/structure/model/properties/common';
+import { Entities, ChemicalComponent, MissingResidue } from '../../../mol-model/structure/model/properties/common';
 import { CustomProperties } from '../../../mol-model/structure';
 import { ModelSymmetry } from '../../../mol-model/structure/model/properties/symmetry';
 import { createAssemblies } from './assembly';
@@ -23,7 +23,6 @@ import { getSecondaryStructure } from './secondary-structure';
 import { getSequence } from './sequence';
 import { sortAtomSite } from './sort';
 import { StructConn } from './bonds/struct_conn';
-import { ChemicalComponent } from '../../../mol-model/structure/model/properties/chemical-component';
 import { getMoleculeType, MoleculeType, getEntityType } from '../../../mol-model/structure/model/types';
 import { ModelFormat } from '../format';
 import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from '../../../mol-model/structure/structure/carbohydrates/constants';
@@ -98,14 +97,36 @@ function getModifiedResidueNameMap(format: mmCIF_Format): Model['properties']['m
     return { parentId, details };
 }
 
+function getMissingResidues(format: mmCIF_Format): Model['properties']['missingResidues'] {
+    const map = new Map<string, MissingResidue>();
+    const c = format.data.pdbx_unobs_or_zero_occ_residues
+
+    const getKey = (model_num: number, asym_id: string, seq_id: number) => {
+        return `${model_num}|${asym_id}|${seq_id}`
+    }
+
+    for (let i = 0, il = c._rowCount; i < il; ++i) {
+        const key = getKey(c.PDB_model_num.value(i), c.label_asym_id.value(i), c.label_seq_id.value(i))
+        map.set(key, { polymer_flag: c.polymer_flag.value(i), occupancy_flag: c.occupancy_flag.value(i) })
+    }
+
+    return {
+        has: (model_num: number, asym_id: string, seq_id: number) => {
+            return map.has(getKey(model_num, asym_id, seq_id))
+        },
+        get: (model_num: number, asym_id: string, seq_id: number) => {
+            return map.get(getKey(model_num, asym_id, seq_id))
+        },
+        size: map.size
+    }
+}
+
 function getChemicalComponentMap(format: mmCIF_Format): Model['properties']['chemicalComponentMap'] {
     const map = new Map<string, ChemicalComponent>();
     const { chem_comp } = format.data
-    if (chem_comp._rowCount > 0) {
-        const { id } = format.data.chem_comp
-        for (let i = 0, il = id.rowCount; i < il; ++i) {
-            map.set(id.value(i), Table.getRow(format.data.chem_comp, i))
-        }
+    const { id } = chem_comp
+    for (let i = 0, il = id.rowCount; i < il; ++i) {
+        map.set(id.value(i), Table.getRow(chem_comp, i))
     }
     return map
 }
@@ -158,6 +179,7 @@ const getUniqueComponentNames = memoize1((format: mmCIF_Format) => {
 
 export interface FormatData {
     modifiedResidues: Model['properties']['modifiedResidues']
+    missingResidues: Model['properties']['missingResidues']
     chemicalComponentMap: Model['properties']['chemicalComponentMap']
     saccharideComponentMap: Model['properties']['saccharideComponentMap']
 }
@@ -165,6 +187,7 @@ export interface FormatData {
 function getFormatData(format: mmCIF_Format): FormatData {
     return {
         modifiedResidues: getModifiedResidueNameMap(format),
+        missingResidues: getMissingResidues(format),
         chemicalComponentMap: getChemicalComponentMap(format),
         saccharideComponentMap: getSaccharideComponentMap(format)
     }
@@ -172,11 +195,12 @@ function getFormatData(format: mmCIF_Format): FormatData {
 
 function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, formatData: FormatData, previous?: Model): Model {
     const atomic = getAtomicHierarchyAndConformation(atom_site, sourceIndex, entities, formatData, previous);
+    const modelNum = atom_site.pdbx_PDB_model_num.value(0)
     if (previous && atomic.sameAsPrevious) {
         return {
             ...previous,
             id: UUID.create22(),
-            modelNum: atom_site.pdbx_PDB_model_num.value(0),
+            modelNum,
             atomicConformation: atomic.conformation,
             _dynamicPropertyData: Object.create(null)
         };
@@ -192,7 +216,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIn
         label,
         entry: label,
         sourceData: format,
-        modelNum: atom_site.pdbx_PDB_model_num.value(0),
+        modelNum,
         entities,
         symmetry: getSymmetry(format),
         sequence: getSequence(format.data, entities, atomic.hierarchy, formatData.modifiedResidues.parentId),

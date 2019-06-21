@@ -7,8 +7,8 @@
 import { CoarseRanges, CoarseElementData } from '../coarse/hierarchy';
 import { Segmentation, Interval } from '../../../../../mol-data/int';
 import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
-import { ChemicalComponent } from '../chemical-component';
 import { ElementIndex } from '../../indexing';
+import { ChemicalComponent } from '../common';
 
 // TODO assumes all coarse elements are part of a polymer
 // TODO add gaps at the ends of the chains by comparing to the polymer sequence data

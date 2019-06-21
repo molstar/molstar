@@ -10,12 +10,11 @@ import StructureSequence from './properties/sequence';
 import { AtomicHierarchy, AtomicConformation } from './properties/atomic';
 import { ModelSymmetry } from './properties/symmetry';
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
-import { Entities } from './properties/common';
+import { Entities, ChemicalComponentMap, MissingResidues } from './properties/common';
 import { CustomProperties } from '../common/custom-property';
 import { SecondaryStructure } from './properties/seconday-structure';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from '../../../mol-model-formats/structure/format';
-import { ChemicalComponentMap } from './properties/chemical-component';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -49,6 +48,8 @@ export interface Model extends Readonly<{
             parentId: ReadonlyMap<string, string>,
             details: ReadonlyMap<string, string>
         }>,
+        /** map that holds details about unobserved or zero occurrence residues */
+        readonly missingResidues: MissingResidues,
         /** maps residue name to `ChemicalComponent` data */
         readonly chemicalComponentMap: ChemicalComponentMap
         /** maps residue name to `SaccharideComponent` data */
