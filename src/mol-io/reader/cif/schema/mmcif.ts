@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.311, IHM 1.0, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.312, IHM 1.0, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -1550,6 +1550,85 @@ export const mmCIF_Schema = {
         program_version: str,
     },
     /**
+     * Data items in the PDBX_UNOBS_OR_ZERO_OCC_RESIDUES category list the
+     * residues within the entry that are not observed or have zero occupancy.
+     */
+    pdbx_unobs_or_zero_occ_residues: {
+        /**
+         * The value of _pdbx_unobs_or_zero_occ_residues.id must uniquely identify
+         * each item in the PDBX_UNOBS_OR_ZERO_OCC_RESIDUES list.
+         *
+         * This is an integer serial number.
+         */
+        id: int,
+        /**
+         * The value of polymer flag indicates whether the unobserved or
+         * zero occupancy residue is part of a polymer chain or not
+         */
+        polymer_flag: Aliased<'Y' | 'N'>(str),
+        /**
+         * The value of occupancy flag indicates whether the residue
+         * is unobserved (= 1) or the coordinates have an occupancy of zero (=0)
+         */
+        occupancy_flag: Aliased<'1' | '0'>(int),
+        /**
+         * Part of the identifier for the unobserved or zero occupancy residue.
+         *
+         * This data item is a pointer to _atom_site.pdbx_PDB_model_num in the
+         * ATOM_SITE category.
+         */
+        PDB_model_num: int,
+        /**
+         * Part of the identifier for the unobserved or zero occupancy residue.
+         *
+         * This data item is a pointer to _atom_site.auth_asym_id in the
+         * ATOM_SITE category.
+         */
+        auth_asym_id: str,
+        /**
+         * Part of the identifier for the unobserved or zero occupancy residue.
+         *
+         * This data item is a pointer to _atom_site.auth_comp_id in the
+         * ATOM_SITE category.
+         */
+        auth_comp_id: str,
+        /**
+         * Part of the identifier for the unobserved or zero occupancy residue.
+         *
+         * This data item is a pointer to _atom_site.auth_seq_id in the
+         * ATOM_SITE category.
+         */
+        auth_seq_id: str,
+        /**
+         * Part of the identifier for the unobserved or zero occupancy residue.
+         *
+         * This data item is a pointer to _atom_site.pdbx_PDB_ins_code in the
+         * ATOM_SITE category.
+         */
+        PDB_ins_code: str,
+        /**
+         * Part of the identifier for the unobserved or zero occupancy residue.
+         *
+         * This data item is a pointer to _atom_site.label_asym_id in the
+         * ATOM_SITE category.
+         */
+        label_asym_id: str,
+        /**
+         * Part of the identifier for the unobserved or zero occupancy residue.
+         *
+         * This data item is a pointer to _atom_site.label_comp_id in the
+         * ATOM_SITE category.
+         */
+        label_comp_id: str,
+        /**
+         * Part of the identifier for the unobserved or zero occupancy residue.
+         *
+         * This data item is a pointer to _atom_site.label_seq_id in the
+         * ATOM_SITE category.
+         */
+        label_seq_id: int,
+    },
+    /**
      * Data items in the PDBX_STRUCT_MOD_RESIDUE category list the
      * modified polymer components in the entry and provide some
      * details describing the nature of the modification.
@@ -2079,10 +2158,10 @@ export const mmCIF_Schema = {
         pdbx_end_seq_num: int,
     },
     /**
-     * Data items in the PDBX_ENTITY_DESCRIPTOR category provide
+     * Data items in the PDBX_ENTITY_BRANCH_DESCRIPTOR category provide
      * string descriptors of entity chemical structure.
      */
-    pdbx_entity_descriptor: {
+    pdbx_entity_branch_descriptor: {
         /**
          * This data item is a pointer to _entity_poly.entity_id in the ENTITY
          * category.
