@@ -16,6 +16,7 @@ import { PluginCommands } from './command';
 import { PluginAnimationManager } from './state/animation/manager';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { UUID } from '../mol-util';
+import { Interactivity } from './util/interactivity';
 export { PluginState }
 
 class PluginState {
@@ -57,6 +58,7 @@ class PluginState {
             } : void 0,
             cameraSnapshots: p.cameraSnapshots ? this.cameraSnapshots.getStateSnapshot() : void 0,
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d.props } : void 0,
+            interactivity: p.interactivity ? { props: this.plugin.interactivity.props } : void 0,
             durationInMs: params && params.durationInMs
         };
     }
@@ -68,6 +70,9 @@ class PluginState {
         if (snapshot.data) await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));
         if (snapshot.canvas3d) {
             if (snapshot.canvas3d.props) await PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: snapshot.canvas3d.props });
+        }
+        if (snapshot.interactivity) {
+            if (snapshot.interactivity.props) await PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: snapshot.interactivity.props });
         }
         if (snapshot.cameraSnapshots) this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         if (snapshot.animation) {
@@ -123,6 +128,7 @@ namespace PluginState {
         animation: PD.Boolean(true),
         startAnimation: PD.Boolean(false),
         canvas3d: PD.Boolean(true),
+        interactivity: PD.Boolean(true),
         camera: PD.Boolean(true),
         // TODO: make camera snapshots same as the StateSnapshots with "child states?"
         cameraSnapshots: PD.Boolean(false),
@@ -150,6 +156,9 @@ namespace PluginState {
         cameraSnapshots?: CameraSnapshotManager.StateSnapshot,
         canvas3d?: {
             props?: Canvas3DProps
+        },
+        interactivity?: {
+            props?: Interactivity.Props
         },
         durationInMs?: number
     }
