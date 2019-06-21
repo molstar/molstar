@@ -9,8 +9,9 @@ import * as React from 'react'
 import { PurePluginUIComponent } from '../base';
 import { getButtons, getModifiers } from '../../../mol-util/input/input-observer';
 import { Sequence } from './sequence';
+import { Color } from '../../../mol-util/color';
 
-export class Residue extends PurePluginUIComponent<{ seqId: number, letter: string, parent: Sequence<any>, marker: number }> {
+export class Residue extends PurePluginUIComponent<{ seqId: number, label: string, parent: Sequence<any>, marker: number, color: Color }> {
 
     mouseEnter = (e: React.MouseEvent) => {
         const modifiers = getModifiers(e.nativeEvent)
@@ -41,8 +42,11 @@ export class Residue extends PurePluginUIComponent<{ seqId: number, letter: stri
             onMouseEnter={this.mouseEnter}
             onMouseLeave={this.mouseLeave}
             onMouseDown={this.mouseDown}
-            style={{ backgroundColor: this.getBackgroundColor() }}>
-            {this.props.letter}
+            style={{
+                color: Color.toStyle(this.props.color),
+                backgroundColor: this.getBackgroundColor()
+            }}>
+            {this.props.label}
         </span>;
     }
 }

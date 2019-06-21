@@ -88,11 +88,18 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P, Sequ
 
     render() {
         const { markerData } = this.state;
-        const { offset, sequence } = this.props.sequenceWrapper.sequence;
+        const sw = this.props.sequenceWrapper
 
         const elems: JSX.Element[] = [];
-        for (let i = 0, _i = sequence.length; i < _i; i++) {
-            elems[elems.length] = <Residue seqId={offset + i + 1} letter={sequence[i]} parent={this} marker={markerData.value[i]} key={i} />;
+        for (let i = 0, il = sw.length; i < il; ++i) {
+            elems[elems.length] = <Residue
+                seqId={sw.seqId(i)}
+                label={sw.residueLabel(i)}
+                parent={this}
+                marker={markerData.value[i]}
+                color={sw.residueColor(i)}
+                key={i}
+            />;
         }
 
         return <div

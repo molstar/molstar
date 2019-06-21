@@ -8,11 +8,24 @@ import { StructureSelection, StructureQuery, Structure, Queries, StructureProper
 import { SequenceWrapper } from './util';
 import { OrderedSet, Interval } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
+import { Sequence } from '../../../mol-model/sequence';
+import { Color } from '../../../mol-util/color';
 
 export type StructureUnit = { structure: Structure, unit: Unit }
 
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
-    private readonly location = StructureElement.create()
+    private readonly location: StructureElement
+    private readonly sequence: Sequence
+
+    seqId(i: number) {
+        return this.sequence.offset + i + 1
+    }
+    residueLabel(i: number) {
+        return this.sequence.sequence[i]
+    }
+    residueColor(i: number) {
+        return Color(0)
+    }
 
     eachResidue(loci: Loci, apply: (interval: Interval) => boolean) {
         let changed = false
@@ -47,15 +60,15 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return StructureSelection.toLoci2(StructureQuery.run(query, this.data.structure));
     }
 
-    constructor(readonly data: StructureUnit) {
-        super()
+    constructor(data: StructureUnit) {
+        const l = StructureElement.create(data.unit, data.unit.elements[0])
+        const sequence = data.unit.model.sequence.byEntityKey[SP.entity.key(l)].sequence
+        const markerArray = new Uint8Array(sequence.sequence.length)
 
-        const l = this.location
-        l.unit = data.unit
-        l.element = data.unit.elements[0]
+        super(data, markerArray, sequence.sequence.length)
 
-        this.sequence = data.unit.model.sequence.byEntityKey[SP.entity.key(l)].sequence
-        this.markerArray = new Uint8Array(this.sequence.sequence.length)
+        this.sequence = sequence
+        this.location = StructureElement.create()
     }
 }
 
