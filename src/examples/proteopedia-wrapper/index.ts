@@ -253,18 +253,26 @@ class MolStarProteopediaWrapper {
     }
 
     coloring = {
-        evolutionaryConservation: async () => {
-            await this.updateStyle({ sequence: { kind: 'spacefill' } }, true);
+        evolutionaryConservation: async (params?: { sequence?: boolean, het?: boolean, keepStyle?: boolean }) => {
+            if (!params || !params.keepStyle) {
+                await this.updateStyle({ sequence: { kind: 'spacefill' } }, true);
+            }
 
             const state = this.state;
 
             // const visuals = state.selectQ(q => q.ofType(PluginStateObject.Molecule.Structure.Representation3D).filter(c => c.transform.transformer === StateTransforms.Representation.StructureRepresentation3D));
+            // for (const v of visuals) {
+            // }
+
             const tree = state.build();
             const colorTheme = { name: EvolutionaryConservation.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(EvolutionaryConservation.Descriptor.name).defaultValues };
 
-            tree.to(StateElements.SequenceVisual).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
-            // for (const v of visuals) {
-            // }
+            if (!params || !!params.sequence) {
+                tree.to(StateElements.SequenceVisual).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
+            }
+            if (params && !!params.het) {
+                tree.to(StateElements.HetVisual).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
+            }
 
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
         }
