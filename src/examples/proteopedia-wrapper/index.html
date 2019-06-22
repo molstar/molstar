@@ -149,7 +149,8 @@
             addSeparator();
             addHeader('Misc');
 
-            addControl('Apply Evo Cons', () => PluginWrapper.coloring.evolutionaryConservation());
+            addControl('Apply Evo Cons Style', () => PluginWrapper.coloring.evolutionaryConservation());
+            addControl('Apply Evo Cons Colors', () => PluginWrapper.coloring.evolutionaryConservation({ sequence: true, het: false, keepStyle: true }));
             addControl('Default Visuals', () => PluginWrapper.updateStyle());
 
             addSeparator();
