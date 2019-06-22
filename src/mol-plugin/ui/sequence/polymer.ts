@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureSelection, StructureQuery, Structure, Queries, StructureProperties as SP, StructureElement, Unit } from '../../../mol-model/structure';
+import { StructureSelection, StructureQuery, Structure, Queries, StructureProperties as SP, StructureElement, Unit, ElementIndex } from '../../../mol-model/structure';
 import { SequenceWrapper } from './util';
 import { OrderedSet, Interval, SortedArray } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
@@ -15,7 +15,6 @@ import { ColorNames } from '../../../mol-util/color/tables';
 export type StructureUnit = { structure: Structure, unit: Unit }
 
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
-    private readonly location: StructureElement
     private readonly sequence: Sequence
     private readonly missing: MissingResidues
     private readonly observed: OrderedSet // sequences indices
@@ -41,24 +40,12 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         if (StructureElement.isLoci(loci)) {
             if (!Structure.areParentsEqual(loci.structure, structure)) return false
 
-            const { location } = this
             for (const e of loci.elements) {
-                let rIprev = -1
-                location.unit = e.unit
-
-                const { index: residueIndex } = e.unit.model.atomicHierarchy.residueAtomSegments
-
-                OrderedSet.forEach(e.indices, v => {
-                    location.element = e.unit.elements[v]
-                    const rI = residueIndex[location.element]
-                    // avoid checking for the same residue multiple times
-                    if (rI !== rIprev) {
-                        if (SP.unit.id(location) !== unit.id) return
-
-                        if (apply(getSeqIndices(location))) changed = true
-                        rIprev = rI
-                    }
-                })
+                if (e.unit.id === unit.id) {
+                    OrderedSet.forEach(e.indices, v => {
+                        if (apply(getSeqIndices(e.unit, e.unit.elements[v]))) changed = true
+                    })
+                }
             }
         } else if (Structure.isLoci(loci)) {
             if (!Structure.areParentsEqual(loci.structure, structure)) return false
@@ -82,7 +69,6 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         super(data, markerArray, sequence.sequence.length)
 
         this.sequence = sequence
-        this.location = StructureElement.create()
         this.missing = data.unit.model.properties.missingResidues
 
         this.modelNum = data.unit.model.modelNum
@@ -114,8 +100,7 @@ function createResidueQuery(unitId: number, label_seq_id: number) {
     });
 }
 
-function getSeqIndices(location: StructureElement): Interval {
-    const { unit, element } = location
+function getSeqIndices(unit: Unit, element: ElementIndex): Interval {
     const { model } = unit
     switch (unit.kind) {
         case Unit.Kind.Atomic:
