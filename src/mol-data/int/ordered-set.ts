@@ -37,6 +37,7 @@ namespace OrderedSet {
 
     export const union: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.union as any;
     export const intersect: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.intersect as any;
+    /** Returns elements of `a` that are not in `b`, i.e `a` - `b` */
     export const subtract: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.subtract as any;
 
     export const findPredecessorIndex: <T extends number = number>(set: OrderedSet<T>, x: number) => number = Base.findPredecessorIndex as any;

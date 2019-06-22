@@ -6,7 +6,7 @@
 
 import { StructureSelection, StructureQuery, Structure, Queries, StructureProperties as SP, StructureElement, Unit } from '../../../mol-model/structure';
 import { SequenceWrapper } from './util';
-import { OrderedSet, Interval } from '../../../mol-data/int';
+import { OrderedSet, Interval, SortedArray } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { Sequence } from '../../../mol-model/sequence';
 import { MissingResidues } from '../../../mol-model/structure/model/properties/common';
@@ -18,46 +18,52 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly location: StructureElement
     private readonly sequence: Sequence
     private readonly missing: MissingResidues
+    private readonly observed: OrderedSet // sequences indices
 
     private readonly modelNum: number
     private readonly asymId: string
 
-    seqId(i: number) {
-        return this.sequence.offset + i + 1
+    seqId(seqIdx: number) {
+        return this.sequence.offset + seqIdx + 1
     }
-    residueLabel(i: number) {
-        return this.sequence.sequence[i]
+    residueLabel(seqIdx: number) {
+        return this.sequence.sequence[seqIdx]
     }
-    residueColor(i: number) {
-        return this.missing.has(this.modelNum, this.asymId, this.seqId(i))
+    residueColor(seqIdx: number) {
+        return this.missing.has(this.modelNum, this.asymId, this.seqId(seqIdx))
             ? ColorNames.grey
             : ColorNames.black
     }
 
-    eachResidue(loci: Loci, apply: (interval: Interval) => boolean) {
+    eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
         let changed = false
         const { structure, unit } = this.data
-        if (!StructureElement.isLoci(loci)) return false
-        if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+        if (StructureElement.isLoci(loci)) {
+            if (!Structure.areParentsEqual(loci.structure, structure)) return false
 
-        const { location } = this
-        for (const e of loci.elements) {
-            let rIprev = -1
-            location.unit = e.unit
+            const { location } = this
+            for (const e of loci.elements) {
+                let rIprev = -1
+                location.unit = e.unit
 
-            const { index: residueIndex } = e.unit.model.atomicHierarchy.residueAtomSegments
+                const { index: residueIndex } = e.unit.model.atomicHierarchy.residueAtomSegments
 
-            OrderedSet.forEach(e.indices, v => {
-                location.element = e.unit.elements[v]
-                const rI = residueIndex[location.element]
-                // avoid checking for the same residue multiple times
-                if (rI !== rIprev) {
-                    if (SP.unit.id(location) !== unit.id) return
+                OrderedSet.forEach(e.indices, v => {
+                    location.element = e.unit.elements[v]
+                    const rI = residueIndex[location.element]
+                    // avoid checking for the same residue multiple times
+                    if (rI !== rIprev) {
+                        if (SP.unit.id(location) !== unit.id) return
 
-                    if (apply(getSeqIdInterval(location))) changed = true
-                    rIprev = rI
-                }
-            })
+                        if (apply(getSeqIndices(location))) changed = true
+                        rIprev = rI
+                    }
+                })
+            }
+        } else if (Structure.isLoci(loci)) {
+            if (!Structure.areParentsEqual(loci.structure, structure)) return false
+
+            if (apply(this.observed)) changed = true
         }
         return changed
     }
@@ -70,7 +76,8 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     constructor(data: StructureUnit) {
         const l = StructureElement.create(data.unit, data.unit.elements[0])
         const sequence = data.unit.model.sequence.byEntityKey[SP.entity.key(l)].sequence
-        const markerArray = new Uint8Array(sequence.sequence.length)
+        const length = sequence.sequence.length
+        const markerArray = new Uint8Array(length)
 
         super(data, markerArray, sequence.sequence.length)
 
@@ -80,6 +87,12 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
         this.modelNum = data.unit.model.modelNum
         this.asymId = SP.chain.label_asym_id(l)
+
+        const missing: number[] = []
+        for (let i = 0; i < length; ++i) {
+            if (this.missing.has(this.modelNum, this.asymId, this.seqId(i))) missing.push(i)
+        }
+        this.observed = OrderedSet.subtract(Interval.ofBounds(0, length),  SortedArray.ofSortedArray(missing))
     }
 }
 
@@ -101,8 +114,7 @@ function createResidueQuery(unitId: number, label_seq_id: number) {
     });
 }
 
-/** Zero-indexed */
-function getSeqIdInterval(location: StructureElement): Interval {
+function getSeqIndices(location: StructureElement): Interval {
     const { unit, element } = location
     const { model } = unit
     switch (unit.kind) {

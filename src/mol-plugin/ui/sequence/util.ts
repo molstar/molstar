@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Interval } from '../../../mol-data/int';
+import { OrderedSet } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../../mol-util/marker-action';
 import { StructureElement } from '../../../mol-model/structure';
@@ -13,16 +13,16 @@ import { Color } from '../../../mol-util/color';
 export { SequenceWrapper }
 
 abstract class SequenceWrapper<D> {
-    abstract seqId(i: number): number
-    abstract residueLabel(i: number): string
-    abstract residueColor(i: number): Color
+    abstract seqId(seqIdx: number): number
+    abstract residueLabel(seqIdx: number): string
+    abstract residueColor(seqIdx: number): Color
 
-    abstract eachResidue(loci: Loci, apply: (interval: Interval) => boolean): boolean
+    abstract eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean): boolean
     abstract getLoci(seqId: number): StructureElement.Loci
 
     markResidue(loci: Loci, action: MarkerAction) {
-        return this.eachResidue(loci, (i: Interval) => {
-            return applyMarkerAction(this.markerArray, i, action)
+        return this.eachResidue(loci, (set: OrderedSet) => {
+            return applyMarkerAction(this.markerArray, set, action)
         })
     }
 
