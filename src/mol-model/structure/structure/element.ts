@@ -139,6 +139,8 @@ namespace StructureElement {
         }
 
         export function remap(loci: Loci, structure: Structure): Loci {
+            if (structure === loci.structure) return loci
+
             return Loci(structure, loci.elements.map(e => ({
                 unit: structure.unitMap.get(e.unit.id)!,
                 indices: e.indices

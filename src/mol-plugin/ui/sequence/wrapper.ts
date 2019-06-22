@@ -7,18 +7,19 @@
 import { OrderedSet } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../../mol-util/marker-action';
-import { StructureElement } from '../../../mol-model/structure';
+import { StructureElement, Structure, Unit } from '../../../mol-model/structure';
 import { Color } from '../../../mol-util/color';
+
+export type StructureUnit = { structure: Structure, unit: Unit }
 
 export { SequenceWrapper }
 
 abstract class SequenceWrapper<D> {
-    abstract seqId(seqIdx: number): number
     abstract residueLabel(seqIdx: number): string
     abstract residueColor(seqIdx: number): Color
 
     abstract eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean): boolean
-    abstract getLoci(seqId: number): StructureElement.Loci
+    abstract getLoci(seqIdx: number): StructureElement.Loci
 
     markResidue(loci: Loci, action: MarkerAction) {
         return this.eachResidue(loci, (set: OrderedSet) => {

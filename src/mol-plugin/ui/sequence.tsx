@@ -11,12 +11,13 @@ import { StateTreeSpine } from '../../mol-state/tree/spine';
 import { PluginStateObject as SO } from '../state/objects';
 import { Sequence } from './sequence/sequence';
 import { Structure, StructureElement, StructureProperties as SP } from '../../mol-model/structure';
-import { SequenceWrapper } from './sequence/util';
+import { SequenceWrapper } from './sequence/wrapper';
 import { PolymerSequenceWrapper } from './sequence/polymer';
 import { StructureElementSelectionManager } from '../util/structure-element-selection';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { ParameterControls } from './controls/parameters';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { HeteroSequenceWrapper } from './sequence/hetero';
 
 function opKey(l: StructureElement) {
     const ids = SP.unit.pdbx_struct_oper_list_ids(l)
@@ -27,19 +28,16 @@ function opKey(l: StructureElement) {
 }
 
 function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureElementSelectionManager): SequenceWrapper.Any | undefined {
-    const { structure, entity, chain, operator } = state
+    const { structure, entityId, invariantUnitId, operatorKey } = state
     const l = StructureElement.create()
-    for (let i = 0, il = structure.units.length; i < il; ++i) {
-        const unit = structure.units[i]
-        if (unit.polymerElements.length === 0) continue
-
+    for (const unit of structure.units) {
         StructureElement.set(l, unit, unit.elements[0])
-        if (SP.entity.id(l) !== entity) continue
-        if (SP.chain.label_asym_id(l) !== chain) continue
-        if (opKey(l) !== operator) continue
+        if (SP.entity.id(l) !== entityId) continue
+        if (unit.invariantId !== invariantUnitId) continue
+        if (opKey(l) !== operatorKey) continue
 
-        // console.log('new PolymerSequenceWrapper', structureSelection.get(structure))
-        const sw = new PolymerSequenceWrapper({ structure, unit })
+        const Wrapper = unit.polymerElements.length ? PolymerSequenceWrapper : HeteroSequenceWrapper
+        const sw = new Wrapper({ structure, unit })
         sw.markResidue(structureSelection.get(structure), MarkerAction.Select)
         return sw
     }
@@ -50,74 +48,76 @@ function getEntityOptions(structure: Structure) {
     const l = StructureElement.create()
     const seen = new Set<string>()
 
-    structure.units.forEach(unit => {
-        if (unit.polymerElements.length === 0) return
-
+    for (const unit of structure.units) {
         StructureElement.set(l, unit, unit.elements[0])
         const id = SP.entity.id(l)
-        if (seen.has(id)) return
+        if (seen.has(id)) continue
 
         const label = `${id}: ${SP.entity.pdbx_description(l).join(', ')}`
         options.push([ id, label ])
         seen.add(id)
-    })
+    }
 
     if (options.length === 0) options.push(['', 'No entities'])
     return options
 }
 
 function getChainOptions(structure: Structure, entityId: string) {
-    const options: [string, string][] = []
+    const options: [number, string][] = []
     const l = StructureElement.create()
-    const seen = new Set<string>()
+    const seen = new Set<number>()
+    const water = new Map<string, number>()
 
-    structure.units.forEach(unit => {
-        if (unit.polymerElements.length === 0) return
-
+    for (const unit of structure.units) {
         StructureElement.set(l, unit, unit.elements[0])
-        if (SP.entity.id(l) !== entityId) return
+        if (SP.entity.id(l) !== entityId) continue
 
-        const id = SP.chain.label_asym_id(l)
-        if (seen.has(id)) return
+        const id = unit.invariantId
+        if (seen.has(id)) continue
 
-        const label = `${id}: ${SP.chain.auth_asym_id(l)}`
+        let label = `${SP.chain.label_asym_id(l)}: ${SP.chain.auth_asym_id(l)}`
+        if (SP.entity.type(l) === 'water') {
+            const count = water.get(label) || 1
+            water.set(label, count + 1)
+            label += ` #${count}`
+        }
+
         options.push([ id, label ])
         seen.add(id)
-    })
+    }
 
-    if (options.length === 0) options.push(['', 'No chains'])
+    if (options.length === 0) options.push([-1, 'No chains'])
     return options
 }
 
-function getOperatorOptions(structure: Structure, entityId: string, label_asym_id: string) {
+function getOperatorOptions(structure: Structure, entityId: string, invariantUnitId: number) {
     const options: [string, string][] = []
     const l = StructureElement.create()
     const seen = new Set<string>()
 
-    structure.units.forEach(unit => {
-        if (unit.polymerElements.length === 0) return
+    for (const unit of structure.units) {
         StructureElement.set(l, unit, unit.elements[0])
-        if (SP.entity.id(l) !== entityId) return
-        if (SP.chain.label_asym_id(l) !== label_asym_id) return
+        if (SP.entity.id(l) !== entityId) continue
+        if (unit.invariantId !== invariantUnitId) continue
 
         const id = opKey(l)
-        if (seen.has(id)) return
+        if (seen.has(id)) continue
 
         const label = unit.conformation.operator.name
         options.push([ id, label ])
         seen.add(id)
-    })
+    }
 
     if (options.length === 0) options.push(['', 'No operators'])
     return options
 }
 
-type SequenceViewState = { structure: Structure, entity: string, chain: string, operator: string }
+type SequenceViewState = { structure: Structure, entityId: string, invariantUnitId: number, operatorKey: string }
 
 export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     private spine: StateTreeSpine.Impl
 
-    state = { structure: Structure.Empty, entity: '', chain: '', operator: '' }
+    state = { structure: Structure.Empty, entityId: '', invariantUnitId: -1, operatorKey: '' }
 
     constructor(props: {}, context?: any) {
         super(props, context);
@@ -151,17 +151,17 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
 
     private getInitialState(): SequenceViewState {
         const structure = this.getStructure()
-        const entity = getEntityOptions(structure)[0][0]
-        const chain = getChainOptions(structure, entity)[0][0]
-        const operator = getOperatorOptions(structure, entity, chain)[0][0]
-        return { structure, entity, chain, operator }
+        const entityId = getEntityOptions(structure)[0][0]
+        const invariantUnitId = getChainOptions(structure, entityId)[0][0]
+        const operatorKey = getOperatorOptions(structure, entityId, invariantUnitId)[0][0]
+        return { structure, entityId, invariantUnitId, operatorKey }
     }
 
     private get params() {
-        const { structure, entity, chain } = this.state
+        const { structure, entityId, invariantUnitId } = this.state
         const entityOptions = getEntityOptions(structure)
-        const chainOptions = getChainOptions(structure, entity)
-        const operatorOptions = getOperatorOptions(structure, entity, chain)
+        const chainOptions = getChainOptions(structure, entityId)
+        const operatorOptions = getOperatorOptions(structure, entityId, invariantUnitId)
         return {
             entity: PD.Select(entityOptions[0][0], entityOptions),
             chain: PD.Select(chainOptions[0][0], chainOptions),
@@ -169,20 +169,29 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         }
     }
 
+    private get values(): PD.Values<SequenceView['params']> {
+        return {
+            entity: this.state.entityId,
+            chain: this.state.invariantUnitId,
+            operator: this.state.operatorKey
+        }
+    }
+
+    // TODO try to use selected option from previous state
     private setParamProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         const state = { ...this.state }
         switch (p.name) {
             case 'entity':
-                state.entity = p.value
-                state.chain = getChainOptions(state.structure, state.entity)[0][0]
-                state.operator = getOperatorOptions(state.structure, state.entity, state.chain)[0][0]
+                state.entityId = p.value
+                state.invariantUnitId = getChainOptions(state.structure, state.entityId)[0][0]
+                state.operatorKey = getOperatorOptions(state.structure, state.entityId, state.invariantUnitId)[0][0]
                 break
             case 'chain':
-                state.chain = p.value
-                state.operator = getOperatorOptions(state.structure, state.entity, state.chain)[0][0]
+                state.invariantUnitId = p.value
+                state.operatorKey = getOperatorOptions(state.structure, state.entityId, state.invariantUnitId)[0][0]
                 break
             case 'operator':
-                state.operator = p.value
+                state.operatorKey = p.value
                 break
         }
         this.setState(state)
@@ -196,7 +205,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         const sequenceWrapper = this.getSequenceWrapper()
         return <div className='msp-sequence'>
             <div className='msp-sequence-select'>
-                <ParameterControls params={this.params} values={this.state} onChange={this.setParamProps} />
+                <ParameterControls params={this.params} values={this.values} onChange={this.setParamProps} />
             </div>
             {sequenceWrapper !== undefined
                 ? <Sequence sequenceWrapper={sequenceWrapper} />

@@ -5,14 +5,12 @@
  */
 
 import { StructureSelection, StructureQuery, Structure, Queries, StructureProperties as SP, StructureElement, Unit, ElementIndex } from '../../../mol-model/structure';
-import { SequenceWrapper } from './util';
+import { SequenceWrapper, StructureUnit } from './wrapper';
 import { OrderedSet, Interval, SortedArray } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { Sequence } from '../../../mol-model/sequence';
 import { MissingResidues } from '../../../mol-model/structure/model/properties/common';
 import { ColorNames } from '../../../mol-util/color/tables';
-
-export type StructureUnit = { structure: Structure, unit: Unit }
 
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly sequence: Sequence
@@ -25,6 +23,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     seqId(seqIdx: number) {
         return this.sequence.offset + seqIdx + 1
     }
+
     residueLabel(seqIdx: number) {
         return this.sequence.sequence[seqIdx]
     }
@@ -55,8 +54,8 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return changed
     }
 
-    getLoci(seqId: number) {
-        const query = createResidueQuery(this.data.unit.id, seqId);
+    getLoci(seqIdx: number) {
+        const query = createResidueQuery(this.data.unit.id, this.seqId(seqIdx));
         return StructureSelection.toLoci2(StructureQuery.run(query, this.data.structure));
     }
 
@@ -66,7 +65,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         const length = sequence.sequence.length
         const markerArray = new Uint8Array(length)
 
-        super(data, markerArray, sequence.sequence.length)
+        super(data, markerArray, length)
 
         this.sequence = sequence
         this.missing = data.unit.model.properties.missingResidues

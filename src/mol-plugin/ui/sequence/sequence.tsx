@@ -12,7 +12,7 @@ import { MarkerAction } from '../../../mol-util/marker-action';
 import { ButtonsType, ModifiersKeys, getButtons, getModifiers } from '../../../mol-util/input/input-observer';
 import { ValueBox } from '../../../mol-util';
 import { Residue } from './residue';
-import { SequenceWrapper } from './util';
+import { SequenceWrapper } from './wrapper';
 
 type SequenceProps = { sequenceWrapper: SequenceWrapper.Any }
 type SequenceState = { markerData: ValueBox<Uint8Array> }
@@ -93,7 +93,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P, Sequ
         const elems: JSX.Element[] = [];
         for (let i = 0, il = sw.length; i < il; ++i) {
             elems[elems.length] = <Residue
-                seqId={sw.seqId(i)}
+                seqIdx={i}
                 label={sw.residueLabel(i)}
                 parent={this}
                 marker={markerData.value[i]}
