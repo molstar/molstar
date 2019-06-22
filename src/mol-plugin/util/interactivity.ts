@@ -97,6 +97,9 @@ namespace Interactivity {
                 loci = Link.toStructureElementLoci(loci)
             }
             loci = Granularity[this.props.granularity](loci)
+            if (Structure.isLoci(loci)) {
+                loci = Structure.toStructureElementLoci(loci)
+            }
             if (StructureElement.isLoci(loci) && loci.structure.parent) {
                 loci = StructureElement.Loci.remap(loci, loci.structure.parent)
             }

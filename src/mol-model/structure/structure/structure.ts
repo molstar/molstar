@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { IntMap, SortedArray, Iterator, Segmentation } from '../../../mol-data/int'
+import { IntMap, SortedArray, Iterator, Segmentation, Interval } from '../../../mol-data/int'
 import { UniqueArray } from '../../../mol-data/generic'
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
 import { Model, ElementIndex } from '../model'
@@ -343,6 +343,14 @@ namespace Structure {
     }
     export function Loci(structure: Structure): Loci {
         return { kind: 'structure-loci', structure };
+    }
+
+    export function toStructureElementLoci(loci: Loci): StructureElement.Loci {
+        const elements: StructureElement.Loci['elements'][0][] = []
+        for (const unit of loci.structure.units) {
+            elements.push({ unit, indices: Interval.ofBounds(0, unit.elements.length) })
+        }
+        return StructureElement.Loci(loci.structure, elements);
     }
 
     export function isLoci(x: any): x is Loci {
