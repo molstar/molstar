@@ -283,14 +283,16 @@ function getEntities(format: mmCIF_Format): Entities {
 
     if (!format.data.entity.id.isDefined) {
         const entityIds = new Set<string>()
-        const entityList: Partial<Table.Row<mmCIF_Schema['entity']>>[] = []
+
+        const ids: mmCIF_Schema['entity']['id']['T'][] = []
+        const types: mmCIF_Schema['entity']['type']['T'][] = []
 
         const { label_entity_id, label_comp_id } = format.data.atom_site;
         for (let i = 0 as ElementIndex, il = format.data.atom_site._rowCount; i < il; i++) {
             const entityId = label_entity_id.value(i);
             if (!entityIds.has(entityId)) {
-                entityList.push({ id: entityId, type: getEntityType(label_comp_id.value(i)) })
-                entityIds.add(entityId)
+                ids.push(entityId)
+                types.push(getEntityType(label_comp_id.value(i)))
             }
         }
 
@@ -298,8 +300,8 @@ function getEntities(format: mmCIF_Format): Entities {
         for (let i = 0 as ElementIndex, il = format.data.ihm_sphere_obj_site._rowCount; i < il; i++) {
             const entityId = sphere_entity_id.value(i);
             if (!entityIds.has(entityId)) {
-                entityList.push({ id: entityId, type: 'polymer' })
-                entityIds.add(entityId)
+                ids.push(entityId)
+                types.push('polymer')
             }
         }
 
@@ -307,12 +309,16 @@ function getEntities(format: mmCIF_Format): Entities {
         for (let i = 0 as ElementIndex, il = format.data.ihm_gaussian_obj_site._rowCount; i < il; i++) {
             const entityId = gaussian_entity_id.value(i);
             if (!entityIds.has(entityId)) {
-                entityList.push({ id: entityId, type: 'polymer' })
-                entityIds.add(entityId)
+                ids.push(entityId)
+                types.push('polymer')
             }
         }
 
-        entityData = Table.ofRows(mmCIF_Schema.entity, entityList)
+        entityData = Table.ofColumns(mmCIF_Schema.entity, {
+            ...format.data.entity,
+            id: Column.ofArray({ array: ids, schema: mmCIF_Schema.entity.id }),
+            type: Column.ofArray({ array: types, schema: mmCIF_Schema.entity.type }),
+        })
     } else {
         entityData = format.data.entity;
     }
