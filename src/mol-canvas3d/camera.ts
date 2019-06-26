@@ -90,25 +90,30 @@ class Camera implements Object3D {
         return ret;
     }
 
-    getFocus(target: Vec3, radius: number): Partial<Camera.Snapshot> {
+    getFocus(target: Vec3, radius: number, dir?: Vec3): Partial<Camera.Snapshot> {
         const fov = this.state.fov
         const { width, height } = this.viewport
         const aspect = width / height
         const aspectFactor = (height < width ? 1 : aspect)
         const currentDistance = Vec3.distance(this.state.position, target)
         const targetDistance = Math.abs((radius / aspectFactor) / Math.sin(fov / 2))
+
         const deltaDistance = Math.abs(currentDistance - targetDistance)
 
-        Vec3.sub(this.deltaDirection, this.state.position, target)
-        Vec3.setMagnitude(this.deltaDirection, this.state.direction, deltaDistance)
-        if (currentDistance < targetDistance) Vec3.negate(this.deltaDirection, this.deltaDirection)
-        Vec3.add(this.newPosition, this.state.position, this.deltaDirection)
+        if (dir) {
+            Vec3.setMagnitude(this.deltaDirection, dir, targetDistance)
+            Vec3.add(this.newPosition, target, this.deltaDirection)
+        } else {
+            Vec3.setMagnitude(this.deltaDirection, this.state.direction, deltaDistance)
+            if (currentDistance < targetDistance) Vec3.negate(this.deltaDirection, this.deltaDirection)
+            Vec3.add(this.newPosition, this.state.position, this.deltaDirection)
+        }
 
         return { target, position: Vec3.clone(this.newPosition) };
     }
 
-    focus(target: Vec3, radius: number) {
-        this.setState(this.getFocus(target, radius));
+    focus(target: Vec3, radius: number, dir?: Vec3) {
+        this.setState(this.getFocus(target, radius, dir));
     }
 
     // lookAt(target: Vec3) {
