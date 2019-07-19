@@ -117,7 +117,7 @@ describe('renderer', () => {
         expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[3]).toBe(48)
     })
 
-    it('points', () => {
+    it('points', async () => {
         const [ width, height ] = [ 32, 32 ]
         const gl = createGl(width, height, { preserveDrawingBuffer: true })
         const { ctx } = createRenderer(gl)
@@ -126,6 +126,7 @@ describe('renderer', () => {
         const points = createPoints()
 
         scene.add(points)
+        await scene.commit().run()
         expect(ctx.stats.bufferCount).toBe(4);
         expect(ctx.stats.textureCount).toBe(5);
         expect(ctx.stats.vaoCount).toBe(5);
@@ -133,6 +134,7 @@ describe('renderer', () => {
         expect(ctx.shaderCache.count).toBe(10);
 
         scene.remove(points)
+        await scene.commit().run()
         expect(ctx.stats.bufferCount).toBe(0);
         expect(ctx.stats.textureCount).toBe(0);
         expect(ctx.stats.vaoCount).toBe(0);
