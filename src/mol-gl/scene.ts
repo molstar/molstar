@@ -40,17 +40,11 @@ function renderableSort(a: Renderable<RenderableValues & BaseValues>, b: Rendera
     const drawProgramIdB = b.getProgram('color').id
     const materialIdA = a.materialId
     const materialIdB = b.materialId
-    const zA = a.values.boundingSphere.ref.value.center[2]
-    const zB = b.values.boundingSphere.ref.value.center[2]
 
     if (drawProgramIdA !== drawProgramIdB) {
         return drawProgramIdA - drawProgramIdB // sort by program id to minimize gl state changes
     } else if (materialIdA !== materialIdB) {
         return materialIdA - materialIdB // sort by material id to minimize gl state changes
-    } else if (zA !== zB) {
-        return a.state.opaque
-            ? zA - zB // when opaque, draw closer elements first to minimize overdraw
-            : zB - zA // when transparent, draw elements last to maximize partial visibility
     } else {
         return a.id - b.id;
     }
