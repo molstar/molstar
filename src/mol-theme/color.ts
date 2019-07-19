@@ -30,6 +30,7 @@ import { UncertaintyColorThemeProvider } from './color/uncertainty';
 import { EntitySourceColorThemeProvider } from './color/entity-source';
 import { IllustrativeColorThemeProvider } from './color/illustrative';
 import { HydrophobicityColorThemeProvider } from './color/hydrophobicity';
+import { ModelIndexColorThemeProvider } from './color/model-index';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -79,6 +80,7 @@ export const BuiltInColorThemes = {
     'entity-source': EntitySourceColorThemeProvider,
     'hydrophobicity': HydrophobicityColorThemeProvider,
     'illustrative': IllustrativeColorThemeProvider,
+    'model-index': ModelIndexColorThemeProvider,
     'molecule-type': MoleculeTypeColorThemeProvider,
     'polymer-id': PolymerIdColorThemeProvider,
     'polymer-index': PolymerIndexColorThemeProvider,
