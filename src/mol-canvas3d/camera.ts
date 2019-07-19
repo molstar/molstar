@@ -108,7 +108,7 @@ class Camera implements Object3D {
     }
 
     focus(target: Vec3, radius: number) {
-        this.setState(this.getFocus(target, radius));
+        if (radius > 0) this.setState(this.getFocus(target, radius));
     }
 
     // lookAt(target: Vec3) {
@@ -177,8 +177,8 @@ namespace Camera {
         return {
             mode: 'perspective',
 
-            position: Vec3.zero(),
-            direction: Vec3.create(0, 0, -1),
+            position: Vec3.create(0, 0, 100),
+            direction: Vec3.create(0, 0, 1),
             up: Vec3.create(0, 1, 0),
 
             target: Vec3.create(0, 0, 0),

@@ -115,7 +115,7 @@ namespace Canvas3D {
         const camera = new Camera({
             near: 0.1,
             far: 10000,
-            position: Vec3.create(0, 0, 10),
+            position: Vec3.create(0, 0, 100),
             mode: p.cameraMode
         })
 
