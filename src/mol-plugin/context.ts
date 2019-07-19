@@ -73,6 +73,7 @@ export class PluginContext {
         log: this.ev<LogEntry>(),
         task: this.tasks.events,
         canvas3d: {
+            initialized: this.ev(),
             settingsUpdated: this.ev()
         },
         interactivity: {
@@ -127,7 +128,9 @@ export class PluginContext {
         try {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
-            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas);
+            (this.canvas3d as Canvas3D) = Canvas3D.fromCanvas(canvas, {}, t => this.runTask(t));
+            this.events.canvas3d.initialized.next()
+            this.events.canvas3d.initialized.isStopped = true // TODO is this a good way?
             const renderer = this.canvas3d.props.renderer;
             PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { renderer: { ...renderer, backgroundColor: Color(0xFCFBF9) } } });
             this.canvas3d.animate();

@@ -31,6 +31,7 @@ import { PixelData } from '../mol-util/image';
 import { readTexture } from '../mol-gl/compute/util';
 import { DrawPass } from './passes/draw';
 import { PickPass } from './passes/pick';
+import { Task } from '../mol-task';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -66,6 +67,7 @@ interface Canvas3D {
     getLoci: (pickingId: PickingId) => Representation.Loci
 
     readonly didDraw: BehaviorSubject<now.Timestamp>
+    readonly reprCount: BehaviorSubject<number>
 
     handleResize: () => void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
@@ -85,12 +87,13 @@ interface Canvas3D {
 }
 
 const requestAnimationFrame = typeof window !== 'undefined' ? window.requestAnimationFrame : (f: (time: number) => void) => setImmediate(()=>f(Date.now()))
+const DefaultRunTask = (task: Task<unknown>) => task.run()
 
 namespace Canvas3D {
     export interface HighlightEvent { current: Representation.Loci, modifiers?: ModifiersKeys }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}) {
+    export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, runTask = DefaultRunTask) {
         const gl = getGLContext(canvas, {
             alpha: false,
             antialias: true,
@@ -99,10 +102,10 @@ namespace Canvas3D {
         })
         if (gl === null) throw new Error('Could not create a WebGL rendering context')
         const input = InputObserver.fromElement(canvas)
-        return Canvas3D.create(gl, input, props)
+        return Canvas3D.create(gl, input, props, runTask)
     }
 
-    export function create(gl: GLRenderingContext, input: InputObserver, props: Partial<Canvas3DProps> = {}): Canvas3D {
+    export function create(gl: GLRenderingContext, input: InputObserver, props: Partial<Canvas3DProps> = {}, runTask = DefaultRunTask): Canvas3D {
         const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>()
@@ -137,6 +140,7 @@ namespace Canvas3D {
 
         let isUpdating = false
         let drawPending = false
+        let cameraResetRequested = false
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -201,7 +205,7 @@ namespace Canvas3D {
         }
 
         function render(variant: 'pick' | 'draw', force: boolean) {
-            if (isUpdating) return false
+            if (isUpdating || scene.isCommiting) return false
 
             let didRender = false
             controls.update(currentTime);
@@ -279,8 +283,15 @@ namespace Canvas3D {
             scene.update(repr.renderObjects, false)
             if (debugHelper.isEnabled) debugHelper.update()
             isUpdating = false
-            requestDraw(true)
-            reprCount.next(reprRenderObjects.size)
+
+            runTask(scene.commit()).then(() => {
+                if (cameraResetRequested && !scene.isCommiting) {
+                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
+                    cameraResetRequested = false
+                }
+                requestDraw(true)
+                reprCount.next(reprRenderObjects.size)
+            })
         }
 
         handleResize()
@@ -307,8 +318,15 @@ namespace Canvas3D {
                     scene.update(void 0, false)
                     if (debugHelper.isEnabled) debugHelper.update()
                     isUpdating = false
-                    requestDraw(true)
-                    reprCount.next(reprRenderObjects.size)
+
+                    runTask(scene.commit()).then(() => {
+                        if (cameraResetRequested && !scene.isCommiting) {
+                            camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
+                            cameraResetRequested = false
+                        }
+                        requestDraw(true)
+                        reprCount.next(reprRenderObjects.size)
+                    })
                 }
             },
             update: (repr, keepSphere) => {
@@ -334,8 +352,12 @@ namespace Canvas3D {
 
             handleResize,
             resetCamera: () => {
-                camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
-                requestDraw(true);
+                if (scene.isCommiting) {
+                    cameraResetRequested = true
+                } else {
+                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
+                    requestDraw(true);
+                }
             },
             camera,
             downloadScreenshot: () => {
@@ -351,6 +373,7 @@ namespace Canvas3D {
                 }
             },
             didDraw,
+            reprCount,
             setProps: (props: Partial<Canvas3DProps>) => {
                 if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
                     camera.setState({ mode: props.cameraMode })

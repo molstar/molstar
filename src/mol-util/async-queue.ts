@@ -11,6 +11,8 @@ export class AsyncQueue<T> {
     private queue: T[] = [];
     private signal = new Subject<{ v: T, stillPresent: boolean }>();
 
+    get length() { return this.queue.length }
+
     enqueue(v: T) {
         this.queue.push(v);
         if (this.queue.length === 1) return true;
