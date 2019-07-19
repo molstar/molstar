@@ -1,3 +1,7 @@
+== v3.3 ==
+
+* Camera Clipping.
+
 == v3.2 ==
 
 * Fixed assembly loading.

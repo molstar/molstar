@@ -29,6 +29,7 @@ import { BuiltInSizeThemes } from '../../mol-theme/size';
 import { ColorNames } from '../../mol-util/color/tables';
 import { InitVolumeStreaming, CreateVolumeStreamingInfo } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { ParamDefinition } from '../../mol-util/param-definition';
+import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 // import { Vec3 } from 'mol-math/linear-algebra';
 // import { ParamDefinition } from 'mol-util/param-definition';
 // import { Text } from 'mol-geo/geometry/text/text';
@@ -36,7 +37,7 @@ require('../../mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 3;
-    static VERSION_MINOR = 2;
+    static VERSION_MINOR = 3;
 
     private _ev = RxEventHelper.create();
 
@@ -239,6 +240,38 @@ class MolStarProteopediaWrapper {
         const spinning = trackball.spin;
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
         if (!spinning) PluginCommands.Camera.Reset.dispatch(this.plugin, { });
+    }
+
+    viewport = {
+        setSettings: (settings?: Canvas3DProps) => {
+            PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, {
+                settings: settings || DefaultCanvas3DParams
+            });
+        }
+    };
+
+    camera = {
+        toggleSpin: () => this.toggleSpin(),
+        resetPosition: () => PluginCommands.Camera.Reset.dispatch(this.plugin, { }),
+        // setClip: (options?: { distance?: number, near?: number, far?: number }) => {
+        //     if (!options) {
+        //         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, {
+        //             settings: {
+        //                 cameraClipDistance: DefaultCanvas3DParams.cameraClipDistance,
+        //                 clip: DefaultCanvas3DParams.clip
+        //             }
+        //         });
+        //         return;
+        //     }
+
+        //     options = options || { };
+        //     const props = this.plugin.canvas3d.props;
+        //     const clipNear = typeof options.near === 'undefined' ? props.clip[0] : options.near;
+        //     const clipFar = typeof options.far === 'undefined' ? props.clip[1] : options.far;
+        //     PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, {
+        //         settings: { cameraClipDistance: options.distance, clip: [clipNear, clipFar] }
+        //     });
+        // }
     }
 
     animate = {

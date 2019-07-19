@@ -47,6 +47,7 @@ export const Canvas3DParams = {
     trackball: PD.Group(TrackballControlsParams),
     debug: PD.Group(DebugHelperParams)
 }
+export const DefaultCanvas3DParams = PD.getDefaultValues(Canvas3DParams);
 export type Canvas3DProps = PD.Values<typeof Canvas3DParams>
 
 export { Canvas3D }
@@ -106,7 +107,7 @@ namespace Canvas3D {
     }
 
     export function create(gl: GLRenderingContext, input: InputObserver, props: Partial<Canvas3DProps> = {}, runTask = DefaultRunTask): Canvas3D {
-        const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
+        const p = { ...DefaultCanvas3DParams, ...props }
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>()
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>()
@@ -351,11 +352,12 @@ namespace Canvas3D {
             getLoci,
 
             handleResize,
-            resetCamera: () => {
+            resetCamera: (dir?: Vec3) => {
                 if (scene.isCommiting) {
+                    // TODO handle `dir`
                     cameraResetRequested = true
                 } else {
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
+                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius, dir)
                     requestDraw(true);
                 }
             },
