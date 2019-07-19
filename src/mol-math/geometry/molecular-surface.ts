@@ -291,16 +291,22 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
         }
     }
 
-    async function projectTorii () {
-        for (let i = 0; i < n; ++i) {
+    function projectToriiRange (begI: number, endI: number) {
+        for (let i = begI; i < endI; ++i) {
             const k = OrderedSet.getAt(indices, i)
             lookup3d.find(px[k], py[k], pz[k], radius[k])
             for (let j = 0, jl = neighbours.count; j < jl; ++j) {
                 const l = OrderedSet.getAt(indices, neighbours.indices[j])
                 if (k < l) projectTorus(k, l)
             }
+        }
+    }
 
-            if (i % updateChunk === 0 && ctx.shouldUpdate) {
+    async function projectTorii() {
+        for (let i = 0; i < n; i += updateChunk) {
+            projectToriiRange(i, Math.min(i + updateChunk, n))
+
+            if (ctx.shouldUpdate) {
                 await ctx.update({ message: 'projecting torii', current: i, max: n })
             }
         }
