@@ -61,6 +61,7 @@ interface Scene extends Object3D {
     update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void
     add: (o: GraphicsRenderObject) => void // Renderable<any>
     remove: (o: GraphicsRenderObject) => void
+    syncCommit: () => void
     commit: () => Task<void>
     has: (o: GraphicsRenderObject) => boolean
     clear: () => void
@@ -150,6 +151,13 @@ namespace Scene {
             },
             remove: (o: GraphicsRenderObject) => {
                 toRemove.push(o)
+            },
+            syncCommit: () => {
+                for (let i = 0, il = toRemove.length; i < il; ++i) remove(toRemove[i])
+                toRemove.length = 0
+                for (let i = 0, il = toAdd.length; i < il; ++i) add(toAdd[i])
+                toAdd.length = 0
+                renderables.sort(renderableSort)
             },
             commit: () => {
                 const params = { toAdd: [ ...toAdd ], toRemove: [ ...toRemove ] }

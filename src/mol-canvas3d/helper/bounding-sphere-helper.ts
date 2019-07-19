@@ -81,7 +81,8 @@ export class BoundingSphereHelper {
             }
         })
 
-        this.scene.update(void 0, false);
+        this.scene.update(void 0, false)
+        this.scene.syncCommit()
     }
 
     syncVisibility() {

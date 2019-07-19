@@ -139,7 +139,6 @@ namespace Canvas3D {
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing)
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
 
-        let isUpdating = false
         let drawPending = false
         let cameraResetRequested = false
 
@@ -206,7 +205,7 @@ namespace Canvas3D {
         }
 
         function render(variant: 'pick' | 'draw', force: boolean) {
-            if (isUpdating || scene.isCommiting) return false
+            if (scene.isCommiting) return false
 
             let didRender = false
             controls.update(currentTime);
@@ -266,8 +265,21 @@ namespace Canvas3D {
             return pickPass.identify(x, y)
         }
 
+        function commit(renderObjects?: readonly GraphicsRenderObject[]) {
+            scene.update(renderObjects, false)
+
+            runTask(scene.commit()).then(() => {
+                if (cameraResetRequested && !scene.isCommiting) {
+                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
+                    cameraResetRequested = false
+                }
+                if (debugHelper.isEnabled) debugHelper.update()
+                requestDraw(true)
+                reprCount.next(reprRenderObjects.size)
+            })
+        }
+
         function add(repr: Representation.Any) {
-            isUpdating = true
             const oldRO = reprRenderObjects.get(repr)
             const newRO = new Set<GraphicsRenderObject>()
             repr.renderObjects.forEach(o => newRO.add(o))
@@ -281,18 +293,7 @@ namespace Canvas3D {
                 repr.renderObjects.forEach(o => scene.add(o))
             }
             reprRenderObjects.set(repr, newRO)
-            scene.update(repr.renderObjects, false)
-            if (debugHelper.isEnabled) debugHelper.update()
-            isUpdating = false
-
-            runTask(scene.commit()).then(() => {
-                if (cameraResetRequested && !scene.isCommiting) {
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
-                    cameraResetRequested = false
-                }
-                requestDraw(true)
-                reprCount.next(reprRenderObjects.size)
-            })
+            commit(repr.renderObjects)
         }
 
         handleResize()
@@ -313,21 +314,9 @@ namespace Canvas3D {
                 }
                 const renderObjects = reprRenderObjects.get(repr)
                 if (renderObjects) {
-                    isUpdating = true
                     renderObjects.forEach(o => scene.remove(o))
                     reprRenderObjects.delete(repr)
-                    scene.update(void 0, false)
-                    if (debugHelper.isEnabled) debugHelper.update()
-                    isUpdating = false
-
-                    runTask(scene.commit()).then(() => {
-                        if (cameraResetRequested && !scene.isCommiting) {
-                            camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
-                            cameraResetRequested = false
-                        }
-                        requestDraw(true)
-                        reprCount.next(reprRenderObjects.size)
-                    })
+                    commit()
                 }
             },
             update: (repr, keepSphere) => {
