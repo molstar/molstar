@@ -39,10 +39,11 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         if (StructureElement.isLoci(loci)) {
             if (!Structure.areParentsEqual(loci.structure, structure)) return false
 
+            const { offset } = this.sequence
             for (const e of loci.elements) {
                 if (e.unit.id === unit.id) {
                     OrderedSet.forEach(e.indices, v => {
-                        if (apply(getSeqIndices(e.unit, e.unit.elements[v]))) changed = true
+                        if (apply(getSeqIndices(e.unit, e.unit.elements[v], offset))) changed = true
                     })
                 }
             }
@@ -99,22 +100,22 @@ function createResidueQuery(unitId: number, label_seq_id: number) {
     });
 }
 
-function getSeqIndices(unit: Unit, element: ElementIndex): Interval {
+function getSeqIndices(unit: Unit, element: ElementIndex, offset: number): Interval {
     const { model } = unit
     switch (unit.kind) {
         case Unit.Kind.Atomic:
             const residueIndex = model.atomicHierarchy.residueAtomSegments.index[element]
             const seqId = model.atomicHierarchy.residues.label_seq_id.value(residueIndex)
-            return Interval.ofSingleton(seqId - 1)
+            return Interval.ofSingleton(seqId - 1 - offset)
         case Unit.Kind.Spheres:
             return Interval.ofRange(
-                model.coarseHierarchy.spheres.seq_id_begin.value(element) - 1,
-                model.coarseHierarchy.spheres.seq_id_end.value(element) - 1
+                model.coarseHierarchy.spheres.seq_id_begin.value(element) - 1 - offset,
+                model.coarseHierarchy.spheres.seq_id_end.value(element) - 1 - offset
             )
         case Unit.Kind.Gaussians:
             return Interval.ofRange(
-                model.coarseHierarchy.gaussians.seq_id_begin.value(element) - 1,
-                model.coarseHierarchy.gaussians.seq_id_end.value(element) - 1
+                model.coarseHierarchy.gaussians.seq_id_begin.value(element) - 1 - offset,
+                model.coarseHierarchy.gaussians.seq_id_end.value(element) - 1 - offset
             )
     }
 }

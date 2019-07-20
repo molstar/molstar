@@ -11,16 +11,9 @@ import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { TokenBuilder, Tokenizer } from '../../../mol-io/reader/common/text/tokenizer';
 import { PdbFile } from '../../../mol-io/reader/pdb/schema';
 import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
-import { WaterNames } from '../../../mol-model/structure/model/types';
 import { parseHelix, parseSheet } from './secondary-structure';
 import { guessElementSymbolTokens } from '../util';
-
-function _entity(): { [K in keyof mmCIF_Schema['entity']]?: CifField } {
-    return {
-        id: CifField.ofStrings(['1', '2', '3']),
-        type: CifField.ofStrings(['polymer', 'non-polymer', 'water'])
-    }
-}
+import { parseCmpnd, EntityBuilder } from './entity';
 
 type AtomSiteTemplate = typeof atom_site_template extends (...args: any) => infer T ? T : never
 function atom_site_template(data: string, count: number) {
@@ -82,15 +75,7 @@ function _atom_site(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_s
     };
 }
 
-function getEntityId(residueName: string, isHet: boolean) {
-    if (isHet) {
-        if (WaterNames.has(residueName)) return '3';
-        return '2';
-    }
-    return '1';
-}
-
-function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number, isHet: boolean) {
+function addAtom(sites: AtomSiteTemplate, entityBuilder: EntityBuilder, model: string, data: Tokenizer, s: number, e: number, isHet: boolean) {
     const { data: str } = data;
     const length = e - s;
 
@@ -122,6 +107,7 @@ function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: num
 
     // 22             Character       Chain identifier.
     TokenBuilder.add(sites.auth_asym_id, s + 21, s + 22);
+    const chainId = str.substring(s + 21, s + 22);
 
     // 23 - 26        Integer         Residue sequence number.
     // TODO: support HEX
@@ -169,7 +155,7 @@ function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: num
         guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16)
     }
 
-    sites.label_entity_id[sites.index] = getEntityId(residueName, isHet);
+    sites.label_entity_id[sites.index] = entityBuilder.getEntityId(residueName, chainId, isHet);
     sites.pdbx_PDB_model_num[sites.index] = model;
 
     sites.index++;
@@ -195,7 +181,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     }
 
     const atom_site = atom_site_template(data, atomCount);
-
+    const entityBuilder = new EntityBuilder();
     const helperCategories: CifCategory[] = [];
 
     let modelNum = 0, modelStr = '';
@@ -206,19 +192,28 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
             case 'A':
                 if (!substringStartsWith(data, s, e, 'ATOM  ')) continue;
                 if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                addAtom(atom_site, modelStr, tokenizer, s, e, false);
+                addAtom(atom_site, entityBuilder, modelStr, tokenizer, s, e, false);
                 break;
             case 'C':
                 if (substringStartsWith(data, s, e, 'CRYST1')) {
                     helperCategories.push(...parseCryst1(pdb.id || '?', data.substring(s, e)));
+                } else if (substringStartsWith(data, s, e, 'CONNECT')) {
+                    // TODO: CONNECT records => struct_conn
+                } else if (substringStartsWith(data, s, e, 'COMPND')) {
+                    let j = i + 1;
+                    while (true) {
+                        s = indices[2 * j]; e = indices[2 * j + 1];
+                        if (!substringStartsWith(data, s, e, 'COMPND')) break;
+                        j++;
+                    }
+                    entityBuilder.setCompounds(parseCmpnd(lines, i, j))
+                    i = j - 1;
                 }
-                // TODO CONNECT records => struct_conn
-                // TODO COMPND records => entity
                 break;
             case 'H':
                 if (substringStartsWith(data, s, e, 'HETATM')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                    addAtom(atom_site, modelStr, tokenizer, s, e, true);
+                    addAtom(atom_site, entityBuilder, modelStr, tokenizer, s, e, true);
                 } else if (substringStartsWith(data, s, e, 'HELIX')) {
                     let j = i + 1;
                     while (true) {
@@ -229,7 +224,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     helperCategories.push(parseHelix(lines, i, j));
                     i = j - 1;
                 }
-                // TODO HETNAM records => chem_comp (at least partially, needs to be completed with common bases and amino acids)
+                // TODO: HETNAM records => chem_comp (at least partially, needs to be completed with common bases and amino acids)
                 break;
             case 'M':
                 if (substringStartsWith(data, s, e, 'MODEL ')) {
@@ -246,10 +241,10 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     helperCategories.push(...parseMtrix(lines, i, j));
                     i = j - 1;
                 }
-                // TODO MODRES records => pdbx_struct_mod_residue
+                // TODO: MODRES records => pdbx_struct_mod_residue
                 break;
             case 'O':
-                // TODO ORIGX record => cif.database_PDB_matrix.origx, cif.database_PDB_matrix.origx_vector
+                // TODO: ORIGX record => cif.database_PDB_matrix.origx, cif.database_PDB_matrix.origx_vector
                 break;
             case 'R':
                 if (substringStartsWith(data, s, e, 'REMARK 350')) {
@@ -274,13 +269,13 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     helperCategories.push(parseSheet(lines, i, j));
                     i = j - 1;
                 }
-                // TODO SCALE record => cif.atom_sites.fract_transf_matrix, cif.atom_sites.fract_transf_vector
+                // TODO: SCALE record => cif.atom_sites.fract_transf_matrix, cif.atom_sites.fract_transf_vector
                 break;
         }
     }
 
     const categories = {
-        entity: CifCategory.ofFields('entity', _entity()),
+        entity: entityBuilder.getEntityCategory(),
         atom_site: CifCategory.ofFields('atom_site', _atom_site(atom_site))
     } as any;
 
