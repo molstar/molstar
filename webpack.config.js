@@ -93,6 +93,7 @@ module.exports = [
     createApp('viewer'),
     createApp('basic-wrapper'),
     createEntry('examples/proteopedia-wrapper/index', 'examples/proteopedia-wrapper', 'index'),
+    createEntry('apps/demos/lighting/index', 'demos/lighting', 'index'),
     createNodeApp('state-docs'),
     createNodeEntryPoint('preprocess', 'servers/model', 'model-server'),
     createApp('model-server-query'),

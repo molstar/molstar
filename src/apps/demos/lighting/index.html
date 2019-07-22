@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* Lighting Demo</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #app {
+                position: absolute;
+                left: 160px;
+                top: 100px;
+                width: 600px;
+                height: 600px;
+                border: 1px solid #ccc;
+            }
+
+            #controls {
+                position: absolute;
+                width: 150px;
+                top: 100px;
+                left: 780px;
+            }
+
+            #controls > button {
+                display: block;
+                width: 100%;
+                text-align: left;
+                margin: 5px 0px;
+            }
+
+            #controls > input, #controls > select {
+                width: 100%;
+                display: block;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="app.css" />
+        <script type="text/javascript" src="./index.js"></script>
+    </head>
+    <body>
+        <div id='controls'></div>
+        <div id="app"></div>
+        <script>      
+            LightingDemo.init('app')
+            LightingDemo.load({ url: 'https://files.rcsb.org/download/1M07.cif', assemblyId: '1' })
+            
+            addHeader('Example PDB IDs');
+            addControl('1M07', () => LightingDemo.load({ url: 'https://files.rcsb.org/download/1M07.cif', assemblyId: '1' }));
+            addControl('6HY0', () => LightingDemo.load({ url: 'https://files.rcsb.org/download/6HY0.cif', assemblyId: '1' }));
+            addControl('6QVK', () => LightingDemo.load({ url: 'https://files.rcsb.org/download/6QVK.cif', assemblyId: '1' }));
+            addControl('1RB8', () => LightingDemo.load({ url: 'https://files.rcsb.org/download/1RB8.cif', assemblyId: '1' }));
+
+            addSeparator()
+
+            addHeader('Lighting Presets');
+            addControl('Illustrative', () => LightingDemo.setPreset('illustrative'));
+            addControl('Standard', () => LightingDemo.setPreset('standard'));
+            addControl('Ambient Occlusion', () => LightingDemo.setPreset('occlusion'));
+
+            ////////////////////////////////////////////////////////
+
+            function $(id) { return document.getElementById(id); }
+
+            function addControl(label, action) {
+                var btn = document.createElement('button');
+                btn.onclick = action;
+                btn.innerText = label;
+                $('controls').appendChild(btn);
+            }
+
+            function addSeparator() {
+                var hr = document.createElement('br');
+                $('controls').appendChild(hr);
+            }
+
+            function addHeader(header) {
+                var h = document.createElement('h3');
+                h.innerText = header;
+                $('controls').appendChild(h);
+            }
+        </script>
+    </body>
+</html>
