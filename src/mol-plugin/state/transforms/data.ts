@@ -236,3 +236,19 @@ const ParseDsn6 = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+export { ParseJson }
+type ParseJson = typeof ParseJson
+const ParseJson = PluginStateTransform.BuiltIn({
+    name: 'parse-json',
+    display: { name: 'Parse JSON', description: 'Parse JSON from String data' },
+    from: [SO.Data.String],
+    to: SO.Format.Json
+})({
+    apply({ a }) {
+        return Task.create('Parse JSON', async ctx => {
+            const json = await (new Response(a.data)).json(); // async JSON parsing via fetch API
+            return new SO.Format.Json(json)
+        });
+    }
+});

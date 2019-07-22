@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
@@ -10,6 +11,8 @@ import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/command';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { CreateJoleculeState } from './extensions/jolecule';
+import { LoadCellPackModel } from './extensions/cellpack/model';
+import { StructureFromCellpack } from './extensions/cellpack/state';
 require('mol-plugin/skin/light.scss')
 
 function getParam(name: string, regex: string): string {
@@ -21,7 +24,12 @@ const hideControls = getParam('hide-controls', `[^&]+`) === '1';
 
 function init() {
     const spec: PluginSpec = {
-        actions: [...DefaultPluginSpec.actions, PluginSpec.Action(CreateJoleculeState)],
+        actions: [
+            ...DefaultPluginSpec.actions,
+            PluginSpec.Action(CreateJoleculeState),
+            PluginSpec.Action(LoadCellPackModel),
+            PluginSpec.Action(StructureFromCellpack),
+        ],
         behaviors: [...DefaultPluginSpec.behaviors],
         animations: [...DefaultPluginSpec.animations || []],
         customParamEditors: DefaultPluginSpec.customParamEditors,

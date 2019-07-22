@@ -455,8 +455,9 @@ namespace Structure {
         private units: Unit[] = [];
         private invariantId = idFactory()
 
-        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
-            const unit = Unit.create(this.units.length, this.invariantId(), kind, model, operator, elements);
+        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, invariantId?: number): Unit {
+            if (invariantId === undefined) invariantId = this.invariantId()
+            const unit = Unit.create(this.units.length, invariantId, kind, model, operator, elements);
             this.units.push(unit);
             return unit;
         }
