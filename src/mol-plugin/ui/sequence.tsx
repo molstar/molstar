@@ -140,7 +140,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
 
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
             const current = this.spine.current;
-            if (!current || current.sourceRef !== ref || current.state !== state) return;
+            if (!current || current.sourceRef !== ref) return;
             this.setState(this.getInitialState())
         });
     }
