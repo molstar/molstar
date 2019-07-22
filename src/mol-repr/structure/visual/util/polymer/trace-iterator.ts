@@ -153,9 +153,13 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     }
 
     private setFromToVector(out: Vec3, residueIndex: ResidueIndex) {
-        this.pos(tmpVecA, this.directionFromElementIndex[residueIndex])
-        this.pos(tmpVecB, this.directionToElementIndex[residueIndex])
-        Vec3.sub(out, tmpVecB, tmpVecA)
+        if (this.value.isCoarseBackbone) {
+            Vec3.set(out, 1, 0, 0)
+        } else {
+            this.pos(tmpVecA, this.directionFromElementIndex[residueIndex])
+            this.pos(tmpVecB, this.directionToElementIndex[residueIndex])
+            Vec3.sub(out, tmpVecB, tmpVecA)
+        }
     }
 
     private setDirection(out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3) {
@@ -204,6 +208,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             value.first = residueIndex === this.residueSegmentMin
             value.last = residueIndex === this.residueSegmentMax
             value.moleculeType = this.moleculeType[residueIndex]
+            value.isCoarseBackbone = this.directionFromElementIndex[residueIndex] === -1 || this.directionToElementIndex[residueIndex] === -1
 
             const residueIndexPrev3 = this.getResidueIndex(residueIndex - 3)
             const residueIndexPrev2 = this.getResidueIndex(residueIndex - 2)
@@ -244,7 +249,6 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             value.centerNext.element = this.traceElementIndex[residueIndexNext1]
             this.pos(this.p6, this.traceElementIndex[residueIndexNext3])
             this.setFromToVector(this.d34, residueIndexNext2)
-            value.isCoarseBackbone = this.directionFromElementIndex[residueIndex] === -1 || this.directionToElementIndex[residueIndex] === -1
 
             this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndexPrev2)
             this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndexPrev1)
@@ -359,6 +363,8 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
     constructor(private unit: Unit.Spheres | Unit.Gaussians, structure: Structure) {
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements);
         this.value = createPolymerTraceElement(unit)
+        Vec3.set(this.value.d12, 1, 0, 0)
+        Vec3.set(this.value.d23, 1, 0, 0)
         switch (unit.kind) {
             case Unit.Kind.Spheres: this.conformation = unit.model.coarseConformation.spheres; break
             case Unit.Kind.Gaussians: this.conformation = unit.model.coarseConformation.gaussians; break
