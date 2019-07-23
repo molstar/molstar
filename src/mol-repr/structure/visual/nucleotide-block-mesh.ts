@@ -107,6 +107,10 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                     idx3 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
                     idx4 = atomicIndex.findAtomOnResidue(residueIndex, 'C2')
                     idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'N1')
+                    if (idx5 === -1) {
+                        // modified ring, e.g. DZ
+                        idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'C1')
+                    }
                     idx6 = traceElementIndex[residueIndex]
                 }
 

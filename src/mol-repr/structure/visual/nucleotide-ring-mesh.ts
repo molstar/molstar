@@ -122,8 +122,16 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                     idxN3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3')
                     idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
                     idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5')
+                    if (idxC5 === -1) {
+                        // modified ring, e.g. DP
+                        idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'N5')
+                    }
                     idxC6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6')
                     idxN7 = atomicIndex.findAtomOnResidue(residueIndex, 'N7')
+                    if (idxN7 === -1) {
+                        // modified ring, e.g. DP
+                        idxN7 = atomicIndex.findAtomOnResidue(residueIndex, 'C7')
+                    }
                     idxC8 = atomicIndex.findAtomOnResidue(residueIndex, 'C8')
                     idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9')
 
@@ -148,6 +156,10 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                 } else if (isPyrimidine) {
                     idxTrace = traceElementIndex[residueIndex]
                     idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1')
+                    if (idxN1 === -1) {
+                        // modified ring, e.g. DZ
+                        idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'C1')
+                    }
                     idxC2 = atomicIndex.findAtomOnResidue(residueIndex, 'C2')
                     idxN3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3')
                     idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
