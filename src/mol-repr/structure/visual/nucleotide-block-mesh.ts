@@ -14,7 +14,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Segmentation } from '../../../mol-data/int';
 import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
-import { isNucleic, isPurinBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
+import { isNucleic, isPurineBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement } from './util/nucleotide';
@@ -78,7 +78,21 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                 let idx1: ElementIndex | -1 = -1, idx2: ElementIndex | -1 = -1, idx3: ElementIndex | -1 = -1, idx4: ElementIndex | -1 = -1, idx5: ElementIndex | -1 = -1, idx6: ElementIndex | -1 = -1
                 let width = 4.5, height = 4.5, depth = 2.5 * sizeFactor
 
-                if (isPurinBase(compId)) {
+                let isPurine = isPurineBase(compId)
+                let isPyrimidine = isPyrimidineBase(compId)
+
+                if (!isPurine && !isPyrimidine) {
+                    // detect Purine or Pyrimidin based on geometry
+                    const idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
+                    const idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9')
+                    if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(pos(idxC4, p1), pos(idxN9, p2)) < 1.6) {
+                        isPurine = true
+                    } else {
+                        isPyrimidine = true
+                    }
+                }
+
+                if (isPurine) {
                     height = 4.5
                     idx1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1')
                     idx2 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
@@ -86,7 +100,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                     idx4 = atomicIndex.findAtomOnResidue(residueIndex, 'C2')
                     idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'N9')
                     idx6 = traceElementIndex[residueIndex]
-                } else if (isPyrimidineBase(compId)) {
+                } else if (isPyrimidine) {
                     height = 3.0
                     idx1 = atomicIndex.findAtomOnResidue(residueIndex, 'N3')
                     idx2 = atomicIndex.findAtomOnResidue(residueIndex, 'C6')

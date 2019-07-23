@@ -178,11 +178,11 @@ export const AminoAcidNames = new Set([
 export const RnaBaseNames = new Set([ 'A', 'C', 'T', 'G', 'I', 'U' ])
 export const DnaBaseNames = new Set([ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ])
 export const PeptideBaseNames = new Set([ 'APN', 'CPN', 'TPN', 'GPN' ])
-export const PurinBaseNames = new Set([ 'A', 'G', 'DA', 'DG', 'DI', 'APN', 'GPN' ])
+export const PurineBaseNames = new Set([ 'A', 'G', 'DA', 'DG', 'DI', 'APN', 'GPN' ])
 export const PyrimidineBaseNames = new Set([ 'C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN' ])
 export const BaseNames = SetUtils.unionMany(RnaBaseNames, DnaBaseNames, PeptideBaseNames)
 
-export const isPurinBase = (compId: string) => PurinBaseNames.has(compId.toUpperCase())
+export const isPurineBase = (compId: string) => PurineBaseNames.has(compId.toUpperCase())
 export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.has(compId.toUpperCase())
 
 /** get the molecule type from component type and id */
