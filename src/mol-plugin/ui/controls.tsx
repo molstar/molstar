@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react';
@@ -9,12 +10,20 @@ import { PluginCommands } from '../../mol-plugin/command';
 import { UpdateTrajectory } from '../../mol-plugin/state/actions/structure';
 import { PluginUIComponent } from './base';
 import { LociLabelEntry } from '../../mol-plugin/util/loci-label-manager';
-import { IconButton } from './controls/common';
+import { IconButton, Icon } from './controls/common';
 import { PluginStateObject } from '../../mol-plugin/state/objects';
 import { StateTransforms } from '../../mol-plugin/state/transforms';
-import { StateTransformer } from '../../mol-state';
+import { StateTransformer, StateSelection } from '../../mol-state';
 import { ModelFromTrajectory } from '../../mol-plugin/state/transforms/model';
 import { AnimationControls } from './state/animation';
+import { ParamDefinition as PD} from '../../mol-util/param-definition';
+import { ColorNames } from '../../mol-util/color/tables';
+import { ParameterControls } from './controls/parameters';
+import { Color } from '../../mol-util/color';
+import { formatMolScript } from '../../mol-script/language/expression-formatter';
+import { StructureElement, Structure } from '../../mol-model/structure';
+import { isEmptyLoci } from '../../mol-model/loci';
+import { MolScriptBuilder } from '../../mol-script/language/builder';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
@@ -247,6 +256,135 @@ export class LociLabelControl extends PluginUIComponent<{}, { entries: ReadonlyA
 
         return <div className='msp-highlight-info'>
             {this.state.entries.map((e, i) => <div key={'' + i}>{e}</div>)}
+        </div>;
+    }
+}
+
+export class OverpaintControls extends PluginUIComponent<{}, { params: PD.Values<typeof OverpaintControls.Params> }> {
+    state = { params: PD.getDefaultValues(OverpaintControls.Params) }
+
+    static Params = {
+        color: PD.Color(ColorNames.cyan)
+    };
+
+    private layers = new Map<Structure, Map<string, { script: { language: string, expression: string }, color: Color }>>()
+
+    componentDidMount() {
+        // TODO handle Representation3D object creation
+        this.subscribe(this.plugin.events.state.object.created, ({ ref, state }) => {
+            this.sync()
+        });
+    }
+
+    sync = async () => {
+        const state = this.plugin.state.dataState;
+        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D));
+
+        const update = state.build();
+        for (const r of reprs) {
+            const overpaint = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.OverpaintStructureRepresentation3D, r.transform.ref).withTag('overpaint-manager'));
+
+            const structure = r.obj!.data.source.data
+            const rootStructure = structure.parent || structure
+
+            const layers = this.layers.get(rootStructure)
+            if (!layers) continue
+
+            const props = { layers: Array.from(layers.values()), alpha: 1 }
+
+            if (overpaint.length > 0) {
+                update.to(overpaint[0]).update(props)
+            } else {
+                update.to(r.transform.ref)
+                    .apply(StateTransforms.Representation.OverpaintStructureRepresentation3D, props, { tags: 'overpaint-manager' });
+            }
+        }
+
+        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
+    }
+
+    add = async () => {
+        const state = this.plugin.state.dataState;
+        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D));
+
+        const update = state.build();
+        for (const r of reprs) {
+            const overpaint = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.OverpaintStructureRepresentation3D, r.transform.ref).withTag('overpaint-manager'));
+
+            const structure = r.obj!.data.source.data
+            const rootStructure = structure.parent || structure
+
+            const loci = this.plugin.helpers.structureSelection.get(rootStructure)
+            const scriptExpression = isEmptyLoci(loci)
+                ? MolScriptBuilder.struct.generator.empty()
+                : StructureElement.Loci.toScriptExpression(loci)
+            const expression = formatMolScript(scriptExpression)
+
+            if (!this.layers.has(rootStructure)) this.layers.set(rootStructure, new Map())
+            const layers = this.layers.get(rootStructure)!
+
+            layers.set(`${this.state.params.color}|${expression}`, {
+                script: { language: 'mol-script', expression },
+                color: this.state.params.color
+            })
+            const props = { layers: Array.from(layers.values()), alpha: 1 }
+
+            if (overpaint.length > 0) {
+                update.to(overpaint[0]).update(props)
+            } else {
+                update.to(r.transform.ref)
+                    .apply(StateTransforms.Representation.OverpaintStructureRepresentation3D, props, { tags: 'overpaint-manager' });
+            }
+        }
+
+        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
+    }
+
+    clearAll = async () => {
+        const state = this.plugin.state.dataState;
+        const reprs = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Representation3D));
+
+        this.layers.clear()
+
+        const update = state.build();
+        for (const r of reprs) {
+            const overpaint = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.OverpaintStructureRepresentation3D, r.transform.ref).withTag('overpaint-manager'));
+
+            if (overpaint.length > 0) {
+                update.to(overpaint[0]).update({ layers: [], alpha: 1 })
+            }
+        }
+
+        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
+    }
+
+    render() {
+        return <div className='msp-transform-wrapper'>
+            <div className='msp-transform-header'>
+                <button className='msp-btn msp-btn-block'>Structure Selection Overpaint</button>
+            </div>
+            <div>
+                <ParameterControls params={OverpaintControls.Params} values={this.state.params} onChange={p => {
+                    const params = { ...this.state.params, [p.name]: p.value };
+                    this.setState({ params });
+                }}/>
+
+                <div className='msp-btn-row-group'>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}>Add</button>
+                    {/* <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}>Clear</button> */}
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.clearAll}>Clear All</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+export class ToolsWrapper extends PluginUIComponent {
+    render() {
+        return <div>
+            <div className='msp-section-header'><Icon name='code' /> Tools</div>
+
+            <OverpaintControls />
         </div>;
     }
 }
