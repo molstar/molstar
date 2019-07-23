@@ -300,9 +300,9 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     canAutoUpdate() {
         return true;
     },
-    apply({ a, params, spine }) {
-        const rootStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
+    apply({ a, params }) {
         const structure = a.data.source.data;
+        const rootStructure = structure.parent || structure;
         const unitTransforms = new StructureUnitTransforms(rootStructure);
         explodeStructure(structure, unitTransforms, params.t);
         return new SO.Molecule.Structure.Representation3DState({
@@ -312,8 +312,9 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
             source: a
         }, { label: `Explode T = ${params.t.toFixed(2)}` });
     },
-    update({ a, b, newParams, oldParams, spine }) {
-        const rootStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
+    update({ a, b, newParams, oldParams }) {
+        const structure = a.data.source.data;
+        const rootStructure = structure.parent || structure;
         if (b.data.info !== rootStructure) return StateTransformer.UpdateResult.Recreate;
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
