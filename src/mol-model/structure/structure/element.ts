@@ -309,24 +309,24 @@ namespace StructureElement {
         }
 
         export function toScriptExpression(loci: Loci) {
-            if (loci.structure.models.length > 1) {
-                console.warn('toScriptExpression is only supported for Structure with single model, returning empty expression.');
-                return MS.struct.generator.empty();
-            }
             if (loci.elements.length === 0) return MS.struct.generator.empty();
 
-            const sourceIndexMap = new Map<string, UniqueArray<number, number>>();
+            const models = loci.structure.models;
+            const sourceIndexMap = new Map<string, { modelLabel: string, modelIndex: number, xs: UniqueArray<number, number> }>();
             const el = StructureElement.create(), p = StructureProperties.atom.sourceIndex;
             for (const e of loci.elements) {
                 const { indices } = e;
                 const { elements } = e.unit;
-                const opName = e.unit.conformation.operator.name;
+
+                const key = models.length === 1
+                    ? e.unit.conformation.operator.name
+                    : `${e.unit.conformation.operator.name} ${e.unit.model.label} ${e.unit.model.modelNum}`;
 
                 let sourceIndices: UniqueArray<number, number>;
-                if (sourceIndexMap.has(opName)) sourceIndices = sourceIndexMap.get(opName)!;
+                if (sourceIndexMap.has(key)) sourceIndices = sourceIndexMap.get(key)!.xs;
                 else {
                     sourceIndices = UniqueArray.create<number, number>();
-                    sourceIndexMap.set(opName, sourceIndices);
+                    sourceIndexMap.set(key, { modelLabel: e.unit.model.label, modelIndex: e.unit.model.modelNum, xs: sourceIndices });
                 }
 
                 el.unit = e.unit;
@@ -342,7 +342,8 @@ namespace StructureElement {
             while (true) {
                 const k = keys.next();
                 if (k.done) break;
-                byOpName.push(getOpNameQuery(k.value, sourceIndexMap.get(k.value)!.array));
+                const e = sourceIndexMap.get(k.value)!;
+                byOpName.push(getOpNameQuery(k.value, e.xs.array, models.length > 1, e.modelLabel, e.modelIndex));
             }
 
             return MS.struct.modifier.union([
@@ -350,7 +351,7 @@ namespace StructureElement {
             ]);
         }
 
-        function getOpNameQuery(opName: string, xs: number[]) {
+        function getOpNameQuery(opName: string, xs: number[], multimodel: boolean, modelLabel: string, modelIndex: number) {
             sortArray(xs);
 
             const ranges: number[] = [];
@@ -384,10 +385,19 @@ namespace StructureElement {
                 tests[tests.length] = MS.core.rel.inRange([siProp, ranges[2 * rI], ranges[2 * rI + 1]]);
             }
 
-            return MS.struct.generator.atomGroups({
-                'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
-                'chain-test': MS.core.rel.eq([MS.struct.atomProperty.core.operatorName(), opName])
-            });
+            return multimodel
+                ? MS.struct.generator.atomGroups({
+                    'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
+                    'chain-test': MS.core.rel.eq([MS.struct.atomProperty.core.operatorName(), opName]),
+                    'entity-test': MS.core.logic.and([
+                        MS.core.rel.eq([MS.struct.atomProperty.core.modelLabel(), modelLabel]),
+                        MS.core.rel.eq([MS.struct.atomProperty.core.modelIndex(), modelIndex]),
+                    ])
+                })
+                : MS.struct.generator.atomGroups({
+                    'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
+                    'chain-test': MS.core.rel.eq([MS.struct.atomProperty.core.operatorName(), opName])
+                });
         }
     }
 }
