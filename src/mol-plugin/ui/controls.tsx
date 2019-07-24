@@ -234,7 +234,7 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
         const isAnimating = this.state.isAnimating;
 
         return <div className='msp-animation-viewport-controls'>
-            <IconButton icon={isAnimating || isPlaying ? 'stop' : 'play'} title={isAnimating ? 'Stop' : 'Select Animation'}
+            <IconButton icon={isAnimating || isPlaying ? 'stop' : 'tape'} title={isAnimating ? 'Stop' : 'Select Animation'}
                 onClick={isAnimating || isPlaying ? this.stop : this.toggleExpanded}
                 disabled={isAnimating|| isPlaying ? false : this.state.isUpdating || this.state.isPlaying || this.state.isEmpty} />
             {(this.state.isExpanded && !this.state.isUpdating) && <div className='msp-animation-viewport-controls-select'>
