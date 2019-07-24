@@ -385,7 +385,7 @@ namespace StructureElement {
             }
 
             return MS.struct.generator.atomGroups({
-                'atom-test': tests.length > 1 ? MS.core.logic.or.apply(null, tests) : tests[0],
+                'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
                 'chain-test': MS.core.rel.eq([MS.struct.atomProperty.core.operatorName(), opName])
             });
         }
