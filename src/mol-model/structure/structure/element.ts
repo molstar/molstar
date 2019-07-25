@@ -141,10 +141,29 @@ namespace StructureElement {
         export function remap(loci: Loci, structure: Structure): Loci {
             if (structure === loci.structure) return loci
 
-            return Loci(structure, loci.elements.map(e => ({
-                unit: structure.unitMap.get(e.unit.id)!,
-                indices: e.indices
-            })));
+            const elements: Loci['elements'][0][] = [];
+            loci.elements.forEach(e => {
+                const unit = structure.unitMap.get(e.unit.id)
+                if (!unit) return
+
+                if (SortedArray.areEqual(e.unit.elements, unit.elements)) {
+                    elements.push({ unit, indices: e.indices })
+                } else {
+                    // TODO optimize
+                    const indices: UnitIndex[] = []
+                    OrderedSet.forEach(e.indices, (v) => {
+                        const eI = e.unit.elements[v]
+                        const uI = SortedArray.indexOf(unit.elements, eI) as UnitIndex | -1
+                        if (uI !== -1) indices.push(uI)
+                    })
+                    elements.push({
+                        unit,
+                        indices: SortedArray.ofSortedArray(indices)
+                    })
+                }
+            });
+
+            return Loci(structure, elements);
         }
 
         export function union(xs: Loci, ys: Loci): Loci {

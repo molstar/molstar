@@ -62,6 +62,29 @@ namespace Link {
         return true
     }
 
+    export function remapLoci(loci: Loci, structure: Structure): Loci {
+        if (structure === loci.structure) return loci
+
+        const links: Loci['links'][0][] = [];
+        loci.links.forEach(l => {
+            const unitA = structure.unitMap.get(l.aUnit.id)
+            if (!unitA) return
+            const unitB = structure.unitMap.get(l.bUnit.id)
+            if (!unitB) return
+
+            const elementA = l.aUnit.elements[l.aIndex]
+            const indexA = SortedArray.indexOf(unitA.elements, elementA) as StructureElement.UnitIndex | -1
+            if (indexA === -1) return
+            const elementB = l.bUnit.elements[l.bIndex]
+            const indexB = SortedArray.indexOf(unitB.elements, elementB) as StructureElement.UnitIndex | -1
+            if (indexB === -1) return
+
+            links.push(Location(unitA, indexA, unitB, indexB))
+        });
+
+        return Loci(structure, links);
+    }
+
     export function toStructureElementLoci(loci: Loci): StructureElement.Loci {
         const elements: StructureElement.Loci['elements'][0][] = []
         const map = new Map<number, number[]>()

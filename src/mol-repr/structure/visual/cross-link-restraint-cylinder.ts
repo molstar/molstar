@@ -108,6 +108,7 @@ function eachCrossLink(loci: Loci, structure: Structure, apply: (interval: Inter
     let changed = false
     if (Link.isLoci(loci)) {
         if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+        loci = Link.remapLoci(loci, structure)
         for (const b of loci.links) {
             const indices = crossLinks.getPairIndices(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
             if (indices) {

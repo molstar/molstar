@@ -98,6 +98,7 @@ function eachLink(loci: Loci, structure: Structure, apply: (interval: Interval) 
     let changed = false
     if (Link.isLoci(loci)) {
         if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+        loci = Link.remapLoci(loci, structure)
         for (const b of loci.links) {
             const idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
             if (idx !== -1) {
@@ -106,6 +107,7 @@ function eachLink(loci: Loci, structure: Structure, apply: (interval: Interval) 
         }
     } else if (StructureElement.isLoci(loci)) {
         if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+        loci = StructureElement.Loci.remap(loci, structure)
         // TODO mark link only when both of the link elements are in a StructureElement.Loci
         for (const e of loci.elements) {
             OrderedSet.forEach(e.indices, v => {

@@ -197,6 +197,7 @@ function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: In
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
     if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+    loci = StructureElement.Loci.remap(loci, structure)
     for (const e of loci.elements) {
         // TODO make more efficient by handling/grouping `e.indices` by residue index
         // TODO only call apply when the full alt-residue of the unit is part of `e`
