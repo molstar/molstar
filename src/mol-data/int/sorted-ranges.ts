@@ -38,14 +38,14 @@ namespace SortedRanges {
 
         hasNext: boolean = false;
 
-        updateInterval() {
+        private updateInterval() {
             this.interval = Interval.ofRange(this.ranges[this.curIndex], this.ranges[this.curIndex + 1])
         }
 
-        updateValue() {
+        private updateValue() {
             this.value.index = this.curIndex / 2 as I
             this.value.start = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex])
-            this.value.end = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex + 1]) + 1
+            this.value.end = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex + 1])
         }
 
         move() {
@@ -62,23 +62,22 @@ namespace SortedRanges {
             return this.value;
         }
 
-        getRangeIndex(value: number) {
+        private getRangeIndex(value: number) {
             const index = SortedArray.findPredecessorIndex(this.ranges, value)
             return (index % 2 === 1) ? index - 1 : index
         }
 
         constructor(private ranges: SortedRanges<T>, private set: OrderedSet<T>) {
-            // TODO cleanup, refactor to make it clearer
-            const min = SortedArray.findPredecessorIndex(this.ranges, OrderedSet.min(set))
-            const max = SortedArray.findPredecessorIndex(this.ranges, OrderedSet.max(set) + 1)
-            if (ranges.length && min !== max) {
-                this.curIndex = this.getRangeIndex(OrderedSet.min(set))
-                this.maxIndex = Math.min(ranges.length - 2, this.getRangeIndex(OrderedSet.max(set)))
-                this.curMin = this.ranges[this.curIndex]
+            const min = OrderedSet.min(set)
+            const max = OrderedSet.max(set)
+            const b = ranges.length > 0 && ranges[0] <= max && ranges[ranges.length - 1] >= min
+            if (b) {
+                this.curIndex = this.getRangeIndex(min)
+                this.maxIndex = Math.min(ranges.length - 2, this.getRangeIndex(max) + 2)
+                this.curMin = ranges[this.curIndex]
                 this.updateInterval()
             }
-
-            this.hasNext = ranges.length > 0 && min !== max && this.curIndex <= this.maxIndex
+            this.hasNext = b && this.curIndex <= this.maxIndex
         }
     }
 }
