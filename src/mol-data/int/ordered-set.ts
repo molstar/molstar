@@ -21,6 +21,7 @@ namespace OrderedSet {
     export const has: <T extends number = number>(set: OrderedSet<T>, x: T) => boolean = Base.has as any;
     /** Returns the index of `x` in `set` or -1 if not found. */
     export const indexOf: <T extends number = number>(set: OrderedSet<T>, x: T) => number = Base.indexOf as any;
+    /** Returns the value in `set` at index `i`. */
     export const getAt: <T extends number = number>(set: OrderedSet<T>, i: number) => T = Base.getAt as any;
 
     export const min: <T extends number = number>(set: OrderedSet<T>) => T = Base.min as any;
