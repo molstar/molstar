@@ -368,7 +368,7 @@ namespace StructureElement {
             }
 
             return MS.struct.modifier.union([
-                byOpName.length === 1 ? byOpName[0] : MS.struct.combinator.merge.apply(null, byOpName)
+                byOpName.length === 1 ? byOpName[0] : MS.struct.combinator.merge(byOpName)
             ]);
         }
 
