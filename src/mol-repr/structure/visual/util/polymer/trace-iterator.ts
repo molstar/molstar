@@ -222,37 +222,21 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             const residueIndexNext2 = this.getResidueIndex(residueIndex + 2)
             const residueIndexNext3 = this.getResidueIndex(residueIndex + 3)
 
-            if (value.first) {
-                value.centerPrev.element = this.traceElementIndex[residueIndexPrev1]
-                value.center.element = this.traceElementIndex[residueIndex]
-
-                this.pos(this.p0, this.traceElementIndex[residueIndexPrev3])
-                this.pos(this.p1, this.traceElementIndex[residueIndexPrev2])
-                this.pos(this.p2, this.traceElementIndex[residueIndexPrev1])
-                this.pos(this.p3, this.traceElementIndex[residueIndex])
-                this.pos(this.p4, this.traceElementIndex[residueIndexNext1])
-                this.pos(this.p5, this.traceElementIndex[residueIndexNext2])
-
-                this.setFromToVector(this.d01, residueIndexPrev1)
-                this.setFromToVector(this.d12, residueIndex)
-                this.setFromToVector(this.d23, residueIndexNext1)
-            } else {
-                value.centerPrev.element = value.center.element
-                value.center.element = value.centerNext.element
-
-                Vec3.copy(this.p0, this.p1)
-                Vec3.copy(this.p1, this.p2)
-                Vec3.copy(this.p2, this.p3)
-                Vec3.copy(this.p3, this.p4)
-                Vec3.copy(this.p4, this.p5)
-                Vec3.copy(this.p5, this.p6)
-
-                Vec3.copy(this.d01, this.d12)
-                Vec3.copy(this.d12, this.d23)
-                Vec3.copy(this.d23, this.d34)
-            }
+            value.centerPrev.element = this.traceElementIndex[residueIndexPrev1]
+            value.center.element = this.traceElementIndex[residueIndex]
             value.centerNext.element = this.traceElementIndex[residueIndexNext1]
+
+            this.pos(this.p0, this.traceElementIndex[residueIndexPrev3])
+            this.pos(this.p1, this.traceElementIndex[residueIndexPrev2])
+            this.pos(this.p2, this.traceElementIndex[residueIndexPrev1])
+            this.pos(this.p3, this.traceElementIndex[residueIndex])
+            this.pos(this.p4, this.traceElementIndex[residueIndexNext1])
+            this.pos(this.p5, this.traceElementIndex[residueIndexNext2])
             this.pos(this.p6, this.traceElementIndex[residueIndexNext3])
+
+            this.setFromToVector(this.d01, residueIndexPrev1)
+            this.setFromToVector(this.d12, residueIndex)
+            this.setFromToVector(this.d23, residueIndexNext1)
             this.setFromToVector(this.d34, residueIndexNext2)
 
             this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndexPrev2)
