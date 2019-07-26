@@ -65,6 +65,11 @@ export function areEqual(a: Nums, b: Nums) {
     return true;
 }
 
+/**
+ * Returns 0 if `v` is smaller or equal the first element of `xs`
+ * Returns length of `xs` if `v` is bigger than the last element of `xs`
+ * Otherwise returns the first index where the value of `xs` is equal or bigger than `v`
+ */
 export function findPredecessorIndex(xs: Nums, v: number) {
     const len = xs.length;
     if (v <= xs[0]) return 0;

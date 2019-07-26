@@ -41,6 +41,11 @@ namespace OrderedSet {
     /** Returns elements of `a` that are not in `b`, i.e `a` - `b` */
     export const subtract: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.subtract as any;
 
+    /**
+     * Returns 0 if `x` is smaller or equal the first element of `set`
+     * Returns length of `set` if `x` is bigger than the last element of `set`
+     * Otherwise returns the first index where the value of `set` is equal or bigger than `x`
+     */
     export const findPredecessorIndex: <T extends number = number>(set: OrderedSet<T>, x: number) => number = Base.findPredecessorIndex as any;
     export const findPredecessorIndexInInterval: <T extends number = number>(set: OrderedSet<T>, x: T, range: Interval) => number = Base.findPredecessorIndexInInterval as any;
     export const findRange: <T extends number = number>(set: OrderedSet<T>, min: T, max: T) => Interval = Base.findRange as any;

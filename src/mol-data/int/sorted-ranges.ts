@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -23,6 +23,46 @@ namespace SortedRanges {
         }
         return size
     }
+    export function count<T extends number = number>(ranges: SortedRanges<T>) { return ranges.length / 2 }
+
+    export function startAt<T extends number = number>(ranges: SortedRanges<T>, index: number) {
+        return ranges[index * 2]
+    }
+    export function endAt<T extends number = number>(ranges: SortedRanges<T>, index: number) {
+        return ranges[index * 2 + 1] + 1
+    }
+
+    export function minAt<T extends number = number>(ranges: SortedRanges<T>, index: number) {
+        return ranges[index * 2]
+    }
+    export function maxAt<T extends number = number>(ranges: SortedRanges<T>, index: number) {
+        return ranges[index * 2 + 1]
+    }
+
+    /** Returns if a value of `set` is included in `ranges` */
+    export function has<T extends number = number>(ranges: SortedRanges<T>, set: OrderedSet<T>) {
+        return firstIntersectionIndex(ranges, set) !== -1
+    }
+
+    /** Returns if a value of `set` is included in `ranges` from given index */
+    export function hasFrom<T extends number = number>(ranges: SortedRanges<T>, set: OrderedSet<T>, from: number) {
+        return firstIntersectionIndexFrom(ranges, set, from) !== -1
+    }
+
+    export function firstIntersectionIndex<T extends number = number>(ranges: SortedRanges<T>, set: OrderedSet<T>): number {
+        return firstIntersectionIndexFrom(ranges, set, 0)
+    }
+
+    export function firstIntersectionIndexFrom<T extends number = number>(ranges: SortedRanges<T>, set: OrderedSet<T>, from: number): number {
+        if (minAt(ranges, from) > OrderedSet.max(set) || max(ranges) < OrderedSet.min(set)) return -1
+
+        for (let i = from, il = count(ranges); i < il; ++i) {
+            const interval = Interval.ofRange(minAt(ranges, i), maxAt(ranges, i))
+            if (OrderedSet.areIntersecting(interval, set)) return i
+        }
+
+        return -1
+    }
 
     export function transientSegments<T extends number = number, I extends number = number>(ranges: SortedRanges<T>, set: OrderedSet<T>) {
         return new Iterator<T, I>(ranges, set)
@@ -32,52 +72,27 @@ namespace SortedRanges {
         private value: Segmentation.Segment<I> = { index: 0 as I, start: 0 as T, end: 0 as T }
 
         private curIndex = 0
-        private maxIndex = 0
-        private interval: Interval<T>
-        private curMin: T = 0 as T
 
         hasNext: boolean = false;
 
-        private updateInterval() {
-            this.interval = Interval.ofRange(this.ranges[this.curIndex], this.ranges[this.curIndex + 1])
-        }
-
         private updateValue() {
-            this.value.index = this.curIndex / 2 as I
-            this.value.start = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex])
-            this.value.end = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex + 1])
+            this.value.index = this.curIndex as I
+            this.value.start = OrderedSet.findPredecessorIndex(this.set, startAt(this.ranges, this.curIndex))
+            this.value.end = OrderedSet.findPredecessorIndex(this.set, endAt(this.ranges, this.curIndex))
         }
 
         move() {
             if (this.hasNext) {
                 this.updateValue()
-                while (this.curIndex <= this.maxIndex) {
-                    this.curIndex += 2
-                    this.curMin = Interval.end(this.interval)
-                    this.updateInterval()
-                    if (Interval.min(this.interval) >= this.curMin && OrderedSet.areIntersecting(this.interval, this.set)) break
-                }
-                this.hasNext = this.curIndex <= this.maxIndex
+                this.curIndex = firstIntersectionIndexFrom(this.ranges, this.set, this.curIndex + 1)
+                this.hasNext = this.curIndex !== -1
             }
             return this.value;
         }
 
-        private getRangeIndex(value: number) {
-            const index = SortedArray.findPredecessorIndex(this.ranges, value)
-            return (index % 2 === 1) ? index - 1 : index
-        }
-
         constructor(private ranges: SortedRanges<T>, private set: OrderedSet<T>) {
-            const min = OrderedSet.min(set)
-            const max = OrderedSet.max(set)
-            const b = ranges.length > 0 && ranges[0] <= max && ranges[ranges.length - 1] >= min
-            if (b) {
-                this.curIndex = this.getRangeIndex(min)
-                this.maxIndex = Math.min(ranges.length - 2, this.getRangeIndex(max) + 2)
-                this.curMin = ranges[this.curIndex]
-                this.updateInterval()
-            }
-            this.hasNext = b && this.curIndex <= this.maxIndex
+            this.curIndex = firstIntersectionIndex(ranges, set)
+            this.hasNext = this.curIndex !== -1
         }
     }
 }

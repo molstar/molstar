@@ -166,6 +166,7 @@ namespace StructureElement {
             return Loci(structure, elements);
         }
 
+        /** Create union of `xs` and `ys` */
         export function union(xs: Loci, ys: Loci): Loci {
             if (xs.elements.length > ys.elements.length) return union(ys, xs);
             if (xs.elements.length === 0) return ys;
@@ -191,6 +192,7 @@ namespace StructureElement {
             return Loci(xs.structure, elements);
         }
 
+        /** Subtract `ys` from `xs` */
         export function subtract(xs: Loci, ys: Loci): Loci {
             const map = new Map<number, OrderedSet<UnitIndex>>();
             for (const e of ys.elements) map.set(e.unit.id, e.indices);
