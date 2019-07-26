@@ -19,11 +19,15 @@ import { AnimationControls } from './state/animation';
 import { ParamDefinition as PD} from '../../mol-util/param-definition';
 import { ColorNames } from '../../mol-util/color/tables';
 import { ParameterControls } from './controls/parameters';
-import { Color } from '../../mol-util/color';
 import { formatMolScript } from '../../mol-script/language/expression-formatter';
-import { StructureElement, Structure } from '../../mol-model/structure';
-import { isEmptyLoci } from '../../mol-model/loci';
+import { StructureElement, Structure, QueryContext, StructureSelection } from '../../mol-model/structure';
+import { isEmptyLoci, EmptyLoci } from '../../mol-model/loci';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
+import { PluginContext } from '../context';
+import { StructureRepresentation3DHelpers } from '../state/transforms/representation';
+import { parseMolScript } from '../../mol-script/language/parser';
+import { transpileMolScript } from '../../mol-script/script/mol-script/symbols';
+import { compile } from '../../mol-script/runtime/query/compiler';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
@@ -260,22 +264,31 @@ export class LociLabelControl extends PluginUIComponent<{}, { entries: ReadonlyA
     }
 }
 
+//
+
+function getExpression(loci: StructureElement.Loci | EmptyLoci) {
+    const scriptExpression = isEmptyLoci(loci)
+        ? MolScriptBuilder.struct.generator.empty()
+        : StructureElement.Loci.toScriptExpression(loci)
+    return formatMolScript(scriptExpression)
+}
+
 type OverpaintEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, rootStructure: Structure, overpaint?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.OverpaintStructureRepresentation3D>>) => void
 const OverpaintManagerTag = 'overpaint-controls'
 
-export class OverpaintControls extends PluginUIComponent<{}, { params: PD.Values<typeof OverpaintControls.Params> }> {
-    state = { params: PD.getDefaultValues(OverpaintControls.Params) }
+export class OverpaintControls extends PluginUIComponent<{}, { params: PD.Values<ReturnType<typeof OverpaintControls.getParams>> }> {
+    state = { params: PD.getDefaultValues(OverpaintControls.getParams(this.plugin)) }
 
-    static Params = {
-        color: PD.Color(ColorNames.cyan),
-    };
-
-    private layers = new Map<Structure, Map<string, { script: { language: string, expression: string }, color: Color, clear: boolean }>>()
+    static getParams = (plugin: PluginContext) => {
+        const { types } = plugin.structureRepresentation.registry
+        return {
+            color: PD.Color(ColorNames.cyan),
+            type: PD.MultiSelect(types.map(t => t[0]), types)
+        }
+    }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.object.created, ({ ref, state }) => {
-            this.sync()
-        });
+
     }
 
     private async eachRepr(callback: OverpaintEachReprCallback) {
@@ -295,47 +308,25 @@ export class OverpaintControls extends PluginUIComponent<{}, { params: PD.Values
         await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
     }
 
-    sync = async () => {
-        await this.eachRepr((update, repr, rootStructure, overpaint) => {
-            const layers = this.layers.get(rootStructure)
-            if (!layers) return
-
-            const props = { layers: Array.from(layers.values()), alpha: 1 }
-
-            if (overpaint) {
-                update.to(overpaint).update(props)
-            } else {
-                update.to(repr.transform.ref)
-                    .apply(StateTransforms.Representation.OverpaintStructureRepresentation3D, props, { tags: OverpaintManagerTag });
-            }
-        })
-    }
-
     set = async (clear: boolean) => {
         await this.eachRepr((update, repr, rootStructure, overpaint) => {
+            if (!this.state.params.type.includes(repr.params!.values.type.name)) return
+
             const loci = this.plugin.helpers.structureSelection.get(rootStructure)
             if (isEmptyLoci(loci) || loci.elements.length === 0) return
+            const expression = getExpression(loci)
 
-            const scriptExpression = isEmptyLoci(loci)
-                ? MolScriptBuilder.struct.generator.empty()
-                : StructureElement.Loci.toScriptExpression(loci)
-            const expression = formatMolScript(scriptExpression)
-
-            if (!this.layers.has(rootStructure)) this.layers.set(rootStructure, new Map())
-            const layers = this.layers.get(rootStructure)!
-
-            layers.set(`${this.state.params.color}|${clear}|${expression}`, {
+            const layer = {
                 script: { language: 'mol-script', expression },
                 color: this.state.params.color,
                 clear
-            })
-            const props = { layers: Array.from(layers.values()), alpha: 1 }
+            }
 
             if (overpaint) {
-                update.to(overpaint).update(props)
+                update.to(overpaint).update({ layers: [ ...overpaint.params!.values.layers, layer ], alpha: 1 })
             } else {
                 update.to(repr.transform.ref)
-                    .apply(StateTransforms.Representation.OverpaintStructureRepresentation3D, props, { tags: OverpaintManagerTag });
+                    .apply(StateTransforms.Representation.OverpaintStructureRepresentation3D, { layers: [ layer ], alpha: 1 }, { tags: OverpaintManagerTag });
             }
         })
     }
@@ -349,7 +340,6 @@ export class OverpaintControls extends PluginUIComponent<{}, { params: PD.Values
     }
 
     clearAll = async () => {
-        this.layers.clear()
         await this.eachRepr((update, repr, rootStructure, overpaint) => {
             if (overpaint) update.delete(overpaint.transform.ref)
         })
@@ -358,10 +348,10 @@ export class OverpaintControls extends PluginUIComponent<{}, { params: PD.Values
     render() {
         return <div className='msp-transform-wrapper'>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block'>Structure Selection Overpaint</button>
+                <button className='msp-btn msp-btn-block'>Current Selection Overpaint</button>
             </div>
             <div>
-                <ParameterControls params={OverpaintControls.Params} values={this.state.params} onChange={p => {
+                <ParameterControls params={OverpaintControls.getParams(this.plugin)} values={this.state.params} onChange={p => {
                     const params = { ...this.state.params, [p.name]: p.value };
                     this.setState({ params });
                 }}/>
@@ -376,12 +366,140 @@ export class OverpaintControls extends PluginUIComponent<{}, { params: PD.Values
     }
 }
 
-export class ToolsWrapper extends PluginUIComponent {
+type RepresentationEachStructureCallback = (update: StateBuilder.Root, structure: StateObjectCell<PluginStateObject.Molecule.Structure, StateTransform<StateTransformer<any, PluginStateObject.Molecule.Structure, any>>>) => void
+const RepresentationManagerTag = 'representation-controls'
+
+function getRepresentationManagerTag(type: string) {
+    return `${RepresentationManagerTag}-${type}`
+}
+
+function getCombinedLoci(mode: 'add' | 'remove' | 'only' | 'all', loci: StructureElement.Loci, currentLoci: StructureElement.Loci): StructureElement.Loci {
+    switch (mode) {
+        case 'add': return StructureElement.Loci.union(loci, currentLoci)
+        case 'remove': return StructureElement.Loci.subtract(currentLoci, loci)
+        case 'only': return loci
+        case 'all': return StructureElement.Loci.all(loci.structure)
+    }
+}
+
+export class RepresentationControls extends PluginUIComponent<{}, { params: PD.Values<ReturnType<typeof RepresentationControls.getParams>> }> {
+    state = { params: PD.getDefaultValues(RepresentationControls.getParams(this.plugin)) }
+
+    static getParams = (plugin: PluginContext) => {
+        const { types } = plugin.structureRepresentation.registry
+        return {
+            type: PD.Select(types[0][0], types)
+        }
+    }
+
+    componentDidMount() {
+
+    }
+
+    private async eachStructure(callback: RepresentationEachStructureCallback) {
+        const state = this.plugin.state.dataState;
+        const structures = state.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure));
+
+        const update = state.build();
+        for (const s of structures) {
+            callback(update, s)
+        }
+
+        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
+    }
+
+    set = async (mode: 'add' | 'remove' | 'only' | 'all') => {
+        const state = this.plugin.state.dataState
+        const { type } = this.state.params
+
+        await this.eachStructure((update, structure) => {
+            const s = structure.obj!.data
+            const _loci = this.plugin.helpers.structureSelection.get(s)
+            const loci = isEmptyLoci(_loci) ? StructureElement.Loci(s, []) : _loci
+
+            const selections = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure, structure.transform.ref).withTag(getRepresentationManagerTag(type)));
+
+            if (selections.length > 0) {
+                const parsed = parseMolScript(selections[0].params!.values.query.expression)
+                if (parsed.length === 0) return
+
+                const query = transpileMolScript(parsed[0])
+                const compiled = compile(query)
+                const result = compiled(new QueryContext(structure.obj!.data))
+                const currentLoci = StructureSelection.toLoci2(result)
+
+                const combinedLoci = getCombinedLoci(mode, loci, currentLoci)
+
+                update.to(selections[0]).update({
+                    ...selections[0].params!.values,
+                    query: { language: 'mol-script', expression: getExpression(combinedLoci) }
+                })
+
+            } else {
+                const combinedLoci = getCombinedLoci(mode, loci, StructureElement.Loci(loci.structure, []))
+
+                update.to(structure.transform.ref)
+                    .apply(
+                        StateTransforms.Model.UserStructureSelection,
+                        {
+                            query: { language: 'mol-script', expression: getExpression(combinedLoci) },
+                            label: type
+                        },
+                        { tags: [ RepresentationManagerTag, getRepresentationManagerTag(type) ] }
+                    )
+                    .apply(
+                        StateTransforms.Representation.StructureRepresentation3D,
+                        StructureRepresentation3DHelpers.getDefaultParams(this.plugin, type as any, s)
+                    )
+            }
+        })
+    }
+
+    show = async () => { this.set('add') }
+    hide = async () => { this.set('remove') }
+    only = async () => { this.set('only') }
+    showAll = async () => { this.set('all') }
+
+    hideAll = async () => {
+        const { type } = this.state.params
+        const state = this.plugin.state.dataState;
+        const update = state.build();
+
+        state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure).withTag(getRepresentationManagerTag(type))).forEach(structure => update.delete(structure.transform.ref));
+
+        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
+    }
+
+    render() {
+        return <div className='msp-transform-wrapper'>
+            <div className='msp-transform-header'>
+                <button className='msp-btn msp-btn-block'>Current Selection Representation</button>
+            </div>
+            <div>
+                <ParameterControls params={RepresentationControls.getParams(this.plugin)} values={this.state.params} onChange={p => {
+                    const params = { ...this.state.params, [p.name]: p.value };
+                    this.setState({ params });
+                }}/>
+
+                <div className='msp-btn-row-group'>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.show}>Show</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.hide}>Hide</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.only}>Only</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.showAll}>Show All</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.hideAll}>Hide All</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+export class StructureToolsWrapper extends PluginUIComponent {
     render() {
         return <div>
-            <div className='msp-section-header'><Icon name='code' /> Tools</div>
+            <div className='msp-section-header'><Icon name='code' /> Structure Tools</div>
 
             <OverpaintControls />
+            <RepresentationControls />
         </div>;
     }
 }
