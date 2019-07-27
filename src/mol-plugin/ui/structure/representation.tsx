@@ -36,8 +36,8 @@ function getCombinedLoci(mode: 'add' | 'remove' | 'only' | 'all', loci: Structur
     }
 }
 
-export class RepresentationControls extends PluginUIComponent<{}, { params: PD.Values<ReturnType<typeof RepresentationControls.getParams>> }> {
-    state = { params: PD.getDefaultValues(RepresentationControls.getParams(this.plugin)) }
+export class StructureRepresentationControls extends PluginUIComponent<{}, { params: PD.Values<ReturnType<typeof StructureRepresentationControls.getParams>> }> {
+    state = { params: PD.getDefaultValues(StructureRepresentationControls.getParams(this.plugin)) }
 
     static getParams = (plugin: PluginContext) => {
         const { types } = plugin.structureRepresentation.registry
@@ -129,7 +129,7 @@ export class RepresentationControls extends PluginUIComponent<{}, { params: PD.V
                 <button className='msp-btn msp-btn-block'>Current Selection Representation</button>
             </div>
             <div>
-                <ParameterControls params={RepresentationControls.getParams(this.plugin)} values={this.state.params} onChange={p => {
+                <ParameterControls params={StructureRepresentationControls.getParams(this.plugin)} values={this.state.params} onChange={p => {
                     const params = { ...this.state.params, [p.name]: p.value };
                     this.setState({ params });
                 }}/>

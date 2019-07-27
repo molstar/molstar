@@ -21,8 +21,8 @@ import { getExpression } from './util';
 type OverpaintEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, rootStructure: Structure, overpaint?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.OverpaintStructureRepresentation3D>>) => void
 const OverpaintManagerTag = 'overpaint-controls'
 
-export class OverpaintControls extends PluginUIComponent<{}, { params: PD.Values<ReturnType<typeof OverpaintControls.getParams>> }> {
-    state = { params: PD.getDefaultValues(OverpaintControls.getParams(this.plugin)) }
+export class StructureOverpaintControls extends PluginUIComponent<{}, { params: PD.Values<ReturnType<typeof StructureOverpaintControls.getParams>> }> {
+    state = { params: PD.getDefaultValues(StructureOverpaintControls.getParams(this.plugin)) }
 
     static getParams = (plugin: PluginContext) => {
         const { types } = plugin.structureRepresentation.registry
@@ -96,7 +96,7 @@ export class OverpaintControls extends PluginUIComponent<{}, { params: PD.Values
                 <button className='msp-btn msp-btn-block'>Current Selection Overpaint</button>
             </div>
             <div>
-                <ParameterControls params={OverpaintControls.getParams(this.plugin)} values={this.state.params} onChange={p => {
+                <ParameterControls params={StructureOverpaintControls.getParams(this.plugin)} values={this.state.params} onChange={p => {
                     const params = { ...this.state.params, [p.name]: p.value };
                     this.setState({ params });
                 }}/>
