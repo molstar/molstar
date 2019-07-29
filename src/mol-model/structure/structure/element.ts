@@ -16,7 +16,7 @@ import Structure from './structure';
 import Unit from './unit';
 import { Boundary } from './util/boundary';
 import { StructureProperties } from '../structure';
-import { sortArray } from '../../../mol-data/util';
+import { sortArray, hashFnv32a, hash2 } from '../../../mol-data/util';
 import Expression from '../../../mol-script/language/expression';
 
 interface StructureElement<U = Unit> {
@@ -358,21 +358,81 @@ namespace StructureElement {
                 }
             }
 
-            const byOpName: Expression[] = [];
+            const opData: OpData[] = [];
             const keys = sourceIndexMap.keys();
             while (true) {
                 const k = keys.next();
                 if (k.done) break;
                 const e = sourceIndexMap.get(k.value)!;
-                byOpName.push(getOpNameQuery(k.value, e.xs.array, models.length > 1, e.modelLabel, e.modelIndex));
+                opData.push(getOpData(k.value, e.xs.array, models.length > 1, e.modelLabel, e.modelIndex));
             }
 
+            const opGroups = new Map<string, OpData>();
+            for (let i = 0, il = opData.length; i < il; ++i) {
+                const d = opData[i]
+                const hash = hash2(hashFnv32a(d.atom.ranges), hashFnv32a(d.atom.set))
+                const key = `${hash}|${d.entity ? (d.entity.modelLabel + d.entity.modelIndex) : ''}`
+                if (opGroups.has(key)) {
+                    opGroups.get(key)!.chain.opName.push(...d.chain.opName)
+                } else {
+                    opGroups.set(key, d)
+                }
+            }
+
+            const opQueries: Expression[] = [];
+            opGroups.forEach(d => {
+                const { ranges, set } = d.atom
+                const { opName } = d.chain
+
+                const opProp = MS.struct.atomProperty.core.operatorName()
+                const siProp = MS.struct.atomProperty.core.sourceIndex();
+                const tests: Expression[] = [];
+
+                // TODO: add set.ofRanges constructor to MolQL???
+                if (set.length > 0) {
+                    tests[tests.length] = MS.core.set.has([MS.set.apply(null, set), siProp]);
+                }
+                for (let rI = 0, _rI = ranges.length / 2; rI < _rI; rI++) {
+                    tests[tests.length] = MS.core.rel.inRange([siProp, ranges[2 * rI], ranges[2 * rI + 1]]);
+                }
+
+                if (d.entity) {
+                    const { modelLabel, modelIndex } = d.entity
+                    opQueries.push(MS.struct.generator.atomGroups({
+                        'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
+                        'chain-test': opName.length > 1
+                            ? MS.core.set.has([MS.set.apply(null, opName), opProp])
+                            : MS.core.rel.eq([opProp, opName[0]]),
+                        'entity-test': MS.core.logic.and([
+                            MS.core.rel.eq([MS.struct.atomProperty.core.modelLabel(), modelLabel]),
+                            MS.core.rel.eq([MS.struct.atomProperty.core.modelIndex(), modelIndex]),
+                        ])
+                    }))
+                } else {
+                    opQueries.push(MS.struct.generator.atomGroups({
+                        'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
+                        'chain-test': opName.length > 1
+                            ? MS.core.set.has([MS.set.apply(null, opName), opProp])
+                            : MS.core.rel.eq([opProp, opName[0]])
+                    }))
+                }
+            })
+
             return MS.struct.modifier.union([
-                byOpName.length === 1 ? byOpName[0] : MS.struct.combinator.merge(byOpName)
+                opQueries.length === 1
+                    ? opQueries[0]
+                    // Need to union before merge for fast performance
+                    : MS.struct.combinator.merge(opQueries.map(q => MS.struct.modifier.union([ q ])))
             ]);
         }
 
-        function getOpNameQuery(opName: string, xs: number[], multimodel: boolean, modelLabel: string, modelIndex: number) {
+        type OpData = {
+            atom: { set: number[], ranges: number[] },
+            chain: { opName: string[] },
+            entity?: { modelLabel: string, modelIndex: number }
+        }
+
+        function getOpData(opName: string, xs: number[], multimodel: boolean, modelLabel: string, modelIndex: number): OpData {
             sortArray(xs);
 
             const ranges: number[] = [];
@@ -395,30 +455,17 @@ namespace StructureElement {
                 }
             }
 
-            const siProp = MS.struct.atomProperty.core.sourceIndex();
-            const tests: Expression[] = [];
-
-            // TODO: add set.ofRanges constructor to MolQL???
-            if (set.length > 0) {
-                tests[tests.length] = MS.core.set.has([MS.set.apply(null, set), siProp]);
-            }
-            for (let rI = 0, _rI = ranges.length / 2; rI < _rI; rI++) {
-                tests[tests.length] = MS.core.rel.inRange([siProp, ranges[2 * rI], ranges[2 * rI + 1]]);
-            }
-
             return multimodel
-                ? MS.struct.generator.atomGroups({
-                    'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
-                    'chain-test': MS.core.rel.eq([MS.struct.atomProperty.core.operatorName(), opName]),
-                    'entity-test': MS.core.logic.and([
-                        MS.core.rel.eq([MS.struct.atomProperty.core.modelLabel(), modelLabel]),
-                        MS.core.rel.eq([MS.struct.atomProperty.core.modelIndex(), modelIndex]),
-                    ])
-                })
-                : MS.struct.generator.atomGroups({
-                    'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
-                    'chain-test': MS.core.rel.eq([MS.struct.atomProperty.core.operatorName(), opName])
-                });
+                ? {
+                    atom: { set, ranges },
+                    chain: { opName: [ opName ] },
+                    entity: { modelLabel, modelIndex }
+                }
+                : {
+                    atom: { set, ranges },
+                    chain: { opName: [ opName ] },
+                }
+
         }
     }
 }
