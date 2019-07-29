@@ -17,7 +17,7 @@ describe('rangesArray', () => {
         it(`iterator, ${name}`, () => {
             const rangesIt = SortedRanges.transientSegments(ranges, set)
             const { index, start, end } = expectedValues
-    
+
             let i = 0
             while (rangesIt.hasNext) {
                 const segment = rangesIt.move()
@@ -41,7 +41,7 @@ describe('rangesArray', () => {
 
     testIterator('two ranges',
         SortedRanges.ofSortedRanges([1, 2, 3, 4]),
-        OrderedSet.ofBounds(1, 4),
+        OrderedSet.ofBounds(1, 5),
         { index: [0, 1], start: [0, 2], end: [2, 4] }
     )
     testIterator('first range',
@@ -62,7 +62,7 @@ describe('rangesArray', () => {
     testIterator('set in second range and beyond',
         SortedRanges.ofSortedRanges([1, 2, 3, 4]),
         SortedArray.ofSortedArray([3, 10]),
-        { index: [1], start: [0], end: [2] }
+        { index: [1], start: [0], end: [1] }
     )
     testIterator('length 1 range',
         SortedRanges.ofSortedRanges([1, 1, 3, 4]),
