@@ -373,7 +373,7 @@ namespace Structure {
      * Construct a Structure from a model.
      *
      * Generally, a single unit corresponds to a single chain, with the exception
-     * of consecutive "single atom chains".
+     * of consecutive "single atom chains" with same entity id.
      */
     export function ofModel(model: Model): Structure {
         const chains = model.atomicHierarchy.chainAtomSegments;
@@ -382,16 +382,20 @@ namespace Structure {
         for (let c = 0; c < chains.count; c++) {
             const start = chains.offsets[c];
 
-            // merge all consecutive "single atom chains"
+            // merge all consecutive "single atom chains" with same entity id
             while (c + 1 < chains.count
                 && chains.offsets[c + 1] - chains.offsets[c] === 1
-                && chains.offsets[c + 2] - chains.offsets[c + 1] === 1) {
+                && chains.offsets[c + 2] - chains.offsets[c + 1] === 1
+            ) {
                 c++;
+                const e1 = model.atomicHierarchy.index.getEntityFromChain(c as ChainIndex);
+                const e2 = model.atomicHierarchy.index.getEntityFromChain(c + 1 as ChainIndex);
+                if (e1 !== e2) break
             }
 
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
 
-            if (isWaterChain(model, c as ChainIndex, elements)) {
+            if (isWaterChain(model, c as ChainIndex)) {
                 partitionAtomicUnit(model, elements, builder);
             } else {
                 builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
@@ -411,7 +415,7 @@ namespace Structure {
         return builder.getStructure();
     }
 
-    function isWaterChain(model: Model, chainIndex: ChainIndex, indices: SortedArray) {
+    function isWaterChain(model: Model, chainIndex: ChainIndex) {
         const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
         return model.entities.data.type.value(e) === 'water';
     }
