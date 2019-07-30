@@ -397,6 +397,8 @@ namespace Structure {
 
             if (isWaterChain(model, c as ChainIndex)) {
                 partitionAtomicUnit(model, elements, builder);
+            } else if (elements.length > 200000) {
+                partitionAtomicUnitPerResidue(model, elements, builder);
             } else {
                 builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
             }
@@ -430,6 +432,36 @@ namespace Structure {
             const set = new Int32Array(count[i]);
             for (let j = 0, _j = count[i]; j < _j; j++) {
                 set[j] = indices[array[start + j]];
+            }
+            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(set));
+        }
+    }
+
+    function partitionAtomicUnitPerResidue(model: Model, indices: SortedArray, builder: StructureBuilder) {
+        model.atomicHierarchy.residueAtomSegments.offsets
+
+        const startIndices: number[] = []
+        const endIndices: number[] = []
+
+        const residueIt = Segmentation.transientSegments(model.atomicHierarchy.residueAtomSegments, indices)
+        while (residueIt.hasNext) {
+            const residueSegment = residueIt.move();
+            startIndices[startIndices.length] = residueSegment.start
+            endIndices[endIndices.length] = residueSegment.end
+        }
+
+        const { x, y, z } = model.atomicConformation;
+        const lookup = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(startIndices) }, Vec3.create(256, 256, 256));
+        const { offset, count, array } = lookup.buckets;
+
+        for (let i = 0, _i = offset.length; i < _i; i++) {
+            const start = offset[i];
+            const set: number[] = [];
+            for (let j = 0, _j = count[i]; j < _j; j++) {
+                const k = array[start + j]
+                for (let l = startIndices[k], _l = endIndices[k]; l < _l; l++) {
+                    set[set.length] = l;
+                }
             }
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(set));
         }
