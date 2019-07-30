@@ -10,7 +10,7 @@ import { PluginStateObject as PSO } from '../../../../mol-plugin/state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Ingredient, Packing } from './data';
 import { getFromPdb, getFromCellPackDB } from './util';
-import { Model, Structure, StructureSymmetry, StructureSelection, Queries, QueryContext, StructureProperties as SP } from '../../../../mol-model/structure';
+import { Model, Structure, StructureSymmetry, StructureSelection, Queries, QueryContext } from '../../../../mol-model/structure';
 import { trajectoryFromMmCIF } from '../../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../../mol-model-formats/structure/pdb';
 import { Mat4, Vec3, Quat } from '../../../../mol-math/linear-algebra';
@@ -22,6 +22,8 @@ import { distinctColors } from '../../../../mol-util/color/distinct';
 import { ModelIndexColorThemeProvider } from '../../../../mol-theme/color/model-index';
 import { Hcl } from '../../../../mol-util/color/spaces/hcl';
 import { ParseCellPack, StructureFromCellpack } from './state';
+import { formatMolScript } from '../../../../mol-script/language/expression-formatter';
+import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/cellPACK_database_1.1.0/results/${fileName}`
@@ -40,21 +42,12 @@ async function getModel(id: string, baseUrl: string) {
     return model
 }
 
-async function getStructure(model: Model, props: { assembly?: string, trace?: boolean }) {
+async function getStructure(model: Model, props: { assembly?: string }) {
     let structure = Structure.ofModel(model)
-    const { assembly, trace } = props
+    const { assembly } = props
 
     if (assembly) {
         structure = await StructureSymmetry.buildAssembly(structure, assembly).run()
-    }
-
-    if (trace === true) {
-        const query = Queries.generators.atoms({ atomTest: ctx => {
-            const atomId = SP.atom.label_atom_id(ctx.element)
-            return atomId === 'CA' || atomId === 'P'
-        }})
-        const result = query(new QueryContext(structure))
-        structure = StructureSelection.unionStructure(result)
     }
 
     const query = Queries.internal.atomicSequence()
@@ -107,7 +100,7 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string) {
     const model = await getModel(source.pdb || name, baseUrl)
     if (!model) return
 
-    const structure = await getStructure(model, { trace: true, assembly: source.biomt ? '1' : undefined })
+    const structure = await getStructure(model, { assembly: source.biomt ? '1' : undefined })
     const transforms = getTransforms(results)
     const assembly = getAssembly(transforms, structure)
     return assembly
@@ -152,7 +145,15 @@ export const LoadCellPackModel = StateAction.build({
             ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
             ['NM_Analysis_FigureC1.4.cpr.json', 'NM_Analysis_FigureC1.4']
         ]),
-        baseUrl: PD.Text('https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master/')
+        baseUrl: PD.Text('https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master/'),
+        preset: PD.Group({
+            traceOnly: PD.Boolean(false),
+            representation: PD.Select('spacefill', [
+                ['spacefill', 'Spacefill'],
+                ['gaussian-surface', 'Gaussian Surface'],
+                ['point', 'Point'],
+            ])
+        }, { isExpanded: true })
     },
     from: PSO.Root
 })(({ state, params }, ctx: PluginContext) => Task.create('CellPack Loader', async taskCtx => {
@@ -174,20 +175,23 @@ export const LoadCellPackModel = StateAction.build({
     for (let i = 0, il = packings.length; i < il; ++i) {
         const hcl = Hcl.fromColor(Hcl(), colors[i])
         const hue = [Math.max(0, hcl[0] - 35), Math.min(360, hcl[0] + 35)] as [number, number]
+        const p = { packing: i, baseUrl: params.baseUrl }
 
-        tree.apply(StructureFromCellpack, { packing: i, baseUrl: params.baseUrl })
+        const expression = params.preset.traceOnly
+            ? MS.struct.generator.atomGroups({
+                'atom-test': MS.core.logic.or([
+                    MS.core.rel.eq([MS.ammp('label_atom_id'), 'CA']),
+                    MS.core.rel.eq([MS.ammp('label_atom_id'), 'P'])
+                ])
+            })
+            : MS.struct.generator.all()
+        const query = { language: 'mol-script' as const, expression: formatMolScript(expression) }
+
+        tree.apply(StructureFromCellpack, p)
+            .apply(StateTransforms.Model.UserStructureSelection, { query })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
-                    // repr: ctx.structureRepresentation.registry.get('point'),
-                    repr: [
-                        ctx.structureRepresentation.registry.get('gaussian-surface'),
-                        (c, ctx) => {
-                            return {
-                                quality: 'custom', resolution: 10, radiusOffset: 2,
-                                alpha: 1.0, flatShaded: false, doubleSided: false,
-                            }
-                        }
-                    ],
+                    repr: getReprParams(ctx, params.preset),
                     color: [
                         ModelIndexColorThemeProvider,
                         (c, ctx) => {
@@ -207,3 +211,26 @@ export const LoadCellPackModel = StateAction.build({
 
     await state.updateTree(tree).runInContext(taskCtx);
 }));
+
+function getReprParams(ctx: PluginContext, params: { representation: 'spacefill' | 'gaussian-surface' | 'point', traceOnly: boolean }) {
+    const { representation, traceOnly } = params
+    switch (representation) {
+        case 'spacefill':
+            return traceOnly
+                ? [
+                    ctx.structureRepresentation.registry.get('spacefill'),
+                    () => ({ sizeFactor: 2 })
+                ] as [any, any]
+                : ctx.structureRepresentation.registry.get('spacefill')
+        case 'gaussian-surface':
+            return [
+                ctx.structureRepresentation.registry.get('gaussian-surface'),
+                () => ({
+                    quality: 'custom', resolution: 10, radiusOffset: 2,
+                    alpha: 1.0, flatShaded: false, doubleSided: false,
+                })
+            ] as [any, any]
+        case 'point':
+            return ctx.structureRepresentation.registry.get('point')
+    }
+}
