@@ -82,15 +82,17 @@ namespace Visual {
         // ensure texture has right size
         createOverpaint(overpaint.layers.length ? count : 0, renderObject.values)
 
-        // clear if requested
+        // clear all if requested
         if (clear) clearOverpaint(tOverpaint.ref.value.array, 0, count)
 
         for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
-            const { loci, color } = overpaint.layers[i]
+            const { loci, color, clear } = overpaint.layers[i]
             const apply = (interval: Interval) => {
                 const start = Interval.start(interval)
                 const end = Interval.end(interval)
-                return applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, overpaint.alpha)
+                return clear
+                    ? clearOverpaint(tOverpaint.ref.value.array, start, end)
+                    : applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, overpaint.alpha)
             }
             lociApply(loci, apply)
         }

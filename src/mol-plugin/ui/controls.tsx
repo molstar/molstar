@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react';
@@ -9,12 +10,15 @@ import { PluginCommands } from '../../mol-plugin/command';
 import { UpdateTrajectory } from '../../mol-plugin/state/actions/structure';
 import { PluginUIComponent } from './base';
 import { LociLabelEntry } from '../../mol-plugin/util/loci-label-manager';
-import { IconButton } from './controls/common';
+import { IconButton, Icon } from './controls/common';
 import { PluginStateObject } from '../../mol-plugin/state/objects';
 import { StateTransforms } from '../../mol-plugin/state/transforms';
 import { StateTransformer } from '../../mol-state';
 import { ModelFromTrajectory } from '../../mol-plugin/state/transforms/model';
 import { AnimationControls } from './state/animation';
+import { StructureOverpaintControls } from './structure/overpaint';
+import { StructureRepresentationControls } from './structure/representation';
+import { StructureSelectionControls } from './structure/selection';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' }
@@ -225,7 +229,7 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
         const isAnimating = this.state.isAnimating;
 
         return <div className='msp-animation-viewport-controls'>
-            <IconButton icon={isAnimating || isPlaying ? 'stop' : 'play'} title={isAnimating ? 'Stop' : 'Select Animation'}
+            <IconButton icon={isAnimating || isPlaying ? 'stop' : 'tape'} title={isAnimating ? 'Stop' : 'Select Animation'}
                 onClick={isAnimating || isPlaying ? this.stop : this.toggleExpanded}
                 disabled={isAnimating|| isPlaying ? false : this.state.isUpdating || this.state.isPlaying || this.state.isEmpty} />
             {(this.state.isExpanded && !this.state.isUpdating) && <div className='msp-animation-viewport-controls-select'>
@@ -247,6 +251,18 @@ export class LociLabelControl extends PluginUIComponent<{}, { entries: ReadonlyA
 
         return <div className='msp-highlight-info'>
             {this.state.entries.map((e, i) => <div key={'' + i}>{e}</div>)}
+        </div>;
+    }
+}
+
+export class StructureToolsWrapper extends PluginUIComponent {
+    render() {
+        return <div>
+            <div className='msp-section-header'><Icon name='code' /> Structure Tools</div>
+
+            <StructureSelectionControls />
+            <StructureOverpaintControls />
+            <StructureRepresentationControls />
         </div>;
     }
 }

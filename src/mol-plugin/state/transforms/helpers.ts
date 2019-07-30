@@ -25,11 +25,11 @@ function scriptToLoci(structure: Structure, script: Script) {
     return StructureSelection.toLoci2(result)
 }
 
-export function getStructureOverpaint(structure: Structure, scriptLayers: { script: Script, color: Color }[], alpha: number): Overpaint {
+export function getStructureOverpaint(structure: Structure, scriptLayers: { script: Script, color: Color, clear: boolean }[], alpha: number): Overpaint {
     const layers: Overpaint.Layer[] = []
     for (let i = 0, il = scriptLayers.length; i < il; ++i) {
-        const { script, color } = scriptLayers[i]
-        layers.push({ loci: scriptToLoci(structure, script), color })
+        const { script, color, clear } = scriptLayers[i]
+        layers.push({ loci: scriptToLoci(structure, script), color, clear })
     }
     return { layers, alpha }
 }

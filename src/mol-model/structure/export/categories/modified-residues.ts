@@ -28,7 +28,7 @@ const pdbx_struct_mod_residue_fields: CifField<number, StructureElement[]>[] = [
 ];
 
 function getModifiedResidues({ structures }: CifExportContext): StructureElement[] {
-    // TODO: can different models have differnt modified residues?
+    // TODO: can different models (in the same mmCIF file) have different modified residues?
     const structure = structures[0], model = structure.model;
     const map = model.properties.modifiedResidues.parentId;
     if (!map.size) return [];

@@ -14,7 +14,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Segmentation } from '../../../mol-data/int';
 import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
-import { isNucleic, isPurinBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
+import { isNucleic, isPurineBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
@@ -101,15 +101,37 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
 
                 builderState.currentGroup = i
 
-                if (isPurinBase(compId)) {
+                let isPurine = isPurineBase(compId)
+                let isPyrimidine = isPyrimidineBase(compId)
+
+                if (!isPurine && !isPyrimidine) {
+                    // detect Purine or Pyrimidin based on geometry
+                    const idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
+                    const idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9')
+                    if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(pos(idxC4, pC4), pos(idxN9, pN9)) < 1.6) {
+                        isPurine = true
+                    } else {
+                        isPyrimidine = true
+                    }
+                }
+
+                if (isPurine) {
                     idxTrace = traceElementIndex[residueIndex]
                     idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1')
                     idxC2 = atomicIndex.findAtomOnResidue(residueIndex, 'C2')
                     idxN3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3')
                     idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
                     idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5')
+                    if (idxC5 === -1) {
+                        // modified ring, e.g. DP
+                        idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'N5')
+                    }
                     idxC6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6')
                     idxN7 = atomicIndex.findAtomOnResidue(residueIndex, 'N7')
+                    if (idxN7 === -1) {
+                        // modified ring, e.g. DP
+                        idxN7 = atomicIndex.findAtomOnResidue(residueIndex, 'C7')
+                    }
                     idxC8 = atomicIndex.findAtomOnResidue(residueIndex, 'C8')
                     idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9')
 
@@ -131,9 +153,13 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                         MeshBuilder.addTriangleFan(builderState, positionsRing5_6, fanIndicesTopRing5_6)
                         MeshBuilder.addTriangleFan(builderState, positionsRing5_6, fanIndicesBottomRing5_6)
                     }
-                } else if (isPyrimidineBase(compId)) {
+                } else if (isPyrimidine) {
                     idxTrace = traceElementIndex[residueIndex]
                     idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1')
+                    if (idxN1 === -1) {
+                        // modified ring, e.g. DZ
+                        idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'C1')
+                    }
                     idxC2 = atomicIndex.findAtomOnResidue(residueIndex, 'C2')
                     idxN3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3')
                     idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')

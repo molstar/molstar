@@ -10,7 +10,7 @@ import { PluginUIComponent } from './base';
 import { StateTreeSpine } from '../../mol-state/tree/spine';
 import { PluginStateObject as SO } from '../state/objects';
 import { Sequence } from './sequence/sequence';
-import { Structure, StructureElement, StructureProperties as SP } from '../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties as SP, Unit } from '../../mol-model/structure';
 import { SequenceWrapper } from './sequence/wrapper';
 import { PolymerSequenceWrapper } from './sequence/polymer';
 import { StructureElementSelectionManager } from '../util/structure-element-selection';
@@ -75,7 +75,12 @@ function getChainOptions(structure: Structure, entityId: string) {
         const id = unit.invariantId
         if (seen.has(id)) continue
 
-        let label = `${SP.chain.label_asym_id(l)}: ${SP.chain.auth_asym_id(l)}`
+        let label = ''
+        if (Unit.isAtomic(unit)) {
+            label = `${SP.chain.label_asym_id(l)}: ${SP.chain.auth_asym_id(l)}`
+        } else {
+            label = `${SP.coarse.asym_id(l)}`
+        }
         if (SP.entity.type(l) === 'water') {
             const count = water.get(label) || 1
             water.set(label, count + 1)
@@ -135,7 +140,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
 
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
             const current = this.spine.current;
-            if (!current || current.sourceRef !== ref || current.state !== state) return;
+            if (!current || current.sourceRef !== ref) return;
             this.setState(this.getInitialState())
         });
     }

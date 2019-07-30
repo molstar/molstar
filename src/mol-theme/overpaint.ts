@@ -12,7 +12,7 @@ export { Overpaint }
 type Overpaint = { layers: ReadonlyArray<Overpaint.Layer>, readonly alpha: number }
 
 namespace Overpaint {
-    export type Layer = { readonly loci: Loci, readonly color: Color }
+    export type Layer = { readonly loci: Loci, readonly color: Color, readonly clear: boolean }
     export const Empty: Overpaint = { layers: [], alpha: 1 }
 
     export function areEqual(oA: Overpaint, oB: Overpaint) {
@@ -20,6 +20,7 @@ namespace Overpaint {
         if (oA.layers.length !== oB.layers.length) return false
         if (oA.alpha !== oB.alpha) return false
         for (let i = 0, il = oA.layers.length; i < il; ++i) {
+            if (oA.layers[i].clear !== oB.layers[i].clear) return false
             if (oA.layers[i].color !== oB.layers[i].color) return false
             if (!Loci.areEqual(oA.layers[i].loci, oB.layers[i].loci)) return false
         }

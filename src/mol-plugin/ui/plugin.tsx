@@ -12,7 +12,7 @@ import { LogEntry } from '../../mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
-import { LociLabelControl, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls } from './controls';
+import { LociLabelControl, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls, StructureToolsWrapper } from './controls';
 import { StateSnapshots } from './state';
 import { StateObjectActions } from './state/actions';
 import { StateTree } from './state/tree';
@@ -109,6 +109,7 @@ export class ControlsWrapper extends PluginUIComponent {
             <CurrentObject />
             {/* <AnimationControlsWrapper /> */}
             {/* <CameraSnapshots /> */}
+            <StructureToolsWrapper />
             <StateSnapshots />
         </div>;
     }

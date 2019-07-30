@@ -163,6 +163,7 @@ namespace Interactivity {
             }
         }
 
+        // TODO create better API that is independent of a `ClickEvent`
         apply(e: ClickEvent) {
             const { current, buttons, modifiers } = e
             const normalized: Loci<ModelLoci> = this.normalizedLoci(current)

@@ -113,6 +113,8 @@ const entity = {
 const unit = {
     id: StructureElement.property(l => l.unit.id),
     operator_name: StructureElement.property(l => l.unit.conformation.operator.name),
+    model_index: StructureElement.property(l => l.unit.model.modelNum),
+    model_label: StructureElement.property(l => l.unit.model.label),
     hkl: StructureElement.property(l => l.unit.conformation.operator.hkl),
     spgrOp: StructureElement.property(l => l.unit.conformation.operator.spgrOp),
 

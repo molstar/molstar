@@ -300,9 +300,9 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     canAutoUpdate() {
         return true;
     },
-    apply({ a, params, spine }) {
-        const rootStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
+    apply({ a, params }) {
         const structure = a.data.source.data;
+        const rootStructure = structure.parent || structure;
         const unitTransforms = new StructureUnitTransforms(rootStructure);
         explodeStructure(structure, unitTransforms, params.t);
         return new SO.Molecule.Structure.Representation3DState({
@@ -312,8 +312,9 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
             source: a
         }, { label: `Explode T = ${params.t.toFixed(2)}` });
     },
-    update({ a, b, newParams, oldParams, spine }) {
-        const rootStructure = spine.getRootOfType(SO.Molecule.Structure)!.data;
+    update({ a, b, newParams, oldParams }) {
+        const structure = a.data.source.data;
+        const rootStructure = structure.parent || structure;
         if (b.data.info !== rootStructure) return StateTransformer.UpdateResult.Recreate;
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
@@ -332,25 +333,15 @@ const OverpaintStructureRepresentation3D = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Structure.Representation3DState,
     params: {
         layers: PD.ObjectList({
-            script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))' }),
-            color: PD.Color(ColorNames.blueviolet)
-        }, e => `${Color.toRgbString(e.color)}`, {
-            defaultValue: [
-                {
-                    script: {
-                        language: 'mol-script',
-                        expression: '(sel.atom.atom-groups :residue-test (= atom.resname LYS))'
-                    },
-                    color: ColorNames.blueviolet
-                },
-                {
-                    script: {
-                        language: 'mol-script',
-                        expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))'
-                    },
-                    color: ColorNames.chartreuse
-                }
-            ]
+            script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.all)' }),
+            color: PD.Color(ColorNames.blueviolet),
+            clear: PD.Boolean(false)
+        }, e => `${e.clear ? 'Clear' : Color.toRgbString(e.color)}`, {
+            defaultValue: [{
+                script: { language: 'mol-script', expression: '(sel.atom.all)' },
+                color: ColorNames.blueviolet,
+                clear: false
+            }]
         }),
         alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
     }
@@ -390,7 +381,7 @@ const TransparencyStructureRepresentation3D = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
     params: {
-        script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :chain-test (= atom.label_asym_id A))' }),
+        script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.all)' }),
         value: PD.Numeric(0.75, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
         variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']])
     }

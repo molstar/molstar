@@ -73,6 +73,7 @@ export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
     if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+    loci = StructureElement.Loci.remap(loci, structure)
     const elementCount = group.elements.length
     for (const e of loci.elements) {
         const unitIdx = group.unitIndexMap.get(e.unit.id)

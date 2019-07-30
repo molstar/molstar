@@ -72,7 +72,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         this.missing = data.unit.model.properties.missingResidues
 
         this.modelNum = data.unit.model.modelNum
-        this.asymId = SP.chain.label_asym_id(l)
+        this.asymId = Unit.isAtomic(data.unit) ? SP.chain.label_asym_id(l) : SP.coarse.asym_id(l)
 
         const missing: number[] = []
         for (let i = 0; i < length; ++i) {

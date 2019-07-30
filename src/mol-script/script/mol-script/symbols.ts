@@ -101,6 +101,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.generator.queryInSelection, 'sel.atom.query-in-selection'),
             Alias(MolScript.structureQuery.generator.rings, 'sel.atom.rings'),
             Alias(MolScript.structureQuery.generator.empty, 'sel.atom.empty'),
+            Alias(MolScript.structureQuery.generator.all, 'sel.atom.all'),
 
             // Macro(MSymbol('sel.atom.atoms', Arguments.Dictionary({
             //     0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to each atom.' })
@@ -198,6 +199,8 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.atomProperty.core.z, 'atom.z'),
             Alias(MolScript.structureQuery.atomProperty.core.sourceIndex, 'atom.src-index'),
             Alias(MolScript.structureQuery.atomProperty.core.operatorName, 'atom.op-name'),
+            Alias(MolScript.structureQuery.atomProperty.core.modelIndex, 'atom.model-index'),
+            Alias(MolScript.structureQuery.atomProperty.core.modelLabel, 'atom.model-label'),
             Alias(MolScript.structureQuery.atomProperty.core.atomKey, 'atom.key'),
             Alias(MolScript.structureQuery.atomProperty.core.bondCount, 'atom.bond-count'),
 

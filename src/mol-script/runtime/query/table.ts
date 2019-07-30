@@ -247,6 +247,8 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.core.z, atomProp(StructureProperties.atom.z)),
     D(MolScript.structureQuery.atomProperty.core.sourceIndex, atomProp(StructureProperties.atom.sourceIndex)),
     D(MolScript.structureQuery.atomProperty.core.operatorName, atomProp(StructureProperties.unit.operator_name)),
+    D(MolScript.structureQuery.atomProperty.core.modelIndex, atomProp(StructureProperties.unit.model_index)),
+    D(MolScript.structureQuery.atomProperty.core.modelLabel, atomProp(StructureProperties.unit.model_label)),
     D(MolScript.structureQuery.atomProperty.core.atomKey, (ctx, _) => cantorPairing(ctx.element.unit.id, ctx.element.element)),
 
     // TODO:

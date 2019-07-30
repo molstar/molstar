@@ -122,6 +122,7 @@ function eachLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: 
     if (Link.isLoci(loci)) {
         const { structure, group } = structureGroup
         if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+        loci = Link.remapLoci(loci, structure)
         const unit = group.units[0]
         if (!Unit.isAtomic(unit)) return false
         const groupCount = unit.links.edgeCount * 2
@@ -137,6 +138,7 @@ function eachLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: 
     } else if (StructureElement.isLoci(loci)) {
         const { structure, group } = structureGroup
         if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+        loci = StructureElement.Loci.remap(loci, structure)
         const unit = group.units[0]
         if (!Unit.isAtomic(unit)) return false
         const groupCount = unit.links.edgeCount * 2

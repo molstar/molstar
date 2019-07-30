@@ -218,6 +218,10 @@ class Structure {
         return SortedArray.has(this.unitMap.get(e.unit.id).elements, e.element);
     }
 
+    getModelIndex(m: Model) {
+        return this.model
+    }
+
     private initUnits(units: ArrayLike<Unit>) {
         const map = IntMap.Mutable<Unit>();
         let elementCount = 0;

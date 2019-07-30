@@ -46,6 +46,7 @@ export function eachNucleotideElement(loci: Loci, structureGroup: StructureGroup
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
     if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+    loci = StructureElement.Loci.remap(loci, structure)
     const unit = group.units[0]
     if (!Unit.isAtomic(unit)) return false
     const { nucleotideElements, model, elements } = unit
