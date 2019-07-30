@@ -208,12 +208,18 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         </div>;
 
         const sequenceWrapper = this.getSequenceWrapper()
+
+        sequenceWrapper
+
         return <div className='msp-sequence'>
             <div className='msp-sequence-select'>
                 <ParameterControls params={this.params} values={this.values} onChange={this.setParamProps} />
             </div>
             {sequenceWrapper !== undefined
-                ? <Sequence sequenceWrapper={sequenceWrapper} />
+                ? (sequenceWrapper.length <= 10000
+                    ? <Sequence sequenceWrapper={sequenceWrapper} />
+                    : <div className='msp-sequence-wrapper'>Sequence too long</div>
+                )
                 : <div className='msp-sequence-wrapper'>No sequence available</div>}
         </div>;
     }
