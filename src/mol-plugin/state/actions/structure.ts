@@ -13,7 +13,7 @@ import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
 import { CustomModelProperties, StructureSelection, CustomStructureProperties } from '../transforms/model';
-import { DataFormatProvider, guessCifVariant } from './data-format';
+import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
 import { StructureElement } from '../../../mol-model/structure';
@@ -29,10 +29,10 @@ export const MmcifProvider: DataFormatProvider<any> = {
         if (info.ext === 'cif' || info.ext === 'bcif') return guessCifVariant(info, data) !== 'dscif'
         return false
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('mmCIF default builder', async taskCtx => {
             const traj = createModelTree(data, 'cif');
-            await state.updateTree(createStructureTree(ctx, traj, false)).runInContext(taskCtx)
+            await state.updateTree(options.visuals ? createStructureTree(ctx, traj, false) : traj).runInContext(taskCtx)
         })
     }
 }
@@ -45,10 +45,10 @@ export const PdbProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: string) => {
         return info.ext === 'pdb' || info.ext === 'ent'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('PDB default builder', async taskCtx => {
             const traj = createModelTree(data, 'pdb');
-            await state.updateTree(createStructureTree(ctx, traj, false)).runInContext(taskCtx)
+            await state.updateTree(options.visuals ? createStructureTree(ctx, traj, false) : traj).runInContext(taskCtx)
         })
     }
 }
@@ -61,10 +61,10 @@ export const GroProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: string) => {
         return info.ext === 'gro'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('GRO default builder', async taskCtx => {
             const traj = createModelTree(data, 'gro');
-            await state.updateTree(createStructureTree(ctx, traj, false)).runInContext(taskCtx)
+            await state.updateTree(options.visuals ? createStructureTree(ctx, traj, false) : traj).runInContext(taskCtx)
         })
     }
 }

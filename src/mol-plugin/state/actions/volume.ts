@@ -16,7 +16,7 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { VolumeRepresentation3DHelpers } from '../transforms/representation';
-import { DataFormatProvider, guessCifVariant } from './data-format';
+import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 
 export const Ccp4Provider: DataFormatProvider<any> = {
     label: 'CCP4/MRC/BRIX',
@@ -26,11 +26,13 @@ export const Ccp4Provider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'ccp4' || info.ext === 'mrc' || info.ext === 'map'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('CCP4/MRC/BRIX default builder', async taskCtx => {
-            const tree = data.apply(StateTransforms.Data.ParseCcp4)
+            let tree: StateBuilder.To<any> = data.apply(StateTransforms.Data.ParseCcp4)
                 .apply(StateTransforms.Volume.VolumeFromCcp4)
-                .apply(StateTransforms.Representation.VolumeRepresentation3D)
+            if (options.visuals) {
+                tree = tree.apply(StateTransforms.Representation.VolumeRepresentation3D)
+            }
             await state.updateTree(tree).runInContext(taskCtx)
         })
     }
@@ -44,11 +46,13 @@ export const Dsn6Provider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: Uint8Array) => {
         return info.ext === 'dsn6' || info.ext === 'brix'
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('DSN6/BRIX default builder', async taskCtx => {
-            const tree = data.apply(StateTransforms.Data.ParseDsn6)
+            let tree: StateBuilder.To<any> = data.apply(StateTransforms.Data.ParseDsn6)
                 .apply(StateTransforms.Volume.VolumeFromDsn6)
-                .apply(StateTransforms.Representation.VolumeRepresentation3D)
+            if (options.visuals) {
+                tree = tree.apply(StateTransforms.Representation.VolumeRepresentation3D)
+            }
             await state.updateTree(tree).runInContext(taskCtx)
         })
     }
@@ -62,7 +66,7 @@ export const DscifProvider: DataFormatProvider<any> = {
     isApplicable: (info: FileInfo, data: Uint8Array | string) => {
         return guessCifVariant(info, data) === 'dscif' ? true : false
     },
-    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, state: State) => {
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('DensityServer CIF default builder', async taskCtx => {
             const cifBuilder = data.apply(StateTransforms.Data.ParseCif)
             const cifStateObject = await state.updateTree(cifBuilder).runInContext(taskCtx)
@@ -72,11 +76,15 @@ export const DscifProvider: DataFormatProvider<any> = {
             if (blocks.length === 1) {
                 tree = b
                     .apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: blocks[0].header })
-                    .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 0.3 }, 'uniform', { value: ColorNames.teal }))
+                if (options.visuals) {
+                    tree = tree.apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 0.3 }, 'uniform', { value: ColorNames.teal }))
+                }
             } else if (blocks.length === 2) {
                 tree = b
                     .apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: blocks[0].header })
-                    .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 0.3 }, 'uniform', { value: ColorNames.blue }))
+                if (options.visuals) {
+                    tree = tree.apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(1.5), alpha: 0.3 }, 'uniform', { value: ColorNames.blue }))
+                }
                 const vol = tree.to(cifBuilder.ref)
                     .apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: blocks[1].header })
                 const posParams = VolumeRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'isosurface', { isoValue: VolumeIsoValue.relative(3), alpha: 0.3 }, 'uniform', { value: ColorNames.green })
@@ -199,5 +207,5 @@ const DownloadDensity = StateAction.build({
     }
 
     const b = state.build().to(data.ref);
-    await provider.getDefaultBuilder(ctx, b, state).runInContext(taskCtx)
+    await provider.getDefaultBuilder(ctx, b, { visuals: true }, state).runInContext(taskCtx)
 }));

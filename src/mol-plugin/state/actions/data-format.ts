@@ -103,25 +103,28 @@ export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | Plugin
     }
 }
 
+export type DataFormatBuilderOptions = { visuals: boolean }
+
 export interface DataFormatProvider<D extends PluginStateObject.Data.Binary | PluginStateObject.Data.String> {
     label: string
     description: string
     stringExtensions: string[]
     binaryExtensions: string[]
     isApplicable(info: FileInfo, data: string | Uint8Array): boolean
-    getDefaultBuilder(ctx: PluginContext, data: StateBuilder.To<D>, state?: State): Task<void>
+    getDefaultBuilder(ctx: PluginContext, data: StateBuilder.To<D>, options: DataFormatBuilderOptions, state?: State): Task<void>
 }
 
 //
 
 export const OpenFile = StateAction.build({
-    display: { name: 'Open File', description: 'Load a file and create its default visual' },
+    display: { name: 'Open File', description: 'Load a file and optionally create its default visuals' },
     from: PluginStateObject.Root,
     params: (a, ctx: PluginContext) => {
         const { extensions, options } = ctx.dataFormat.registry
         return {
             file: PD.File({ accept: Array.from(extensions).map(e => `.${e}`).join(',')}),
             format: PD.Select('auto', options),
+            visuals: PD.Boolean(true, { description: 'Add default visuals' }),
         }
     }
 })(({ params, state }, ctx: PluginContext) => Task.create('Open File', async taskCtx => {
@@ -140,8 +143,9 @@ export const OpenFile = StateAction.build({
 
     const provider = params.format === 'auto' ? ctx.dataFormat.registry.auto(info, dataStateObject) : ctx.dataFormat.registry.get(params.format)
     const b = state.build().to(data.ref);
+    const options = { visuals: params.visuals }
     // need to await the 2nd update the so that the enclosing Task finishes after the update is done.
-    await provider.getDefaultBuilder(ctx, b, state).runInContext(taskCtx)
+    await provider.getDefaultBuilder(ctx, b, options, state).runInContext(taskCtx)
 }));
 
 //
