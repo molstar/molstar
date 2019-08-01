@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,6 +7,8 @@
 
 import * as ColumnHelpers from './column-helpers'
 import { Tensor as Tensors } from '../../mol-math/linear-algebra'
+import { Tokens } from '../../mol-io/reader/common/text/tokenizer';
+import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../mol-io/reader/common/text/number-parser';
 
 interface Column<T> {
     readonly schema: Column.Schema,
@@ -126,6 +128,37 @@ namespace Column {
 
     export function ofStringArray(array: ArrayLike<string>) {
         return arrayColumn({ array, schema: Schema.str });
+    }
+
+    export function ofIntTokens(tokens: Tokens) {
+        const { count, data, indices } = tokens
+        return lambdaColumn({
+            value: (row: number) => fastParseInt(data, indices[2 * row], indices[2 * row + 1]) || 0,
+            rowCount: count,
+            schema: Schema.int,
+        });
+    }
+
+    export function ofFloatTokens(tokens: Tokens) {
+        const { count, data, indices } = tokens
+        return lambdaColumn({
+            value: (row: number) => fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0,
+            rowCount: count,
+            schema: Schema.float,
+        });
+    }
+
+    export function ofStringTokens(tokens: Tokens) {
+        const { count, data, indices } = tokens
+        return lambdaColumn({
+            value: (row: number) => {
+                const ret = data.substring(indices[2 * row], indices[2 * row + 1]);
+                if (ret === '.' || ret === '?') return '';
+                return ret;
+            },
+            rowCount: count,
+            schema: Schema.str,
+        });
     }
 
     export function window<T>(column: Column<T>, start: number, end: number) {
