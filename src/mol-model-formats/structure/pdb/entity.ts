@@ -81,7 +81,7 @@ export class EntityBuilder {
     private chainMap = new Map<string, string>()
     private waterId?: string
 
-    private add(type: string, description: string) {
+    private set(type: string, description: string) {
         this.count += 1
         this.ids.push(`${this.count}`)
         this.types.push(type)
@@ -92,13 +92,13 @@ export class EntityBuilder {
         if (isHet) {
             if (WaterNames.has(residueName)) {
                 if (this.waterId === undefined) {
-                    this.add('water', 'Water')
+                    this.set('water', 'Water')
                     this.waterId = `${this.count}`
                 }
                 return this.waterId;
             } else {
                 if (!this.heteroMap.has(residueName)) {
-                    this.add('non-polymer', residueName)
+                    this.set('non-polymer', residueName)
                     this.heteroMap.set(residueName, `${this.count}`)
                 }
                 return this.heteroMap.get(residueName)!
@@ -107,7 +107,7 @@ export class EntityBuilder {
             return this.compoundsMap.get(chainId)!
         } else {
             if (!this.chainMap.has(chainId)) {
-                this.add('polymer', chainId)
+                this.set('polymer', chainId)
                 this.chainMap.set(chainId, `${this.count}`)
             }
             return this.chainMap.get(chainId)!
@@ -126,7 +126,7 @@ export class EntityBuilder {
     setCompounds(compounds: Compound[]) {
         for (let i = 0, il = compounds.length; i < il; ++i) {
             const { chains, name } = compounds[i]
-            this.add('polymer', name)
+            this.set('polymer', name)
             for (let j = 0, jl = chains.length; j < jl; ++j) {
                 this.compoundsMap.set(chains[j], `${this.count}`)
             }

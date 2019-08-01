@@ -31,6 +31,7 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
             molType = getMoleculeType(chemCompMap.get(compId)!.type, compId)
             moleculeTypeMap.set(compId, molType)
         } else {
+            console.log('chemComp not found', compId)
             molType = getMoleculeType(getComponentType(compId), compId)
             // TODO if unknown molecule type, use atom names to guess molecule type
             moleculeTypeMap.set(compId, molType)

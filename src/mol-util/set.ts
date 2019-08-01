@@ -50,6 +50,13 @@ export namespace SetUtils {
         return intersection;
     }
 
+    export function areIntersecting<T>(setA: Set<T>, setB: Set<T>): boolean {
+        for (const elem of Array.from(setB)) {
+            if (setA.has(elem)) return true;
+        }
+        return false;
+    }
+
     /** Create set containing elements of set a that are not in set b. */
     export function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
         const difference = new Set(setA);

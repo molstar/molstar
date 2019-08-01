@@ -185,6 +185,8 @@ export const BaseNames = SetUtils.unionMany(RnaBaseNames, DnaBaseNames, PeptideB
 export const isPurineBase = (compId: string) => PurineBaseNames.has(compId.toUpperCase())
 export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.has(compId.toUpperCase())
 
+export const PolymerNames = SetUtils.unionMany(AminoAcidNames, BaseNames)
+
 /** get the molecule type from component type and id */
 export function getMoleculeType(compType: string, compId: string) {
     compType = compType.toUpperCase()
@@ -227,12 +229,12 @@ export function getComponentType(compId: string): mmCIF_Schema['chem_comp']['typ
 
 export function getEntityType(compId: string): mmCIF_Schema['entity']['type']['T'] {
     compId = compId.toUpperCase()
-    if (AminoAcidNames.has(compId) || RnaBaseNames.has(compId) || DnaBaseNames.has(compId)) {
+    if (WaterNames.has(compId)) {
+        return 'water'
+    } else if (PolymerNames.has(compId)) {
         return 'polymer'
     } else if (SaccharideCompIdMap.has(compId)) {
         return 'branched'
-    } else if (WaterNames.has(compId)) {
-        return 'water'
     } else {
         return 'non-polymer'
     }

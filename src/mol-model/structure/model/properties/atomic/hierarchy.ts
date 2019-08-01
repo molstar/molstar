@@ -238,4 +238,8 @@ export namespace AtomicHierarchy {
     export function chainEndResidueIndexExcl(segs: AtomicSegments, cI: ChainIndex) {
         return segs.residueAtomSegments.index[segs.chainAtomSegments.offsets[cI + 1] - 1] + 1 as ResidueIndex;
     }
+
+    export function chainResidueCount(segs: AtomicSegments, cI: ChainIndex) {
+        return chainEndResidueIndexExcl(segs, cI) - chainStartResidueIndex(segs, cI)
+    }
 }
