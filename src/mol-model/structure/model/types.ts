@@ -241,7 +241,7 @@ export function getEntityType(compId: string): mmCIF_Schema['entity']['type']['T
 }
 
 export function isPolymer(moleculeType: MoleculeType) {
-    return moleculeType === MoleculeType.protein || moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA || moleculeType === MoleculeType.PNA
+    return isNucleic(moleculeType) || isProtein(moleculeType)
 }
 
 export function isNucleic(moleculeType: MoleculeType) {
