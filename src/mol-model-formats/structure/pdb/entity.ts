@@ -5,8 +5,7 @@
  */
 
 import { Tokens } from '../../../mol-io/reader/common/text/tokenizer';
-import { CifCategory, CifField } from '../../../mol-io/reader/cif';
-import { WaterNames } from '../../../mol-model/structure/model/types';
+import { EntityCompound } from '../common/entity';
 
 const Spec = {
     'MOL_ID': '',
@@ -21,14 +20,12 @@ const Spec = {
 }
 type Spec = keyof typeof Spec
 
-type Compound = { chains: string[], name: string }
-
 export function parseCmpnd(lines: Tokens, lineStart: number, lineEnd: number) {
     const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1])
 
     let currentSpec: Spec | undefined
-    let currentCompound: Compound = { chains: [], name: '' }
-    const Compounds: Compound[] = []
+    let currentCompound: EntityCompound = { chains: [], description: '' }
+    const Compounds: EntityCompound[] = []
 
     for (let i = lineStart; i < lineEnd; i++) {
         let line = getLine(i)
@@ -56,12 +53,12 @@ export function parseCmpnd(lines: Tokens, lineStart: number, lineEnd: number) {
         if (currentSpec === 'MOL_ID') {
             currentCompound = {
                 chains: [],
-                name: ''
+                description: ''
             }
             Compounds.push(currentCompound)
         } else if (currentSpec === 'MOLECULE') {
-            if (currentCompound.name) currentCompound.name += ' '
-            currentCompound.name += value
+            if (currentCompound.description) currentCompound.description += ' '
+            currentCompound.description += value
         } else if (currentSpec === 'CHAIN') {
             Array.prototype.push.apply(currentCompound.chains, value.split(/\s*,\s*/))
         }
@@ -70,66 +67,29 @@ export function parseCmpnd(lines: Tokens, lineStart: number, lineEnd: number) {
     return Compounds
 }
 
-export class EntityBuilder {
-    private count = 0
-    private ids: string[] = []
-    private types: string[] = []
-    private descriptions: string[] = []
+export function parseHetnam(lines: Tokens, lineStart: number, lineEnd: number) {
+    const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1])
 
-    private compoundsMap = new Map<string, string>()
-    private heteroMap = new Map<string, string>()
-    private chainMap = new Map<string, string>()
-    private waterId?: string
+    const hetnams = new Map<string, string>()
 
-    private set(type: string, description: string) {
-        this.count += 1
-        this.ids.push(`${this.count}`)
-        this.types.push(type)
-        this.descriptions.push(description)
-    }
+    for (let i = lineStart; i < lineEnd; i++) {
+        let line = getLine(i)
+        // COLUMNS       DATA  TYPE    FIELD           DEFINITION
+        // ----------------------------------------------------------------------------
+        //  1 -  6       Record name   "HETNAM"
+        //  9 - 10       Continuation  continuation    Allows concatenation of multiple records.
+        // 12 - 14       LString(3)    hetID           Het identifier, right-justified.
+        // 16 - 70       String        text            Chemical name.
 
-    getEntityId(residueName: string, chainId: string, isHet: boolean): string {
-        if (isHet) {
-            if (WaterNames.has(residueName)) {
-                if (this.waterId === undefined) {
-                    this.set('water', 'Water')
-                    this.waterId = `${this.count}`
-                }
-                return this.waterId;
-            } else {
-                if (!this.heteroMap.has(residueName)) {
-                    this.set('non-polymer', residueName)
-                    this.heteroMap.set(residueName, `${this.count}`)
-                }
-                return this.heteroMap.get(residueName)!
-            }
-        } else if (this.compoundsMap.has(chainId)) {
-            return this.compoundsMap.get(chainId)!
+        const het = line.substr(11, 3).trim()
+        const name = line.substr(15).trim()
+
+        if (hetnams.has(het)) {
+            hetnams.set(het, `${hetnams.get(het)!} ${name}`)
         } else {
-            if (!this.chainMap.has(chainId)) {
-                this.set('polymer', chainId)
-                this.chainMap.set(chainId, `${this.count}`)
-            }
-            return this.chainMap.get(chainId)!
+            hetnams.set(het, name)
         }
     }
 
-    getEntityCategory() {
-        const entity = {
-            id: CifField.ofStrings(this.ids),
-            type: CifField.ofStrings(this.types),
-            pdbx_description: CifField.ofStrings(this.descriptions)
-        }
-        return CifCategory.ofFields('entity', entity)
-    }
-
-    setCompounds(compounds: Compound[]) {
-        for (let i = 0, il = compounds.length; i < il; ++i) {
-            const { chains, name } = compounds[i]
-            this.set('polymer', name)
-            for (let j = 0, jl = chains.length; j < jl; ++j) {
-                this.compoundsMap.set(chains[j], `${this.count}`)
-            }
-        }
-    }
+    return hetnams
 }

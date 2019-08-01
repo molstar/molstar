@@ -13,10 +13,14 @@ import { PdbFile } from '../../../mol-io/reader/pdb/schema';
 import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
 import { parseHelix, parseSheet } from './secondary-structure';
 import { guessElementSymbolTokens } from '../util';
-import { parseCmpnd, EntityBuilder } from './entity';
+import { parseCmpnd, parseHetnam } from './entity';
+import { ComponentBuilder } from '../common/component';
+import { EntityBuilder } from '../common/entity';
+import { Column } from '../../../mol-data/db';
+import { getMoleculeType } from '../../../mol-model/structure/model/types';
 
-type AtomSiteTemplate = typeof atom_site_template extends (...args: any) => infer T ? T : never
-function atom_site_template(data: string, count: number) {
+type AtomSiteTemplate = typeof getAtomSiteTemplate extends (...args: any) => infer T ? T : never
+function getAtomSiteTemplate(data: string, count: number) {
     const str = () => [] as string[];
     const ts = () => TokenBuilder.create(data, 2 * count);
     return {
@@ -41,7 +45,7 @@ function atom_site_template(data: string, count: number) {
     };
 }
 
-function _atom_site(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_site']]?: CifField } {
+function getAomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_site']]?: CifField } {
     const auth_asym_id = CifField.ofTokens(sites.auth_asym_id);
     const auth_atom_id = CifField.ofTokens(sites.auth_atom_id);
     const auth_comp_id = CifField.ofTokens(sites.auth_comp_id);
@@ -75,7 +79,7 @@ function _atom_site(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_s
     };
 }
 
-function addAtom(sites: AtomSiteTemplate, entityBuilder: EntityBuilder, model: string, data: Tokenizer, s: number, e: number, isHet: boolean) {
+function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number) {
     const { data: str } = data;
     const length = e - s;
 
@@ -103,11 +107,9 @@ function addAtom(sites: AtomSiteTemplate, entityBuilder: EntityBuilder, model: s
 
     // 18 - 20        Residue name    Residue name.
     TokenBuilder.addToken(sites.auth_comp_id, Tokenizer.trim(data, s + 17, s + 20));
-    const residueName = str.substring(data.tokenStart, data.tokenEnd);
 
     // 22             Character       Chain identifier.
     TokenBuilder.add(sites.auth_asym_id, s + 21, s + 22);
-    const chainId = str.substring(s + 21, s + 22);
 
     // 23 - 26        Integer         Residue sequence number.
     // TODO: support HEX
@@ -155,7 +157,6 @@ function addAtom(sites: AtomSiteTemplate, entityBuilder: EntityBuilder, model: s
         guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16)
     }
 
-    sites.label_entity_id[sites.index] = entityBuilder.getEntityId(residueName, chainId, isHet);
     sites.pdbx_PDB_model_num[sites.index] = model;
 
     sites.index++;
@@ -180,9 +181,10 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         }
     }
 
-    const atom_site = atom_site_template(data, atomCount);
+    const atomSite = getAtomSiteTemplate(data, atomCount);
     const entityBuilder = new EntityBuilder();
     const helperCategories: CifCategory[] = [];
+    const heteroNames: [string, string][] = [];
 
     let modelNum = 0, modelStr = '';
 
@@ -192,7 +194,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
             case 'A':
                 if (!substringStartsWith(data, s, e, 'ATOM  ')) continue;
                 if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                addAtom(atom_site, entityBuilder, modelStr, tokenizer, s, e, false);
+                addAtom(atomSite, modelStr, tokenizer, s, e);
                 break;
             case 'C':
                 if (substringStartsWith(data, s, e, 'CRYST1')) {
@@ -213,7 +215,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
             case 'H':
                 if (substringStartsWith(data, s, e, 'HETATM')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                    addAtom(atom_site, entityBuilder, modelStr, tokenizer, s, e, true);
+                    addAtom(atomSite, modelStr, tokenizer, s, e);
                 } else if (substringStartsWith(data, s, e, 'HELIX')) {
                     let j = i + 1;
                     while (true) {
@@ -223,8 +225,16 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     }
                     helperCategories.push(parseHelix(lines, i, j));
                     i = j - 1;
+                } else if (substringStartsWith(data, s, e, 'HETNAM')) {
+                    let j = i + 1;
+                    while (true) {
+                        s = indices[2 * j]; e = indices[2 * j + 1];
+                        if (!substringStartsWith(data, s, e, 'HETNAM')) break;
+                        j++;
+                    }
+                    heteroNames.push(...Array.from(parseHetnam(lines, i, j).entries()))
+                    i = j - 1;
                 }
-                // TODO: HETNAM records => chem_comp (at least partially, needs to be completed with common bases and amino acids)
                 break;
             case 'M':
                 if (substringStartsWith(data, s, e, 'MODEL ')) {
@@ -274,9 +284,24 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         }
     }
 
+    // build entity and chem_comp categories
+    const seqIds = Column.ofIntTokens(atomSite.auth_seq_id)
+    const atomIds = Column.ofStringTokens(atomSite.auth_atom_id)
+    const compIds = Column.ofStringTokens(atomSite.auth_comp_id)
+    const asymIds = Column.ofStringTokens(atomSite.auth_asym_id)
+    const componentBuilder = new ComponentBuilder(seqIds, atomIds)
+    componentBuilder.setNames(heteroNames)
+    entityBuilder.setNames(heteroNames)
+    for (let i = 0, il = compIds.rowCount; i < il; ++i) {
+        const compId = compIds.value(i)
+        const moleculeType = getMoleculeType(componentBuilder.add(compId, i).type, compId)
+        atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymIds.value(i))
+    }
+
     const categories = {
         entity: entityBuilder.getEntityCategory(),
-        atom_site: CifCategory.ofFields('atom_site', _atom_site(atom_site))
+        chem_comp: componentBuilder.getChemCompCategory(),
+        atom_site: CifCategory.ofFields('atom_site', getAomSite(atomSite))
     } as any;
 
     for (const c of helperCategories) {

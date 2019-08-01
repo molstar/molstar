@@ -73,6 +73,7 @@ const StandardComponents = (function() {
 })()
 
 export class ComponentBuilder {
+    private namesMap = new Map<string, string>()
     private comps = new Map<string, Component>()
     private ids: string[] = []
     private names: string[] = []
@@ -129,8 +130,8 @@ export class ComponentBuilder {
             } else if (WaterNames.has(compId)) {
                 this.set({ id: compId, name: 'WATER', type: 'non-polymer' })
             } else {
-                const atomIds = this.getAtomIds(index)
-                this.set({ id: compId, name: compId, type: this.getType(atomIds) })
+                const type = this.getType(this.getAtomIds(index))
+                this.set({ id: compId, name: this.namesMap.get(compId) || compId, type })
             }
         }
         return this.get(compId)!
@@ -143,6 +144,10 @@ export class ComponentBuilder {
             type: CifField.ofStrings(this.types),
         }
         return CifCategory.ofFields('chem_comp', chemComp)
+    }
+
+    setNames(names: [string, string][]) {
+        names.forEach(n => this.namesMap.set(n[0], n[1]))
     }
 
     constructor(private seqId: Column<number>, private atomId: Column<string>) {
