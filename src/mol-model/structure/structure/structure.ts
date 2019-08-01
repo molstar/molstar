@@ -27,6 +27,7 @@ import { idFactory } from '../../../mol-util/id-factory';
 import { GridLookup3D } from '../../../mol-math/geometry';
 import { UUID } from '../../../mol-util';
 import { CustomProperties } from '../common/custom-property';
+import { AtomicHierarchy } from '../model/properties/atomic';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -379,8 +380,12 @@ namespace Structure {
         const chains = model.atomicHierarchy.chainAtomSegments;
         const builder = new StructureBuilder(void 0, void 0);
 
-        for (let c = 0; c < chains.count; c++) {
+        for (let c = 0 as ChainIndex; c < chains.count; c++) {
             const start = chains.offsets[c];
+
+            // set to true for chains that consist of "single atom residues",
+            // note that it assumes there are no "zero atom residues"
+            let singleAtomResidues = AtomicHierarchy.chainResidueCount(model.atomicHierarchy, c) === chains.offsets[c + 1] - chains.offsets[c]
 
             // merge all consecutive "single atom chains" with same entity id
             while (c + 1 < chains.count
@@ -388,17 +393,19 @@ namespace Structure {
                 && chains.offsets[c + 2] - chains.offsets[c + 1] === 1
             ) {
                 c++;
-                const e1 = model.atomicHierarchy.index.getEntityFromChain(c as ChainIndex);
+                singleAtomResidues = true
+                const e1 = model.atomicHierarchy.index.getEntityFromChain(c);
                 const e2 = model.atomicHierarchy.index.getEntityFromChain(c + 1 as ChainIndex);
                 if (e1 !== e2) break
             }
 
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
 
-            if (isWaterChain(model, c as ChainIndex)) {
-                partitionAtomicUnit(model, elements, builder);
-            } else if (elements.length > 200000) {
-                partitionAtomicUnitPerResidue(model, elements, builder);
+            if (singleAtomResidues) {
+                partitionAtomicUnitByAtom(model, elements, builder);
+            } else if (elements.length > 200000 || isWaterChain(model, c)) {
+                // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
+                partitionAtomicUnitByResidue(model, elements, builder);
             } else {
                 builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
             }
@@ -422,9 +429,9 @@ namespace Structure {
         return model.entities.data.type.value(e) === 'water';
     }
 
-    function partitionAtomicUnit(model: Model, indices: SortedArray, builder: StructureBuilder) {
+    function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder) {
         const { x, y, z } = model.atomicConformation;
-        const lookup = GridLookup3D({ x, y, z, indices }, Vec3.create(64, 64, 64));
+        const lookup = GridLookup3D({ x, y, z, indices }, 8192);
         const { offset, count, array } = lookup.buckets;
 
         for (let i = 0, _i = offset.length; i < _i; i++) {
@@ -437,7 +444,8 @@ namespace Structure {
         }
     }
 
-    function partitionAtomicUnitPerResidue(model: Model, indices: SortedArray, builder: StructureBuilder) {
+    // keeps atoms of residues together
+    function partitionAtomicUnitByResidue(model: Model, indices: SortedArray, builder: StructureBuilder) {
         model.atomicHierarchy.residueAtomSegments.offsets
 
         const startIndices: number[] = []
@@ -446,12 +454,12 @@ namespace Structure {
         const residueIt = Segmentation.transientSegments(model.atomicHierarchy.residueAtomSegments, indices)
         while (residueIt.hasNext) {
             const residueSegment = residueIt.move();
-            startIndices[startIndices.length] = residueSegment.start
-            endIndices[endIndices.length] = residueSegment.end
+            startIndices[startIndices.length] = indices[residueSegment.start]
+            endIndices[endIndices.length] = indices[residueSegment.end]
         }
 
         const { x, y, z } = model.atomicConformation;
-        const lookup = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(startIndices) }, Vec3.create(256, 256, 256));
+        const lookup = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(startIndices) }, 8192);
         const { offset, count, array } = lookup.buckets;
 
         for (let i = 0, _i = offset.length; i < _i; i++) {
@@ -463,7 +471,7 @@ namespace Structure {
                     set[set.length] = l;
                 }
             }
-            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(set));
+            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(new Int32Array(set)));
         }
     }
 
