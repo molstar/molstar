@@ -12,8 +12,19 @@ import { StateObject } from '../../mol-state';
 import { PluginContext } from '../context';
 import { PluginStateObject } from '../state/objects';
 
-export { StructureElementSelectionManager };
+export type StructureSelectionStats = { structureCount: number, elementCount: number }
 
+export function formatStructureSelectionStats(stats: StructureSelectionStats) {
+    if (stats.structureCount === 0 || stats.elementCount === 0) {
+        return 'Selected nothing'
+    } else if (stats.structureCount === 1) {
+        return `Selected ${stats.elementCount} elements`
+    }
+    return `Selected ${stats.elementCount} elements in ${stats.structureCount} structures`
+}
+
+
+export { StructureElementSelectionManager };
 class StructureElementSelectionManager {
     private entries = new Map<string, SelectionEntry>();
 
@@ -30,11 +41,29 @@ class StructureElementSelectionManager {
         return this.entries.get(ref)!;
     }
 
+    get stats() {
+        let structureCount = 0
+        let elementCount = 0
+
+        this.entries.forEach(v => {
+            const { elements } = v.selection
+            if (elements.length) {
+                structureCount += 1
+                for (let i = 0, il = elements.length; i < il; ++i) {
+                    elementCount += OrderedSet.size(elements[i].indices)
+                }
+            }
+        })
+
+        return { structureCount, elementCount }
+    }
+
     add(loci: Loci): Loci {
         if (StructureElement.isLoci(loci)) {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 entry.selection = StructureElement.Loci.union(entry.selection, loci);
+                this.plugin.events.interactivity.selectionUpdated.next()
                 return entry.selection;
             }
         }
@@ -46,6 +75,7 @@ class StructureElementSelectionManager {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
+                this.plugin.events.interactivity.selectionUpdated.next()
                 return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
             }
         }
@@ -57,6 +87,7 @@ class StructureElementSelectionManager {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 entry.selection = loci;
+                this.plugin.events.interactivity.selectionUpdated.next()
                 return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
             }
         }
@@ -73,6 +104,7 @@ class StructureElementSelectionManager {
             if (s.selection.elements.length > 0) selections.push(s.selection);
             s.selection = StructureElement.Loci(s.selection.structure, []);
         }
+        this.plugin.events.interactivity.selectionUpdated.next()
         return selections;
     }
 

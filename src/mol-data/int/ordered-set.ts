@@ -28,6 +28,7 @@ namespace OrderedSet {
     export const max: <T extends number = number>(set: OrderedSet<T>) => T = Base.max as any;
     export const start: <T extends number = number>(set: OrderedSet<T>) => T = Base.start as any;
     export const end: <T extends number = number>(set: OrderedSet<T>) => T = Base.end as any;
+    /** Number of elements in the OrderedSet */
     export const size: <T extends number = number>(set: OrderedSet<T>) => number = Base.size as any;
     export const hashCode: <T extends number = number>(set: OrderedSet<T>) => number = Base.hashCode as any;
 

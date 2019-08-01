@@ -13,6 +13,7 @@ import { QueryContext, StructureSelection, QueryFn, Queries as _Queries } from '
 import { compile } from '../../../mol-script/runtime/query/compiler';
 import { ButtonsType } from '../../../mol-util/input/input-observer';
 import { EmptyLoci } from '../../../mol-model/loci';
+import { formatStructureSelectionStats } from '../../util/structure-element-selection';
 
 const Queries = {
     all: () => compile<StructureSelection>(MS.struct.generator.all()),
@@ -24,6 +25,16 @@ const Queries = {
 
 export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
     state = {}
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.interactivity.selectionUpdated, () => {
+            this.forceUpdate()
+        });
+    }
+
+    get stats() {
+        return formatStructureSelectionStats(this.plugin.helpers.structureSelection.stats)
+    }
 
     select = (query: QueryFn<StructureSelection>) => {
         const state = this.plugin.state.dataState
@@ -60,6 +71,9 @@ export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
                 <button className='msp-btn msp-btn-block'>Current Selection</button>
             </div>
             <div>
+                <div className='msp-control-row msp-row-text'>
+                    <div>{this.stats}</div>
+                </div>
                 <div className='msp-btn-row-group'>
                     <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(Queries.all())}>All</button>
                     <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.clear()}>None</button>

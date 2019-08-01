@@ -77,7 +77,8 @@ export class PluginContext {
             settingsUpdated: this.ev()
         },
         interactivity: {
-            propsUpdated: this.ev()
+            propsUpdated: this.ev(),
+            selectionUpdated: this.ev()
         }
     } as const
 
