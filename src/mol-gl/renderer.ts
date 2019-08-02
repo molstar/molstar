@@ -9,7 +9,7 @@ import { Camera } from '../mol-canvas3d/camera';
 
 import Scene from './scene';
 import { WebGLContext } from './webgl/context';
-import { Mat4, Vec3, Vec4 } from '../mol-math/linear-algebra';
+import { Mat4, Vec3, Vec4, Vec2 } from '../mol-math/linear-algebra';
 import { Renderable } from './renderable';
 import { Color } from '../mol-util/color';
 import { ValueCell } from '../mol-util';
@@ -73,6 +73,8 @@ namespace Renderer {
         const modelViewProjection = Mat4.mul(Mat4.identity(), modelView, camera.projection)
         const invModelViewProjection = Mat4.invert(Mat4.identity(), modelViewProjection)
 
+        const viewOffset = camera.viewOffset.enabled ? Vec2.create(camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2()
+
         const globalUniforms: GlobalUniformValues = {
             uModel: ValueCell.create(Mat4.identity()),
             uView: ValueCell.create(camera.view),
@@ -88,6 +90,7 @@ namespace Renderer {
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
             uViewportHeight: ValueCell.create(viewport.height),
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
+            uViewOffset: ValueCell.create(viewOffset),
 
             uLightIntensity: ValueCell.create(p.lightIntensity),
             uAmbientIntensity: ValueCell.create(p.ambientIntensity),
@@ -165,6 +168,7 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection))
 
             ValueCell.update(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0)
+            ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0))
 
             ValueCell.update(globalUniforms.uCameraPosition, camera.state.position)
             ValueCell.update(globalUniforms.uFar, camera.state.far)
