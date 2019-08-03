@@ -62,7 +62,7 @@ function getEntityOptions(structure: Structure) {
     return options
 }
 
-function getChainOptions(structure: Structure, entityId: string) {
+function getUnitOptions(structure: Structure, entityId: string) {
     const options: [number, string][] = []
     const l = StructureElement.create()
     const seen = new Set<number>()
@@ -75,6 +75,9 @@ function getChainOptions(structure: Structure, entityId: string) {
         const id = unit.invariantId
         if (seen.has(id)) continue
 
+        // TODO handle special cases
+        // - more than one chain in a unit
+        // - chain spread over multiple units
         let label = ''
         if (Unit.isAtomic(unit)) {
             label = `${SP.chain.label_asym_id(l)}: ${SP.chain.auth_asym_id(l)}`
@@ -91,7 +94,7 @@ function getChainOptions(structure: Structure, entityId: string) {
         seen.add(id)
     }
 
-    if (options.length === 0) options.push([-1, 'No chains'])
+    if (options.length === 0) options.push([-1, 'No units'])
     return options
 }
 
@@ -151,13 +154,13 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     private getSequenceWrapper() {
-        return getSequenceWrapper(this.state, this.plugin.helpers.structureSelection)
+        return getSequenceWrapper(this.state, this.plugin.helpers.structureSelectionManager)
     }
 
     private getInitialState(): SequenceViewState {
         const structure = this.getStructure()
         const entityId = getEntityOptions(structure)[0][0]
-        const invariantUnitId = getChainOptions(structure, entityId)[0][0]
+        const invariantUnitId = getUnitOptions(structure, entityId)[0][0]
         const operatorKey = getOperatorOptions(structure, entityId, invariantUnitId)[0][0]
         return { structure, entityId, invariantUnitId, operatorKey }
     }
@@ -165,11 +168,11 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     private get params() {
         const { structure, entityId, invariantUnitId } = this.state
         const entityOptions = getEntityOptions(structure)
-        const chainOptions = getChainOptions(structure, entityId)
+        const unitOptions = getUnitOptions(structure, entityId)
         const operatorOptions = getOperatorOptions(structure, entityId, invariantUnitId)
         return {
             entity: PD.Select(entityOptions[0][0], entityOptions),
-            chain: PD.Select(chainOptions[0][0], chainOptions),
+            unit: PD.Select(unitOptions[0][0], unitOptions),
             operator: PD.Select(operatorOptions[0][0], operatorOptions)
         }
     }
@@ -177,7 +180,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     private get values(): PD.Values<SequenceView['params']> {
         return {
             entity: this.state.entityId,
-            chain: this.state.invariantUnitId,
+            unit: this.state.invariantUnitId,
             operator: this.state.operatorKey
         }
     }
@@ -188,10 +191,10 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         switch (p.name) {
             case 'entity':
                 state.entityId = p.value
-                state.invariantUnitId = getChainOptions(state.structure, state.entityId)[0][0]
+                state.invariantUnitId = getUnitOptions(state.structure, state.entityId)[0][0]
                 state.operatorKey = getOperatorOptions(state.structure, state.entityId, state.invariantUnitId)[0][0]
                 break
-            case 'chain':
+            case 'unit':
                 state.invariantUnitId = p.value
                 state.operatorKey = getOperatorOptions(state.structure, state.entityId, state.invariantUnitId)[0][0]
                 break
