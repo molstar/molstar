@@ -390,7 +390,7 @@ namespace StructureElement {
 
                 // TODO: add set.ofRanges constructor to MolQL???
                 if (set.length > 0) {
-                    tests[tests.length] = MS.core.set.has([MS.set.apply(null, set), siProp]);
+                    tests[tests.length] = MS.core.set.has([MS.core.type.set(set), siProp]);
                 }
                 for (let rI = 0, _rI = ranges.length / 2; rI < _rI; rI++) {
                     tests[tests.length] = MS.core.rel.inRange([siProp, ranges[2 * rI], ranges[2 * rI + 1]]);
@@ -401,7 +401,7 @@ namespace StructureElement {
                     opQueries.push(MS.struct.generator.atomGroups({
                         'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
                         'chain-test': opName.length > 1
-                            ? MS.core.set.has([MS.set.apply(null, opName), opProp])
+                            ? MS.core.set.has([MS.core.type.set(opName), opProp])
                             : MS.core.rel.eq([opProp, opName[0]]),
                         'entity-test': MS.core.logic.and([
                             MS.core.rel.eq([MS.struct.atomProperty.core.modelLabel(), modelLabel]),
@@ -412,7 +412,7 @@ namespace StructureElement {
                     opQueries.push(MS.struct.generator.atomGroups({
                         'atom-test': tests.length > 1 ? MS.core.logic.or(tests) : tests[0],
                         'chain-test': opName.length > 1
-                            ? MS.core.set.has([MS.set.apply(null, opName), opProp])
+                            ? MS.core.set.has([MS.core.type.set(opName), opProp])
                             : MS.core.rel.eq([opProp, opName[0]])
                     }))
                 }
