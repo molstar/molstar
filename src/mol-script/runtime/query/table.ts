@@ -119,6 +119,7 @@ const symbols = [
     C(MolScript.core.math.roundInt, (ctx, v) => Math.round(v[0](ctx))),
     C(MolScript.core.math.abs, (ctx, v) => Math.abs(v[0](ctx))),
     C(MolScript.core.math.sqrt, (ctx, v) => Math.sqrt(v[0](ctx))),
+    C(MolScript.core.math.cbrt, (ctx, v) => Math.cbrt(v[0](ctx))),
     C(MolScript.core.math.sin, (ctx, v) => Math.sin(v[0](ctx))),
     C(MolScript.core.math.cos, (ctx, v) => Math.cos(v[0](ctx))),
     C(MolScript.core.math.tan, (ctx, v) => Math.tan(v[0](ctx))),

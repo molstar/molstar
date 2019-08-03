@@ -121,6 +121,7 @@ const math = {
     roundInt: unaryOp(Type.Num),
     abs: unaryOp(Type.Num),
     sqrt: unaryOp(Type.Num),
+    cbrt: unaryOp(Type.Num),
     sin: unaryOp(Type.Num),
     cos: unaryOp(Type.Num),
     tan: unaryOp(Type.Num),
@@ -189,5 +190,3 @@ export const SymbolMap = (function() {
 })();
 
 export default table;
-
-
