@@ -222,7 +222,7 @@ export function exceptBy(query: StructureQuery, by: StructureQuery): StructureQu
         if (StructureSelection.structureCount(selection) === 0) return selection;
 
         const bySel = by(ctx);
-        if (StructureSelection.structureCount(bySel) === 0) return StructureSelection.Empty(ctx.inputStructure);
+        if (StructureSelection.structureCount(bySel) === 0) return selection;
         const subtractBy = StructureSelection.unionStructure(bySel);
 
         const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
