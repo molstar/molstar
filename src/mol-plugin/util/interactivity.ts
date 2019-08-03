@@ -115,7 +115,7 @@ namespace Interactivity {
         abstract apply(e: MarkEvent): void
 
         constructor(public readonly ctx: PluginContext, props: Partial<Props> = {}) {
-            this.sel = ctx.helpers.structureSelection
+            this.sel = ctx.helpers.structureSelectionManager
             this.setProps(props)
         }
     }

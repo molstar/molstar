@@ -9,7 +9,7 @@ import { parsePDB } from '../../../mol-io/reader/pdb/parser';
 import { Vec3, Mat4, Quat } from '../../../mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../mol-model-formats/structure/pdb';
-import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry, QueryFn } from '../../../mol-model/structure';
+import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry, QueryFn, StructureElement } from '../../../mol-model/structure';
 import { Assembly } from '../../../mol-model/structure/model/properties/symmetry';
 import { PluginContext } from '../../../mol-plugin/context';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
@@ -27,6 +27,7 @@ import { transpileMolScript } from '../../../mol-script/script/mol-script/symbol
 import { shapeFromPly } from '../../../mol-model-formats/shape/ply';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ensureSecondaryStructure } from './helpers';
+import { formatMolScript } from '../../../mol-script/language/expression-formatter';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -385,6 +386,14 @@ const UserStructureSelection = PluginStateTransform.BuiltIn({
         (cache as { source: Structure }).source = a.data;
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
+
+        // TODO for debug purposes only, later move to StructureSelection where the expression is not visible to the user
+        let loci = Structure.toStructureElementLoci(Structure.Loci(s))
+        if (s.parent) loci = StructureElement.Loci.remap(loci, s.parent)
+        const expression = formatMolScript(StructureElement.Loci.toScriptExpression(loci))
+        console.log({ before: params.query.expression, after: expression })
+        params.query.expression = expression
+
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
     },

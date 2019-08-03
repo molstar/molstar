@@ -37,6 +37,9 @@ import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { isProductionMode, isDebugMode } from '../mol-util/debug';
 import { Model, Structure } from '../mol-model/structure';
 import { Interactivity } from './util/interactivity';
+import { StructureRepresentationHelper } from './util/structure-representation-helper';
+import { StructureSelectionHelper } from './util/structure-selection-helper';
+import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 
 interface Log {
     entries: List<LogEntry>
@@ -121,7 +124,10 @@ export class PluginContext {
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     readonly helpers = {
-        structureSelection: new StructureElementSelectionManager(this),
+        structureSelectionManager: new StructureElementSelectionManager(this),
+        structureSelection: new StructureSelectionHelper(this),
+        structureRepresentation: new StructureRepresentationHelper(this),
+        structureOverpaint: new StructureOverpaintHelper(this),
         substructureParent: new SubstructureParentHelper(this)
     } as const;
 

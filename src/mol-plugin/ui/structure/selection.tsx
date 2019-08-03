@@ -6,22 +6,9 @@
 
 import * as React from 'react';
 import { PluginUIComponent } from '../base';
-import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
-import { StateSelection } from '../../../mol-state';
-import { PluginStateObject } from '../../state/objects';
-import { QueryContext, StructureSelection, QueryFn, Queries as _Queries } from '../../../mol-model/structure';
-import { compile } from '../../../mol-script/runtime/query/compiler';
-import { ButtonsType } from '../../../mol-util/input/input-observer';
-import { EmptyLoci } from '../../../mol-model/loci';
+import { StructureSelection, QueryFn, Queries as _Queries } from '../../../mol-model/structure';
 import { formatStructureSelectionStats } from '../../util/structure-element-selection';
-
-const Queries = {
-    all: () => compile<StructureSelection>(MS.struct.generator.all()),
-    polymers: () => _Queries.internal.atomicSequence(),
-    water: () => _Queries.internal.water(),
-    ligands: () => _Queries.internal.atomicHet(),
-    coarse: () => _Queries.internal.spheres(),
-}
+import { StructureSelectionQueries } from '../../util/structure-selection-helper';
 
 export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
     state = {}
@@ -33,36 +20,15 @@ export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
     }
 
     get stats() {
-        return formatStructureSelectionStats(this.plugin.helpers.structureSelection.stats)
+        return formatStructureSelectionStats(this.plugin.helpers.structureSelectionManager.stats)
     }
 
     select = (query: QueryFn<StructureSelection>) => {
-        const state = this.plugin.state.dataState
-        const structures = state.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure))
-        const { structureSelection } = this.plugin.helpers
-
-        structureSelection.clear()
-        for (const so of structures) {
-            const s = so.obj!.data
-            const result = query(new QueryContext(s))
-            const loci = StructureSelection.toLoci2(result)
-
-            // TODO use better API when available
-            this.plugin.interactivity.lociSelections.apply({
-                current: { loci },
-                buttons: ButtonsType.Flag.Secondary,
-                modifiers: { shift: false, alt: false, control: true, meta: false }
-            })
-        }
+        this.plugin.helpers.structureSelection.select(query)
     }
 
     clear = () => {
-        // TODO use better API when available
-        this.plugin.interactivity.lociSelections.apply({
-            current: { loci: EmptyLoci },
-            buttons: ButtonsType.Flag.Secondary,
-            modifiers: { shift: false, alt: false, control: true, meta: false }
-        })
+        this.plugin.helpers.structureSelection.clearSelection()
     }
 
     render() {
@@ -75,14 +41,14 @@ export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
                     <div>{this.stats}</div>
                 </div>
                 <div className='msp-btn-row-group'>
-                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(Queries.all())}>All</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(StructureSelectionQueries.all())}>All</button>
                     <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.clear()}>None</button>
                 </div>
                 <div className='msp-btn-row-group'>
-                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(Queries.polymers())}>Polymers</button>
-                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(Queries.ligands())}>Ligands</button>
-                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(Queries.water())}>Water</button>
-                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(Queries.coarse())}>Coarse</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(StructureSelectionQueries.polymers())}>Polymers</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(StructureSelectionQueries.ligands())}>Ligands</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(StructureSelectionQueries.water())}>Water</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.select(StructureSelectionQueries.coarse())}>Coarse</button>
                 </div>
             </div>
         </div>

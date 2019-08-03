@@ -49,7 +49,7 @@ export const SelectLoci = PluginBehavior.create({
                     this.spine.current = cell
                     const so = this.spine.getRootOfType(SO.Molecule.Structure)
                     if (so) {
-                        const loci = this.ctx.helpers.structureSelection.get(so.data)
+                        const loci = this.ctx.helpers.structureSelectionManager.get(so.data)
                         this.lociMarkProvider({ loci }, MarkerAction.Select)
                     }
                 }

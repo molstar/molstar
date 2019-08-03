@@ -352,7 +352,7 @@ export const StructureFromSelection = StateAction.build({
     //     return t.transformer !== CustomModelProperties;
     // }
 })(({ a, ref, params, state }, plugin: PluginContext) => {
-    const sel = plugin.helpers.structureSelection.get(a.data);
+    const sel = plugin.helpers.structureSelectionManager.get(a.data);
     if (sel.kind === 'empty-loci') return Task.constant('', void 0);
 
     const query = StructureElement.Loci.toScriptExpression(sel);
