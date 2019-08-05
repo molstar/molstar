@@ -10,11 +10,7 @@ import { StateTransformer, StateSelection, StateObjectCell, StateTransform } fro
 import { StructureElement } from '../../mol-model/structure';
 import { isEmptyLoci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
-import { parseMolScript } from '../../mol-script/language/parser';
 import { StructureRepresentation3DHelpers } from '../state/transforms/representation';
-import Expression from '../../mol-script/language/expression';
-import { formatMolScript } from '../../mol-script/language/expression-formatter';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 
 type StructureTransform = StateObjectCell<PluginStateObject.Molecule.Structure, StateTransform<StateTransformer<any, PluginStateObject.Molecule.Structure, any>>>
 const RepresentationManagerTag = 'representation-controls'
@@ -23,19 +19,19 @@ function getRepresentationManagerTag(type: string) {
     return `${RepresentationManagerTag}-${type}`
 }
 
-function getCombinedExpression(modifier: SelectionModifier, expression: Expression, currentExpression: Expression): Expression {
-    switch (modifier) {
-        case 'add': return MS.struct.combinator.merge([ currentExpression, expression ])
-        case 'remove': return MS.struct.modifier.exceptBy({ 0: currentExpression, by: expression })
-        case 'only': return expression
-        case 'all': return MS.struct.generator.all()
+function getCombinedLoci(mode: SelectionModifier, loci: StructureElement.Loci, currentLoci: StructureElement.Loci): StructureElement.Loci {
+    switch (mode) {
+        case 'add': return StructureElement.Loci.union(loci, currentLoci)
+        case 'remove': return StructureElement.Loci.subtract(currentLoci, loci)
+        case 'only': return loci
+        case 'all': return StructureElement.Loci.all(loci.structure)
     }
 }
 
 type SelectionModifier = 'add' | 'remove' | 'only' | 'all'
 
 export class StructureRepresentationHelper {
-    async set(modifier: SelectionModifier, type: string, expression: Expression, structure: StructureTransform) {
+    async set(modifier: SelectionModifier, type: string, loci: StructureElement.Loci, structure: StructureTransform) {
         const state = this.plugin.state.dataState
         const update = state.build();
         const s = structure.obj!.data
@@ -43,23 +39,21 @@ export class StructureRepresentationHelper {
         const selections = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure, structure.transform.ref).withTag(getRepresentationManagerTag(type)));
 
         if (selections.length > 0) {
-            const parsedExpressions = parseMolScript(selections[0].params!.values.query.expression)
-            if (parsedExpressions.length === 0) return
-            const currentExpression = parsedExpressions[0]
-            const combinedExpression = getCombinedExpression(modifier, expression, currentExpression)
+            const currentLoci = StructureElement.Query.toLoci(selections[0].params!.values.query, s)
+            const combinedLoci = getCombinedLoci(modifier, loci, currentLoci)
 
             update.to(selections[0]).update({
                 ...selections[0].params!.values,
-                query: { language: 'mol-script', expression: formatMolScript(combinedExpression) }
+                query: StructureElement.Query.fromLoci(combinedLoci)
             })
         } else {
-            const combinedExpression = getCombinedExpression(modifier, expression, MS.struct.generator.empty())
+            const combinedLoci = getCombinedLoci(modifier, loci, StructureElement.Loci(s, []))
 
             update.to(structure.transform.ref)
                 .apply(
-                    StateTransforms.Model.UserStructureSelection,
+                    StateTransforms.Model.LociStructureSelection,
                     {
-                        query: { language: 'mol-script', expression: formatMolScript(combinedExpression) },
+                        query: StructureElement.Query.fromLoci(combinedLoci),
                         label: type
                     },
                     { tags: [ RepresentationManagerTag, getRepresentationManagerTag(type) ] }
@@ -81,9 +75,8 @@ export class StructureRepresentationHelper {
             const s = structure.obj!.data
             const _loci = this.plugin.helpers.structureSelectionManager.get(s)
             const loci = isEmptyLoci(_loci) ? StructureElement.Loci(s, []) : _loci
-            const expression = StructureElement.Loci.toScriptExpression(loci)
 
-            await this.set(modifier, type, expression, structure)
+            await this.set(modifier, type, loci, structure)
         }
     }
 
