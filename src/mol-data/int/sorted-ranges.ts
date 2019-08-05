@@ -39,6 +39,24 @@ namespace SortedRanges {
         return ranges[index * 2 + 1]
     }
 
+    export function areEqual<T extends number = number>(a: SortedRanges<T>, b: SortedRanges<T>) {
+        if (a.length !== b.length) return false
+        for (let i = 0, il = a.length; i < il; ++i) {
+            if (a[i] !== b[i]) return false
+        }
+        return true
+    }
+
+    export function forEach<T extends number = number>(ranges: SortedRanges<T>, f: (value: T, i: number) => void) {
+        let k = 0
+        for (let i = 0, il = ranges.length; i < il; i += 2) {
+            for (let j = ranges[i], jl = ranges[i + 1]; j <= jl; ++j) {
+                f(j, k);
+                ++k
+            }
+        }
+    }
+
     /** Returns if a value of `set` is included in `ranges` */
     export function has<T extends number = number>(ranges: SortedRanges<T>, set: OrderedSet<T>) {
         return firstIntersectionIndex(ranges, set) !== -1
