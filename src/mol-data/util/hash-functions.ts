@@ -73,7 +73,7 @@ export function sortedCantorPairing(a: number, b: number) {
 /**
  * 32 bit FNV-1a hash, see http://isthe.com/chongo/tech/comp/fnv/
  */
-export function hashFnv32a(array: number[]) {
+export function hashFnv32a(array: ArrayLike<number>) {
     let hval = 0x811c9dc5;
     for (let i = 0, il = array.length; i < il; ++i) {
         hval ^= array[i];
