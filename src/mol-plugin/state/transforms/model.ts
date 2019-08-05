@@ -27,7 +27,6 @@ import { transpileMolScript } from '../../../mol-script/script/mol-script/symbol
 import { shapeFromPly } from '../../../mol-model-formats/shape/ply';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ensureSecondaryStructure } from './helpers';
-import { formatMolScript } from '../../../mol-script/language/expression-formatter';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -41,6 +40,7 @@ export { TransformStructureConformation };
 export { TransformStructureConformationByMatrix };
 export { StructureSelection };
 export { UserStructureSelection };
+export { LociStructureSelection };
 export { StructureComplexElement };
 export { CustomModelProperties };
 export { CustomStructureProperties };
@@ -369,7 +369,7 @@ const StructureSelection = PluginStateTransform.BuiltIn({
 type UserStructureSelection = typeof UserStructureSelection
 const UserStructureSelection = PluginStateTransform.BuiltIn({
     name: 'user-structure-selection',
-    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified query expression.' },
+    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified query expression string.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
@@ -386,13 +386,6 @@ const UserStructureSelection = PluginStateTransform.BuiltIn({
         (cache as { source: Structure }).source = a.data;
         const result = compiled(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
-
-        // TODO for debug purposes only, later move to StructureSelection where the expression is not visible to the user
-        let loci = Structure.toStructureElementLoci(Structure.Loci(s))
-        if (s.parent) loci = StructureElement.Loci.remap(loci, s.parent)
-        const expression = formatMolScript(StructureElement.Loci.toScriptExpression(loci))
-        console.log({ before: params.query.expression, after: expression })
-        params.query.expression = expression
 
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
@@ -424,6 +417,44 @@ function updateStructureFromQuery(query: QueryFn<Sel>, src: Structure, obj: SO.M
     obj.data = s;
     return true;
 }
+
+type LociStructureSelection = typeof LociStructureSelection
+const LociStructureSelection = PluginStateTransform.BuiltIn({
+    name: 'loci-structure-selection',
+    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified structure-element query.' },
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: {
+        query: PD.Value<StructureElement.Query>(StructureElement.Query.Empty, { isHidden: true }),
+        label: PD.Optional(PD.Text('', { isHidden: true }))
+    }
+})({
+    apply({ a, params, cache }) {
+        (cache as { source: Structure }).source = a.data;
+
+        const s = StructureElement.Query.toStructure(params.query, a.data);
+        if (s.elementCount === 0) return StateObject.Null;
+
+        const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
+        return new SO.Molecule.Structure(s, props);
+    },
+    update: ({ a, b, oldParams, newParams, cache }) => {
+        if (!StructureElement.Query.areEqual(oldParams.query, newParams.query)) return StateTransformer.UpdateResult.Recreate;
+
+        if ((cache as { source: Structure }).source === a.data) {
+            return StateTransformer.UpdateResult.Unchanged;
+        }
+        (cache as { source: Structure }).source = a.data;
+
+        const s = StructureElement.Query.toStructure(newParams.query, a.data);
+        if (s.elementCount === 0) return StateTransformer.UpdateResult.Null;
+
+        b.label = `${newParams.label || 'Selection'}`;
+        b.description = structureDesc(s);
+        b.data = s;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
 
 namespace StructureComplexElement {
     export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres'
