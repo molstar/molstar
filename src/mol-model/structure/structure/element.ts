@@ -114,15 +114,8 @@ namespace StructureElement {
     }
 
     export function entityIndex(l: StructureElement) {
-        switch (l.unit.kind) {
-            case Unit.Kind.Atomic:
-                return l.unit.model.atomicHierarchy.index.getEntityFromChain(l.unit.chainIndex[l.element])
-            case Unit.Kind.Spheres:
-                return l.unit.model.coarseHierarchy.spheres.entityKey[l.element]
-            case Unit.Kind.Gaussians:
-                return l.unit.model.coarseHierarchy.gaussians.entityKey[l.element]
+        return StructureProperties.entity.key(l)
         }
-    }
 
     export namespace Loci {
         export function size(loci: Loci) {
