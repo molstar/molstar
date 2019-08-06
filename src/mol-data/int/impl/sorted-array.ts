@@ -47,8 +47,10 @@ export function indexOf(xs: Nums, v: number) {
     return l === 0 ? -1 : xs[0] <= v && v <= xs[l - 1] ? binarySearchRange(xs, v, 0, l) : -1;
 }
 export function indexOfInInterval(xs: Nums, v: number, bounds: Interval) {
+    return indexOfInRange(xs, v, Interval.start(bounds), Interval.end(bounds))
+}
+export function indexOfInRange(xs: Nums, v: number, s: number, e: number) {
     const l = xs.length;
-    const s = Interval.start(bounds), e = Interval.end(bounds);
     return l === 0 || e <= s ? -1 : xs[s] <= v && v <= xs[e - 1] ? binarySearchRange(xs, v, s, e) : -1;
 }
 export function has(xs: Nums, v: number) { return indexOf(xs, v) >= 0; }

@@ -22,6 +22,7 @@ namespace SortedArray {
     /** Returns the index of `x` in `set` or -1 if not found. */
     export const indexOf: <T extends number = number>(array: SortedArray<T>, x: T) => number = Impl.indexOf as any;
     export const indexOfInInterval: <T extends number = number>(array: SortedArray<T>, x: number, bounds: Interval) => number = Impl.indexOfInInterval as any;
+    export const indexOfInRange: <T extends number = number>(array: SortedArray<T>, x: number, start: number, end: number) => number = Impl.indexOfInRange as any;
 
     /** Returns `array[0]` */
     export const start: <T extends number = number>(array: SortedArray<T>) => T = Impl.start as any;

@@ -137,23 +137,33 @@ namespace StructureElement {
 
             const elements: Loci['elements'][0][] = [];
             loci.elements.forEach(e => {
+                if (!structure.unitMap.has(e.unit.id)) return
                 const unit = structure.unitMap.get(e.unit.id)
-                if (!unit) return
 
                 if (SortedArray.areEqual(e.unit.elements, unit.elements)) {
                     elements.push({ unit, indices: e.indices })
                 } else {
-                    // TODO optimize
-                    const indices: UnitIndex[] = []
-                    OrderedSet.forEach(e.indices, (v) => {
+                    const _indices: UnitIndex[] = []
+                    const end = unit.elements.length
+                    let start = 0
+                    for (let i = 0; i < OrderedSet.size(e.indices); ++i) {
+                        const v = OrderedSet.getAt(e.indices, i)
                         const eI = e.unit.elements[v]
-                        const uI = SortedArray.indexOf(unit.elements, eI) as UnitIndex | -1
-                        if (uI !== -1) indices.push(uI)
-                    })
-                    elements.push({
-                        unit,
-                        indices: SortedArray.ofSortedArray(indices)
-                    })
+                        const uI = SortedArray.indexOfInRange(unit.elements, eI, start, end) as UnitIndex | -1
+                        if (uI !== -1) {
+                            _indices.push(uI)
+                            start = uI
+                        }
+                    }
+
+                    let indices: OrderedSet<UnitIndex>
+                    if (_indices.length > 12 && _indices[_indices.length - 1] - _indices[0] === _indices.length - 1) {
+                        indices = Interval.ofRange(_indices[0], _indices[_indices.length - 1])
+                    } else {
+                        indices = SortedArray.ofSortedArray(_indices)
+                    }
+
+                    elements.push({ unit, indices })
                 }
             });
 
