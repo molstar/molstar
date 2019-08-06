@@ -11,6 +11,7 @@ import { PluginStateSnapshotManager } from '../../../mol-plugin/state/snapshots'
 import { PluginStateObject as SO } from '../../state/objects';
 import { getFormattedTime } from '../../../mol-util/date';
 import { readFromFile } from '../../../mol-util/data-source';
+import { download } from '../../../mol-util/download';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -163,14 +164,9 @@ export function Snapshots(ctx: PluginContext) {
     });
 
     PluginCommands.State.Snapshots.DownloadToFile.subscribe(ctx, ({ name }) => {
-        const element = document.createElement('a');
         const json = JSON.stringify(ctx.state.getSnapshot(), null, 2);
-        element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(json));
-        element.setAttribute('download', `mol-star_state_${(name || getFormattedTime())}.json`);
-        element.style.display = 'none';
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
+        const blob = new Blob([json], {type : 'application/json;charset=utf-8'});
+        download(blob, `mol-star_state_${(name || getFormattedTime())}.json`)
     });
 
     PluginCommands.State.Snapshots.OpenFile.subscribe(ctx, async ({ file }) => {
