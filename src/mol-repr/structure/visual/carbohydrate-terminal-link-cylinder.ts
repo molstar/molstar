@@ -133,8 +133,7 @@ function eachTerminalLink(loci: Loci, structure: Structure, apply: (interval: In
     const { getTerminalLinkIndex } = structure.carbohydrates
     let changed = false
     if (Link.isLoci(loci)) {
-        if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
-        loci = Link.remapLoci(loci, structure)
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         for (const l of loci.links) {
             const idx = getTerminalLinkIndex(l.aUnit, l.aUnit.elements[l.aIndex], l.bUnit, l.bUnit.elements[l.bIndex])
             if (idx !== undefined) {
@@ -142,8 +141,7 @@ function eachTerminalLink(loci: Loci, structure: Structure, apply: (interval: In
             }
         }
     } else if (StructureElement.isLoci(loci)) {
-        if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
-        loci = StructureElement.Loci.remap(loci, structure)
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         // TODO mark link only when both of the link elements are in a StructureElement.Loci
         const { getElementIndex, getTerminalLinkIndices, elements } = structure.carbohydrates
         for (const e of loci.elements) {

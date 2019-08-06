@@ -119,8 +119,7 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
 function eachCarbohydrateLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
     if (Link.isLoci(loci)) {
-        if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
-        loci = Link.remapLoci(loci, structure)
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         const { getLinkIndex } = structure.carbohydrates
         for (const l of loci.links) {
             const idx = getLinkIndex(l.aUnit, l.aUnit.elements[l.aIndex], l.bUnit, l.bUnit.elements[l.bIndex])
@@ -129,8 +128,7 @@ function eachCarbohydrateLink(loci: Loci, structure: Structure, apply: (interval
             }
         }
     } else if (StructureElement.isLoci(loci)) {
-        if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
-        loci = StructureElement.Loci.remap(loci, structure)
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
         // TODO mark link only when both of the link elements are in a StructureElement.Loci
         const { getElementIndex, getLinkIndices, elements } = structure.carbohydrates
         for (const e of loci.elements) {

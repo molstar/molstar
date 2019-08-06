@@ -11,7 +11,7 @@ import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { Visual } from '../visual';
 import { StructureGroup } from './units-visual';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
-import { Structure, Unit } from '../../mol-model/structure';
+import { Structure, Unit, StructureElement, Link } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { createEmptyTheme, Theme } from '../../mol-theme/theme';
@@ -164,6 +164,14 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
 
     function mark(loci: Loci, action: MarkerAction) {
         let changed = false
+        if (!_structure) return false
+        if (!StructureElement.isLoci(loci) && !Link.isLoci(loci)) return false
+        if (!Structure.areParentsEquivalent(loci.structure, _structure)) return false
+        if (StructureElement.isLoci(loci)) {
+            loci = StructureElement.Loci.remap(loci, _structure)
+        } else if (Link.isLoci(loci)) {
+            loci = Link.remapLoci(loci, _structure)
+        }
         visuals.forEach(({ visual }) => {
             changed = visual.mark(loci, action) || changed
         })
