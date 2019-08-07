@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Segmentation } from '../../../../mol-data/int';
+import { Segmentation, SortedArray } from '../../../../mol-data/int';
 import { Structure, Unit } from '../../structure';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
@@ -304,78 +304,99 @@ export interface IncludeConnectedParams {
 }
 
 export function includeConnected({ query, layerCount, wholeResidues, bondTest }: IncludeConnectedParams): StructureQuery {
+    const bt = bondTest || defaultBondTest;
+    const lc = Math.max(layerCount, 0);
     return ctx => {
-        return 0 as any;
+        const builder = StructureSelection.UniqueBuilder(ctx.inputStructure);
+        const src = query(ctx);
+        ctx.pushCurrentLink();
+        StructureSelection.forEach(src, (s, sI) => {
+            let incl = s;
+            for (let i = 0; i < lc; i++) {
+                incl = includeConnectedStep(ctx, bt, wholeResidues, incl);
+            }
+            builder.add(incl);
+            if (sI % 10 === 0) ctx.throwIfTimedOut();
+        });
+        ctx.popCurrentLink();
+        return builder.getSelection();
     }
 }
 
-// function defaultBondTest(ctx: QueryContext) {
-//     return true;
-// }
+function includeConnectedStep(ctx: QueryContext, bondTest: QueryFn<boolean>, wholeResidues: boolean, structure: Structure) {
+    const expanded = expandConnected(ctx, structure, bondTest);
+    if (wholeResidues) return getWholeResidues(ctx, ctx.inputStructure, expanded);
+    return expanded;
+}
 
-// interface IncludeConnectedCtx {
-//     queryCtx: QueryContext,
-//     input: Structure,
-//     bondTest: QueryFn<boolean>,
-//     wholeResidues: boolean
-// }
+function expandConnected(ctx: QueryContext, structure: Structure, bondTest: QueryFn<boolean>) {
+    const inputStructure = ctx.inputStructure;
+    const interLinks = inputStructure.links;
+    const builder = new StructureUniqueSubsetBuilder(inputStructure);
 
-// type FrontierSet = UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
-// type Frontier = { unitIds: UniqueArray<number>, elements: Map<number /* unit id */, FrontierSet> }
+    const processedUnits = new Set<number>();
 
-// namespace Frontier {
-//     export function has({ elements }: Frontier, unitId: number, element: StructureElement.UnitIndex) {
-//         if (!elements.has(unitId)) return false;
-//         const xs = elements.get(unitId)!;
-//         return xs.keys.has(element);
-//     }
+    // Process intra unit links
+    for (const unit of structure.units) {
+        processedUnits.add(unit.id);
 
-//     export function create(pivot: Structure, input: Structure) {
-//         const unitIds = UniqueArray.create<number>();
-//         const elements: Frontier['elements'] = new Map();
-//         for (const unit of pivot.units) {
-//             if (!Unit.isAtomic(unit)) continue;
+        if (unit.kind !== Unit.Kind.Atomic) {
+            // add the whole unit
+            builder.beginUnit(unit.id);
+            for (let i = 0, _i = unit.elements.length; i < _i; i++) {
+                builder.addElement(unit.elements[i]);
+            }
+            builder.commitUnit();
+            continue;
+        }
 
-//             UniqueArray.add(unitIds, unit.id, unit.id);
-//             const xs: FrontierSet = UniqueArray.create();
-//             elements.set(unit.id, xs);
+        const inputUnit = inputStructure.unitMap.get(unit.id) as Unit.Atomic;
+        const { offset: intraLinkOffset, b: intraLinkB } = inputUnit.links;
 
-//             const pivotElements = unit.elements;
-//             const inputElements = input.unitMap.get(unit.id).elements;
-//             for (let i = 0, _i = pivotElements.length; i < _i; i++) {
-//                 const idx = SortedArray.indexOf(inputElements, pivotElements[i]) as StructureElement.UnitIndex;
-//                 UniqueArray.add(xs, idx, idx);
-//             }
-//         }
+        // Process intra unit links
+        ctx.atomicLink.aUnit = inputUnit;
+        ctx.atomicLink.bUnit = inputUnit;
+        for (let i = 0, _i = unit.elements.length; i < _i; i++) {
+            // add the current element
+            builder.addToUnit(unit.id, unit.elements[i]);
 
-//         return { unitIds, elements };
-//     }
+            const srcIndex = SortedArray.indexOf(inputUnit.elements, unit.elements[i]);
+            ctx.atomicLink.aIndex = srcIndex as StructureElement.UnitIndex;
 
-//     export function addFrontier(target: Frontier, from: Frontier) {
-//         for (const unitId of from.unitIds.array) {
-//             let xs: FrontierSet;
-//             if (target.elements.has(unitId)) {
-//                 xs = target.elements.get(unitId)!;
-//             } else {
-//                 xs = UniqueArray.create();
-//                 target.elements.set(unitId, xs);
-//                 UniqueArray.add(target.unitIds, unitId, unitId);
-//             }
+            // check intra unit links
+            for (let lI = intraLinkOffset[srcIndex], _lI = intraLinkOffset[srcIndex + 1]; lI < _lI; lI++) {
+                ctx.atomicLink.bIndex = intraLinkB[lI] as StructureElement.UnitIndex;
+                if (bondTest(ctx)) {
+                    builder.addToUnit(unit.id, inputUnit.elements[intraLinkB[lI]]);
+                }
+            }
+        }
 
-//             for (const e of from.elements.get(unitId)!.array) {
-//                 UniqueArray.add(xs, e, e);
-//             }
-//         }
-//         return target;
-//     }
+        // Process inter unit links
+        for (const linkedUnit of interLinks.getLinkedUnits(inputUnit)) {
+            if (processedUnits.has(linkedUnit.unitB.id)) continue;
 
-//     export function includeWholeResidues(structure: Structure, frontier: Frontier) {
-//         // ...
-//     }
-// }
+            ctx.atomicLink.bUnit = linkedUnit.unitB;
+            for (const aI of linkedUnit.linkedElementIndices) {
+                // check if the element is in the expanded structure
+                if (!SortedArray.has(unit.elements, inputUnit.elements[aI])) continue;
 
-// function expandFrontier(ctx: IncludeConnectedCtx, currentFrontier: Frontier, result: Frontier): Frontier {
-//     return 0 as any;
-// }
+                ctx.atomicLink.aIndex = aI;
+                for (const bond of linkedUnit.getBonds(aI)) {
+                    ctx.atomicLink.bIndex = bond.indexB;
+                    if (bondTest(ctx)) {
+                        builder.addToUnit(linkedUnit.unitB.id, linkedUnit.unitB.elements[bond.indexB]);
+                    }
+                }
+            }
+        }
+    }
+
+    return builder.getStructure();
+}
+
+function defaultBondTest(ctx: QueryContext) {
+    return true;
+}
 
 // TODO: unionBy (skip this one?), cluster
