@@ -231,6 +231,12 @@ const symbols = [
     D(MolScript.structureQuery.modifier.union, (ctx, xs) => Queries.modifiers.union(xs[0] as any)(ctx)),
     D(MolScript.structureQuery.modifier.expandProperty, (ctx, xs) => Queries.modifiers.expandProperty(xs[0] as any, xs['property'])(ctx)),
     D(MolScript.structureQuery.modifier.exceptBy, (ctx, xs) => Queries.modifiers.exceptBy(xs[0] as any, xs['by'] as any)(ctx)),
+    D(MolScript.structureQuery.modifier.includeConnected, (ctx, xs) => Queries.modifiers.includeConnected({
+        query: xs[0] as any,
+        bondTest: xs['bond-test'],
+        wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
+        layerCount: (xs['layer-count'] && xs['layer-count'](ctx)) || 1
+    })(ctx)),
 
     // ============= COMBINATORS ================
 
