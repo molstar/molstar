@@ -21,6 +21,7 @@ export namespace Types {
 
     export const RingFingerprint = Type.Value('Structure', 'RingFingerprint');
     export const EntityType = Type.OneOf('Structure', 'EntityType', Type.Str, ['polymer', 'non-polymer', 'water', 'branched', 'unknown']);
+    export const ObjectPrimitive = Type.OneOf('Structure', 'ObjectPrimitive', Type.Str, ['atomistic', 'sphere', 'gaussian', 'other']);
     export const ResidueId = Type.Value('Structure', 'ResidueId');
 
     export const ElementSet = Type.Value('Structure', 'ElementSet');
@@ -268,8 +269,8 @@ const atomProperty = {
         authResidueId: atomProp(Types.ResidueId, `type.auth-residue-id symbol executed on current atom's residue`),
         labelResidueId: atomProp(Types.ResidueId, `type.label-residue-id symbol executed on current atom's residue`),
 
-        residueKey: atomProp(Type.AnyValue, 'Unique value for each tuple ``(label_entity_id,auth_asym_id,auth_seq_id,pdbx_PDB_ins_code)``, main use case is grouping of atoms'),
-        chainKey: atomProp(Type.AnyValue, 'Unique value for each tuple ``(label_entity_id,auth_asym_id)``, main use case is grouping of atoms'),
+        residueKey: atomProp(Type.AnyValue, 'Unique value for each tuple ``(label_entity_id,auth_asym_id, auth_seq_id, pdbx_PDB_ins_code)``, main use case is grouping of atoms'),
+        chainKey: atomProp(Type.AnyValue, 'Unique value for each tuple ``(label_entity_id, auth_asym_id)``, main use case is grouping of atoms'),
         entityKey: atomProp(Type.AnyValue, 'Unique value for each tuple ``label_entity_id``, main use case is grouping of atoms'),
 
         isHet: atomProp(Type.Bool, 'Equivalent to atom_site.group_PDB !== ATOM'),
@@ -294,7 +295,8 @@ const atomProperty = {
         occupancy: atomProp(Type.Num),
         B_iso_or_equiv: atomProp(Type.Num),
 
-        entityType: atomProp(Types.EntityType, 'Type of the entity as defined in mmCIF (polymer, non-polymer, water, unknown)'),
+        entityType: atomProp(Types.EntityType, 'Type of the entity as defined in mmCIF (polymer, non-polymer, branched, water, unknown)'),
+        objectPrimitive: atomProp(Types.ObjectPrimitive, 'Type of the primitive object used to model this segment as defined in mmCIF/IHM (atomistic, sphere, gaussian, other)'),
 
         secondaryStructureKey: atomProp(Type.AnyValue, 'Unique value for each secondary structure element.'),
         secondaryStructureFlags: atomProp(Types.SecondaryStructureFlags),

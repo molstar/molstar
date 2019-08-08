@@ -17,6 +17,7 @@ import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
 import { IntMap, SortedArray } from '../../../mol-data/int';
 import { hash2, hashFnv32a } from '../../../mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements, getNucleotideElements, getProteinElements } from './util/polymer';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -95,7 +96,7 @@ namespace Unit {
 
     export interface Base {
         readonly id: number,
-        // invariant ID stays the same even if the Operator/conformation changes.
+        /** invariant ID stays the same even if the Operator/conformation changes. */
         readonly invariantId: number,
         readonly elements: StructureElement.Set,
         readonly model: Model,
@@ -107,6 +108,10 @@ namespace Unit {
         readonly lookup3d: Lookup3D
         readonly polymerElements: SortedArray<ElementIndex>
         readonly gapElements: SortedArray<ElementIndex>
+        /**
+         * From mmCIF/IHM schema: `_ihm_model_representation_details.model_object_primitive`.
+         */
+        readonly objectPrimitive: mmCIF_Schema['ihm_model_representation_details']['model_object_primitive']['T']
     }
 
     function getSphereRadiusFunc(model: Model) {
@@ -130,6 +135,7 @@ namespace Unit {
      */
     export class Atomic implements Base {
         readonly kind = Kind.Atomic;
+        readonly objectPrimitive = 'atomistic';
 
         readonly id: number;
         readonly invariantId: number;
@@ -237,6 +243,7 @@ namespace Unit {
 
     class Coarse<K extends Kind.Gaussians | Kind.Spheres, C extends CoarseSphereConformation | CoarseGaussianConformation> implements Base {
         readonly kind: K;
+        readonly objectPrimitive: 'sphere' | 'gaussian';
 
         readonly id: number;
         readonly invariantId: number;
@@ -287,6 +294,7 @@ namespace Unit {
 
         constructor(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties) {
             this.kind = kind;
+            this.objectPrimitive = kind === Kind.Spheres ? 'sphere' : 'gaussian'
             this.id = id;
             this.invariantId = invariantId;
             this.model = model;

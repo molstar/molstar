@@ -299,6 +299,7 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.macromolecular.B_iso_or_equiv, atomProp(StructureProperties.atom.B_iso_or_equiv)),
 
     D(MolScript.structureQuery.atomProperty.macromolecular.entityType, atomProp(StructureProperties.entity.type)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.objectPrimitive, atomProp(StructureProperties.unit.object_primitive)),
 
     D(MolScript.structureQuery.atomProperty.macromolecular.isModified, (ctx, _) => ctx.element.unit.model.properties.modifiedResidues.parentId.has(StructureProperties.residue.label_comp_id(ctx.element))),
     D(MolScript.structureQuery.atomProperty.macromolecular.modifiedParentName, (ctx, _) => {

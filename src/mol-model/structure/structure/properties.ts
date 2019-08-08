@@ -123,6 +123,7 @@ const entity = {
 
 const unit = {
     id: p(l => l.unit.id),
+    object_primitive: p(l => l.unit.objectPrimitive),
     operator_name: p(l => l.unit.conformation.operator.name),
     model_index: p(l => l.unit.model.modelNum),
     model_label: p(l => l.unit.model.label),
