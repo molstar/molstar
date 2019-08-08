@@ -51,7 +51,7 @@ export const PostprocessingParams = {
     occlusionEnable: PD.Boolean(false),
     occlusionKernelSize: PD.Numeric(4, { min: 1, max: 32, step: 1 }),
     occlusionBias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
-    occlusionRadius: PD.Numeric(64, { min: 0, max: 256, step: 1 }),
+    occlusionRadius: PD.Numeric(32, { min: 0, max: 256, step: 1 }),
 
     outlineEnable: PD.Boolean(false),
     outlineScale: PD.Numeric(1, { min: 0, max: 10, step: 1 }),

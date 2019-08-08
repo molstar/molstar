@@ -188,10 +188,11 @@ namespace Canvas3D {
             let fogFar = cDist + (bRadius * fogFarFactor)
 
             if (camera.state.mode === 'perspective') {
-                near = Math.max(1, p.cameraClipDistance, near)
-                far = Math.max(1, far)
-                fogNear = Math.max(1, fogNear)
-                fogFar = Math.max(1, fogFar)
+                // set at least to 5 to avoid slow sphere impostor rendering
+                near = Math.max(5, p.cameraClipDistance, near)
+                far = Math.max(5, far)
+                fogNear = Math.max(5, fogNear)
+                fogFar = Math.max(5, fogFar)
             } else if (camera.state.mode === 'orthographic') {
                 if (p.cameraClipDistance > 0) {
                     near = Math.max(p.cameraClipDistance, near)
