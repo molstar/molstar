@@ -128,8 +128,12 @@ namespace StructureElement {
         export function all(structure: Structure): Loci {
             return Loci(structure, structure.units.map(unit => ({
                 unit,
-                indices: OrderedSet.ofRange<UnitIndex>(0 as UnitIndex, unit.elements.length as UnitIndex)
+                indices: OrderedSet.ofBounds<UnitIndex>(0 as UnitIndex, unit.elements.length as UnitIndex)
             })));
+        }
+
+        export function none(structure: Structure): Loci {
+            return Loci(structure, []);
         }
 
         export function remap(loci: Loci, structure: Structure): Loci {
@@ -647,7 +651,7 @@ namespace StructureElement {
             for (let i = 0, il = a.elements.length; i < il; ++i) {
                 const elementA = a.elements[i], elementB = b.elements[i]
                 if (elementA.groupedUnits.length !== elementB.groupedUnits.length) return false
-                for (let j = 0, jl = elementB.groupedUnits.length; j < jl; ++i) {
+                for (let j = 0, jl = elementB.groupedUnits.length; j < jl; ++j) {
                     if (!SortedArray.areEqual(elementA.groupedUnits[j], elementB.groupedUnits[j])) return false
                 }
                 if (!SortedArray.areEqual(elementA.set, elementB.set)) return false
