@@ -301,15 +301,11 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.macromolecular.entityType, atomProp(StructureProperties.entity.type)),
     D(MolScript.structureQuery.atomProperty.macromolecular.objectPrimitive, atomProp(StructureProperties.unit.object_primitive)),
 
-    D(MolScript.structureQuery.atomProperty.macromolecular.isModified, (ctx, _) => ctx.element.unit.model.properties.modifiedResidues.parentId.has(StructureProperties.residue.label_comp_id(ctx.element))),
-    D(MolScript.structureQuery.atomProperty.macromolecular.modifiedParentName, (ctx, _) => {
-        const id = StructureProperties.residue.label_comp_id(ctx.element);
-        return ctx.element.unit.model.properties.modifiedResidues.parentId.get(id) || id
-    })
-
-    // TODO
-    // MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureKey
-    // MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureFlags
+    D(MolScript.structureQuery.atomProperty.macromolecular.isModified, atomProp(StructureProperties.residue.isModified)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.modifiedParentName, atomProp(StructureProperties.residue.modifiedParentName)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureKey, atomProp(StructureProperties.residue.secondary_structure_key)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureFlags, atomProp(StructureProperties.residue.secondary_structure_type)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.chemCompType, atomProp(StructureProperties.residue.chem_comp_type)),
 
     // ============= BOND PROPERTIES ================
 ];

@@ -300,9 +300,9 @@ const atomProperty = {
 
         secondaryStructureKey: atomProp(Type.AnyValue, 'Unique value for each secondary structure element.'),
         secondaryStructureFlags: atomProp(Types.SecondaryStructureFlags),
-
         isModified: atomProp(Type.Bool, 'True if the atom bolongs to modification of a standard residue.'),
         modifiedParentName: atomProp(Type.Str, `'3-letter' code of the modifed parent residue.`),
+        chemCompType: atomProp(Type.Str, `Type of the chemical component as defined in mmCIF.`),
     }
 }
 

@@ -230,6 +230,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.atomProperty.macromolecular.B_iso_or_equiv, 'atom.B_iso_or_equiv', 'atom.bfactor'),
             Alias(MolScript.structureQuery.atomProperty.macromolecular.entityType, 'atom.entity-type'),
             Alias(MolScript.structureQuery.atomProperty.macromolecular.objectPrimitive, 'atom.object-primitive'),
+            Alias(MolScript.structureQuery.atomProperty.macromolecular.chemCompType, 'atom.chem-comp-type'),
 
             Alias(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureKey, 'atom.key.sec-struct'),
 

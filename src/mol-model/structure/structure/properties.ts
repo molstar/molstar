@@ -53,19 +53,30 @@ const atom = {
     vdw_radius: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.model.atomicHierarchy.atoms.type_symbol.value(l.element))),
 }
 
+function compId(l: StructureElement) {
+    return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])
+}
+
 const residue = {
     key: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.residueIndex[l.element]),
 
     group_PDB: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
-    label_comp_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])),
+    label_comp_id: p(compId),
     auth_comp_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.element])),
     label_seq_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element])),
     auth_seq_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
     pdbx_PDB_ins_code: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element])),
 
     // Properties
+    isModified: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.modifiedResidues.parentId.has(compId(l))),
+    modifiedParentName: p(l => {
+        if (!Unit.isAtomic(l.unit)) notAtomic()
+        const id = compId(l)
+        return l.unit.model.properties.modifiedResidues.parentId.get(id) || id
+    }),
     secondary_structure_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.type[l.unit.residueIndex[l.element]]),
     secondary_structure_key: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.key[l.unit.residueIndex[l.element]]),
+    chem_comp_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.type),
 }
 
 const chain = {
@@ -107,7 +118,7 @@ function eK(l: StructureElement) {
 }
 
 const entity = {
-    key: eK,
+    key: p(eK),
 
     id: p(l => l.unit.model.entities.data.id.value(eK(l))),
     type: p(l => l.unit.model.entities.data.type.value(eK(l))),
