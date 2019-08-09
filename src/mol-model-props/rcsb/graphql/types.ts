@@ -1,4 +1,4 @@
-// Generated in 2019-06-04T12:44:49-07:00
+// Generated in 2019-08-09T10:26:08-07:00
 export type Maybe<T> = T | null;
 
 /** Built-in scalar representing an instant in time */
