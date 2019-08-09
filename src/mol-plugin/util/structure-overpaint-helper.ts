@@ -42,12 +42,15 @@ export class StructureOverpaintHelper {
         await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
     }
 
-    async set(color: Color | -1, types?: string[]) {
+    async set(color: Color | -1, lociGetter: (structure: Structure) => StructureElement.Loci, types?: string[]) {
         await this.eachRepr((update, repr, rootStructure, overpaint) => {
             if (types && !types.includes(repr.params!.values.type.name)) return
 
-            const loci = this.plugin.helpers.structureSelectionManager.get(rootStructure)
-            if (isEmptyLoci(loci) || loci.elements.length === 0) return
+            // TODO cleanup when loci is full structure or empty
+            // TODO add & use QueryOverpaintStructureRepresentation3D
+
+            const loci = lociGetter(rootStructure)
+            if (loci.elements.length === 0) return
             const expression = getExpression(loci)
 
             const layer = {
@@ -62,20 +65,6 @@ export class StructureOverpaintHelper {
                 update.to(repr.transform.ref)
                     .apply(StateTransforms.Representation.OverpaintStructureRepresentation3D, { layers: [ layer ], alpha: 1 }, { tags: OverpaintManagerTag });
             }
-        })
-    }
-
-    add(color: Color, types?: string[]) {
-        this.set(color, types)
-    }
-
-    clear(types?: string[]) {
-        this.set(-1, types)
-    }
-
-    clearAll() {
-        this.eachRepr((update, repr, rootStructure, overpaint) => {
-            if (overpaint) update.delete(overpaint.transform.ref)
         })
     }
 

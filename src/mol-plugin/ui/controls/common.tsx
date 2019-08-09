@@ -137,6 +137,25 @@ export class ExpandableGroup extends React.Component<{
     }
 }
 
+export class ButtonSelect extends React.PureComponent<{ label: string, onChange: (value: string) => void }> {
+
+    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        e.preventDefault()
+        this.props.onChange(e.target.value)
+        e.target.value = '_'
+    }
+
+    render() {
+        return <select value='_' onChange={this.onChange}>
+            <option key='_' value='_'>{this.props.label}</option>
+            {this.props.children}
+        </select>
+    }
+}
+
+export function Options(options: [string, string][]) {
+    return options.map(([value, label]) => <option key={value} value={value}>{label}</option>)
+}
 
 // export const ToggleButton = (props: {
 //     onChange: (v: boolean) => void,

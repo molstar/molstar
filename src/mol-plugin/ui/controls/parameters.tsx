@@ -248,7 +248,7 @@ export class BoundedIntervalControl extends SimpleParam<PD.Interval> {
 }
 
 let _colors: React.ReactFragment | undefined = void 0;
-function ColorOptions() {
+export function ColorOptions() {
     if (_colors) return _colors;
     _colors = <>{Object.keys(ColorNames).map(name =>
         <option key={name} value={(ColorNames as { [k: string]: Color })[name]} style={{ background: `${Color.toStyle((ColorNames as { [k: string]: Color })[name])}` }} >

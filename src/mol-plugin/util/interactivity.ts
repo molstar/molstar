@@ -90,13 +90,15 @@ namespace Interactivity {
             // TODO clear, then re-apply remaining providers
         }
 
-        normalizedLoci(interactivityLoci: Loci) {
+        normalizedLoci(interactivityLoci: Loci, applyGranularity = true) {
             let { loci, repr } = interactivityLoci
             if (this.props.granularity !== 'element' && Link.isLoci(loci)) {
                 // convert Link.Loci to a StructureElement.Loci so granularity can be applied
                 loci = Link.toStructureElementLoci(loci)
             }
-            loci = Granularity[this.props.granularity](loci)
+            if (applyGranularity) {
+                loci = Granularity[this.props.granularity](loci)
+            }
             if (Structure.isLoci(loci)) {
                 // convert to StructureElement.Loci of root structure
                 loci = Structure.toStructureElementLoci(Structure.Loci(loci.structure.parent || loci.structure))
@@ -195,6 +197,24 @@ namespace Interactivity {
                 if (!ButtonsType.has(buttons, ButtonsType.Flag.Secondary)) return;
                 for (let p of this.providers) p(normalized, MarkerAction.Toggle);
             }
+        }
+
+        add(current: Loci<ModelLoci>) {
+            const normalized: Loci<ModelLoci> = this.normalizedLoci(current, false)
+            this.sel.add(normalized.loci);
+            this.mark(normalized, MarkerAction.Select);
+        }
+
+        remove(current: Loci<ModelLoci>) {
+            const normalized: Loci<ModelLoci> = this.normalizedLoci(current, false)
+            this.sel.remove(normalized.loci);
+            this.mark(normalized, MarkerAction.Deselect);
+        }
+
+        only(current: Loci<ModelLoci>) {
+            const sels = this.sel.clear();
+            for (const s of sels) this.mark({ loci: s }, MarkerAction.Deselect);
+            this.add(current);
         }
 
         constructor(ctx: PluginContext, props: Partial<Props> = {}) {

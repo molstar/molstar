@@ -48,6 +48,31 @@
     }
 }
 
+.msp-select-row {
+    display:flex;
+    flex-direction:row;
+    height: $row-height;
+    width: inherit;
+
+    > select {
+        margin: 0;
+        flex: 1 1 auto;
+        margin-right: 1px;
+        height: $row-height;
+
+        text-align-last: center;
+        background: none !important;
+
+        > option[value = _] {
+            display: none;
+        }
+    }
+
+    > select:last-child {
+        margin-right: 0;
+    }
+}
+
 .msp-state-list {
     list-style: none;
     margin-top: $control-spacing;
@@ -62,7 +87,7 @@
         > div {
             position: absolute;
             right: 0;
-            top: 0;        
+            top: 0;
         }
     }
 
@@ -88,7 +113,7 @@
 
     &-current {
         // background: $control-background;
-        
+
         a {
             color: $font-color;
         }
@@ -162,7 +187,7 @@
     top: $control-spacing;
     z-index: 10000;
 
-    .msp-traj-controls {        
+    .msp-traj-controls {
         line-height: $row-height;
         float: left;
         margin-right: $control-spacing;

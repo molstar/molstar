@@ -16,7 +16,6 @@ import { StateTransforms } from '../../mol-plugin/state/transforms';
 import { StateTransformer } from '../../mol-state';
 import { ModelFromTrajectory } from '../../mol-plugin/state/transforms/model';
 import { AnimationControls } from './state/animation';
-import { StructureOverpaintControls } from './structure/overpaint';
 import { StructureRepresentationControls } from './structure/representation';
 import { StructureSelectionControls } from './structure/selection';
 
@@ -261,7 +260,6 @@ export class StructureToolsWrapper extends PluginUIComponent {
             <div className='msp-section-header'><Icon name='code' /> Structure Tools</div>
 
             <StructureSelectionControls />
-            <StructureOverpaintControls />
             <StructureRepresentationControls />
         </div>;
     }
