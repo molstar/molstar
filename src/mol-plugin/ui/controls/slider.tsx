@@ -320,7 +320,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
     private startValue = 0;
     private _getPointsCache: any = void 0;
 
-    componentWillReceiveProps(nextProps: SliderBaseProps) {
+    componentDidUpdate(nextProps: SliderBaseProps) {
         if (!('value' in nextProps || 'min' in nextProps || 'max' in nextProps)) return;
 
         const { bounds } = this.state;
