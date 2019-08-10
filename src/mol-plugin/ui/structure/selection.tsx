@@ -51,7 +51,7 @@ export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
     }
 
     set = (modifier: SelectionModifier, value: string) => {
-        const query = StructureSelectionQueries[value as keyof typeof StructureSelectionQueries]()
+        const query = StructureSelectionQueries[value as keyof typeof StructureSelectionQueries]
         this.plugin.helpers.structureSelection.set(modifier, query)
     }
 

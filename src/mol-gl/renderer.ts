@@ -52,7 +52,7 @@ export const RendererParams = {
     ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
 
     metalness: PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }),
-    roughness: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
+    roughness: PD.Numeric(1.0, { min: 0.0, max: 1.0, step: 0.01 }),
     reflectivity: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
 }
 export type RendererProps = PD.Values<typeof RendererParams>

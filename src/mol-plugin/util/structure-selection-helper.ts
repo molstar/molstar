@@ -7,10 +7,13 @@
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { StateSelection } from '../../mol-state';
 import { PluginStateObject } from '../state/objects';
-import { QueryContext, StructureSelection, QueryFn } from '../../mol-model/structure';
+import { QueryContext, StructureSelection } from '../../mol-model/structure';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
+import Expression from '../../mol-script/language/expression';
+
+const all = MS.struct.generator.all()
 
 const polymers = MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -89,16 +92,16 @@ const coarse = MS.struct.modifier.union([
 ])
 
 export const StructureSelectionQueries = {
-    all: () => compile<StructureSelection>(MS.struct.generator.all()),
-    polymers: () => compile<StructureSelection>(polymers),
-    backboneTrace: () => compile<StructureSelection>(backboneTrace),
-    water: () => compile<StructureSelection>(water),
-    branched: () => compile<StructureSelection>(branched),
-    branchedPlusConnected: () => compile<StructureSelection>(branchedPlusConnected),
-    branchedConnectedOnly: () => compile<StructureSelection>(branchedConnectedOnly),
-    ligands: () => compile<StructureSelection>(ligands),
-    ligandsPlusConnected: () => compile<StructureSelection>(ligandsPlusConnected),
-    coarse: () => compile<StructureSelection>(coarse),
+    all,
+    polymers,
+    backboneTrace,
+    water,
+    branched,
+    branchedPlusConnected,
+    branchedConnectedOnly,
+    ligands,
+    ligandsPlusConnected,
+    coarse,
 }
 
 //
@@ -125,10 +128,12 @@ export class StructureSelectionHelper {
         }
     }
 
-    set(modifier: SelectionModifier, query: QueryFn<StructureSelection>) {
+    set(modifier: SelectionModifier, query: Expression) {
+        const compiled = compile<StructureSelection>(query)
+
         for (const so of this.structures) {
             const s = so.obj!.data
-            const result = query(new QueryContext(s))
+            const result = compiled(new QueryContext(s))
             const loci = StructureSelection.toLoci2(result)
             this._set(modifier, loci)
         }

@@ -12,6 +12,7 @@ import { ColorOptions } from '../controls/parameters';
 import { Color } from '../../../mol-util/color';
 import { ButtonSelect, Options } from '../controls/common';
 import { StructureSelectionQueries as Q } from '../../util/structure-selection-helper';
+import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 
 abstract class BaseStructureRepresentationControls extends PluginUIComponent {
     onChange = (value: string) => {
@@ -83,22 +84,12 @@ class SelectionStructureRepresentationControls extends BaseStructureRepresentati
 
 export class StructureRepresentationControls extends PluginUIComponent {
     preset = async () => {
-        const { structureSelection: sel, structureRepresentation: rep } = this.plugin.helpers
-        const lociGetter = (structure: Structure) => {
-            const loci = this.plugin.helpers.structureSelectionManager.get(structure)
-            return isEmptyLoci(loci) ? StructureElement.Loci.none(structure) : loci
-        }
-
-        sel.set('add', Q.all())
-        await rep.set('add', 'cartoon', lociGetter)
-        await rep.set('add', 'carbohydrate', lociGetter)
-
-        sel.set('only', Q.ligandsPlusConnected())
-        sel.set('add', Q.branchedConnectedOnly())
-        sel.set('add', Q.water())
-        await rep.set('add', 'ball-and-stick', lociGetter)
-
-        sel.set('remove', Q.all())
+        const { structureRepresentation: rep } = this.plugin.helpers
+        await rep.setFromExpression('add', 'cartoon', Q.all)
+        await rep.setFromExpression('add', 'carbohydrate', Q.all)
+        await rep.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
+            MS.struct.combinator.merge([ Q.ligandsPlusConnected, Q.branchedConnectedOnly, Q.water ])
+        ]))
     }
 
     render() {

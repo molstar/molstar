@@ -473,7 +473,6 @@ namespace StructureElement {
                     atom: { set, ranges },
                     chain: { opName: [ opName ] },
                 }
-
         }
     }
 
