@@ -430,6 +430,11 @@ const LociStructureSelection = PluginStateTransform.BuiltIn({
     }
 })({
     apply({ a, params, cache }) {
+        if (params.query.hash !== a.data.hashCode) {
+            // Query not compatible with given structure, set to empty query
+            params.query = StructureElement.Query.Empty
+        }
+
         (cache as { source: Structure }).source = a.data;
 
         const s = StructureElement.Query.toStructure(params.query, a.data);
@@ -439,7 +444,14 @@ const LociStructureSelection = PluginStateTransform.BuiltIn({
         return new SO.Molecule.Structure(s, props);
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
-        if (!StructureElement.Query.areEqual(oldParams.query, newParams.query)) return StateTransformer.UpdateResult.Recreate;
+        if (!StructureElement.Query.areEqual(oldParams.query, newParams.query)) {
+            return StateTransformer.UpdateResult.Recreate;
+        }
+
+        if (newParams.query.hash !== a.data.hashCode) {
+            // Query not compatible with given structure, set to empty query
+            newParams.query = StructureElement.Query.Empty
+        }
 
         if ((cache as { source: Structure }).source === a.data) {
             return StateTransformer.UpdateResult.Unchanged;

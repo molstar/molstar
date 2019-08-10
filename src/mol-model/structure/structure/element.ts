@@ -487,11 +487,14 @@ namespace StructureElement {
         ranges: SortedRanges<UnitIndex>
     }
     export interface Query {
+        /** Hash of the structure to which the query can be applied */
+        readonly hash: number
+        /** Query elements */
         readonly elements: ReadonlyArray<Readonly<QueryElement>>
     }
 
     export namespace Query {
-        export const Empty: Query = { elements: [] }
+        export const Empty: Query = { hash: -1, elements: [] }
 
         export function fromLoci(loci: StructureElement.Loci): Query {
             const _elements: {
@@ -566,7 +569,7 @@ namespace StructureElement {
                 elements.push({ groupedUnits, set: e.set, ranges: e.ranges })
             })
 
-            return { elements }
+            return { hash: (loci.structure.parent || loci.structure).hashCode, elements }
         }
 
         function getUnitsFromIds(unitIds: ArrayLike<number>, structure: Structure) {
@@ -579,6 +582,9 @@ namespace StructureElement {
         }
 
         export function toLoci(query: Query, parent: Structure): Loci {
+            if (query.hash !== -1 && query.hash !== (parent.parent || parent).hashCode) {
+                new Error('Query not compatible with given structure')
+            }
             const elements: Loci['elements'][0][] = []
             for (const e of query.elements) {
                 for (const g of e.groupedUnits) {
@@ -613,6 +619,9 @@ namespace StructureElement {
         }
 
         export function toStructure(query: Query, parent: Structure): Structure {
+            if (query.hash !== -1 && query.hash !== (parent.parent || parent).hashCode) {
+                new Error('Query not compatible with given structure')
+            }
             const units: Unit[] = []
             for (const e of query.elements) {
                 for (const g of e.groupedUnits) {
