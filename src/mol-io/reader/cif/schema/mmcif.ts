@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.312, IHM 1.0, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.313, IHM 1.01, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -1472,6 +1472,62 @@ export const mmCIF_Schema = {
         'space_group_name_H-M': str,
     },
     /**
+     * These are internal RCSB records to keep track of data processing
+     * and status of the entry.
+     */
+    pdbx_database_status: {
+        /**
+         * Code for status of file.
+         */
+        status_code: Aliased<'PROC' | 'WAIT' | 'REL' | 'HOLD' | 'HPUB' | 'REFI' | 'OBS' | 'WDRN' | 'AUTH' | 'POLC' | 'REPL' | 'AUCO' | 'TRSF' | 'RMVD' | 'DEL' | 'REV' | 'UPD' | 'BIB'>(str),
+        /**
+         * Code for status of structure factor file.
+         */
+        status_code_sf: Aliased<'PROC' | 'WAIT' | 'REL' | 'HOLD' | 'HPUB' | 'OBS' | 'WDRN' | 'AUTH' | 'POLC' | 'REPL' | 'RMVD'>(str),
+        /**
+         * Code for status of NMR constraints file.
+         */
+        status_code_mr: Aliased<'PROC' | 'WAIT' | 'REL' | 'HOLD' | 'HPUB' | 'OBS' | 'WDRN' | 'AUTH' | 'POLC' | 'REPL' | 'RMVD'>(str),
+        /**
+         * The value of _pdbx_database_status.entry_id identifies the data block.
+         */
+        entry_id: str,
+        /**
+         * The date of initial deposition.  (The first message for
+         * deposition has been received.)
+         */
+        recvd_initial_deposition_date: str,
+        /**
+         * This code indicates whether the entry belongs to
+         * Structural Genomics Project.
+         */
+        SG_entry: Aliased<'Y' | 'N'>(str),
+        /**
+         * The site where the file was deposited.
+         */
+        deposit_site: Aliased<'NDB' | 'RCSB' | 'PDBE' | 'PDBJ' | 'BMRB' | 'BNL'>(str),
+        /**
+         * The site where the file was deposited.
+         */
+        process_site: Aliased<'NDB' | 'RCSB' | 'PDBE' | 'PDBJ' | 'BNL'>(str),
+        /**
+         * Code for status of chemical shift data file.
+         */
+        status_code_cs: Aliased<'PROC' | 'WAIT' | 'AUTH' | 'POLC' | 'REPL' | 'REL' | 'HOLD' | 'HPUB' | 'OBS' | 'RMVD' | 'WDRN'>(str),
+        /**
+         * The methods development category in which this
+         * entry has been placed.
+         */
+        methods_development_category: Aliased<'CAPRI' | 'CASP' | 'CASD-NMR' | 'FoldIt' | 'GPCR Dock' | 'D3R' | 'RNA-Puzzles'>(str),
+        /**
+         * A flag indicating that the entry is compatible with the PDB format.
+         *
+         * A value of 'N' indicates that the no PDB format data file is
+         * corresponding to this entry is available in the PDB archive.
+         */
+        pdb_format_compatible: Aliased<'Y' | 'N'>(str),
+    },
+    /**
      * The PDBX_NONPOLY_SCHEME category provides residue level nomenclature
      * mapping for non-polymer entities.
      */
@@ -1518,6 +1574,28 @@ export const mmCIF_Schema = {
          * PDB insertion code.
          */
         pdb_ins_code: str,
+    },
+    /**
+     * Data items in PDBX_DATABASE_RELATED contain references to entries
+     * that are related to the this entry.
+     */
+    pdbx_database_related: {
+        /**
+         * The name of the database containing the related entry.
+         */
+        db_name: str,
+        /**
+         * A description of the related entry.
+         */
+        details: str,
+        /**
+         * The identifying code in the related database.
+         */
+        db_id: str,
+        /**
+         * The identifying content type of the related entry.
+         */
+        content_type: Aliased<'minimized average structure' | 'representative structure' | 'ensemble' | 'derivative structure' | 'native structure' | 'associated EM volume' | 'other EM volume' | 'associated NMR restraints' | 'associated structure factors' | 'associated SAS data' | 'protein target sequence and/or protocol data' | 'split' | 're-refinement' | 'complete structure' | 'unspecified' | 'other'>(str),
     },
     /**
      * Data items in the CHEM_COMP_IDENTIFIER category provide
@@ -2971,7 +3049,7 @@ export const mmCIF_Schema = {
         /**
          * The name of the database containing the dataset entry.
          */
-        db_name: Aliased<'PDB' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'Other'>(str),
+        db_name: Aliased<'PDB' | 'PDB-Dev' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'Other'>(str),
         /**
          * The accession code for the database entry.
          */
