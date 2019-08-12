@@ -90,7 +90,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.type.authResidueId, 'auth-resid'),
             Alias(MolScript.structureQuery.type.labelResidueId, 'label-resid'),
             Alias(MolScript.structureQuery.type.ringFingerprint, 'ringfp'),
-            Alias(MolScript.structureQuery.type.bondFlags, 'bond-flags'),
+            Alias(MolScript.structureQuery.type.linkFlags, 'bond-flags'),
         ],
         [
             'Slots',
@@ -203,7 +203,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.atomProperty.core.modelIndex, 'atom.model-index'),
             Alias(MolScript.structureQuery.atomProperty.core.modelLabel, 'atom.model-label'),
             Alias(MolScript.structureQuery.atomProperty.core.atomKey, 'atom.key'),
-            Alias(MolScript.structureQuery.atomProperty.core.bondCount, 'atom.bond-count'),
+            Alias(MolScript.structureQuery.atomProperty.core.linkCount, 'atom.link-count'),
 
             Alias(MolScript.structureQuery.atomProperty.topology.connectedComponentKey, 'atom.key.molecule'),
 
@@ -242,11 +242,11 @@ export const SymbolTable = [
             // args => B.core.flags.hasAny([B.struct.atomProperty.macromolecular.secondaryStructureFlags(), B.struct.type.secondaryStructureFlags(args)])),
         ],
         [
-            'Bond Properties',
-            Alias(MolScript.structureQuery.bondProperty.order, 'bond.order'),
-            // Macro(MSymbol('bond.is', Arguments.List(Struct.Types.BondFlag), Type.Bool,
-            //     `Test if the current bond has at least one (or all if partial = false) of the specified flags: ${Type.oneOfValues(Struct.Types.BondFlag).join(', ')}`),
-            // args => B.core.flags.hasAny([B.struct.bondProperty.flags(), B.struct.type.bondFlags(M.getPositionalArgs(args))])),
+            'Link Properties',
+            Alias(MolScript.structureQuery.linkProperty.order, 'link.order'),
+            // Macro(MSymbol('bond.is', Arguments.List(Struct.Types.LinkFlag), Type.Bool,
+            //     `Test if the current bond has at least one (or all if partial = false) of the specified flags: ${Type.oneOfValues(Struct.Types.LinkFlag).join(', ')}`),
+            // args => B.core.flags.hasAny([B.struct.bondProperty.flags(), B.struct.type.linkFlags(M.getPositionalArgs(args))])),
         ]
     ]
 ];

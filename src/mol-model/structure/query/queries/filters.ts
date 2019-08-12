@@ -15,6 +15,7 @@ import { checkStructureMaxRadiusDistance, checkStructureMinMaxDistance } from '.
 import Structure from '../../structure/structure';
 import StructureElement from '../../structure/element';
 import { SortedArray } from '../../../../mol-data/int';
+import { defaultLinkTest } from './internal';
 
 export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {
     return ctx => {
@@ -231,12 +232,13 @@ interface IsConnectedToCtx {
     queryCtx: QueryContext,
     input: Structure,
     target: Structure,
-    bondTest: QueryFn<boolean>,
+    linkTest: QueryFn<boolean>,
     tElement: StructureElement
 }
 
 function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
-    const { queryCtx, input, target, bondTest, tElement } = ctx;
+    const { queryCtx, input, target, linkTest, tElement } = ctx;
+    const atomicLink = queryCtx.atomicLink;
 
     const interLinks = input.links;
     for (const unit of structure.units) {
@@ -244,11 +246,11 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
 
         const inputUnit = input.unitMap.get(unit.id) as Unit.Atomic;
 
-        const { offset, b } = inputUnit.links;
+        const { offset, b, edgeProps: { flags, order } } = inputUnit.links;
         const linkedUnits = interLinks.getLinkedUnits(unit);
         const luCount = linkedUnits.length;
 
-        queryCtx.atomicLink.aUnit = inputUnit;
+        atomicLink.link.aUnit = inputUnit;
 
         const srcElements = unit.elements;
         const inputElements = inputUnit.elements;
@@ -256,29 +258,33 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
         for (let i = 0 as StructureElement.UnitIndex, _i = srcElements.length; i < _i; i++) {
             const inputIndex = SortedArray.indexOf(inputElements, srcElements[i]) as StructureElement.UnitIndex;
 
-            queryCtx.atomicLink.aIndex = inputIndex;
-            queryCtx.atomicLink.bUnit = inputUnit;
+            atomicLink.link.aIndex = inputIndex;
+            atomicLink.link.bUnit = inputUnit;
 
             tElement.unit = unit;
             for (let l = offset[inputIndex], _l = offset[inputIndex + 1]; l < _l; l++) {
                 tElement.element = inputElements[b[l]];
                 if (!target.hasElement(tElement)) continue;
-                queryCtx.atomicLink.bIndex = b[l] as StructureElement.UnitIndex;
-                if (bondTest(queryCtx)) return true;
+                atomicLink.link.bIndex = b[l] as StructureElement.UnitIndex;
+                atomicLink.type = flags[l];
+                atomicLink.order = order[l];
+                if (linkTest(queryCtx)) return true;
             }
 
             for (let li = 0; li < luCount; li++) {
                 const lu = linkedUnits[li];
                 tElement.unit = lu.unitB;
-                queryCtx.atomicLink.bUnit = lu.unitB;
+                atomicLink.link.bUnit = lu.unitB;
                 const bElements = lu.unitB.elements;
                 const bonds = lu.getBonds(inputIndex);
                 for (let bi = 0, _bi = bonds.length; bi < _bi; bi++) {
                     const bond = bonds[bi];
                     tElement.element = bElements[bond.indexB];
                     if (!target.hasElement(tElement)) continue;
-                    queryCtx.atomicLink.bIndex = bond.indexB;
-                    if (bondTest(queryCtx)) return true;
+                    atomicLink.link.bIndex = bond.indexB;
+                    atomicLink.type = bond.flag;
+                    atomicLink.order = bond.order;
+                    if (linkTest(queryCtx)) return true;
                 }
             }
         }
@@ -290,16 +296,12 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
 export interface IsConnectedToParams {
     query: StructureQuery,
     target: StructureQuery,
-    bondTest?: QueryFn<boolean>,
+    linkTest?: QueryFn<boolean>,
     disjunct: boolean,
     invert: boolean
 }
 
-function defaultBondTest(ctx: QueryContext) {
-    return true;
-}
-
-export function isConnectedTo({ query, target, disjunct, invert, bondTest }: IsConnectedToParams): StructureQuery {
+export function isConnectedTo({ query, target, disjunct, invert, linkTest }: IsConnectedToParams): StructureQuery {
     return ctx => {
         const targetSel = target(ctx);
         if (StructureSelection.isEmpty(targetSel)) return targetSel;
@@ -310,7 +312,7 @@ export function isConnectedTo({ query, target, disjunct, invert, bondTest }: IsC
             queryCtx: ctx,
             input: ctx.inputStructure,
             target: StructureSelection.unionStructure(targetSel),
-            bondTest: bondTest || defaultBondTest,
+            linkTest: linkTest || defaultLinkTest,
             tElement: StructureElement.create()
         }
 

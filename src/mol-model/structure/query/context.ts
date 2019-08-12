@@ -8,6 +8,7 @@ import { Structure, StructureElement, Unit } from '../structure';
 import { now } from '../../../mol-util/now';
 import { ElementIndex } from '../model';
 import { Link } from '../structure/unit/links';
+import { LinkType } from '../model/types';
 
 export interface QueryContextView {
     readonly element: StructureElement;
@@ -16,7 +17,7 @@ export interface QueryContextView {
 
 export class QueryContext implements QueryContextView {
     private currentElementStack: StructureElement[] = [];
-    private currentAtomicLinkStack: Link.Location<Unit.Atomic>[] = [];
+    private currentAtomicLinkStack: QueryContextLinkInfo<Unit.Atomic>[] = [];
     private currentStructureStack: Structure[] = [];
     private inputStructureStack: Structure[] = [];
 
@@ -30,7 +31,7 @@ export class QueryContext implements QueryContextView {
     currentStructure: Structure = void 0 as any;
 
     /** Current link between atoms */
-    readonly atomicLink: Link.Location<Unit.Atomic> = Link.Location() as Link.Location<Unit.Atomic>;
+    readonly atomicLink = QueryContextLinkInfo.empty<Unit.Atomic>();
 
     setElement(unit: Unit, e: ElementIndex) {
         this.element.unit = unit;
@@ -49,13 +50,13 @@ export class QueryContext implements QueryContextView {
 
     pushCurrentLink() {
         if (this.atomicLink) this.currentAtomicLinkStack.push(this.atomicLink);
-        (this.atomicLink as Link.Location<Unit.Atomic>) = Link.Location() as Link.Location<Unit.Atomic>;
+        (this.atomicLink as QueryContextLinkInfo<Unit.Atomic>) = QueryContextLinkInfo.empty();
         return this.atomicLink;
     }
 
     popCurrentLink() {
         if (this.currentAtomicLinkStack.length > 0) {
-            (this.atomicLink as Link.Location<Unit.Atomic>) = this.currentAtomicLinkStack.pop()!;
+            (this.atomicLink as QueryContextLinkInfo<Unit.Atomic>) = this.currentAtomicLinkStack.pop()!;
         } else {
             (this.atomicLink as any) = void 0;
         }
@@ -95,3 +96,15 @@ export class QueryContext implements QueryContextView {
 
 export interface QueryPredicate { (ctx: QueryContext): boolean }
 export interface QueryFn<T = any> { (ctx: QueryContext): T }
+
+export interface QueryContextLinkInfo<U extends Unit = Unit> {
+    link: Link.Location<U>,
+    type: LinkType,
+    order: number
+}
+
+export namespace QueryContextLinkInfo {
+    export function empty<U extends Unit = Unit>(): QueryContextLinkInfo<U> {
+        return { link: Link.Location() as Link.Location<U>, type: LinkType.Flag.None, order: 0 };
+    }
+}

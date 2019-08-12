@@ -15,6 +15,7 @@ import { structureIntersect, structureSubtract } from '../utils/structure-set';
 import { UniqueArray } from '../../../../mol-data/generic';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 import StructureElement from '../../structure/element';
+import { defaultLinkTest } from './internal';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
@@ -298,13 +299,13 @@ export function expandProperty(query: StructureQuery, property: QueryFn): Struct
 
 export interface IncludeConnectedParams {
     query: StructureQuery,
-    bondTest?: QueryFn<boolean>,
+    linkTest?: QueryFn<boolean>,
     layerCount: number,
     wholeResidues: boolean
 }
 
-export function includeConnected({ query, layerCount, wholeResidues, bondTest }: IncludeConnectedParams): StructureQuery {
-    const bt = bondTest || defaultBondTest;
+export function includeConnected({ query, layerCount, wholeResidues, linkTest }: IncludeConnectedParams): StructureQuery {
+    const bt = linkTest || defaultLinkTest;
     const lc = Math.max(layerCount, 0);
     return ctx => {
         const builder = StructureSelection.UniqueBuilder(ctx.inputStructure);
@@ -323,18 +324,20 @@ export function includeConnected({ query, layerCount, wholeResidues, bondTest }:
     }
 }
 
-function includeConnectedStep(ctx: QueryContext, bondTest: QueryFn<boolean>, wholeResidues: boolean, structure: Structure) {
-    const expanded = expandConnected(ctx, structure, bondTest);
+function includeConnectedStep(ctx: QueryContext, linkTest: QueryFn<boolean>, wholeResidues: boolean, structure: Structure) {
+    const expanded = expandConnected(ctx, structure, linkTest);
     if (wholeResidues) return getWholeResidues(ctx, ctx.inputStructure, expanded);
     return expanded;
 }
 
-function expandConnected(ctx: QueryContext, structure: Structure, bondTest: QueryFn<boolean>) {
+function expandConnected(ctx: QueryContext, structure: Structure, linkTest: QueryFn<boolean>) {
     const inputStructure = ctx.inputStructure;
     const interLinks = inputStructure.links;
     const builder = new StructureUniqueSubsetBuilder(inputStructure);
 
     const processedUnits = new Set<number>();
+
+    const atomicLink = ctx.atomicLink;
 
     // Process intra unit links
     for (const unit of structure.units) {
@@ -351,22 +354,24 @@ function expandConnected(ctx: QueryContext, structure: Structure, bondTest: Quer
         }
 
         const inputUnit = inputStructure.unitMap.get(unit.id) as Unit.Atomic;
-        const { offset: intraLinkOffset, b: intraLinkB } = inputUnit.links;
+        const { offset: intraLinkOffset, b: intraLinkB, edgeProps: { flags, order } } = inputUnit.links;
 
         // Process intra unit links
-        ctx.atomicLink.aUnit = inputUnit;
-        ctx.atomicLink.bUnit = inputUnit;
+        atomicLink.link.aUnit = inputUnit;
+        atomicLink.link.bUnit = inputUnit;
         for (let i = 0, _i = unit.elements.length; i < _i; i++) {
             // add the current element
             builder.addToUnit(unit.id, unit.elements[i]);
 
             const srcIndex = SortedArray.indexOf(inputUnit.elements, unit.elements[i]);
-            ctx.atomicLink.aIndex = srcIndex as StructureElement.UnitIndex;
+            atomicLink.link.aIndex = srcIndex as StructureElement.UnitIndex;
 
             // check intra unit links
             for (let lI = intraLinkOffset[srcIndex], _lI = intraLinkOffset[srcIndex + 1]; lI < _lI; lI++) {
-                ctx.atomicLink.bIndex = intraLinkB[lI] as StructureElement.UnitIndex;
-                if (bondTest(ctx)) {
+                atomicLink.link.bIndex = intraLinkB[lI] as StructureElement.UnitIndex;
+                atomicLink.type = flags[lI];
+                atomicLink.order = order[lI];
+                if (linkTest(ctx)) {
                     builder.addToUnit(unit.id, inputUnit.elements[intraLinkB[lI]]);
                 }
             }
@@ -376,15 +381,17 @@ function expandConnected(ctx: QueryContext, structure: Structure, bondTest: Quer
         for (const linkedUnit of interLinks.getLinkedUnits(inputUnit)) {
             if (processedUnits.has(linkedUnit.unitB.id)) continue;
 
-            ctx.atomicLink.bUnit = linkedUnit.unitB;
+            atomicLink.link.bUnit = linkedUnit.unitB;
             for (const aI of linkedUnit.linkedElementIndices) {
                 // check if the element is in the expanded structure
                 if (!SortedArray.has(unit.elements, inputUnit.elements[aI])) continue;
 
-                ctx.atomicLink.aIndex = aI;
+                atomicLink.link.aIndex = aI;
                 for (const bond of linkedUnit.getBonds(aI)) {
-                    ctx.atomicLink.bIndex = bond.indexB;
-                    if (bondTest(ctx)) {
+                    atomicLink.link.bIndex = bond.indexB;
+                    atomicLink.type = bond.flag;
+                    atomicLink.order = bond.order;
+                    if (linkTest(ctx)) {
                         builder.addToUnit(linkedUnit.unitB.id, linkedUnit.unitB.elements[bond.indexB]);
                     }
                 }
@@ -393,10 +400,6 @@ function expandConnected(ctx: QueryContext, structure: Structure, bondTest: Quer
     }
 
     return builder.getStructure();
-}
-
-function defaultBondTest(ctx: QueryContext) {
-    return true;
 }
 
 // TODO: unionBy (skip this one?), cluster

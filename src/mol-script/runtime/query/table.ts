@@ -7,7 +7,7 @@
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
 import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './compiler';
 import { Queries, StructureProperties, StructureElement, QueryContext } from '../../../mol-model/structure';
-import { ElementSymbol } from '../../../mol-model/structure/model/types';
+import { ElementSymbol, LinkType } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
 import toUpperCase from '../../../mol-util/upper-case';
 import { VdwRadius, AtomWeight, AtomNumber } from '../../../mol-model/structure/model/properties/atomic';
@@ -173,9 +173,17 @@ const symbols = [
     // ============= TYPES ================
     C(MolScript.structureQuery.type.elementSymbol, (ctx, v) => ElementSymbol(v[0](ctx))),
     C(MolScript.structureQuery.type.atomName, (ctx, v) => toUpperCase(v[0](ctx))),
+    C(MolScript.structureQuery.type.linkFlags, (ctx, xs) => {
+        let ret: LinkType = LinkType.Flag.None;
+        if (typeof xs.length === 'number') {
+            for (let i = 0, _i = xs.length; i < _i; i++) ret = linkFlag(ret, xs[i](ctx));
+        } else {
+            for (const k of Object.keys(xs)) ret = linkFlag(ret, xs[k](ctx));
+        }
+        return ret;
+    }),
 
     // TODO:
-    // C(MolScript.structureQuery.type.bondFlags, (ctx, v) => StructureRuntime.BondProperties.createFlags(env, v)),
     // C(MolScript.structureQuery.type.secondaryStructureFlags, (ctx, v) => StructureRuntime.AtomProperties.createSecondaryStructureFlags(env, v)),
     // C(MolScript.structureQuery.type.entityType, (ctx, v) => StructureRuntime.Common.entityType(v[0](ctx))),
     // C(MolScript.structureQuery.type.ringFingerprint, (ctx, v) => StructureRuntime.Common.ringFingerprint(env, v as any)),
@@ -205,7 +213,7 @@ const symbols = [
         target: xs['target'] as any,
         disjunct: xs['disjunct'] as any,
         invert: xs['invert'] as any,
-        bondTest: xs['bond-test']
+        linkTest: xs['link-test']
     })(ctx)),
 
     // ============= GENERATORS ================
@@ -233,7 +241,7 @@ const symbols = [
     D(MolScript.structureQuery.modifier.exceptBy, (ctx, xs) => Queries.modifiers.exceptBy(xs[0] as any, xs['by'] as any)(ctx)),
     D(MolScript.structureQuery.modifier.includeConnected, (ctx, xs) => Queries.modifiers.includeConnected({
         query: xs[0] as any,
-        bondTest: xs['bond-test'],
+        linkTest: xs['link-test'],
         wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
         layerCount: (xs['layer-count'] && xs['layer-count'](ctx)) || 1
     })(ctx)),
@@ -308,10 +316,25 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.macromolecular.chemCompType, atomProp(StructureProperties.residue.chem_comp_type)),
 
     // ============= BOND PROPERTIES ================
+    D(MolScript.structureQuery.linkProperty.order, (ctx, xs) => ctx.atomicLink.order),
+    D(MolScript.structureQuery.linkProperty.flags, (ctx, xs) => ctx.atomicLink.type),
 ];
 
 function atomProp(p: (e: StructureElement) => any): (ctx: QueryContext, _: any) => any {
     return (ctx, _) => p(ctx.element);
+}
+
+function linkFlag(current: LinkType, f: string): LinkType {
+    switch (f.toLowerCase()) {
+        case 'covalent': return current | LinkType.Flag.Covalent;
+        case 'metallic': return current | LinkType.Flag.MetallicCoordination;
+        case 'ion': return current | LinkType.Flag.Ionic;
+        case 'hydrogen': return current | LinkType.Flag.Hydrogen;
+        case 'sulfide': return current | LinkType.Flag.Sulfide;
+        case 'aromatic': return current | LinkType.Flag.Aromatic;
+        case 'computed': return current | LinkType.Flag.Computed;
+        default: return current;
+    }
 }
 
 (function () {

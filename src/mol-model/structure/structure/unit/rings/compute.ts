@@ -153,7 +153,7 @@ function addRing(state: State, a: number, b: number) {
 
 function findRings(state: State, from: number) {
     const { bonds, startVertex, endVertex, visited, queue, pred } = state;
-    const { b: neighbor, edgeProps: { flags: bondFlags }, offset } = bonds;
+    const { b: neighbor, edgeProps: { flags: linkFlags }, offset } = bonds;
     visited[from] = 1;
     queue[0] = from;
     let head = 0, size = 1;
@@ -165,7 +165,7 @@ function findRings(state: State, from: number) {
 
         for (let i = start; i < end; i++) {
             const b = neighbor[i];
-            if (b < startVertex || b >= endVertex || !LinkType.isCovalent(bondFlags[i])) continue;
+            if (b < startVertex || b >= endVertex || !LinkType.isCovalent(linkFlags[i])) continue;
 
             const other = b - startVertex;
 

@@ -10,6 +10,12 @@ import { StructureProperties as P, Unit } from '../../structure';
 import Structure from '../../structure/structure';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
+import { QueryContext } from '../context';
+import { LinkType } from '../../model/types';
+
+export function defaultLinkTest(ctx: QueryContext) {
+    return LinkType.isCovalent(ctx.atomicLink.type);
+}
 
 export function atomicSequence(): StructureQuery {
     return ctx => {
