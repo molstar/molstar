@@ -45,5 +45,6 @@ export const CarbohydrateRepresentationProvider: StructureRepresentationProvider
     getParams: getCarbohydrateParams,
     defaultValues: PD.getDefaultValues(CarbohydrateParams),
     defaultColorTheme: 'carbohydrate-symbol',
-    defaultSizeTheme: 'uniform'
+    defaultSizeTheme: 'uniform',
+    isApplicable: (structure: Structure) => structure.carbohydrates.elements.length > 0
 }

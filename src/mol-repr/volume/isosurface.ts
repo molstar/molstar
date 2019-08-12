@@ -171,5 +171,6 @@ export const IsosurfaceRepresentationProvider: VolumeRepresentationProvider<Isos
     getParams: getIsosurfaceParams,
     defaultValues: PD.getDefaultValues(IsosurfaceParams),
     defaultColorTheme: 'uniform',
-    defaultSizeTheme: 'uniform'
+    defaultSizeTheme: 'uniform',
+    isApplicable: (volume: VolumeData) => volume.data.data.length > 0
 }

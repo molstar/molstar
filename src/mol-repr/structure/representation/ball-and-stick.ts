@@ -50,5 +50,6 @@ export const BallAndStickRepresentationProvider: StructureRepresentationProvider
     getParams: getBallAndStickParams,
     defaultValues: PD.getDefaultValues(BallAndStickParams),
     defaultColorTheme: 'element-symbol',
-    defaultSizeTheme: 'uniform'
+    defaultSizeTheme: 'uniform',
+    isApplicable: (structure: Structure) => structure.elementCount > 0
 }

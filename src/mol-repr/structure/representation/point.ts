@@ -38,5 +38,6 @@ export const PointRepresentationProvider: StructureRepresentationProvider<PointP
     getParams: getPointParams,
     defaultValues: PD.getDefaultValues(PointParams),
     defaultColorTheme: 'element-symbol',
-    defaultSizeTheme: 'physical'
+    defaultSizeTheme: 'physical',
+    isApplicable: (structure: Structure) => structure.elementCount > 0
 }

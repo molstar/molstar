@@ -39,5 +39,6 @@ export const MolecularSurfaceRepresentationProvider: StructureRepresentationProv
     getParams: getMolecularSurfaceParams,
     defaultValues: PD.getDefaultValues(MolecularSurfaceParams),
     defaultColorTheme: 'polymer-id',
-    defaultSizeTheme: 'uniform'
+    defaultSizeTheme: 'uniform',
+    isApplicable: (structure: Structure) => structure.elementCount > 0
 }

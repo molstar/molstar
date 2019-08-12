@@ -38,5 +38,6 @@ export const DistanceRestraintRepresentationProvider: StructureRepresentationPro
     getParams: getDistanceRestraintParams,
     defaultValues: PD.getDefaultValues(DistanceRestraintParams),
     defaultColorTheme: 'cross-link',
-    defaultSizeTheme: 'uniform'
+    defaultSizeTheme: 'uniform',
+    isApplicable: (structure: Structure) => structure.crossLinkRestraints.count > 0
 }

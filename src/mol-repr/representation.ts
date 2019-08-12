@@ -46,6 +46,7 @@ export interface RepresentationProvider<D, P extends PD.Params, S extends Repres
     readonly defaultValues: PD.Values<P>
     readonly defaultColorTheme: string
     readonly defaultSizeTheme: string
+    readonly isApplicable: (data: D) => boolean
 }
 
 export namespace RepresentationProvider {
@@ -66,15 +67,17 @@ export const EmptyRepresentationProvider = {
     defaultValues: {}
 }
 
+function getTypes(list: { name: string, provider: RepresentationProvider<any, any, any> }[]) {
+    return list.map(e => [e.name, e.provider.label] as [string, string]);
+}
+
 export class RepresentationRegistry<D, S extends Representation.State> {
     private _list: { name: string, provider: RepresentationProvider<D, any, any> }[] = []
     private _map = new Map<string, RepresentationProvider<D, any, any>>()
     private _name = new Map<RepresentationProvider<D, any, any>, string>()
 
     get default() { return this._list[0]; }
-    get types(): [string, string][] {
-        return this._list.map(e => [e.name, e.provider.label] as [string, string]);
-    }
+    get types(): [string, string][] { return getTypes(this._list) }
 
     constructor() {};
 
@@ -104,6 +107,14 @@ export class RepresentationRegistry<D, S extends Representation.State> {
 
     get list() {
         return this._list
+    }
+
+    getApplicableList(data: D) {
+        return this._list.filter(e => e.provider.isApplicable(data));
+    }
+
+    getApplicableTypes(data: D) {
+        return getTypes(this.getApplicableList(data))
     }
 }
 

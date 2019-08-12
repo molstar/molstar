@@ -35,5 +35,6 @@ export const GaussianVolumeRepresentationProvider: StructureRepresentationProvid
     getParams: getGaussianVolumeParams,
     defaultValues: PD.getDefaultValues(GaussianVolumeParams),
     defaultColorTheme: 'polymer-id',
-    defaultSizeTheme: 'uniform'
+    defaultSizeTheme: 'uniform',
+    isApplicable: (structure: Structure) => structure.elementCount > 0
 }
