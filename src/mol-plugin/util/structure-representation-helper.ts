@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginStateObject } from '../../mol-plugin/state/objects';
+import { PluginStateObject as PSO } from '../../mol-plugin/state/objects';
 import { StateTransforms } from '../../mol-plugin/state/transforms';
 import { StateTransformer, StateSelection, StateObjectCell, StateTransform } from '../../mol-state';
 import { StructureElement, Structure, StructureSelection, QueryContext } from '../../mol-model/structure';
@@ -13,10 +13,10 @@ import { StructureRepresentation3DHelpers } from '../state/transforms/representa
 import Expression from '../../mol-script/language/expression';
 import { compile } from '../../mol-script/runtime/query/compiler';
 
-type StructureTransform = StateObjectCell<PluginStateObject.Molecule.Structure, StateTransform<StateTransformer<any, PluginStateObject.Molecule.Structure, any>>>
+type StructureTransform = StateObjectCell<PSO.Molecule.Structure, StateTransform<StateTransformer<any, PSO.Molecule.Structure, any>>>
 const RepresentationManagerTag = 'representation-controls'
 
-function getRepresentationManagerTag(type: string) {
+export function getRepresentationManagerTag(type: string) {
     return `${RepresentationManagerTag}-${type}`
 }
 
@@ -31,19 +31,33 @@ function getCombinedLoci(mode: SelectionModifier, loci: StructureElement.Loci, c
 type SelectionModifier = 'add' | 'remove' | 'only'
 
 export class StructureRepresentationHelper {
+    getRepresentationStructure(rootRef: string, type: string) {
+        const state = this.plugin.state.dataState
+        const selections = state.select(StateSelection.Generators.ofType(PSO.Molecule.Structure, rootRef).withTag(getRepresentationManagerTag(type)));
+        return selections.length > 0 ? selections[0] : undefined
+    }
+
+    getRepresentation(rootRef: string, type: string) {
+        const reprStructure = this.getRepresentationStructure(rootRef, type)
+        if (!reprStructure) return
+        const state = this.plugin.state.dataState
+        const selections = state.select(StateSelection.Generators.ofType(PSO.Molecule.Structure.Representation3D, reprStructure.transform.ref))
+        return selections.length > 0 ? selections[0] : undefined
+    }
+
     private async _set(modifier: SelectionModifier, type: string, loci: StructureElement.Loci, structure: StructureTransform) {
         const state = this.plugin.state.dataState
-        const update = state.build();
+        const update = state.build()
         const s = structure.obj!.data
 
-        const selections = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure, structure.transform.ref).withTag(getRepresentationManagerTag(type)));
+        const reprStructure = this.getRepresentationStructure(structure.transform.ref, type)
 
-        if (selections.length > 0) {
-            const currentLoci = StructureElement.Query.toLoci(selections[0].params!.values.query, s)
+        if (reprStructure) {
+            const currentLoci = StructureElement.Query.toLoci(reprStructure.params!.values.query, s)
             const combinedLoci = getCombinedLoci(modifier, loci, currentLoci)
 
-            update.to(selections[0]).update({
-                ...selections[0].params!.values,
+            update.to(reprStructure).update({
+                ...reprStructure.params!.values,
                 query: StructureElement.Query.fromLoci(combinedLoci)
             })
         } else {
@@ -64,12 +78,12 @@ export class StructureRepresentationHelper {
                 )
         }
 
-        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));
+        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }))
     }
 
     async set(modifier: SelectionModifier, type: string, lociGetter: (structure: Structure) => StructureElement.Loci) {
         const state = this.plugin.state.dataState;
-        const structures = state.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure));
+        const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
 
         for (const structure of structures) {
             const s = structure.obj!.data
