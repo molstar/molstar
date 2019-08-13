@@ -33,7 +33,7 @@
     position: absolute;
     right: $control-spacing;
     top: $control-spacing;
-    width: 290px;
+    width: 32px;
 }
 
 .msp-viewport-controls-buttons {
@@ -66,6 +66,8 @@
     overflow-y: auto;
     max-height: 400px;
     width: 290px;
+    right: 0px;
+    position: absolute;
     background: $control-background;
 
     .msp-control-group-wrapper:first-child {
@@ -98,4 +100,3 @@
     display: inline-block;
     color: $highlight-info-additional-font-color;
 }
-

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -16,13 +16,17 @@ import { ControlGroup, IconButton } from './controls/common';
 import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Interactivity } from '../util/interactivity';
 
-interface ViewportState {
-    noWebGl: boolean
+interface ViewportControlsState {
+    isSettingsExpanded: boolean
 }
 
-export class ViewportControls extends PluginUIComponent<{}, { isSettingsExpanded: boolean }> {
+interface ViewportControlsProps {
+    hideSettingsIcon?: boolean
+}
+
+export class ViewportControls extends PluginUIComponent<ViewportControlsProps, ViewportControlsState> {
     state = {
-        isSettingsExpanded: false
+        isSettingsExpanded: false,
     }
 
     resetCamera = () => {
@@ -64,13 +68,18 @@ export class ViewportControls extends PluginUIComponent<{}, { isSettingsExpanded
         return <IconButton icon={name} toggleState={isOn} onClick={onClick} title={title} />;
     }
 
+    onMouseMove = (e: React.MouseEvent) => {
+        // ignore mouse moves when no button is held
+        if (e.buttons === 0) e.stopPropagation()
+    }
+
     render() {
-        return <div className={'msp-viewport-controls'}>
+        return <div className={'msp-viewport-controls'} onMouseMove={this.onMouseMove}>
             <div className='msp-viewport-controls-buttons'>
                 {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}<br/>
                 {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}<br/>
                 {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}<br />
-                {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}<br/>
+                {!this.props.hideSettingsIcon && this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}<br/>
             </div>
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-scene-options'>
                 <ControlGroup header='Layout' initialExpanded={true}>
@@ -85,6 +94,10 @@ export class ViewportControls extends PluginUIComponent<{}, { isSettingsExpanded
             </div>}
         </div>
     }
+}
+
+interface ViewportState {
+    noWebGl: boolean
 }
 
 export class Viewport extends PluginUIComponent<{ }, ViewportState> {

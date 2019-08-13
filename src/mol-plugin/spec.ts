@@ -20,6 +20,7 @@ interface PluginSpec {
     layout?: {
         initial?: Partial<PluginLayoutStateProps>,
         controls?: PluginSpec.LayoutControls
+        viewport?: React.ComponentClass
     }
 }
 

@@ -23,7 +23,6 @@ import { UpdateTransformControl } from './state/update-transform';
 import { SequenceView } from './sequence';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
-
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
         return <div className={`msp-layout-region msp-layout-${kind}`}>
             <div className='msp-layout-static'>
@@ -106,11 +105,12 @@ class Layout extends PluginUIComponent {
     render() {
         const layout = this.plugin.layout.state;
         const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || { };
+        const viewport = (this.plugin.spec.layout && this.plugin.spec.layout.viewport) || ViewportWrapper;
 
         return <div className='msp-plugin'>
             <div className={this.layoutClassName}>
                 <div className={this.layoutVisibilityClassName}>
-                    {this.region('main', ViewportWrapper)}
+                    {this.region('main', viewport)}
                     {layout.showControls && controls.top !== 'none' && this.region('top', controls.top || SequenceView)}
                     {layout.showControls && controls.left !== 'none' && this.region('left', controls.left || State)}
                     {layout.showControls && controls.right !== 'none' && this.region('right', controls.right || ControlsWrapper)}
