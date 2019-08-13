@@ -10,6 +10,8 @@ import { TransformData, createTransform } from '../../../../mol-geo/geometry/tra
 import { OrderedSet, SortedArray } from '../../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
 import { PhysicalSizeTheme } from '../../../../mol-theme/size/physical';
+import { AtomicNumbers, AtomNumber } from '../../../../mol-model/structure/model/properties/atomic';
+import { fillSerial } from '../../../../mol-util/array';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
@@ -95,14 +97,34 @@ export function getConformation(unit: Unit) {
     }
 }
 
-export function getUnitConformationAndRadius(unit: Unit) {
+export function getUnitConformationAndRadius(unit: Unit, ignoreHydrogens = false) {
     const conformation = getConformation(unit)
     const { elements } = unit
+
+    let indices: SortedArray<ElementIndex>
+    let id: ArrayLike<number>
+
+    if (ignoreHydrogens) {
+        const _indices = []
+        const _id = []
+        for (let i = 0, il = elements.length; i < il; ++i) {
+            if (isHydrogen(unit, elements[i])) continue
+            _indices.push(elements[i])
+            _id.push(i)
+        }
+        indices = SortedArray.ofSortedArray(_indices)
+        id = _id
+    } else {
+        indices = elements
+        id = fillSerial(new Uint32Array(indices.length))
+    }
+
     const position = {
-        indices: elements,
+        indices,
         x: conformation.x,
         y: conformation.y,
-        z: conformation.z
+        z: conformation.z,
+        id
     }
 
     const l = StructureElement.create(unit)
@@ -115,13 +137,12 @@ export function getUnitConformationAndRadius(unit: Unit) {
     return { position, radius }
 }
 
-export function getStructureConformationAndRadius(structure: Structure) {
-    const n = structure.elementCount
-
-    const xs = new Float32Array(n)
-    const ys = new Float32Array(n)
-    const zs = new Float32Array(n)
-    const rs = new Float32Array(n)
+export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens = false) {
+    const xs: number[] = []
+    const ys: number[] = []
+    const zs: number[] = []
+    const rs: number[] = []
+    const id: number[] = []
 
     const l = StructureElement.create()
     const sizeTheme = PhysicalSizeTheme({}, {})
@@ -134,17 +155,28 @@ export function getStructureConformationAndRadius(structure: Structure) {
         l.unit = unit
         for (let j = 0, jl = elements.length; j < jl; ++j) {
             const eI = elements[j]
-            xs[m + j] = x(eI)
-            ys[m + j] = y(eI)
-            zs[m + j] = z(eI)
+            if (ignoreHydrogens && isHydrogen(unit, eI)) continue
+
+            const mj = m + j
+            xs[mj] = x(eI)
+            ys[mj] = y(eI)
+            zs[mj] = z(eI)
             l.element = eI
-            rs[m + j] = sizeTheme.size(l)
+            rs[mj] = sizeTheme.size(l)
+            id[mj] = mj
         }
         m += elements.length
     }
 
-    const position = { indices: OrderedSet.ofRange(0, n), x: xs, y: ys, z: zs }
+    const position = { indices: OrderedSet.ofRange(0, m), x: xs, y: ys, z: zs, id }
     const radius = (index: number) => rs[index]
 
     return { position, radius }
+}
+
+const _H = AtomicNumbers['H']
+export function isHydrogen(unit: Unit, element: ElementIndex) {
+    if (Unit.isCoarse(unit)) return false
+    if (AtomNumber(unit.model.atomicHierarchy.atoms.type_symbol.value(element)) === _H) return true
+    return false
 }

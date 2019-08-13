@@ -169,7 +169,7 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
                                 const dd = rad - d
                                 if (dd < data[idx]) {
                                     data[idx] = dd
-                                    idData[idx] = i
+                                    idData[idx] = id[i]
                                 }
                             }
                         }
@@ -282,7 +282,7 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
                                 // Is this grid point closer to a or b?
                                 // Take dot product of atob and gridpoint->p (dx, dy, dz)
                                 const dp = dx * atob[0] + dy * atob[1] + dz * atob[2]
-                                idData[idx] = OrderedSet.indexOf(position.indices, dp < 0.0 ? b : a)
+                                idData[idx] = id[OrderedSet.indexOf(position.indices, dp < 0.0 ? b : a)]
                             }
                         }
                     }
@@ -323,7 +323,7 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
     const lookup3d = GridLookup3D(position, cellSize)
     const neighbours = lookup3d.result
     const box = lookup3d.boundary.box
-    const { indices, x: px, y: py, z: pz, radius } = position
+    const { indices, x: px, y: py, z: pz, id, radius } = position
     const n = OrderedSet.size(indices)
 
     const pad = maxRadius * 2 + resolution

@@ -59,6 +59,7 @@ export interface LinkCylinderMeshBuilderProps {
     order(edgeIndex: number): number
     flags(edgeIndex: number): LinkType
     radius(edgeIndex: number): number
+    ignore(edgeIndex: number): boolean
 }
 
 /**
@@ -66,7 +67,7 @@ export interface LinkCylinderMeshBuilderProps {
  * the half closer to the first vertex, i.e. vertex a.
  */
 export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCylinderMeshBuilderProps, props: LinkCylinderProps, mesh?: Mesh) {
-    const { linkCount, referencePosition, position, order, flags, radius } = linkBuilder
+    const { linkCount, referencePosition, position, order, flags, radius, ignore } = linkBuilder
 
     if (!linkCount) return Mesh.createEmpty(mesh)
 
@@ -87,6 +88,8 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
     }
 
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
+        if (ignore(edgeIndex)) continue
+
         position(va, vb, edgeIndex)
 
         const linkRadius = radius(edgeIndex)

@@ -19,6 +19,7 @@ export const ElementPointParams = {
     ...UnitsPointsParams,
     // sizeFactor: PD.Numeric(1.0, { min: 0, max: 10, step: 0.01 }),
     pointSizeAttenuation: PD.Boolean(false),
+    showHydrogens: PD.Boolean(true),
 }
 export type ElementPointParams = typeof ElementPointParams
 

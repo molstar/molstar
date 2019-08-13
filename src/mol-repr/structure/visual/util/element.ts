@@ -19,10 +19,12 @@ import { Theme } from '../../../../mol-theme/theme';
 import { StructureGroup } from '../../../../mol-repr/structure/units-visual';
 import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-builder';
+import { isHydrogen } from './common';
 
 export interface ElementSphereMeshProps {
     detail: number,
-    sizeFactor: number
+    sizeFactor: number,
+    ignoreHydrogens: boolean,
 }
 
 export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh): Mesh {
@@ -39,6 +41,8 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {
+        if (props.ignoreHydrogens && isHydrogen(unit, elements[i])) continue
+
         l.element = elements[i]
         pos(elements[i], v)
 
@@ -49,7 +53,9 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     return MeshBuilder.getMesh(builderState)
 }
 
-export interface ElementSphereImpostorProps { }
+export interface ElementSphereImpostorProps {
+    ignoreHydrogens: boolean,
+}
 
 export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
 
@@ -61,6 +67,8 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     const pos = unit.conformation.invariantPosition
 
     for (let i = 0; i < elementCount; i++) {
+        if (props.ignoreHydrogens && isHydrogen(unit, elements[i])) continue
+
         pos(elements[i], v)
         builder.add(v[0], v[1], v[2], i)
     }

@@ -17,11 +17,12 @@ import { VisualUpdateState } from '../../util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../mol-data/int';
+import { isHydrogen } from './util/common';
 
 function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitLinkParams>, mesh?: Mesh) {
     const links = structure.links
     const { bondCount, bonds } = links
-    const { sizeFactor, sizeAspectRatio } = props
+    const { sizeFactor, sizeAspectRatio, ignoreHydrogens } = props
 
     if (!bondCount) return Mesh.createEmpty(mesh)
 
@@ -43,7 +44,12 @@ function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structur
             location.unit = b.unitA
             location.element = b.unitA.elements[b.indexA]
             return theme.size.size(location) * sizeFactor * sizeAspectRatio
-        }
+        },
+        ignore: ignoreHydrogens ? (edgeIndex: number) => {
+            const b = bonds[edgeIndex]
+            const uA = b.unitA, uB = b.unitB
+            return isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB])
+        } : () => false
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)
@@ -54,6 +60,7 @@ export const InterUnitLinkParams = {
     ...LinkCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2/3, { min: 0, max: 3, step: 0.01 }),
+    ignoreHydrogens: PD.Boolean(false),
 }
 export type InterUnitLinkParams = typeof InterUnitLinkParams
 
@@ -70,7 +77,8 @@ export function InterUnitLinkVisual(materialId: number): ComplexVisual<InterUnit
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
                 newProps.radialSegments !== currentProps.radialSegments ||
                 newProps.linkScale !== currentProps.linkScale ||
-                newProps.linkSpacing !== currentProps.linkSpacing
+                newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens
             )
         }
     }, materialId)

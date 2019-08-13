@@ -52,7 +52,8 @@ function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structur
                 location.element = l.elementUnit.elements[l.elementIndex]
             }
             return theme.size.size(location) * linkSizeFactor
-        }
+        },
+        ignore: (edgeIndex: number) => false
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)

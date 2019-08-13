@@ -42,7 +42,8 @@ function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Struc
             location.unit = elements[l.carbohydrateIndexA].unit
             location.element = elements[l.carbohydrateIndexA].anomericCarbon
             return theme.size.size(location) * linkSizeFactor
-        }
+        },
+        ignore: (edgeIndex: number) => false
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)

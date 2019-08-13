@@ -8,9 +8,8 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
-import { GaussianDensityProps } from '../../../mol-math/geometry/gaussian-density';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
-import { computeUnitGaussianDensity, GaussianDensityParams } from './util/gaussian';
+import { computeUnitGaussianDensity, GaussianDensityParams, GaussianDensityProps } from './util/gaussian';
 import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { UnitsLinesParams, UnitsVisual, UnitsLinesVisual } from '../units-visual';
 import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
@@ -36,6 +35,7 @@ export const GaussianWireframeParams = {
     ...UnitsLinesParams,
     ...GaussianDensityParams,
     lineSizeAttenuation: PD.Boolean(false),
+    ignoreHydrogens: PD.Boolean(false),
 }
 export type GaussianWireframeParams = typeof GaussianWireframeParams
 
@@ -51,6 +51,7 @@ export function GaussianWireframeVisual(materialId: number): UnitsVisual<Gaussia
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
+            if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
         }
     }, materialId)
 }

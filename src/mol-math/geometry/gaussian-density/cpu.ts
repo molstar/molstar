@@ -15,7 +15,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const { resolution, radiusOffset, smoothness } = props
     const scaleFactor = 1 / resolution
 
-    const { indices, x, y, z } = position
+    const { indices, x, y, z, id } = position
     const n = OrderedSet.size(indices)
     const radii = new Float32Array(n)
 
@@ -100,7 +100,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
                             data[idx] += dens
                             if (dens > densData[idx]) {
                                 densData[idx] = dens
-                                idData[idx] = i
+                                idData[idx] = id[i]
                             }
                         }
                     }

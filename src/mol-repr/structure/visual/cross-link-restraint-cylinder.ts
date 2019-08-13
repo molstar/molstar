@@ -44,7 +44,8 @@ function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Str
             location.unit = b.unitA
             location.element = b.unitA.elements[b.indexA]
             return theme.size.size(location) * sizeFactor
-        }
+        },
+        ignore: () => false
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)

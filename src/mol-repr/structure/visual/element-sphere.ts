@@ -16,6 +16,7 @@ export const ElementSphereParams = {
     ...UnitsSpheresParams,
     sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
+    ignoreHydrogens: PD.Boolean(false),
 }
 export type ElementSphereParams = typeof ElementSphereParams
 
@@ -31,7 +32,9 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {
-
+            state.createGeometry = (
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens
+            )
         }
     }, materialId)
 }
@@ -46,7 +49,8 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.detail !== currentProps.detail
+                newProps.detail !== currentProps.detail ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens
             )
         }
     }, materialId)

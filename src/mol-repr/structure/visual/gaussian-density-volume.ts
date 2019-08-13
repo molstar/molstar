@@ -30,7 +30,8 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
 
 export const GaussianDensityVolumeParams = {
     ...ComplexDirectVolumeParams,
-    ...GaussianDensityTextureParams
+    ...GaussianDensityTextureParams,
+    ignoreHydrogens: PD.Boolean(false),
 }
 export type GaussianDensityVolumeParams = typeof GaussianDensityVolumeParams
 
@@ -48,6 +49,7 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
                 state.createGeometry = true
                 newProps.isoValueNorm = Math.exp(-newProps.smoothness)
             }
+            if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
         }
     }, materialId)
 }

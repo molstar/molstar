@@ -224,7 +224,7 @@ function prepareGaussianDensityData(position: PositionData, box: Box3D, radius: 
     const { resolution, radiusOffset } = props
     const scaleFactor = 1 / resolution
 
-    const { indices, x, y, z } = position
+    const { indices, x, y, z, id } = position
     const n = OrderedSet.size(indices)
 
     const positions = new Float32Array(n * 3)
@@ -242,7 +242,7 @@ function prepareGaussianDensityData(position: PositionData, box: Box3D, radius: 
         const r = radius(j) + radiusOffset
         if (maxRadius < r) maxRadius = r
         radii[i] = r
-        groups[i] = i
+        groups[i] = id[i]
     }
 
     const pad = maxRadius * 2 + resolution * 4

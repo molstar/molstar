@@ -6,12 +6,11 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual, UnitsTextureMeshVisual } from '../units-visual';
-import { GaussianDensityParams, computeUnitGaussianDensity, GaussianDensityTextureProps, computeUnitGaussianDensityTexture2d } from './util/gaussian';
+import { GaussianDensityParams, computeUnitGaussianDensity, GaussianDensityTextureProps, computeUnitGaussianDensityTexture2d, GaussianDensityProps } from './util/gaussian';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
-import { GaussianDensityProps } from '../../../mol-math/geometry/gaussian-density';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
@@ -26,6 +25,7 @@ export const GaussianSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...UnitsTextureMeshParams,
     ...GaussianDensityParams,
+    ignoreHydrogens: PD.Boolean(false),
 }
 export type GaussianSurfaceMeshParams = typeof GaussianSurfaceMeshParams
 
@@ -64,6 +64,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
+            if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
         }
     }, materialId)
 }
@@ -108,6 +109,7 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
+            if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true
         }
     }, materialId)
 }
