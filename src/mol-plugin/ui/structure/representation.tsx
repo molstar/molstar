@@ -8,11 +8,12 @@ import * as React from 'react';
 import { PluginUIComponent } from '../base';
 import { Structure, StructureElement } from '../../../mol-model/structure';
 import { isEmptyLoci } from '../../../mol-model/loci';
-import { ColorOptions } from '../controls/parameters';
+import { ColorOptions, ParameterControls } from '../controls/parameters';
 import { Color } from '../../../mol-util/color';
 import { ButtonSelect, Options } from '../controls/common';
 import { StructureSelectionQueries as Q } from '../../util/structure-selection-helper';
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 abstract class BaseStructureRepresentationControls extends PluginUIComponent {
     onChange = (value: string) => {
@@ -92,6 +93,27 @@ export class StructureRepresentationControls extends PluginUIComponent {
         ]))
     }
 
+    onChange = async (p: { param: PD.Base<any>, name: string, value: any }) => {
+        if (p.name === 'showHydrogens') {
+            await this.plugin.helpers.structureRepresentation.setIgnoreHydrogens(!p.value)
+        }
+        this.forceUpdate()
+    }
+
+    get params () {
+        const values = this.values
+        return {
+            showHydrogens: PD.Boolean(values.showHydrogens)
+        }
+    }
+
+    get values () {
+        const { structureRepresentation: rep } = this.plugin.helpers
+        return {
+            showHydrogens: !rep.ignoreHydrogens
+        }
+    }
+
     render() {
         return <div className='msp-transform-wrapper'>
             <div className='msp-transform-header'>
@@ -102,6 +124,8 @@ export class StructureRepresentationControls extends PluginUIComponent {
             </div>
             <EverythingStructureRepresentationControls />
             <SelectionStructureRepresentationControls />
+
+            <ParameterControls params={this.params} values={this.values} onChange={this.onChange} />
         </div>
     }
 }

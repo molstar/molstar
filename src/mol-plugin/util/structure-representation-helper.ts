@@ -62,20 +62,18 @@ export class StructureRepresentationHelper {
             })
         } else {
             const combinedLoci = getCombinedLoci(modifier, loci, StructureElement.Loci(s, []))
+            const params = StructureRepresentation3DHelpers.getDefaultParams(this.plugin, type as any, s)
+            if (params.type.params.ignoreHydrogens !== undefined) {
+                params.type.params.ignoreHydrogens = this._ignoreHydrogens
+            }
 
             update.to(structure.transform.ref)
                 .apply(
                     StateTransforms.Model.LociStructureSelection,
-                    {
-                        query: StructureElement.Query.fromLoci(combinedLoci),
-                        label: type
-                    },
+                    { query: StructureElement.Query.fromLoci(combinedLoci), label: type },
                     { tags: [ RepresentationManagerTag, getRepresentationManagerTag(type) ] }
                 )
-                .apply(
-                    StateTransforms.Representation.StructureRepresentation3D,
-                    StructureRepresentation3DHelpers.getDefaultParams(this.plugin, type as any, s)
-                )
+                .apply( StateTransforms.Representation.StructureRepresentation3D, params)
         }
 
         await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }))
@@ -98,6 +96,34 @@ export class StructureRepresentationHelper {
             const result = compiled(new QueryContext(structure))
             return StructureSelection.toLoci2(result)
         })
+    }
+
+    private _ignoreHydrogens = false
+    get ignoreHydrogens () { return this._ignoreHydrogens }
+    async setIgnoreHydrogens(ignoreHydrogens: boolean) {
+        if (ignoreHydrogens === this._ignoreHydrogens) return
+
+        const { registry } = this.plugin.structureRepresentation
+        const state = this.plugin.state.dataState;
+        const update = state.build()
+        const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
+
+        for (const structure of structures) {
+            for (let i = 0, il = registry.types.length; i < il; ++i) {
+                const type = registry.types[i][0]
+                const repr = this.getRepresentation(structure.transform.ref, type)
+                if (repr && repr.params && repr.params.values.type.params.ignoreHydrogens !== undefined) {
+                    const { name, params } = repr.params.values.type
+                    update.to(repr.transform.ref).update(
+                        StateTransforms.Representation.StructureRepresentation3D,
+                        props => ({ ...props, type: { name, params: { ...params, ignoreHydrogens }}})
+                    )
+                }
+            }
+        }
+        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }))
+
+        this._ignoreHydrogens = ignoreHydrogens
     }
 
     constructor(private plugin: PluginContext) {
