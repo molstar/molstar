@@ -242,7 +242,7 @@ function prepareGaussianDensityData(position: PositionData, box: Box3D, radius: 
         const r = radius(j) + radiusOffset
         if (maxRadius < r) maxRadius = r
         radii[i] = r
-        groups[i] = id[i]
+        groups[i] = id ? id[i] : i
     }
 
     const pad = maxRadius * 2 + resolution * 4

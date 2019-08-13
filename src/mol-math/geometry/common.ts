@@ -14,11 +14,12 @@ export interface PositionData {
     x: ArrayLike<number>,
     y: ArrayLike<number>,
     z: ArrayLike<number>,
-    id: ArrayLike<number>,
     /** subset of indices into the x/y/z/radius arrays */
     indices: OrderedSet,
     /** optional element radius */
-    radius?: ArrayLike<number>
+    radius?: ArrayLike<number>,
+    /** optional element id */
+    id?: ArrayLike<number>,
 }
 
 export type DensityData = {

@@ -100,7 +100,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
                             data[idx] += dens
                             if (dens > densData[idx]) {
                                 densData[idx] = dens
-                                idData[idx] = id[i]
+                                idData[idx] = id ? id[i] : i
                             }
                         }
                     }
