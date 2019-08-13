@@ -28,7 +28,14 @@ abstract class BaseStructureRepresentationControls extends PluginUIComponent {
     }
 
     hide = (value: string) => {
-        this.plugin.helpers.structureRepresentation.set('remove', value, this.lociGetter)
+        if (value === '__all__') {
+            const { types } = this.plugin.structureRepresentation.registry
+            for (let i = 0, il = types.length; i < il; ++i) {
+                this.plugin.helpers.structureRepresentation.set('remove', types[i][0], this.lociGetter)
+            }
+        } else {
+            this.plugin.helpers.structureRepresentation.set('remove', value, this.lociGetter)
+        }
     }
 
     color = (value: string) => {
@@ -49,7 +56,7 @@ abstract class BaseStructureRepresentationControls extends PluginUIComponent {
                 </ButtonSelect>
                 <ButtonSelect label='Hide' onChange={this.hide}>
                     <optgroup label='Clear'>
-                        <option key={-1} value={-1}>TODO: All</option>
+                        <option key={'__all__'} value={'__all__'}>All</option>
                     </optgroup>
                     <optgroup label='Hide'>
                         {Options(types)}
@@ -86,6 +93,7 @@ class SelectionStructureRepresentationControls extends BaseStructureRepresentati
 export class StructureRepresentationControls extends PluginUIComponent {
     preset = async () => {
         const { structureRepresentation: rep } = this.plugin.helpers
+        await rep.clear()
         await rep.setFromExpression('add', 'cartoon', Q.all)
         await rep.setFromExpression('add', 'carbohydrate', Q.all)
         await rep.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([

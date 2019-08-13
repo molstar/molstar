@@ -98,6 +98,25 @@ export class StructureRepresentationHelper {
         })
     }
 
+    async clear() {
+        const { registry } = this.plugin.structureRepresentation
+        const state = this.plugin.state.dataState;
+        const update = state.build()
+        const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
+        const query = StructureElement.Query.Empty
+
+        for (const structure of structures) {
+            for (let i = 0, il = registry.types.length; i < il; ++i) {
+                const type = registry.types[i][0]
+                const reprStructure = this.getRepresentationStructure(structure.transform.ref, type)
+                if (reprStructure) {
+                    update.to(reprStructure).update({ ...reprStructure.params!.values, query })
+                }
+            }
+        }
+        await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }))
+    }
+
     private _ignoreHydrogens = false
     get ignoreHydrogens () { return this._ignoreHydrogens }
     async setIgnoreHydrogens(ignoreHydrogens: boolean) {
