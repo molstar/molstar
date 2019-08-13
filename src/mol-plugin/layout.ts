@@ -12,7 +12,8 @@ import { PluginCommands } from './command';
 // TODO: support collapsed state control orientation
 export const PluginLayoutStateParams = {
     isExpanded: PD.Boolean(false),
-    showControls: PD.Boolean(true)
+    showControls: PD.Boolean(true),
+    outsideControls: PD.Boolean(true, { isHidden: true })
 }
 
 export type PluginLayoutStateProps = PD.Values<typeof PluginLayoutStateParams>

@@ -85,12 +85,30 @@ class Layout extends PluginUIComponent {
         return classList.join(' ')
     }
 
+    get layoutClassName() {
+        const layout = this.plugin.layout.state;
+
+        const classList: string[] = ['msp-plugin-content']
+        if (layout.isExpanded) {
+            classList.push('msp-layout-expanded')
+        } else {
+            classList.push('msp-layout-standard')
+            if (layout.outsideControls) {
+                classList.push('msp-layout-standard-outside')
+            } else {
+                classList.push('msp-layout-standard-landscape')
+            }
+        }
+
+        return classList.join(' ')
+    }
+
     render() {
         const layout = this.plugin.layout.state;
         const controls = (this.plugin.spec.layout && this.plugin.spec.layout.controls) || { };
 
         return <div className='msp-plugin'>
-            <div className={`msp-plugin-content ${layout.isExpanded ? 'msp-layout-expanded' : 'msp-layout-standard msp-layout-standard-outside'}`}>
+            <div className={this.layoutClassName}>
                 <div className={this.layoutVisibilityClassName}>
                     {this.region('main', ViewportWrapper)}
                     {layout.showControls && controls.top !== 'none' && this.region('top', controls.top || SequenceView)}
