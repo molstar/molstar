@@ -160,4 +160,21 @@ namespace StateTree {
             ch: (tree.children as ImmutableMap<any, any>).keySeq().toArray()
         });
     }
+
+    function _subtreeHasRef(tree: StateTree, root: StateTransform.Ref, ref: StateTransform.Ref) {
+        if (root === ref) return true;
+        const children = tree.children.get(root);
+        const it = children.values();
+        while (true) {
+            const next = it.next();
+            if (next.done) return false;
+            if (_subtreeHasRef(tree, next.value, ref)) return true;
+        }
+    }
+
+    /** Check if the subtree with the given root has the provided ref */
+    export function subtreeHasRef(tree: StateTree, root: StateTransform.Ref, ref: StateTransform.Ref): boolean {
+        if (!tree.transforms.has(root) || !tree.transforms.has(ref)) return false;
+        return _subtreeHasRef(tree, root, ref);
+    }
 }
