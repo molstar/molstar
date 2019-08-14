@@ -33,6 +33,7 @@ export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
 export { ModelFromTrajectory };
+export { StructureFromTrajectory };
 export { StructureFromModel };
 export { StructureAssemblyFromModel };
 export { StructureSymmetryFromModel };
@@ -158,6 +159,22 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
         const label = a.data.length === 1 ? model.entry : `${model.entry}: ${model.modelNum}`
         const description = a.data.length === 1 ? undefined : `Model ${params.modelIndex + 1} of ${a.data.length}`
         return new SO.Molecule.Model(model, { label, description });
+    }
+});
+
+type StructureFromTrajectory = typeof StructureFromTrajectory
+const StructureFromTrajectory = PluginStateTransform.BuiltIn({
+    name: 'structure-from-trajectory',
+    display: { name: 'Structure from Trajectory', description: 'Create a molecular structure from a trajectory.' },
+    from: SO.Molecule.Trajectory,
+    to: SO.Molecule.Structure
+})({
+    apply({ a }) {
+        return Task.create('Build Structure', async ctx => {
+            const s = Structure.ofTrajectory(a.data);
+            const props = { label: a.data[0].label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
+            return new SO.Molecule.Structure(s, props);
+        })
     }
 });
 

@@ -85,7 +85,7 @@ export class StructureUniqueSubsetBuilder {
             newUnits[newUnits.length] = child;
         }
 
-        return Structure.create(newUnits, this.parent, this.parent.coordinateSystem);
+        return Structure.create(newUnits, { parent: this.parent });
     }
 
     get isEmpty() {

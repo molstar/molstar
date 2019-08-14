@@ -39,7 +39,7 @@ export function first(query: StructureQuery): StructureQuery {
         if (sel.kind === 'singletons') {
             if (sel.structure.elementCount > 0) {
                 const u = sel.structure.units[0];
-                const s = Structure.create([u.getChild(SortedArray.ofSingleton(u.elements[0]))], ctx.inputStructure);
+                const s = Structure.create([u.getChild(SortedArray.ofSingleton(u.elements[0]))], { parent: ctx.inputStructure });
                 ret.add(s);
             }
         } else {

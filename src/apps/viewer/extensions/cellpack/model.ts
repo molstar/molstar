@@ -71,7 +71,7 @@ function getTransforms(results: Ingredient['results']) {
 }
 
 function getAssembly(transforms: Mat4[], structure: Structure) {
-    const builder = Structure.Builder(void 0, void 0)
+    const builder = Structure.Builder()
     const { units } = structure;
 
     for (let i = 0, il = transforms.length; i < il; ++i) {
@@ -115,7 +115,7 @@ export function createStructureFromCellPack(ingredients: Packing['ingredients'],
             if (s) structures.push(s)
         }
 
-        const builder = Structure.Builder(void 0, void 0)
+        const builder = Structure.Builder()
         let offsetInvariantId = 0
         for (const s of structures) {
             let maxInvariantId = 0

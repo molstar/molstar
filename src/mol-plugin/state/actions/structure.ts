@@ -199,9 +199,9 @@ function createSingleTrajectoryModel(sources: StateTransformer.Params<Download>[
         .apply(StateTransforms.Data.DownloadBlob, {
             sources: sources.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
             maxConcurrency: 6
-        }).apply(StateTransforms.Data.ParseBlob, {
+        }, { state: { isGhost: true } }).apply(StateTransforms.Data.ParseBlob, {
             formats: sources.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' }))
-        })
+        }, { state: { isGhost: true } })
         .apply(StateTransforms.Model.TrajectoryFromBlob)
         .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }
@@ -211,13 +211,13 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
     switch (format) {
         case 'cif':
             parsed = b.apply(StateTransforms.Data.ParseCif, void 0, { state: { isGhost: true } })
-                .apply(StateTransforms.Model.TrajectoryFromMmCif, void 0, { state: { isGhost: true } })
+                .apply(StateTransforms.Model.TrajectoryFromMmCif)
             break
         case 'pdb':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB, void 0, { state: { isGhost: true } });
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromPDB);
             break
         case 'gro':
-            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO, void 0, { state: { isGhost: true } });
+            parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO);
             break
         default:
             throw new Error('unsupported format')

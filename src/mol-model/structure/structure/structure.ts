@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -44,6 +44,8 @@ class Structure {
         carbohydrates?: Carbohydrates,
         models?: ReadonlyArray<Model>,
         model?: Model,
+        masterModel?: Model,
+        representativeModel?: Model,
         uniqueResidueNames?: Set<string>,
         entityIndices?: ReadonlyArray<EntityIndex>,
         uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
@@ -205,13 +207,28 @@ class Structure {
             || (this._props.uniqueAtomicResidueIndices = getUniqueAtomicResidueIndices(this));
     }
 
-    /** If the structure is based on a single model, return it. Otherwise throw an exception. */
+    /**
+     * If the structure is based on a single model or has a master-/representative-model, return it.
+     * Otherwise throw an exception.
+     */
     get model(): Model {
         if (this._props.model) return this._props.model;
+        if (this._props.representativeModel) return this._props.representativeModel;
+        if (this._props.masterModel) return this._props.masterModel;
         const models = this.models;
-        if (models.length > 1) throw new Error('The structre is based on multiple models.');
+        if (models.length > 1) {
+            throw new Error('The structure is based on multiple models and has neither a master- nor a representative-model.');
+        }
         this._props.model = models[0];
         return this._props.model;
+    }
+
+    get masterModel(): Model | undefined {
+        return this._props.masterModel
+    }
+
+    get representativeModel(): Model | undefined {
+        return this._props.representativeModel
     }
 
     hasElement(e: StructureElement) {
@@ -243,12 +260,19 @@ class Structure {
         return map;
     }
 
-    constructor(units: ArrayLike<Unit>, parent: Structure | undefined, coordinateSystem?: SymmetryOperator) {
+    constructor(units: ArrayLike<Unit>, props: Structure.Props = {}) {
         this.unitMap = this.initUnits(units);
         this.units = units as ReadonlyArray<Unit>;
-        if (parent) this._props.parent = parent.parent || parent;
-        if (coordinateSystem) this._props.coordinateSystem = coordinateSystem;
-        else if (parent) this._props.coordinateSystem = parent.coordinateSystem;
+        if (props.parent) this._props.parent = props.parent.parent || props.parent;
+
+        if (props.coordinateSystem) this._props.coordinateSystem = props.coordinateSystem;
+        else if (props.parent) this._props.coordinateSystem = props.parent.coordinateSystem;
+
+        if (props.masterModel) this._props.masterModel = props.masterModel;
+        else if (props.parent) this._props.masterModel = props.parent.masterModel;
+
+        if (props.representativeModel) this._props.representativeModel = props.representativeModel;
+        else if (props.parent) this._props.representativeModel = props.parent.representativeModel;
     }
 }
 
@@ -339,7 +363,16 @@ function getUniqueAtomicResidueIndices(structure: Structure): ReadonlyMap<UUID, 
 }
 
 namespace Structure {
-    export const Empty = new Structure([], void 0, void 0);
+    export const Empty = new Structure([]);
+
+    export interface Props {
+        parent?: Structure
+        coordinateSystem?: SymmetryOperator
+        /** Master model for structures of a protein model and multiple ligand models */
+        masterModel?: Model
+        /** Representative model for structures of a model trajectory */
+        representativeModel?: Model
+    }
 
     /** Represents a single structure */
     export interface Loci {
@@ -366,8 +399,28 @@ namespace Structure {
         return a.structure === b.structure
     }
 
-    export function create(units: ReadonlyArray<Unit>, parent: Structure | undefined, coordinateSystem?: SymmetryOperator): Structure {
-        return new Structure(units, parent, coordinateSystem);
+    export function create(units: ReadonlyArray<Unit>, props?: Props): Structure {
+        return new Structure(units, props);
+    }
+
+    export function ofTrajectory(trajectory: ReadonlyArray<Model>): Structure {
+        if (trajectory.length === 0) return Empty
+
+        const units: Unit[] = [];
+
+        let count = 0
+        for (let i = 0, il = trajectory.length; i < il; ++i) {
+            const structure = ofModel(trajectory[i])
+            for (let j = 0, jl = structure.units.length; j < jl; ++j) {
+                const u = structure.units[j]
+                const invariantId = u.invariantId + count
+                const newUnit = Unit.create(units.length, invariantId, u.kind, u.model, u.conformation.operator, u.elements)
+                units.push(newUnit)
+            }
+            count = units.length
+        }
+
+        return create(units, { representativeModel: trajectory[0] });
     }
 
     /**
@@ -378,7 +431,7 @@ namespace Structure {
      */
     export function ofModel(model: Model): Structure {
         const chains = model.atomicHierarchy.chainAtomSegments;
-        const builder = new StructureBuilder(void 0, void 0);
+        const builder = new StructureBuilder();
 
         for (let c = 0 as ChainIndex; c < chains.count; c++) {
             const start = chains.offsets[c];
@@ -496,7 +549,7 @@ namespace Structure {
 
         const cs = s.coordinateSystem;
         const newCS = SymmetryOperator.compose(SymmetryOperator.create(cs.name, transform, cs.assembly, cs.ncsId, cs.hkl), cs);
-        return new Structure(units, s, newCS);
+        return new Structure(units, { parent: s, coordinateSystem: newCS });
     }
 
     export class StructureBuilder {
@@ -517,20 +570,20 @@ namespace Structure {
         }
 
         getStructure(): Structure {
-            return create(this.units, this.parent, this.coordinateSystem);
+            return create(this.units, this.props);
         }
 
         get isEmpty() {
             return this.units.length === 0;
         }
 
-        constructor(private parent: Structure | undefined, private coordinateSystem: SymmetryOperator | undefined) {
+        constructor(private props: Props = {}) {
 
         }
     }
 
-    export function Builder(parent: Structure | undefined, coordinateSystem: SymmetryOperator | undefined) {
-        return new StructureBuilder(parent, coordinateSystem);
+    export function Builder(props: Props = {}) {
+        return new StructureBuilder(props);
     }
 
     export function hashCode(s: Structure) {

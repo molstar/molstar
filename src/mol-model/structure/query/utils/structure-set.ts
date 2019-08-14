@@ -80,7 +80,7 @@ export function structureIntersect(sA: Structure, sB: Structure): Structure {
         }
     }
 
-    return Structure.create(units, sA.parent || sB.parent);
+    return Structure.create(units, { parent: sA.parent || sB.parent });
 }
 
 export function structureSubtract(a: Structure, b: Structure): Structure {
@@ -103,5 +103,5 @@ export function structureSubtract(a: Structure, b: Structure): Structure {
         }
     }
 
-    return Structure.create(units, a.parent || b.parent);
+    return Structure.create(units, { parent: a.parent || b.parent });
 }

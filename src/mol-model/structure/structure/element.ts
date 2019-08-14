@@ -651,7 +651,7 @@ namespace StructureElement {
                     }
                 }
             }
-            return Structure.create(units, parent)
+            return Structure.create(units, { parent })
         }
 
         export function areEqual(a: Query, b: Query) {

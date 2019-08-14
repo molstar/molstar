@@ -90,7 +90,7 @@ export class StructureSubsetBuilder {
             newUnits[newUnits.length] = child;
         }
 
-        return Structure.create(newUnits, this.parent);
+        return Structure.create(newUnits, { parent: this.parent });
     }
 
     getStructure() {

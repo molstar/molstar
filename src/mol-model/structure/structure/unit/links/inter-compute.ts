@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { LinkType } from '../../../model/types';
@@ -152,10 +153,15 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
     return bondCount;
 }
 
-function findLinks(structure: Structure, params: LinkComputationParameters) {
+export interface InterLinkComputationParameters extends LinkComputationParameters {
+    validUnitPair: (unitA: Unit, unitB: Unit) => boolean
+}
+
+function findLinks(structure: Structure, params: InterLinkComputationParameters) {
     const map = new Map<number, InterUnitBonds.UnitPairBonds[]>();
     if (!structure.units.some(u => Unit.isAtomic(u))) return new InterUnitBonds(map);
 
+    const { validUnitPair } = params;
     const lookup = structure.lookup3d;
     const imageCenter = Vec3.zero();
 
@@ -167,7 +173,7 @@ function findLinks(structure: Structure, params: LinkComputationParameters) {
         const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + MAX_RADIUS);
         for (let i = 0; i < closeUnits.count; i++) {
             const other = structure.units[closeUnits.indices[i]];
-            if (!Unit.isAtomic(other) || unit.id >= other.id) continue;
+            if (!Unit.isAtomic(other) || unit.id >= other.id || !validUnitPair(unit, other)) continue;
 
             if (other.elements.length >= unit.elements.length) findPairLinks(unit, other, params, map);
             else findPairLinks(other, unit, params, map);
@@ -177,10 +183,20 @@ function findLinks(structure: Structure, params: LinkComputationParameters) {
     return new InterUnitBonds(map);
 }
 
-function computeInterUnitBonds(structure: Structure, params?: Partial<LinkComputationParameters>): InterUnitBonds {
+function ValidUnitPair(structure: Structure) {
+    const { masterModel } = structure
+    if (masterModel) {
+        return (a: Unit, b: Unit) => a.model === b.model || a.model === masterModel || b.model === masterModel
+    } else {
+        return (a: Unit, b: Unit) => a.model === b.model
+    }
+}
+
+function computeInterUnitBonds(structure: Structure, params?: Partial<InterLinkComputationParameters>): InterUnitBonds {
     return findLinks(structure, {
         maxHbondLength: (params && params.maxHbondLength) || 1.15,
         forceCompute: !!(params && params.forceCompute),
+        validUnitPair: (params && params.validUnitPair) || ValidUnitPair(structure),
     });
 }
 

@@ -220,7 +220,7 @@ function atomGroupsGrouped({ unitTest, entityTest, chainTest, residueTest, atomT
 function getRingStructure(unit: Unit.Atomic, ring: UnitRing, inputStructure: Structure) {
     const elements = new Int32Array(ring.length) as any as ElementIndex[];
     for (let i = 0, _i = ring.length; i < _i; i++) elements[i] = unit.elements[ring[i]];
-    return Structure.create([unit.getChild(SortedArray.ofSortedArray(elements))], inputStructure);
+    return Structure.create([unit.getChild(SortedArray.ofSortedArray(elements))], { parent: inputStructure });
 }
 
 export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): StructureQuery {
