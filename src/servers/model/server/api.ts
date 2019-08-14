@@ -13,8 +13,7 @@ export enum QueryParamType {
     JSON,
     String,
     Integer,
-    Float,
-    Boolean
+    Float
 }
 
 export interface QueryParamInfo<T extends string | number = string | number> {
@@ -139,7 +138,8 @@ const QueryMap = {
         structureTransform(p, s) {
             return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
         },
-        jsonParams: [ RadiusParam ]
+        jsonParams: [ RadiusParam ],
+        filter: QuerySchemas.assembly
     }),
     'assembly': Q<{ name: string }>({
         niceName: 'Assembly',
@@ -154,7 +154,8 @@ const QueryMap = {
             defaultValue: '1',
             exampleValues: ['1'],
             description: 'Assembly name.'
-        }]
+        }],
+        filter: QuerySchemas.assembly
     }),
     'residueInteraction': Q<AtomSiteSchema & { radius: number }>({
         niceName: 'Residue Interaction',

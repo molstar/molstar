@@ -46,5 +46,9 @@ export const QuerySchemas = {
     interaction: <CifWriter.Category.Filter>{
         includeCategory(name) { return InteractionCategories.has(name); },
         includeField(cat, field) { return true; }
+    },
+    assembly: <CifWriter.Category.Filter>{
+        includeCategory(name) { return AssemblyCategories.has(name); },
+        includeField(cat, field) { return true; }
     }
 }

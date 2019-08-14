@@ -12,8 +12,9 @@ import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
 import { JobManager } from './jobs';
 import { UUID } from '../../../mol-util';
-import { LandingPage } from './landing';
 import { QueryDefinition, normalizeRestQueryParams, normalizeRestCommonParams, QueryList } from './api';
+import { getApiSchema, shortcutIconLink } from './api-schema';
+import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '../../common/swagger-ui';
 
 function makePath(p: string) {
     return Config.appPrefix + '/' + p;
@@ -85,8 +86,8 @@ async function processNextJob() {
 }
 
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
-    app.get(makePath('api/v1/:id/' + queryName), (req, res) => {
-        console.log({ queryName, params: req.params, query: req.query });
+    app.get(makePath('v1/:id/' + queryName), (req, res) => {
+        // console.log({ queryName, params: req.params, query: req.query });
         const entryId = req.params.id;
         const queryParams = normalizeRestQueryParams(queryDefinition, req.query);
         const commonParams = normalizeRestCommonParams(req.query);
@@ -131,7 +132,7 @@ export function initWebApi(app: express.Express) {
         });
     })
 
-    // app.get(makePath('api/v1/json'), (req, res) => {
+    // app.get(makePath('v1/json'), (req, res) => {
     //     const query = /\?(.*)$/.exec(req.url)![1];
     //     const args = JSON.parse(decodeURIComponent(query));
     //     const name = args.name;
@@ -152,7 +153,26 @@ export function initWebApi(app: express.Express) {
         mapQuery(app, q.name, q.definition);
     }
 
-    app.get('*', (req, res) => {
-        res.send(LandingPage);
+    const schema = getApiSchema();
+
+    app.get(makePath('openapi.json'), (req, res) => {
+        res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'X-Requested-With'
+        });
+        res.end(JSON.stringify(schema));
     });
+
+    app.use(makePath(''), swaggerUiAssetsHandler());
+    app.get(makePath(''), swaggerUiIndexHandler({
+        openapiJsonUrl: makePath('openapi.json'),
+        apiPrefix: Config.appPrefix,
+        title: 'ModelServer API',
+        shortcutIconLink
+    }));
+
+    // app.get('*', (req, res) => {
+    //     res.send(LandingPage);
+    // });
 }
