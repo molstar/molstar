@@ -7,6 +7,7 @@
 import { QueryPredicate, StructureElement, StructureProperties as Props } from '../../../mol-model/structure';
 import { AtomsQueryParams } from '../../../mol-model/structure/query/queries/generators';
 import { AtomSiteSchema, AtomSiteSchemaElement } from '../server/api';
+import { ElementSymbol } from '../../../mol-model/structure/model/types';
 
 export function getAtomsTests(params: AtomSiteSchema): Partial<AtomsQueryParams>[] {
     if (!params) return [{ }];
@@ -86,17 +87,17 @@ function atomTest(params: AtomSiteSchemaElement): QueryPredicate | undefined {
 
     if (typeof params.label_atom_id !== 'undefined') {
         props.push(Props.atom.label_atom_id);
-        values.push(+params.label_atom_id);
+        values.push(params.label_atom_id);
     }
 
     if (typeof params.auth_atom_id !== 'undefined') {
         props.push(Props.atom.auth_atom_id);
-        values.push(+params.auth_atom_id);
+        values.push(params.auth_atom_id);
     }
 
     if (typeof params.type_symbol !== 'undefined') {
         props.push(Props.atom.type_symbol);
-        values.push(+params.type_symbol);
+        values.push(ElementSymbol(params.type_symbol));
     }
 
     return andEqual(props, values);

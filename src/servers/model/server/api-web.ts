@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -13,6 +13,7 @@ import { resolveJob } from './query';
 import { JobManager } from './jobs';
 import { UUID } from '../../../mol-util';
 import { LandingPage } from './landing';
+import { QueryDefinition, normalizeRestQueryParams, normalizeRestCommonParams, QueryList } from './api';
 
 function makePath(p: string) {
     return Config.appPrefix + '/' + p;
@@ -83,21 +84,23 @@ async function processNextJob() {
     }
 }
 
-// function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
-//     app.get(makePath(':entryId/' + queryName), (req, res) => {
-//         ConsoleLogger.log('Server', `Query '${req.params.entryId}/${queryName}'...`);
-
-//         if (JobManager.size >= Config.maxQueueLength) {
-//             res.status(503).send('Too many queries, please try again later.');
-//             res.end();
-//             return;
-//         }
-
-//         const jobId = JobManager.add('pdb', req.params.entryId, queryName, req.query);
-//         responseMap.set(jobId, res);
-//         if (JobManager.size === 1) processNextJob();
-//     });
-// }
+function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
+    app.get(makePath('api/v1/:id/' + queryName), (req, res) => {
+        console.log({ queryName, params: req.params, query: req.query });
+        const entryId = req.params.id;
+        const queryParams = normalizeRestQueryParams(queryDefinition, req.query);
+        const commonParams = normalizeRestCommonParams(req.query);
+        const jobId = JobManager.add({
+            sourceId: commonParams.data_source || 'pdb',
+            entryId,
+            queryName: queryName as any,
+            queryParams,
+            options: { modelNums: commonParams.model_nums, binary: commonParams.encoding === 'bcif' }
+        });
+        responseMap.set(jobId, res);
+        if (JobManager.size === 1) processNextJob();
+    });
+}
 
 export function initWebApi(app: express.Express) {
     app.get(makePath('static/:format/:id'), async (req, res) => {
@@ -128,28 +131,28 @@ export function initWebApi(app: express.Express) {
         });
     })
 
-    app.get(makePath('api/v1'), (req, res) => {
-        const query = /\?(.*)$/.exec(req.url)![1];
-        const args = JSON.parse(decodeURIComponent(query));
-        const name = args.name;
-        const entryId = args.id;
-        const queryParams = args.params || { };
-        const jobId = JobManager.add({
-            sourceId: 'pdb',
-            entryId,
-            queryName: name,
-            queryParams,
-            options: { modelNums: args.modelNums, binary: args.binary }
-        });
-        responseMap.set(jobId, res);
-        if (JobManager.size === 1) processNextJob();
-    });
+    // app.get(makePath('api/v1/json'), (req, res) => {
+    //     const query = /\?(.*)$/.exec(req.url)![1];
+    //     const args = JSON.parse(decodeURIComponent(query));
+    //     const name = args.name;
+    //     const entryId = args.id;
+    //     const queryParams = args.params || { };
+    //     const jobId = JobManager.add({
+    //         sourceId: 'pdb',
+    //         entryId,
+    //         queryName: name,
+    //         queryParams,
+    //         options: { modelNums: args.modelNums, binary: args.binary }
+    //     });
+    //     responseMap.set(jobId, res);
+    //     if (JobManager.size === 1) processNextJob();
+    // });
+
+    for (const q of QueryList) {
+        mapQuery(app, q.name, q.definition);
+    }
 
     app.get('*', (req, res) => {
         res.send(LandingPage);
     });
-
-    // for (const q of QueryList) {
-    //     mapQuery(app, q.name, q.definition);
-    // }
 }

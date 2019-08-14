@@ -4,8 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ModelPropertyProviderConfig } from './property-provider';
-
 const config = {
     /**
      * Determine if and how long to cache entries after a request.
@@ -52,11 +50,11 @@ const config = {
     /**
      * Provide a property config or a path a JSON file with the config.
      */
-    customProperties: <ModelPropertyProviderConfig | string>{
+    customProperties: <import('./property-provider').ModelPropertyProviderConfig | string>{
         sources: [
-            'pdbe',
-            'rcsb',
-            'wwpdb'
+            // 'pdbe',
+            // 'rcsb',
+            // 'wwpdb'
         ],
         params: {
             PDBe: {
@@ -91,10 +89,10 @@ const config = {
      */
     mapFile(source: string, id: string) {
         switch (source.toLowerCase()) {
-            // case 'pdb': return `e:/test/quick/${id}_updated.cif`;
-            case 'pdb': return `e:/test/mol-star/model/out/${id}_updated.bcif`;
-            case 'pdb-bcif': return `c:/test/mol-star/model/out/${id}_updated.bcif`;
-            case 'pdb-cif': return `c:/test/mol-star/model/out/${id}_updated.cif`;
+            case 'pdb': return `e:/test/quick/${id}_updated.cif`;
+            // case 'pdb': return `e:/test/mol-star/model/out/${id}_updated.bcif`;
+            // case 'pdb-bcif': return `c:/test/mol-star/model/out/${id}_updated.bcif`;
+            // case 'pdb-cif': return `c:/test/mol-star/model/out/${id}_updated.cif`;
             default: return void 0;
         }
     }

@@ -112,7 +112,7 @@ const state: State = {
 
 function formatParams(def: QueryDefinition) {
     const prms = Object.create(null);
-    for (const p of def.params) {
+    for (const p of def.jsonParams) {
         prms[p.name] = p.exampleValues ? p.exampleValues[0] : void 0;
     }
     return JSON.stringify(prms, void 0, 2);

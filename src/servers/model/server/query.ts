@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -22,7 +22,8 @@ import { createModelPropertiesProviderFromConfig, ModelPropertiesProvider } from
 export interface Stats {
     structure: StructureWrapper,
     queryTimeMs: number,
-    encodeTimeMs: number
+    encodeTimeMs: number,
+    resultSize: number
 }
 
 const perf = new PerformanceMonitor();
@@ -56,7 +57,8 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         const queries = structures.map(s => job.queryDefinition.query(job.normalizedParams, s));
         const result: Structure[] = [];
         for (let i = 0; i < structures.length; i++) {
-            result.push(await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], Config.maxQueryTimeInMs)));
+            const s = await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], Config.maxQueryTimeInMs))
+            if (s.elementCount > 0) result.push(s);
         }
         perf.end('query');
 
@@ -74,15 +76,16 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         encoder.writeCategory(_model_server_result, job);
         encoder.writeCategory(_model_server_params, job);
 
-        // encoder.setFilter(mmCIF_Export_Filters.onlyPositions);
-        encode_mmCIF_categories(encoder, result);
-        // encoder.setFilter();
+        if (job.queryDefinition.filter) encoder.setFilter(job.queryDefinition.filter);
+        if (result.length > 0) encode_mmCIF_categories(encoder, result);
+        if (job.queryDefinition.filter) encoder.setFilter();
         perf.end('encode');
 
         const stats: Stats = {
             structure: wrappedStructure,
             queryTimeMs: perf.time('query'),
-            encodeTimeMs: perf.time('encode')
+            encodeTimeMs: perf.time('encode'),
+            resultSize: result.reduce((n, s) => n + s.elementCount, 0)
         };
 
         encoder.writeCategory(_model_server_stats, stats);
@@ -151,7 +154,8 @@ const _model_server_stats_fields: CifField<number, Stats>[] = [
     // int32<Stats>('attach_props_time_ms', ctx => ctx.structure.info.attachPropsTime | 0),
     int32<Stats>('create_model_time_ms', ctx => ctx.structure.info.createModelTime | 0),
     int32<Stats>('query_time_ms', ctx => ctx.queryTimeMs | 0),
-    int32<Stats>('encode_time_ms', ctx => ctx.encodeTimeMs | 0)
+    int32<Stats>('encode_time_ms', ctx => ctx.encodeTimeMs | 0),
+    int32<Stats>('element_count', ctx => ctx.resultSize | 0),
 ];
 
 const _model_server_result: CifWriter.Category<Job> = {

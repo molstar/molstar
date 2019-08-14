@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { UUID } from '../../../mol-util';
-import { getQueryByName, normalizeQueryParams, QueryDefinition, QueryName, QueryParams } from './api';
+import { getQueryByName, QueryDefinition, QueryName, QueryParams } from './api';
 import { LinkedList } from '../../../mol-data/generic';
 
 export interface ResponseFormat {
@@ -40,7 +40,7 @@ export function createJob<Name extends QueryName>(definition: JobDefinition<Name
     const queryDefinition = getQueryByName(definition.queryName);
     if (!queryDefinition) throw new Error(`Query '${definition.queryName}' is not supported.`);
 
-    const normalizedParams = normalizeQueryParams(queryDefinition, definition.queryParams);
+    const normalizedParams = definition.queryParams;
     const sourceId = definition.sourceId || '_local_';
     return {
         id: UUID.create22(),
