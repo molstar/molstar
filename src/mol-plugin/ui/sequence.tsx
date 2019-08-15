@@ -7,8 +7,7 @@
 
 import * as React from 'react'
 import { PluginUIComponent } from './base';
-import { StateTreeSpine } from '../../mol-state/tree/spine';
-import { PluginStateObject as SO } from '../state/objects';
+import { PluginStateObject as PSO } from '../state/objects';
 import { Sequence } from './sequence/sequence';
 import { Structure, StructureElement, StructureProperties as SP, Unit } from '../../mol-model/structure';
 import { SequenceWrapper } from './sequence/wrapper';
@@ -18,6 +17,8 @@ import { MarkerAction } from '../../mol-util/marker-action';
 import { ParameterControls } from './controls/parameters';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { HeteroSequenceWrapper } from './sequence/hetero';
+import { State, StateSelection } from '../../mol-state';
+import { StateTreeSpine } from '../../mol-state/tree/spine';
 
 function opKey(l: StructureElement) {
     const ids = SP.unit.pdbx_struct_oper_list_ids(l)
@@ -120,37 +121,48 @@ function getOperatorOptions(structure: Structure, entityId: string, invariantUni
     return options
 }
 
-type SequenceViewState = { structure: Structure, entityId: string, invariantUnitId: number, operatorKey: string }
+function getStructureOptions(state: State) {
+    const options: [string, string][] = []
+
+    const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
+    for (const s of structures) {
+        options.push([s.transform.ref, s.obj!.data.models[0].sourceData.data.struct.title.value(0)])
+    }
+
+    if (options.length === 0) options.push(['', 'No structure'])
+    return options
+}
+
+type SequenceViewState = {
+    structure: Structure,
+    structureRef: string,
+    entityId: string,
+    invariantUnitId: number,
+    operatorKey: string
+}
 
 export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
-    private spine: StateTreeSpine.Impl
-
-    state = { structure: Structure.Empty, entityId: '', invariantUnitId: -1, operatorKey: '' }
-
-    constructor(props: {}, context?: any) {
-        super(props, context);
-        this.spine = new StateTreeSpine.Impl(this.plugin.state.dataState.cells);
-    }
+    state = { structure: Structure.Empty, structureRef: '', entityId: '', invariantUnitId: -1, operatorKey: '' }
 
     componentDidMount() {
-        this.subscribe(this.plugin.state.behavior.currentObject, o => {
-            const current = this.plugin.state.dataState.cells.get(o.ref)!;
-            this.spine.current = current
-            if (!Structure.areParentsEqual(this.state.structure, this.getStructure())) {
-                this.setState(this.getInitialState())
-            }
-        });
+        if (this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState())
 
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
-            const current = this.spine.current;
-            if (!current || current.sourceRef !== ref) return;
-            this.setState(this.getInitialState())
+            const s = StateTreeSpine.getRootOfType(state, PSO.Molecule.Structure, ref)
+            if (s && s.data !== this.state.structure) this.setState(this.getInitialState())
+        });
+
+        this.subscribe(this.plugin.events.state.object.created, ({ ref, state }) => {
+            const s = StateTreeSpine.getRootOfType(state, PSO.Molecule.Structure, ref)
+            if (s && s.data !== this.state.structure) this.setState(this.getInitialState())
         });
     }
 
-    private getStructure() {
-        const so = this.spine.getRootOfType(SO.Molecule.Structure)
-        return (so && so.data) || Structure.Empty
+    private getStructure(ref: string) {
+        const state = this.plugin.state.dataState;
+        const cell = state.select(ref)[0];
+        if (!ref || !cell || !cell.obj) return Structure.Empty;
+        return (cell.obj as PSO.Molecule.Structure).data;
     }
 
     private getSequenceWrapper() {
@@ -158,27 +170,31 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     private getInitialState(): SequenceViewState {
-        const structure = this.getStructure()
+        const structureRef = getStructureOptions(this.plugin.state.dataState)[0][0]
+        const structure = this.getStructure(structureRef)
         const entityId = getEntityOptions(structure)[0][0]
         const invariantUnitId = getUnitOptions(structure, entityId)[0][0]
         const operatorKey = getOperatorOptions(structure, entityId, invariantUnitId)[0][0]
-        return { structure, entityId, invariantUnitId, operatorKey }
+        return { structure, structureRef, entityId, invariantUnitId, operatorKey }
     }
 
     private get params() {
         const { structure, entityId, invariantUnitId } = this.state
+        const structureOptions = getStructureOptions(this.plugin.state.dataState)
         const entityOptions = getEntityOptions(structure)
         const unitOptions = getUnitOptions(structure, entityId)
         const operatorOptions = getOperatorOptions(structure, entityId, invariantUnitId)
         return {
-            entity: PD.Select(entityOptions[0][0], entityOptions),
-            unit: PD.Select(unitOptions[0][0], unitOptions),
-            operator: PD.Select(operatorOptions[0][0], operatorOptions)
+            structure: PD.Select(structureOptions[0][0], structureOptions, { shortLabel: true }),
+            entity: PD.Select(entityOptions[0][0], entityOptions, { shortLabel: true }),
+            unit: PD.Select(unitOptions[0][0], unitOptions, { shortLabel: true, twoColumns: true }),
+            operator: PD.Select(operatorOptions[0][0], operatorOptions, { shortLabel: true, twoColumns: true })
         }
     }
 
     private get values(): PD.Values<SequenceView['params']> {
         return {
+            structure: this.state.structureRef,
             entity: this.state.entityId,
             unit: this.state.invariantUnitId,
             operator: this.state.operatorKey
@@ -188,7 +204,12 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     // TODO try to use selected option from previous state
     private setParamProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         const state = { ...this.state }
+        console.log(p.name, p.value)
         switch (p.name) {
+            case 'structure':
+                state.structureRef = p.value
+                state.structure = this.getStructure(p.value)
+                break
             case 'entity':
                 state.entityId = p.value
                 state.invariantUnitId = getUnitOptions(state.structure, state.entityId)[0][0]
@@ -206,18 +227,17 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     render() {
-        if (this.state.structure === Structure.Empty) return <div className='msp-sequence'>
+        if (this.getStructure(this.state.structureRef) === Structure.Empty) return <div className='msp-sequence'>
             <div className='msp-sequence-wrapper'>No structure available</div>
         </div>;
 
         const sequenceWrapper = this.getSequenceWrapper()
 
-        sequenceWrapper
-
         return <div className='msp-sequence'>
             <div className='msp-sequence-select'>
                 <ParameterControls params={this.params} values={this.values} onChange={this.setParamProps} />
             </div>
+
             {sequenceWrapper !== undefined
                 ? (sequenceWrapper.length <= 10000
                     ? <Sequence sequenceWrapper={sequenceWrapper} />

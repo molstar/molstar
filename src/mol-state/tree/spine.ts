@@ -52,4 +52,18 @@ namespace StateTreeSpine {
 
         }
     }
+
+    export function getRootOfType<T extends StateObject.Ctor>(state: State, t: T, ref: string): StateObject.From<T> | undefined {
+        let ret: StateObjectCell | undefined = void 0;
+        let cell = state.cells.get(ref)
+        if (!cell) return void 0;
+        while (true) {
+            if (!cell.obj) return void 0;
+            if (cell.obj.type === t.type) {
+                ret = cell;
+            }
+            if (cell.transform.ref === StateTransform.RootRef) return ret ? ret.obj as StateObject.From<T> : void 0;
+            cell = state.cells.get(cell.transform.parent)!; // assign parent for next check
+        }
+    }
 }
