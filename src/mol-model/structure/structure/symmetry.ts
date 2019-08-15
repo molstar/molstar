@@ -96,23 +96,23 @@ namespace StructureSymmetry {
 }
 
 function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
+    const { spacegroup, ncsOperators } = symmetry;
+    const ncsCount = (ncsOperators && ncsOperators.length) || 0
     const operators: SymmetryOperator[] = [];
-    const { spacegroup } = symmetry;
-    if (ijkMin[0] <= 0 && ijkMax[0] >= 0 &&
+
+    if (!ncsCount &&
+        ijkMin[0] <= 0 && ijkMax[0] >= 0 &&
         ijkMin[1] <= 0 && ijkMax[1] >= 0 &&
         ijkMin[2] <= 0 && ijkMax[2] >= 0) {
         operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
     }
 
-    const { ncsOperators } = symmetry
-    const ncsCount = (ncsOperators && ncsOperators.length) || 0
-
     for (let op = 0; op < spacegroup.operators.length; op++) {
         for (let i = ijkMin[0]; i <= ijkMax[0]; i++) {
             for (let j = ijkMin[1]; j <= ijkMax[1]; j++) {
                 for (let k = ijkMin[2]; k <= ijkMax[2]; k++) {
-                    // we have added identity as the 1st operator.
-                    if (op === 0 && i === 0 && j === 0 && k === 0) continue;
+                    // check if we have added identity as the 1st operator.
+                    if (!ncsCount && op === 0 && i === 0 && j === 0 && k === 0) continue;
                     const symOp = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
                     if (ncsCount) {
                         for (let u = 0; u < ncsCount; ++u) {
