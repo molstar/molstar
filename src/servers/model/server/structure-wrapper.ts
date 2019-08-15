@@ -7,7 +7,7 @@
 import { Structure, Model } from '../../../mol-model/structure';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { Cache } from './cache';
-import Config from '../config';
+import { ModelServerConfig as Config, mapSourceAndIdToFilename } from '../config';
 import { CIF, CifFrame, CifBlock } from '../../../mol-io/reader/cif'
 import * as util from 'util'
 import * as fs from 'fs'
@@ -109,7 +109,7 @@ export async function readDataAndFrame(filename: string, key?: string): Promise<
 }
 
 export async function readStructureWrapper(key: string, sourceId: string | '_local_', entryId: string, propertyProvider: ModelPropertiesProvider | undefined) {
-    const filename = sourceId === '_local_' ? entryId : Config.mapFile(sourceId, entryId);
+    const filename = sourceId === '_local_' ? entryId : mapSourceAndIdToFilename(sourceId, entryId);
     if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
     if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
 

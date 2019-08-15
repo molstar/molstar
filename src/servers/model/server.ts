@@ -6,7 +6,7 @@
 
 import * as express from 'express'
 import * as compression from 'compression'
-import ServerConfig from './config'
+import { ModelServerConfig as ServerConfig, setupConfig } from './config'
 import { ConsoleLogger } from '../../mol-util/console-logger';
 import { PerformanceMonitor } from '../../mol-util/performance-monitor';
 import { initWebApi } from './server/api-web';
@@ -45,20 +45,10 @@ function startServer() {
     let app = express();
     app.use(compression(<any>{ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: () => true }));
 
-    // app.get(ServerConfig.appPrefix + '/documentation', (req, res) => {
-    //     res.writeHead(200, { 'Content-Type': 'text/html' });
-    //     res.write(Documentation.getHTMLDocs(ServerConfig.appPrefix));
-    //     res.end();
-    // });
+    // TODO: read JSON file
+    setupConfig();
 
     initWebApi(app);
-
-    // app.get('*', (req, res) => {
-    //     res.writeHead(200, { 'Content-Type': 'text/html' });
-    //     res.write(Documentation.getHTMLDocs(ServerConfig.appPrefix));
-    //     res.end();
-    // });
-
     app.listen(port);
 }
 

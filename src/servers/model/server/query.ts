@@ -12,7 +12,7 @@ import { Progress } from '../../../mol-task';
 import { now } from '../../../mol-util/now';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
-import Config from '../config';
+import { ModelServerConfig as Config } from '../config';
 import Version from '../version';
 import { Job } from './jobs';
 import { createStructureWrapperFromJob, StructureWrapper, resolveStructures } from './structure-wrapper';

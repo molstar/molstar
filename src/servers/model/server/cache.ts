@@ -6,7 +6,7 @@
 
 import { ConsoleLogger } from '../../../mol-util/console-logger'
 import { LinkedList } from '../../../mol-data/generic';
-import ServerConfig from '../config';
+import { ModelServerConfig as ServerConfig } from '../config';
 
 interface CacheEntry<T> {
     key: string,
