@@ -86,9 +86,16 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
 
     abstract renderControl(): JSX.Element;
 
+    private get className() {
+        const className = ['msp-control-row'];
+        if (this.props.param.shortLabel) className.push('msp-control-label-short')
+        if (this.props.param.twoColumns) className.push('msp-control-col-2')
+        return className.join(' ')
+    }
+
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
-        return <div className='msp-control-row'>
+        return <div className={this.className}>
             <span title={this.props.param.description}>{label}</span>
             <div>
                 {this.renderControl()}

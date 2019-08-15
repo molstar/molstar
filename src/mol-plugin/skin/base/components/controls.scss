@@ -54,6 +54,21 @@
     }
 }
 
+.msp-control-label-short {
+    > span {
+        width: $control-label-short-width + $control-spacing;
+    }
+
+    > div:nth-child(2) {
+        left: $control-label-short-width + $control-spacing;
+    }
+}
+
+.msp-control-col-2 {
+    float: left;
+    width: 50%;
+}
+
 .msp-control-group {
     position: relative;
 }

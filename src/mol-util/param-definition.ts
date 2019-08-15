@@ -16,6 +16,8 @@ export namespace ParamDefinition {
         description?: string,
         fieldLabels?: { [name: string]: string },
         isHidden?: boolean,
+        shortLabel?: boolean,
+        twoColumns?: boolean,
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
@@ -24,6 +26,8 @@ export namespace ParamDefinition {
         if (info.description) param.description = info.description;
         if (info.fieldLabels) param.fieldLabels = info.fieldLabels;
         if (info.isHidden) param.isHidden = info.isHidden;
+        if (info.shortLabel) param.shortLabel = info.shortLabel;
+        if (info.twoColumns) param.twoColumns = info.twoColumns;
         return param;
     }
 
