@@ -10,9 +10,7 @@ import { Structure, StructureElement } from '../../../mol-model/structure';
 import { isEmptyLoci } from '../../../mol-model/loci';
 import { ColorOptions, ParameterControls } from '../controls/parameters';
 import { Color } from '../../../mol-util/color';
-import { ButtonSelect, Options } from '../controls/common';
-import { StructureSelectionQueries as Q } from '../../util/structure-selection-helper';
-import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
+import { ButtonSelect, Options } from '../controls/common'
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 abstract class BaseStructureRepresentationControls extends PluginUIComponent {
@@ -92,13 +90,7 @@ class SelectionStructureRepresentationControls extends BaseStructureRepresentati
 
 export class StructureRepresentationControls extends PluginUIComponent {
     preset = async () => {
-        const { structureRepresentation: rep } = this.plugin.helpers
-        await rep.clear()
-        await rep.setFromExpression('add', 'cartoon', Q.all)
-        await rep.setFromExpression('add', 'carbohydrate', Q.all)
-        await rep.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
-            MS.struct.combinator.merge([ Q.ligandsPlusConnected, Q.branchedConnectedOnly, Q.water ])
-        ]))
+        await this.plugin.helpers.structureRepresentation.preset()
     }
 
     onChange = async (p: { param: PD.Base<any>, name: string, value: any }) => {

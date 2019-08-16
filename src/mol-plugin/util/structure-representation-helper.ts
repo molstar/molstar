@@ -12,6 +12,8 @@ import { PluginContext } from '../context';
 import { StructureRepresentation3DHelpers } from '../state/transforms/representation';
 import Expression from '../../mol-script/language/expression';
 import { compile } from '../../mol-script/runtime/query/compiler';
+import { StructureSelectionQueries as Q } from '../util/structure-selection-helper';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 
 type StructureTransform = StateObjectCell<PSO.Molecule.Structure, StateTransform<StateTransformer<any, PSO.Molecule.Structure, any>>>
 const RepresentationManagerTag = 'representation-controls'
@@ -143,6 +145,16 @@ export class StructureRepresentationHelper {
         await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }))
 
         this._ignoreHydrogens = ignoreHydrogens
+    }
+
+    async preset() {
+        // TODO generalize and make configurable
+        await this.clear()
+        await this.setFromExpression('add', 'cartoon', Q.all)
+        await this.setFromExpression('add', 'carbohydrate', Q.all)
+        await this.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
+            MS.struct.combinator.merge([ Q.ligandsPlusConnected, Q.branchedConnectedOnly, Q.water ])
+        ]))
     }
 
     constructor(private plugin: PluginContext) {
