@@ -1,12 +1,14 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import * as express from 'express'
 import * as compression from 'compression'
-import ServerConfig from './config'
+import * as fs from 'fs'
+import * as argparse from 'argparse'
+import { ModelServerConfig as ServerConfig, setupConfig } from './config'
 import { ConsoleLogger } from '../../mol-util/console-logger';
 import { PerformanceMonitor } from '../../mol-util/performance-monitor';
 import { initWebApi } from './server/api-web';
@@ -39,34 +41,37 @@ function setupShutdown() {
     }
 }
 
-const port = process.env.port || ServerConfig.defaultPort;
+const cmdParser = new argparse.ArgumentParser({
+    addHelp: true
+});
+
+cmdParser.addArgument(['--cfg'], { help: 'Config file path.', required: false });
+
+interface CmdArgs {
+    cfg?: string
+}
+
+const cmdArgs = cmdParser.parseArgs() as CmdArgs;
 
 function startServer() {
     let app = express();
     app.use(compression(<any>{ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: () => true }));
 
-    // app.get(ServerConfig.appPrefix + '/documentation', (req, res) => {
-    //     res.writeHead(200, { 'Content-Type': 'text/html' });
-    //     res.write(Documentation.getHTMLDocs(ServerConfig.appPrefix));
-    //     res.end();
-    // });
+    const cfg = cmdArgs.cfg ? JSON.parse(fs.readFileSync(cmdArgs.cfg, 'utf8')) : void 0;
+    setupConfig(cfg);
 
     initWebApi(app);
 
-    // app.get('*', (req, res) => {
-    //     res.writeHead(200, { 'Content-Type': 'text/html' });
-    //     res.write(Documentation.getHTMLDocs(ServerConfig.appPrefix));
-    //     res.end();
-    // });
-
+    const port = process.env.port || ServerConfig.defaultPort;
     app.listen(port);
+
+    console.log(`Mol* ModelServer ${Version}`);
+    console.log(``);
+    console.log(`The server is running on port ${port}.`);
+    console.log(``);
 }
 
 startServer();
-console.log(`Mol* ModelServer ${Version}`);
-console.log(``);
-console.log(`The server is running on port ${port}.`);
-console.log(``);
 
 if (ServerConfig.shutdownParams && ServerConfig.shutdownParams.timeoutMinutes > 0) {
     setupShutdown();

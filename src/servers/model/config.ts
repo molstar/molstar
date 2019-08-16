@@ -1,10 +1,10 @@
 ﻿/**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-const config = {
+const DefaultModelServerConfig = {
     /**
      * Determine if and how long to cache entries after a request.
      */
@@ -50,6 +50,7 @@ const config = {
     /**
      * Provide a property config or a path a JSON file with the config.
      */
+    // TODO: finish customProperty support
     customProperties: <import('./property-provider').ModelPropertyProviderConfig | string>{
         sources: [
             // 'pdbe',
@@ -79,23 +80,37 @@ const config = {
         }
     },
 
+
     /**
-     * Maps a request identifier to a filename.
-     *
-     * @param source
-     *   Source of the data.
-     * @param id
-     *   Id provided in the request.
+     * Default source for fileMapping.
      */
-    mapFile(source: string, id: string) {
-        switch (source.toLowerCase()) {
-            case 'pdb': return `e:/test/quick/${id}_updated.cif`;
-            // case 'pdb': return `e:/test/mol-star/model/out/${id}_updated.bcif`;
-            // case 'pdb-bcif': return `c:/test/mol-star/model/out/${id}_updated.bcif`;
-            // case 'pdb-cif': return `c:/test/mol-star/model/out/${id}_updated.cif`;
-            default: return void 0;
-        }
-    }
+    defaultSource: 'pdb-cif' as string,
+
+    /**
+     * Maps a request identifier to a filename given a 'source' and 'id' variables.
+     *
+     * /static query uses 'pdb-cif' and 'pdb-bcif' source names.
+     */
+    fileMapping: [
+        ['pdb-cif', 'e:/test/quick/${id}_updated.cif'],
+        // ['pdb-bcif', 'e:/test/quick/${id}.bcif'],
+    ] as [string, string][]
 };
 
-export default config;
+export type ModelServerConfig = typeof DefaultModelServerConfig
+export const ModelServerConfig = DefaultModelServerConfig
+
+export let mapSourceAndIdToFilename: (source: string, id: string) => string = () => {
+    throw new Error('call setupConfig to initialize this function');
+}
+
+export function setupConfig(cfg?: ModelServerConfig) {
+    if (cfg) Object.assign(ModelServerConfig, cfg);
+    if (!ModelServerConfig.fileMapping) return;
+
+    mapSourceAndIdToFilename = new Function('source', 'id', [
+        'switch (source.toLowerCase()) {',
+        ...ModelServerConfig.fileMapping.map(([source, path]) => `case '${source.toLowerCase()}': return \`${path}\`;`),
+        '}',
+    ].join('\n')) as any;
+}

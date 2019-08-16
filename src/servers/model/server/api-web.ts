@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as express from 'express';
-import Config from '../config';
+import { ModelServerConfig as Config, ModelServerConfig, mapSourceAndIdToFilename } from '../config';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
 import { JobManager } from './jobs';
@@ -92,7 +92,7 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
         const queryParams = normalizeRestQueryParams(queryDefinition, req.query);
         const commonParams = normalizeRestCommonParams(req.query);
         const jobId = JobManager.add({
-            sourceId: commonParams.data_source || 'pdb',
+            sourceId: commonParams.data_source || ModelServerConfig.defaultSource,
             entryId,
             queryName: queryName as any,
             queryParams,
@@ -107,7 +107,7 @@ export function initWebApi(app: express.Express) {
     app.get(makePath('static/:format/:id'), async (req, res) => {
         const binary = req.params.format === 'bcif';
         const id = req.params.id;
-        const fn = Config.mapFile(binary ? 'pdb-bcif' : 'pdb-cif', id);
+        const fn = mapSourceAndIdToFilename(binary ? 'pdb-bcif' : 'pdb-cif', id);
         if (!fn || !fs.existsSync(fn)) {
             res.status(404);
             res.end();
