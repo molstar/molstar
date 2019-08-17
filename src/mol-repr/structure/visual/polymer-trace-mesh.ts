@@ -67,6 +67,9 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             w2 *= aspectRatio / 2
         }
 
+        const startCap = v.secStrucFirst || v.coarseBackboneFirst || v.first
+        const endCap = v.secStrucLast || v.coarseBackboneLast || v.last
+
         if (isSheet) {
             const h0 = w0 * aspectRatio
             const h1 = w1 * aspectRatio
@@ -78,7 +81,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             if (radialSegments === 2) {
                 addRibbon(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, arrowHeight)
             } else {
-                addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, arrowHeight, v.secStrucFirst, v.secStrucLast)
+                addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, arrowHeight, startCap, endCap)
             }
         } else {
             let h0: number, h1: number, h2: number
@@ -110,9 +113,9 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
                     addRibbon(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0)
                 }
             } else if (radialSegments === 4) {
-                addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0, v.secStrucFirst || v.coarseBackboneFirst, v.secStrucLast || v.coarseBackboneLast)
+                addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0, startCap, endCap)
             } else {
-                addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, v.secStrucFirst || v.coarseBackboneFirst, v.secStrucLast || v.coarseBackboneLast)
+                addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, startCap, endCap)
             }
         }
 

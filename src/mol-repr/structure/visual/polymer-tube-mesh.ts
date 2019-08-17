@@ -52,6 +52,9 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
 
         interpolateCurveSegment(state, v, tension, shift)
 
+        const startCap = v.secStrucFirst || v.coarseBackboneFirst || v.first
+        const endCap = v.secStrucLast || v.coarseBackboneLast || v.last
+
         let s0 = theme.size.size(v.centerPrev) * sizeFactor
         let s1 = theme.size.size(v.center) * sizeFactor
         let s2 = theme.size.size(v.centerNext) * sizeFactor
@@ -61,9 +64,9 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
         if (radialSegments === 2) {
             addRibbon(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0)
         } else if (radialSegments === 4) {
-            addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0, v.secStrucFirst || v.coarseBackboneFirst, v.secStrucLast || v.coarseBackboneLast)
+            addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0, startCap, endCap)
         } else {
-            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, v.first, v.last)
+            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, startCap, endCap)
         }
 
         ++i

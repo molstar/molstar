@@ -64,6 +64,7 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
 
 const enum AtomicPolymerTraceIteratorState { nextPolymer, nextResidue }
 
+const tmpDir = Vec3()
 const tmpVecA = Vec3()
 const tmpVecB = Vec3()
 
@@ -239,6 +240,35 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.setFromToVector(this.d23, residueIndexNext1)
             this.setFromToVector(this.d34, residueIndexNext2)
 
+            // extend termini
+            const f = 0.5
+            if (residueIndex === residueIndexPrev1) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p3, this.p4), f)
+                Vec3.add(this.p2, this.p3, tmpDir)
+                Vec3.add(this.p1, this.p2, tmpDir)
+                Vec3.add(this.p0, this.p1, tmpDir)
+            } else if (residueIndexPrev1 === residueIndexPrev2) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p2, this.p3), f)
+                Vec3.add(this.p1, this.p2, tmpDir)
+                Vec3.add(this.p0, this.p1, tmpDir)
+            } else if (residueIndexPrev2 === residueIndexPrev3) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p1, this.p2), f)
+                Vec3.add(this.p0, this.p1, tmpDir)
+            }
+            if (residueIndex === residueIndexNext1) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p3, this.p2), f)
+                Vec3.add(this.p4, this.p3, tmpDir)
+                Vec3.add(this.p5, this.p4, tmpDir)
+                Vec3.add(this.p6, this.p5, tmpDir)
+            } else if (residueIndexNext1 === residueIndexNext2) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p4, this.p3), f)
+                Vec3.add(this.p5, this.p4, tmpDir)
+                Vec3.add(this.p6, this.p5, tmpDir)
+            } else if (residueIndexNext2 === residueIndexNext3) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p5, this.p4), f)
+                Vec3.add(this.p6, this.p5, tmpDir)
+            }
+
             this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndexPrev2)
             this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndexPrev1)
             this.setControlPoint(value.p2, this.p2, this.p3, this.p4, residueIndex)
@@ -313,7 +343,7 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
                 this.polymerSegment = this.polymerIt.move();
                 this.elementIndex = this.polymerSegment.start
 
-                if (this.elementIndex + 1 < this.polymerSegment.end) {
+                if (this.elementIndex < this.polymerSegment.end) {
                     this.state = CoarsePolymerTraceIteratorState.nextElement
                     break
                 }
@@ -321,8 +351,6 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
         }
 
         if (this.state === CoarsePolymerTraceIteratorState.nextElement) {
-            this.elementIndex += 1
-
             const elementIndexPrev2 = this.getElementIndex(this.elementIndex - 2)
             const elementIndexPrev1 = this.getElementIndex(this.elementIndex - 1)
             const elementIndexNext1 = this.getElementIndex(this.elementIndex + 1)
@@ -338,6 +366,25 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.pos(this.value.p3, elementIndexNext1)
             this.pos(this.value.p4, elementIndexNext2)
 
+            // extend termini
+            const f = 0.5
+            if (this.elementIndex === elementIndexPrev1) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.value.p2, this.value.p3), f)
+                Vec3.add(this.value.p1, this.value.p2, tmpDir)
+                Vec3.add(this.value.p0, this.value.p1, tmpDir)
+            } else if (elementIndexPrev1 === elementIndexPrev2) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.value.p1, this.value.p2), f)
+                Vec3.add(this.value.p0, this.value.p1, tmpDir)
+            }
+            if (this.elementIndex === elementIndexNext1) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.value.p2, this.value.p1), f)
+                Vec3.add(this.value.p3, this.value.p2, tmpDir)
+                Vec3.add(this.value.p4, this.value.p3, tmpDir)
+            } else if (elementIndexNext1 === elementIndexNext2) {
+                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.value.p3, this.value.p2), f)
+                Vec3.add(this.value.p4, this.value.p3, tmpDir)
+            }
+
             this.value.first = this.elementIndex === this.polymerSegment.start
             this.value.last = this.elementIndex === this.polymerSegment.end - 1
 
@@ -347,6 +394,7 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
         }
 
         this.hasNext = this.elementIndex + 1 < this.polymerSegment.end || this.polymerIt.hasNext
+        this.elementIndex += 1
         return this.value;
     }
 
