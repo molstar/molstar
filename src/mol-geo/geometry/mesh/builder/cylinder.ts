@@ -1,13 +1,15 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Vec3, Mat4 } from '../../../../mol-math/linear-algebra';
 import { MeshBuilder } from '../mesh-builder';
-import { Primitive } from '../../../primitive/primitive';
+import { Primitive, transformPrimitive } from '../../../primitive/primitive';
 import { Cylinder, CylinderProps } from '../../../primitive/cylinder';
+import { Prism } from '../../../primitive/prism';
+import { polygon } from '../../../primitive/polygon';
 
 const cylinderMap = new Map<string, Primitive>()
 const up = Vec3.create(0, 1, 0)
@@ -34,7 +36,12 @@ function getCylinder(props: CylinderProps) {
     const key = JSON.stringify(props)
     let cylinder = cylinderMap.get(key)
     if (cylinder === undefined) {
-        cylinder = Cylinder(props)
+        if (props.radialSegments && props.radialSegments <= 4) {
+            const box = Prism(polygon(4, true, props.radiusTop), props)
+            cylinder = transformPrimitive(box, Mat4.rotX90)
+        } else {
+            cylinder = Cylinder(props)
+        }
         cylinderMap.set(key, cylinder)
     }
     return cylinder

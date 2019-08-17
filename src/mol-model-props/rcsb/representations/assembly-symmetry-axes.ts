@@ -31,7 +31,7 @@ export const AssemblySymmetryAxesParams = {
     sizeFactor: PD.Numeric(0.4, { min: 0, max: 3, step: 0.01 }),
 
     ...ComplexMeshParams,
-    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
 }
 export type AssemblySymmetryAxesParams = typeof AssemblySymmetryAxesParams

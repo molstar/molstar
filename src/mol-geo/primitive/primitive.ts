@@ -1,10 +1,12 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from '../../mol-math/linear-algebra';
+import { Vec3, Mat4, Mat3 } from '../../mol-math/linear-algebra';
+import { getNormalMatrix } from '../util';
+import { NumberArray } from '../../mol-util/type-helpers';
 
 export interface Primitive {
     vertices: ArrayLike<number>
@@ -56,4 +58,22 @@ export function PrimitiveBuilder(triangleCount: number): PrimitiveBuilder {
         },
         getPrimitive: () => ({ vertices, normals, indices })
     }
+}
+
+const tmpV = Vec3.zero()
+const tmpMat3 = Mat3.zero()
+
+/** Transform primitive in-place */
+export function transformPrimitive(primitive: Primitive, t: Mat4) {
+    const { vertices, normals } = primitive
+    const n = getNormalMatrix(tmpMat3, t)
+    for (let i = 0, il = vertices.length; i < il; i += 3) {
+        // position
+        Vec3.transformMat4(tmpV, Vec3.fromArray(tmpV, vertices, i), t)
+        Vec3.toArray(tmpV, vertices as NumberArray, i)
+        // normal
+        Vec3.transformMat3(tmpV, Vec3.fromArray(tmpV, normals, i), n)
+        Vec3.toArray(tmpV, normals as NumberArray, i)
+    }
+    return primitive
 }

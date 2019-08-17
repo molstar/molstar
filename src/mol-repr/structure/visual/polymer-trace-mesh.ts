@@ -17,13 +17,14 @@ import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { ComputedSecondaryStructure } from '../../../mol-model-props/computed/secondary-structure';
+import { addRibbon } from '../../../mol-geo/geometry/mesh/builder/ribbon';
 
 export const PolymerTraceMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
     linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }),
-    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
     aspectRatio: PD.Numeric(5, { min: 0.1, max: 10, step: 0.1 }),
-    arrowFactor: PD.Numeric(1.5, { min: 0.1, max: 5, step: 0.1 }),
+    arrowFactor: PD.Numeric(1.5, { min: 0, max: 3, step: 0.1 }),
 }
 export const DefaultPolymerTraceMeshProps = PD.getDefaultValues(PolymerTraceMeshParams)
 export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps
@@ -67,9 +68,18 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
         }
 
         if (isSheet) {
+            const h0 = w0 * aspectRatio
             const h1 = w1 * aspectRatio
+            const h2 = w2 * aspectRatio
             const arrowHeight = v.secStrucLast ? h1 * arrowFactor : 0
-            addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, w1, h1, arrowHeight, v.secStrucFirst, v.secStrucLast)
+
+            interpolateSizes(state, w0, w1, w2, h0, h1, h2, shift)
+
+            if (radialSegments === 2) {
+                addRibbon(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, arrowHeight)
+            } else {
+                addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, arrowHeight, v.secStrucFirst, v.secStrucLast)
+            }
         } else {
             let h0: number, h1: number, h2: number
             if (isHelix && !v.isCoarseBackbone) {
@@ -78,18 +88,32 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
                 h2 = w2 * aspectRatio
             } else if (isNucleicType && !v.isCoarseBackbone) {
                 h0 = w0 * aspectRatio;
-                [w0, h0] = [h0, w0]
                 h1 = w1 * aspectRatio;
-                [w1, h1] = [h1, w1]
                 h2 = w2 * aspectRatio;
-                [w2, h2] = [h2, w2]
+                [w0, h0] = [h0, w0];
+                [w1, h1] = [h1, w1];
+                [w2, h2] = [h2, w2];
             } else {
                 h0 = w0
                 h1 = w1
                 h2 = w2
             }
+
             interpolateSizes(state, w0, w1, w2, h0, h1, h2, shift)
-            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, v.secStrucFirst || v.coarseBackboneFirst, v.secStrucLast || v.coarseBackboneLast)
+
+            if (radialSegments === 2) {
+                if (isNucleicType && !v.isCoarseBackbone) {
+                    // TODO find a cleaner way to swap normal and binormal for nucleic types
+                    for (let i = 0, il = binormalVectors.length; i < il; i++) binormalVectors[i] *= -1
+                    addRibbon(builderState, curvePoints, binormalVectors, normalVectors, linearSegments, heightValues, widthValues, 0)
+                } else {
+                    addRibbon(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0)
+                }
+            } else if (radialSegments === 4) {
+                addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0, v.secStrucFirst || v.coarseBackboneFirst, v.secStrucLast || v.coarseBackboneLast)
+            } else {
+                addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, v.secStrucFirst || v.coarseBackboneFirst, v.secStrucLast || v.coarseBackboneLast)
+            }
         }
 
         ++i

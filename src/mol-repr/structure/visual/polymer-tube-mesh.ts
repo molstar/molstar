@@ -15,11 +15,13 @@ import { isNucleic } from '../../../mol-model/structure/model/types';
 import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
+import { addSheet } from '../../../mol-geo/geometry/mesh/builder/sheet';
+import { addRibbon } from '../../../mol-geo/geometry/mesh/builder/ribbon';
 
 export const PolymerTubeMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
     linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }),
-    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
 }
 export const DefaultPolymerTubeMeshProps = PD.getDefaultValues(PolymerTubeMeshParams)
 export type PolymerTubeMeshProps = typeof DefaultPolymerTubeMeshProps
@@ -55,7 +57,14 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
         let s2 = theme.size.size(v.centerNext) * sizeFactor
 
         interpolateSizes(state, s0, s1, s2, s0, s1, s2, shift)
-        addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, v.first, v.last)
+
+        if (radialSegments === 2) {
+            addRibbon(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0)
+        } else if (radialSegments === 4) {
+            addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0, v.secStrucFirst || v.coarseBackboneFirst, v.secStrucLast || v.coarseBackboneLast)
+        } else {
+            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, v.first, v.last)
+        }
 
         ++i
     }

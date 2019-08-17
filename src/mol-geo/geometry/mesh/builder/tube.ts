@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -50,7 +50,15 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
             const t = 2 * Math.PI * j / radialSegments;
 
             add3AndScale2(surfacePoint, u, v, controlPoint, h * Math.cos(t), w * Math.sin(t))
-            add2AndScale2(normalVector, u, v, w * Math.cos(t), h * Math.sin(t))
+            if (radialSegments === 2) {
+                // add2AndScale2(normalVector, u, v, w * Math.cos(t), h * Math.sin(t))
+                Vec3.copy(normalVector, v)
+                console.log(i, t)
+                Vec3.normalize(normalVector, normalVector)
+                if (t !== 0 || i % 2 === 0) Vec3.negate(normalVector, normalVector)
+            } else {
+                add2AndScale2(normalVector, u, v, w * Math.cos(t), h * Math.sin(t))
+            }
             Vec3.normalize(normalVector, normalVector)
 
             ChunkedArray.add3(vertices, surfacePoint[0], surfacePoint[1], surfacePoint[2]);

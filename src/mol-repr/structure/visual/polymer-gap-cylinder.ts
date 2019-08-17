@@ -23,7 +23,7 @@ const segmentCount = 10
 
 export const PolymerGapCylinderParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
 }
 export const DefaultPolymerGapCylinderProps = PD.getDefaultValues(PolymerGapCylinderParams)
 export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps

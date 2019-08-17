@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -71,7 +71,7 @@ function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLi
 }
 
 /** set arrowHeight = 0 for no arrow */
-export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean) {
+export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, widthValues: ArrayLike<number>, heightValues: ArrayLike<number>, arrowHeight: number, startCap: boolean, endCap: boolean) {
     const { currentGroup, vertices, normals, indices, groups } = state
 
     let vertexCount = vertices.elementCount
@@ -84,6 +84,9 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
     }
 
     for (let i = 0; i <= linearSegments; ++i) {
+        const width = widthValues[i]
+        const height = heightValues[i]
+
         const actualHeight = arrowHeight === 0 ? height : arrowHeight * (1 - i / linearSegments);
         const i3 = i * 3
 
@@ -141,32 +144,55 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
     }
 
     for (let i = 0; i < linearSegments; ++i) {
-        for (let j = 0; j < 4; j++) {
+        // the triangles are arranged such that opposing triangles of the sheet align
+        // which prevents triangle intersection within tight curves
+        for (let j = 0; j < 2; j++) {
             ChunkedArray.add3(
                 indices,
-                vertexCount + i * 8 + 2 * j,
-                vertexCount + (i + 1) * 8 + 2 * j + 1,
-                vertexCount + i * 8 + 2 * j + 1
+                vertexCount + i * 8 + 2 * j, // a
+                vertexCount + (i + 1) * 8 + 2 * j + 1, // c
+                vertexCount + i * 8 + 2 * j + 1 // b
             );
             ChunkedArray.add3(
                 indices,
-                vertexCount + i * 8 + 2 * j,
-                vertexCount + (i + 1) * 8 + 2 * j,
-                vertexCount + (i + 1) * 8 + 2 * j + 1
+                vertexCount + i * 8 + 2 * j, // a
+                vertexCount + (i + 1) * 8 + 2 * j, // d
+                vertexCount + (i + 1) * 8 + 2 * j + 1 // c
+            );
+        }
+        for (let j = 2; j < 4; j++) {
+            ChunkedArray.add3(
+                indices,
+                vertexCount + i * 8 + 2 * j, // a
+                vertexCount + (i + 1) * 8 + 2 * j, // d
+                vertexCount + i * 8 + 2 * j + 1, // b
+            );
+            ChunkedArray.add3(
+                indices,
+                vertexCount + (i + 1) * 8 + 2 * j, // d
+                vertexCount + (i + 1) * 8 + 2 * j + 1, // c
+                vertexCount + i * 8 + 2 * j + 1, // b
             );
         }
     }
 
     if (startCap) {
+        const width = widthValues[0]
+        const height = heightValues[0]
         const h = arrowHeight === 0 ? height : arrowHeight
         addCap(0, state, controlPoints, normalVectors, binormalVectors, width, h, h)
     } else if (arrowHeight > 0) {
+        const width = widthValues[0]
+        const height = heightValues[0]
         addCap(0, state, controlPoints, normalVectors, binormalVectors, width, arrowHeight, -height)
         addCap(0, state, controlPoints, normalVectors, binormalVectors, width, -arrowHeight, height)
     }
 
     if (endCap && arrowHeight === 0) {
-        addCap(linearSegments * 3, state, controlPoints, normalVectors, binormalVectors, width, height, height)
+        const width = widthValues[linearSegments]
+        const height = heightValues[linearSegments]
+        // use negative height to flip the direction the cap's triangles are facing
+        addCap(linearSegments * 3, state, controlPoints, normalVectors, binormalVectors, width, -height, -height)
     }
 
     const addedVertexCount = (linearSegments + 1) * 8 +

@@ -35,7 +35,7 @@ const normal = Vec3.zero()
 
 export const NucleotideRingMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
+    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
 }
 export const DefaultNucleotideRingMeshProps = PD.getDefaultValues(NucleotideRingMeshParams)
