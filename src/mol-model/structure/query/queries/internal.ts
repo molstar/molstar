@@ -41,7 +41,7 @@ export function atomicSequence(): StructureQuery {
 
             units.push(unit);
         }
-        return StructureSelection.Singletons(inputStructure, new Structure(units, inputStructure, ));
+        return StructureSelection.Singletons(inputStructure, new Structure(units, { parent: inputStructure }));
     };
 }
 
@@ -60,7 +60,7 @@ export function water(): StructureQuery {
             if (P.entity.type(l) !== 'water') continue;
             units.push(unit);
         }
-        return StructureSelection.Singletons(inputStructure, new Structure(units, inputStructure));
+        return StructureSelection.Singletons(inputStructure, new Structure(units, { parent: inputStructure }));
     };
 }
 
@@ -90,7 +90,7 @@ export function atomicHet(): StructureQuery {
 
             units.push(unit);
         }
-        return StructureSelection.Singletons(inputStructure, new Structure(units, inputStructure));
+        return StructureSelection.Singletons(inputStructure, new Structure(units, { parent: inputStructure }));
     };
 }
 
@@ -103,6 +103,6 @@ export function spheres(): StructureQuery {
             if (unit.kind !== Unit.Kind.Spheres) continue;
             units.push(unit);
         }
-        return StructureSelection.Singletons(inputStructure, new Structure(units, inputStructure));
+        return StructureSelection.Singletons(inputStructure, new Structure(units, { parent: inputStructure }));
     };
 }
