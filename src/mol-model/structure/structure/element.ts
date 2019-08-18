@@ -282,7 +282,7 @@ namespace StructureElement {
             const elements: Loci['elements'][0][] = [];
 
             for (const lociElement of loci.elements) {
-                const newIndices: UnitIndex[] = [];
+                const _newIndices: UnitIndex[] = [];
                 const unitElements = lociElement.unit.elements;
 
                 const { index: chainIndex, offsets: chainOffsets } = getChainSegments(lociElement.unit)
@@ -298,11 +298,18 @@ namespace StructureElement {
 
                     for (let j = chainOffsets[cI], _j = chainOffsets[cI + 1]; j < _j; j++) {
                         const idx = OrderedSet.indexOf(unitElements, j);
-                        if (idx >= 0) newIndices[newIndices.length] = idx as UnitIndex;
+                        if (idx >= 0) _newIndices[_newIndices.length] = idx as UnitIndex;
                     }
                 }
 
-                elements[elements.length] = { unit: lociElement.unit, indices: SortedArray.ofSortedArray(newIndices) };
+                let newIndices: OrderedSet<UnitIndex>
+                if (_newIndices.length > 12 && _newIndices[_newIndices.length - 1] - _newIndices[0] === _newIndices.length - 1) {
+                    newIndices = Interval.ofRange(_newIndices[0], _newIndices[_newIndices.length - 1])
+                } else {
+                    newIndices = SortedArray.ofSortedArray(_newIndices)
+                }
+
+                elements[elements.length] = { unit: lociElement.unit, indices: newIndices };
             }
 
             return Loci(loci.structure, elements);

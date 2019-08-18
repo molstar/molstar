@@ -104,19 +104,25 @@ export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, a
         const unitIdx = group.unitIndexMap.get(e.unit.id)
         if (unitIdx !== undefined) {
             if (Unit.isAtomic(e.unit)) {
-                // TODO optimized implementation for intervals
-                OrderedSet.forEach(e.indices, v => {
-                    const rI = index[elements[v]]
-                    const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
-                    const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
-                    const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
-                    if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
-                    const eI = traceElementIndex[rI]
-                    const idx = OrderedSet.indexOf(e.unit.polymerElements, eI)
-                    if (idx !== -1) {
-                        if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
-                    }
-                })
+                // TODO optimized implementation for intervals covering only part of the unit
+                if (Interval.is(e.indices) && Interval.start(e.indices) === 0 && Interval.end(e.indices) === e.unit.elements.length) {
+                    const start = unitIdx * groupCount;
+                    const end = unitIdx * groupCount + groupCount;
+                    if (apply(Interval.ofBounds(start, end))) changed = true
+                } else {
+                    OrderedSet.forEach(e.indices, v => {
+                        const rI = index[elements[v]]
+                        const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
+                        const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
+                        const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
+                        if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+                        const eI = traceElementIndex[rI]
+                        const idx = OrderedSet.indexOf(e.unit.polymerElements, eI)
+                        if (idx !== -1) {
+                            if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
+                        }
+                    })
+                }
             } else {
                 if (Interval.is(e.indices)) {
                     const start = unitIdx * groupCount + Interval.start(e.indices);

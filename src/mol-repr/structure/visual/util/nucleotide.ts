@@ -41,6 +41,10 @@ export function getNucleotideElementLoci(pickingId: PickingId, structureGroup: S
     return EmptyLoci
 }
 
+/**
+ * Mark a nucleotide element (e.g. part of a cartoon block)
+ * - mark only when all its residue's elements are in a loci
+ */
 export function eachNucleotideElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
@@ -56,19 +60,25 @@ export function eachNucleotideElement(loci: Loci, structureGroup: StructureGroup
         const unitIdx = group.unitIndexMap.get(e.unit.id)
         const eUnit = e.unit
         if (unitIdx !== undefined && Unit.isAtomic(eUnit)) {
-            // TODO optimized implementation for intervals
-            OrderedSet.forEach(e.indices, v => {
-                const rI = index[elements[v]]
-                const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
-                const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
-                const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
-                if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
-                const eI = traceElementIndex[rI]
-                const idx = OrderedSet.indexOf(eUnit.nucleotideElements, eI)
-                if (idx !== -1) {
-                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
-                }
-            })
+            // TODO optimized implementation for intervals covering only part of the unit
+            if (Interval.is(e.indices) && Interval.start(e.indices) === 0 && Interval.end(e.indices) === e.unit.elements.length) {
+                const start = unitIdx * groupCount;
+                const end = unitIdx * groupCount + groupCount;
+                if (apply(Interval.ofBounds(start, end))) changed = true
+            } else {
+                OrderedSet.forEach(e.indices, v => {
+                    const rI = index[elements[v]]
+                    const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
+                    const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
+                    const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
+                    if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+                    const eI = traceElementIndex[rI]
+                    const idx = OrderedSet.indexOf(eUnit.nucleotideElements, eI)
+                    if (idx !== -1) {
+                        if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
+                    }
+                })
+            }
         }
     }
     return changed
