@@ -8,7 +8,7 @@ import { StateAction } from '../../../../mol-state';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../../../mol-plugin/state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { Ingredient, Packing } from './data';
+import { Ingredient, CellPacking } from './data';
 import { getFromPdb, getFromCellPackDB } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, Queries, QueryContext } from '../../../../mol-model/structure';
 import { trajectoryFromMmCIF } from '../../../../mol-model-formats/structure/mmcif';
@@ -106,8 +106,9 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string) {
     return assembly
 }
 
-export function createStructureFromCellPack(ingredients: Packing['ingredients'], baseUrl: string) {
+export function createStructureFromCellPack(packing: CellPacking, baseUrl: string) {
     return Task.create('Create Packing Structure', async ctx => {
+        const { ingredients, name } = packing
         const structures: Structure[] = []
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) ctx.update(iName)
@@ -115,7 +116,7 @@ export function createStructureFromCellPack(ingredients: Packing['ingredients'],
             if (s) structures.push(s)
         }
 
-        const builder = Structure.Builder()
+        const builder = Structure.Builder({ label: name })
         let offsetInvariantId = 0
         for (const s of structures) {
             let maxInvariantId = 0

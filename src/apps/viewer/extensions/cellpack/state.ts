@@ -64,9 +64,9 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }) {
         return Task.create('Structure from CellPack', async ctx => {
-            const { ingredients, name } = a.data.packings[params.packing]
-            const structure = await createStructureFromCellPack(ingredients, params.baseUrl).runInContext(ctx)
-            return new PSO.Molecule.Structure(structure, { label: name })
+            const packing = a.data.packings[params.packing]
+            const structure = await createStructureFromCellPack(packing, params.baseUrl).runInContext(ctx)
+            return new PSO.Molecule.Structure(structure, { label: packing.name })
         });
     }
 });

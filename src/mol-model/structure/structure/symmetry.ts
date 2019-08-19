@@ -25,7 +25,7 @@ namespace StructureSymmetry {
             if (!assembly) throw new Error(`Assembly '${asmName}' is not defined.`);
 
             const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { id: assembly.id, operList: [] })
-            const assembler = Structure.Builder({ coordinateSystem });
+            const assembler = Structure.Builder({ coordinateSystem, label: structure.label });
 
             const queryCtx = new QueryContext(structure);
 
@@ -138,7 +138,7 @@ function getOperatorsCached333(symmetry: ModelSymmetry) {
 }
 
 function assembleOperators(structure: Structure, operators: ReadonlyArray<SymmetryOperator>) {
-    const assembler = Structure.Builder();
+    const assembler = Structure.Builder({ label: structure.label });
     const { units } = structure;
     for (const oper of operators) {
         for (const unit of units) {

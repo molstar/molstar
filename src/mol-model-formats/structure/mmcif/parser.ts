@@ -207,14 +207,18 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIn
     }
 
     const coarse = EmptyIHMCoarse;
-    const label = format.data.entry.id.valueKind(0) === Column.ValueKind.Present
+    const entry = format.data.entry.id.valueKind(0) === Column.ValueKind.Present
         ? format.data.entry.id.value(0)
         : format.data._name;
 
+    const label: string[] = []
+    if (entry) label.push(entry)
+    if (format.data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(format.data.struct.title.value(0))
+
     return {
         id: UUID.create22(),
-        label,
-        entry: label,
+        label: label.join(' | '),
+        entry,
         sourceData: format,
         modelNum,
         entities,
@@ -240,11 +244,16 @@ function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatD
     const entry = format.data.entry.id.valueKind(0) === Column.ValueKind.Present
         ? format.data.entry.id.value(0)
         : format.data._name;
-    const label = data.model_group_name ? `${data.model_name}: ${data.model_group_name}` : data.model_name
+
+    const label: string[] = []
+    if (entry) label.push(entry)
+    if (format.data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(format.data.struct.title.value(0))
+    if (data.model_group_name) label.push(data.model_name)
+    if (data.model_group_name) label.push(data.model_group_name)
 
     return {
         id: UUID.create22(),
-        label,
+        label: label.join(' | '),
         entry,
         sourceData: format,
         modelNum: data.model_id,

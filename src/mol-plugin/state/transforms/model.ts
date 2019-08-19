@@ -96,7 +96,7 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const models = await trajectoryFromMmCIF(block).runInContext(ctx);
             if (models.length === 0) throw new Error('No models found.');
-            const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -114,7 +114,7 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
             const parsed = await parsePDB(a.data, a.label).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromPDB(parsed.result).runInContext(ctx);
-            const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -132,7 +132,7 @@ const TrajectoryFromGRO = PluginStateTransform.BuiltIn({
             const parsed = await parseGRO(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromGRO(parsed.result).runInContext(ctx);
-            const props = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -156,7 +156,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
         const model = a.data[params.modelIndex];
-        const label = a.data.length === 1 ? model.entry : `${model.entry}: ${model.modelNum}`
+        const label = `Model ${model.modelNum}`
         const description = a.data.length === 1 ? undefined : `Model ${params.modelIndex + 1} of ${a.data.length}`
         return new SO.Molecule.Model(model, { label, description });
     }
@@ -172,7 +172,7 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
     apply({ a }) {
         return Task.create('Build Structure', async ctx => {
             const s = Structure.ofTrajectory(a.data);
-            const props = { label: a.data[0].label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
+            const props = { label: s.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
             return new SO.Molecule.Structure(s, props);
         })
     }

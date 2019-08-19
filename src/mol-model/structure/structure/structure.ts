@@ -55,6 +55,7 @@ class Structure {
         elementCount: number,
         polymerResidueCount: number,
         coordinateSystem: SymmetryOperator,
+        label: string,
         propertyData?: any,
         customProps?: CustomProperties
     } = {
@@ -62,7 +63,8 @@ class Structure {
         transformHash: -1,
         elementCount: 0,
         polymerResidueCount: 0,
-        coordinateSystem: SymmetryOperator.Default
+        coordinateSystem: SymmetryOperator.Default,
+        label: ''
     };
 
     subsetBuilder(isSorted: boolean) {
@@ -151,6 +153,10 @@ class Structure {
 
     get coordinateSystem() {
         return this._props.coordinateSystem;
+    }
+
+    get label() {
+        return this._props.label;
     }
 
     get boundary() {
@@ -268,6 +274,9 @@ class Structure {
         if (props.coordinateSystem) this._props.coordinateSystem = props.coordinateSystem;
         else if (props.parent) this._props.coordinateSystem = props.parent.coordinateSystem;
 
+        if (props.label) this._props.label = props.label;
+        else if (props.parent) this._props.label = props.parent.label;
+
         if (props.masterModel) this._props.masterModel = props.masterModel;
         else if (props.parent) this._props.masterModel = props.parent.masterModel;
 
@@ -368,6 +377,7 @@ namespace Structure {
     export interface Props {
         parent?: Structure
         coordinateSystem?: SymmetryOperator
+        label?: string
         /** Master model for structures of a protein model and multiple ligand models */
         masterModel?: Model
         /** Representative model for structures of a model trajectory */
@@ -420,7 +430,7 @@ namespace Structure {
             count = units.length
         }
 
-        return create(units, { representativeModel: trajectory[0] });
+        return create(units, { representativeModel: trajectory[0], label: trajectory[0].label });
     }
 
     /**
@@ -431,7 +441,7 @@ namespace Structure {
      */
     export function ofModel(model: Model): Structure {
         const chains = model.atomicHierarchy.chainAtomSegments;
-        const builder = new StructureBuilder();
+        const builder = new StructureBuilder({ label: model.label });
 
         for (let c = 0 as ChainIndex; c < chains.count; c++) {
             const start = chains.offsets[c];
