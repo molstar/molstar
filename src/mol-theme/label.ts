@@ -60,7 +60,7 @@ export function linkLabel(link: Link.Location) {
 }
 
 export function elementLabel(location: StructureElement) {
-    const model = location.unit.model.label
+    const model = location.unit.model.entry
     const instance = location.unit.conformation.operator.name
     let label = ''
 
