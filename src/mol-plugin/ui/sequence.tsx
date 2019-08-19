@@ -18,7 +18,6 @@ import { ParameterControls } from './controls/parameters';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { HeteroSequenceWrapper } from './sequence/hetero';
 import { State, StateSelection } from '../../mol-state';
-import { StateTreeSpine } from '../../mol-state/tree/spine';
 
 function opKey(l: StructureElement) {
     const ids = SP.unit.pdbx_struct_oper_list_ids(l)
@@ -126,7 +125,7 @@ function getStructureOptions(state: State) {
 
     const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
     for (const s of structures) {
-        options.push([s.transform.ref, s.obj!.data.models[0].sourceData.data.struct.title.value(0)])
+        options.push([s.transform.ref, s.obj!.data.label])
     }
 
     if (options.length === 0) options.push(['', 'No structure'])
@@ -147,14 +146,26 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     componentDidMount() {
         if (this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState())
 
-        this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
-            const s = StateTreeSpine.getRootOfType(state, PSO.Molecule.Structure, ref)
-            if (s && s.data !== this.state.structure) this.setState(this.getInitialState())
+        this.subscribe(this.plugin.events.state.object.updated, ({ ref, obj }) => {
+            if (ref === this.state.structureRef && obj && obj.type === PSO.Molecule.Structure.type && obj.data !== this.state.structure) {
+                this.forceUpdate()
+            }
         });
 
-        this.subscribe(this.plugin.events.state.object.created, ({ ref, state }) => {
-            const s = StateTreeSpine.getRootOfType(state, PSO.Molecule.Structure, ref)
-            if (s && s.data !== this.state.structure) this.setState(this.getInitialState())
+        this.subscribe(this.plugin.events.state.object.created, ({ obj }) => {
+            if (obj && obj.type === PSO.Molecule.Structure.type) {
+                if (this.state.structure.isEmpty) {
+                    this.setState(this.getInitialState())
+                } else {
+                    this.forceUpdate()
+                }
+            }
+        });
+
+        this.subscribe(this.plugin.events.state.object.removed, ({ obj }) => {
+            if (obj && obj.type === PSO.Molecule.Structure.type && obj.data === this.state.structure) {
+                this.setState(this.getInitialState())
+            }
         });
     }
 
@@ -204,11 +215,14 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     // TODO try to use selected option from previous state
     private setParamProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         const state = { ...this.state }
-        console.log(p.name, p.value)
+        // console.log(p.name, p.value)
         switch (p.name) {
             case 'structure':
                 state.structureRef = p.value
                 state.structure = this.getStructure(p.value)
+                state.entityId = getEntityOptions(state.structure)[0][0]
+                state.invariantUnitId = getUnitOptions(state.structure, state.entityId)[0][0]
+                state.operatorKey = getOperatorOptions(state.structure, state.entityId, state.invariantUnitId)[0][0]
                 break
             case 'entity':
                 state.entityId = p.value
