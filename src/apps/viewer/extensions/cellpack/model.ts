@@ -201,7 +201,8 @@ export const LoadCellPackModel = StateAction.build({
                                     name: 'generate',
                                     params: {
                                         hue, chroma: [30, 80], luminance: [15, 85],
-                                        clusteringStepCount: 50, minSampleCount: 800
+                                        clusteringStepCount: 50, minSampleCount: 800,
+                                        maxCount: 75
                                     }
                                 }
                             }

@@ -22,7 +22,10 @@ export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
             scale: PD.Group({
                 list: PD.ColorScale<ColorListName>(p.scaleList, ColorListOptions),
             }, { isFlat: true }),
-            generate: PD.Group(DistinctColorsParams, { isFlat: true })
+            generate: PD.Group({
+                ...DistinctColorsParams,
+                maxCount: PD.Numeric(75, { min: 1, max: 250, step: 1 })
+            }, { isFlat: true })
         }, {
             options: [
                 ['scale', 'From Scale'],
@@ -51,8 +54,9 @@ export function getPalette(count: number, props: PaletteProps) {
         legend = scale.legend
         color = scale.color
     } else {
+        count = Math.min(count, props.palette.params.maxCount)
         const colors = distinctColors(count, props.palette.params)
-        color = (i: number) => colors[i]
+        color = (i: number) => colors[i % count]
     }
 
     return { color, legend }
