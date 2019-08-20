@@ -12,6 +12,7 @@ import { ColorOptions, ParameterControls } from '../controls/parameters';
 import { Color } from '../../../mol-util/color';
 import { ButtonSelect, Options } from '../controls/common'
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/base';
 
 abstract class BaseStructureRepresentationControls extends PluginUIComponent {
     onChange = (value: string) => {
@@ -94,23 +95,30 @@ export class StructureRepresentationControls extends PluginUIComponent {
     }
 
     onChange = async (p: { param: PD.Base<any>, name: string, value: any }) => {
-        if (p.name === 'showHydrogens') {
-            await this.plugin.helpers.structureRepresentation.setIgnoreHydrogens(!p.value)
+        if (p.name === 'options') {
+            await this.plugin.helpers.structureRepresentation.setIgnoreHydrogens(!p.value.showHydrogens)
+            await this.plugin.helpers.structureRepresentation.setQuality(p.value.visualQuality)
+            this.forceUpdate()
         }
-        this.forceUpdate()
     }
 
     get params () {
-        const values = this.values
+        const { options } = this.values
         return {
-            showHydrogens: PD.Boolean(values.showHydrogens)
+            options: PD.Group({
+                showHydrogens: PD.Boolean(options.showHydrogens),
+                visualQuality: PD.Select<VisualQuality>(options.visualQuality, VisualQualityOptions),
+            }, { isExpanded: true })
         }
     }
 
     get values () {
         const { structureRepresentation: rep } = this.plugin.helpers
         return {
-            showHydrogens: !rep.ignoreHydrogens
+            options: {
+                showHydrogens: !rep.ignoreHydrogens,
+                visualQuality: rep.quality,
+            }
         }
     }
 
