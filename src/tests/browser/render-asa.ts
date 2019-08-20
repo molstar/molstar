@@ -15,7 +15,7 @@ import { SizeTheme } from '../../mol-theme/size';
 import { CartoonRepresentationProvider } from '../../mol-repr/structure/representation/cartoon';
 import { AccessibleSurfaceArea } from '../../mol-model/structure/structure/accessible-surface-area';
 import { Color, ColorScale } from '../../mol-util/color';
-import { ColorListName, ColorListOptions } from '../../mol-util/color/scale';
+import { ColorListName, ColorListOptions } from '../../mol-util/color/lists';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Location } from '../../mol-model/location';
@@ -101,7 +101,7 @@ const DefaultColor = Color(0xFFFFFF)
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.'
 
 export const AccessibleSurfaceAreaColorThemeParams = {
-    list: PD.ColorScale<ColorListName>('Rainbow', ColorListOptions)
+    list: PD.ColorScale<ColorListName>('rainbow', ColorListOptions)
 }
 export type AccessibleSurfaceAreaColorThemeParams = typeof AccessibleSurfaceAreaColorThemeParams
 export function getAccessibleSurfaceAreaColorThemeParams(ctx: ThemeDataContext) {

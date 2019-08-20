@@ -21,7 +21,7 @@ import { createTheme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { Text } from '../../../mol-geo/geometry/text/text';
-import { ColorNames } from '../../../mol-util/color/tables';
+import { ColorNames } from '../../../mol-util/color/names';
 import { getLabelRepresentation } from '../../../mol-plugin/util/structure-labels';
 import { ShapeRepresentation } from '../../../mol-repr/shape/representation';
 import { StructureUnitTransforms } from '../../../mol-model/structure/structure/util/unit-transforms';

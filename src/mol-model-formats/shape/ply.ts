@@ -16,7 +16,7 @@ import { ChunkedArray } from '../../mol-data/util';
 import { arrayMax, fillSerial } from '../../mol-util/array';
 import { Column } from '../../mol-data/db';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { ColorNames } from '../../mol-util/color/tables';
+import { ColorNames } from '../../mol-util/color/names';
 import { deepClone } from '../../mol-util/object';
 
 // TODO support 'edge' element, see https://www.mathworks.com/help/vision/ug/the-ply-format.html

@@ -12,7 +12,7 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../mol-geo/geometry/text/text-builder';
 import { Shape } from '../../mol-model/shape';
-import { ColorNames } from '../../mol-util/color/tables';
+import { ColorNames } from '../../mol-util/color/names';
 import { RuntimeContext } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';

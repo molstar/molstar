@@ -16,7 +16,7 @@ import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder'
 import { StateObjectCell, StateSelection, StateTransform } from '../../../../mol-state';
 import { BuiltInColorThemes } from '../../../../mol-theme/color';
 import { BuiltInSizeThemes } from '../../../../mol-theme/size';
-import { ColorNames } from '../../../../mol-util/color/tables';
+import { ColorNames } from '../../../../mol-util/color/names';
 import { ButtonsType } from '../../../../mol-util/input/input-observer';
 import { Representation } from '../../../../mol-repr/representation';
 

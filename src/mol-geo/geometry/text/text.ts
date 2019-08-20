@@ -13,7 +13,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { createColors } from '../color-data';
 import { createSizes, getMaxSize } from '../size-data';
 import { createMarkers } from '../marker-data';
-import { ColorNames } from '../../../mol-util/color/tables';
+import { ColorNames } from '../../../mol-util/color/names';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { calculateBoundingSphere, TextureImage, createTextureImage } from '../../../mol-gl/renderable/util';
 import { TextValues } from '../../../mol-gl/renderable/text';

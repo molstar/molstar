@@ -12,13 +12,13 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ScaleLegend } from '../../mol-util/color/scale';
 import { getPaletteParams, getPalette } from './util';
-import { TableLegend } from '../../mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every model a unique color based on the position (index) of the model in the list of models in the structure.'
 
 export const ModelIndexColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
+    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
 }
 export type ModelIndexColorThemeParams = typeof ModelIndexColorThemeParams
 export function getModelIndexColorThemeParams(ctx: ThemeDataContext) {

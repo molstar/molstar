@@ -12,7 +12,7 @@ import { MoleculeType } from '../../mol-model/structure/model/types';
 import { getElementMoleculeType } from '../../mol-model/structure/util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { TableLegend } from '../../mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/lists';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
 
 export const MoleculeTypeColors = ColorMap({

@@ -14,7 +14,7 @@ import { RuntimeContext } from '../../../mol-task';
 import { Shape } from '../../../mol-model/shape';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { ShapeRepresentation } from '../../../mol-repr/shape/representation';
-import { ColorNames } from '../../../mol-util/color/tables';
+import { ColorNames } from '../../../mol-util/color/names';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { SetUtils } from '../../../mol-util/set';

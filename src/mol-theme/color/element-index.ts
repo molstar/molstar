@@ -11,13 +11,13 @@ import { OrderedSet } from '../../mol-data/int';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { ColorListOptions, ColorListName } from '../../mol-util/color/scale';
+import { ColorListOptions, ColorListName } from '../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every element (atom or coarse sphere/gaussian) a unique color based on the position (index) of the element in the list of elements in the structure.'
 
 export const ElementIndexColorThemeParams = {
-    list: PD.ColorScale<ColorListName>('RedYellowBlue', ColorListOptions),
+    list: PD.ColorScale<ColorListName>('red-yellow-blue', ColorListOptions),
 }
 export type ElementIndexColorThemeParams = typeof ElementIndexColorThemeParams
 export function getElementIndexColorThemeParams(ctx: ThemeDataContext) {

@@ -8,7 +8,7 @@ import { ColorTheme } from '../color';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { TableLegend } from '../../mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/lists';
 import { defaults } from '../../mol-util';
 
 const DefaultColor = Color(0xCCCCCC)

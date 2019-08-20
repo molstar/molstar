@@ -8,7 +8,7 @@ import './index.html'
 import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Canvas3D } from '../../mol-canvas3d/canvas3d';
 import { RendererParams } from '../../mol-gl/renderer';
-import { ColorNames } from '../../mol-util/color/tables';
+import { ColorNames } from '../../mol-util/color/names';
 import { PositionData, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { OrderedSet } from '../../mol-data/int';
 import { Vec3 } from '../../mol-math/linear-algebra';

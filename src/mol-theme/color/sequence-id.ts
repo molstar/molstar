@@ -11,13 +11,13 @@ import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { ColorListOptions, ColorListName } from '../../mol-util/color/scale';
+import { ColorListOptions, ColorListName } from '../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer residue a color based on its `seq_id` value.'
 
 export const SequenceIdColorThemeParams = {
-    list: PD.ColorScale<ColorListName>('Rainbow', ColorListOptions),
+    list: PD.ColorScale<ColorListName>('rainbow', ColorListOptions),
 }
 export type SequenceIdColorThemeParams = typeof SequenceIdColorThemeParams
 export function getSequenceIdColorThemeParams(ctx: ThemeDataContext) {

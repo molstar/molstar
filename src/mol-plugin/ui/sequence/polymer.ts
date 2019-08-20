@@ -10,7 +10,7 @@ import { OrderedSet, Interval, SortedArray } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { Sequence } from '../../../mol-model/sequence';
 import { MissingResidues } from '../../../mol-model/structure/model/properties/common';
-import { ColorNames } from '../../../mol-util/color/tables';
+import { ColorNames } from '../../../mol-util/color/names';
 
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly sequence: Sequence

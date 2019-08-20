@@ -8,7 +8,7 @@ import { Structure, StructureElement, ResidueIndex } from '../../../mol-model/st
 import { SequenceWrapper, StructureUnit } from './wrapper';
 import { OrderedSet, Segmentation, Interval, SortedArray } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
-import { ColorNames } from '../../../mol-util/color/tables';
+import { ColorNames } from '../../../mol-util/color/names';
 
 export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly sequence: string[]

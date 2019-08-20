@@ -10,7 +10,7 @@ import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { TableLegend } from '../../mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/lists';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
 
 // protein colors from Jmol http://jmol.sourceforge.net/jscolors/

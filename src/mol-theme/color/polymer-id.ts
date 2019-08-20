@@ -15,13 +15,13 @@ import { Column } from '../../mol-data/db';
 import { Entities } from '../../mol-model/structure/model/properties/common';
 import { getPalette, getPaletteParams } from './util';
 import { ScaleLegend } from '../../mol-util/color/scale';
-import { TableLegend } from '../../mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer chain a color based on its `asym_id` value.'
 
 export const PolymerIdColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
+    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
 }
 export type PolymerIdColorThemeParams = typeof PolymerIdColorThemeParams
 export function getPolymerIdColorThemeParams(ctx: ThemeDataContext) {

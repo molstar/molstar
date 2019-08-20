@@ -26,7 +26,7 @@ import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { BuiltInStructureRepresentations } from '../../mol-repr/structure/registry';
 import { BuiltInColorThemes } from '../../mol-theme/color';
 import { BuiltInSizeThemes } from '../../mol-theme/size';
-import { ColorNames } from '../../mol-util/color/tables';
+import { ColorNames } from '../../mol-util/color/names';
 import { InitVolumeStreaming, CreateVolumeStreamingInfo } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';

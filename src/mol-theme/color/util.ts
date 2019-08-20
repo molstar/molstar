@@ -6,12 +6,13 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { DistinctColorsParams, distinctColors } from '../../mol-util/color/distinct';
-import { ColorListName, ColorListOptions, ScaleLegend, ColorScale } from '../../mol-util/color/scale';
+import { ScaleLegend, ColorScale } from '../../mol-util/color/scale';
 import { Color } from '../../mol-util/color';
-import { TableLegend } from '../../mol-util/color/tables';
+import { TableLegend, ColorListName, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName } from '../../mol-util/color/lists';
 
 const DefaultGetPaletteProps = {
-    scaleList: 'RedYellowBlue' as ColorListName
+    scaleList: 'red-yellow-blue' as ColorListName,
+    setList: 'set-1' as ColorListName
 }
 type GetPaletteProps = typeof DefaultGetPaletteProps
 
@@ -20,7 +21,10 @@ export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
     return {
         palette: PD.MappedStatic('generate', {
             scale: PD.Group({
-                list: PD.ColorScale<ColorListName>(p.scaleList, ColorListOptions),
+                list: PD.ColorScale<ColorListName>(p.scaleList, ColorListOptionsScale),
+            }, { isFlat: true }),
+            set: PD.Group({
+                list: PD.ColorScale<ColorListName>(p.setList, ColorListOptionsSet),
             }, { isFlat: true }),
             generate: PD.Group({
                 ...DistinctColorsParams,
@@ -29,6 +33,7 @@ export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
         }, {
             options: [
                 ['scale', 'From Scale'],
+                ['set', 'From Set'],
                 ['generate', 'Generate Distinct']
             ]
         })
@@ -54,9 +59,16 @@ export function getPalette(count: number, props: PaletteProps) {
         legend = scale.legend
         color = scale.color
     } else {
-        count = Math.min(count, props.palette.params.maxCount)
-        const colors = distinctColors(count, props.palette.params)
-        color = (i: number) => colors[i % count]
+        let colors: Color[]
+        if (props.palette.name === 'set') {
+            const listOrName = props.palette.params.list
+            colors = typeof listOrName === 'string' ? getColorListFromName(listOrName) : listOrName
+        } else {
+            count = Math.min(count, props.palette.params.maxCount)
+            colors = distinctColors(count, props.palette.params)
+        }
+        const colorsLength = colors.length
+        color = (i: number) => colors[i % colorsLength]
     }
 
     return { color, legend }

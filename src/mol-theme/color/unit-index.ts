@@ -12,13 +12,13 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ScaleLegend } from '../../mol-util/color/scale';
 import { getPaletteParams, getPalette } from './util';
-import { TableLegend } from '../../mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
 
 export const UnitIndexColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
+    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
 }
 export type UnitIndexColorThemeParams = typeof UnitIndexColorThemeParams
 export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {

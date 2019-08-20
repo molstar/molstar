@@ -16,7 +16,7 @@ import { PluginStateSnapshotManager } from '../../../mol-plugin/state/snapshots'
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { UUID } from '../../../mol-util';
-import { ColorNames } from '../../../mol-util/color/tables';
+import { ColorNames } from '../../../mol-util/color/names';
 import { Camera } from '../../../mol-canvas3d/camera';
 import { StructureRepresentation3DHelpers } from '../../../mol-plugin/state/transforms/representation';
 

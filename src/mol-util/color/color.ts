@@ -120,6 +120,16 @@ export namespace Color {
     }
 }
 
+export interface ColorList {
+    label: string
+    description: string
+    list: Color[]
+    type: 'sequential' | 'diverging' | 'qualitative'
+}
+export function ColorList(label: string, type: 'sequential' | 'diverging' | 'qualitative', description: string, list: number[]): ColorList {
+    return { label, description, list: list as Color[], type }
+}
+
 export type ColorTable<T extends { [k: string]: number[] }> = { [k in keyof T]: Color[] }
 export function ColorTable<T extends { [k: string]: number[] }>(o: T) { return o as unknown as ColorTable<T> }
 

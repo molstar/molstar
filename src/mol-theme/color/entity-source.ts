@@ -14,13 +14,13 @@ import { ScaleLegend } from '../../mol-util/color/scale';
 import { Table, Column } from '../../mol-data/db';
 import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { getPaletteParams, getPalette } from './util';
-import { TableLegend } from '../../mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives ranges of a polymer chain a color based on the entity source it originates from. Genes get the same color per entity'
 
 export const EntitySourceColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
+    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
 }
 export type EntitySourceColorThemeParams = typeof EntitySourceColorThemeParams
 export function getEntitySourceColorThemeParams(ctx: ThemeDataContext) {

@@ -11,14 +11,14 @@ import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ScaleLegend } from '../../mol-util/color/scale';
-import { TableLegend } from '../../mol-util/color/tables';
+import { TableLegend } from '../../mol-util/color/lists';
 import { getPaletteParams, getPalette } from './util';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
 
 export const PolymerIndexColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
+    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
 }
 export type PolymerIndexColorThemeParams = typeof PolymerIndexColorThemeParams
 export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {

@@ -13,7 +13,7 @@ import Scene from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Sphere3D } from '../../mol-math/geometry';
 import { Color } from '../../mol-util/color';
-import { ColorNames } from '../../mol-util/color/tables';
+import { ColorNames } from '../../mol-util/color/names';
 import { TransformData } from '../../mol-geo/geometry/transform-data';
 import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
 import { ValueCell } from '../../mol-util';

@@ -16,7 +16,7 @@ import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { Sphere } from '../../mol-geo/primitive/sphere';
-import { ColorNames } from '../../mol-util/color/tables';
+import { ColorNames } from '../../mol-util/color/names';
 import { Shape } from '../../mol-model/shape';
 import { ShapeRepresentation } from '../../mol-repr/shape/representation';
 

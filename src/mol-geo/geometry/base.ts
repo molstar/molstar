@@ -13,7 +13,7 @@ import { Color } from '../../mol-util/color';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { TransformData, createIdentityTransform } from './transform-data';
 import { Theme } from '../../mol-theme/theme';
-import { ColorNames } from '../../mol-util/color/tables';
+import { ColorNames } from '../../mol-util/color/names';
 import { NullLocation } from '../../mol-model/location';
 import { UniformColorTheme } from '../../mol-theme/color/uniform';
 import { UniformSizeTheme } from '../../mol-theme/size/uniform';

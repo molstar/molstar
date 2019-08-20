@@ -10,7 +10,7 @@ import { StructureElement } from '../../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
-import { TableLegend } from '../../../mol-util/color/tables';
+import { TableLegend } from '../../../mol-util/color/lists';
 
 const ValidationColors = [
     Color.fromRgb(170, 170, 170), // not applicable

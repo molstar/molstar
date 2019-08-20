@@ -1,35 +1,13 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Color } from './color'
-import { ColorBrewer, ColorMatplotlib, ColorOther } from './tables'
+import { getColorListFromName, ColorListName } from './lists'
 import { defaults } from '../../mol-util';
 import { NumberArray } from '../../mol-util/type-helpers';
-
-export type ColorListName = (
-    keyof typeof ColorBrewer | keyof typeof ColorMatplotlib | keyof typeof ColorOther
-)
-export const ColorListNames = [
-    ...Object.keys(ColorBrewer), ...Object.keys(ColorMatplotlib), ...Object.keys(ColorOther)
-]
-export const ColorListOptions = ColorListNames.map(n => [n, n] as [ColorListName, string])
-
-export function getColorListFromName(name: ColorListName) {
-    if (name in ColorBrewer) {
-        return ColorBrewer[name as keyof typeof ColorBrewer]
-    } else if (name in ColorMatplotlib) {
-        return ColorMatplotlib[name as keyof typeof ColorMatplotlib]
-    } else if (name in ColorOther) {
-        return ColorOther[name as keyof typeof ColorOther]
-    }
-    console.warn(`unknown color list named '${name}'`)
-    return ColorBrewer.RedYellowBlue
-}
-
-//
 
 export interface ScaleLegend {
     kind: 'scale-legend'
@@ -57,7 +35,7 @@ export interface ColorScale {
 export const DefaultColorScaleProps = {
     domain: [0, 1] as [number, number],
     reverse: false,
-    listOrName: ColorBrewer.RedYellowBlue as Color[] | ColorListName,
+    listOrName: 'red-yellow-blue' as Color[] | ColorListName,
     minLabel: '' as string | undefined,
     maxLabel: '' as string | undefined,
 }

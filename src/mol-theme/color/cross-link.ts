@@ -11,14 +11,14 @@ import { ColorTheme, LocationColor } from '../color';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { ColorListName, ColorListOptions } from '../../mol-util/color/scale';
+import { ColorListName, ColorListOptions } from '../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Colors cross-links by the deviation of the observed distance versus the modeled distance (e.g. `ihm_cross_link_restraint.distance_threshold`).'
 
 export const CrossLinkColorThemeParams = {
     domain: PD.Interval([-10, 10]),
-    list: PD.ColorScale<ColorListName>('RedGrey', ColorListOptions),
+    list: PD.ColorScale<ColorListName>('red-grey', ColorListOptions),
 }
 export type CrossLinkColorThemeParams = typeof CrossLinkColorThemeParams
 export function getCrossLinkColorThemeParams(ctx: ThemeDataContext) {

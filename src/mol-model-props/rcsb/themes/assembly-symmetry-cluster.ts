@@ -15,7 +15,7 @@ import { Location } from '../../../mol-model/location';
 import { ScaleLegend } from '../../../mol-util/color/scale';
 import { getSymmetrySelectParam } from '../util';
 import { getPalette, getPaletteParams } from '../../../mol-theme/color/util';
-import { TableLegend } from '../../../mol-util/color/tables';
+import { TableLegend } from '../../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 
@@ -34,7 +34,7 @@ function clusterMemberKey(assemblyId: string, asymId: string, operList: string[]
 }
 
 export const AssemblySymmetryClusterColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'RedYellowBlue' }),
+    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
     symmetryId: getSymmetrySelectParam(),
 }
 export type AssemblySymmetryClusterColorThemeParams = typeof AssemblySymmetryClusterColorThemeParams
