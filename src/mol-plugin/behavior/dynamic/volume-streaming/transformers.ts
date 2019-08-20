@@ -29,7 +29,7 @@ export const InitVolumeStreaming = StateAction.build({
         const method = getStreamingMethod(a && a.data);
         return {
             method: PD.Select<VolumeServerInfo.Kind>(method, [['em', 'EM'], ['x-ray', 'X-Ray']]),
-            id: PD.Text((a && a.data.models.length > 0 && a.data.models[0].label) || ''),
+            id: PD.Text((a && a.data.models.length > 0 && a.data.models[0].entry) || ''),
             serverUrl: PD.Text('https://ds.litemol.org'),
             defaultView: PD.Text<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box'),
             behaviorRef: PD.Text('', { isHidden: true })
