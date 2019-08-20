@@ -11,7 +11,7 @@ import { OrderedSet } from '../../mol-data/int';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { getPaletteParams, getPalette } from './util';
+import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend } from '../../mol-util/color/lists';
 import { ScaleLegend } from '../../mol-util/color/scale';
 
@@ -19,7 +19,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every element (atom or coarse sphere/gaussian) a unique color based on the position (index) of the element in the list of elements in the structure.'
 
 export const ElementIndexColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
+    ...getPaletteParams({ type: 'scale', scaleList: 'red-yellow-blue' }),
 }
 export type ElementIndexColorThemeParams = typeof ElementIndexColorThemeParams
 export function getElementIndexColorThemeParams(ctx: ThemeDataContext) {
@@ -31,7 +31,7 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<E
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const { units } = ctx.structure
+        const { units } = ctx.structure.root
         const unitCount = units.length
         const cummulativeElementCount = new Map<number, number>()
         const unitIdIndex = new Map<number, number>()
@@ -49,11 +49,12 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<E
         color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
                 const unitIndex = unitIdIndex.get(location.unit.id)!
-                const unitElementIndex = OrderedSet.findPredecessorIndex(location.unit.elements, location.element)
+                const unitElementIndex = OrderedSet.findPredecessorIndex(units[unitIndex].elements, location.element)
                 return palette.color(cummulativeElementCount.get(unitIndex)! + unitElementIndex)
             } else if (Link.isLocation(location)) {
                 const unitIndex = unitIdIndex.get(location.aUnit.id)!
-                return palette.color(cummulativeElementCount.get(unitIndex)! + location.aIndex)
+                const unitElementIndex = OrderedSet.findPredecessorIndex(units[unitIndex].elements, location.aUnit.elements[location.aIndex])
+                return palette.color(cummulativeElementCount.get(unitIndex)! + unitElementIndex)
             }
             return DefaultColor
         }

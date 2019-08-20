@@ -4,22 +4,25 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
-import { DistinctColorsParams, distinctColors } from '../../mol-util/color/distinct';
-import { ScaleLegend, ColorScale } from '../../mol-util/color/scale';
-import { Color } from '../../mol-util/color';
-import { TableLegend, ColorListName, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName } from '../../mol-util/color/lists';
+import { ParamDefinition as PD } from '../param-definition'
+import { DistinctColorsParams, distinctColors } from './distinct';
+import { ScaleLegend, ColorScale } from './scale';
+import { Color } from '.';
+import { TableLegend, ColorListName, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName } from './lists';
+
+type PaletteType = 'generate' | 'scale' | 'set'
 
 const DefaultGetPaletteProps = {
+    type: 'generate' as PaletteType,
     scaleList: 'red-yellow-blue' as ColorListName,
     setList: 'set-1' as ColorListName
 }
 type GetPaletteProps = typeof DefaultGetPaletteProps
 
 export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
-    const p = { ...DefaultGetPaletteProps, props }
+    const p = { ...DefaultGetPaletteProps, ...props }
     return {
-        palette: PD.MappedStatic('generate', {
+        palette: PD.MappedStatic(p.type, {
             scale: PD.Group({
                 list: PD.ColorList<ColorListName>(p.scaleList, ColorListOptionsScale),
             }, { isFlat: true }),

@@ -14,7 +14,7 @@ import { Unit, StructureElement, StructureProperties } from '../../../mol-model/
 import { Location } from '../../../mol-model/location';
 import { ScaleLegend } from '../../../mol-util/color/scale';
 import { getSymmetrySelectParam } from '../util';
-import { getPalette, getPaletteParams } from '../../../mol-theme/color/util';
+import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
 import { TableLegend } from '../../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)

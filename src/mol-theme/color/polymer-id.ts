@@ -4,28 +4,34 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureProperties, StructureElement, Link } from '../../mol-model/structure';
+import { Unit, StructureProperties, StructureElement, Link, Structure } from '../../mol-model/structure';
 
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { Column } from '../../mol-data/db';
-import { Entities } from '../../mol-model/structure/model/properties/common';
-import { getPalette, getPaletteParams } from './util';
+import { getPalette, getPaletteParams } from '../../mol-util/color/palette';
 import { ScaleLegend } from '../../mol-util/color/scale';
 import { TableLegend } from '../../mol-util/color/lists';
+import { Segmentation } from '../../mol-data/int';
 
-const DefaultColor = Color(0xCCCCCC)
+const DefaultColor = Color(0xFAFAFA)
 const Description = 'Gives every polymer chain a color based on its `asym_id` value.'
 
 export const PolymerIdColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
+    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
 }
 export type PolymerIdColorThemeParams = typeof PolymerIdColorThemeParams
 export function getPolymerIdColorThemeParams(ctx: ThemeDataContext) {
-    return PolymerIdColorThemeParams // TODO return copy
+    const params = PD.clone(PolymerIdColorThemeParams)
+    if (ctx.structure) {
+        if (getPolymerAsymIdSerialMap(ctx.structure.root).size > 12) {
+            params.palette.defaultValue.name = 'scale'
+            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+        }
+    }
+    return params
 }
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
@@ -38,19 +44,40 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
     }
 }
 
-function addPolymerAsymIds(map: Map<string, number>, asymId: Column<string>, entityId: Column<string>, entities: Entities) {
-    let j = map.size
-    for (let o = 0, ol = asymId.rowCount; o < ol; ++o) {
-        const e = entityId.value(o)
-        const eI = entities.getEntityIndex(e)
-        if (entities.data.type.value(eI) === 'polymer') {
-            const k = asymId.value(o)
-            if (!map.has(k)) {
-                map.set(k, j)
-                j += 1
+function getPolymerAsymIdSerialMap(structure: Structure) {
+    const map = new Map<string, number>()
+    for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
+        const unit = structure.unitSymmetryGroups[i].units[0]
+        const { model } = unit
+        if (Unit.isAtomic(unit)) {
+            const { chainAtomSegments, chains } = model.atomicHierarchy
+            const chainIt = Segmentation.transientSegments(chainAtomSegments, unit.elements)
+            while (chainIt.hasNext) {
+                const { index: chainIndex } = chainIt.move()
+                const entityId = chains.label_entity_id.value(chainIndex)
+                const eI = model.entities.getEntityIndex(entityId)
+                if (model.entities.data.type.value(eI) === 'polymer') {
+                    const asymId = chains.label_asym_id.value(chainIndex)
+                    if (!map.has(asymId)) map.set(asymId, map.size)
+                }
+            }
+        } else if (Unit.isCoarse(unit)) {
+            const { chainElementSegments, asym_id, entity_id } = Unit.isSpheres(unit)
+                ? model.coarseHierarchy.spheres
+                : model.coarseHierarchy.gaussians
+            const chainIt = Segmentation.transientSegments(chainElementSegments, unit.elements)
+            while (chainIt.hasNext) {
+                const { index: chainIndex } = chainIt.move()
+                const entityId = entity_id.value(chainIndex)
+                const eI = model.entities.getEntityIndex(entityId)
+                if (model.entities.data.type.value(eI) === 'polymer') {
+                    const asymId = asym_id.value(chainIndex)
+                    if (!map.has(asymId)) map.set(asymId, map.size)
+                }
             }
         }
     }
+    return map
 }
 
 export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<PolymerIdColorThemeParams>): ColorTheme<PolymerIdColorThemeParams> {
@@ -58,33 +85,24 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Poly
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        // TODO same asym ids in different models should get different color
         const l = StructureElement.create()
-        const { models } = ctx.structure
-        const polymerAsymIdSerialMap = new Map<string, number>()
-        for (let i = 0, il = models.length; i <il; ++i) {
-            const m = models[i]
-            addPolymerAsymIds(polymerAsymIdSerialMap, m.atomicHierarchy.chains.label_asym_id, m.atomicHierarchy.chains.label_entity_id, m.entities)
-            if (m.coarseHierarchy.isDefined) {
-                addPolymerAsymIds(polymerAsymIdSerialMap, m.coarseHierarchy.spheres.asym_id, m.coarseHierarchy.spheres.entity_id, m.entities)
-                addPolymerAsymIds(polymerAsymIdSerialMap, m.coarseHierarchy.gaussians.asym_id, m.coarseHierarchy.spheres.entity_id, m.entities)
-            }
-        }
+        const polymerAsymIdSerialMap = getPolymerAsymIdSerialMap(ctx.structure.root)
 
         const palette = getPalette(polymerAsymIdSerialMap.size, props)
         legend = palette.legend
 
         color = (location: Location): Color => {
+            let serial: number | undefined = undefined
             if (StructureElement.isLocation(location)) {
                 const asym_id = getAsymId(location.unit)
-                return palette.color(polymerAsymIdSerialMap.get(asym_id(location)) || 0)
+                serial = polymerAsymIdSerialMap.get(asym_id(location))
             } else if (Link.isLocation(location)) {
                 const asym_id = getAsymId(location.aUnit)
                 l.unit = location.aUnit
                 l.element = location.aUnit.elements[location.aIndex]
-                return palette.color(polymerAsymIdSerialMap.get(asym_id(l)) || 0)
+                serial = polymerAsymIdSerialMap.get(asym_id(l))
             }
-            return DefaultColor
+            return serial === undefined ? DefaultColor : palette.color(serial)
         }
     } else {
         color = () => DefaultColor

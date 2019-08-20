@@ -13,18 +13,25 @@ import { ThemeDataContext } from '../../mol-theme/theme';
 import { ScaleLegend } from '../../mol-util/color/scale';
 import { Table, Column } from '../../mol-data/db';
 import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
-import { getPaletteParams, getPalette } from './util';
+import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend } from '../../mol-util/color/lists';
 
-const DefaultColor = Color(0xCCCCCC)
-const Description = 'Gives ranges of a polymer chain a color based on the entity source it originates from. Genes get the same color per entity'
+const DefaultColor = Color(0xFAFAFA)
+const Description = 'Gives ranges of a polymer chain a color based on the entity source it originates from. Genes get the same color per entity.'
 
 export const EntitySourceColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
+    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
 }
 export type EntitySourceColorThemeParams = typeof EntitySourceColorThemeParams
 export function getEntitySourceColorThemeParams(ctx: ThemeDataContext) {
-    return EntitySourceColorThemeParams // TODO return copy
+    const params = PD.clone(EntitySourceColorThemeParams)
+    if (ctx.structure) {
+        if (getMaps(ctx.structure.root.models).srcKeySerialMap.size > 12) {
+            params.palette.defaultValue.name = 'scale'
+            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+        }
+    }
+    return params
 }
 
 function modelEntityKey(modelIndex: number, entityId: string) {
@@ -77,31 +84,36 @@ function addSrc(seqToSrcByModelEntity: Map<string, Int16Array>, srcKeySerialMap:
     }
 }
 
+function getMaps(models: ReadonlyArray<Model>) {
+    const seqToSrcByModelEntity = new Map<string, Int16Array>()
+    const srcKeySerialMap = new Map<string, number>() // serial no starting from 1
+
+    for (let i = 0, il = models.length; i <il; ++i) {
+        const m = models[i]
+        if (m.sourceData.kind !== 'mmCIF') continue
+        const { entity_src_gen, entity_src_nat, pdbx_entity_src_syn } = m.sourceData.data
+        addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_gen, entity_src_gen.pdbx_gene_src_gene)
+        addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_nat)
+        addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, pdbx_entity_src_syn)
+    }
+
+    return { seqToSrcByModelEntity, srcKeySerialMap }
+}
+
 export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<EntitySourceColorThemeParams>): ColorTheme<EntitySourceColorThemeParams> {
     let color: LocationColor
     let legend: ScaleLegend | TableLegend | undefined
-    const { structure } = ctx
 
-    if (structure) {
+    if (ctx.structure) {
         const l = StructureElement.create()
-        const { models } = structure
-        const seqToSrcByModelEntity = new Map<string, Int16Array>()
-        const srcKeySerialMap = new Map<string, number>() // serial no starting from 1
-
-        for (let i = 0, il = models.length; i <il; ++i) {
-            const m = models[i]
-            if (m.sourceData.kind !== 'mmCIF') continue
-            const { entity_src_gen, entity_src_nat, pdbx_entity_src_syn } = m.sourceData.data
-            addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_gen, entity_src_gen.pdbx_gene_src_gene)
-            addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_nat)
-            addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, pdbx_entity_src_syn)
-        }
+        const { models } = ctx.structure.root
+        const { seqToSrcByModelEntity, srcKeySerialMap } = getMaps(models)
 
         const palette = getPalette(srcKeySerialMap.size + 1, props)
         legend = palette.legend
 
         const getSrcColor = (location: StructureElement) => {
-            const modelIndex = structure.models.indexOf(location.unit.model)
+            const modelIndex = models.indexOf(location.unit.model)
             const entityId = StructureProperties.entity.id(location)
             const mK = modelEntityKey(modelIndex, entityId)
             const seqToSrc = seqToSrcByModelEntity.get(mK)

@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ScaleLegend } from '../../mol-util/color/scale';
 import { TableLegend } from '../../mol-util/color/lists';
-import { getPaletteParams, getPalette } from './util';
+import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
@@ -31,7 +31,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const { units } = ctx.structure
+        const { units } = ctx.structure.root
         let polymerCount = 0
         for (let i = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) ++polymerCount

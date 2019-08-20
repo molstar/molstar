@@ -11,14 +11,14 @@ import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ScaleLegend } from '../../mol-util/color/scale';
-import { getPaletteParams, getPalette } from './util';
+import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend } from '../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
 
 export const UnitIndexColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
+    ...getPaletteParams({ type: 'scale', scaleList: 'red-yellow-blue' }),
 }
 export type UnitIndexColorThemeParams = typeof UnitIndexColorThemeParams
 export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {
@@ -30,7 +30,7 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Unit
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const { units } = ctx.structure
+        const { units } = ctx.structure.root
         const palette = getPalette(units.length, props)
         legend = palette.legend
         const unitIdColor = new Map<number, Color>()

@@ -4,26 +4,33 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureProperties, StructureElement, Link } from '../../mol-model/structure';
+import { Unit, StructureProperties, StructureElement, Link, Structure } from '../../mol-model/structure';
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ScaleLegend } from '../../mol-util/color/scale';
-import { Column } from '../../mol-data/db';
-import { getPaletteParams, getPalette } from './util';
+import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend } from '../../mol-util/color/lists';
+import { Segmentation } from '../../mol-data/int';
 
-const DefaultColor = Color(0xCCCCCC)
+const DefaultColor = Color(0xFAFAFA)
 const Description = 'Gives every chain a color based on its `asym_id` value.'
 
 export const ChainIdColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
+    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
 }
 export type ChainIdColorThemeParams = typeof ChainIdColorThemeParams
 export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
-    return ChainIdColorThemeParams // TODO return copy
+    const params = PD.clone(ChainIdColorThemeParams)
+    if (ctx.structure) {
+        if (getAsymIdSerialMap(ctx.structure.root).size > 12) {
+            params.palette.defaultValue.name = 'scale'
+            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+        }
+    }
+    return params
 }
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
@@ -36,15 +43,32 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
     }
 }
 
-function addAsymIds(map: Map<string, number>, data: Column<string>) {
-    let j = map.size
-    for (let o = 0, ol = data.rowCount; o < ol; ++o) {
-        const k = data.value(o)
-        if (!map.has(k)) {
-            map.set(k, j)
-            j += 1
+function getAsymIdSerialMap(structure: Structure) {
+    const map = new Map<string, number>()
+    for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
+        const unit = structure.unitSymmetryGroups[i].units[0]
+        const { model } = unit
+        if (Unit.isAtomic(unit)) {
+            const { chainAtomSegments, chains } = model.atomicHierarchy
+            const chainIt = Segmentation.transientSegments(chainAtomSegments, unit.elements)
+            while (chainIt.hasNext) {
+                const { index: chainIndex } = chainIt.move()
+                const asymId = chains.label_asym_id.value(chainIndex)
+                if (!map.has(asymId)) map.set(asymId, map.size)
+            }
+        } else if (Unit.isCoarse(unit)) {
+            const { chainElementSegments, asym_id } = Unit.isSpheres(unit)
+                ? model.coarseHierarchy.spheres
+                : model.coarseHierarchy.gaussians
+            const chainIt = Segmentation.transientSegments(chainElementSegments, unit.elements)
+            while (chainIt.hasNext) {
+                const { index: chainIndex } = chainIt.move()
+                const asymId = asym_id.value(chainIndex)
+                if (!map.has(asymId)) map.set(asymId, map.size)
+            }
         }
     }
+    return map
 }
 
 export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainIdColorThemeParams>): ColorTheme<ChainIdColorThemeParams> {
@@ -52,33 +76,24 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        // TODO same asym ids in different models should get different color
         const l = StructureElement.create()
-        const { models } = ctx.structure
-        const asymIdSerialMap = new Map<string, number>()
-        for (let i = 0, il = models.length; i <il; ++i) {
-            const m = models[i]
-            addAsymIds(asymIdSerialMap, m.atomicHierarchy.chains.label_asym_id)
-            if (m.coarseHierarchy.isDefined) {
-                addAsymIds(asymIdSerialMap, m.coarseHierarchy.spheres.asym_id)
-                addAsymIds(asymIdSerialMap, m.coarseHierarchy.gaussians.asym_id)
-            }
-        }
+        const asymIdSerialMap = getAsymIdSerialMap(ctx.structure.root)
 
         const palette = getPalette(asymIdSerialMap.size, props)
         legend = palette.legend
 
         color = (location: Location): Color => {
+            let serial: number | undefined = undefined
             if (StructureElement.isLocation(location)) {
                 const asym_id = getAsymId(location.unit)
-                return palette.color(asymIdSerialMap.get(asym_id(location)) || 0)
+                serial = asymIdSerialMap.get(asym_id(location))
             } else if (Link.isLocation(location)) {
                 const asym_id = getAsymId(location.aUnit)
                 l.unit = location.aUnit
                 l.element = location.aUnit.elements[location.aIndex]
-                return palette.color(asymIdSerialMap.get(asym_id(l)) || 0)
+                serial = asymIdSerialMap.get(asym_id(l))
             }
-            return DefaultColor
+            return serial === undefined ? DefaultColor : palette.color(serial)
         }
     } else {
         color = () => DefaultColor
