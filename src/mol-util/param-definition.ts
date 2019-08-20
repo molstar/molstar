@@ -62,13 +62,13 @@ export namespace ParamDefinition {
         return setInfo<Select<T>>({ type: 'select', defaultValue, options }, info)
     }
 
-    export interface ColorScale<T extends string> extends Base<T> {
-        type: 'color-scale'
+    export interface ColorList<T extends string> extends Base<T> {
+        type: 'color-list'
         /** array of (value, label) tuples */
         options: [T, string][]
     }
-    export function ColorScale<T extends string>(defaultValue: T, options: [T, string][], info?: Info): ColorScale<T> {
-        return setInfo<ColorScale<T>>({ type: 'color-scale', defaultValue, options }, info)
+    export function ColorList<T extends string>(defaultValue: T, options: [T, string][], info?: Info): ColorList<T> {
+        return setInfo<ColorList<T>>({ type: 'color-list', defaultValue, options }, info)
     }
 
     export interface MultiSelect<E extends string, T = E[]> extends Base<T> {
@@ -242,7 +242,7 @@ export namespace ParamDefinition {
 
     export type Any =
         | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph
-        | ColorScale<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression | ObjectList
+        | ColorList<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression | ObjectList
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }

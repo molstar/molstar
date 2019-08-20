@@ -125,7 +125,7 @@ export const ColorLists = {
         '',
         [0x67001f, 0xb2182b, 0xd6604d, 0xf4a582, 0xfddbc7, 0xffffff, 0xe0e0e0, 0xbababa, 0x878787, 0x4d4d4d, 0x1a1a1a]
     ),
-    'purple-orange': ColorList('Purple-Orange', 'diverging',
+    'orange-purple': ColorList('Orange-Purple', 'diverging',
         '',
         [0x7f3b08, 0xb35806, 0xe08214, 0xfdb863, 0xfee0b6, 0xf7f7f7, 0xd8daeb, 0xb2abd2, 0x8073ac, 0x542788, 0x2d004b]
     ),
@@ -209,7 +209,7 @@ export const ColorListOptionsScale = ColorListOptions.filter(v => ColorLists[v[0
 export const ColorListOptionsSet = ColorListOptions.filter(v => ColorLists[v[0]].type === 'qualitative')
 
 export function getColorListFromName(name: ColorListName) {
-    if (name in ColorLists) return ColorLists[name as ColorListName].list
+    if (name in ColorLists) return ColorLists[name as ColorListName]
     console.warn(`unknown color list named '${name}'`)
-    return ColorLists['red-yellow-blue'].list
+    return ColorLists['red-yellow-blue']
 }

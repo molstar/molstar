@@ -81,7 +81,7 @@ export namespace DirectVolume {
             Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
             Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
         ]),
-        list: PD.ColorScale<ColorListName>('red-yellow-blue', ColorListOptions),
+        list: PD.ColorList<ColorListName>('red-yellow-blue', ColorListOptions),
     }
     export type Params = typeof Params
 

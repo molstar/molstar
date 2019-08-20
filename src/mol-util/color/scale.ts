@@ -44,7 +44,7 @@ export type ColorScaleProps = Partial<typeof DefaultColorScaleProps>
 export namespace ColorScale {
     export function create(props: ColorScaleProps): ColorScale {
         const { domain, reverse, listOrName } = { ...DefaultColorScaleProps, ...props }
-        const list = typeof listOrName === 'string' ? getColorListFromName(listOrName) : listOrName
+        const list = typeof listOrName === 'string' ? getColorListFromName(listOrName).list : listOrName
 
         const colors = reverse ? list.slice().reverse() : list
         const count1 = colors.length - 1

@@ -7,8 +7,8 @@
 
 import { Vec2, Vec3 } from '../../../mol-math/linear-algebra';
 import { Color } from '../../../mol-util/color';
-import { ColorListName, getColorListFromName } from '../../../mol-util/color/scale';
-import { ColorNames, ColorNamesValueMap } from '../../../mol-util/color/tables';
+import { ColorListName, getColorListFromName } from '../../../mol-util/color/lists';
+import { ColorNames, ColorNamesValueMap } from '../../../mol-util/color/names';
 import { memoize1 } from '../../../mol-util/memoize';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { camelCaseToWords } from '../../../mol-util/string';
@@ -54,7 +54,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'conditioned': return ConditionedControl;
         case 'multi-select': return MultiSelectControl;
         case 'color': return ColorControl;
-        case 'color-scale': return ColorScaleControl;
+        case 'color-list': return ColorListControl;
         case 'vec3': return Vec3Control;
         case 'file': return FileControl;
         case 'select': return SelectControl;
@@ -298,14 +298,35 @@ export class ColorControl extends SimpleParam<PD.Color> {
     }
 }
 
-const colorScaleGradient = memoize1((n: ColorListName) => `linear-gradient(to right, ${getColorListFromName(n).map(c => Color.toStyle(c)).join(', ')})`);
+const colorGradientInterpolated = memoize1((colors: Color[]) => {
+    const styles = colors.map(c => Color.toStyle(c))
+    return `linear-gradient(to right, ${styles.join(', ')})`
+});
 
-export class ColorScaleControl extends SimpleParam<PD.ColorScale<any>> {
+const colorGradientBanded = memoize1((colors: Color[]) => {
+    const n = colors.length
+    const styles: string[] = [`${Color.toStyle(colors[0])} ${100 * (1 / n)}%`]
+    for (let i = 1, il = n - 1; i < il; ++i) {
+        styles.push(
+            `${Color.toStyle(colors[i])} ${100 * (i / n)}%`,
+            `${Color.toStyle(colors[i])} ${100 * ((i + 1) / n)}%`
+        )
+    }
+    styles.push(`${Color.toStyle(colors[n - 1])} ${100 * ((n - 1) / n)}%`)
+    return `linear-gradient(to right, ${styles.join(', ')})`
+});
+
+function colorGradient(name: ColorListName, banded: boolean) {
+    const { list, type } = getColorListFromName(name)
+    return type === 'qualitative' ? colorGradientBanded(list) : colorGradientInterpolated(list)
+}
+
+export class ColorListControl extends SimpleParam<PD.ColorList<any>> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => { this.update(e.target.value); }
 
     stripStyle(): React.CSSProperties {
         return {
-            background: colorScaleGradient(this.props.value),
+            background: colorGradient(this.props.value, true),
             position: 'absolute',
             bottom: '0',
             height: '4px',

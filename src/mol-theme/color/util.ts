@@ -21,10 +21,10 @@ export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
     return {
         palette: PD.MappedStatic('generate', {
             scale: PD.Group({
-                list: PD.ColorScale<ColorListName>(p.scaleList, ColorListOptionsScale),
+                list: PD.ColorList<ColorListName>(p.scaleList, ColorListOptionsScale),
             }, { isFlat: true }),
             set: PD.Group({
-                list: PD.ColorScale<ColorListName>(p.setList, ColorListOptionsSet),
+                list: PD.ColorList<ColorListName>(p.setList, ColorListOptionsSet),
             }, { isFlat: true }),
             generate: PD.Group({
                 ...DistinctColorsParams,
@@ -32,7 +32,7 @@ export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
             }, { isFlat: true })
         }, {
             options: [
-                ['scale', 'From Scale'],
+                ['scale', 'Interpolate'],
                 ['set', 'From Set'],
                 ['generate', 'Generate Distinct']
             ]
@@ -62,7 +62,7 @@ export function getPalette(count: number, props: PaletteProps) {
         let colors: Color[]
         if (props.palette.name === 'set') {
             const listOrName = props.palette.params.list
-            colors = typeof listOrName === 'string' ? getColorListFromName(listOrName) : listOrName
+            colors = typeof listOrName === 'string' ? getColorListFromName(listOrName).list : listOrName
         } else {
             count = Math.min(count, props.palette.params.maxCount)
             colors = distinctColors(count, props.palette.params)
