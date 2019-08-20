@@ -575,7 +575,7 @@ namespace StructureElement {
                 elements.push({ groupedUnits, set: e.set, ranges: e.ranges })
             })
 
-            return { hash: (loci.structure.parent || loci.structure).hashCode, elements }
+            return { hash: loci.structure.root.hashCode, elements }
         }
 
         function getUnitsFromIds(unitIds: ArrayLike<number>, structure: Structure) {
@@ -588,7 +588,7 @@ namespace StructureElement {
         }
 
         export function toLoci(query: Query, parent: Structure): Loci {
-            if (query.hash !== -1 && query.hash !== (parent.parent || parent).hashCode) {
+            if (query.hash !== -1 && query.hash !== parent.root.hashCode) {
                 new Error('Query not compatible with given structure')
             }
             const elements: Loci['elements'][0][] = []
@@ -625,7 +625,7 @@ namespace StructureElement {
         }
 
         export function toStructure(query: Query, parent: Structure): Structure {
-            if (query.hash !== -1 && query.hash !== (parent.parent || parent).hashCode) {
+            if (query.hash !== -1 && query.hash !== parent.root.hashCode) {
                 new Error('Query not compatible with given structure')
             }
             const units: Unit[] = []

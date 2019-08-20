@@ -162,7 +162,7 @@ export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup
     let changed = false
     if (Link.isLoci(loci)) {
         const { structure, group } = structureGroup
-        if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+        if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
         loci = Link.remapLoci(loci, structure)
         const groupCount = group.units[0].gapElements.length
         for (const b of loci.links) {
@@ -177,7 +177,7 @@ export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup
         }
     } else if (StructureElement.isLoci(loci)) {
         const { structure, group } = structureGroup
-        if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+        if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
         loci = StructureElement.Loci.remap(loci, structure)
         const groupCount = group.units[0].gapElements.length
         for (const e of loci.elements) {

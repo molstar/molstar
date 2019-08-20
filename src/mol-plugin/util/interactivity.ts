@@ -101,7 +101,7 @@ namespace Interactivity {
             }
             if (Structure.isLoci(loci)) {
                 // convert to StructureElement.Loci of root structure
-                loci = Structure.toStructureElementLoci(Structure.Loci(loci.structure.parent || loci.structure))
+                loci = Structure.toStructureElementLoci(Structure.Loci(loci.structure.root))
             }
             if (StructureElement.isLoci(loci) && loci.structure.parent) {
                 // ensure the root structure is used

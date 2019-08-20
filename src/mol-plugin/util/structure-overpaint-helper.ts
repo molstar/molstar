@@ -34,9 +34,8 @@ export class StructureOverpaintHelper {
             const overpaint = state.select(StateSelection.Generators.ofTransformer(StateTransforms.Representation.OverpaintStructureRepresentation3D, r.transform.ref).withTag(OverpaintManagerTag));
 
             const structure = r.obj!.data.source.data
-            const rootStructure = structure.parent || structure
 
-            callback(update, r, rootStructure, overpaint[0])
+            callback(update, r, structure.root, overpaint[0])
         }
 
         await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }));

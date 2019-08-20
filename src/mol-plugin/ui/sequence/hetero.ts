@@ -26,7 +26,7 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
         let changed = false
         const { structure, unit } = this.data
         if (StructureElement.isLoci(loci)) {
-            if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
             loci = StructureElement.Loci.remap(loci, structure)
 
             for (const e of loci.elements) {
@@ -39,7 +39,7 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
                 }
             }
         } else if (Structure.isLoci(loci)) {
-            if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
 
             if (apply(Interval.ofBounds(0, this.length))) changed = true
         }

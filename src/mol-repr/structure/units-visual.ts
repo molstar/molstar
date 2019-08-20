@@ -215,7 +215,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
-        if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areParentsEquivalent(loci.structure, currentStructureGroup.structure))) {
+        if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areRootsEquivalent(loci.structure, currentStructureGroup.structure))) {
             return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount))
         } else {
             return eachLocation(loci, currentStructureGroup, apply)

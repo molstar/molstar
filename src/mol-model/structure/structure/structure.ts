@@ -146,7 +146,12 @@ class Structure {
         return new Structure.ElementLocationIterator(this);
     }
 
-    /** the root/top-most parent or `undefined` in case this is the root */
+    /** The parent or itself in case this is the root */
+    get root() {
+        return this._props.parent || this;
+    }
+
+    /** The root/top-most parent or `undefined` in case this is the root */
     get parent() {
         return this._props.parent;
     }
@@ -629,13 +634,13 @@ namespace Structure {
     }
 
     /** Check if the structures or their parents are equivalent */
-    export function areParentsEquivalent(a: Structure, b: Structure) {
-        return areEquivalent(a.parent || a, b.parent || b)
+    export function areRootsEquivalent(a: Structure, b: Structure) {
+        return areEquivalent(a.root, b.root)
     }
 
     /** Check if the structures or their parents are equal */
-    export function areParentsEqual(a: Structure, b: Structure) {
-        return (a.parent || a) === (b.parent || b)
+    export function areRootsEqual(a: Structure, b: Structure) {
+        return a.root === b.root
     }
 
     export class ElementLocationIterator implements Iterator<StructureElement> {

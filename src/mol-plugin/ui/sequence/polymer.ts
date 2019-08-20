@@ -37,7 +37,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         let changed = false
         const { structure, unit } = this.data
         if (StructureElement.isLoci(loci)) {
-            if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
             loci = StructureElement.Loci.remap(loci, structure)
 
             const { offset } = this.sequence
@@ -49,7 +49,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
                 }
             }
         } else if (Structure.isLoci(loci)) {
-            if (!Structure.areParentsEquivalent(loci.structure, structure)) return false
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
 
             if (apply(this.observed)) changed = true
         }

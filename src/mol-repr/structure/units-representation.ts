@@ -166,7 +166,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         let changed = false
         if (!_structure) return false
         if (!StructureElement.isLoci(loci) && !Link.isLoci(loci)) return false
-        if (!Structure.areParentsEquivalent(loci.structure, _structure)) return false
+        if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
         if (StructureElement.isLoci(loci)) {
             loci = StructureElement.Loci.remap(loci, _structure)
             if (loci.elements.length === 0) return false
