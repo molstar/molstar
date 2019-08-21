@@ -108,8 +108,8 @@ function getSourceInfo(req: express.Request) {
     };
 }
 
-function validateSourndAndId(req: express.Request, res: express.Response) {
-    if (!req.params.source || req.params.source.length > 32 || !req.params.id || req.params.source.id > 32) {
+function validateSourceAndId(req: express.Request, res: express.Response) {
+    if (!req.params.source || req.params.source.length > 32 || !req.params.id || req.params.id.length > 32) {
         res.writeHead(404);
         res.end();
         ConsoleLogger.error(`Query Box`, 'Invalid source and/or id');
@@ -119,7 +119,7 @@ function validateSourndAndId(req: express.Request, res: express.Response) {
 }
 
 async function getHeader(req: express.Request, res: express.Response) {
-    if (validateSourndAndId(req, res)) {
+    if (validateSourceAndId(req, res)) {
         return;
     }
 
@@ -175,7 +175,7 @@ function getQueryParams(req: express.Request, isCell: boolean): Data.QueryParams
 }
 
 async function queryBox(req: express.Request, res: express.Response, params: Data.QueryParams) {
-    if (validateSourndAndId(req, res)) {
+    if (validateSourceAndId(req, res)) {
         return;
     }
 
