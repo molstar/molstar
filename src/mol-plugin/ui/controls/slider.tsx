@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react'
@@ -320,26 +321,26 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
     private startValue = 0;
     private _getPointsCache: any = void 0;
 
-    componentDidUpdate(nextProps: SliderBaseProps) {
-        if (!('value' in nextProps || 'min' in nextProps || 'max' in nextProps)) return;
+    componentDidUpdate(prevProps: SliderBaseProps) {
+        if (!('value' in this.props || 'min' in this.props || 'max' in this.props)) return;
 
         const { bounds } = this.state;
-        if (nextProps.range) {
-            const value = nextProps.value || bounds;
-            const nextBounds = (value as number[]).map((v: number) => this.trimAlignValue(v, nextProps));
+        if (prevProps.range) {
+            const value = this.props.value || bounds;
+            const nextBounds = (value as number[]).map((v: number) => this.trimAlignValue(v, this.props));
             if (nextBounds.every((v: number, i: number) => v === bounds[i])) return;
 
             this.setState({ bounds: nextBounds } as SliderBaseState);
-            if (bounds.some(v => this.isValueOutOfBounds(v, nextProps))) {
+            if (bounds.some(v => this.isValueOutOfBounds(v, this.props))) {
                 this.props.onChange!(nextBounds);
             }
         } else {
-            const value = nextProps.value !== undefined ? nextProps.value : bounds[1];
-            const nextValue = this.trimAlignValue(value as number, nextProps);
-            if (nextValue === bounds[1] && bounds[0] === nextProps.min) return;
+            const value = this.props.value !== undefined ? this.props.value : bounds[1];
+            const nextValue = this.trimAlignValue(value as number, this.props);
+            if (nextValue === bounds[1] && bounds[0] === prevProps.min) return;
 
-            this.setState({ bounds: [nextProps.min, nextValue] } as SliderBaseState);
-            if (this.isValueOutOfBounds(bounds[1], nextProps)) {
+            this.setState({ bounds: [prevProps.min, nextValue] } as SliderBaseState);
+            if (this.isValueOutOfBounds(bounds[1], this.props)) {
                 this.props.onChange!(nextValue);
             }
         }
@@ -658,9 +659,9 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         }
     }
 
-    trimAlignValue(v: number, nextProps?: SliderBaseProps) {
+    trimAlignValue(v: number, props?: SliderBaseProps) {
         const { handle, bounds } = (this.state || {}) as this['state'];
-        const { marks, step, min, max, allowCross } = { ...this.props, ...(nextProps || {}) } as SliderBaseProps;
+        const { marks, step, min, max, allowCross } = { ...this.props, ...(props || {}) } as SliderBaseProps;
 
         let val = v;
         if (val <= min) {
