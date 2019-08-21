@@ -74,7 +74,7 @@ export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
                 </div>
                 <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} />
                 <div className='msp-control-row'>
-                    <div className='msp-select-row' style={{ background: '#f3f2ee' }}>
+                    <div className='msp-select-row'>
                         <ButtonSelect label='Add' onChange={this.add}>
                             <optgroup label='Add'>
                                 {Options(queries)}
