@@ -17,7 +17,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 export const TrackballControlsParams = {
     noScroll: PD.Boolean(true, { isHidden: true }),
 
-    rotateSpeed: PD.Numeric(5.0, { min: 0.1, max: 10, step: 0.1 }),
+    rotateSpeed: PD.Numeric(3.0, { min: 0.1, max: 10, step: 0.1 }),
     zoomSpeed: PD.Numeric(6.0, { min: 0.1, max: 10, step: 0.1 }),
     panSpeed: PD.Numeric(0.8, { min: 0.1, max: 5, step: 0.1 }),
 
@@ -217,9 +217,7 @@ namespace TrackballControls {
             panCamera()
 
             Vec3.add(object.position, target, _eye)
-
             checkDistances()
-
             cameraLookAt(object.position, object.up, object.direction, target)
 
             if (Vec3.squaredDistance(lastPosition, object.position) > EPSILON.Value) {
@@ -259,7 +257,6 @@ namespace TrackballControls {
             }
 
             if (buttons === ButtonsType.Flag.Primary) {
-                Vec2.copy(_movePrev, _moveCurr)
                 Vec2.copy(_moveCurr, getMouseOnCircle(pageX, pageY))
             } else if (buttons === ButtonsType.Flag.Auxilary) {
                 Vec2.copy(_zoomEnd, getMouseOnScreen(pageX, pageY))
@@ -273,12 +270,12 @@ namespace TrackballControls {
         }
 
         function onWheel({ dy }: WheelInput) {
-            _zoomStart[1] -= dy * 0.0001
+            _zoomEnd[1] += dy * 0.0001
         }
 
         function onPinch({ fraction }: PinchInput) {
             _isInteracting = true;
-            _zoomStart[1] -= (fraction - 1) * 0.1
+            _zoomEnd[1] += (fraction - 1) * 0.1
         }
 
         function dispose() {
