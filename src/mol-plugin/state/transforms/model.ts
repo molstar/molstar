@@ -189,7 +189,7 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
         return Task.create('Build Structure', async ctx => {
             const s = Structure.ofModel(a.data);
             await ensureSecondaryStructure(s)
-            const props = { label: a.data.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
+            const props = { label: 'Deposited', description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
             return new SO.Molecule.Structure(s, props);
         })
     }
