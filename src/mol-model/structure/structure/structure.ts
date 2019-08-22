@@ -32,6 +32,8 @@ import { AtomicHierarchy } from '../model/properties/atomic';
 class Structure {
     /** Maps unit.id to unit */
     readonly unitMap: IntMap<Unit>;
+    /** Maps unit.id to index of unit in units array */
+    readonly unitIndexMap: IntMap<number>;
     /** Array of all units in the structure, sorted by unit.id */
     readonly units: ReadonlyArray<Unit>;
 
@@ -49,6 +51,7 @@ class Structure {
         uniqueResidueNames?: Set<string>,
         entityIndices?: ReadonlyArray<EntityIndex>,
         uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
+        serialMapping?: SerialMapping,
         hashCode: number,
         /** Hash based on all unit.id values in the structure, reflecting the units transformation */
         transformHash: number,
@@ -219,6 +222,17 @@ class Structure {
     }
 
     /**
+     * Provides mapping for serial element indices accross all units.
+     *
+     * Note that this is especially costly for structures with many units that are grouped
+     * into few symmetry groups. Use only when needed and prefer `StructureElement`
+     * to address elements in a structure.
+     */
+    get serialMapping() {
+        return this._props.serialMapping || (this._props.serialMapping = getSerialMapping(this));
+    }
+
+    /**
      * If the structure is based on a single model or has a master-/representative-model, return it.
      * Otherwise throw an exception.
      */
@@ -252,14 +266,16 @@ class Structure {
     }
 
     private initUnits(units: ArrayLike<Unit>) {
-        const map = IntMap.Mutable<Unit>();
+        const unitMap = IntMap.Mutable<Unit>();
+        const unitIndexMap = IntMap.Mutable<number>();
         let elementCount = 0;
         let polymerResidueCount = 0;
         let isSorted = true;
         let lastId = units.length > 0 ? units[0].id : 0;
         for (let i = 0, _i = units.length; i < _i; i++) {
             const u = units[i];
-            map.set(u.id, u);
+            unitMap.set(u.id, u);
+            unitIndexMap.set(u.id, i);
             elementCount += u.elements.length;
             polymerResidueCount += u.polymerElements.length;
             if (u.id < lastId) isSorted = false;
@@ -268,12 +284,15 @@ class Structure {
         if (!isSorted) sort(units, 0, units.length, cmpUnits, arraySwap);
         this._props.elementCount = elementCount;
         this._props.polymerResidueCount = polymerResidueCount;
-        return map;
+        return { unitMap, unitIndexMap };
     }
 
     constructor(units: ArrayLike<Unit>, props: Structure.Props = {}) {
-        this.unitMap = this.initUnits(units);
+        const { unitMap, unitIndexMap } = this.initUnits(units);
+        this.unitMap = unitMap;
+        this.unitIndexMap = unitIndexMap;
         this.units = units as ReadonlyArray<Unit>;
+
         if (props.parent) this._props.parent = props.parent.parent || props.parent;
 
         if (props.coordinateSystem) this._props.coordinateSystem = props.coordinateSystem;
@@ -376,6 +395,36 @@ function getUniqueAtomicResidueIndices(structure: Structure): ReadonlyMap<UUID, 
     return ret;
 }
 
+interface SerialMapping {
+    /** Cummulative count of elements for each unit */
+    unitElementCount: ArrayLike<number>
+    /** Unit index for each serial element in the structure */
+    unitIndices: ArrayLike<number>
+    /** Element index for each serial element in the structure */
+    elementIndices: ArrayLike<ElementIndex>
+}
+function getSerialMapping(structure: Structure): SerialMapping {
+    const { units, elementCount } = structure
+    const unitElementCount = new Uint32Array(units.length)
+    const unitIndices = new Uint32Array(elementCount)
+    const elementIndices = new Uint32Array(elementCount)
+    for (let i = 0, m = 0, il = units.length; i < il; ++i) {
+        unitElementCount[i] = m
+        const { elements } = units[i]
+        for (let j = 0, jl = elements.length; j < jl; ++j) {
+            const mj = m + j
+            unitIndices[mj] = i
+            elementIndices[mj] = elements[j]
+        }
+        m += elements.length
+    }
+    return {
+        unitElementCount,
+        unitIndices,
+        elementIndices: elementIndices as unknown as ElementIndex[]
+    }
+}
+
 namespace Structure {
     export const Empty = new Structure([]);
 
@@ -388,6 +437,9 @@ namespace Structure {
         /** Representative model for structures of a model trajectory */
         representativeModel?: Model
     }
+
+    /** Serial index of an element in the structure accross all units */
+    export type SerialIndex = { readonly '@type': 'serial-index' } & number
 
     /** Represents a single structure */
     export interface Loci {
