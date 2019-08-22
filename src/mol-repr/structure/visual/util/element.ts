@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -86,12 +86,12 @@ export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (
         const unitIdx = group.unitIndexMap.get(e.unit.id)
         if (unitIdx !== undefined) {
             if (Interval.is(e.indices)) {
-                const start = unitIdx * elementCount + Interval.start(e.indices);
-                const end = unitIdx * elementCount + Interval.end(e.indices);
+                const start = unitIdx * elementCount + Interval.start(e.indices)
+                const end = unitIdx * elementCount + Interval.end(e.indices)
                 if (apply(Interval.ofBounds(start, end))) changed = true
             } else {
                 for (let i = 0, _i = e.indices.length; i < _i; i++) {
-                    const idx = unitIdx * elementCount + e.indices[i];
+                    const idx = unitIdx * elementCount + e.indices[i]
                     if (apply(Interval.ofSingleton(idx))) changed = true
                 }
             }
@@ -105,13 +105,53 @@ export function getElementLoci(pickingId: PickingId, structureGroup: StructureGr
     if (id === objectId) {
         const { structure, group } = structureGroup
         const unit = group.units[instanceId]
-        const indices = OrderedSet.ofSingleton(groupId as StructureElement.UnitIndex);
+        const indices = OrderedSet.ofSingleton(groupId as StructureElement.UnitIndex)
         return StructureElement.Loci(structure, [{ unit, indices }])
     }
     return EmptyLoci
 }
 
-export namespace StructureElementIterator {
+//
+
+export function eachSerialElement(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+    let changed = false
+    if (!StructureElement.isLoci(loci)) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
+    const { unitElementCount } = structure.serialMapping
+    for (const e of loci.elements) {
+        const unitIdx = structure.unitIndexMap.get(e.unit.id)
+        if (unitIdx !== undefined) {
+            if (Interval.is(e.indices)) {
+                const start = unitElementCount[unitIdx] + Interval.start(e.indices)
+                const end = unitElementCount[unitIdx] + Interval.end(e.indices)
+                if (apply(Interval.ofBounds(start, end))) changed = true
+            } else {
+                for (let i = 0, _i = e.indices.length; i < _i; i++) {
+                    const idx = unitElementCount[unitIdx] + e.indices[i]
+                    if (apply(Interval.ofSingleton(idx))) changed = true
+                }
+            }
+        }
+    }
+    return changed
+}
+
+export function getSerialElementLoci(pickingId: PickingId, structure: Structure, id: number) {
+    const { objectId, groupId } = pickingId
+    if (id === objectId) {
+        const { unitIndices, unitElementCount } = structure.serialMapping
+        const unitIdx = unitIndices[groupId]
+        const unit = structure.units[unitIdx]
+        const idx = groupId - unitElementCount[unitIdx]
+        const indices = OrderedSet.ofSingleton(idx as StructureElement.UnitIndex)
+        return StructureElement.Loci(structure, [{ unit, indices }])
+    }
+    return EmptyLoci
+}
+
+//
+
+export namespace ElementIterator {
     export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
         const groupCount = group.elements.length
         const instanceCount = group.units.length
@@ -123,5 +163,19 @@ export namespace StructureElementIterator {
             return location
         }
         return LocationIterator(groupCount, instanceCount, getLocation)
+    }
+
+    export function fromStructure(structure: Structure): LocationIterator {
+        const { units, elementCount } = structure
+        const groupCount = elementCount
+        const instanceCount = 1
+        const { unitIndices, elementIndices } = structure.serialMapping
+        const location = StructureElement.create()
+        const getLocation = (groupIndex: number) => {
+            location.unit = units[unitIndices[groupIndex]]
+            location.element = elementIndices[groupIndex]
+            return location
+        }
+        return LocationIterator(groupCount, instanceCount, getLocation, true)
     }
 }

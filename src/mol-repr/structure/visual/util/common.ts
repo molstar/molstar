@@ -138,37 +138,69 @@ export function getUnitConformationAndRadius(unit: Unit, ignoreHydrogens = false
 }
 
 export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens = false) {
-    const xs: number[] = []
-    const ys: number[] = []
-    const zs: number[] = []
-    const rs: number[] = []
-    const id: number[] = []
-
     const l = StructureElement.create()
     const sizeTheme = PhysicalSizeTheme({}, {})
 
-    let m = 0
-    for (let i = 0, il = structure.units.length; i < il; ++i) {
-        const unit = structure.units[i]
-        const { elements } = unit
-        const { x, y, z } = unit.conformation
-        l.unit = unit
-        for (let j = 0, jl = elements.length; j < jl; ++j) {
-            const eI = elements[j]
-            if (ignoreHydrogens && isHydrogen(unit, eI)) continue
+    let xs: ArrayLike<number>
+    let ys: ArrayLike<number>
+    let zs: ArrayLike<number>
+    let rs: ArrayLike<number>
+    let id: ArrayLike<number>
 
-            const mj = m + j
-            xs[mj] = x(eI)
-            ys[mj] = y(eI)
-            zs[mj] = z(eI)
-            l.element = eI
-            rs[mj] = sizeTheme.size(l)
-            id[mj] = mj
+    if (ignoreHydrogens) {
+        const _xs: number[] = []
+        const _ys: number[] = []
+        const _zs: number[] = []
+        const _rs: number[] = []
+        const _id: number[] = []
+        for (let i = 0, m = 0, il = structure.units.length; i < il; ++i) {
+            const unit = structure.units[i]
+            const { elements } = unit
+            const { x, y, z } = unit.conformation
+            l.unit = unit
+            for (let j = 0, jl = elements.length; j < jl; ++j) {
+                const eI = elements[j]
+                if (ignoreHydrogens && isHydrogen(unit, eI)) continue
+
+                _xs.push(x(eI))
+                _ys.push(y(eI))
+                _zs.push(z(eI))
+                l.element = eI
+                _rs.push(sizeTheme.size(l))
+                _id.push(m + j)
+            }
+            m += elements.length
         }
-        m += elements.length
+        xs = _xs, ys = _ys, zs = _zs, rs = _rs
+        id = _id
+    } else {
+        const { elementCount } = structure
+        const _xs = new Float32Array(elementCount)
+        const _ys = new Float32Array(elementCount)
+        const _zs = new Float32Array(elementCount)
+        const _rs = new Float32Array(elementCount)
+        for (let i = 0, m = 0, il = structure.units.length; i < il; ++i) {
+            const unit = structure.units[i]
+            const { elements } = unit
+            const { x, y, z } = unit.conformation
+            l.unit = unit
+            for (let j = 0, jl = elements.length; j < jl; ++j) {
+                const eI = elements[j]
+
+                const mj = m + j
+                _xs[mj] = x(eI)
+                _ys[mj] = y(eI)
+                _zs[mj] = z(eI)
+                l.element = eI
+                _rs[mj] = sizeTheme.size(l)
+            }
+            m += elements.length
+        }
+        xs = _xs, ys = _ys, zs = _zs, rs = _rs
+        id = fillSerial(new Uint32Array(elementCount))
     }
 
-    const position = { indices: OrderedSet.ofRange(0, m), x: xs, y: ys, z: zs, id }
+    const position = { indices: OrderedSet.ofRange(0, id.length), x: xs, y: ys, z: zs, id }
     const radius = (index: number) => rs[index]
 
     return { position, radius }

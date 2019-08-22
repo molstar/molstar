@@ -8,7 +8,7 @@
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsMeshParams, UnitsSpheresParams, UnitsVisual, UnitsSpheresVisual, UnitsMeshVisual } from '../units-visual';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
-import { createElementSphereImpostor, StructureElementIterator, getElementLoci, eachElement, createElementSphereMesh } from './util/element';
+import { createElementSphereImpostor, ElementIterator, getElementLoci, eachElement, createElementSphereMesh } from './util/element';
 import { VisualUpdateState } from '../../util';
 
 export const ElementSphereParams = {
@@ -28,7 +28,7 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
     return UnitsSpheresVisual<ElementSphereParams>({
         defaultProps: PD.getDefaultValues(ElementSphereParams),
         createGeometry: createElementSphereImpostor,
-        createLocationIterator: StructureElementIterator.fromGroup,
+        createLocationIterator: ElementIterator.fromGroup,
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {
@@ -43,7 +43,7 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
     return UnitsMeshVisual<ElementSphereParams>({
         defaultProps: PD.getDefaultValues(ElementSphereParams),
         createGeometry: createElementSphereMesh,
-        createLocationIterator: StructureElementIterator.fromGroup,
+        createLocationIterator: ElementIterator.fromGroup,
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {

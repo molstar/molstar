@@ -16,7 +16,7 @@ import { PolymerBackboneIterator } from './util/polymer';
 import { OrderedSet } from '../../../mol-data/int';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
-import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
+import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 
 export const PolymerBackboneCylinderParams = {
@@ -71,7 +71,7 @@ export function PolymerBackboneVisual(materialId: number): UnitsVisual<PolymerBa
         defaultProps: PD.getDefaultValues(PolymerBackboneParams),
         createGeometry: createPolymerBackboneCylinderMesh,
         // TODO create a specialized location iterator
-        createLocationIterator: StructureElementIterator.fromGroup,
+        createLocationIterator: ElementIterator.fromGroup,
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneParams>, currentProps: PD.Values<PolymerBackboneParams>) => {

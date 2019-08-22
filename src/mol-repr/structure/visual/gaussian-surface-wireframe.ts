@@ -12,7 +12,7 @@ import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { computeUnitGaussianDensity, GaussianDensityParams, GaussianDensityProps } from './util/gaussian';
 import { computeMarchingCubesLines } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { UnitsLinesParams, UnitsVisual, UnitsLinesVisual } from '../units-visual';
-import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
+import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
@@ -43,7 +43,7 @@ export function GaussianWireframeVisual(materialId: number): UnitsVisual<Gaussia
     return UnitsLinesVisual<GaussianWireframeParams>({
         defaultProps: PD.getDefaultValues(GaussianWireframeParams),
         createGeometry: createGaussianWireframe,
-        createLocationIterator: StructureElementIterator.fromGroup,
+        createLocationIterator: ElementIterator.fromGroup,
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianWireframeParams>, currentProps: PD.Values<GaussianWireframeParams>) => {

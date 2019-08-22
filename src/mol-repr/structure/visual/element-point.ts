@@ -12,7 +12,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { Points } from '../../../mol-geo/geometry/points/points';
 import { PointsBuilder } from '../../../mol-geo/geometry/points/points-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
+import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 
 export const ElementPointParams = {
@@ -46,7 +46,7 @@ export function ElementPointVisual(materialId: number): UnitsVisual<ElementPoint
     return UnitsPointsVisual<ElementPointParams>({
         defaultProps: PD.getDefaultValues(ElementPointParams),
         createGeometry: createElementPoint,
-        createLocationIterator: StructureElementIterator.fromGroup,
+        createLocationIterator: ElementIterator.fromGroup,
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementPointParams>, currentProps: PD.Values<ElementPointParams>) => {

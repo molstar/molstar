@@ -13,7 +13,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { computeUnitMolecularSurface, MolecularSurfaceProps } from './util/molecular-surface';
 import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
-import { StructureElementIterator, getElementLoci, eachElement } from './util/element';
+import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 
 export const MolecularSurfaceMeshParams = {
@@ -46,7 +46,7 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
     return UnitsMeshVisual<MolecularSurfaceMeshParams>({
         defaultProps: PD.getDefaultValues(MolecularSurfaceMeshParams),
         createGeometry: createMolecularSurfaceMesh,
-        createLocationIterator: StructureElementIterator.fromGroup,
+        createLocationIterator: ElementIterator.fromGroup,
         getLoci: getElementLoci,
         eachLocation: eachElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MolecularSurfaceMeshParams>, currentProps: PD.Values<MolecularSurfaceMeshParams>) => {
