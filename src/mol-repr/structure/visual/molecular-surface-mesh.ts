@@ -37,7 +37,7 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime)
 
     Mesh.transformImmediate(surface, transform)
-    Mesh.uniformTriangleGroup(surface)
+    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface)
 
     return surface
 }
