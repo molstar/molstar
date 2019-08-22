@@ -58,12 +58,6 @@ export function fillSerial<T extends NumberArray> (array: T, n?: number) {
     return array
 }
 
-/** Fill an array with value starting from index 0 until n - 1 (defaults to array.length) */
-export function fillUniform<T extends NumberArray> (array: T, v: number, n?: number) {
-    for (let i = 0, il = n ? Math.min(n, array.length) : array.length; i < il; ++i) array[i] = v
-    return array
-}
-
 export function arrayRemoveInPlace<T>(xs: T[], x: T) {
     let i = 0, l = xs.length, found = false;
     for (; i < l; i++) {

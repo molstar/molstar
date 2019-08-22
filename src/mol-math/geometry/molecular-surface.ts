@@ -7,7 +7,6 @@
  * ported from NGL (https://github.com/arose/ngl), licensed under MIT
  */
 
-import { fillUniform } from '../../mol-util/array';
 import { Vec3, Tensor } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RuntimeContext } from '../../mol-task';
@@ -342,8 +341,8 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
     const data = space.create()
     const idData = space.create()
 
-    fillUniform(data, -1001.0)
-    fillUniform(idData, -1)
+    data.fill(-1001.0)
+    idData.fill(-1)
 
     const gridx = fillGridDim(dimX, minX, resolution)
     const gridy = fillGridDim(dimY, minY, resolution)

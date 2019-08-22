@@ -38,6 +38,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const field = Tensor.create(space, data)
 
     const idData = space.create()
+    idData.fill(-1)
     const idField = Tensor.create(space, idData)
 
     const [ dimX, dimY, dimZ ] = dim
