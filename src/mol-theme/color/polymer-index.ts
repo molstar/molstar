@@ -6,7 +6,7 @@
 
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { StructureElement, Link } from '../../mol-model/structure';
+import { StructureElement, Link, Structure } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
@@ -18,28 +18,39 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
 
 export const PolymerIndexColorThemeParams = {
-    ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
+    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
 }
 export type PolymerIndexColorThemeParams = typeof PolymerIndexColorThemeParams
 export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {
-    return PolymerIndexColorThemeParams // TODO return copy
+    const params = PD.clone(PolymerIndexColorThemeParams)
+    if (ctx.structure) {
+        if (getPolymerChainCount(ctx.structure.root) > 12) {
+            params.palette.defaultValue.name = 'scale'
+            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+        }
+    }
+    return params
 }
 export type PolymerIndexColorThemeProps = PD.Values<typeof PolymerIndexColorThemeParams>
+
+function getPolymerChainCount(structure: Structure) {
+    let polymerChainCount = 0
+    const { units } = structure
+    for (let i = 0, il = units.length; i <il; ++i) {
+        if (units[i].polymerElements.length > 0) ++polymerChainCount
+    }
+    return polymerChainCount
+}
 
 export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<PolymerIndexColorThemeParams>): ColorTheme<PolymerIndexColorThemeParams> {
     let color: LocationColor
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const { units } = ctx.structure.root
-        let polymerCount = 0
-        for (let i = 0, il = units.length; i <il; ++i) {
-            if (units[i].polymerElements.length > 0) ++polymerCount
-        }
-
-        const palette = getPalette(polymerCount, props)
+        const palette = getPalette(getPolymerChainCount(ctx.structure.root), props)
         legend = palette.legend
 
+        const { units } = ctx.structure.root
         const unitIdColor = new Map<number, Color>()
         for (let i = 0, j = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) {

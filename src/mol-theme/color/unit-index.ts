@@ -18,11 +18,18 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
 
 export const UnitIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'scale', scaleList: 'red-yellow-blue' }),
+    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
 }
 export type UnitIndexColorThemeParams = typeof UnitIndexColorThemeParams
 export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {
-    return UnitIndexColorThemeParams // TODO return copy
+    const params = PD.clone(UnitIndexColorThemeParams)
+    if (ctx.structure) {
+        if (ctx.structure.root.units.length > 12) {
+            params.palette.defaultValue.name = 'scale'
+            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+        }
+    }
+    return params
 }
 
 export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<UnitIndexColorThemeParams>): ColorTheme<UnitIndexColorThemeParams> {
