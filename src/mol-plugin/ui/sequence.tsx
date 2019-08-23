@@ -148,17 +148,13 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
 
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, obj }) => {
             if (ref === this.state.structureRef && obj && obj.type === PSO.Molecule.Structure.type && obj.data !== this.state.structure) {
-                this.forceUpdate()
+                this.setState(this.getInitialState())
             }
         });
 
         this.subscribe(this.plugin.events.state.object.created, ({ obj }) => {
             if (obj && obj.type === PSO.Molecule.Structure.type) {
-                if (this.state.structure.isEmpty) {
-                    this.setState(this.getInitialState())
-                } else {
-                    this.forceUpdate()
-                }
+                this.setState(this.getInitialState())
             }
         });
 
@@ -181,6 +177,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     private getInitialState(): SequenceViewState {
+        // TODO reuse selected values from previous state if applicable
         const structureRef = getStructureOptions(this.plugin.state.dataState)[0][0]
         const structure = this.getStructure(structureRef)
         const entityId = getEntityOptions(structure)[0][0]
