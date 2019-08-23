@@ -275,13 +275,15 @@ class Structure {
         for (let i = 0, _i = units.length; i < _i; i++) {
             const u = units[i];
             unitMap.set(u.id, u);
-            unitIndexMap.set(u.id, i);
             elementCount += u.elements.length;
             polymerResidueCount += u.polymerElements.length;
             if (u.id < lastId) isSorted = false;
             lastId = u.id;
         }
         if (!isSorted) sort(units, 0, units.length, cmpUnits, arraySwap);
+        for (let i = 0, _i = units.length; i < _i; i++) {
+            unitIndexMap.set(units[i].id, i);
+        }
         this._props.elementCount = elementCount;
         this._props.polymerResidueCount = polymerResidueCount;
         return { unitMap, unitIndexMap };
