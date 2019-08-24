@@ -68,9 +68,10 @@ namespace StructureRepresentation3DHelpers {
         const repr = params.repr
             ? params.repr instanceof Array ? params.repr[0] : params.repr
             : ctx.structureRepresentation.registry.default.provider;
+        const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, structure));
         const reprParams = params.repr instanceof Array
-            ? params.repr[1](repr as R, themeCtx, structure)
-            : PD.getDefaultValues(repr.getParams(themeCtx, structure));
+            ? { ...reprDefaultParams, ...params.repr[1](repr as R, themeCtx, structure) }
+            : reprDefaultParams;
 
         const color = params.color
             ? params.color instanceof Array ? params.color[0] : params.color
