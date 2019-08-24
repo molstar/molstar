@@ -169,6 +169,7 @@ export const GlobalUniformSchema = {
     uFogColor: UniformSpec('v3'),
 
     uPickingAlphaThreshold: UniformSpec('f'),
+    uInteriorDarkening: UniformSpec('f'),
 }
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema> // { [k in keyof GlobalUniformSchema]: ValueCell<any> }

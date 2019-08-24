@@ -47,6 +47,7 @@ interface Renderer {
 export const RendererParams = {
     backgroundColor: PD.Color(Color(0x000000)),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
+    interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
 
     lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
     ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -107,6 +108,7 @@ namespace Renderer {
             uFogColor: ValueCell.create(bgColor),
 
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
+            uInteriorDarkening: ValueCell.create(p.interiorDarkening),
         }
         const globalUniformList = Object.entries(globalUniforms)
 
@@ -231,6 +233,10 @@ namespace Renderer {
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== p.pickingAlphaThreshold) {
                     p.pickingAlphaThreshold = props.pickingAlphaThreshold
                     ValueCell.update(globalUniforms.uPickingAlphaThreshold, p.pickingAlphaThreshold)
+                }
+                if (props.interiorDarkening !== undefined && props.interiorDarkening !== p.interiorDarkening) {
+                    p.interiorDarkening = props.interiorDarkening
+                    ValueCell.update(globalUniforms.uInteriorDarkening, p.interiorDarkening)
                 }
                 if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {
                     p.backgroundColor = props.backgroundColor

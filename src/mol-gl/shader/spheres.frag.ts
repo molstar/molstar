@@ -14,10 +14,6 @@ precision highp int;
 #include light_frag_params
 
 uniform mat4 uProjection;
-// uniform vec3 uInteriorColor;
-// uniform float uInteriorDarkening;
-vec3 uInteriorColor = vec3(0.5, 0.5, 0.5);
-float uInteriorDarkening = 0.0;
 
 uniform float uClipNear;
 uniform float uIsOrtho;
@@ -53,7 +49,7 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
     float B = dot(rayDirection, cameraSphereDir);
     float det = B * B + vRadiusSq - dot(cameraSphereDir, cameraSphereDir);
 
-    if(det < 0.0){
+    if (det < 0.0){
         discard;
         return false;
     }
@@ -65,16 +61,16 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
     cameraPos = rayDirection * negT + rayOrigin;
 
     #ifdef NEAR_CLIP
-        if(calcDepth(cameraPos) <= 0.0){
+        if (calcDepth(cameraPos) <= 0.0){
             cameraPos = rayDirection * posT + rayOrigin;
             interior = true;
-        }else if(calcClip(cameraPos) > 0.0){
+        } else if(calcClip(cameraPos) > 0.0) {
             cameraPos = rayDirection * posT + rayOrigin;
             interior = true;
             flag2 = true;
         }
     #else
-        if(calcDepth(cameraPos) <= 0.0){
+        if (calcDepth(cameraPos) <= 0.0) {
             cameraPos = rayDirection * posT + rayOrigin;
             interior = true;
         }
@@ -90,24 +86,24 @@ void main(void){
     bool flag = Impostor(cameraPos, cameraNormal);
 
     #ifdef NEAR_CLIP
-        if(calcClip(cameraPos) > 0.0)
+        if (calcClip(cameraPos) > 0.0)
             discard;
     #endif
 
     // FIXME not compatible with custom clipping plane
     // Set the depth based on the new cameraPos.
     gl_FragDepthEXT = calcDepth(cameraPos);
-    if(!flag){
+    if (!flag) {
         // clamp to near clipping plane and add a tiny value to
         // make spheres with a greater radius occlude smaller ones
         #ifdef NEAR_CLIP
-            if( flag2 ){
+            if (flag2) {
                 gl_FragDepthEXT = max(0.0, calcDepth(vec3(-(uClipNear - 0.5))) + (0.0000001 / vRadius));
-            }else if(gl_FragDepthEXT >= 0.0){
+            } else if (gl_FragDepthEXT >= 0.0) {
                 gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
             }
         #else
-            if(gl_FragDepthEXT >= 0.0){
+            if (gl_FragDepthEXT >= 0.0) {
                 gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
             }
         #endif
@@ -132,11 +128,8 @@ void main(void){
         vec3 vViewPosition = -cameraPos;
         #include apply_light_color
 
-        if(interior){
-            #ifdef USE_INTERIOR_COLOR
-                gl_FragColor.rgb = uInteriorColor;
-            #endif
-            gl_FragColor.rgb *= 1.0 - uInteriorDarkening;
+        if (interior) {
+            gl_FragColor.rgb = material.rgb * (1.0 - uInteriorDarkening);
         }
 
         #include apply_marker_color

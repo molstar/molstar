@@ -13,6 +13,12 @@ export default `
     #endif
 #endif
 
+#if defined(dColorType_uniform) || defined(dColorType_attribute) || defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance)
+    if (gl_FrontFacing == false) {
+        material.rgb *= 1.0 - uInteriorDarkening;
+    }
+#endif
+
 // mix material with overpaint
 #if defined(dOverpaint) && (defined(dColorType_uniform) || defined(dColorType_attribute) || defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance))
     material.rgb = mix(material.rgb, vOverpaint.rgb, vOverpaint.a);

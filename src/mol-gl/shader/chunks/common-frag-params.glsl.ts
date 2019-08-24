@@ -18,4 +18,6 @@ uniform vec3 uFogColor;
 uniform float uAlpha;
 uniform float uPickingAlphaThreshold;
 uniform int uPickable;
+
+uniform float uInteriorDarkening;
 `
