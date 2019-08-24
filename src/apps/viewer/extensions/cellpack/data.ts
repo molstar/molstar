@@ -27,7 +27,8 @@ export interface Cell {
 
 export interface Recipe {
     setupfile: string
-    paths: [string, string][] // [name: string, path: string][]
+    /** First entry is name, secound is path: [name: string, path: string][] */
+    paths: [string, string][]
     version: string
     name: string
 }
@@ -47,7 +48,11 @@ export interface Ingredient {
     name: string
     positions?: [Vec3[]] // why wrapped in an extra array?
     radii?: [number[]] // why wrapped in an extra array?
+
+    /** Number of `curveX` properties in the object where `X` is a 0-indexed number */
     nbCurve?: number
+    /** Curve properties are Vec3[] but that is not expressable in TypeScript */
+    [curveX: string]: unknown
 }
 
 export interface IngredientSource {

@@ -10,7 +10,7 @@ import { PluginStateObject as PSO } from '../../../../mol-plugin/state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Ingredient, CellPacking } from './data';
 import { getFromPdb, getFromCellPackDB } from './util';
-import { Model, Structure, StructureSymmetry, StructureSelection, Queries, QueryContext } from '../../../../mol-model/structure';
+import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext } from '../../../../mol-model/structure';
 import { trajectoryFromMmCIF } from '../../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../../mol-model-formats/structure/pdb';
 import { Mat4, Vec3, Quat } from '../../../../mol-math/linear-algebra';
@@ -24,6 +24,8 @@ import { Hcl } from '../../../../mol-util/color/spaces/hcl';
 import { ParseCellPack, StructureFromCellpack } from './state';
 import { formatMolScript } from '../../../../mol-script/language/expression-formatter';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
+import { getMatFromResamplePoints } from './curve';
+import { compile } from '../../../../mol-script/runtime/query/compiler';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/cellPACK_database_1.1.0/results/${fileName}`
@@ -50,8 +52,13 @@ async function getStructure(model: Model, props: { assembly?: string }) {
         structure = await StructureSymmetry.buildAssembly(structure, assembly).run()
     }
 
-    const query = Queries.internal.atomicSequence()
-    const result = query(new QueryContext(structure))
+    const query = MS.struct.modifier.union([
+        MS.struct.generator.atomGroups({
+            'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
+        })
+    ])
+    const compiled = compile<StructureSelection>(query)
+    const result = compiled(new QueryContext(structure))
     structure = StructureSelection.unionStructure(result)
 
     return structure
@@ -66,8 +73,32 @@ function getTransform(trans: Vec3, rot: Quat) {
     return m
 }
 
-function getTransforms(results: Ingredient['results']) {
+function getResultTransforms(results: Ingredient['results']) {
     return results.map((r: Ingredient['results'][0]) => getTransform(r[0], r[1]))
+}
+
+function getCurveTransforms(ingredient: Ingredient) {
+    const n = ingredient.nbCurve || 0
+    const instances: Mat4[] = []
+
+    for (let i = 0; i < n; ++i) {
+        const cname = `curve${i}`
+        if (!(cname in ingredient)) {
+            // console.warn(`Expected '${cname}' in ingredient`)
+            continue
+        }
+        const _points = ingredient[cname] as Vec3[]
+        if (_points.length <= 2) {
+            // TODO handle curve with 2 or less points
+            continue
+        }
+        const points = new Float32Array(_points.length * 3)
+        for (let i = 0, il = _points.length; i < il; ++i) Vec3.toArray(_points[i], points, i * 3)
+        const newInstances = getMatFromResamplePoints(points)
+        instances.push(...newInstances)
+    }
+
+    return instances
 }
 
 function getAssembly(transforms: Mat4[], structure: Structure) {
@@ -92,16 +123,16 @@ async function getIngredientStructure(ingredient: Ingredient, baseUrl: string) {
     if (name === 'HIV1_CAhex_0_1_0') return
     if (name === 'HIV1_CAhexCyclophilA_0_1_0') return
     if (name === 'iLDL') return
-    if (source.pdb === 'None') return
+    if (name === 'peptides') return
+    if (name === 'lypoglycane') return
 
-    // TODO handle fibers
-    if (nbCurve) return
+    if (source.pdb === 'None') return
 
     const model = await getModel(source.pdb || name, baseUrl)
     if (!model) return
 
     const structure = await getStructure(model, { assembly: source.biomt ? '1' : undefined })
-    const transforms = getTransforms(results)
+    const transforms = nbCurve ? getCurveTransforms(ingredient) : getResultTransforms(results)
     const assembly = getAssembly(transforms, structure)
     return assembly
 }
@@ -139,12 +170,12 @@ export const LoadCellPackModel = StateAction.build({
         id: PD.Select('influenza_model1.json', [
             ['blood_hiv_immature_inside.json', 'blood_hiv_immature_inside'],
             ['BloodHIV1.0_mixed_fixed_nc1.cpr', 'BloodHIV1.0_mixed_fixed_nc1'],
-            ['BloodPlasma1.2.apr.json', 'BloodPlasma1.2'],
-            ['BloodSerumfillResult.apr', 'BloodSerumfillResult'],
+            // ['BloodPlasma1.2.apr.json', 'BloodPlasma1.2'],
+            // ['BloodSerumfillResult.apr', 'BloodSerumfillResult'],
             ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV-1_0.1.6-8_mixed_radii_pdb'],
             ['influenza_model1.json', 'influenza_model1'],
             ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
-            ['NM_Analysis_FigureC1.4.cpr.json', 'NM_Analysis_FigureC1.4']
+            // ['NM_Analysis_FigureC1.4.cpr.json', 'NM_Analysis_FigureC1.4']
         ]),
         baseUrl: PD.Text('https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master/'),
         preset: PD.Group({
