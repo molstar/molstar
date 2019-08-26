@@ -26,6 +26,9 @@ import { formatMolScript } from '../../../../mol-script/language/expression-form
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../../../mol-script/runtime/query/compiler';
+import { UniformColorThemeProvider } from '../../../../mol-theme/color/uniform';
+import { ThemeRegistryContext } from '../../../../mol-theme/theme';
+import { ColorTheme } from '../../../../mol-theme/color';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/cellPACK_database_1.1.0/results/${fileName}`
@@ -44,7 +47,7 @@ async function getModel(id: string, baseUrl: string) {
     return model
 }
 
-async function getStructure(model: Model, props: { assembly?: string }) {
+async function getStructure(model: Model, props: { assembly?: string } = {}) {
     let structure = Structure.ofModel(model)
     const { assembly } = props
 
@@ -170,14 +173,11 @@ export const LoadCellPackModel = StateAction.build({
         id: PD.Select('influenza_model1.json', [
             ['blood_hiv_immature_inside.json', 'blood_hiv_immature_inside'],
             ['BloodHIV1.0_mixed_fixed_nc1.cpr', 'BloodHIV1.0_mixed_fixed_nc1'],
-            // ['BloodPlasma1.2.apr.json', 'BloodPlasma1.2'],
-            // ['BloodSerumfillResult.apr', 'BloodSerumfillResult'],
             ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV-1_0.1.6-8_mixed_radii_pdb'],
             ['influenza_model1.json', 'influenza_model1'],
             ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
-            // ['NM_Analysis_FigureC1.4.cpr.json', 'NM_Analysis_FigureC1.4']
         ]),
-        baseUrl: PD.Text('https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master/'),
+        baseUrl: PD.Text('https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master'),
         preset: PD.Group({
             traceOnly: PD.Boolean(false),
             representation: PD.Select('spacefill', [
@@ -194,13 +194,40 @@ export const LoadCellPackModel = StateAction.build({
     const root = state.build().toRoot();
 
     const cellPackBuilder = root
-        .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.id })
-        .apply(StateTransforms.Data.ParseJson)
+        .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.id }, { state: { isGhost: true } })
+        .apply(StateTransforms.Data.ParseJson, undefined, { state: { isGhost: true } })
         .apply(ParseCellPack)
 
     const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(taskCtx)
     const { packings } = cellPackObject.data
     let tree = state.build().to(cellPackBuilder.ref);
+
+    const isHiv = (
+        params.id === 'BloodHIV1.0_mixed_fixed_nc1.cpr' ||
+        params.id === 'HIV-1_0.1.6-8_mixed_radii_pdb.cpr'
+    )
+
+    if (isHiv) {
+        for (let i = 0, il = packings.length; i < il; ++i) {
+            if (packings[i].name === 'HIV1_capsid_3j3q_PackInner_0_1_0') {
+                const url = `${params.baseUrl}/cellPACK_database_1.1.0/extras/rna_allpoints.json`
+                const data = await ctx.fetch({ url, type: 'string' }).runInContext(taskCtx);
+                const { points } = await (new Response(data)).json() as { points: number[] }
+
+                const curve0: Vec3[] = []
+                for (let j = 0, jl = points.length; j < jl; j += 3) {
+                    curve0.push(Vec3.fromArray(Vec3(), points, j))
+                }
+                packings[i].ingredients['RNA'] = {
+                    source: { pdb: 'RNA_U_Base.pdb', transform: { center: false } },
+                    results: [],
+                    name: 'RNA',
+                    nbCurve: 1,
+                    curve0
+                }
+            }
+        }
+    }
 
     const colors = distinctColors(packings.length)
 
@@ -224,23 +251,26 @@ export const LoadCellPackModel = StateAction.build({
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
                     repr: getReprParams(ctx, params.preset),
-                    color: [
-                        ModelIndexColorThemeProvider,
-                        (c, ctx) => {
-                            return {
-                                palette: {
-                                    name: 'generate',
-                                    params: {
-                                        hue, chroma: [30, 80], luminance: [15, 85],
-                                        clusteringStepCount: 50, minSampleCount: 800,
-                                        maxCount: 75
-                                    }
-                                }
-                            }
-                        }
-                    ]
-                }))
-            }
+                    color: getColorParams(hue)
+                })
+            )
+    }
+
+    if (isHiv) {
+        const url = `${params.baseUrl}/cellPACK_database_1.1.0/membranes/hiv_lipids.bcif`
+        tree.apply(StateTransforms.Data.Download, { url }, { state: { isGhost: true } })
+            .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.StructureFromModel, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Misc.CreateGroup, { label: 'HIV1_envelope_Membrane' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
+                    repr: getReprParams(ctx, params.preset),
+                    color: UniformColorThemeProvider
+                })
+            )
+    }
 
     await state.updateTree(tree).runInContext(taskCtx);
 }));
@@ -266,4 +296,22 @@ function getReprParams(ctx: PluginContext, params: { representation: 'spacefill'
         case 'point':
             return ctx.structureRepresentation.registry.get('point')
     }
+}
+
+function getColorParams(hue: [number, number]) {
+    return [
+        ModelIndexColorThemeProvider,
+        (c: ColorTheme.Provider<any>, ctx: ThemeRegistryContext) => {
+            return {
+                palette: {
+                    name: 'generate',
+                    params: {
+                        hue, chroma: [30, 80], luminance: [15, 85],
+                        clusteringStepCount: 50, minSampleCount: 800,
+                        maxCount: 75
+                    }
+                }
+            }
+        }
+    ] as [any, any]
 }

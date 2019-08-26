@@ -162,6 +162,10 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     }
 });
 
+function structureDesc(s: Structure) {
+    return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`
+}
+
 type StructureFromTrajectory = typeof StructureFromTrajectory
 const StructureFromTrajectory = PluginStateTransform.BuiltIn({
     name: 'structure-from-trajectory',
@@ -172,7 +176,7 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
     apply({ a }) {
         return Task.create('Build Structure', async ctx => {
             const s = Structure.ofTrajectory(a.data);
-            const props = { label: s.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
+            const props = { label: 'Ensemble', description: structureDesc(s) };
             return new SO.Molecule.Structure(s, props);
         })
     }
@@ -189,15 +193,11 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
         return Task.create('Build Structure', async ctx => {
             const s = Structure.ofModel(a.data);
             await ensureSecondaryStructure(s)
-            const props = { label: 'Deposited', description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
+            const props = { label: 'Deposited', description: structureDesc(s) };
             return new SO.Molecule.Structure(s, props);
         })
     }
 });
-
-function structureDesc(s: Structure) {
-    return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`;
-}
 
 type StructureAssemblyFromModel = typeof StructureAssemblyFromModel
 const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({

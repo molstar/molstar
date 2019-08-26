@@ -6,7 +6,6 @@
 
 import { PluginStateObject as PSO, PluginStateTransform } from '../../../../mol-plugin/state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { Structure } from '../../../../mol-model/structure';
 import { Task } from '../../../../mol-task';
 import { CellPack as _CellPack, Cell, CellPacking } from './data';
 import { createStructureFromCellPack } from './model';
@@ -68,26 +67,5 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
             const structure = await createStructureFromCellPack(packing, params.baseUrl).runInContext(ctx)
             return new PSO.Molecule.Structure(structure, { label: packing.name })
         });
-    }
-});
-
-export { AddStructure }
-type AddStructure = typeof AddStructure
-const AddStructure = PluginStateTransform.BuiltIn({
-    name: 'add-structure',
-    display: { name: 'Add Structure', description: 'Add existing molecular structure.' },
-    from: PSO.Root,
-    to: PSO.Molecule.Structure,
-    params: {
-        structure: PD.Value<Structure>(Structure.Empty),
-        label: PD.Text('Structure')
-    }
-})({
-    apply({ a, params }) {
-        return Task.create('Build Structure', async ctx => {
-            const s = params.structure
-            const props = { label: params.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
-            return new PSO.Molecule.Structure(s, props);
-        })
     }
 });
