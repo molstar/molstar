@@ -46,7 +46,6 @@ export class DrawPass {
         const { gl } = webgl
         if (toDrawingBuffer) {
             webgl.unbindFramebuffer()
-            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
         } else {
             colorTarget.bind()
         }
