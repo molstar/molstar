@@ -68,10 +68,11 @@ function getPolymerAsymIdSerialMap(structure: Structure) {
             const chainIt = Segmentation.transientSegments(chainElementSegments, unit.elements)
             while (chainIt.hasNext) {
                 const { index: chainIndex } = chainIt.move()
-                const entityId = entity_id.value(chainIndex)
+                const elementIndex = chainElementSegments.offsets[chainIndex]
+                const entityId = entity_id.value(elementIndex)
                 const eI = model.entities.getEntityIndex(entityId)
                 if (model.entities.data.type.value(eI) === 'polymer') {
-                    const asymId = asym_id.value(chainIndex)
+                    const asymId = asym_id.value(elementIndex)
                     if (!map.has(asymId)) map.set(asymId, map.size)
                 }
             }
