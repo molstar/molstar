@@ -8,7 +8,7 @@
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
 import { PluginStateObject as SO } from '../../state/objects';
-import { labelFirst } from '../../../mol-theme/label';
+import { lociLabel } from '../../../mol-theme/label';
 import { PluginBehavior } from '../behavior';
 import { Interactivity } from '../../util/interactivity';
 import { StateTreeSpine } from '../../../mol-state/tree/spine';
@@ -70,7 +70,7 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
     name: 'default-loci-label-provider',
     category: 'interaction',
     ctor: class implements PluginBehavior<undefined> {
-        private f = labelFirst;
+        private f = lociLabel;
         register() { this.ctx.lociLabels.addProvider(this.f); }
         unregister() { this.ctx.lociLabels.removeProvider(this.f); }
         constructor(protected ctx: PluginContext) { }

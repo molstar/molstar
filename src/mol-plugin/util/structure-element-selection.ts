@@ -11,18 +11,7 @@ import { Structure, StructureElement } from '../../mol-model/structure';
 import { StateObject } from '../../mol-state';
 import { PluginContext } from '../context';
 import { PluginStateObject } from '../state/objects';
-
-export type StructureSelectionStats = { structureCount: number, elementCount: number }
-
-export function formatStructureSelectionStats(stats: StructureSelectionStats) {
-    if (stats.structureCount === 0 || stats.elementCount === 0) {
-        return 'Selected nothing'
-    } else if (stats.structureCount === 1) {
-        return `Selected ${stats.elementCount} elements`
-    }
-    return `Selected ${stats.elementCount} elements in ${stats.structureCount} structures`
-}
-
+import { structureElementStatsLabel } from '../../mol-theme/label';
 
 export { StructureElementSelectionManager };
 class StructureElementSelectionManager {
@@ -44,6 +33,7 @@ class StructureElementSelectionManager {
     get stats() {
         let structureCount = 0
         let elementCount = 0
+        const stats = StructureElement.Stats.create()
 
         this.entries.forEach(v => {
             const { elements } = v.selection
@@ -52,10 +42,13 @@ class StructureElementSelectionManager {
                 for (let i = 0, il = elements.length; i < il; ++i) {
                     elementCount += OrderedSet.size(elements[i].indices)
                 }
+                StructureElement.Stats.add(stats, stats, StructureElement.Stats.ofLoci(v.selection))
             }
         })
 
-        return { structureCount, elementCount }
+        const label = structureElementStatsLabel(stats, true)
+
+        return { structureCount, elementCount, label }
     }
 
     add(loci: Loci): Loci {

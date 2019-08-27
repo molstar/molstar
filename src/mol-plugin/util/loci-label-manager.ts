@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginContext } from '../../mol-plugin/context';
@@ -35,6 +36,6 @@ export class LociLabelManager {
     }
 
     constructor(public ctx: PluginContext) {
-        ctx.behaviors.interaction.highlight.subscribe(ev => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(ev.current) }));
+        ctx.interactivity.lociHighlights.addProvider((loci) => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(loci) }))
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -18,18 +18,12 @@ function setElementLocation(loc: StructureElement, unit: Unit, index: StructureE
     loc.element = unit.elements[index]
 }
 
-export function labelFirst(loci: Loci): string {
+export function lociLabel(loci: Loci): string {
     switch (loci.kind) {
         case 'structure-loci':
-            return loci.structure.models.map(m => m.label).join(', ')
+            return loci.structure.models.map(m => m.entry).join(', ')
         case 'element-loci':
-            const e = loci.elements[0]
-            if (e) {
-                const el = e.unit.elements[OrderedSet.getAt(e.indices, 0)];
-                return elementLabel(StructureElement.create(e.unit, el))
-            } else {
-                return 'Unknown'
-            }
+            return structureElementStatsLabel(StructureElement.Stats.ofLoci(loci))
         case 'link-loci':
             const link = loci.links[0]
             return link ? linkLabel(link) : 'Unknown'
@@ -37,17 +31,46 @@ export function labelFirst(loci: Loci): string {
             return loci.shape.name
         case 'group-loci':
             const g = loci.groups[0]
-            if (g) {
-                return loci.shape.getLabel(OrderedSet.getAt(g.ids, 0), loci.instance)
-            } else {
-                return 'Unknown'
-            }
+            return g ? loci.shape.getLabel(OrderedSet.start(g.ids), loci.instance) : 'Unknown'
         case 'every-loci':
             return 'Everything'
         case 'empty-loci':
             return 'Nothing'
         case 'data-loci':
             return ''
+    }
+}
+
+function countLabel(count: number, label: string) {
+    return count === 1 ? `1 ${label}` : `${count} ${label}s`
+}
+
+/** Gets residue count of the model chain segments the unit is a subset of */
+function getResidueCount(unit: Unit.Atomic) {
+    const { elements, model } = unit
+    const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy
+    const elementStart = chainAtomSegments.offsets[chainAtomSegments.index[elements[0]]]
+    const elementEnd = chainAtomSegments.offsets[chainAtomSegments.index[elements[elements.length - 1]] + 1]
+    return residueAtomSegments.index[elementEnd] - residueAtomSegments.index[elementStart]
+}
+
+export function structureElementStatsLabel(stats: StructureElement.Stats, countsOnly = false) {
+    const { unitCount, residueCount, elementCount } = stats
+
+    if (!countsOnly && elementCount === 1 && residueCount === 0 && unitCount === 0) {
+        return elementLabel(stats.firstElementLoc, 'element')
+    } else if (!countsOnly && elementCount === 0 && residueCount === 1 && unitCount === 0) {
+        return elementLabel(stats.firstResidueLoc, 'residue')
+    } else if (!countsOnly && elementCount === 0 && residueCount === 0 && unitCount === 1) {
+        const { unit } = stats.firstUnitLoc
+        const granularity = (Unit.isAtomic(unit) && getResidueCount(unit) === 1) ? 'residue' : 'chain'
+        return elementLabel(stats.firstUnitLoc, granularity)
+    } else {
+        const label: string[] = []
+        if (unitCount > 0) label.push(countLabel(unitCount, 'Chain'))
+        if (residueCount > 0) label.push(countLabel(residueCount, 'Residue'))
+        if (elementCount > 0) label.push(countLabel(elementCount, 'Element'))
+        return label.join(', ')
     }
 }
 
@@ -59,33 +82,57 @@ export function linkLabel(link: Link.Location) {
     return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
 }
 
-export function elementLabel(location: StructureElement) {
+export type LabelGranularity = 'element' | 'residue' | 'chain' | 'structure'
+
+export function elementLabel(location: StructureElement, granularity: LabelGranularity = 'element') {
     const model = location.unit.model.entry
     const instance = location.unit.conformation.operator.name
-    let label = ''
+    const label = [model, instance]
 
     if (Unit.isAtomic(location.unit)) {
-        const asym_id = Props.chain.auth_asym_id(location)
-        const seq_id = location.unit.model.atomicHierarchy.residues.auth_seq_id.isDefined ? Props.residue.auth_seq_id(location) : Props.residue.label_seq_id(location)
-        const comp_id = Props.residue.label_comp_id(location)
-        const atom_id = Props.atom.label_atom_id(location)
-        const alt_id = Props.atom.label_alt_id(location)
-        label = `[${comp_id}]${seq_id}:${asym_id}.${atom_id}${alt_id ? `%${alt_id}` : ''}`
+        label.push(atomicElementLabel(location as StructureElement<Unit.Atomic>, granularity))
     } else if (Unit.isCoarse(location.unit)) {
-        const asym_id = Props.coarse.asym_id(location)
-        const seq_id_begin = Props.coarse.seq_id_begin(location)
-        const seq_id_end = Props.coarse.seq_id_end(location)
-        if (seq_id_begin === seq_id_end) {
-            const entityIndex = Props.coarse.entityKey(location)
-            const seq = location.unit.model.sequence.byEntityKey[entityIndex]
-            const comp_id = seq.compId.value(seq_id_begin - 1) // 1-indexed
-            label = `[${comp_id}]${seq_id_begin}:${asym_id}`
-        } else {
-            label = `${seq_id_begin}-${seq_id_end}:${asym_id}`
-        }
+        label.push(coarseElementLabel(location as StructureElement<Unit.Spheres | Unit.Gaussians>, granularity))
     } else {
-        label = 'unknown'
+        label.push('Unknown')
     }
 
-    return `${model} ${instance} ${label}`
+    return label.join(' | ')
+}
+
+export function atomicElementLabel(location: StructureElement<Unit.Atomic>, granularity: LabelGranularity) {
+    const label_asym_id = Props.chain.label_asym_id(location)
+    const auth_asym_id = Props.chain.auth_asym_id(location)
+    const seq_id = location.unit.model.atomicHierarchy.residues.auth_seq_id.isDefined ? Props.residue.auth_seq_id(location) : Props.residue.label_seq_id(location)
+    const comp_id = Props.residue.label_comp_id(location)
+    const atom_id = Props.atom.label_atom_id(location)
+    const alt_id = Props.atom.label_alt_id(location)
+
+    const label: string[] = []
+
+    switch (granularity) {
+        case 'element':
+            label.push(`${atom_id}${alt_id ? `%${alt_id}` : ''}`)
+        case 'residue':
+            label.push(`${comp_id} ${seq_id}`)
+        case 'chain':
+            label.push(`Chain ${label_asym_id}:${auth_asym_id}`)
+    }
+
+    return label.reverse().join(' | ')
+}
+
+export function coarseElementLabel(location: StructureElement<Unit.Spheres | Unit.Gaussians>, granularity: LabelGranularity) {
+    // TODO handle granularity
+    const asym_id = Props.coarse.asym_id(location)
+    const seq_id_begin = Props.coarse.seq_id_begin(location)
+    const seq_id_end = Props.coarse.seq_id_end(location)
+    if (seq_id_begin === seq_id_end) {
+        const entityIndex = Props.coarse.entityKey(location)
+        const seq = location.unit.model.sequence.byEntityKey[entityIndex]
+        const comp_id = seq.compId.value(seq_id_begin - 1) // 1-indexed
+        return `${comp_id} ${seq_id_begin}:${asym_id}`
+    } else {
+        return `${seq_id_begin}-${seq_id_end}:${asym_id}`
+    }
 }

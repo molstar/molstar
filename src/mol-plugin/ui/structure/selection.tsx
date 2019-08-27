@@ -6,8 +6,7 @@
 
 import * as React from 'react';
 import { PluginUIComponent } from '../base';
-import { formatStructureSelectionStats } from '../../util/structure-element-selection';
-import { StructureSelectionQueries } from '../../util/structure-selection-helper';
+import { StructureSelectionQueries, SelectionModifier } from '../../util/structure-selection-helper';
 import { ButtonSelect, Options } from '../controls/common';
 import { PluginCommands } from '../../command';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -33,7 +32,12 @@ export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
     }
 
     get stats() {
-        return formatStructureSelectionStats(this.plugin.helpers.structureSelectionManager.stats)
+        const stats = this.plugin.helpers.structureSelectionManager.stats
+        if (stats.structureCount === 0 || stats.elementCount === 0) {
+            return 'Selected nothing'
+        } else {
+            return `Selected ${stats.label}`
+        }
     }
 
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {

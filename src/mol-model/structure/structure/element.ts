@@ -38,6 +38,12 @@ namespace StructureElement {
         return a;
     }
 
+    export function copy(out: StructureElement, a: StructureElement): StructureElement {
+        out.unit = a.unit
+        out.element = a.element
+        return out
+    }
+
     // TODO: when nominal types are available, make this indexed by UnitIndex
     export type Set = SortedArray<ElementIndex>
 
@@ -483,6 +489,8 @@ namespace StructureElement {
         }
     }
 
+    //
+
     interface QueryElement {
         /**
          * Array (sorted by first element in sub-array) of
@@ -673,6 +681,122 @@ namespace StructureElement {
                 if (!SortedRanges.areEqual(elementA.ranges, elementB.ranges)) return false
             }
             return true
+        }
+    }
+
+    //
+
+    export interface Stats {
+        elementCount: number
+        residueCount: number
+        unitCount: number
+
+        firstElementLoc: StructureElement
+        firstResidueLoc: StructureElement
+        firstUnitLoc: StructureElement
+    }
+
+    export namespace Stats {
+        export function create(): Stats {
+            return {
+                elementCount: 0,
+                residueCount: 0,
+                unitCount: 0,
+
+                firstElementLoc: StructureElement.create(),
+                firstResidueLoc: StructureElement.create(),
+                firstUnitLoc: StructureElement.create(),
+            }
+        }
+
+        function handleElement(stats: Stats, element: StructureElement.Loci['elements'][0]) {
+            const { indices, unit } = element
+            const { elements } = unit
+            const size = OrderedSet.size(indices)
+            if (size === 1) {
+                stats.elementCount += 1
+                if (stats.elementCount === 1) {
+                    StructureElement.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])
+                }
+            } else if (size === elements.length) {
+                stats.unitCount += 1
+                if (stats.unitCount === 1) {
+                    StructureElement.set(stats.firstUnitLoc, unit, elements[OrderedSet.start(indices)])
+                }
+            } else {
+                if (Unit.isAtomic(unit)) {
+                    const { index, offsets } = unit.model.atomicHierarchy.residueAtomSegments
+                    let i = 0
+                    while (i < size) {
+                        const eI = elements[OrderedSet.getAt(indices, i)]
+                        const rI = index[eI]
+                        if (offsets[rI] !== eI) {
+                            // partial residue, start missing
+                            ++i
+                            stats.elementCount += 1
+                            while (i < size && index[elements[OrderedSet.getAt(indices, i)]] === rI) {
+                                ++i
+                                stats.elementCount += 1
+                            }
+                        } else {
+                            ++i
+                            while (i < size && index[elements[OrderedSet.getAt(indices, i)]] === rI) {
+                                ++i
+                            }
+
+                            if (offsets[rI + 1] - 1 === elements[OrderedSet.getAt(indices, i - 1)]) {
+                                // full residue
+                                stats.residueCount += 1
+                                if (stats.residueCount === 1) {
+                                    StructureElement.set(stats.firstResidueLoc, unit, elements[OrderedSet.start(indices)])
+                                }
+                            } else {
+                                // partial residue, end missing
+                                stats.elementCount += offsets[rI + 1] - 1 - elements[OrderedSet.getAt(indices, i - 1)]
+                            }
+                        }
+                    }
+                } else {
+                    // TODO
+                    stats.elementCount += size
+                    if (stats.elementCount === 1) {
+                        StructureElement.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])
+                    }
+                }
+            }
+        }
+
+        export function ofLoci(loci: StructureElement.Loci) {
+            const stats = create()
+            if (loci.elements.length > 0) {
+                for (const e of loci.elements) handleElement(stats, e)
+            }
+            return stats
+        }
+
+        export function add(out: Stats, a: Stats, b: Stats) {
+            if (a.elementCount === 1 && b.elementCount === 0) {
+                StructureElement.copy(out.firstElementLoc, a.firstElementLoc)
+            } else if (a.elementCount === 0 && b.elementCount === 1) {
+                StructureElement.copy(out.firstElementLoc, b.firstElementLoc)
+            }
+
+            if (a.residueCount === 1 && b.residueCount === 0) {
+                StructureElement.copy(out.firstResidueLoc, a.firstResidueLoc)
+            } else if (a.residueCount === 0 && b.residueCount === 1) {
+                StructureElement.copy(out.firstResidueLoc, b.firstResidueLoc)
+            }
+
+            if (a.unitCount === 1 && b.unitCount === 0) {
+                StructureElement.copy(out.firstUnitLoc, a.firstUnitLoc)
+            } else if (a.unitCount === 0 && b.unitCount === 1) {
+                StructureElement.copy(out.firstUnitLoc, b.firstUnitLoc)
+            }
+
+            out.elementCount = a.elementCount + b.elementCount
+            out.residueCount = a.residueCount + b.residueCount
+            out.unitCount = a.unitCount + b.unitCount
+            return out
         }
     }
 }

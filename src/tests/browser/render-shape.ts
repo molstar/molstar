@@ -8,7 +8,7 @@ import './index.html'
 import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Representation } from '../../mol-repr/representation';
 import { Canvas3D } from '../../mol-canvas3d/canvas3d';
-import { labelFirst } from '../../mol-theme/label';
+import { lociLabel } from '../../mol-theme/label';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { EveryLoci } from '../../mol-model/loci';
 import { RuntimeContext, Progress } from '../../mol-task';
@@ -45,7 +45,7 @@ canvas3d.input.move.subscribe(({x, y}) => {
     let label = ''
     if (pickingId) {
         const reprLoci = canvas3d.getLoci(pickingId)
-        label = labelFirst(reprLoci.loci)
+        label = lociLabel(reprLoci.loci)
         if (!Representation.Loci.areEqual(prevReprLoci, reprLoci)) {
             canvas3d.mark(prevReprLoci, MarkerAction.RemoveHighlight)
             canvas3d.mark(reprLoci, MarkerAction.Highlight)
