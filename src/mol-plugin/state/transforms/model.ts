@@ -41,7 +41,7 @@ export { TransformStructureConformation };
 export { TransformStructureConformationByMatrix };
 export { StructureSelection };
 export { UserStructureSelection };
-export { LociStructureSelection };
+export { BundleStructureSelection as LociStructureSelection };
 export { StructureComplexElement };
 export { CustomModelProperties };
 export { CustomStructureProperties };
@@ -435,39 +435,39 @@ function updateStructureFromQuery(query: QueryFn<Sel>, src: Structure, obj: SO.M
     return true;
 }
 
-type LociStructureSelection = typeof LociStructureSelection
-const LociStructureSelection = PluginStateTransform.BuiltIn({
-    name: 'loci-structure-selection',
-    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified structure-element query.' },
+type BundleStructureSelection = typeof BundleStructureSelection
+const BundleStructureSelection = PluginStateTransform.BuiltIn({
+    name: 'bundle-structure-selection',
+    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified structure-element bundle.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
-        query: PD.Value<StructureElement.Query>(StructureElement.Query.Empty, { isHidden: true }),
+        bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty, { isHidden: true }),
         label: PD.Optional(PD.Text('', { isHidden: true }))
     }
 })({
     apply({ a, params, cache }) {
-        if (params.query.hash !== a.data.hashCode) {
-            // Query not compatible with given structure, set to empty query
-            params.query = StructureElement.Query.Empty
+        if (params.bundle.hash !== a.data.hashCode) {
+            // Bundle not compatible with given structure, set to empty bundle
+            params.bundle = StructureElement.Bundle.Empty
         }
 
         (cache as { source: Structure }).source = a.data;
 
-        const s = StructureElement.Query.toStructure(params.query, a.data);
+        const s = StructureElement.Bundle.toStructure(params.bundle, a.data);
         if (s.elementCount === 0) return StateObject.Null;
 
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
-        if (!StructureElement.Query.areEqual(oldParams.query, newParams.query)) {
+        if (!StructureElement.Bundle.areEqual(oldParams.bundle, newParams.bundle)) {
             return StateTransformer.UpdateResult.Recreate;
         }
 
-        if (newParams.query.hash !== a.data.hashCode) {
-            // Query not compatible with given structure, set to empty query
-            newParams.query = StructureElement.Query.Empty
+        if (newParams.bundle.hash !== a.data.hashCode) {
+            // Bundle not compatible with given structure, set to empty bundle
+            newParams.bundle = StructureElement.Bundle.Empty
         }
 
         if ((cache as { source: Structure }).source === a.data) {
@@ -475,7 +475,7 @@ const LociStructureSelection = PluginStateTransform.BuiltIn({
         }
         (cache as { source: Structure }).source = a.data;
 
-        const s = StructureElement.Query.toStructure(newParams.query, a.data);
+        const s = StructureElement.Bundle.toStructure(newParams.bundle, a.data);
         if (s.elementCount === 0) return StateTransformer.UpdateResult.Null;
 
         b.label = `${newParams.label || 'Selection'}`;

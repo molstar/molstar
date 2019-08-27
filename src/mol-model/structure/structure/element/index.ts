@@ -7,6 +7,6 @@
 
 export * from './location'
 export * from './loci'
-export * from './query'
+export * from './bundle'
 export * from './stats'
 export * from './element'

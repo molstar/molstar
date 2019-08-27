@@ -57,12 +57,12 @@ export class StructureRepresentationHelper {
         const reprStructure = this.getRepresentationStructure(structure.transform.ref, type)
 
         if (reprStructure) {
-            const currentLoci = StructureElement.Query.toLoci(reprStructure.params!.values.query, s)
+            const currentLoci = StructureElement.Bundle.toLoci(reprStructure.params!.values.bundle, s)
             const combinedLoci = getCombinedLoci(modifier, loci, currentLoci)
 
             update.to(reprStructure).update({
                 ...reprStructure.params!.values,
-                query: StructureElement.Query.fromLoci(combinedLoci)
+                bundle: StructureElement.Bundle.fromLoci(combinedLoci)
             })
         } else {
             const combinedLoci = getCombinedLoci(modifier, loci, StructureElement.Loci(s, []))
@@ -76,7 +76,7 @@ export class StructureRepresentationHelper {
             update.to(structure.transform.ref)
                 .apply(
                     StateTransforms.Model.LociStructureSelection,
-                    { query: StructureElement.Query.fromLoci(combinedLoci), label: type },
+                    { bundle: StructureElement.Bundle.fromLoci(combinedLoci), label: type },
                     { tags: [ RepresentationManagerTag, getRepresentationManagerTag(type) ] }
                 )
                 .apply( StateTransforms.Representation.StructureRepresentation3D, params)
@@ -109,14 +109,14 @@ export class StructureRepresentationHelper {
         const state = this.plugin.state.dataState;
         const update = state.build()
         const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
-        const query = StructureElement.Query.Empty
+        const bundle = StructureElement.Bundle.Empty
 
         for (const structure of structures) {
             for (let i = 0, il = registry.types.length; i < il; ++i) {
                 const type = registry.types[i][0]
                 const reprStructure = this.getRepresentationStructure(structure.transform.ref, type)
                 if (reprStructure) {
-                    update.to(reprStructure).update({ ...reprStructure.params!.values, query })
+                    update.to(reprStructure).update({ ...reprStructure.params!.values, bundle })
                 }
             }
         }

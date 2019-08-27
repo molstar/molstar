@@ -13,7 +13,7 @@ import SortedRanges from '../../../../mol-data/int/sorted-ranges';
 import { UnitIndex } from './element';
 import { Loci } from './loci';
 
-interface QueryElement {
+interface BundleElement {
     /**
      * Array (sorted by first element in sub-array) of
      * arrays of `Unit.id`s that share the same `Unit.invariantId`
@@ -23,17 +23,17 @@ interface QueryElement {
     ranges: SortedRanges<UnitIndex>
 }
 
-export interface Query {
-    /** Hash of the structure to which the query can be applied */
+export interface Bundle {
+    /** Hash of the structure with which the bundle is compatible */
     readonly hash: number
-    /** Query elements */
-    readonly elements: ReadonlyArray<Readonly<QueryElement>>
+    /** Bundle elements */
+    readonly elements: ReadonlyArray<Readonly<BundleElement>>
 }
 
-export namespace Query {
-    export const Empty: Query = { hash: -1, elements: [] }
+export namespace Bundle {
+    export const Empty: Bundle = { hash: -1, elements: [] }
 
-    export function fromLoci(loci: Loci): Query {
+    export function fromLoci(loci: Loci): Bundle {
         const _elements: {
             unit: Unit
             set: SortedArray<UnitIndex>
@@ -98,7 +98,7 @@ export namespace Query {
             }
         }
 
-        const elements: QueryElement[] = []
+        const elements: BundleElement[] = []
         elementGroups.forEach(e => {
             const groupedUnits: SortedArray<number>[] = []
             e.groupedUnits.forEach(g => groupedUnits.push(SortedArray.ofUnsortedArray(g)))
@@ -118,12 +118,12 @@ export namespace Query {
         return units
     }
 
-    export function toLoci(query: Query, parent: Structure): Loci {
-        if (query.hash !== -1 && query.hash !== parent.root.hashCode) {
-            new Error('Query not compatible with given structure')
+    export function toLoci(bundle: Bundle, parent: Structure): Loci {
+        if (bundle.hash !== -1 && bundle.hash !== parent.root.hashCode) {
+            new Error('Bundle not compatible with given structure')
         }
         const elements: Loci['elements'][0][] = []
-        for (const e of query.elements) {
+        for (const e of bundle.elements) {
             for (const g of e.groupedUnits) {
                 const units = getUnitsFromIds(g, parent)
                 if (units.length === 0) continue
@@ -155,12 +155,12 @@ export namespace Query {
         return Loci(parent, elements)
     }
 
-    export function toStructure(query: Query, parent: Structure): Structure {
-        if (query.hash !== -1 && query.hash !== parent.root.hashCode) {
-            new Error('Query not compatible with given structure')
+    export function toStructure(bundle: Bundle, parent: Structure): Structure {
+        if (bundle.hash !== -1 && bundle.hash !== parent.root.hashCode) {
+            new Error('Bundle not compatible with given structure')
         }
         const units: Unit[] = []
-        for (const e of query.elements) {
+        for (const e of bundle.elements) {
             for (const g of e.groupedUnits) {
                 const _units = getUnitsFromIds(g, parent)
                 if (_units.length === 0) continue
@@ -192,7 +192,7 @@ export namespace Query {
         return Structure.create(units, { parent })
     }
 
-    export function areEqual(a: Query, b: Query) {
+    export function areEqual(a: Bundle, b: Bundle) {
         if (a.elements.length !== b.elements.length) return false
         for (let i = 0, il = a.elements.length; i < il; ++i) {
             const elementA = a.elements[i], elementB = b.elements[i]
