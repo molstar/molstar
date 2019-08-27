@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
@@ -307,6 +308,7 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.macromolecular.B_iso_or_equiv, atomProp(StructureProperties.atom.B_iso_or_equiv)),
 
     D(MolScript.structureQuery.atomProperty.macromolecular.entityType, atomProp(StructureProperties.entity.type)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.entitySubtype, atomProp(StructureProperties.entity.subtype)),
     D(MolScript.structureQuery.atomProperty.macromolecular.objectPrimitive, atomProp(StructureProperties.unit.object_primitive)),
 
     D(MolScript.structureQuery.atomProperty.macromolecular.isModified, atomProp(StructureProperties.residue.isModified)),

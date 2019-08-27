@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import Type from '../type'
@@ -20,7 +21,8 @@ export namespace Types {
     export const SecondaryStructureFlags = Core.Types.Flags(SecondaryStructureFlag, 'SecondaryStructureFlag');
 
     export const RingFingerprint = Type.Value('Structure', 'RingFingerprint');
-    export const EntityType = Type.OneOf('Structure', 'EntityType', Type.Str, ['polymer', 'non-polymer', 'water', 'branched', 'unknown']);
+    export const EntityType = Type.OneOf('Structure', 'EntityType', Type.Str, ['polymer', 'non-polymer', 'water', 'branched']);
+    export const EntitySubtype = Type.OneOf('Structure', 'EntitySubtype', Type.Str, ['other', 'polypeptide(D)', 'polypeptide(L)', 'polydeoxyribonucleotide', 'polyribonucleotide', 'polydeoxyribonucleotide/polyribonucleotide hybrid', 'cyclic-pseudo-peptide', 'peptide nucleic acid', 'oligosaccharide']);
     export const ObjectPrimitive = Type.OneOf('Structure', 'ObjectPrimitive', Type.Str, ['atomistic', 'sphere', 'gaussian', 'other']);
     export const ResidueId = Type.Value('Structure', 'ResidueId');
 
@@ -295,7 +297,8 @@ const atomProperty = {
         occupancy: atomProp(Type.Num),
         B_iso_or_equiv: atomProp(Type.Num),
 
-        entityType: atomProp(Types.EntityType, 'Type of the entity as defined in mmCIF (polymer, non-polymer, branched, water, unknown)'),
+        entityType: atomProp(Types.EntityType, 'Type of the entity as defined in mmCIF (polymer, non-polymer, branched, water)'),
+        entitySubtype: atomProp(Types.EntitySubtype, 'Subtype of the entity as defined in mmCIF _entity_poly.type and _pdbx_entity_branch.type (other, polypeptide(D), polypeptide(L), polydeoxyribonucleotide, polyribonucleotide, polydeoxyribonucleotide/polyribonucleotide hybrid, cyclic-pseudo-peptide, peptide nucleic acid, oligosaccharide)'),
         objectPrimitive: atomProp(Types.ObjectPrimitive, 'Type of the primitive object used to model this segment as defined in mmCIF/IHM (atomistic, sphere, gaussian, other)'),
 
         secondaryStructureKey: atomProp(Type.AnyValue, 'Unique value for each secondary structure element.'),

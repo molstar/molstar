@@ -12,7 +12,7 @@ import { Tensor, Vec3 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../mol-task';
 import UUID from '../../../mol-util/uuid';
 import { Model } from '../../../mol-model/structure/model/model';
-import { Entities, ChemicalComponent, MissingResidue } from '../../../mol-model/structure/model/properties/common';
+import { Entities, ChemicalComponent, MissingResidue, EntitySubtype } from '../../../mol-model/structure/model/properties/common';
 import { CustomProperties } from '../../../mol-model/structure';
 import { ModelSymmetry } from '../../../mol-model/structure/model/properties/symmetry';
 import { createAssemblies } from './assembly';
@@ -23,12 +23,12 @@ import { getSecondaryStructure } from './secondary-structure';
 import { getSequence } from './sequence';
 import { sortAtomSite } from './sort';
 import { StructConn } from './bonds/struct_conn';
-import { getMoleculeType, MoleculeType, getEntityType } from '../../../mol-model/structure/model/types';
+import { getMoleculeType, MoleculeType, getEntityType, getEntitySubtype } from '../../../mol-model/structure/model/types';
 import { ModelFormat } from '../format';
 import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from '../../../mol-model/structure/structure/carbohydrates/constants';
 import mmCIF_Format = ModelFormat.mmCIF
 import { memoize1 } from '../../../mol-util/memoize';
-import { ElementIndex } from '../../../mol-model/structure/model';
+import { ElementIndex, EntityIndex } from '../../../mol-model/structure/model';
 
 export async function _parse_mmCif(format: mmCIF_Format, ctx: RuntimeContext) {
     const formatData = getFormatData(format)
@@ -302,6 +302,7 @@ function getEntities(format: mmCIF_Format): Entities {
             if (!entityIds.has(entityId)) {
                 ids.push(entityId)
                 types.push(getEntityType(label_comp_id.value(i)))
+                entityIds.add(entityId)
             }
         }
 
@@ -311,6 +312,7 @@ function getEntities(format: mmCIF_Format): Entities {
             if (!entityIds.has(entityId)) {
                 ids.push(entityId)
                 types.push('polymer')
+                entityIds.add(entityId)
             }
         }
 
@@ -320,6 +322,7 @@ function getEntities(format: mmCIF_Format): Entities {
             if (!entityIds.has(entityId)) {
                 ids.push(entityId)
                 types.push('polymer')
+                entityIds.add(entityId)
             }
         }
 
@@ -331,7 +334,56 @@ function getEntities(format: mmCIF_Format): Entities {
     } else {
         entityData = format.data.entity;
     }
-    return { data: entityData, getEntityIndex: Column.createIndexer(entityData.id) };
+
+    const getEntityIndex = Column.createIndexer<string, EntityIndex>(entityData.id)
+
+    //
+
+    const subtypes: EntitySubtype[] = new Array(entityData._rowCount)
+    subtypes.fill('other')
+
+    const entityIds = new Set<string>()
+    let assignSubtype = false
+
+    if (format.data.entity_poly.entity_id.isDefined) {
+        const { entity_id, type, _rowCount } = format.data.entity_poly
+        for (let i = 0; i < _rowCount; ++i) {
+            const entityId = entity_id.value(i)
+            subtypes[getEntityIndex(entityId)] = type.value(i)
+            entityIds.add(entityId)
+        }
+    } else {
+        assignSubtype = true
+    }
+
+    if (format.data.pdbx_entity_branch.entity_id.isDefined) {
+        const { entity_id, type, _rowCount } = format.data.pdbx_entity_branch
+        for (let i = 0; i < _rowCount; ++i) {
+            const entityId = entity_id.value(i)
+            subtypes[getEntityIndex(entityId)] = type.value(i)
+            entityIds.add(entityId)
+        }
+    } else {
+        assignSubtype = true
+    }
+
+    if (assignSubtype) {
+        const { label_entity_id, label_comp_id } = format.data.atom_site;
+        for (let i = 0 as ElementIndex, il = format.data.atom_site._rowCount; i < il; i++) {
+            const entityId = label_entity_id.value(i);
+            if (!entityIds.has(entityId)) {
+                subtypes[getEntityIndex(entityId)] = getEntitySubtype(label_comp_id.value(i))
+                entityIds.add(entityId)
+            }
+        }
+        // TODO how to handle coarse?
+    }
+
+    const subtypeColumn = Column.ofArray({ array: subtypes, schema: EntitySubtype })
+
+    //
+
+    return { data: entityData, subtype: subtypeColumn, getEntityIndex };
 }
 
 async function readStandard(ctx: RuntimeContext, format: mmCIF_Format, formatData: FormatData) {

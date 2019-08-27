@@ -9,6 +9,7 @@ import BitFlags from '../../../mol-util/bit-flags'
 import { SaccharideCompIdMap } from '../structure/carbohydrates/constants';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { SetUtils } from '../../../mol-util/set';
+import { EntitySubtype } from './properties/common';
 
 const _esCache = (function () {
     const cache = Object.create(null);
@@ -148,10 +149,11 @@ export const WaterNames = new Set([
     'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC'
 ])
 
-export const AminoAcidNames = new Set([
+export const AminoAcidNamesL = new Set([
     'HIS', 'ARG', 'LYS', 'ILE', 'PHE', 'LEU', 'TRP', 'ALA', 'MET', 'PRO', 'CYS',
     'ASN', 'VAL', 'GLY', 'SER', 'GLN', 'TYR', 'ASP', 'GLU', 'THR', 'SEC', 'PYL',
-
+])
+export const AminoAcidNamesD = new Set([
     'DAL', // D-ALANINE
     'DAR', // D-ARGININE
     'DSG', // D-ASPARAGINE
@@ -174,6 +176,7 @@ export const AminoAcidNames = new Set([
     'DNE' // D-NORLEUCINE
     // ???  // D-SELENOCYSTEINE
 ])
+export const AminoAcidNames = SetUtils.unionMany(AminoAcidNamesL, AminoAcidNamesD)
 
 export const RnaBaseNames = new Set([ 'A', 'C', 'T', 'G', 'I', 'U' ])
 export const DnaBaseNames = new Set([ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ])
@@ -237,6 +240,25 @@ export function getEntityType(compId: string): mmCIF_Schema['entity']['type']['T
         return 'branched'
     } else {
         return 'non-polymer'
+    }
+}
+
+export function getEntitySubtype(compId: string): EntitySubtype {
+    compId = compId.toUpperCase()
+    if (SaccharideCompIdMap.has(compId)) {
+        return 'oligosaccharide'
+    } else if (PeptideBaseNames.has(compId)) {
+        return 'peptide nucleic acid'
+    } else if (AminoAcidNamesL.has(compId)) {
+        return 'polypeptide(L)'
+    } else if (AminoAcidNamesD.has(compId)) {
+        return 'polypeptide(D)'
+    } else if (RnaBaseNames.has(compId)) {
+        return 'polyribonucleotide'
+    } else if (DnaBaseNames.has(compId)) {
+        return 'polydeoxyribonucleotide'
+    } else {
+        return 'other'
     }
 }
 

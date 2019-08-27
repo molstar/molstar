@@ -6,11 +6,18 @@
  */
 
 import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif'
-import { Table } from '../../../../mol-data/db';
+import { Table, Column } from '../../../../mol-data/db';
 import { EntityIndex } from '../indexing';
+
+export type EntitySubtype = (
+    mmCIF_Schema['entity_poly']['type']['T'] |
+    mmCIF_Schema['pdbx_entity_branch']['type']['T']
+)
+export const EntitySubtype = Column.Schema.Aliased<EntitySubtype>(Column.Schema.Str(''))
 
 export interface Entities {
     data: mmCIF_Database['entity'],
+    subtype: Column<EntitySubtype>,
     getEntityIndex(id: string): EntityIndex
 }
 
@@ -19,8 +26,8 @@ export type ChemicalComponentMap = ReadonlyMap<string, ChemicalComponent>
 
 export type MissingResidue = Table.Row<Pick<
     mmCIF_Schema['pdbx_unobs_or_zero_occ_residues'],
-    'polymer_flag' | 'occupancy_flag'>
->
+    'polymer_flag' | 'occupancy_flag'
+>>
 export interface MissingResidues {
     has(model_num: number, asym_id: string, seq_id: number): boolean
     get(model_num: number, asym_id: string, seq_id: number): MissingResidue | undefined

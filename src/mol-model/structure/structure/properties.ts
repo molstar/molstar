@@ -122,6 +122,7 @@ const entity = {
 
     id: p(l => l.unit.model.entities.data.id.value(eK(l))),
     type: p(l => l.unit.model.entities.data.type.value(eK(l))),
+    subtype: p(l => l.unit.model.entities.subtype.value(eK(l))),
     src_method: p(l => l.unit.model.entities.data.src_method.value(eK(l))),
     pdbx_description: p(l => l.unit.model.entities.data.pdbx_description.value(eK(l))),
     formula_weight: p(l => l.unit.model.entities.data.formula_weight.value(eK(l))),
