@@ -13,6 +13,8 @@ import { Color } from '../../../mol-util/color';
 import { ButtonSelect, Options } from '../controls/common'
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/base';
+import { StructureRepresentationPresets as P } from '../../util/structure-representation-helper';
+import { camelCaseToWords } from '../../../mol-util/string';
 
 abstract class BaseStructureRepresentationControls extends PluginUIComponent {
     onChange = (value: string) => {
@@ -49,25 +51,19 @@ abstract class BaseStructureRepresentationControls extends PluginUIComponent {
             <span title={this.label}>{this.label}</span>
             <div className='msp-select-row'>
                 <ButtonSelect label='Show' onChange={this.show}>
-                    <optgroup label='Show'>
-                        {Options(types)}
-                    </optgroup>
+                    <optgroup label='Show'>{Options(types)}</optgroup>
                 </ButtonSelect>
                 <ButtonSelect label='Hide' onChange={this.hide}>
                     <optgroup label='Clear'>
                         <option key={'__all__'} value={'__all__'}>All</option>
                     </optgroup>
-                    <optgroup label='Hide'>
-                        {Options(types)}
-                    </optgroup>
+                    <optgroup label='Hide'>{Options(types)}</optgroup>
                 </ButtonSelect>
                 <ButtonSelect label='Color' onChange={this.color}>
                     <optgroup label='Clear'>
                         <option key={-1} value={-1}>Theme</option>
                     </optgroup>
-                    <optgroup label='Color'>
-                        {ColorOptions()}
-                    </optgroup>
+                    <optgroup label='Color'>{ColorOptions()}</optgroup>
                 </ButtonSelect>
             </div>
         </div>
@@ -90,8 +86,11 @@ class SelectionStructureRepresentationControls extends BaseStructureRepresentati
 }
 
 export class StructureRepresentationControls extends PluginUIComponent {
-    preset = async () => {
-        await this.plugin.helpers.structureRepresentation.preset()
+    preset = async (value: string) => {
+        const presetFn = P[value as keyof typeof P]
+        if (presetFn) {
+            await presetFn(this.plugin.helpers.structureRepresentation)
+        }
     }
 
     onChange = async (p: { param: PD.Base<any>, name: string, value: any }) => {
@@ -123,12 +122,20 @@ export class StructureRepresentationControls extends PluginUIComponent {
     }
 
     render() {
+        const presets = Object.keys(P).map(name => {
+            return [name, camelCaseToWords(name)] as [string, string]
+        })
+
         return <div className='msp-transform-wrapper'>
             <div className='msp-transform-header'>
                 <button className='msp-btn msp-btn-block'>Representation</button>
             </div>
-            <div className='msp-btn-row-group'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.preset()}>Preset</button>
+            <div className='msp-control-row'>
+                <div className='msp-select-row'>
+                    <ButtonSelect label='Preset' onChange={this.preset}>
+                        <optgroup label='Preset'>{Options(presets)}</optgroup>
+                    </ButtonSelect>
+                </div>
             </div>
             <EverythingStructureRepresentationControls />
             <SelectionStructureRepresentationControls />

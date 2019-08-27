@@ -15,8 +15,6 @@ import { Interactivity } from '../../util/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { camelCaseToWords } from '../../../mol-util/string';
 
-type SelectionModifier = 'add' | 'remove' | 'only'
-
 const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,
 }

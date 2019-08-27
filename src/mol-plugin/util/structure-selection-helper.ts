@@ -15,17 +15,52 @@ import Expression from '../../mol-script/language/expression';
 
 const all = MS.struct.generator.all()
 
-const polymers = MS.struct.modifier.union([
+const polymer = MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
     })
 ])
 
-const backboneTrace = MS.struct.modifier.union([
+const trace = MS.struct.modifier.union([
+    MS.struct.combinator.merge([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                'chain-test': MS.core.set.has([
+                    MS.set('sphere', 'gaussian'), MS.ammp('objectPrimitive')
+                ])
+            })
+        ]),
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': MS.core.set.has([MS.set('CA', 'P'), MS.ammp('label_atom_id')])
+            })
+        ])
+    ])
+])
+
+const protein = MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
-        'atom-test': MS.core.logic.or([
-            MS.core.rel.eq([MS.ammp('label_atom_id'), 'CA']),
-            MS.core.rel.eq([MS.ammp('label_atom_id'), 'P'])
+        'entity-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+            MS.core.str.match([
+                MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
+                MS.ammp('entitySubtype')
+            ])
+        ])
+    })
+])
+
+const nucleic = MS.struct.modifier.union([
+    MS.struct.generator.atomGroups({
+        'entity-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+            MS.core.str.match([
+                MS.re('(nucleotide|peptide nucleic acid)', 'i'),
+                MS.ammp('entitySubtype')
+            ])
         ])
     })
 ])
@@ -37,19 +72,18 @@ const water = MS.struct.modifier.union([
 ])
 
 const branched = MS.struct.modifier.union([
-    MS.struct.combinator.merge([
-        MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'branched'])
-            })
-        ]),
-        MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
-                'residue-test': MS.core.str.match([MS.re('saccharide', 'i'), MS.ammp('chemCompType')])
-            })
+    MS.struct.generator.atomGroups({
+        'entity-test': MS.core.logic.or([
+            MS.core.rel.eq([MS.ammp('entityType'), 'branched']),
+            MS.core.logic.and([
+                MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+                MS.core.str.match([
+                    MS.re('oligosaccharide', 'i'),
+                    MS.ammp('entitySubtype')
+                ])
+            ])
         ])
-    ])
+    })
 ])
 
 const branchedPlusConnected = MS.struct.modifier.union([
@@ -65,21 +99,22 @@ const branchedConnectedOnly = MS.struct.modifier.union([
     })
 ])
 
-const ligands = MS.struct.modifier.union([
+const ligand = MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.and([
             MS.core.rel.neq([MS.ammp('entityType'), 'branched']),
             MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer'])
         ]),
+        'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
         'residue-test': MS.core.logic.not([
             MS.core.str.match([MS.re('saccharide', 'i'), MS.ammp('chemCompType')])
         ])
     })
 ])
 
-const ligandsPlusConnected = MS.struct.modifier.union([
+const ligandPlusConnected = MS.struct.modifier.union([
     MS.struct.modifier.includeConnected({
-        0: ligands, 'layer-count': 1, 'as-whole-residues': true
+        0: ligand, 'layer-count': 1, 'as-whole-residues': true
     })
 ])
 
@@ -93,20 +128,22 @@ const coarse = MS.struct.modifier.union([
 
 export const StructureSelectionQueries = {
     all,
-    polymers,
-    backboneTrace,
+    polymer,
+    trace,
+    protein,
+    nucleic,
     water,
     branched,
     branchedPlusConnected,
     branchedConnectedOnly,
-    ligands,
-    ligandsPlusConnected,
+    ligand,
+    ligandPlusConnected,
     coarse,
 }
 
 //
 
-type SelectionModifier = 'add' | 'remove' | 'only'
+export type SelectionModifier = 'add' | 'remove' | 'only'
 
 export class StructureSelectionHelper {
     private get structures() {

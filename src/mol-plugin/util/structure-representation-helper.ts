@@ -49,7 +49,7 @@ export class StructureRepresentationHelper {
         return selections.length > 0 ? selections[0] : undefined
     }
 
-    private async _set(modifier: SelectionModifier, type: string, loci: StructureElement.Loci, structure: StructureTransform) {
+    private async _set(modifier: SelectionModifier, type: string, loci: StructureElement.Loci, structure: StructureTransform, props = {}) {
         const state = this.plugin.state.dataState
         const update = state.build()
         const s = structure.obj!.data
@@ -69,6 +69,7 @@ export class StructureRepresentationHelper {
             const params = StructureRepresentation3DHelpers.getDefaultParams(this.plugin, type as any, s)
 
             const p = params.type.params
+            Object.assign(p, props)
             if (p.ignoreHydrogens !== undefined) p.ignoreHydrogens = this._ignoreHydrogens
             if (p.quality !== undefined) p.quality = this._quality
 
@@ -84,23 +85,23 @@ export class StructureRepresentationHelper {
         await this.plugin.runTask(state.updateTree(update, { doNotUpdateCurrent: true }))
     }
 
-    async set(modifier: SelectionModifier, type: string, lociGetter: (structure: Structure) => StructureElement.Loci) {
+    async set(modifier: SelectionModifier, type: string, lociGetter: (structure: Structure) => StructureElement.Loci, props = {}) {
         const state = this.plugin.state.dataState;
         const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
 
         for (const structure of structures) {
             const s = structure.obj!.data
             const loci = lociGetter(s)
-            await this._set(modifier, type, loci, structure)
+            await this._set(modifier, type, loci, structure, props)
         }
     }
 
-    async setFromExpression(modifier: SelectionModifier, type: string, expression: Expression) {
+    async setFromExpression(modifier: SelectionModifier, type: string, expression: Expression, props = {}) {
         return this.set(modifier, type, (structure) => {
             const compiled = compile<StructureSelection>(expression)
             const result = compiled(new QueryContext(structure))
             return StructureSelection.toLoci2(result)
-        })
+        }, props)
     }
 
     async clear() {
@@ -169,16 +170,72 @@ export class StructureRepresentationHelper {
     }
 
     async preset() {
-        // TODO generalize and make configurable
-        await this.clear()
-        await this.setFromExpression('add', 'cartoon', Q.all)
-        await this.setFromExpression('add', 'carbohydrate', Q.all)
-        await this.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
-            MS.struct.combinator.merge([ Q.ligandsPlusConnected, Q.branchedConnectedOnly, Q.water ])
-        ]))
+        // TODO option to limit to specific structure
+        const state = this.plugin.state.dataState;
+        const structures = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure))
+
+        if (structures.length === 0) return
+        const s = structures[0].obj!.data
+
+        if (s.elementCount < 50000) {
+            polymerAndLigand(this)
+        } else if (s.elementCount < 200000) {
+            proteinAndNucleic(this)
+        } else {
+            if (s.unitSymmetryGroups[0].units.length > 10) {
+                capsid(this)
+            } else {
+                coarseCapsid(this)
+            }
+        }
     }
 
     constructor(private plugin: PluginContext) {
 
     }
+}
+
+//
+
+async function polymerAndLigand(r: StructureRepresentationHelper) {
+    await r.clear()
+    await r.setFromExpression('add', 'cartoon', Q.all)
+    await r.setFromExpression('add', 'carbohydrate', Q.all)
+    await r.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
+        MS.struct.combinator.merge([ Q.ligandPlusConnected, Q.branchedConnectedOnly, Q.water ])
+    ]))
+}
+
+async function proteinAndNucleic(r: StructureRepresentationHelper) {
+    await r.clear()
+    await r.setFromExpression('add', 'cartoon', Q.protein)
+    await r.setFromExpression('add', 'gaussian-surface', Q.nucleic)
+
+    await r.setFromExpression('add', 'carbohydrate', Q.all)
+    await r.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
+        MS.struct.combinator.merge([ Q.ligandPlusConnected, Q.branchedConnectedOnly, Q.water ])
+    ]))
+}
+
+async function capsid(r: StructureRepresentationHelper) {
+    await r.clear()
+    await r.setFromExpression('add', 'gaussian-surface', Q.polymer, {
+        smoothness: 0.5,
+    })
+}
+
+async function coarseCapsid(r: StructureRepresentationHelper) {
+    await r.clear()
+    await r.setFromExpression('add', 'gaussian-surface', Q.trace, {
+        radiusOffset: 1,
+        smoothness: 0.5,
+        visuals: ['structure-gaussian-surface-mesh']
+    })
+}
+
+export const StructureRepresentationPresets = {
+    polymerAndLigand,
+    proteinAndNucleic,
+    capsid,
+    coarseCapsid
 }
