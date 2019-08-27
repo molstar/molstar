@@ -77,7 +77,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const l = StructureElement.create()
+        const l = StructureElement.Location.create()
         const asymIdSerialMap = getAsymIdSerialMap(ctx.structure.root)
 
         const palette = getPalette(asymIdSerialMap.size, props)
@@ -85,7 +85,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
 
         color = (location: Location): Color => {
             let serial: number | undefined = undefined
-            if (StructureElement.isLocation(location)) {
+            if (StructureElement.Location.is(location)) {
                 const asym_id = getAsymId(location.unit)
                 serial = asymIdSerialMap.get(asym_id(location))
             } else if (Link.isLocation(location)) {

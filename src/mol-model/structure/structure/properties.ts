@@ -53,7 +53,7 @@ const atom = {
     vdw_radius: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.model.atomicHierarchy.atoms.type_symbol.value(l.element))),
 }
 
-function compId(l: StructureElement) {
+function compId(l: StructureElement.Location) {
     return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])
 }
 
@@ -106,7 +106,7 @@ const coarse = {
     gaussian_covariance_matrix: p(l => !Unit.isGaussians(l.unit) ? notCoarse('gaussians') : l.unit.coarseConformation.covariance_matrix[l.element])
 }
 
-function eK(l: StructureElement) {
+function eK(l: StructureElement.Location) {
     switch (l.unit.kind) {
         case Unit.Kind.Atomic:
             return l.unit.model.atomicHierarchy.index.getEntityFromChain(l.unit.chainIndex[l.element])

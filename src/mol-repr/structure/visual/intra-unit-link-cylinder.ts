@@ -23,7 +23,7 @@ import { isHydrogen } from './util/common';
 function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitLinkParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
-    const location = StructureElement.create(unit)
+    const location = StructureElement.Location.create(unit)
 
     const elements = unit.elements;
     const links = unit.links
@@ -140,7 +140,7 @@ function eachLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: 
                 }
             }
         }
-    } else if (StructureElement.isLoci(loci)) {
+    } else if (StructureElement.Loci.is(loci)) {
         const { structure, group } = structureGroup
         if (!Structure.areEquivalent(loci.structure, structure)) return false
         const unit = group.units[0]

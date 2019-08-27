@@ -165,9 +165,9 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     function mark(loci: Loci, action: MarkerAction) {
         let changed = false
         if (!_structure) return false
-        if (!StructureElement.isLoci(loci) && !Link.isLoci(loci)) return false
+        if (!StructureElement.Loci.is(loci) && !Link.isLoci(loci)) return false
         if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
-        if (StructureElement.isLoci(loci)) {
+        if (StructureElement.Loci.is(loci)) {
             loci = StructureElement.Loci.remap(loci, _structure)
             if (loci.elements.length === 0) return false
         } else if (Link.isLoci(loci)) {

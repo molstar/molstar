@@ -36,7 +36,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
         let changed = false
         const { structure, unit } = this.data
-        if (StructureElement.isLoci(loci)) {
+        if (StructureElement.Loci.is(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
             loci = StructureElement.Loci.remap(loci, structure)
 
@@ -62,7 +62,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 
     constructor(data: StructureUnit) {
-        const l = StructureElement.create(data.unit, data.unit.elements[0])
+        const l = StructureElement.Location.create(data.unit, data.unit.elements[0])
         const sequence = data.unit.model.sequence.byEntityKey[SP.entity.key(l)].sequence
         const length = sequence.sequence.length
         const markerArray = new Uint8Array(length)

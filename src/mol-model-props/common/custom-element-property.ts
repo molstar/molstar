@@ -64,8 +64,8 @@ namespace CustomElementProperty {
             })
         }
 
-        function getStatic(e: StructureElement) { return e.unit.model._staticPropertyData[name].get(e.element); }
-        function getDynamic(e: StructureElement) { return e.unit.model._staticPropertyData[name].get(e.element); }
+        function getStatic(e: StructureElement.Location) { return e.unit.model._staticPropertyData[name].get(e.element); }
+        function getDynamic(e: StructureElement.Location) { return e.unit.model._staticPropertyData[name].get(e.element); }
 
         const propertyProvider: CustomPropertyRegistry.ModelProvider = {
             option: [name, params.display],
@@ -86,7 +86,7 @@ namespace CustomElementProperty {
 
             if (ctx.structure && !ctx.structure.isEmpty && has(ctx.structure.models[0])) {
                 color = (location: Location) => {
-                    if (StructureElement.isLocation(location)) {
+                    if (StructureElement.Location.is(location)) {
                         const e = get(location);
                         if (typeof e !== 'undefined') return getColor(e);
                     }
@@ -118,7 +118,7 @@ namespace CustomElementProperty {
             if (loci.kind === 'element-loci') {
                 const e = loci.elements[0];
                 if (!has(e.unit.model)) return void 0;
-                return params.format!(get(StructureElement.create(e.unit, e.unit.elements[OrderedSet.getAt(e.indices, 0)])));
+                return params.format!(get(StructureElement.Location.create(e.unit, e.unit.elements[OrderedSet.getAt(e.indices, 0)])));
             }
             return void 0;
         }

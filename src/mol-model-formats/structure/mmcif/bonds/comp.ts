@@ -148,7 +148,7 @@ export namespace ComponentBond {
     function getUniqueResidueNames(s: Structure) {
         const prop = StructureProperties.residue.label_comp_id;
         const names = new Set<string>();
-        const loc = StructureElement.create();
+        const loc = StructureElement.Location.create();
         for (const unit of s.units) {
             if (!Unit.isAtomic(unit)) continue;
             const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);

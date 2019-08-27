@@ -72,7 +72,7 @@ export function HydrophobicityColorTheme(ctx: ThemeDataContext, props: PD.Values
 
     function color(location: Location): Color {
         let compId: string | undefined
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             if (Unit.isAtomic(location.unit)) {
                 compId = getAtomicCompId(location.unit, location.element)
             } else {

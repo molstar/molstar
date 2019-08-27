@@ -12,7 +12,7 @@ import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import E = CifWriter.Encodings
 
-const atom_site_fields = CifWriter.fields<StructureElement, Structure>()
+const atom_site_fields = CifWriter.fields<StructureElement.Location, Structure>()
     .str('group_PDB', P.residue.group_PDB)
     .index('id')
     .str('type_symbol', P.atom.type_symbol as any)
@@ -70,11 +70,11 @@ function prepostfixed(prefix: string | undefined, postfix: string | undefined, n
     return name;
 }
 
-function mappedProp<K, D>(loc: (key: K, data: D) => StructureElement, prop: (e: StructureElement) => any) {
+function mappedProp<K, D>(loc: (key: K, data: D) => StructureElement.Location, prop: (e: StructureElement.Location) => any) {
     return (k: K, d: D) => prop(loc(k, d));
 }
 
-function addModelNum<K, D>(fields: CifWriter.Field.Builder<K, D>, getLocation: (key: K, data: D) => StructureElement, options?: IdFieldsOptions) {
+function addModelNum<K, D>(fields: CifWriter.Field.Builder<K, D>, getLocation: (key: K, data: D) => StructureElement.Location, options?: IdFieldsOptions) {
     if (options && options.includeModelNum) {
         fields.int('pdbx_PDB_model_num', mappedProp(getLocation, P.unit.model_num));
     }
@@ -86,7 +86,7 @@ export interface IdFieldsOptions {
     includeModelNum?: boolean
 }
 
-export function residueIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, options?: IdFieldsOptions): CifField<K, D>[] {
+export function residueIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement.Location, options?: IdFieldsOptions): CifField<K, D>[] {
     const prefix = options && options.prefix, postfix = options && options.postfix;
     const ret = CifWriter.fields<K, D>()
         .str(prepostfixed(prefix, postfix, `label_comp_id`), mappedProp(getLocation, P.residue.label_comp_id))
@@ -111,7 +111,7 @@ export function residueIdFields<K, D>(getLocation: (key: K, data: D) => Structur
     return ret.getFields();
 }
 
-export function chainIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, options?: IdFieldsOptions): CifField<K, D>[] {
+export function chainIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement.Location, options?: IdFieldsOptions): CifField<K, D>[] {
     const prefix = options && options.prefix, postfix = options && options.postfix;
     const ret = CifField.build<K, D>()
         .str(prepostfixed(prefix, postfix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id))
@@ -122,7 +122,7 @@ export function chainIdFields<K, D>(getLocation: (key: K, data: D) => StructureE
     return ret.getFields();
 }
 
-export function entityIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, options?: IdFieldsOptions): CifField<K, D>[] {
+export function entityIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement.Location, options?: IdFieldsOptions): CifField<K, D>[] {
     const prefix = options && options.prefix, postfix = options && options.postfix;
     const ret = CifField.build<K, D>()
         .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
@@ -131,7 +131,7 @@ export function entityIdFields<K, D>(getLocation: (key: K, data: D) => Structure
     return ret.getFields();
 }
 
-export function atomIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, options?: IdFieldsOptions): CifField<K, D>[] {
+export function atomIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement.Location, options?: IdFieldsOptions): CifField<K, D>[] {
     const prefix = options && options.prefix, postfix = options && options.postfix;
     const ret = CifWriter.fields<K, D>()
         .str(prepostfixed(prefix, postfix, `label_atom_id`), mappedProp(getLocation, P.atom.label_atom_id))

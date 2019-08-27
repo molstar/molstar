@@ -26,7 +26,7 @@ function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Str
     if (!crossLinks.count) return Mesh.createEmpty(mesh)
     const { sizeFactor } = props
 
-    const location = StructureElement.create()
+    const location = StructureElement.Location.create()
 
     const builderProps = {
         linkCount: crossLinks.count,

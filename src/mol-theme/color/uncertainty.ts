@@ -44,7 +44,7 @@ export function UncertaintyColorTheme(ctx: ThemeDataContext, props: PD.Values<Un
     // TODO calc domain based on data, set min/max as 10/90 percentile to be robust against outliers
 
     function color(location: Location): Color {
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             return scale.color(getUncertainty(location.unit, location.element))
         } else if (Link.isLocation(location)) {
             return scale.color(getUncertainty(location.aUnit, location.aUnit.elements[location.aIndex]))

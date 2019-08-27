@@ -21,14 +21,14 @@ export function PolymerBackboneIterator(unit: Unit): Iterator<PolymerBackbonePai
 }
 
 interface PolymerBackbonePair {
-    centerA: StructureElement
-    centerB: StructureElement
+    centerA: StructureElement.Location
+    centerB: StructureElement.Location
 }
 
 function createPolymerBackbonePair (unit: Unit) {
     return {
-        centerA: StructureElement.create(unit),
-        centerB: StructureElement.create(unit),
+        centerA: StructureElement.Location.create(unit),
+        centerB: StructureElement.Location.create(unit),
     }
 }
 

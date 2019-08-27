@@ -20,14 +20,14 @@ export function PolymerGapIterator(unit: Unit): Iterator<PolymerGapPair> {
 }
 
 interface PolymerGapPair {
-    centerA: StructureElement
-    centerB: StructureElement
+    centerA: StructureElement.Location
+    centerB: StructureElement.Location
 }
 
 function createPolymerGapPair (unit: Unit) {
     return {
-        centerA: StructureElement.create(unit),
-        centerB: StructureElement.create(unit),
+        centerA: StructureElement.Location.create(unit),
+        centerB: StructureElement.Location.create(unit),
     }
 }
 

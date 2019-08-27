@@ -37,7 +37,7 @@ export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
 export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PD.Values<PhysicalSizeThemeParams>): SizeTheme<PhysicalSizeThemeParams> {
     function size(location: Location): number {
         let size: number
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             size = getPhysicalRadius(location.unit, location.element)
         } else if (Link.isLocation(location)) {
             size = getPhysicalRadius(location.aUnit, location.aUnit.elements[location.aIndex])

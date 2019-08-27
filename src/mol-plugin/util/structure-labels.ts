@@ -75,7 +75,7 @@ function getLabelDataStatic(structure: Structure, text: string, size: number, po
 function getLabelDataComputed(structure: Structure, level: 'elements' | 'residues'): LabelsData {
     const data: LabelsData = { texts: [], positions: [], sizes: [], depths: [] };
 
-    const l = StructureElement.create();
+    const l = StructureElement.Location.create();
     const { units } = structure;
 
     const { label_atom_id } = StructureProperties.atom;

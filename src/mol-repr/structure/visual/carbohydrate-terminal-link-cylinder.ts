@@ -25,7 +25,7 @@ function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structur
     const { terminalLinks, elements } = structure.carbohydrates
     const { linkSizeFactor } = props
 
-    const location = StructureElement.create()
+    const location = StructureElement.Location.create()
 
     const builderProps = {
         linkCount: terminalLinks.length,
@@ -141,7 +141,7 @@ function eachTerminalLink(loci: Loci, structure: Structure, apply: (interval: In
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }
         }
-    } else if (StructureElement.isLoci(loci)) {
+    } else if (StructureElement.Loci.is(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false
         // TODO mark link only when both of the link elements are in a StructureElement.Loci
         const { getElementIndex, getTerminalLinkIndices, elements } = structure.carbohydrates

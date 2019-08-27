@@ -19,7 +19,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { HeteroSequenceWrapper } from './sequence/hetero';
 import { State, StateSelection } from '../../mol-state';
 
-function opKey(l: StructureElement) {
+function opKey(l: StructureElement.Location) {
     const ids = SP.unit.pdbx_struct_oper_list_ids(l)
     const ncs = SP.unit.struct_ncs_oper_id(l)
     const hkl = SP.unit.hkl(l)
@@ -29,9 +29,9 @@ function opKey(l: StructureElement) {
 
 function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureElementSelectionManager): SequenceWrapper.Any | undefined {
     const { structure, entityId, invariantUnitId, operatorKey } = state
-    const l = StructureElement.create()
+    const l = StructureElement.Location.create()
     for (const unit of structure.units) {
-        StructureElement.set(l, unit, unit.elements[0])
+        StructureElement.Location.set(l, unit, unit.elements[0])
         if (SP.entity.id(l) !== entityId) continue
         if (unit.invariantId !== invariantUnitId) continue
         if (opKey(l) !== operatorKey) continue
@@ -45,11 +45,11 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
 
 function getEntityOptions(structure: Structure) {
     const options: [string, string][] = []
-    const l = StructureElement.create()
+    const l = StructureElement.Location.create()
     const seen = new Set<string>()
 
     for (const unit of structure.units) {
-        StructureElement.set(l, unit, unit.elements[0])
+        StructureElement.Location.set(l, unit, unit.elements[0])
         const id = SP.entity.id(l)
         if (seen.has(id)) continue
 
@@ -64,12 +64,12 @@ function getEntityOptions(structure: Structure) {
 
 function getUnitOptions(structure: Structure, entityId: string) {
     const options: [number, string][] = []
-    const l = StructureElement.create()
+    const l = StructureElement.Location.create()
     const seen = new Set<number>()
     const water = new Map<string, number>()
 
     for (const unit of structure.units) {
-        StructureElement.set(l, unit, unit.elements[0])
+        StructureElement.Location.set(l, unit, unit.elements[0])
         if (SP.entity.id(l) !== entityId) continue
 
         const id = unit.invariantId
@@ -100,11 +100,11 @@ function getUnitOptions(structure: Structure, entityId: string) {
 
 function getOperatorOptions(structure: Structure, entityId: string, invariantUnitId: number) {
     const options: [string, string][] = []
-    const l = StructureElement.create()
+    const l = StructureElement.Location.create()
     const seen = new Set<string>()
 
     for (const unit of structure.units) {
-        StructureElement.set(l, unit, unit.elements[0])
+        StructureElement.Location.set(l, unit, unit.elements[0])
         if (SP.entity.id(l) !== entityId) continue
         if (unit.invariantId !== invariantUnitId) continue
 

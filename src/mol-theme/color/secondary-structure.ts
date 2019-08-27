@@ -92,7 +92,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Va
     const colorMap = getAdjustedColorMap(SecondaryStructureColors, props.saturation, props.lightness)
 
     function color(location: Location): Color {
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             return secondaryStructureColor(colorMap, location.unit, location.element, computedSecondaryStructure)
         } else if (Link.isLocation(location)) {
             return secondaryStructureColor(colorMap, location.aUnit, location.aUnit.elements[location.aIndex], computedSecondaryStructure)

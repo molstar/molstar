@@ -11,12 +11,12 @@ import { Link } from '../structure/unit/links';
 import { LinkType } from '../model/types';
 
 export interface QueryContextView {
-    readonly element: StructureElement;
+    readonly element: StructureElement.Location;
     readonly currentStructure: Structure;
 }
 
 export class QueryContext implements QueryContextView {
-    private currentElementStack: StructureElement[] = [];
+    private currentElementStack: StructureElement.Location[] = [];
     private currentAtomicLinkStack: QueryContextLinkInfo<Unit.Atomic>[] = [];
     private currentStructureStack: Structure[] = [];
     private inputStructureStack: Structure[] = [];
@@ -27,7 +27,7 @@ export class QueryContext implements QueryContextView {
     readonly inputStructure: Structure;
 
     /** Current element */
-    readonly element: StructureElement = StructureElement.create();
+    readonly element = StructureElement.Location.create();
     currentStructure: Structure = void 0 as any;
 
     /** Current link between atoms */
@@ -38,14 +38,14 @@ export class QueryContext implements QueryContextView {
         this.element.element = e;
     }
 
-    pushCurrentElement(): StructureElement {
+    pushCurrentElement(): StructureElement.Location {
         this.currentElementStack[this.currentElementStack.length] = this.element;
-        (this.element as StructureElement) = StructureElement.create();
+        (this.element as StructureElement.Location) = StructureElement.Location.create();
         return this.element;
     }
 
     popCurrentElement() {
-        (this.element as StructureElement) = this.currentElementStack.pop()!;
+        (this.element as StructureElement.Location) = this.currentElementStack.pop()!;
     }
 
     pushCurrentLink() {

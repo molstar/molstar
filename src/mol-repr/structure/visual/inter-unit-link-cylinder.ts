@@ -26,7 +26,7 @@ function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structur
 
     if (!bondCount) return Mesh.createEmpty(mesh)
 
-    const location = StructureElement.create()
+    const location = StructureElement.Location.create()
 
     const builderProps = {
         linkCount: bondCount,
@@ -112,7 +112,7 @@ function eachLink(loci: Loci, structure: Structure, apply: (interval: Interval) 
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }
         }
-    } else if (StructureElement.isLoci(loci)) {
+    } else if (StructureElement.Loci.is(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false
         // TODO mark link only when both of the link elements are in a StructureElement.Loci
         for (const e of loci.elements) {

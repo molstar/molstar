@@ -25,7 +25,7 @@ export namespace IndexedCustomProperty {
     export type Level = 'atom' | 'residue' | 'chain' | 'entity'
 
     export interface Elements<T> {
-        elements: StructureElement[],
+        elements: StructureElement.Location[],
         property(index: number): T
     }
 
@@ -94,7 +94,7 @@ class SegmentedMappedIndexedCustomProperty<Idx extends IndexedCustomProperty.Ind
 
         const seenIndices = new Set<Idx>();
         const unitGroups = structure.unitSymmetryGroups;
-        const loci: StructureElement[] = [];
+        const loci: StructureElement.Location[] = [];
 
         const segments = this.segmentGetter(models[0]);
 
@@ -109,7 +109,7 @@ class SegmentedMappedIndexedCustomProperty<Idx extends IndexedCustomProperty.Ind
                 const seg = chains.move();
                 if (!this.has(seg.index) || seenIndices.has(seg.index)) continue;
                 seenIndices.add(seg.index);
-                loci[loci.length] = StructureElement.create(unit, unit.elements[seg.start]);
+                loci[loci.length] = StructureElement.Location.create(unit, unit.elements[seg.start]);
             }
         }
 
@@ -141,7 +141,7 @@ class ElementMappedCustomProperty<T = any> implements IndexedCustomProperty<Elem
 
         const seenIndices = new Set<ElementIndex>();
         const unitGroups = structure.unitSymmetryGroups;
-        const loci: StructureElement[] = [];
+        const loci: StructureElement.Location[] = [];
 
         for (const unitGroup of unitGroups) {
             const unit = unitGroup.units[0];
@@ -154,7 +154,7 @@ class ElementMappedCustomProperty<T = any> implements IndexedCustomProperty<Elem
                 const e = elements[i];
                 if (!this.has(e) || seenIndices.has(e)) continue;
                 seenIndices.add(elements[i]);
-                loci[loci.length] = StructureElement.create(unit, e);
+                loci[loci.length] = StructureElement.Location.create(unit, e);
             }
         }
 
@@ -186,7 +186,7 @@ class EntityMappedCustomProperty<T = any> implements IndexedCustomProperty<Entit
         const index = models[0].atomicHierarchy.index;
         const seenIndices = new Set<EntityIndex>();
         const unitGroups = structure.unitSymmetryGroups;
-        const loci: StructureElement[] = [];
+        const loci: StructureElement.Location[] = [];
 
         const segments = models[0].atomicHierarchy.chainAtomSegments;
 
@@ -202,7 +202,7 @@ class EntityMappedCustomProperty<T = any> implements IndexedCustomProperty<Entit
                 const eI = index.getEntityFromChain(seg.index);
                 if (!this.has(eI) || seenIndices.has(eI)) continue;
                 seenIndices.add(eI);
-                loci[loci.length] = StructureElement.create(unit, unit.elements[seg.start]);
+                loci[loci.length] = StructureElement.Location.create(unit, unit.elements[seg.start]);
             }
         }
 

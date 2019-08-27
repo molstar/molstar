@@ -5,6 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as StructureElement from './element/index';
-
-export default StructureElement
+export * from './location'
+export * from './loci'
+export * from './query'
+export * from './stats'
+export * from './element'

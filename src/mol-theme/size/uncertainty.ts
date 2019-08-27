@@ -35,7 +35,7 @@ export function getUncertainty(unit: Unit, element: ElementIndex, props: PD.Valu
 export function UncertaintySizeTheme(ctx: ThemeDataContext, props: PD.Values<UncertaintySizeThemeParams>): SizeTheme<UncertaintySizeThemeParams> {
     function size(location: Location): number {
         let size = props.baseSize
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             size += getUncertainty(location.unit, location.element, props)
         } else if (Link.isLocation(location)) {
             size += getUncertainty(location.aUnit, location.aUnit.elements[location.aIndex], props)

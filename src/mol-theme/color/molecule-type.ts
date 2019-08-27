@@ -56,7 +56,7 @@ export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<M
     const colorMap = getAdjustedColorMap(MoleculeTypeColors, props.saturation, props.lightness)
 
     function color(location: Location): Color {
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             return moleculeTypeColor(colorMap, location.unit, location.element)
         } else if (Link.isLocation(location)) {
             return moleculeTypeColor(colorMap, location.aUnit, location.aUnit.elements[location.aIndex])

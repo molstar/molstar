@@ -15,4 +15,4 @@ export function isNullLocation(x: any): x is NullLocation {
     return !!x && x.kind === 'null-location';
 }
 
-export type Location = StructureElement | Link.Location | ShapeGroup.Location | NullLocation
+export type Location = StructureElement.Location | Link.Location | ShapeGroup.Location | NullLocation

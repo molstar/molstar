@@ -102,7 +102,7 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<Re
     const colorMap = getAdjustedColorMap(ResidueNameColors, props.saturation, props.lightness)
 
     function color(location: Location): Color {
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const compId = getAtomicCompId(location.unit, location.element)
                 return residueNameColor(colorMap, compId)

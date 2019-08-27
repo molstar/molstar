@@ -51,7 +51,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
 
     const carbohydrates = structure.carbohydrates
     const n = carbohydrates.elements.length
-    const l = StructureElement.create()
+    const l = StructureElement.Location.create()
 
     for (let i = 0; i < n; ++i) {
         const c = carbohydrates.elements[i];
@@ -168,7 +168,7 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     const carbElements = structure.carbohydrates.elements
     const groupCount = carbElements.length * 2
     const instanceCount = 1
-    const location = StructureElement.create()
+    const location = StructureElement.Location.create()
     function getLocation (groupIndex: number, instanceIndex: number) {
         const carb = carbElements[Math.floor(groupIndex / 2)]
         location.unit = carb.unit
@@ -195,7 +195,7 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
 function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getElementIndex, getAnomericCarbons } = structure.carbohydrates
     let changed = false
-    if (!StructureElement.isLoci(loci)) return false
+    if (!StructureElement.Loci.is(loci)) return false
     if (!Structure.areEquivalent(loci.structure, structure)) return false
     for (const e of loci.elements) {
         // TODO make more efficient by handling/grouping `e.indices` by residue index

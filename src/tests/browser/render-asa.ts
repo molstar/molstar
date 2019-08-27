@@ -117,7 +117,7 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
         domain: [0.0, 1.0]
     })
     color = (location: Location): Color => {
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const value = accessibleSurfaceArea.relativeAccessibleSurfaceArea![location.unit.residueIndex[location.element]];
                 return value !== AccessibleSurfaceArea.VdWLookup[0] /* signals missing value */ ? scale.color(value) : DefaultColor;

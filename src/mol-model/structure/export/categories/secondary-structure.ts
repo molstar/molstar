@@ -62,8 +62,8 @@ const struct_sheet_range_fields: CifField[] = [
 ];
 
 interface SSElement<T extends SecondaryStructure.Element> {
-    start: StructureElement,
-    end: StructureElement,
+    start: StructureElement.Location,
+    end: StructureElement.Location,
     length: number,
     element: T
 }
@@ -100,8 +100,8 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
                 if (startIdx !== key[current.index]) {
                     move = false;
                     ssElements[ssElements.length] = {
-                        start: StructureElement.create(unit, segs.offsets[start]),
-                        end: StructureElement.create(unit, segs.offsets[prev]),
+                        start: StructureElement.Location.create(unit, segs.offsets[start]),
+                        end: StructureElement.Location.create(unit, segs.offsets[prev]),
                         length: prev - start + 1,
                         element
                     }

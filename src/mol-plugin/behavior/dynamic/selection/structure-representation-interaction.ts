@@ -132,7 +132,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
             }
 
             // TODO: support link loci as well?
-            if (!StructureElement.isLoci(current.loci)) return;
+            if (!StructureElement.Loci.is(current.loci)) return;
 
             const parent = this.plugin.helpers.substructureParent.get(current.loci.structure);
             if (!parent || !parent.obj) return;

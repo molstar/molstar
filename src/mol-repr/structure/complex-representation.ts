@@ -56,9 +56,9 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
     function mark(loci: Loci, action: MarkerAction) {
         if (!_structure) return false
-        if (!StructureElement.isLoci(loci) && !Link.isLoci(loci)) return false
+        if (!StructureElement.Loci.is(loci) && !Link.isLoci(loci)) return false
         if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
-        if (StructureElement.isLoci(loci)) {
+        if (StructureElement.Loci.is(loci)) {
             loci = StructureElement.Loci.remap(loci, _structure)
         } else if (Link.isLoci(loci)) {
             loci = Link.remapLoci(loci, _structure)

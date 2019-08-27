@@ -52,7 +52,7 @@ class StructureElementSelectionManager {
     }
 
     add(loci: Loci): Loci {
-        if (StructureElement.isLoci(loci)) {
+        if (StructureElement.Loci.is(loci)) {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 entry.selection = StructureElement.Loci.union(entry.selection, loci);
@@ -64,7 +64,7 @@ class StructureElementSelectionManager {
     }
 
     remove(loci: Loci): Loci {
-        if (StructureElement.isLoci(loci)) {
+        if (StructureElement.Loci.is(loci)) {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
@@ -76,7 +76,7 @@ class StructureElementSelectionManager {
     }
 
     set(loci: Loci): Loci {
-        if (StructureElement.isLoci(loci)) {
+        if (StructureElement.Loci.is(loci)) {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 entry.selection = loci;
@@ -108,7 +108,7 @@ class StructureElementSelectionManager {
     }
 
     has(loci: Loci) {
-        if (StructureElement.isLoci(loci)) {
+        if (StructureElement.Loci.is(loci)) {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 return StructureElement.Loci.areIntersecting(loci, entry.selection);
@@ -118,7 +118,7 @@ class StructureElementSelectionManager {
     }
 
     tryGetRange(loci: Loci): StructureElement.Loci | undefined {
-        if (!StructureElement.isLoci(loci)) return;
+        if (!StructureElement.Loci.is(loci)) return;
         if (loci.elements.length !== 1) return;
         const entry = this.getEntry(loci.structure);
         if (!entry) return;
@@ -139,7 +139,7 @@ class StructureElementSelectionManager {
     private prevHighlight: StructureElement.Loci | undefined = void 0;
 
     accumulateInteractiveHighlight(loci: Loci) {
-        if (StructureElement.isLoci(loci)) {
+        if (StructureElement.Loci.is(loci)) {
             if (this.prevHighlight) {
                 this.prevHighlight = StructureElement.Loci.union(this.prevHighlight, loci);
             } else {

@@ -71,7 +71,7 @@ function labelPDBeValidation(loci: Loci): string | undefined {
             const u = e.unit;
             if (!u.model.customProperties.has(StructureQualityReport.Descriptor)) return void 0;
 
-            const se = StructureElement.create(u, u.elements[OrderedSet.getAt(e.indices, 0)]);
+            const se = StructureElement.Location.create(u, u.elements[OrderedSet.getAt(e.indices, 0)]);
             const issues = StructureQualityReport.getIssues(se);
             if (issues.length === 0) return 'PDBe Validation: No Issues';
             return `PDBe Validation: ${issues.join(', ')}`;

@@ -145,7 +145,7 @@ export namespace StructureQualityReport {
     }
 
     const _emptyArray: string[] = [];
-    export function getIssues(e: StructureElement) {
+    export function getIssues(e: StructureElement.Location) {
         if (!Unit.isAtomic(e.unit)) return _emptyArray;
         const prop = StructureQualityReport.get(e.unit.model);
         if (!prop || !prop.data) return _emptyArray;
@@ -162,7 +162,7 @@ const _structure_quality_report_issues_fields = CifWriter.fields<number, ReportE
 
 interface ReportExportContext {
     models: {
-        elements: StructureElement[],
+        elements: StructureElement.Location[],
         groupId: number[]
     }[],
     info: PropertyWrapper.Info,

@@ -41,7 +41,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
     const colorMap = getAdjustedColorMap(ElementSymbolColors, props.saturation, props.lightness)
 
     function color(location: Location): Color {
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const { type_symbol } = location.unit.model.atomicHierarchy.atoms
                 return elementSymbolColor(colorMap, type_symbol.value(location.element))

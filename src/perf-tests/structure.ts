@@ -117,7 +117,7 @@ export namespace PropertyAccess {
     }
 
     function sumProperty(structure: Structure, p: StructureElement.Property<number>) {
-        const l = StructureElement.create();
+        const l = StructureElement.Location.create();
         let s = 0;
 
         for (const unit of structure.units) {

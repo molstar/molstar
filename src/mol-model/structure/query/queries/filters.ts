@@ -233,7 +233,7 @@ interface IsConnectedToCtx {
     input: Structure,
     target: Structure,
     linkTest: QueryFn<boolean>,
-    tElement: StructureElement
+    tElement: StructureElement.Location
 }
 
 function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
@@ -313,7 +313,7 @@ export function isConnectedTo({ query, target, disjunct, invert, linkTest }: IsC
             input: ctx.inputStructure,
             target: StructureSelection.unionStructure(targetSel),
             linkTest: linkTest || defaultLinkTest,
-            tElement: StructureElement.create()
+            tElement: StructureElement.Location.create()
         }
 
         const ret = StructureSelection.LinearBuilder(ctx.inputStructure);

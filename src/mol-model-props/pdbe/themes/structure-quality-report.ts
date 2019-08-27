@@ -34,7 +34,7 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: {
     if (ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(StructureQualityReport.Descriptor)) {
         const getIssues = StructureQualityReport.getIssues;
         color = (location: Location) => {
-            if (StructureElement.isLocation(location)) {
+            if (StructureElement.Location.is(location)) {
                 return ValidationColors[Math.min(3, getIssues(location).length) + 1];
             }
             return ValidationColors[0];

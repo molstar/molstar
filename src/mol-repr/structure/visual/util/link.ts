@@ -130,7 +130,7 @@ export namespace LinkIterator {
         const unit = group.units[0]
         const groupCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
         const instanceCount = group.units.length
-        const location = StructureElement.create()
+        const location = StructureElement.Location.create()
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit

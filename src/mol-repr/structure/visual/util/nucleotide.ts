@@ -18,7 +18,7 @@ export namespace NucleotideLocationIterator {
         const nucleotideElementIndices = Unit.isAtomic(u) ? u.nucleotideElements : []
         const groupCount = nucleotideElementIndices.length
         const instanceCount = group.units.length
-        const location = StructureElement.create()
+        const location = StructureElement.Location.create()
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
@@ -47,7 +47,7 @@ export function getNucleotideElementLoci(pickingId: PickingId, structureGroup: S
  */
 export function eachNucleotideElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (!StructureElement.isLoci(loci)) return false
+    if (!StructureElement.Loci.is(loci)) return false
     const { structure, group } = structureGroup
     if (!Structure.areEquivalent(loci.structure, structure)) return false
     const unit = group.units[0]

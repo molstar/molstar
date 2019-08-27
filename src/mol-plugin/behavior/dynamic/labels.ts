@@ -131,7 +131,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
         }
 
         private updateLabels(p: SceneLabelsProps) {
-            const l = StructureElement.create()
+            const l = StructureElement.Location.create()
 
             const { texts, positions, sizes, depths } = this.data
             texts.length = 0

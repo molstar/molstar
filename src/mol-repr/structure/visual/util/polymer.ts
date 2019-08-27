@@ -39,7 +39,7 @@ export namespace PolymerLocationIterator {
         const polymerElements = group.units[0].polymerElements
         const groupCount = polymerElements.length
         const instanceCount = group.units.length
-        const location = StructureElement.create()
+        const location = StructureElement.Location.create()
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
@@ -55,7 +55,7 @@ export namespace PolymerGapLocationIterator {
         const gapElements = group.units[0].gapElements
         const groupCount = gapElements.length
         const instanceCount = group.units.length
-        const location = StructureElement.create()
+        const location = StructureElement.Location.create()
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
@@ -93,7 +93,7 @@ export function getPolymerElementLoci(pickingId: PickingId, structureGroup: Stru
  */
 export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (!StructureElement.isLoci(loci)) return false
+    if (!StructureElement.Loci.is(loci)) return false
     const { structure, group } = structureGroup
     if (!Structure.areEquivalent(loci.structure, structure)) return false
     const { polymerElements, model, elements } = group.units[0]
@@ -175,7 +175,7 @@ export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup
                 }
             }
         }
-    } else if (StructureElement.isLoci(loci)) {
+    } else if (StructureElement.Loci.is(loci)) {
         const { structure, group } = structureGroup
         if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
         loci = StructureElement.Loci.remap(loci, structure)

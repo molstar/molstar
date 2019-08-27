@@ -54,7 +54,7 @@ export function createProteopediaCustomTheme(colors: number[]) {
         const colors = props.colors, colorCount = colors.length, defaultColor = colors[0].color;
 
         if (ctx.structure) {
-            const l = StructureElement.create()
+            const l = StructureElement.Location.create()
             const { models } = ctx.structure
             const asymIdSerialMap = new Map<string, number>()
             for (let i = 0, il = models.length; i < il; ++i) {
@@ -67,7 +67,7 @@ export function createProteopediaCustomTheme(colors: number[]) {
             }
 
             color = (location: Location): Color => {
-                if (StructureElement.isLocation(location)) {
+                if (StructureElement.Location.is(location)) {
                     const asym_id = getAsymId(location.unit);
                     const o = asymIdSerialMap.get(asym_id(location)) || 0;
                     return colors[o % colorCount].color;

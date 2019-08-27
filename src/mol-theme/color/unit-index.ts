@@ -46,7 +46,7 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Unit
         }
 
         color = (location: Location): Color => {
-            if (StructureElement.isLocation(location)) {
+            if (StructureElement.Location.is(location)) {
                 return unitIdColor.get(location.unit.id)!
             } else if (Link.isLocation(location)) {
                 return unitIdColor.get(location.aUnit.id)!

@@ -58,8 +58,8 @@ namespace Loci {
         if (Structure.isLoci(lociA) && Structure.isLoci(lociB)) {
             return Structure.areLociEqual(lociA, lociB)
         }
-        if (StructureElement.isLoci(lociA) && StructureElement.isLoci(lociB)) {
-            return StructureElement.areLociEqual(lociA, lociB)
+        if (StructureElement.Loci.is(lociA) && StructureElement.Loci.is(lociB)) {
+            return StructureElement.Loci.areEqual(lociA, lociB)
         }
         if (Link.isLoci(lociA) && Link.isLoci(lociB)) {
             return Link.areLociEqual(lociA, lociB)

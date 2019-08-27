@@ -42,7 +42,7 @@ export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: PD.Va
             if (isSecondary) {
                 return SaccharideColors.Secondary
             } else {
-                if (StructureElement.isLocation(location)) {
+                if (StructureElement.Location.is(location)) {
                     return getColor(location.unit, location.element)
                 } else if (Link.isLocation(location)) {
                     return getColor(location.aUnit, location.aUnit.elements[location.aIndex])

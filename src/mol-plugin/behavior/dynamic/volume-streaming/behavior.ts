@@ -207,7 +207,7 @@ export namespace VolumeStreaming {
 
                 // TODO: support link loci as well?
                 // Perhaps structure loci too?
-                if (!StructureElement.isLoci(current.loci)) return;
+                if (!StructureElement.Loci.is(current.loci)) return;
 
                 const parent = this.plugin.helpers.substructureParent.get(current.loci.structure);
                 if (!parent) return;

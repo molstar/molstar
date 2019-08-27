@@ -13,7 +13,7 @@ import { CifExportContext } from '../mmcif';
 import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 
-const pdbx_struct_mod_residue_fields: CifField<number, StructureElement[]>[] = [
+const pdbx_struct_mod_residue_fields: CifField<number, StructureElement.Location[]>[] = [
     CifField.index('id'),
     CifField.str(`label_comp_id`, (i, xs) => P.residue.label_comp_id(xs[i])),
     CifField.int(`label_seq_id`, (i, xs) => P.residue.label_seq_id(xs[i])),
@@ -23,11 +23,11 @@ const pdbx_struct_mod_residue_fields: CifField<number, StructureElement[]>[] = [
     CifField.str(`auth_comp_id`, (i, xs) => P.residue.auth_comp_id(xs[i])),
     CifField.int(`auth_seq_id`, (i, xs) => P.residue.auth_seq_id(xs[i])),
     CifField.str(`auth_asym_id`, (i, xs) => P.chain.auth_asym_id(xs[i])),
-    CifField.str<number, StructureElement[]>('parent_comp_id', (i, xs) => xs[i].unit.model.properties.modifiedResidues.parentId.get(P.residue.label_comp_id(xs[i]))!),
+    CifField.str<number, StructureElement.Location[]>('parent_comp_id', (i, xs) => xs[i].unit.model.properties.modifiedResidues.parentId.get(P.residue.label_comp_id(xs[i]))!),
     CifField.str('details', (i, xs) => xs[i].unit.model.properties.modifiedResidues.details.get(P.residue.label_comp_id(xs[i]))!)
 ];
 
-function getModifiedResidues({ structures }: CifExportContext): StructureElement[] {
+function getModifiedResidues({ structures }: CifExportContext): StructureElement.Location[] {
     // TODO: can different models (in the same mmCIF file) have different modified residues?
     const structure = structures[0], model = structure.model;
     const map = model.properties.modifiedResidues.parentId;
@@ -35,7 +35,7 @@ function getModifiedResidues({ structures }: CifExportContext): StructureElement
 
     const ret = [];
     const prop = P.residue.label_comp_id;
-    const loc = StructureElement.create();
+    const loc = StructureElement.Location.create();
     for (const unit of structure.units) {
         if (!Unit.isAtomic(unit) || !unit.conformation.operator.isIdentity) continue;
         const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
@@ -45,7 +45,7 @@ function getModifiedResidues({ structures }: CifExportContext): StructureElement
             loc.element = unit.elements[seg.start];
             const name = prop(loc);
             if (map.has(name)) {
-                ret[ret.length] = StructureElement.create(loc.unit, loc.element);
+                ret[ret.length] = StructureElement.Location.create(loc.unit, loc.element);
             }
         }
     }

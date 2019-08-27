@@ -54,9 +54,9 @@ namespace Interactivity {
 
     const Granularity = {
         'element': (loci: ModelLoci) => loci,
-        'residue': (loci: ModelLoci) => SE.isLoci(loci) ? SE.Loci.extendToWholeResidues(loci) : loci,
-        'chain': (loci: ModelLoci) => SE.isLoci(loci) ? SE.Loci.extendToWholeChains(loci) : loci,
-        'structure': (loci: ModelLoci) => SE.isLoci(loci) ? Structure.Loci(loci.structure) : loci
+        'residue': (loci: ModelLoci) => SE.Loci.is(loci) ? SE.Loci.extendToWholeResidues(loci) : loci,
+        'chain': (loci: ModelLoci) => SE.Loci.is(loci) ? SE.Loci.extendToWholeChains(loci) : loci,
+        'structure': (loci: ModelLoci) => SE.Loci.is(loci) ? Structure.Loci(loci.structure) : loci
     }
     type Granularity = keyof typeof Granularity
     const GranularityOptions = Object.keys(Granularity).map(n => [n, capitalize(n)]) as [Granularity, string][]
@@ -103,7 +103,7 @@ namespace Interactivity {
                 // convert to StructureElement.Loci of root structure
                 loci = Structure.toStructureElementLoci(Structure.Loci(loci.structure.root))
             }
-            if (StructureElement.isLoci(loci) && loci.structure.parent) {
+            if (StructureElement.Loci.is(loci) && loci.structure.parent) {
                 // ensure the root structure is used
                 loci = StructureElement.Loci.remap(loci, loci.structure.parent)
             }
@@ -129,7 +129,7 @@ namespace Interactivity {
             const { current, modifiers } = e
 
             const normalized: Loci<ModelLoci> = this.normalizedLoci(current)
-            if (StructureElement.isLoci(normalized.loci)) {
+            if (StructureElement.Loci.is(normalized.loci)) {
                 let loci: StructureElement.Loci = normalized.loci;
                 if (modifiers && modifiers.shift) {
                     loci = this.sel.tryGetRange(loci) || loci;
@@ -175,7 +175,7 @@ namespace Interactivity {
                     const sels = this.sel.clear();
                     for (const s of sels) this.mark({ loci: s }, MarkerAction.Deselect);
                 }
-            } else if (StructureElement.isLoci(normalized.loci)) {
+            } else if (StructureElement.Loci.is(normalized.loci)) {
                 if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
                     // select only the current element on Ctrl + Right-Click
                     const old = this.sel.get(normalized.loci.structure);

@@ -101,7 +101,7 @@ export class StructureSubsetBuilder {
         return this._getStructure(true);
     }
 
-    setSingletonLocation(location: StructureElement) {
+    setSingletonLocation(location: StructureElement.Location) {
         const id = this.ids[0];
         location.unit = this.parent.unitMap.get(id);
         location.element = this.unitMap.get(id)[0];

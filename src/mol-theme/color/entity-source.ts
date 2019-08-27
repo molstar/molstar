@@ -105,14 +105,14 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const l = StructureElement.create()
+        const l = StructureElement.Location.create()
         const { models } = ctx.structure.root
         const { seqToSrcByModelEntity, srcKeySerialMap } = getMaps(models)
 
         const palette = getPalette(srcKeySerialMap.size + 1, props)
         legend = palette.legend
 
-        const getSrcColor = (location: StructureElement) => {
+        const getSrcColor = (location: StructureElement.Location) => {
             const modelIndex = models.indexOf(location.unit.model)
             const entityId = StructureProperties.entity.id(location)
             const mK = modelEntityKey(modelIndex, entityId)
@@ -126,7 +126,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
         }
 
         color = (location: Location): Color => {
-            if (StructureElement.isLocation(location)) {
+            if (StructureElement.Location.is(location)) {
                 return getSrcColor(location)
             } else if (Link.isLocation(location)) {
                 l.unit = location.aUnit

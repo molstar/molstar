@@ -71,7 +71,7 @@ export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Seq
         maxLabel: 'End',
     })
     const color = (location: Location): Color => {
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             const { unit, element } = location
             const seq_id = getSeqId(unit, element)
             if (seq_id > 0) {

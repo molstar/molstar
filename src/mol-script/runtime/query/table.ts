@@ -322,7 +322,7 @@ const symbols = [
     D(MolScript.structureQuery.linkProperty.flags, (ctx, xs) => ctx.atomicLink.type),
 ];
 
-function atomProp(p: (e: StructureElement) => any): (ctx: QueryContext, _: any) => any {
+function atomProp(p: (e: StructureElement.Location) => any): (ctx: QueryContext, _: any) => any {
     return (ctx, _) => p(ctx.element);
 }
 

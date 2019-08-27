@@ -39,7 +39,7 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
         }
 
         color = (location: Location): Color => {
-            if (StructureElement.isLocation(location)) {
+            if (StructureElement.Location.is(location)) {
                 return modelColor.get(location.unit.model.id)!
             } else if (Link.isLocation(location)) {
                 return modelColor.get(location.aUnit.model.id)!

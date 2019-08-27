@@ -20,7 +20,7 @@ export function defaultLinkTest(ctx: QueryContext) {
 export function atomicSequence(): StructureQuery {
     return ctx => {
         const { inputStructure } = ctx;
-        const l = StructureElement.create();
+        const l = StructureElement.Location.create();
 
         const units: Unit[] = [];
         for (const unit of inputStructure.units) {
@@ -48,7 +48,7 @@ export function atomicSequence(): StructureQuery {
 export function water(): StructureQuery {
     return ctx => {
         const { inputStructure } = ctx;
-        const l = StructureElement.create();
+        const l = StructureElement.Location.create();
 
         const units: Unit[] = [];
         for (const unit of inputStructure.units) {
@@ -67,7 +67,7 @@ export function water(): StructureQuery {
 export function atomicHet(): StructureQuery {
     return ctx => {
         const { inputStructure } = ctx;
-        const l = StructureElement.create();
+        const l = StructureElement.Location.create();
 
         const units: Unit[] = [];
         for (const unit of inputStructure.units) {

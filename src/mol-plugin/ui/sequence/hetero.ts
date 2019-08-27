@@ -25,7 +25,7 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
     eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
         let changed = false
         const { structure, unit } = this.data
-        if (StructureElement.isLoci(loci)) {
+        if (StructureElement.Loci.is(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
             loci = StructureElement.Loci.remap(loci, structure)
 

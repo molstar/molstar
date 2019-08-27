@@ -30,9 +30,9 @@ export function PolymerTraceIterator(unit: Unit, structure: Structure): Iterator
 }
 
 interface PolymerTraceElement {
-    center: StructureElement
-    centerPrev: StructureElement
-    centerNext: StructureElement
+    center: StructureElement.Location
+    centerPrev: StructureElement.Location
+    centerNext: StructureElement.Location
     first: boolean, last: boolean
     secStrucFirst: boolean, secStrucLast: boolean
     secStrucType: SecondaryStructureType
@@ -48,9 +48,9 @@ const SecStrucTypeNA = SecondaryStructureType.create(SecondaryStructureType.Flag
 
 function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
     return {
-        center: StructureElement.create(unit),
-        centerPrev: StructureElement.create(unit),
-        centerNext: StructureElement.create(unit),
+        center: StructureElement.Location.create(unit),
+        centerPrev: StructureElement.Location.create(unit),
+        centerNext: StructureElement.Location.create(unit),
         first: false, last: false,
         secStrucFirst: false, secStrucLast: false,
         secStrucType: SecStrucTypeNA,

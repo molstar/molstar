@@ -86,7 +86,7 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Poly
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const l = StructureElement.create()
+        const l = StructureElement.Location.create()
         const polymerAsymIdSerialMap = getPolymerAsymIdSerialMap(ctx.structure.root)
 
         const palette = getPalette(polymerAsymIdSerialMap.size, props)
@@ -94,7 +94,7 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Poly
 
         color = (location: Location): Color => {
             let serial: number | undefined = undefined
-            if (StructureElement.isLocation(location)) {
+            if (StructureElement.Location.is(location)) {
                 const asym_id = getAsymId(location.unit)
                 serial = polymerAsymIdSerialMap.get(asym_id(location))
             } else if (Link.isLocation(location)) {

@@ -127,7 +127,7 @@ export function getUnitConformationAndRadius(unit: Unit, ignoreHydrogens = false
         id
     }
 
-    const l = StructureElement.create(unit)
+    const l = StructureElement.Location.create(unit)
     const sizeTheme = PhysicalSizeTheme({}, {})
     const radius = (index: number) => {
         l.element = index as ElementIndex
@@ -138,7 +138,7 @@ export function getUnitConformationAndRadius(unit: Unit, ignoreHydrogens = false
 }
 
 export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens = false) {
-    const l = StructureElement.create()
+    const l = StructureElement.Location.create()
     const sizeTheme = PhysicalSizeTheme({}, {})
 
     let xs: ArrayLike<number>

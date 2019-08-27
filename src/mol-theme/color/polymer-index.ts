@@ -61,7 +61,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
 
         color = (location: Location): Color => {
             let color: Color | undefined
-            if (StructureElement.isLocation(location)) {
+            if (StructureElement.Location.is(location)) {
                 color = unitIdColor.get(location.unit.id)
             } else if (Link.isLocation(location)) {
                 color = unitIdColor.get(location.aUnit.id)

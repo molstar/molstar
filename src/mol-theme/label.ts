@@ -10,10 +10,10 @@ import { Loci } from '../mol-model/loci';
 import { OrderedSet } from '../mol-data/int';
 
 // for `labelFirst`, don't create right away to avoid problems with circular dependencies/imports
-let elementLocA: StructureElement
-let elementLocB: StructureElement
+let elementLocA: StructureElement.Location
+let elementLocB: StructureElement.Location
 
-function setElementLocation(loc: StructureElement, unit: Unit, index: StructureElement.UnitIndex) {
+function setElementLocation(loc: StructureElement.Location, unit: Unit, index: StructureElement.UnitIndex) {
     loc.unit = unit
     loc.element = unit.elements[index]
 }
@@ -75,8 +75,8 @@ export function structureElementStatsLabel(stats: StructureElement.Stats, counts
 }
 
 export function linkLabel(link: Link.Location) {
-    if (!elementLocA) elementLocA = StructureElement.create()
-    if (!elementLocB) elementLocB = StructureElement.create()
+    if (!elementLocA) elementLocA = StructureElement.Location.create()
+    if (!elementLocB) elementLocB = StructureElement.Location.create()
     setElementLocation(elementLocA, link.aUnit, link.aIndex)
     setElementLocation(elementLocB, link.bUnit, link.bIndex)
     return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
@@ -84,15 +84,15 @@ export function linkLabel(link: Link.Location) {
 
 export type LabelGranularity = 'element' | 'residue' | 'chain' | 'structure'
 
-export function elementLabel(location: StructureElement, granularity: LabelGranularity = 'element') {
+export function elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element') {
     const model = location.unit.model.entry
     const instance = location.unit.conformation.operator.name
     const label = [model, instance]
 
     if (Unit.isAtomic(location.unit)) {
-        label.push(atomicElementLabel(location as StructureElement<Unit.Atomic>, granularity))
+        label.push(atomicElementLabel(location as StructureElement.Location<Unit.Atomic>, granularity))
     } else if (Unit.isCoarse(location.unit)) {
-        label.push(coarseElementLabel(location as StructureElement<Unit.Spheres | Unit.Gaussians>, granularity))
+        label.push(coarseElementLabel(location as StructureElement.Location<Unit.Spheres | Unit.Gaussians>, granularity))
     } else {
         label.push('Unknown')
     }
@@ -100,7 +100,7 @@ export function elementLabel(location: StructureElement, granularity: LabelGranu
     return label.join(' | ')
 }
 
-export function atomicElementLabel(location: StructureElement<Unit.Atomic>, granularity: LabelGranularity) {
+export function atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, granularity: LabelGranularity) {
     const label_asym_id = Props.chain.label_asym_id(location)
     const auth_asym_id = Props.chain.auth_asym_id(location)
     const seq_id = location.unit.model.atomicHierarchy.residues.auth_seq_id.isDefined ? Props.residue.auth_seq_id(location) : Props.residue.label_seq_id(location)
@@ -122,7 +122,7 @@ export function atomicElementLabel(location: StructureElement<Unit.Atomic>, gran
     return label.reverse().join(' | ')
 }
 
-export function coarseElementLabel(location: StructureElement<Unit.Spheres | Unit.Gaussians>, granularity: LabelGranularity) {
+export function coarseElementLabel(location: StructureElement.Location<Unit.Spheres | Unit.Gaussians>, granularity: LabelGranularity) {
     // TODO handle granularity
     const asym_id = Props.coarse.asym_id(location)
     const seq_id_begin = Props.coarse.seq_id_begin(location)

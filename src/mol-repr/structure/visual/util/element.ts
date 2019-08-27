@@ -37,7 +37,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
 
     const v = Vec3.zero()
     const pos = unit.conformation.invariantPosition
-    const l = StructureElement.create()
+    const l = StructureElement.Location.create()
     l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {
@@ -78,7 +78,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
 
 export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (!StructureElement.isLoci(loci)) return false
+    if (!StructureElement.Loci.is(loci)) return false
     const { structure, group } = structureGroup
     if (!Structure.areEquivalent(loci.structure, structure)) return false
     const elementCount = group.elements.length
@@ -115,7 +115,7 @@ export function getElementLoci(pickingId: PickingId, structureGroup: StructureGr
 
 export function eachSerialElement(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (!StructureElement.isLoci(loci)) return false
+    if (!StructureElement.Loci.is(loci)) return false
     if (!Structure.areEquivalent(loci.structure, structure)) return false
     const { unitElementCount } = structure.serialMapping
     for (const e of loci.elements) {
@@ -155,7 +155,7 @@ export namespace ElementIterator {
     export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
         const groupCount = group.elements.length
         const instanceCount = group.units.length
-        const location = StructureElement.create()
+        const location = StructureElement.Location.create()
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
@@ -170,7 +170,7 @@ export namespace ElementIterator {
         const groupCount = elementCount
         const instanceCount = 1
         const { unitIndices, elementIndices } = structure.serialMapping
-        const location = StructureElement.create()
+        const location = StructureElement.Location.create()
         const getLocation = (groupIndex: number) => {
             location.unit = units[unitIndices[groupIndex]]
             location.element = elementIndices[groupIndex]

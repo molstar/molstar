@@ -47,7 +47,7 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<E
         legend = palette.legend
 
         color = (location: Location): Color => {
-            if (StructureElement.isLocation(location)) {
+            if (StructureElement.Location.is(location)) {
                 const unitIndex = unitIdIndex.get(location.unit.id)!
                 const unitElementIndex = OrderedSet.findPredecessorIndex(units[unitIndex].elements, location.element)
                 return palette.color(cummulativeElementCount.get(unitIndex)! + unitElementIndex)

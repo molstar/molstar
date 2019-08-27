@@ -47,7 +47,7 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
     const colorMap = getAdjustedColorMap(ElementSymbolColors, 0, 0.7)
 
     function color(location: Location): Color {
-        if (StructureElement.isLocation(location)) {
+        if (StructureElement.Location.is(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const moleculeType = location.unit.model.atomicHierarchy.derived.residue.moleculeType[location.unit.residueIndex[location.element]]
                 const typeSymbol = location.unit.model.atomicHierarchy.atoms.type_symbol.value(location.element)

@@ -75,7 +75,7 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
                 legend = palette.legend
 
                 color = (location: Location): Color => {
-                    if (StructureElement.isLocation(location)) {
+                    if (StructureElement.Location.is(location)) {
                         const { assembly } = location.unit.conformation.operator
                         if (assembly && assembly.id === symmetry.assembly_id) {
                             const asymId = getAsymId(location.unit)(location)
