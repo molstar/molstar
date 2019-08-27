@@ -37,7 +37,7 @@ export async function getFromPdb(id: string) {
 }
 
 function getCellPackDataUrl(id: string, baseUrl: string) {
-    const url = `${baseUrl}/cellPACK_database_1.1.0/other/${id}`
+    const url = `${baseUrl}/other/${id}`
     return url.endsWith('.pdb') ? url : `${url}.pdb`
 }
 

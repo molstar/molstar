@@ -21,7 +21,7 @@ import { StateTransforms } from '../../../../mol-plugin/state/transforms';
 import { distinctColors } from '../../../../mol-util/color/distinct';
 import { ModelIndexColorThemeProvider } from '../../../../mol-theme/color/model-index';
 import { Hcl } from '../../../../mol-util/color/spaces/hcl';
-import { ParseCellPack, StructureFromCellpack } from './state';
+import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl } from './state';
 import { formatMolScript } from '../../../../mol-script/language/expression-formatter';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
@@ -31,7 +31,7 @@ import { ThemeRegistryContext } from '../../../../mol-theme/theme';
 import { ColorTheme } from '../../../../mol-theme/color';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
-    return `${baseUrl}/cellPACK_database_1.1.0/results/${fileName}`
+    return `${baseUrl}/results/${fileName}`
 }
 
 async function getModel(id: string, baseUrl: string) {
@@ -177,7 +177,7 @@ export const LoadCellPackModel = StateAction.build({
             ['influenza_model1.json', 'influenza_model1'],
             ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
         ]),
-        baseUrl: PD.Text('https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master'),
+        baseUrl: PD.Text(DefaultCellPackBaseUrl),
         preset: PD.Group({
             traceOnly: PD.Boolean(false),
             representation: PD.Select('spacefill', [
@@ -210,7 +210,7 @@ export const LoadCellPackModel = StateAction.build({
     if (isHiv) {
         for (let i = 0, il = packings.length; i < il; ++i) {
             if (packings[i].name === 'HIV1_capsid_3j3q_PackInner_0_1_0') {
-                const url = `${params.baseUrl}/cellPACK_database_1.1.0/extras/rna_allpoints.json`
+                const url = `${params.baseUrl}/extras/rna_allpoints.json`
                 const data = await ctx.fetch({ url, type: 'string' }).runInContext(taskCtx);
                 const { points } = await (new Response(data)).json() as { points: number[] }
 
@@ -257,8 +257,8 @@ export const LoadCellPackModel = StateAction.build({
     }
 
     if (isHiv) {
-        const url = `${params.baseUrl}/cellPACK_database_1.1.0/membranes/hiv_lipids.bcif`
-        tree.apply(StateTransforms.Data.Download, { url }, { state: { isGhost: true } })
+        const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`
+        tree.apply(StateTransforms.Data.Download, { url, isBinary: true }, { state: { isGhost: true } })
             .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
             .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
             .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })

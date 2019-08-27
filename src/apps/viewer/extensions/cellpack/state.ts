@@ -10,6 +10,9 @@ import { Task } from '../../../../mol-task';
 import { CellPack as _CellPack, Cell, CellPacking } from './data';
 import { createStructureFromCellPack } from './model';
 
+// export const DefaultCellPackBaseUrl = 'https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master/cellPACK_database_1.1.0/'
+export const DefaultCellPackBaseUrl = 'https://mgldev.scripps.edu/projects/autoPACK/web/cellpackproject/'
+
 export class CellPack extends PSO.Create<_CellPack>({ name: 'CellPack', typeClass: 'Object' }) { }
 
 export { ParseCellPack }
@@ -51,13 +54,13 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
         if (!a) {
             return {
                 packing: PD.Numeric(0, {}, { description: 'Packing Index' }),
-                baseUrl: PD.Text('https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master/')
+                baseUrl: PD.Text(DefaultCellPackBaseUrl)
             };
         }
         const options = a.data.packings.map((d, i) => [i, d.name] as [number, string])
         return {
             packing: PD.Select(0, options),
-            baseUrl: PD.Text('https://cdn.jsdelivr.net/gh/mesoscope/cellPACK_data@master/')
+            baseUrl: PD.Text(DefaultCellPackBaseUrl)
         }
     }
 })({
