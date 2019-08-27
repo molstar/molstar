@@ -12,7 +12,7 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
 import { StructureRepresentation3DHelpers } from '../transforms/representation';
-import { CustomModelProperties, StructureSelection, CustomStructureProperties } from '../transforms/model';
+import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
@@ -355,7 +355,7 @@ export const StructureFromSelection = StateAction.build({
     const sel = plugin.helpers.structureSelectionManager.get(a.data);
     if (sel.kind === 'empty-loci') return Task.constant('', void 0);
 
-    const query = StructureElement.Loci.toScriptExpression(sel);
-    const root = state.build().to(ref).apply(StructureSelection, { query, label: params.label });
+    const expression = StructureElement.Loci.toScriptExpression(sel);
+    const root = state.build().to(ref).apply(StructureSelectionFromExpression, { expression, label: params.label });
     return state.updateTree(root);
 });

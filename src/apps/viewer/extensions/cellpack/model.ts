@@ -22,7 +22,6 @@ import { distinctColors } from '../../../../mol-util/color/distinct';
 import { ModelIndexColorThemeProvider } from '../../../../mol-theme/color/model-index';
 import { Hcl } from '../../../../mol-util/color/spaces/hcl';
 import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl } from './state';
-import { formatMolScript } from '../../../../mol-script/language/expression-formatter';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../../../mol-script/runtime/query/compiler';
@@ -244,10 +243,9 @@ export const LoadCellPackModel = StateAction.build({
                 ])
             })
             : MS.struct.generator.all()
-        const query = { language: 'mol-script' as const, expression: formatMolScript(expression) }
 
         tree.apply(StructureFromCellpack, p)
-            .apply(StateTransforms.Model.UserStructureSelection, { query })
+            .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression }, { state: { isGhost: true } })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
                     repr: getReprParams(ctx, params.preset),

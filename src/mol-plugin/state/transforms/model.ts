@@ -39,9 +39,9 @@ export { StructureAssemblyFromModel };
 export { StructureSymmetryFromModel };
 export { TransformStructureConformation };
 export { TransformStructureConformationByMatrix };
-export { StructureSelection };
-export { UserStructureSelection };
-export { BundleStructureSelection as LociStructureSelection };
+export { StructureSelectionFromExpression };
+export { StructureSelectionFromScript };
+export { StructureSelectionFromBundle };
 export { StructureComplexElement };
 export { CustomModelProperties };
 export { CustomStructureProperties };
@@ -346,19 +346,19 @@ const TransformStructureConformationByMatrix = PluginStateTransform.BuiltIn({
     }
 });
 
-type StructureSelection = typeof StructureSelection
-const StructureSelection = PluginStateTransform.BuiltIn({
-    name: 'structure-selection',
-    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified query expression.' },
+type StructureSelectionFromExpression = typeof StructureSelectionFromExpression
+const StructureSelectionFromExpression = PluginStateTransform.BuiltIn({
+    name: 'structure-selection-from-expression',
+    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified expression.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
-        query: PD.Value<Expression>(MolScriptBuilder.struct.generator.all, { isHidden: true }),
+        expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.all, { isHidden: true }),
         label: PD.Optional(PD.Text('', { isHidden: true }))
     }
 })({
     apply({ a, params, cache }) {
-        const compiled = compile<Sel>(params.query);
+        const compiled = compile<Sel>(params.expression);
         (cache as { compiled: QueryFn<Sel> }).compiled = compiled;
         (cache as { source: Structure }).source = a.data;
 
@@ -369,7 +369,7 @@ const StructureSelection = PluginStateTransform.BuiltIn({
         return new SO.Molecule.Structure(s, props);
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
-        if (oldParams.query !== newParams.query) return StateTransformer.UpdateResult.Recreate;
+        if (oldParams.expression !== newParams.expression) return StateTransformer.UpdateResult.Recreate;
 
         if ((cache as { source: Structure }).source === a.data) {
             return StateTransformer.UpdateResult.Unchanged;
@@ -383,19 +383,19 @@ const StructureSelection = PluginStateTransform.BuiltIn({
     }
 });
 
-type UserStructureSelection = typeof UserStructureSelection
-const UserStructureSelection = PluginStateTransform.BuiltIn({
-    name: 'user-structure-selection',
-    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified query expression string.' },
+type StructureSelectionFromScript = typeof StructureSelectionFromScript
+const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
+    name: 'structure-selection-from-script',
+    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified script.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
-        query: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
+        script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
         label: PD.Optional(PD.Text(''))
     }
 })({
     apply({ a, params, cache }) {
-        const parsed = parseMolScript(params.query.expression);
+        const parsed = parseMolScript(params.script.expression);
         if (parsed.length === 0) throw new Error('No query');
         const query = transpileMolScript(parsed[0]);
         const compiled = compile<Sel>(query);
@@ -408,7 +408,7 @@ const UserStructureSelection = PluginStateTransform.BuiltIn({
         return new SO.Molecule.Structure(s, props);
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
-        if (oldParams.query.language !== newParams.query.language || oldParams.query.expression !== newParams.query.expression) {
+        if (oldParams.script.language !== newParams.script.language || oldParams.script.expression !== newParams.script.expression) {
             return StateTransformer.UpdateResult.Recreate;
         }
 
@@ -435,9 +435,9 @@ function updateStructureFromQuery(query: QueryFn<Sel>, src: Structure, obj: SO.M
     return true;
 }
 
-type BundleStructureSelection = typeof BundleStructureSelection
-const BundleStructureSelection = PluginStateTransform.BuiltIn({
-    name: 'bundle-structure-selection',
+type StructureSelectionFromBundle = typeof StructureSelectionFromBundle
+const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
+    name: 'structure-selection-from-bundle',
     display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified structure-element bundle.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,

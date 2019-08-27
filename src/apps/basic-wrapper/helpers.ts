@@ -33,18 +33,18 @@ export namespace StateHelper {
     };
 
     export function selectChain(b: StateBuilder.To<PSO.Molecule.Structure>, auth_asym_id: string) {
-        const query = MS.struct.generator.atomGroups({
+        const expression = MS.struct.generator.atomGroups({
             'chain-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.auth_asym_id(), auth_asym_id])
         })
-        return b.apply(StateTransforms.Model.StructureSelection, { query, label: `Chain ${auth_asym_id}` });
+        return b.apply(StateTransforms.Model.StructureSelectionFromExpression, { expression, label: `Chain ${auth_asym_id}` });
     }
 
-    export function select(b: StateBuilder.To<PSO.Molecule.Structure>, query: Expression) {
-        return b.apply(StateTransforms.Model.StructureSelection, { query });
+    export function select(b: StateBuilder.To<PSO.Molecule.Structure>, expression: Expression) {
+        return b.apply(StateTransforms.Model.StructureSelectionFromExpression, { expression });
     }
 
     export function selectSurroundingsOfFirstResidue(b: StateBuilder.To<PSO.Molecule.Structure>, comp_id: string, radius: number) {
-        const query = MS.struct.modifier.includeSurroundings({
+        const expression = MS.struct.modifier.includeSurroundings({
             0: MS.struct.filter.first([
                 MS.struct.generator.atomGroups({
                     'residue-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_comp_id(), comp_id]),
@@ -53,7 +53,7 @@ export namespace StateHelper {
             ]),
             radius
         })
-        return b.apply(StateTransforms.Model.StructureSelection, { query, label: `Surr. ${comp_id} (${radius} ang)` });
+        return b.apply(StateTransforms.Model.StructureSelectionFromExpression, { expression, label: `Surr. ${comp_id} (${radius} ang)` });
     }
 
     export function identityTransform(b: StateBuilder.To<PSO.Molecule.Structure>, m: Mat4) {
@@ -83,9 +83,9 @@ export namespace StateHelper {
         return visualRoot;
     }
 
-    export function ballsAndSticks(ctx: PluginContext, visualRoot: StateBuilder.To<PSO.Molecule.Structure>, query: Expression, coloring?: BuiltInColorThemeName) {
+    export function ballsAndSticks(ctx: PluginContext, visualRoot: StateBuilder.To<PSO.Molecule.Structure>, expression: Expression, coloring?: BuiltInColorThemeName) {
         visualRoot
-            .apply(StateTransforms.Model.StructureSelection, { query })
+            .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', void 0, coloring), { tags: 'het-visual' });
         return visualRoot;

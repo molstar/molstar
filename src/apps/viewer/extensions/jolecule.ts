@@ -93,32 +93,32 @@ function buildSnapshot(plugin: PluginContext, template: { tree: StateTree, struc
 
     let i = 0;
     for (const l of params.e.labels) {
-        const query = createQuery([l.i_atom]);
+        const expression = createExpression([l.i_atom]);
         const group = b.to(template.structure)
             .group(StateTransforms.Misc.CreateGroup, { label: `Label ${++i}` });
 
         group
-            .apply(StateTransforms.Model.StructureSelection, { query, label: 'Atom' })
+            .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression, label: 'Atom' })
             .apply(StateTransforms.Representation.StructureLabels3D, {
                 target: { name: 'static-text', params: { value: l.text || '' } },
                 options: labelOptions
             });
 
         group
-            .apply(StateTransforms.Model.StructureSelection, { query: MS.struct.modifier.wholeResidues([query]), label: 'Residue' })
+            .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression: MS.struct.modifier.wholeResidues([ expression ]), label: 'Residue' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'ball-and-stick', {  }));
     }
     if (params.e.selected && params.e.selected.length > 0) {
         b.to(template.structure)
-            .apply(StateTransforms.Model.StructureSelection, { query: createQuery(params.e.selected), label: `Selected` })
+            .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression: createExpression(params.e.selected), label: `Selected` })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsStatic(plugin, 'ball-and-stick'));
     }
     // TODO
     // for (const l of params.e.distances) {
     //     b.to('structure')
-    //         .apply(StateTransforms.Model.StructureSelection, { query: createQuery([l.i_atom1, l.i_atom2]), label: `Distance ${++i}` })
+    //         .apply(StateTransforms.Model.StructureSelectionFromExpression, { query: createQuery([l.i_atom1, l.i_atom2]), label: `Distance ${++i}` })
     //         .apply(StateTransforms.Representation.StructureLabels3D, {
     //             target: { name: 'static-text', params: { value: l. || '' } },
     //             options: labelOptions
@@ -159,7 +159,7 @@ function getCameraSnapshot(e: JoleculeSnapshot['camera']): Camera.Snapshot {
     return s;
 }
 
-function createQuery(atomIndices: number[]) {
+function createExpression(atomIndices: number[]) {
     if (atomIndices.length === 0) return MS.struct.generator.empty();
 
     return MS.struct.generator.atomGroups({

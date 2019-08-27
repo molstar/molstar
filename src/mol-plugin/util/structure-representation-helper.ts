@@ -75,7 +75,7 @@ export class StructureRepresentationHelper {
 
             update.to(structure.transform.ref)
                 .apply(
-                    StateTransforms.Model.LociStructureSelection,
+                    StateTransforms.Model.StructureSelectionFromBundle,
                     { bundle: StructureElement.Bundle.fromLoci(combinedLoci), label: type },
                     { tags: [ RepresentationManagerTag, getRepresentationManagerTag(type) ] }
                 )

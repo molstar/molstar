@@ -359,9 +359,9 @@ class MolStarProteopediaWrapper {
 
             const group = update.to(StateElements.Assembly).group(StateTransforms.Misc.CreateGroup, { label: compId }, { ref: StateElements.HetGroupFocusGroup });
 
-            group.apply(StateTransforms.Model.StructureSelection, { label: 'Core', query: core }, { ref: StateElements.HetGroupFocus })
+            group.apply(StateTransforms.Model.StructureSelectionFromExpression, { label: 'Core', expression: core }, { ref: StateElements.HetGroupFocus })
                 .apply(StateTransforms.Representation.StructureRepresentation3D, this.createCoreVisualParams());
-            group.apply(StateTransforms.Model.StructureSelection, { label: 'Surroundings', query: surroundings })
+            group.apply(StateTransforms.Model.StructureSelectionFromExpression, { label: 'Surroundings', expression: surroundings })
                 .apply(StateTransforms.Representation.StructureRepresentation3D, this.createSurVisualParams());
             // sel.apply(StateTransforms.Representation.StructureLabels3D, {
             //     target: { name: 'residues', params: { } },
