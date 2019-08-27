@@ -282,19 +282,26 @@ function getReprParams(ctx: PluginContext, params: { representation: 'spacefill'
             return traceOnly
                 ? [
                     ctx.structureRepresentation.registry.get('spacefill'),
-                    () => ({ sizeFactor: 2 })
+                    () => ({ sizeFactor: 2, ignoreHydrogens: true })
                 ] as [any, any]
-                : ctx.structureRepresentation.registry.get('spacefill')
+                : [
+                    ctx.structureRepresentation.registry.get('spacefill'),
+                    () => ({ ignoreHydrogens: true })
+                ] as [any, any]
         case 'gaussian-surface':
             return [
                 ctx.structureRepresentation.registry.get('gaussian-surface'),
                 () => ({
                     quality: 'custom', resolution: 10, radiusOffset: 2,
                     alpha: 1.0, flatShaded: false, doubleSided: false,
+                    ignoreHydrogens: true
                 })
             ] as [any, any]
         case 'point':
-            return ctx.structureRepresentation.registry.get('point')
+            return [
+                ctx.structureRepresentation.registry.get('point'),
+                () => ({ ignoreHydrogens: true })
+            ] as [any, any]
     }
 }
 
