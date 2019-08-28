@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure } from '../../../mol-model/structure';
+import { Structure, StructureElement } from '../../../mol-model/structure';
 import { VolumeData, VolumeIsoValue } from '../../../mol-model/volume';
 import { PluginContext } from '../../../mol-plugin/context';
 import { RepresentationProvider } from '../../../mol-repr/representation';
@@ -29,7 +29,7 @@ import { unwindStructureAssembly, explodeStructure } from '../animation/helpers'
 import { Color } from '../../../mol-util/color';
 import { Overpaint } from '../../../mol-theme/overpaint';
 import { Transparency } from '../../../mol-theme/transparency';
-import { getStructureOverpaint, getStructureTransparency } from './helpers';
+import { getStructureOverpaintFromScript, getStructureOverpaintFromBundle, getStructureTransparency } from './helpers';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 export { StructureRepresentation3D }
@@ -37,7 +37,8 @@ export { StructureRepresentation3DHelpers }
 export { StructureLabels3D}
 export { ExplodeStructureRepresentation3D }
 export { UnwindStructureAssemblyRepresentation3D }
-export { OverpaintStructureRepresentation3D }
+export { OverpaintStructureRepresentation3DFromScript }
+export { OverpaintStructureRepresentation3DFromBundle }
 export { TransparencyStructureRepresentation3D }
 export { VolumeRepresentation3D }
 
@@ -191,6 +192,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams.type.params }
             b.data.repr.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
+            b.data.source = a
             return StateTransformer.UpdateResult.Updated;
         });
     },
@@ -324,9 +326,9 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     }
 });
 
-type OverpaintStructureRepresentation3D = typeof OverpaintStructureRepresentation3D
-const OverpaintStructureRepresentation3D = PluginStateTransform.BuiltIn({
-    name: 'overpaint-structure-representation-3d',
+type OverpaintStructureRepresentation3DFromScript = typeof OverpaintStructureRepresentation3DFromScript
+const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
+    name: 'overpaint-structure-representation-3d-from-script',
     display: 'Overpaint 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
@@ -350,7 +352,7 @@ const OverpaintStructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         const structure = a.data.source.data
-        const overpaint = getStructureOverpaint(structure, params.layers, params.alpha)
+        const overpaint = getStructureOverpaintFromScript(structure, params.layers, params.alpha)
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { overpaint },
@@ -360,10 +362,65 @@ const OverpaintStructureRepresentation3D = PluginStateTransform.BuiltIn({
         }, { label: `Overpaint (${overpaint.layers.length} Layers)` })
     },
     update({ a, b, newParams, oldParams }) {
-        const structure = b.data.info as Structure
-        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate
+        const oldStructure = b.data.info as Structure
+        const newStructure = a.data.source.data
+        if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate
         const oldOverpaint = b.data.state.overpaint!
-        const newOverpaint = getStructureOverpaint(structure, newParams.layers, newParams.alpha)
+        const newOverpaint = getStructureOverpaintFromScript(newStructure, newParams.layers, newParams.alpha)
+        if (oldParams.alpha === newParams.alpha && Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged
+
+        b.data.state.overpaint = newOverpaint
+        b.data.source = a
+        b.label = `Overpaint (${newOverpaint.layers.length} Layers)`
+        return StateTransformer.UpdateResult.Updated
+    }
+});
+
+type OverpaintStructureRepresentation3DFromBundle = typeof OverpaintStructureRepresentation3DFromBundle
+const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
+    name: 'overpaint-structure-representation-3d-from-bundle',
+    display: 'Overpaint 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: {
+        layers: PD.ObjectList({
+            bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
+            color: PD.Color(ColorNames.blueviolet),
+            clear: PD.Boolean(false)
+        }, e => `${e.clear ? 'Clear' : Color.toRgbString(e.color)}`, {
+            defaultValue: [{
+                bundle: StructureElement.Bundle.Empty,
+                color: ColorNames.blueviolet,
+                clear: false
+            }],
+            isHidden: true
+        }),
+        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        console.log('apply', {a, params})
+        const structure = a.data.source.data
+        const overpaint = getStructureOverpaintFromBundle(structure, params.layers, params.alpha)
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { overpaint },
+            initialState: { overpaint: Overpaint.Empty },
+            info: structure,
+            source: a
+        }, { label: `Overpaint (${overpaint.layers.length} Layers)` })
+    },
+    update({ a, b, newParams, oldParams }) {
+        console.log('update', {a, b, newParams, oldParams})
+        const oldStructure = b.data.info as Structure
+        const newStructure = a.data.source.data
+        console.log()
+        if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate
+        const oldOverpaint = b.data.state.overpaint!
+        const newOverpaint = getStructureOverpaintFromBundle(newStructure, newParams.layers, newParams.alpha)
         if (oldParams.alpha === newParams.alpha && Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged
 
         b.data.state.overpaint = newOverpaint
