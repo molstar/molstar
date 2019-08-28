@@ -13,6 +13,7 @@ import { ButtonsType, ModifiersKeys, getButtons, getModifiers } from '../../../m
 import { ValueBox } from '../../../mol-util';
 import { Residue } from './residue';
 import { SequenceWrapper } from './wrapper';
+import { StructureElement } from '../../../mol-model/structure';
 
 type SequenceProps = { sequenceWrapper: SequenceWrapper.Any }
 type SequenceState = { markerData: ValueBox<Uint8Array> }
@@ -62,7 +63,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P, Sequ
         const ev = { current: Interactivity.Loci.Empty, modifiers }
         if (seqId !== undefined) {
             const loci = this.props.sequenceWrapper.getLoci(seqId);
-            if (loci.elements.length > 0) ev.current = { loci };
+            if (!StructureElement.Loci.isEmpty(loci)) ev.current = { loci };
         }
         this.plugin.behaviors.interaction.highlight.next(ev)
     }
@@ -71,7 +72,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P, Sequ
         const ev = { current: Interactivity.Loci.Empty, buttons, modifiers }
         if (seqId !== undefined) {
             const loci = this.props.sequenceWrapper.getLoci(seqId);
-            if (loci.elements.length > 0) ev.current = { loci };
+            if (!StructureElement.Loci.isEmpty(loci)) ev.current = { loci };
         }
         this.plugin.behaviors.interaction.click.next(ev)
     }

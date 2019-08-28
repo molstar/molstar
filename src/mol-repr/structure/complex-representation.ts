@@ -58,11 +58,9 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         if (!_structure) return false
         if (!StructureElement.Loci.is(loci) && !Link.isLoci(loci)) return false
         if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
-        if (StructureElement.Loci.is(loci)) {
-            loci = StructureElement.Loci.remap(loci, _structure)
-        } else if (Link.isLoci(loci)) {
-            loci = Link.remapLoci(loci, _structure)
-        }
+        // Remap `loci` from equivalent structure to the current `_structure`
+        loci = Loci.remap(loci, _structure)
+        if (Loci.isEmpty(loci)) return false
         return visual ? visual.mark(loci, action) : false
     }
 

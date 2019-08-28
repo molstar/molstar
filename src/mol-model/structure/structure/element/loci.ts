@@ -53,6 +53,10 @@ export namespace Loci {
         return true
     }
 
+    export function isEmpty(loci: Loci) {
+        return size(loci) === 0 ? true : false
+    }
+
     export function size(loci: Loci) {
         let s = 0;
         for (const u of loci.elements) s += OrderedSet.size(u.indices);
@@ -101,7 +105,7 @@ export namespace Loci {
                     indices = SortedArray.ofSortedArray(_indices)
                 }
 
-                elements.push({ unit, indices })
+                if (OrderedSet.size(indices) > 0) elements.push({ unit, indices })
             }
         });
 
@@ -111,7 +115,7 @@ export namespace Loci {
     /** Create union of `xs` and `ys` */
     export function union(xs: Loci, ys: Loci): Loci {
         if (xs.elements.length > ys.elements.length) return union(ys, xs);
-        if (xs.elements.length === 0) return ys;
+        if (Loci.isEmpty(xs)) return ys;
 
         const map = new Map<number, OrderedSet<UnitIndex>>();
 
@@ -155,7 +159,7 @@ export namespace Loci {
 
     export function areIntersecting(xs: Loci, ys: Loci): boolean {
         if (xs.elements.length > ys.elements.length) return areIntersecting(ys, xs);
-        if (xs.elements.length === 0) return ys.elements.length === 0;
+        if (Loci.isEmpty(xs)) return Loci.isEmpty(ys);
 
         const map = new Map<number, OrderedSet<UnitIndex>>();
 
@@ -286,7 +290,7 @@ export namespace Loci {
     }
 
     export function toScriptExpression(loci: Loci) {
-        if (loci.elements.length === 0) return MS.struct.generator.empty();
+        if (Loci.isEmpty(loci)) return MS.struct.generator.empty();
 
         const models = loci.structure.models;
         const sourceIndexMap = new Map<string, { modelLabel: string, modelIndex: number, xs: UniqueArray<number, number> }>();

@@ -62,6 +62,10 @@ namespace Link {
         return true
     }
 
+    export function isLociEmpty(loci: Loci) {
+        return loci.links.length === 0 ? true : false
+    }
+
     export function remapLoci(loci: Loci, structure: Structure): Loci {
         if (structure === loci.structure) return loci
 

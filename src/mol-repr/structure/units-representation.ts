@@ -167,13 +167,9 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         if (!_structure) return false
         if (!StructureElement.Loci.is(loci) && !Link.isLoci(loci)) return false
         if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
-        if (StructureElement.Loci.is(loci)) {
-            loci = StructureElement.Loci.remap(loci, _structure)
-            if (loci.elements.length === 0) return false
-        } else if (Link.isLoci(loci)) {
-            loci = Link.remapLoci(loci, _structure)
-            if (loci.links.length === 0) return false
-        }
+        // Remap `loci` from equivalent structure to the current `_structure`
+        loci = Loci.remap(loci, _structure)
+        if (Loci.isEmpty(loci)) return false
         visuals.forEach(({ visual }) => {
             changed = visual.mark(loci, action) || changed
         })

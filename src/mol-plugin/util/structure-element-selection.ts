@@ -69,7 +69,7 @@ class StructureElementSelectionManager {
             if (entry) {
                 entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
                 this.plugin.events.interactivity.selectionUpdated.next()
-                return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
+                return StructureElement.Loci.isEmpty(entry.selection) ? EmptyLoci : entry.selection;
             }
         }
         return EmptyLoci
@@ -81,7 +81,7 @@ class StructureElementSelectionManager {
             if (entry) {
                 entry.selection = loci;
                 this.plugin.events.interactivity.selectionUpdated.next()
-                return entry.selection.elements.length === 0 ? EmptyLoci : entry.selection;
+                return StructureElement.Loci.isEmpty(entry.selection) ? EmptyLoci : entry.selection;
             }
         }
         return EmptyLoci;
@@ -94,7 +94,7 @@ class StructureElementSelectionManager {
             const k = keys.next();
             if (k.done) break;
             const s = this.entries.get(k.value)!;
-            if (s.selection.elements.length > 0) selections.push(s.selection);
+            if (!StructureElement.Loci.isEmpty(s.selection)) selections.push(s.selection);
             s.selection = StructureElement.Loci(s.selection.structure, []);
         }
         this.plugin.events.interactivity.selectionUpdated.next()

@@ -65,7 +65,7 @@ export class StructureRepresentationHelper {
                 bundle: StructureElement.Bundle.fromLoci(combinedLoci)
             })
         } else {
-            const combinedLoci = getCombinedLoci(modifier, loci, StructureElement.Loci(s, []))
+            const combinedLoci = getCombinedLoci(modifier, loci, StructureElement.Loci.none(s))
             const params = StructureRepresentation3DHelpers.getDefaultParams(this.plugin, type as any, s)
 
             const p = params.type.params

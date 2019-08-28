@@ -40,6 +40,9 @@ export function isDataLoci(x: any): x is DataLoci {
 export function areDataLociEqual(a: DataLoci, b: DataLoci) {
     return a.data === b.data && a.tag === b.tag && OrderedSet.areEqual(a.indices, b.indices)
 }
+export function isDataLociEmpty(loci: DataLoci) {
+    return OrderedSet.size(loci.indices) === 0 ? true : false
+}
 export function createDataLoci(data: any, tag: string, indices: OrderedSet<number>): DataLoci {
     return { kind: 'data-loci', data, tag, indices }
 }
@@ -71,6 +74,29 @@ namespace Loci {
             return ShapeGroup.areLociEqual(lociA, lociB)
         }
         return false
+    }
+
+    export function isEmpty(loci: Loci) {
+        if (isEveryLoci(loci)) return false
+        if (isEmptyLoci(loci)) return true
+        if (isDataLoci(loci)) return isDataLociEmpty(loci)
+        if (Structure.isLoci(loci)) return Structure.isLociEmpty(loci)
+        if (StructureElement.Loci.is(loci)) StructureElement.Loci.isEmpty(loci)
+        if (Link.isLoci(loci)) Link.isLociEmpty(loci)
+        if (Shape.isLoci(loci)) return Shape.isLociEmpty(loci)
+        if (ShapeGroup.isLoci(loci)) return ShapeGroup.isLociEmpty(loci)
+        return false
+    }
+
+    export function remap<T>(loci: Loci, data: T) {
+        if (data instanceof Structure) {
+            if (StructureElement.Loci.is(loci)) {
+                loci = StructureElement.Loci.remap(loci, data)
+            } else if (Link.isLoci(loci)) {
+                loci = Link.remapLoci(loci, data)
+            }
+        }
+        return loci
     }
 
     const sphereHelper = new CentroidHelper(), tempPos = Vec3.zero();

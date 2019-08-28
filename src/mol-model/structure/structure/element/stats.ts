@@ -92,7 +92,7 @@ export namespace Stats {
 
     export function ofLoci(loci: Loci) {
         const stats = create()
-        if (loci.elements.length > 0) {
+        if (!Loci.isEmpty(loci)) {
             for (const e of loci.elements) handleElement(stats, e)
         }
         return stats

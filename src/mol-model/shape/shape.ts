@@ -50,6 +50,7 @@ export namespace Shape {
     export function Loci(shape: Shape): Loci { return { kind: 'shape-loci', shape } }
     export function isLoci(x: any): x is Loci { return !!x && x.kind === 'shape-loci' }
     export function areLociEqual(a: Loci, b: Loci) { return a.shape === b.shape }
+    export function isLociEmpty(loci: Loci) { return loci.shape.groupCount === 0 ? true : false }
 }
 
 export namespace ShapeGroup {
@@ -95,5 +96,17 @@ export namespace ShapeGroup {
             if (!OrderedSet.areEqual(groupA.ids, groupB.ids)) return false
         }
         return true
+    }
+
+    export function isLociEmpty(loci: Loci) {
+        return size(loci) === 0 ? true : false
+    }
+
+    export function size(loci: Loci) {
+        let size = 0
+        for (const group of loci.groups) {
+            size += OrderedSet.size(group.ids)
+        }
+        return size
     }
 }

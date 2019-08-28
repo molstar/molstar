@@ -468,6 +468,10 @@ namespace Structure {
         return a.structure === b.structure
     }
 
+    export function isLociEmpty(loci: Loci) {
+        return loci.structure.isEmpty
+    }
+
     export function create(units: ReadonlyArray<Unit>, props?: Props): Structure {
         return new Structure(units, props);
     }
