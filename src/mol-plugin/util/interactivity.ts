@@ -100,12 +100,12 @@ namespace Interactivity {
                 loci = Granularity[this.props.granularity](loci)
             }
             if (Structure.isLoci(loci)) {
-                // convert to StructureElement.Loci of root structure
-                loci = Structure.toStructureElementLoci(Structure.Loci(loci.structure.root))
+                // convert to StructureElement.Loci
+                loci = Structure.toStructureElementLoci(loci)
             }
-            if (StructureElement.Loci.is(loci) && loci.structure.parent) {
+            if (StructureElement.Loci.is(loci)) {
                 // ensure the root structure is used
-                loci = StructureElement.Loci.remap(loci, loci.structure.parent)
+                loci = StructureElement.Loci.remap(loci, loci.structure.root)
             }
             return { loci, repr }
         }

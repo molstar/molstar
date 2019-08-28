@@ -106,7 +106,7 @@ export namespace Bundle {
             elements.push({ groupedUnits, set: e.set, ranges: e.ranges })
         })
 
-        return { hash: loci.structure.root.hashCode, elements }
+        return { hash: loci.structure.hashCode, elements }
     }
 
     function getUnitsFromIds(unitIds: ArrayLike<number>, structure: Structure) {
@@ -118,14 +118,14 @@ export namespace Bundle {
         return units
     }
 
-    export function toLoci(bundle: Bundle, parent: Structure): Loci {
-        if (bundle.hash !== -1 && bundle.hash !== parent.root.hashCode) {
+    export function toLoci(bundle: Bundle, structure: Structure): Loci {
+        if (bundle.hash !== -1 && bundle.hash !== structure.hashCode) {
             new Error('Bundle not compatible with given structure')
         }
         const elements: Loci['elements'][0][] = []
         for (const e of bundle.elements) {
             for (const g of e.groupedUnits) {
-                const units = getUnitsFromIds(g, parent)
+                const units = getUnitsFromIds(g, structure)
                 if (units.length === 0) continue
 
                 let indices: OrderedSet<UnitIndex>
@@ -152,11 +152,11 @@ export namespace Bundle {
                 }
             }
         }
-        return Loci(parent, elements)
+        return Loci(structure, elements)
     }
 
     export function toStructure(bundle: Bundle, parent: Structure): Structure {
-        if (bundle.hash !== -1 && bundle.hash !== parent.root.hashCode) {
+        if (bundle.hash !== -1 && bundle.hash !== parent.hashCode) {
             new Error('Bundle not compatible with given structure')
         }
         const units: Unit[] = []
