@@ -29,8 +29,8 @@ import { unwindStructureAssembly, explodeStructure } from '../animation/helpers'
 import { Color } from '../../../mol-util/color';
 import { Overpaint } from '../../../mol-theme/overpaint';
 import { Transparency } from '../../../mol-theme/transparency';
-import { getStructureOverpaintFromScript, getStructureOverpaintFromBundle, getStructureTransparency } from './helpers';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { Script } from '../../../mol-script/script';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -39,7 +39,8 @@ export { ExplodeStructureRepresentation3D }
 export { UnwindStructureAssemblyRepresentation3D }
 export { OverpaintStructureRepresentation3DFromScript }
 export { OverpaintStructureRepresentation3DFromBundle }
-export { TransparencyStructureRepresentation3D }
+export { TransparencyStructureRepresentation3DFromScript }
+export { TransparencyStructureRepresentation3DFromBundle }
 export { VolumeRepresentation3D }
 
 namespace StructureRepresentation3DHelpers {
@@ -334,12 +335,12 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
     to: SO.Molecule.Structure.Representation3DState,
     params: {
         layers: PD.ObjectList({
-            script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.all)' }),
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
             color: PD.Color(ColorNames.blueviolet),
             clear: PD.Boolean(false)
         }, e => `${e.clear ? 'Clear' : Color.toRgbString(e.color)}`, {
             defaultValue: [{
-                script: { language: 'mol-script', expression: '(sel.atom.all)' },
+                script: Script('(sel.atom.all)', 'mol-script'),
                 color: ColorNames.blueviolet,
                 clear: false
             }]
@@ -352,7 +353,7 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
     },
     apply({ a, params }) {
         const structure = a.data.source.data
-        const overpaint = getStructureOverpaintFromScript(structure, params.layers, params.alpha)
+        const overpaint = Overpaint.ofScript(params.layers, params.alpha, structure)
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { overpaint },
@@ -366,7 +367,7 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
         const newStructure = a.data.source.data
         if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate
         const oldOverpaint = b.data.state.overpaint!
-        const newOverpaint = getStructureOverpaintFromScript(newStructure, newParams.layers, newParams.alpha)
+        const newOverpaint = Overpaint.ofScript(newParams.layers, newParams.alpha, newStructure)
         if (oldParams.alpha === newParams.alpha && Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged
 
         b.data.state.overpaint = newOverpaint
@@ -403,7 +404,7 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
     },
     apply({ a, params }) {
         const structure = a.data.source.data
-        const overpaint = getStructureOverpaintFromBundle(structure, params.layers, params.alpha)
+        const overpaint = Overpaint.ofBundle(params.layers, params.alpha, structure)
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { overpaint },
@@ -417,7 +418,7 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
         const newStructure = a.data.source.data
         if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate
         const oldOverpaint = b.data.state.overpaint!
-        const newOverpaint = getStructureOverpaintFromBundle(newStructure, newParams.layers, newParams.alpha)
+        const newOverpaint = Overpaint.ofBundle(newParams.layers, newParams.alpha, newStructure)
         if (oldParams.alpha === newParams.alpha && Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged
 
         b.data.state.overpaint = newOverpaint
@@ -427,14 +428,14 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
     }
 });
 
-type TransparencyStructureRepresentation3D = typeof TransparencyStructureRepresentation3D
-const TransparencyStructureRepresentation3D = PluginStateTransform.BuiltIn({
-    name: 'transparency-structure-representation-3d',
+type TransparencyStructureRepresentation3DFromScript = typeof TransparencyStructureRepresentation3DFromScript
+const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
+    name: 'transparency-structure-representation-3d-from-script',
     display: 'Transparency 3D Representation',
     from: SO.Molecule.Structure.Representation3D,
     to: SO.Molecule.Structure.Representation3DState,
     params: {
-        script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.all)' }),
+        script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
         value: PD.Numeric(0.75, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
         variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']])
     }
@@ -444,7 +445,7 @@ const TransparencyStructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         const structure = a.data.source.data
-        const transparency = getStructureTransparency(structure, params.script, params.value, params.variant)
+        const transparency = Transparency.ofScript(params.script, params.value, params.variant, structure)
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { transparency },
@@ -457,7 +458,47 @@ const TransparencyStructureRepresentation3D = PluginStateTransform.BuiltIn({
         const structure = b.data.info as Structure
         if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate
         const oldTransparency = b.data.state.transparency!
-        const newTransparency = getStructureTransparency(structure, newParams.script, newParams.value, newParams.variant)
+        const newTransparency = Transparency.ofScript(newParams.script, newParams.value, newParams.variant, structure)
+        if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged
+
+        b.data.state.transparency = newTransparency
+        b.data.source = a
+        b.label = `Transparency (${newTransparency.value})`
+        return StateTransformer.UpdateResult.Updated
+    }
+});
+
+type TransparencyStructureRepresentation3DFromBundle = typeof TransparencyStructureRepresentation3DFromBundle
+const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
+    name: 'transparency-structure-representation-3d-from-bundle',
+    display: 'Transparency 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: {
+        bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
+        value: PD.Numeric(0.75, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
+        variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']])
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.source.data
+        const transparency = Transparency.ofBundle(params.bundle, params.value, params.variant, structure)
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { transparency },
+            initialState: { transparency: Transparency.Empty },
+            info: structure,
+            source: a
+        }, { label: `Transparency (${transparency.value})` })
+    },
+    update({ a, b, newParams, oldParams }) {
+        const structure = b.data.info as Structure
+        if (a.data.source.data !== structure) return StateTransformer.UpdateResult.Recreate
+        const oldTransparency = b.data.state.transparency!
+        const newTransparency = Transparency.ofBundle(newParams.bundle, newParams.value, newParams.variant, structure)
         if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged
 
         b.data.state.transparency = newTransparency

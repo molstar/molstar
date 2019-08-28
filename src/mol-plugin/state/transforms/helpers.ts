@@ -4,49 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, StructureSelection, QueryContext, StructureElement } from '../../../mol-model/structure';
-import { Color } from '../../../mol-util/color';
-import { Overpaint } from '../../../mol-theme/overpaint';
-import { parseMolScript } from '../../../mol-script/language/parser';
-import { transpileMolScript } from '../../../mol-script/script/mol-script/symbols';
-import { compile } from '../../../mol-script/runtime/query/compiler';
-import { Transparency } from '../../../mol-theme/transparency';
+import { Structure } from '../../../mol-model/structure';
 import { ComputedSecondaryStructure } from '../../../mol-model-props/computed/secondary-structure';
-
-type Script = { language: string, expression: string }
-
-function scriptToLoci(structure: Structure, script: Script) {
-    const parsed = parseMolScript(script.expression)
-    if (parsed.length === 0) throw new Error('No query')
-    const query = transpileMolScript(parsed[0])
-
-    const compiled = compile<StructureSelection>(query)
-    const result = compiled(new QueryContext(structure))
-    return StructureSelection.toLoci2(result)
-}
-
-export function getStructureOverpaintFromScript(structure: Structure, scriptLayers: { script: Script, color: Color, clear: boolean }[], alpha: number): Overpaint {
-    const layers: Overpaint.Layer[] = []
-    for (let i = 0, il = scriptLayers.length; i < il; ++i) {
-        const { script, color, clear } = scriptLayers[i]
-        layers.push({ loci: scriptToLoci(structure, script), color, clear })
-    }
-    return { layers, alpha }
-}
-
-export function getStructureOverpaintFromBundle(structure: Structure, bundleLayers: { bundle: StructureElement.Bundle, color: Color, clear: boolean }[], alpha: number): Overpaint {
-    const layers: Overpaint.Layer[] = []
-    for (let i = 0, il = bundleLayers.length; i < il; ++i) {
-        const { bundle, color, clear } = bundleLayers[i]
-        const loci = StructureElement.Bundle.toLoci(bundle, structure.root)
-        layers.push({ loci, color, clear })
-    }
-    return { layers, alpha }
-}
-
-export function getStructureTransparency(structure: Structure, script: Script, value: number, variant: Transparency.Variant): Transparency {
-    return { loci: scriptToLoci(structure, script), value, variant }
-}
 
 /**
  * Attaches ComputedSecondaryStructure property when unavailable in sourceData

@@ -5,6 +5,8 @@
  */
 
 import { Loci, EmptyLoci } from '../mol-model/loci';
+import { StructureElement, Structure } from '../mol-model/structure';
+import { Script } from '../mol-script/script';
 
 export { Transparency }
 
@@ -23,5 +25,13 @@ namespace Transparency {
         if (tA.variant !== tB.variant) return false
         if (!Loci.areEqual(tA.loci, tB.loci)) return false
         return true
+    }
+
+    export function ofScript(script: Script, value: number, variant: Transparency.Variant, structure: Structure): Transparency {
+        return { loci: Script.toLoci(script, structure), value, variant }
+    }
+
+    export function ofBundle(bundle: StructureElement.Bundle, value: number, variant: Transparency.Variant, structure: Structure): Transparency {
+        return { loci: StructureElement.Bundle.toLoci(bundle, structure), value, variant }
     }
 }

@@ -6,7 +6,8 @@
 
 import { Loci } from '../mol-model/loci';
 import { Color } from '../mol-util/color';
-import { Structure } from '../mol-model/structure';
+import { Structure, StructureElement } from '../mol-model/structure';
+import { Script } from '../mol-script/script';
 
 export { Overpaint }
 
@@ -35,5 +36,24 @@ namespace Overpaint {
             layers.push({ loci: Loci.remap(loci, structure), color, clear })
         }
         return { layers, alpha: overpaint.alpha }
+    }
+
+    export function ofScript(scriptLayers: { script: Script, color: Color, clear: boolean }[], alpha: number, structure: Structure): Overpaint {
+        const layers: Overpaint.Layer[] = []
+        for (let i = 0, il = scriptLayers.length; i < il; ++i) {
+            const { script, color, clear } = scriptLayers[i]
+            layers.push({ loci: Script.toLoci(script, structure), color, clear })
+        }
+        return { layers, alpha }
+    }
+
+    export function ofBundle(bundleLayers: { bundle: StructureElement.Bundle, color: Color, clear: boolean }[], alpha: number, structure: Structure): Overpaint {
+        const layers: Overpaint.Layer[] = []
+        for (let i = 0, il = bundleLayers.length; i < il; ++i) {
+            const { bundle, color, clear } = bundleLayers[i]
+            const loci = StructureElement.Bundle.toLoci(bundle, structure.root)
+            layers.push({ loci, color, clear })
+        }
+        return { layers, alpha }
     }
 }
