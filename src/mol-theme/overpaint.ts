@@ -6,6 +6,7 @@
 
 import { Loci } from '../mol-model/loci';
 import { Color } from '../mol-util/color';
+import { Structure } from '../mol-model/structure';
 
 export { Overpaint }
 
@@ -25,5 +26,14 @@ namespace Overpaint {
             if (!Loci.areEqual(oA.layers[i].loci, oB.layers[i].loci)) return false
         }
         return true
+    }
+
+    export function remap(overpaint: Overpaint, structure: Structure) {
+        const layers: Overpaint.Layer[] = []
+        for (const layer of overpaint.layers) {
+            const { loci, color, clear } = layer
+            layers.push({ loci: Loci.remap(loci, structure), color, clear })
+        }
+        return { layers, alpha: overpaint.alpha }
     }
 }

@@ -19,6 +19,7 @@ import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from '../../mol-model/loci';
 import { MarkerAction } from '../../mol-util/marker-action';
+import { Overpaint } from '../../mol-theme/overpaint';
 
 export const UnitsParams = {
     ...StructureParams,
@@ -181,7 +182,11 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         if (visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(visible))
         if (alphaFactor !== undefined) visuals.forEach(({ visual }) => visual.setAlphaFactor(alphaFactor))
         if (pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(pickable))
-        if (overpaint !== undefined) visuals.forEach(({ visual }) => visual.setOverpaint(overpaint))
+        if (overpaint !== undefined) {
+            // Remap loci from equivalent structure to the current `_structure`
+            const remappedOverpaint = Overpaint.remap(overpaint, _structure)
+            visuals.forEach(({ visual }) => visual.setOverpaint(remappedOverpaint))
+        }
         if (transparency !== undefined) visuals.forEach(({ visual }) => visual.setTransparency(transparency))
         if (transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(transform))
         if (unitTransforms !== undefined) {

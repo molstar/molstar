@@ -16,6 +16,7 @@ import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { MarkerAction } from '../../mol-util/marker-action';
+import { Overpaint } from '../../mol-theme/overpaint';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0
@@ -73,7 +74,11 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         }
         if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor)
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
-        if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint)
+        if (state.overpaint !== undefined && visual) {
+            // Remap loci from equivalent structure to the current structure
+            const remappedOverpaint = Overpaint.remap(state.overpaint, _structure)
+            visual.setOverpaint(remappedOverpaint)
+        }
         if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency)
         if (state.transform !== undefined && visual) visual.setTransform(state.transform)
         if (state.unitTransforms !== undefined && visual) {
