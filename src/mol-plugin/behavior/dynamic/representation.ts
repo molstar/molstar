@@ -12,6 +12,7 @@ import { lociLabel } from '../../../mol-theme/label';
 import { PluginBehavior } from '../behavior';
 import { Interactivity } from '../../util/interactivity';
 import { StateTreeSpine } from '../../../mol-state/tree/spine';
+import { StateSelection } from '../../../mol-state';
 
 export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
@@ -40,18 +41,28 @@ export const SelectLoci = PluginBehavior.create({
             if (!this.ctx.canvas3d) return;
             this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
         }
+        private applySelectMark(ref: string) {
+            const cell = this.ctx.state.dataState.cells.get(ref)
+            if (cell && SO.isRepresentation3D(cell.obj)) {
+                this.spine.current = cell
+                const so = this.spine.getRootOfType(SO.Molecule.Structure)
+                if (so) {
+                    const loci = this.ctx.helpers.structureSelectionManager.get(so.data)
+                    this.lociMarkProvider({ loci }, MarkerAction.Select)
+                }
+            }
+        }
         register() {
             this.ctx.interactivity.lociSelections.addProvider(this.lociMarkProvider)
 
-            this.subscribeObservable(this.ctx.events.state.object.created, ({ ref }) => {
+            this.subscribeObservable(this.ctx.events.state.object.created, ({ ref }) => this.applySelectMark(ref));
+
+            // re-apply select-mark to all representation of an updated structure
+            this.subscribeObservable(this.ctx.events.state.object.updated, ({ ref }) => {
                 const cell = this.ctx.state.dataState.cells.get(ref)
-                if (cell && SO.isRepresentation3D(cell.obj)) {
-                    this.spine.current = cell
-                    const so = this.spine.getRootOfType(SO.Molecule.Structure)
-                    if (so) {
-                        const loci = this.ctx.helpers.structureSelectionManager.get(so.data)
-                        this.lociMarkProvider({ loci }, MarkerAction.Select)
-                    }
+                if (cell && SO.Molecule.Structure.is(cell.obj)) {
+                    const reprs = this.ctx.state.dataState.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref))
+                    for (const repr of reprs) this.applySelectMark(repr.transform.ref)
                 }
             });
         }
