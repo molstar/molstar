@@ -30,7 +30,6 @@ export class StructureOverpaintHelper {
 
     async set(color: Color | -1, lociGetter: (structure: Structure) => StructureElement.Loci, types?: string[]) {
         await this.eachRepr((update, repr, overpaint) => {
-            console.log(types, repr.params!.values.type.name)
             if (types && !types.includes(repr.params!.values.type.name)) return
 
             // TODO merge overpaint layers, delete shadowed ones

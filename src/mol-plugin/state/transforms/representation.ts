@@ -402,7 +402,6 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
         return true;
     },
     apply({ a, params }) {
-        console.log('apply', {a, params})
         const structure = a.data.source.data
         const overpaint = getStructureOverpaintFromBundle(structure, params.layers, params.alpha)
 
@@ -414,10 +413,8 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
         }, { label: `Overpaint (${overpaint.layers.length} Layers)` })
     },
     update({ a, b, newParams, oldParams }) {
-        console.log('update', {a, b, newParams, oldParams})
         const oldStructure = b.data.info as Structure
         const newStructure = a.data.source.data
-        console.log()
         if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate
         const oldOverpaint = b.data.state.overpaint!
         const newOverpaint = getStructureOverpaintFromBundle(newStructure, newParams.layers, newParams.alpha)
