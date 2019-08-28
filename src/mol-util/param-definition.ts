@@ -9,6 +9,7 @@ import { Color as ColorData } from './color';
 import { shallowEqual } from './index';
 import { Vec2 as Vec2Data, Vec3 as Vec3Data } from '../mol-math/linear-algebra';
 import { deepClone } from './object';
+import { Script as ScriptData } from '../mol-script/script';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -233,16 +234,16 @@ export namespace ParamDefinition {
         return { type: 'conditioned', select: Select<string>(conditionForValue(defaultValue) as string, options), defaultValue, conditionParams, conditionForValue, conditionedValue };
     }
 
-    export interface ScriptExpression extends Base<{ language: 'mol-script', expression: string }> {
-        type: 'script-expression'
+    export interface Script extends Base<ScriptData> {
+        type: 'script'
     }
-    export function ScriptExpression(defaultValue: ScriptExpression['defaultValue'], info?: Info): ScriptExpression {
-        return setInfo<ScriptExpression>({ type: 'script-expression', defaultValue }, info)
+    export function Script(defaultValue: Script['defaultValue'], info?: Info): Script {
+        return setInfo<Script>({ type: 'script', defaultValue }, info)
     }
 
     export type Any =
         | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph
-        | ColorList<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | ScriptExpression | ObjectList
+        | ColorList<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -328,8 +329,8 @@ export namespace ParamDefinition {
             return true;
         } else if (p.type === 'vec3') {
             return Vec3Data.equals(a, b);
-        } else if (p.type === 'script-expression') {
-            const u = a as ScriptExpression['defaultValue'], v = b as ScriptExpression['defaultValue'];
+        } else if (p.type === 'script') {
+            const u = a as Script['defaultValue'], v = b as Script['defaultValue'];
             return u.language === v.language && u.expression === v.expression;
         } else if (p.type === 'object-list') {
             const u = a as ObjectList['defaultValue'], v = b as ObjectList['defaultValue'];

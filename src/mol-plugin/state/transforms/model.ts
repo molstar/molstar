@@ -22,11 +22,10 @@ import { stringToWords } from '../../../mol-util/string';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { trajectoryFromGRO } from '../../../mol-model-formats/structure/gro';
 import { parseGRO } from '../../../mol-io/reader/gro/parser';
-import { parseMolScript } from '../../../mol-script/language/parser';
-import { transpileMolScript } from '../../../mol-script/script/mol-script/symbols';
 import { shapeFromPly } from '../../../mol-model-formats/shape/ply';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ensureSecondaryStructure } from './helpers';
+import { Script } from '../../../mol-script/script';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -390,25 +389,22 @@ const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
-        script: PD.ScriptExpression({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
+        script: PD.Script({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
         label: PD.Optional(PD.Text(''))
     }
 })({
     apply({ a, params, cache }) {
-        const parsed = parseMolScript(params.script.expression);
-        if (parsed.length === 0) throw new Error('No query');
-        const query = transpileMolScript(parsed[0]);
-        const compiled = compile<Sel>(query);
-        (cache as { compiled: QueryFn<Sel> }).compiled = compiled;
+        const query = Script.toQuery(params.script);
+        (cache as { query: QueryFn<Sel> }).query = query;
         (cache as { source: Structure }).source = a.data;
-        const result = compiled(new QueryContext(a.data));
+        const result = query(new QueryContext(a.data));
         const s = Sel.unionStructure(result);
 
         const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, props);
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
-        if (oldParams.script.language !== newParams.script.language || oldParams.script.expression !== newParams.script.expression) {
+        if (Script.areEqual(oldParams.script, newParams.script)) {
             return StateTransformer.UpdateResult.Recreate;
         }
 
@@ -417,7 +413,7 @@ const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
         }
         (cache as { source: Structure }).source = a.data;
 
-        updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label);
+        updateStructureFromQuery((cache as { query: QueryFn<Sel> }).query, a.data, b, newParams.label);
         return StateTransformer.UpdateResult.Updated;
     }
 });

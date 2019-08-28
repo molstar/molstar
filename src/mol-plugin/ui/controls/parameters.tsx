@@ -64,7 +64,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'group': return GroupControl;
         case 'mapped': return MappedControl;
         case 'line-graph': return LineGraphControl;
-        case 'script-expression': return ScriptExpressionControl;
+        case 'script': return ScriptControl;
         case 'object-list': return ObjectListControl;
         default:
             const _: never = param;
@@ -746,7 +746,7 @@ export class ConvertedControl extends React.PureComponent<ParamProps<PD.Converte
     }
 }
 
-export class ScriptExpressionControl extends SimpleParam<PD.ScriptExpression> {
+export class ScriptControl extends SimpleParam<PD.Script> {
     onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         if (value !== this.props.value.expression) {

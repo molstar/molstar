@@ -355,7 +355,7 @@ export const StructureFromSelection = StateAction.build({
     const sel = plugin.helpers.structureSelectionManager.get(a.data);
     if (sel.kind === 'empty-loci') return Task.constant('', void 0);
 
-    const expression = StructureElement.Loci.toScriptExpression(sel);
+    const expression = StructureElement.Loci.toExpression(sel);
     const root = state.build().to(ref).apply(StructureSelectionFromExpression, { expression, label: params.label });
     return state.updateTree(root);
 });

@@ -289,7 +289,7 @@ export namespace Loci {
             : element
     }
 
-    export function toScriptExpression(loci: Loci) {
+    export function toExpression(loci: Loci) {
         if (Loci.isEmpty(loci)) return MS.struct.generator.empty();
 
         const models = loci.structure.models;

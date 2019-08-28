@@ -146,7 +146,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
             lastLoci = current;
 
             const core = MS.struct.modifier.wholeResidues([
-                StructureElement.Loci.toScriptExpression(current.loci)
+                StructureElement.Loci.toExpression(current.loci)
             ]);
 
             const surroundings = MS.struct.modifier.includeSurroundings({

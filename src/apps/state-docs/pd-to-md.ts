@@ -30,7 +30,7 @@ function paramInfo(param: PD.Any, offset: number): string {
         case 'line-graph': return `A list of 2d vectors [xi, yi][]`;
         case 'object-list': return `Array of\n${paramInfo(PD.Group(param.element), offset + 2)}`;
         // TODO: support more languages
-        case 'script-expression': return `An expression in the specified language { language: 'mol-script', expressiong: string }`;
+        case 'script': return `An expression in the specified language { language: 'mol-script', expressiong: string }`;
         default:
             const _: never = param;
             console.warn(`${_} has no associated UI component`);
