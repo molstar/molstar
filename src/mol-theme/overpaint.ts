@@ -11,10 +11,14 @@ import { Script } from '../mol-script/script';
 
 export { Overpaint }
 
-type Overpaint = { layers: ReadonlyArray<Overpaint.Layer>, readonly alpha: number }
+type Overpaint = { readonly layers: ReadonlyArray<Overpaint.Layer>, readonly alpha: number }
+
+function Overpaint(layers: ReadonlyArray<Overpaint.Layer>, alpha: number): Overpaint {
+    return { layers, alpha }
+}
 
 namespace Overpaint {
-    export type Layer = { readonly loci: Loci, readonly color: Color, readonly clear: boolean }
+    export type Layer = { readonly loci: StructureElement.Loci, readonly color: Color, readonly clear: boolean }
     export const Empty: Overpaint = { layers: [], alpha: 1 }
 
     export function areEqual(oA: Overpaint, oB: Overpaint) {
@@ -29,30 +33,95 @@ namespace Overpaint {
         return true
     }
 
+    export function isEmpty(overpaint: Overpaint) {
+        return overpaint.layers.length === 0
+    }
+
     export function remap(overpaint: Overpaint, structure: Structure) {
         const layers: Overpaint.Layer[] = []
         for (const layer of overpaint.layers) {
-            const { loci, color, clear } = layer
-            layers.push({ loci: Loci.remap(loci, structure), color, clear })
+            let { loci, color, clear } = layer
+            loci = StructureElement.Loci.remap(loci, structure)
+            if (!StructureElement.Loci.isEmpty(loci)) {
+                layers.push({ loci, color, clear })
+            }
         }
         return { layers, alpha: overpaint.alpha }
     }
 
-    export function ofScript(scriptLayers: { script: Script, color: Color, clear: boolean }[], alpha: number, structure: Structure): Overpaint {
+    export function merge(overpaint: Overpaint): Overpaint {
+        if (isEmpty(overpaint)) return overpaint
+        const { structure } = overpaint.layers[0].loci
+        const map = new Map<Color | -1, StructureElement.Loci>()
+        let shadowed = StructureElement.Loci.none(structure)
+        for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
+            let { loci, color, clear } = overpaint.layers[il - i - 1] // process from end
+            loci = StructureElement.Loci.subtract(loci, shadowed)
+            shadowed = StructureElement.Loci.union(loci, shadowed)
+            if (!StructureElement.Loci.isEmpty(loci)) {
+                const colorOrClear = clear ? -1 : color
+                if (map.has(colorOrClear)) {
+                    loci = StructureElement.Loci.union(loci, map.get(colorOrClear)!)
+                }
+                map.set(colorOrClear, loci)
+            }
+        }
+        const layers: Overpaint.Layer[] = []
+        map.forEach((loci, colorOrClear) => {
+            const clear = colorOrClear === -1
+            const color = colorOrClear === -1 ? Color(0) : colorOrClear
+            layers.push({ loci, color, clear })
+        })
+        return { layers, alpha: overpaint.alpha }
+    }
+
+    export function filter(overpaint: Overpaint, filter: Structure): Overpaint {
+        if (isEmpty(overpaint)) return overpaint
+        const { structure } = overpaint.layers[0].loci
+        const layers: Overpaint.Layer[] = []
+        for (const layer of overpaint.layers) {
+            let { loci, color, clear } = layer
+            // filter by first map to the `filter` structure and
+            // then map back to the original structure of the overpaint loci
+            const filtered = StructureElement.Loci.remap(loci, filter)
+            loci = StructureElement.Loci.remap(filtered, structure)
+            if (!StructureElement.Loci.isEmpty(loci)) {
+                layers.push({ loci, color, clear })
+            }
+        }
+        return { layers, alpha: overpaint.alpha }
+    }
+
+    export type ScriptLayer = { script: Script, color: Color, clear: boolean }
+    export function ofScript(scriptLayers: ScriptLayer[], alpha: number, structure: Structure): Overpaint {
         const layers: Overpaint.Layer[] = []
         for (let i = 0, il = scriptLayers.length; i < il; ++i) {
             const { script, color, clear } = scriptLayers[i]
-            layers.push({ loci: Script.toLoci(script, structure), color, clear })
+            const loci = Script.toLoci(script, structure)
+            if (!StructureElement.Loci.isEmpty(loci)) {
+                layers.push({ loci, color, clear })
+            }
         }
         return { layers, alpha }
     }
 
-    export function ofBundle(bundleLayers: { bundle: StructureElement.Bundle, color: Color, clear: boolean }[], alpha: number, structure: Structure): Overpaint {
+    export type BundleLayer = { bundle: StructureElement.Bundle, color: Color, clear: boolean }
+    export function ofBundle(bundleLayers: BundleLayer[], alpha: number, structure: Structure): Overpaint {
         const layers: Overpaint.Layer[] = []
         for (let i = 0, il = bundleLayers.length; i < il; ++i) {
             const { bundle, color, clear } = bundleLayers[i]
             const loci = StructureElement.Bundle.toLoci(bundle, structure.root)
             layers.push({ loci, color, clear })
+        }
+        return { layers, alpha }
+    }
+
+    export function toBundle(overpaint: Overpaint, alpha: number) {
+        const layers: BundleLayer[] = []
+        for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
+            let { loci, color, clear } = overpaint.layers[i]
+            const bundle = StructureElement.Bundle.fromLoci(loci)
+            layers.push({ bundle, color, clear })
         }
         return { layers, alpha }
     }

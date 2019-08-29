@@ -76,13 +76,13 @@ namespace Loci {
         return false
     }
 
-    export function isEmpty(loci: Loci) {
+    export function isEmpty(loci: Loci): boolean {
         if (isEveryLoci(loci)) return false
         if (isEmptyLoci(loci)) return true
         if (isDataLoci(loci)) return isDataLociEmpty(loci)
         if (Structure.isLoci(loci)) return Structure.isLociEmpty(loci)
-        if (StructureElement.Loci.is(loci)) StructureElement.Loci.isEmpty(loci)
-        if (Link.isLoci(loci)) Link.isLociEmpty(loci)
+        if (StructureElement.Loci.is(loci)) return StructureElement.Loci.isEmpty(loci)
+        if (Link.isLoci(loci)) return Link.isLociEmpty(loci)
         if (Shape.isLoci(loci)) return Shape.isLociEmpty(loci)
         if (ShapeGroup.isLoci(loci)) return ShapeGroup.isLociEmpty(loci)
         return false

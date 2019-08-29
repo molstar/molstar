@@ -184,8 +184,10 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         if (pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(pickable))
         if (overpaint !== undefined) {
             // Remap loci from equivalent structure to the current `_structure`
-            const remappedOverpaint = Overpaint.remap(overpaint, _structure)
-            visuals.forEach(({ visual }) => visual.setOverpaint(remappedOverpaint))
+            if (_structure) {
+                const remappedOverpaint = Overpaint.remap(overpaint, _structure)
+                visuals.forEach(({ visual }) => visual.setOverpaint(remappedOverpaint))
+            }
         }
         if (transparency !== undefined) visuals.forEach(({ visual }) => visual.setTransparency(transparency))
         if (transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(transform))

@@ -10,6 +10,7 @@ import { StateSelection, StateObjectCell, StateTransform, StateBuilder } from '.
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../context';
 import { Color } from '../../mol-util/color';
+import { Overpaint } from '../../mol-theme/overpaint';
 
 type OverpaintEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, overpaint?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle>>) => void
 const OverpaintManagerTag = 'overpaint-controls'
@@ -29,11 +30,8 @@ export class StructureOverpaintHelper {
     }
 
     async set(color: Color | -1, lociGetter: (structure: Structure) => StructureElement.Loci, types?: string[]) {
-        await this.eachRepr((update, repr, overpaint) => {
+        await this.eachRepr((update, repr, overpaintCell) => {
             if (types && !types.includes(repr.params!.values.type.name)) return
-
-            // TODO merge overpaint layers, delete shadowed ones
-            // TODO filter overpaint layers for given structure
 
             const structure = repr.obj!.data.source.data
             // always use the root structure to get the loci so the overpaint
@@ -47,11 +45,14 @@ export class StructureOverpaintHelper {
                 clear: color === -1
             }
 
-            if (overpaint) {
-                update.to(overpaint).update({ layers: [ ...overpaint.params!.values.layers, layer ], alpha: 1 })
+            if (overpaintCell) {
+                const bundleLayers = [ ...overpaintCell.params!.values.layers, layer ]
+                const filtered = getFilteredBundle(bundleLayers, structure)
+                update.to(overpaintCell).update(Overpaint.toBundle(filtered, 1))
             } else {
+                const filtered = getFilteredBundle([ layer ], structure)
                 update.to(repr.transform.ref)
-                    .apply(StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle, { layers: [ layer ], alpha: 1 }, { tags: OverpaintManagerTag });
+                    .apply(StateTransforms.Representation.OverpaintStructureRepresentation3DFromBundle, Overpaint.toBundle(filtered, 1), { tags: OverpaintManagerTag });
             }
         })
     }
@@ -59,4 +60,11 @@ export class StructureOverpaintHelper {
     constructor(private plugin: PluginContext) {
 
     }
+}
+
+/** filter overpaint layers for given structure */
+function getFilteredBundle(layers: Overpaint.BundleLayer[], structure: Structure) {
+    const overpaint = Overpaint.ofBundle(layers, 1, structure.root)
+    const merged = Overpaint.merge(overpaint)
+    return Overpaint.filter(merged, structure)
 }
