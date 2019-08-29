@@ -5,6 +5,7 @@
  */
 
 import { Vec3 } from '../../mol-math/linear-algebra/3d';
+import { Sphere3D } from './primitives/sphere3d';
 
 export { CentroidHelper }
 
@@ -33,6 +34,10 @@ class CentroidHelper {
     radiusStep(p: Vec3) {
         const d = Vec3.squaredDistance(p, this.center);
         if (d > this.radiusSq) this.radiusSq = d;
+    }
+
+    getSphere(): Sphere3D {
+        return { center: Vec3.clone(this.center), radius: Math.sqrt(this.radiusSq) };
     }
 
     constructor() {

@@ -9,15 +9,60 @@ import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
 import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import Structure from '../structure';
+import { CentroidHelper } from '../../../../mol-math/geometry/centroid-helper';
 
 export type Boundary = { box: Box3D, sphere: Sphere3D }
 
-const tmpBox = Box3D.empty()
-const tmpSphere = Sphere3D.zero()
+const tmpBox = Box3D.empty();
+const tmpSphere = Sphere3D.zero();
+const tmpVec = Vec3.zero();
 
 const boundaryHelper = new BoundaryHelper();
+const centroidHelper = new CentroidHelper();
+
+// TODO: show this be enabled? does not solve problem with "renderable bounding spheres"
+const CENTROID_COMPUTATION_THRESHOLD = -1;
 
 export function computeStructureBoundary(s: Structure): Boundary {
+    if (s.elementCount <= CENTROID_COMPUTATION_THRESHOLD && s.isAtomic) return computeStructureBoundaryFromElements(s);
+    return computeStructureBoundaryFromUnits(s);
+}
+
+function computeStructureBoundaryFromElements(s: Structure): Boundary {
+    centroidHelper.reset();
+
+    const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
+    const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
+
+    const v = tmpVec;
+    for (const unit of s.units) {
+        const { x, y, z } = unit.conformation;
+        const elements = unit.elements;
+        for (let j = 0, _j = elements.length; j < _j; j++) {
+            const e = elements[j];
+            Vec3.set(v, x(e), y(e), z(e));
+            centroidHelper.includeStep(v);
+            Vec3.min(min, min, v);
+            Vec3.max(max, max, v);
+        };
+    }
+
+    centroidHelper.finishedIncludeStep();
+
+    for (const unit of s.units) {
+        const { x, y, z } = unit.conformation;
+        const elements = unit.elements;
+        for (let j = 0, _j = elements.length; j < _j; j++) {
+            const e = elements[j];
+            Vec3.set(v, x(e), y(e), z(e));
+            centroidHelper.radiusStep(v);
+        };
+    }
+
+    return { box: { min, max }, sphere: centroidHelper.getSphere() };
+}
+
+function computeStructureBoundaryFromUnits(s: Structure): Boundary {
     const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
     const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
 

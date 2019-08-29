@@ -221,6 +221,13 @@ class Structure {
             || (this._props.uniqueAtomicResidueIndices = getUniqueAtomicResidueIndices(this));
     }
 
+    get isAtomic() {
+        for (const u of this.units) {
+            if (u.kind !== Unit.Kind.Atomic) return false;
+        }
+        return true;
+    }
+
     /**
      * Provides mapping for serial element indices accross all units.
      *
