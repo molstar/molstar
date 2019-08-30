@@ -41,7 +41,7 @@ const Download = PluginStateTransform.BuiltIn({
     update({ oldParams, newParams, b }) {
         if (oldParams.url !== newParams.url || oldParams.isBinary !== newParams.isBinary) return StateTransformer.UpdateResult.Recreate;
         if (oldParams.label !== newParams.label) {
-            (b.label as string) = newParams.label || newParams.url;
+            b.label = newParams.label || newParams.url;
             return StateTransformer.UpdateResult.Updated;
         }
         return StateTransformer.UpdateResult.Unchanged;
@@ -235,6 +235,58 @@ const ParseDsn6 = PluginStateTransform.BuiltIn({
             return new SO.Format.Dsn6(parsed.result);
         });
     }
+});
+
+export { ImportString }
+type ImportString = typeof ImportString
+const ImportString = PluginStateTransform.BuiltIn({
+    name: 'import-string',
+    display: { name: 'Import String', description: 'Import given data as a string' },
+    from: SO.Root,
+    to: SO.Data.String,
+    params: {
+        data: PD.Value(''),
+        label: PD.Optional(PD.Text('')),
+    }
+})({
+    apply({ params: { data, label } }) {
+        return new SO.Data.String(data, { label: label || '' });
+    },
+    update({ oldParams, newParams, b }) {
+        if (oldParams.data !== newParams.data) return StateTransformer.UpdateResult.Recreate;
+        if (oldParams.label !== newParams.label) {
+            b.label = newParams.label || '';
+            return StateTransformer.UpdateResult.Updated;
+        }
+        return StateTransformer.UpdateResult.Unchanged;
+    },
+    isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user imported strings.' })
+});
+
+export { ImportJson }
+type ImportJson = typeof ImportJson
+const ImportJson = PluginStateTransform.BuiltIn({
+    name: 'import-json',
+    display: { name: 'Import JSON', description: 'Import given data as a JSON' },
+    from: SO.Root,
+    to: SO.Format.Json,
+    params: {
+        data: PD.Value<any>({}),
+        label: PD.Optional(PD.Text('')),
+    }
+})({
+    apply({ params: { data, label } }) {
+        return new SO.Format.Json(data, { label: label || '' });
+    },
+    update({ oldParams, newParams, b }) {
+        if (oldParams.data !== newParams.data) return StateTransformer.UpdateResult.Recreate;
+        if (oldParams.label !== newParams.label) {
+            b.label = newParams.label || '';
+            return StateTransformer.UpdateResult.Updated;
+        }
+        return StateTransformer.UpdateResult.Unchanged;
+    },
+    isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user imported JSON.' })
 });
 
 export { ParseJson }
