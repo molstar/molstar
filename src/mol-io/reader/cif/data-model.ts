@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column, ColumnHelpers } from '../../../mol-data/db'
+import { Column, ColumnHelpers, Table } from '../../../mol-data/db'
 import { Tensor } from '../../../mol-math/linear-algebra'
 import { getNumberType, NumberType, parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser';
 import { Encoding } from '../../common/binary-cif';
@@ -69,6 +69,14 @@ export namespace CifCategory {
             fieldNames,
             getField(name) { return fields[name]; }
         };
+    }
+
+    export function ofTable(name: string, table: Table<any>) {
+        const fields: { [name: string]: CifField | undefined } = {}
+        for (const name of table._columns) {
+            fields[name] = CifField.ofColumn(table[name])
+        }
+        return ofFields(name, fields)
     }
 }
 
@@ -216,8 +224,14 @@ export namespace CifField {
                 int = row => { const v = column.value(row); return fastParseInt(v, 0, v.length) || 0; };
                 float = row => { const v = column.value(row); return fastParseFloat(v, 0, v.length) || 0; };
                 break
+            case 'list':
+                const { separator } = column.schema;
+                str = row => column.value(row).join(separator);
+                int = row => NaN;
+                float = row => NaN;
+                break
             default:
-                throw new Error('unsupported')
+                throw new Error(`unsupported valueType '${column.schema.valueType}'`)
         }
 
         return {
