@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -80,14 +80,15 @@ export function printImageData(imageData: ImageData, scale = 1, pixelated = fals
 const v = Vec3.zero()
 const boundaryHelper = new BoundaryHelper()
 
-export function calculateInvariantBoundingSphere(position: Float32Array, positionCount: number): Sphere3D {
+export function calculateInvariantBoundingSphere(position: Float32Array, positionCount: number, stepFactor: number): Sphere3D {
+    const step = stepFactor * 3
     boundaryHelper.reset(0)
-    for (let i = 0, _i = positionCount * 3; i < _i; i += 3) {
+    for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
         boundaryHelper.boundaryStep(v, 0)
     }
     boundaryHelper.finishBoundaryStep()
-    for (let i = 0, _i = positionCount * 3; i < _i; i += 3) {
+    for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
         Vec3.fromArray(v, position, i)
         boundaryHelper.extendStep(v, 0)
     }
@@ -109,8 +110,8 @@ export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere
     return boundaryHelper.getSphere()
 }
 
-export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number, padding = 0): { boundingSphere: Sphere3D, invariantBoundingSphere: Sphere3D } {
-    const invariantBoundingSphere = calculateInvariantBoundingSphere(position, positionCount)
+export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number, padding = 0, stepFactor = 1): { boundingSphere: Sphere3D, invariantBoundingSphere: Sphere3D } {
+    const invariantBoundingSphere = calculateInvariantBoundingSphere(position, positionCount, stepFactor)
     const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform, transformCount)
     Sphere3D.expand(boundingSphere, boundingSphere, padding)
     Sphere3D.expand(invariantBoundingSphere, invariantBoundingSphere, padding)

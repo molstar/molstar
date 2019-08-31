@@ -89,7 +89,7 @@ export namespace Spheres {
         const padding = getMaxSize(size)
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             spheres.centerBuffer.ref.value, spheres.sphereCount * 4,
-            transform.aTransform.ref.value, instanceCount, padding
+            transform.aTransform.ref.value, instanceCount, padding, 4
         )
 
         return {
@@ -130,7 +130,7 @@ export namespace Spheres {
         const padding = getMaxSize(values)
         const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
             values.aPosition.ref.value, spheres.sphereCount * 4,
-            values.aTransform.ref.value, values.instanceCount.ref.value, padding
+            values.aTransform.ref.value, values.instanceCount.ref.value, padding, 4
         )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
