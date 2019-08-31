@@ -14,8 +14,8 @@ async function parseCif(data: string|Uint8Array) {
     return parsed.result;
 }
 
-async function parsePDBfile(data: string) {
-    const comp = parsePDB(data);
+async function parsePDBfile(data: string, id: string) {
+    const comp = parsePDB(data, id);
     const parsed = await comp.run();
     if (parsed.isError) throw parsed;
     return parsed.result;
@@ -26,9 +26,9 @@ async function downloadCif(url: string, isBinary: boolean) {
     return parseCif(isBinary ? new Uint8Array(await data.arrayBuffer()) : await data.text());
 }
 
-async function downloadPDB(url: string) {
+async function downloadPDB(url: string, id: string) {
     const data = await fetch(url);
-    return parsePDBfile(await data.text());
+    return parsePDBfile(await data.text(), id);
 }
 
 export async function getFromPdb(id: string) {
@@ -42,6 +42,7 @@ function getCellPackDataUrl(id: string, baseUrl: string) {
 }
 
 export async function getFromCellPackDB(id: string, baseUrl: string) {
-    const parsed = await downloadPDB(getCellPackDataUrl(id, baseUrl));
+    const name = id.endsWith('.pdb') ? id.substring(0, id.length - 4) : id
+    const parsed = await downloadPDB(getCellPackDataUrl(id, baseUrl), name);
     return parsed;
 }
