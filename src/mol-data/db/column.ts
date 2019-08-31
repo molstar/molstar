@@ -73,6 +73,7 @@ namespace Column {
         rowCount: number,
         schema: T,
         valueKind?: (row: number) => ValueKind,
+        areValuesEqual?: (rowA: number, rowB: number) => boolean
     }
 
     export interface ArraySpec<T extends Schema> {
@@ -247,7 +248,7 @@ function constColumn<T extends Column.Schema>(v: T['T'], rowCount: number, schem
     }
 }
 
-function lambdaColumn<T extends Column.Schema>({ value, valueKind, rowCount, schema }: Column.LambdaSpec<T>): Column<T['T']> {
+function lambdaColumn<T extends Column.Schema>({ value, valueKind, areValuesEqual, rowCount, schema }: Column.LambdaSpec<T>): Column<T['T']> {
     return {
         schema: schema,
         __array: void 0,
@@ -260,7 +261,7 @@ function lambdaColumn<T extends Column.Schema>({ value, valueKind, rowCount, sch
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = value(i + start);
             return array;
         },
-        areValuesEqual: (rowA, rowB) => value(rowA) === value(rowB)
+        areValuesEqual: areValuesEqual ? areValuesEqual : (rowA, rowB) => value(rowA) === value(rowB)
     }
 }
 

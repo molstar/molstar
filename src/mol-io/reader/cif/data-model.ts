@@ -134,7 +134,7 @@ export namespace CifField {
             float,
             valueKind,
             areValuesEqual: (rowA, rowB) => values[rowA] === values[rowB],
-            toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
+            toStringArray: params => params ? ColumnHelpers.createAndFillArray(rowCount, str, params) : values as string[],
             toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, int, params),
             toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
         }
@@ -145,6 +145,14 @@ export namespace CifField {
         const str: CifField['str'] = row => { return '' + values[row]; };
         const float: CifField['float'] = row => values[row];
         const valueKind: CifField['valueKind'] = row => Column.ValueKind.Present;
+
+        const toFloatArray = (params: Column.ToArrayParams<number>) => {
+            if (!params || params.array && values instanceof params.array) {
+                return values as number[]
+            } else {
+                return ColumnHelpers.createAndFillArray(rowCount, float, params)
+            }
+        }
 
         return {
             __array: void 0,
@@ -157,8 +165,8 @@ export namespace CifField {
             valueKind,
             areValuesEqual: (rowA, rowB) => values[rowA] === values[rowB],
             toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
-            toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params),
-            toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
+            toIntArray: toFloatArray,
+            toFloatArray
         }
     }
 
@@ -216,11 +224,11 @@ export namespace CifField {
             case 'float':
             case 'int':
                 str = row => { return '' + column.value(row); };
-                int = row => column.value(row);
-                float = row => column.value(row);
+                int = column.value;
+                float = column.value;
                 break
             case 'str':
-                str = row => column.value(row);
+                str = column.value;
                 int = row => { const v = column.value(row); return fastParseInt(v, 0, v.length) || 0; };
                 float = row => { const v = column.value(row); return fastParseFloat(v, 0, v.length) || 0; };
                 break
