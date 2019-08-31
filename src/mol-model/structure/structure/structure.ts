@@ -64,8 +64,8 @@ class Structure {
     } = {
         hashCode: -1,
         transformHash: -1,
-        elementCount: 0,
-        polymerResidueCount: 0,
+        elementCount: -1,
+        polymerResidueCount: -1,
         coordinateSystem: SymmetryOperator.Default,
         label: ''
     };
@@ -105,6 +105,13 @@ class Structure {
 
     /** Count of all polymer residues in the structure */
     get polymerResidueCount() {
+        if (this._props.polymerResidueCount === -1) {
+            let polymerResidueCount = 0
+            for (let i = 0, _i = this.units.length; i < _i; i++) {
+                polymerResidueCount += this.units[i].polymerElements.length;
+            }
+            this._props.polymerResidueCount = polymerResidueCount
+        }
         return this._props.polymerResidueCount;
     }
 
@@ -269,21 +276,19 @@ class Structure {
     }
 
     getModelIndex(m: Model) {
-        return this.model
+        return this.models.indexOf(m)
     }
 
     private initUnits(units: ArrayLike<Unit>) {
         const unitMap = IntMap.Mutable<Unit>();
         const unitIndexMap = IntMap.Mutable<number>();
         let elementCount = 0;
-        let polymerResidueCount = 0;
         let isSorted = true;
         let lastId = units.length > 0 ? units[0].id : 0;
         for (let i = 0, _i = units.length; i < _i; i++) {
             const u = units[i];
             unitMap.set(u.id, u);
             elementCount += u.elements.length;
-            polymerResidueCount += u.polymerElements.length;
             if (u.id < lastId) isSorted = false;
             lastId = u.id;
         }
@@ -292,7 +297,6 @@ class Structure {
             unitIndexMap.set(units[i].id, i);
         }
         this._props.elementCount = elementCount;
-        this._props.polymerResidueCount = polymerResidueCount;
         return { unitMap, unitIndexMap };
     }
 
