@@ -406,7 +406,7 @@ export const LoadCellPackModel = StateAction.build({
 
     if (isHiv) {
         const url = `${params.baseUrl}/membranes/hiv_lipids.bcif`
-        tree.apply(StateTransforms.Data.Download, { url, isBinary: true }, { state: { isGhost: true } })
+        tree.apply(StateTransforms.Data.Download, { label: 'hiv_lipids', url, isBinary: true }, { state: { isGhost: true } })
             .apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
             .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
             .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
