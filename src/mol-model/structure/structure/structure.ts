@@ -579,20 +579,23 @@ namespace Structure {
 
     // keeps atoms of residues together
     function partitionAtomicUnitByResidue(model: Model, indices: SortedArray, builder: StructureBuilder) {
-        model.atomicHierarchy.residueAtomSegments.offsets
+        const { residueAtomSegments } = model.atomicHierarchy
 
         const startIndices: number[] = []
         const endIndices: number[] = []
 
-        const residueIt = Segmentation.transientSegments(model.atomicHierarchy.residueAtomSegments, indices)
+        const residueIt = Segmentation.transientSegments(residueAtomSegments, indices)
         while (residueIt.hasNext) {
             const residueSegment = residueIt.move();
             startIndices[startIndices.length] = indices[residueSegment.start]
             endIndices[endIndices.length] = indices[residueSegment.end]
         }
 
+        const firstResidueAtomCount = endIndices[0] - startIndices[0]
+        const gridCellCount = 512 * firstResidueAtomCount
+
         const { x, y, z } = model.atomicConformation;
-        const lookup = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(startIndices) }, 8192);
+        const lookup = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(startIndices) }, gridCellCount);
         const { offset, count, array } = lookup.buckets;
 
         for (let i = 0, _i = offset.length; i < _i; i++) {
