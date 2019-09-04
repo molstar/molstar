@@ -56,7 +56,9 @@ class Structure {
         /** Hash based on all unit.id values in the structure, reflecting the units transformation */
         transformHash: number,
         elementCount: number,
+        uniqueElementCount: number,
         polymerResidueCount: number,
+        polymerUnitCount: number,
         coordinateSystem: SymmetryOperator,
         label: string,
         propertyData?: any,
@@ -65,7 +67,9 @@ class Structure {
         hashCode: -1,
         transformHash: -1,
         elementCount: -1,
+        uniqueElementCount: -1,
         polymerResidueCount: -1,
+        polymerUnitCount: -1,
         coordinateSystem: SymmetryOperator.Default,
         label: ''
     };
@@ -106,13 +110,23 @@ class Structure {
     /** Count of all polymer residues in the structure */
     get polymerResidueCount() {
         if (this._props.polymerResidueCount === -1) {
-            let polymerResidueCount = 0
-            for (let i = 0, _i = this.units.length; i < _i; i++) {
-                polymerResidueCount += this.units[i].polymerElements.length;
-            }
-            this._props.polymerResidueCount = polymerResidueCount
+            this._props.polymerResidueCount = getPolymerResidueCount(this)
         }
         return this._props.polymerResidueCount;
+    }
+
+    get polymerUnitCount() {
+        if (this._props.polymerUnitCount === -1) {
+            this._props.polymerUnitCount = getPolymerUnitCount(this)
+        }
+        return this._props.polymerUnitCount;
+    }
+
+    get uniqueElementCount() {
+        if (this._props.uniqueElementCount === -1) {
+            this._props.uniqueElementCount = getUniqueElementCount(this)
+        }
+        return this._props.uniqueElementCount;
     }
 
     /** Coarse structure, defined as Containing less than twice as many elements as polymer residues */
@@ -131,6 +145,7 @@ class Structure {
         return this.computeHash();
     }
 
+    /** Hash based on all unit.id values in the structure, reflecting the units transformation */
     get transformHash() {
         if (this._props.transformHash !== -1) return this._props.transformHash;
         this._props.transformHash = hashFnv32a(this.units.map(u => u.id))
@@ -406,6 +421,33 @@ function getUniqueAtomicResidueIndices(structure: Structure): ReadonlyMap<UUID, 
         ret.set(id, array)
     }
     return ret;
+}
+
+function getUniqueElementCount(structure: Structure): number {
+    const { unitSymmetryGroups } = structure
+    let uniqueElementCount = 0
+    for (let i = 0, _i = unitSymmetryGroups.length; i < _i; i++) {
+        uniqueElementCount += unitSymmetryGroups[i].elements.length
+    }
+    return uniqueElementCount
+}
+
+function getPolymerResidueCount(structure: Structure): number {
+    const { units } = structure
+    let polymerResidueCount = 0
+    for (let i = 0, _i = units.length; i < _i; i++) {
+        polymerResidueCount += units[i].polymerElements.length;
+    }
+    return polymerResidueCount
+}
+
+function getPolymerUnitCount(structure: Structure): number {
+    const { units } = structure
+    let polymerUnitCount = 0
+    for (let i = 0, _i = units.length; i < _i; i++) {
+        if (units[i].polymerElements.length > 0) polymerUnitCount += 1
+    }
+    return polymerUnitCount
 }
 
 interface SerialMapping {
