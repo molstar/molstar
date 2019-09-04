@@ -333,6 +333,8 @@ namespace Canvas3D {
                 reprRenderObjects.clear()
                 scene.clear()
                 debugHelper.clear()
+                requestDraw(true)
+                reprCount.next(reprRenderObjects.size)
             },
 
             // draw,
