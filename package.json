@@ -24,6 +24,7 @@
     "serve": "http-server -p 1338",
     "model-server": "node lib/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/servers/model/server.js",
+    "volume-server": "node lib/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort  1336",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags",
     "prepublishOnly": "npm run test && npm run build"
