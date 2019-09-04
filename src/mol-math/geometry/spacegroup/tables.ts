@@ -1345,7 +1345,17 @@ export const SpacegroupNames: { [num: number]: SpacegroupName } = (function () {
 
 // return -1 if the spacegroup does not exist.
 export function getSpacegroupIndex(nameOrNumber: number | string | SpacegroupName): number {
-    const index = typeof nameOrNumber === 'number' ? nameOrNumber - 1 : ZeroBasedSpacegroupNumbers[nameOrNumber as SpacegroupName];
+    let index: number
+    if (typeof nameOrNumber === 'number') {
+        // used by CCP4, see http://www.ccp4.ac.uk/html/pointless.html#setting
+        if (nameOrNumber === 1017) index = 254
+        else if (nameOrNumber === 2017) index = 255
+        else if (nameOrNumber === 2018) index = 257
+        else if (nameOrNumber === 3018) index = 258
+        else index = nameOrNumber - 1
+    } else {
+        index = ZeroBasedSpacegroupNumbers[nameOrNumber as SpacegroupName];
+    }
     if (typeof index === 'undefined' || typeof SpacegroupNames[index] === 'undefined') return -1;
     return index;
 }
