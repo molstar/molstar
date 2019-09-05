@@ -18,9 +18,9 @@ export interface ModelInfo {
 
 export namespace ModelInfo {
     async function getPreferredAssembly(ctx: PluginContext, model: Model) {
-        if (model.label.length <= 3) return void 0;
+        if (model.entryId.length <= 3) return void 0;
         try {
-            const id = model.label.toLowerCase();
+            const id = model.entryId.toLowerCase();
             const src = await ctx.runTask(ctx.fetch({ url: `https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/${id}` })) as string;
             const json = JSON.parse(src);
             const data = json && json[id];

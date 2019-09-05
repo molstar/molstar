@@ -228,12 +228,12 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
 
             if (model.symmetry.assemblies.length === 0) {
                 if (id !== 'deposited') {
-                    plugin.log.warn(`Model '${a.data.label}' has no assembly, returning deposited structure.`);
+                    plugin.log.warn(`Model '${a.data.entryId}' has no assembly, returning deposited structure.`);
                 }
             } else {
                 asm = ModelSymmetry.findAssembly(model, id || '');
                 if (!asm) {
-                    plugin.log.warn(`Model '${a.data.label}' has no assembly called '${id}', returning deposited structure.`);
+                    plugin.log.warn(`Model '${a.data.entryId}' has no assembly called '${id}', returning deposited structure.`);
                 }
             }
 
@@ -533,8 +533,12 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
 });
 async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, names: string[]) {
     for (const name of names) {
-        const p = ctx.customModelProperties.get(name);
-        await p.attach(model).runInContext(taskCtx);
+        try {
+            const p = ctx.customModelProperties.get(name);
+            await p.attach(model).runInContext(taskCtx);
+        } catch (e) {
+            ctx.log.warn(`Error attaching model prop '${name}': ${e}`);
+        }
     }
 }
 
@@ -558,8 +562,12 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
 });
 async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, names: string[]) {
     for (const name of names) {
-        const p = ctx.customStructureProperties.get(name);
-        await p.attach(structure).runInContext(taskCtx);
+        try {
+            const p = ctx.customStructureProperties.get(name);
+            await p.attach(structure).runInContext(taskCtx);
+        } catch (e) {
+            ctx.log.warn(`Error attaching structure prop '${name}': ${e}`);
+        }
     }
 }
 

@@ -17,6 +17,7 @@ import { StateBuilder, StateTransform } from '../../mol-state';
 import { StripedResidues } from './coloring';
 // import { BasicWrapperControls } from './controls';
 import { StaticSuperpositionTestData, buildStaticSuperposition, dynamicSuperpositionTest } from './superposition';
+import { PDBeStructureQualityReport } from '../../mol-plugin/behavior/dynamic/custom-props';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -152,6 +153,11 @@ class BasicWrapper {
         dynamicSuperposition: async () => {
             await PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.plugin.state.dataState, ref: StateTransform.RootRef });
             await dynamicSuperpositionTest(this.plugin, ['1tqn', '2hhb', '4hhb'], 'HEM');
+        },
+        toggleValidationTooltip: async () => {
+            const state = this.plugin.state.behaviorState;
+            const tree = state.build().to(PDBeStructureQualityReport.id).update(PDBeStructureQualityReport, p => ({ ...p, showTooltip: !p.showTooltip }));
+            await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
         }
     }
 }

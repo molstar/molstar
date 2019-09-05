@@ -23,6 +23,7 @@ import { ModelFormat } from '../../../mol-model-formats/structure/format';
  */
 export interface Model extends Readonly<{
     id: UUID,
+    entryId: string,
     label: string,
 
     /** the name of the entry/file/collection the model is part of */

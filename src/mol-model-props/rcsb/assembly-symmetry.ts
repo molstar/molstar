@@ -264,8 +264,8 @@ export namespace AssemblySymmetry {
             db = createDatabaseFromCif(model)
         } else {
             let result: AssemblySymmetryGraphQL.Query
-            console.log('model.label.toLowerCase()', model.label.toLowerCase())
-            const variables: AssemblySymmetryGraphQL.Variables = { pdbId: model.label.toLowerCase() };
+            console.log('model.entryId.toLowerCase()', model.entryId.toLowerCase())
+            const variables: AssemblySymmetryGraphQL.Variables = { pdbId: model.entryId.toLowerCase() };
             try {
                 console.log('foo', client)
                 result = await client.request<AssemblySymmetryGraphQL.Query>(ctx || RuntimeContext.Synchronous, query, variables);

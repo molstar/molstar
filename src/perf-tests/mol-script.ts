@@ -69,7 +69,7 @@ export async function testQ() {
 
     await StructureQualityReport.attachFromCifOrApi(structure.models[0], {
         PDBe_apiSourceJson: async model => {
-            const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, { timeout: 1500 });
+            const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.entryId.toLowerCase()}`, { timeout: 1500 });
             return await rawData.json();
         }
     })

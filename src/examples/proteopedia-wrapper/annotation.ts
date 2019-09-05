@@ -27,7 +27,7 @@ export const EvolutionaryConservation = CustomElementProperty.create<number>({
     name: 'proteopedia-wrapper-evolutionary-conservation',
     display: 'Evolutionary Conservation',
     async getData(model: Model) {
-        const id = model.label.toLowerCase();
+        const id = model.entryId.toLowerCase();
         const req = await fetch(`https://proteopedia.org/cgi-bin/cnsrf?${id}`);
         const json = await req.json();
         const annotations = (json && json.residueAnnotations) || [];

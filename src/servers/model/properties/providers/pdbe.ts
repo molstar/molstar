@@ -40,14 +40,14 @@ namespace residuewise_outlier_summary {
         // This is for "testing" purposes and should probably only read
         // a single file with the appropriate prop in the "production" version.
         return async (model: Model) => {
-            const key = `${model.label[1]}${model.label[2]}`;
+            const key = `${model.entryId[1]}${model.entryId[2]}`;
             if (!json.has(key)) {
                 const fn = path.join(pathPrefix, `${key}.json`);
                 if (!fs.existsSync(fn)) json.set(key, { });
                 // TODO: use async readFile?
                 else json.set(key, JSON.parse(fs.readFileSync(fn, 'utf8')));
             }
-            return json.get(key)![model.label.toLowerCase()] || { };
+            return json.get(key)![model.entryId.toLowerCase()] || { };
         }
     }
 }
@@ -74,15 +74,15 @@ function apiQueryProvider(urlPrefix: string, cache: any) {
     return async (model: Model) => {
         try {
             if (cache[cacheKey]) return cache[cacheKey];
-            const rawData = await fetchRetry(`${urlPrefix}/${model.label.toLowerCase()}`, 1500, 5);
+            const rawData = await fetchRetry(`${urlPrefix}/${model.entryId.toLowerCase()}`, 1500, 5);
             // TODO: is this ok?
             if (rawData.status !== 200) return { };
-            const json = (await rawData.json())[model.label.toLowerCase()] || { };
+            const json = (await rawData.json())[model.entryId.toLowerCase()] || { };
             cache[cacheKey] = json;
             return json;
         } catch (e) {
             // TODO: handle better
-            ConsoleLogger.warn('Props', `Count not retrieve prop @${`${urlPrefix}/${model.label.toLowerCase()}`}`);
+            ConsoleLogger.warn('Props', `Count not retrieve prop @${`${urlPrefix}/${model.entryId.toLowerCase()}`}`);
             return { };
         }
     }

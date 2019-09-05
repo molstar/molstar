@@ -98,7 +98,7 @@ export namespace StructureQualityReport {
             {
                 const url = mapUrl(model);
                 const dataStr = await fetch({ url }).runInContext(ctx) as string;
-                const data = JSON.parse(dataStr)[model.label.toLowerCase()];
+                const data = JSON.parse(dataStr)[model.entryId.toLowerCase()];
                 if (!data) return false;
                 info = PropertyWrapper.createInfo();
                 issueMap = createIssueMapFromJson(model, data);

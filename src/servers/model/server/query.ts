@@ -72,7 +72,7 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         ConsoleLogger.logId(job.id, 'Query', 'Query finished.');
 
         perf.start('encode');
-        encoder.startDataBlock(sourceStructures[0].models[0].label.toUpperCase());
+        encoder.startDataBlock(sourceStructures[0].models[0].entryId.toUpperCase());
         encoder.writeCategory(_model_server_result, job);
         encoder.writeCategory(_model_server_params, job);
 

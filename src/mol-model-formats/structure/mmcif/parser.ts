@@ -217,6 +217,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIn
 
     return {
         id: UUID.create22(),
+        entryId: entry,
         label: label.join(' | '),
         entry,
         sourceData: format,
@@ -253,6 +254,7 @@ function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatD
 
     return {
         id: UUID.create22(),
+        entryId: entry,
         label: label.join(' | '),
         entry,
         sourceData: format,

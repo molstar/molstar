@@ -139,6 +139,7 @@ const unit = {
     operator_name: p(l => l.unit.conformation.operator.name),
     model_index: p(l => l.unit.model.modelNum),
     model_label: p(l => l.unit.model.label),
+    model_entry_id: p(l => l.unit.model.entryId),
     hkl: p(l => l.unit.conformation.operator.hkl),
     spgrOp: p(l => l.unit.conformation.operator.spgrOp),
 

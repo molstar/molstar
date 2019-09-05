@@ -14,13 +14,13 @@ import { PluginBehavior } from '../../../behavior';
 import { ThemeDataContext } from '../../../../../mol-theme/theme';
 import { CustomPropertyRegistry } from '../../../../../mol-model-props/common/custom-property-registry';
 
-export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean }>({
+export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'pdbe-structure-quality-report-prop',
     category: 'custom-props',
     display: { name: 'PDBe Structure Quality Report' },
-    ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
+    ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         private attach = StructureQualityReport.createAttachTask(
-            m => `https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${m.label.toLowerCase()}`,
+            m => `https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${m.entryId.toLowerCase()}`,
             this.ctx.fetch
         );
 
@@ -32,9 +32,27 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
             attach: this.attach
         }
 
+        private labelPDBeValidation = (loci: Loci): string | undefined => {
+            if (!this.params.showTooltip) return void 0;
+
+            switch (loci.kind) {
+                case 'element-loci':
+                    const e = loci.elements[0];
+                    const u = e.unit;
+                    if (!u.model.customProperties.has(StructureQualityReport.Descriptor)) return void 0;
+
+                    const se = StructureElement.Location.create(u, u.elements[OrderedSet.getAt(e.indices, 0)]);
+                    const issues = StructureQualityReport.getIssues(se);
+                    if (issues.length === 0) return 'PDBe Validation: No Issues';
+                    return `PDBe Validation: ${issues.join(', ')}`;
+
+                default: return void 0;
+            }
+        }
+
         register(): void {
             this.ctx.customModelProperties.register(this.provider);
-            this.ctx.lociLabels.addProvider(labelPDBeValidation);
+            this.ctx.lociLabels.addProvider(this.labelPDBeValidation);
 
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('pdbe-structure-quality-report', {
                 label: 'PDBe Structure Quality Report',
@@ -45,37 +63,22 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
             })
         }
 
-        update(p: { autoAttach: boolean }) {
+        update(p: { autoAttach: boolean, showTooltip: boolean }) {
             let updated = this.params.autoAttach !== p.autoAttach
             this.params.autoAttach = p.autoAttach;
+            this.params.showTooltip = p.showTooltip;
             this.provider.defaultSelected = p.autoAttach;
             return updated;
         }
 
         unregister() {
-            console.log('unregister')
             this.ctx.customModelProperties.unregister(StructureQualityReport.Descriptor.name);
-            this.ctx.lociLabels.removeProvider(labelPDBeValidation);
+            this.ctx.lociLabels.removeProvider(this.labelPDBeValidation);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('pdbe-structure-quality-report')
         }
     },
     params: () => ({
-        autoAttach: PD.Boolean(false)
+        autoAttach: PD.Boolean(false),
+        showTooltip: PD.Boolean(true)
     })
 });
-
-function labelPDBeValidation(loci: Loci): string | undefined {
-    switch (loci.kind) {
-        case 'element-loci':
-            const e = loci.elements[0];
-            const u = e.unit;
-            if (!u.model.customProperties.has(StructureQualityReport.Descriptor)) return void 0;
-
-            const se = StructureElement.Location.create(u, u.elements[OrderedSet.getAt(e.indices, 0)]);
-            const issues = StructureQualityReport.getIssues(se);
-            if (issues.length === 0) return 'PDBe Validation: No Issues';
-            return `PDBe Validation: ${issues.join(', ')}`;
-
-        default: return void 0;
-    }
-}
