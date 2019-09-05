@@ -62,7 +62,7 @@ class Camera implements Object3D {
             default: throw new Error('unknown camera mode');
         }
 
-        const changed = !Mat4.areEqual(this.projection, this.prevProjection, EPSILON.Value) || !Mat4.areEqual(this.view, this.prevView, EPSILON.Value);
+        const changed = !Mat4.areEqual(this.projection, this.prevProjection, EPSILON) || !Mat4.areEqual(this.view, this.prevView, EPSILON);
 
         Mat4.mul(this.projectionView, this.projection, this.view)
         Mat4.invert(this.inverseProjectionView, this.projectionView)

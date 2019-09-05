@@ -297,7 +297,7 @@ export const LoadCellPackModel = StateAction.build({
                 ['spacefill', 'Spacefill'],
                 ['gaussian-surface', 'Gaussian Surface'],
                 ['point', 'Point'],
-            ])
+            ] as ['spacefill' | 'gaussian-surface' | 'point', string][])
         }, { isExpanded: true })
     },
     from: PSO.Root

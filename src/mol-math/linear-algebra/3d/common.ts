@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -17,7 +17,7 @@
  * furnished to do so, subject to the following conditions:
  */
 
-export const enum EPSILON { Value = 0.000001 }
+export const EPSILON = 0.000001;
 
 export function equalEps(a: number, b: number, eps: number) {
     return Math.abs(a - b) <= eps;

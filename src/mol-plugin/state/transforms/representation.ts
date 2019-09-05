@@ -437,7 +437,7 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
     params: {
         script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
         value: PD.Numeric(0.75, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
-        variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']])
+        variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']] as ['single' | 'multi', string][])
     }
 })({
     canAutoUpdate() {
@@ -477,7 +477,7 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
     params: {
         bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
         value: PD.Numeric(0.75, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
-        variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']])
+        variant: PD.Select('single', [['single', 'Single-layer'], ['multi', 'Multi-layer']] as ['single' | 'multi', string][])
     }
 })({
     canAutoUpdate() {

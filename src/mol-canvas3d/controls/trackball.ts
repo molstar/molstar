@@ -220,7 +220,7 @@ namespace TrackballControls {
             checkDistances()
             cameraLookAt(object.position, object.up, object.direction, target)
 
-            if (Vec3.squaredDistance(lastPosition, object.position) > EPSILON.Value) {
+            if (Vec3.squaredDistance(lastPosition, object.position) > EPSILON) {
                 Vec3.copy(lastPosition, object.position)
             }
 

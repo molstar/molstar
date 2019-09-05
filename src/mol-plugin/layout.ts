@@ -162,7 +162,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
                     s.marginBottom = t.marginBottom;
 
                     s.position = t.position;
-                    s.overflow = t.overflow;
+                    s.overflow = t.overflow || 'fixed';
                     let doc = this.getScrollElement();
                     doc.scrollTop = t.scrollTop;
                     doc.scrollLeft = t.scrollLeft;

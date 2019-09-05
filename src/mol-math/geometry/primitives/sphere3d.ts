@@ -124,7 +124,7 @@ namespace Sphere3D {
     export function equals(a: Sphere3D, b: Sphere3D) {
         const ar = a.radius;
         const br = b.radius;
-        return (Math.abs(ar - br) <= EPSILON.Value * Math.max(1.0, Math.abs(ar), Math.abs(br)) &&
+        return (Math.abs(ar - br) <= EPSILON * Math.max(1.0, Math.abs(ar), Math.abs(br)) &&
                 Vec3.equals(a.center, b.center));
     }
 }

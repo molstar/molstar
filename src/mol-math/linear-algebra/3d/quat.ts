@@ -281,7 +281,7 @@ namespace Quat {
     export function fromUnitVec3 (out: Quat, a: Vec3, b: Vec3) {
         // assumes a and b are normalized
         let r = Vec3.dot(a, b) + 1
-        if (r < EPSILON.Value) {
+        if (r < EPSILON) {
             // If u and v are exactly opposite, rotate 180 degrees
             // around an arbitrary orthogonal axis. Axis normalisation
             // can happen later, when we normalise the quaternion.

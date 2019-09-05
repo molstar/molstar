@@ -107,7 +107,7 @@ const DownloadStructure = StateAction.build({
             }, { isFlat: true, description: 'Loads the best homology model or experimental structure' }),
             'url': PD.Group({
                 url: PD.Text(''),
-                format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']]),
+                format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']] as ['cif' | 'pdb', string][]),
                 isBinary: PD.Boolean(false),
                 options: PD.Group({
                     supportProps: PD.Optional(PD.Boolean(false))

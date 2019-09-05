@@ -101,7 +101,7 @@ namespace Mat4 {
 
     const _id = identity();
     export function isIdentity(m: Mat4, eps?: number) {
-        return areEqual(m, _id, typeof eps === 'undefined' ? EPSILON.Value : eps);
+        return areEqual(m, _id, typeof eps === 'undefined' ? EPSILON : eps);
     }
 
     export function hasNaN(m: Mat4) {
@@ -499,7 +499,7 @@ namespace Mat4 {
             b10, b11, b12,
             b20, b21, b22;
 
-        if (Math.abs(len) < EPSILON.Value) {
+        if (Math.abs(len) < EPSILON) {
             return Mat4.identity();
         }
 
@@ -549,7 +549,7 @@ namespace Mat4 {
             len = Math.sqrt(x * x + y * y + z * z),
             s, c, t;
 
-        if (Math.abs(len) < EPSILON.Value) { return setIdentity(out); }
+        if (Math.abs(len) < EPSILON) { return setIdentity(out); }
 
         len = 1 / len;
         x *= len;
@@ -719,7 +719,7 @@ namespace Mat4 {
      * [ 0           1           ]
      */
     export function isRotationAndTranslation(a: Mat4, eps?: number) {
-        return _isRotationAndTranslation(a, typeof eps !== 'undefined' ? eps : EPSILON.Value)
+        return _isRotationAndTranslation(a, typeof eps !== 'undefined' ? eps : EPSILON)
     }
 
     function _isRotationAndTranslation(a: Mat4, eps: number) {
@@ -854,9 +854,9 @@ namespace Mat4 {
         const centery = center[1];
         const centerz = center[2];
 
-        if (Math.abs(eyex - centerx) < EPSILON.Value &&
-            Math.abs(eyey - centery) < EPSILON.Value &&
-            Math.abs(eyez - centerz) < EPSILON.Value
+        if (Math.abs(eyex - centerx) < EPSILON &&
+            Math.abs(eyey - centery) < EPSILON &&
+            Math.abs(eyez - centerz) < EPSILON
         ) {
             return setIdentity(out);
         }

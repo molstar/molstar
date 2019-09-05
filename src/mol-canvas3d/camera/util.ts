@@ -65,9 +65,9 @@ export function cameraLookAt(position: Vec3, up: Vec3, direction: Vec3, target: 
     if (!Vec3.isZero(tmpVec3)) {
         // change direction vector to look at target
         const d = Vec3.dot(tmpVec3, up)
-        if (Math.abs(d - 1) < EPSILON.Value) { // parallel
+        if (Math.abs(d - 1) < EPSILON) { // parallel
             Vec3.scale(up, direction, -1)
-        } else if (Math.abs(d + 1) < EPSILON.Value) { // anti parallel
+        } else if (Math.abs(d + 1) < EPSILON) { // anti parallel
             Vec3.copy(up, direction)
         }
         Vec3.copy(direction, tmpVec3)

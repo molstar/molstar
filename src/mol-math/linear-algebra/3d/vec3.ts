@@ -490,9 +490,9 @@ namespace Vec3 {
     export function equals(a: Vec3, b: Vec3) {
         const a0 = a[0], a1 = a[1], a2 = a[2];
         const b0 = b[0], b1 = b[1], b2 = b[2];
-        return (Math.abs(a0 - b0) <= EPSILON.Value * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= EPSILON.Value * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-                Math.abs(a2 - b2) <= EPSILON.Value * Math.max(1.0, Math.abs(a2), Math.abs(b2)));
+        return (Math.abs(a0 - b0) <= EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+                Math.abs(a1 - b1) <= EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+                Math.abs(a2 - b2) <= EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)));
     }
 
     const rotTemp = zero();
@@ -500,7 +500,7 @@ namespace Vec3 {
     export function makeRotation(mat: Mat4, a: Vec3, b: Vec3): Mat4 {
         const by = angle(a, b);
         if (Math.abs(by) < 0.0001) return Mat4.setIdentity(mat);
-        if (Math.abs(by - Math.PI) < EPSILON.Value) {
+        if (Math.abs(by - Math.PI) < EPSILON) {
             // here, axis can be [0,0,0] but the rotation is a simple flip
             return Mat4.fromScaling(mat, flipScaling);
         }
