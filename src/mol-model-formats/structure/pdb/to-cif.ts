@@ -17,6 +17,7 @@ import { EntityBuilder } from '../common/entity';
 import { Column } from '../../../mol-data/db';
 import { getMoleculeType } from '../../../mol-model/structure/model/types';
 import { getAtomSiteTemplate, addAtom, getAtomSite } from './atom-site';
+import { addAnisotropic, getAnisotropicTemplate, getAnisotropic } from './anisotropic';
 
 export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const { lines } = pdb;
@@ -25,11 +26,13 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
 
     // Count the atoms
     let atomCount = 0;
+    let anisotropicCount = 0;
     for (let i = 0, _i = lines.count; i < _i; i++) {
         const s = indices[2 * i], e = indices[2 * i + 1];
         switch (data[s]) {
             case 'A':
                 if (substringStartsWith(data, s, e, 'ATOM  ')) atomCount++;
+                else if (substringStartsWith(data, s, e, 'ANISOU')) anisotropicCount++;
                 break;
             case 'H':
                 if (substringStartsWith(data, s, e, 'HETATM')) atomCount++;
@@ -38,6 +41,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     }
 
     const atomSite = getAtomSiteTemplate(data, atomCount);
+    const anisotropic = getAnisotropicTemplate(data, anisotropicCount);
     const entityBuilder = new EntityBuilder();
     const helperCategories: CifCategory[] = [];
     const heteroNames: [string, string][] = [];
@@ -48,9 +52,12 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         let s = indices[2 * i], e = indices[2 * i + 1];
         switch (data[s]) {
             case 'A':
-                if (!substringStartsWith(data, s, e, 'ATOM  ')) continue;
-                if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                addAtom(atomSite, modelStr, tokenizer, s, e);
+                if (substringStartsWith(data, s, e, 'ATOM  ')) {
+                    if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
+                    addAtom(atomSite, modelStr, tokenizer, s, e);
+                } else if (substringStartsWith(data, s, e, 'ANISOU')) {
+                    addAnisotropic(anisotropic, modelStr, tokenizer, s, e)
+                }
                 break;
             case 'C':
                 if (substringStartsWith(data, s, e, 'CRYST1')) {
@@ -157,7 +164,8 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const categories = {
         entity: entityBuilder.getEntityCategory(),
         chem_comp: componentBuilder.getChemCompCategory(),
-        atom_site: CifCategory.ofFields('atom_site', getAtomSite(atomSite))
+        atom_site: CifCategory.ofFields('atom_site', getAtomSite(atomSite)),
+        atom_site_anisotrop: CifCategory.ofFields('atom_site_anisotrop', getAnisotropic(anisotropic))
     } as any;
 
     for (const c of helperCategories) {
