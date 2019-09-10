@@ -29,6 +29,7 @@ import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, Saccha
 import mmCIF_Format = ModelFormat.mmCIF
 import { memoize1 } from '../../../mol-util/memoize';
 import { ElementIndex, EntityIndex } from '../../../mol-model/structure/model';
+import { AtomSiteAnisotrop } from './anisotropic';
 
 export async function _parse_mmCif(format: mmCIF_Format, ctx: RuntimeContext) {
     const formatData = getFormatData(format)
@@ -279,6 +280,7 @@ function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatD
 function attachProps(model: Model) {
     ComponentBond.attachFromMmCif(model);
     StructConn.attachFromMmCif(model);
+    AtomSiteAnisotrop.attachFromMmCif(model);
 }
 
 function findModelEnd(num: Column<number>, startIndex: number) {

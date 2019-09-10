@@ -16,7 +16,7 @@ function setSphereMat(m: Mat4, center: Vec3, radius: number) {
     return Mat4.scaleUniformly(m, Mat4.fromTranslation(m, center), radius)
 }
 
-function getSphere(detail: number) {
+export function getSphere(detail: number) {
     let sphere = sphereMap.get(detail)
     if (sphere === undefined) {
         sphere = Sphere(detail)
