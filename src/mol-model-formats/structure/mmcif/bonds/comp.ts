@@ -8,8 +8,9 @@
 import { Model } from '../../../../mol-model/structure/model/model'
 import { LinkType } from '../../../../mol-model/structure/model/types'
 import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
-import { mmCIF_Database } from '../../../../mol-io/reader/cif/schema/mmcif';
+import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { CifWriter } from '../../../../mol-io/writer/cif'
+import { Table } from '../../../../mol-data/db';
 
 export interface ComponentBond {
     entries: Map<string, ComponentBond.Entry>
@@ -24,7 +25,7 @@ export namespace ComponentBond {
             categories: [{
                 name: 'chem_comp_bond',
                 instance(ctx) {
-                    const chem_comp_bond = getChemCompBond(ctx.structures[0].model);
+                    const chem_comp_bond = getChemCompBond(ctx.firstModel);
                     if (!chem_comp_bond) return CifWriter.Category.Empty;
 
                     const comp_names = ctx.structures[0].uniqueResidueNames;
@@ -51,12 +52,21 @@ export namespace ComponentBond {
         return true;
     }
 
-    export function attachFromExternalData(model: Model, bonds: ComponentBond, force = false) {
+    export function attachFromExternalData(model: Model, table: mmCIF_Database['chem_comp_bond'], force = false) {
         if (!force && model.customProperties.has(Descriptor)) return true;
         if (model._staticPropertyData.__ComponentBondData__) delete model._staticPropertyData.__ComponentBondData__;
+        const chem_comp_bond = chemCompBondFromTable(model, table);
+        if (chem_comp_bond._rowCount === 0) return false;
+
         model.customProperties.add(Descriptor);
-        model._staticPropertyData[PropName] = bonds;
+        model._staticPropertyData.__ComponentBondData__ = chem_comp_bond;
         return true;
+    }
+
+    function chemCompBondFromTable(model: Model, table: mmCIF_Database['chem_comp_bond']): mmCIF_Database['chem_comp_bond'] {
+        return Table.pick(table, mmCIF_Schema.chem_comp_bond, (i: number) => {
+            return model.properties.chemicalComponentMap.has(table.comp_id.value(i))
+        })
     }
 
     export class ComponentBondImpl implements ComponentBond {
