@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.313, IHM 1.01, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.314, IHM 1.01, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -212,6 +212,89 @@ export const mmCIF_Schema = {
          * in the IHM_MODEL_LIST category.
          */
         ihm_model_id: int,
+    },
+    /**
+     * Data items in the ATOM_SITE_ANISOTROP category record details
+     * about anisotropic displacement parameters.
+     * If the ATOM_SITE_ANISOTROP category is used for storing these
+     * data, the corresponding ATOM_SITE data items are not used.
+     */
+    atom_site_anisotrop: {
+        /**
+         * This data item is a pointer to _atom_site.id in the ATOM_SITE
+         * category.
+         */
+        id: int,
+        /**
+         * This data item is a pointer to _atom_type.symbol in the
+         * ATOM_TYPE category.
+         */
+        type_symbol: str,
+        /**
+         * The elements of the standard anisotropic atomic
+         * displacement matrix U, which appears in the structure-factor
+         * term as:
+         *
+         * T = exp{-2 pi^2^ sum~i~[sum~j~(U^ij^ h~i~ h~j~ a*~i~ a*~j~)]}
+         *
+         * h  = the Miller indices
+         * a* = the reciprocal space cell lengths
+         *
+         * These matrix elements may appear with atomic coordinates
+         * in the ATOM_SITE category, or they may appear in the separate
+         * ATOM_SITE_ANISOTROP category, but they may not appear in both
+         * places. Similarly, anisotropic displacements may appear as
+         * either B's or U's, but not as both.
+         *
+         * The unique elements of the real symmetric matrix are
+         * entered by row.
+         */
+        U: Matrix(3, 3),
+        /**
+         * The standard uncertainty (estimated standard deviation)
+         * of _atom_site_anisotrop.U.
+         */
+        U_esd: Matrix(3, 3),
+        /**
+         * Pointer to _atom_site.auth_seq_id
+         */
+        pdbx_auth_seq_id: str,
+        /**
+         * Pointer to _atom_site.auth_asym_id
+         */
+        pdbx_auth_asym_id: str,
+        /**
+         * Pointer to _atom_site.auth_atom_id
+         */
+        pdbx_auth_atom_id: str,
+        /**
+         * Pointer to _atom_site.auth_comp_id
+         */
+        pdbx_auth_comp_id: str,
+        /**
+         * Pointer to _atom_site.label_seq_id
+         */
+        pdbx_label_seq_id: int,
+        /**
+         * Pointer to _atom_site.label_alt_id.
+         */
+        pdbx_label_alt_id: str,
+        /**
+         * Pointer to _atom_site.label_asym_id
+         */
+        pdbx_label_asym_id: str,
+        /**
+         * Pointer to _atom_site.label_atom_id
+         */
+        pdbx_label_atom_id: str,
+        /**
+         * Pointer to _atom_site.label_comp_id
+         */
+        pdbx_label_comp_id: str,
+        /**
+         * Pointer to _atom_site.pdbx_PDB_ins_code
+         */
+        pdbx_PDB_ins_code: str,
     },
     /**
      * Data items in the ATOM_SITES category record details about
