@@ -157,7 +157,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         return ({
             type: PD.Mapped<any>(
                 registry.default.name,
-                registry.types,
+                registry.getApplicableTypes(a.data),
                 name => PD.Group<any>(registry.get(name).getParams(themeCtx, a.data))),
             colorTheme: PD.Mapped<any>(
                 type.defaultColorTheme,
