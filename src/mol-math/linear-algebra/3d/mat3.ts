@@ -72,6 +72,7 @@ namespace Mat3 {
         out[offset + 6] = a[6];
         out[offset + 7] = a[7];
         out[offset + 8] = a[8];
+        return out;
     }
 
     export function fromArray(a: Mat3, array: NumberArray, offset: number) {
@@ -217,6 +218,44 @@ namespace Mat3 {
         out[6] = b21 * det;
         out[7] = (-a21 * a00 + a01 * a20) * det;
         out[8] = (a11 * a00 - a01 * a10) * det;
+        return out;
+    }
+
+    export function symmtricFromUpper(out: Mat3, a: Mat3) {
+        if (out === a) {
+            out[3] = a[1];
+            out[6] = a[2];
+            out[7] = a[5];
+        } else {
+            out[0] = a[0];
+            out[1] = a[1];
+            out[2] = a[2];
+            out[3] = a[1];
+            out[4] = a[4];
+            out[5] = a[5];
+            out[6] = a[2];
+            out[7] = a[5];
+            out[8] = a[8];
+        }
+        return out;
+    }
+
+    export function symmtricFromLower(out: Mat3, a: Mat3) {
+        if (out === a) {
+            out[1] = a[3];
+            out[2] = a[6];
+            out[5] = a[7];
+        } else {
+            out[0] = a[0];
+            out[1] = a[3];
+            out[2] = a[6];
+            out[3] = a[3];
+            out[4] = a[4];
+            out[5] = a[7];
+            out[6] = a[6];
+            out[7] = a[7];
+            out[8] = a[8];
+        }
         return out;
     }
 

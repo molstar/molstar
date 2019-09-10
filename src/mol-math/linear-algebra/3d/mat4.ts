@@ -141,6 +141,7 @@ namespace Mat4 {
         out[offset + 13] = a[13];
         out[offset + 14] = a[14];
         out[offset + 15] = a[15];
+        return out;
     }
 
     export function fromArray(a: Mat4, array: NumberArray, offset: number) {

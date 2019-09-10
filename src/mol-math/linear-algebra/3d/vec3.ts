@@ -73,6 +73,7 @@ namespace Vec3 {
         out[offset + 0] = v[0]
         out[offset + 1] = v[1]
         out[offset + 2] = v[2]
+        return out
     }
 
     export function create(x: number, y: number, z: number): Vec3 {

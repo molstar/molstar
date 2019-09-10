@@ -53,6 +53,7 @@ namespace Vec2 {
     export function toArray(a: Vec2, out: NumberArray, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
+        return out;
     }
 
     export function fromArray(a: Vec2, array: NumberArray, offset: number) {

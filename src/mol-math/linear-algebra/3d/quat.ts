@@ -318,6 +318,7 @@ namespace Quat {
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
         out[offset + 3] = a[3];
+        return out;
     }
 
     export function fromArray(a: Quat, array: NumberArray, offset: number) {
