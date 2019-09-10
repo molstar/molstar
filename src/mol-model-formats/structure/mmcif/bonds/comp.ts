@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,8 +9,6 @@ import { Model } from '../../../../mol-model/structure/model/model'
 import { LinkType } from '../../../../mol-model/structure/model/types'
 import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
 import { mmCIF_Database } from '../../../../mol-io/reader/cif/schema/mmcif';
-import { Structure, Unit, StructureProperties, StructureElement } from '../../../../mol-model/structure';
-import { Segmentation } from '../../../../mol-data/int';
 import { CifWriter } from '../../../../mol-io/writer/cif'
 
 export interface ComponentBond {
@@ -29,7 +27,7 @@ export namespace ComponentBond {
                     const chem_comp_bond = getChemCompBond(ctx.structures[0].model);
                     if (!chem_comp_bond) return CifWriter.Category.Empty;
 
-                    const comp_names = getUniqueResidueNames(ctx.structures[0]);
+                    const comp_names = ctx.structures[0].uniqueResidueNames;
                     const { comp_id, _rowCount } = chem_comp_bond;
                     const indices: number[] = [];
                     for (let i = 0; i < _rowCount; i++) {
@@ -143,22 +141,5 @@ export namespace ComponentBond {
         const chemComp = parseChemCompBond(chem_comp_bond);
         model._staticPropertyData[PropName] = chemComp;
         return chemComp;
-    }
-
-    function getUniqueResidueNames(s: Structure) {
-        const prop = StructureProperties.residue.label_comp_id;
-        const names = new Set<string>();
-        const loc = StructureElement.Location.create();
-        for (const unit of s.units) {
-            if (!Unit.isAtomic(unit)) continue;
-            const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
-            loc.unit = unit;
-            while (residues.hasNext) {
-                const seg = residues.move();
-                loc.element = unit.elements[seg.start];
-                names.add(prop(loc));
-            }
-        }
-        return names;
     }
 }
