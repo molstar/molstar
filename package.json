@@ -85,10 +85,10 @@
     "simple-git": "^1.126.0",
     "style-loader": "^1.0.0",
     "ts-jest": "^24.0.2",
-    "tslint": "^5.19.0",
-    "typescript": "^3.6.2",
+    "tslint": "^5.20.0",
+    "typescript": "^3.6.3",
     "webpack": "^4.39.3",
-    "webpack-cli": "^3.3.7"
+    "webpack-cli": "^3.3.8"
   },
   "dependencies": {
     "@types/argparse": "^1.0.36",
@@ -111,7 +111,7 @@
     "react": "^16.9.0",
     "react-dom": "^16.9.0",
     "rxjs": "^6.5.3",
-    "swagger-ui-dist": "^3.23.8",
+    "swagger-ui-dist": "^3.23.9",
     "util.promisify": "^1.0.0",
     "xhr2": "^0.2.0"
   }
