@@ -8,7 +8,7 @@
 import { Column, Table } from '../../../mol-data/db';
 import { mmCIF_Database, mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/geometry';
-import { Tensor, Vec3 } from '../../../mol-math/linear-algebra';
+import { Tensor, Vec3, Mat3 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../mol-task';
 import UUID from '../../../mol-util/uuid';
 import { Model } from '../../../mol-model/structure/model/model';
@@ -72,8 +72,8 @@ function getNcsOperators(format: mmCIF_Format) {
 
     const opers: SymmetryOperator[] = [];
     for (let i = 0; i < struct_ncs_oper._rowCount; i++) {
-        const m = Tensor.toMat3(matrixSpace, matrix.value(i));
-        const v = Tensor.toVec3(vectorSpace, vector.value(i));
+        const m = Tensor.toMat3(Mat3(), matrixSpace, matrix.value(i));
+        const v = Tensor.toVec3(Vec3(), vectorSpace, vector.value(i));
         if (!SymmetryOperator.checkIfRotationAndTranslation(m, v)) continue;
         const ncsId = id.value(i)
         opers[opers.length] = SymmetryOperator.ofRotationAndOffset(`ncs_${ncsId}`, m, v, ncsId);

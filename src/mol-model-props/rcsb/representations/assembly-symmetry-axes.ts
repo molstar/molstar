@@ -13,7 +13,7 @@ import { StructureRepresentationProvider, StructureRepresentation, ComplexRepres
 import { AssemblySymmetry } from '../assembly-symmetry';
 import { Table } from '../../../mol-data/db';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
-import { Tensor } from '../../../mol-math/linear-algebra';
+import { Tensor, Vec3 } from '../../../mol-math/linear-algebra';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { VisualUpdateState } from '../../../mol-repr/util';
@@ -127,8 +127,8 @@ export function createAssemblySymmetryAxesMesh(ctx: VisualContext, structure: St
      for (let i = 0, il = axes._rowCount; i < il; ++i) {
         if (axes.symmetry_id.value(i) !== symmetryId) continue
 
-        const start = Tensor.toVec3(vectorSpace, axes.start.value(i))
-        const end = Tensor.toVec3(vectorSpace, axes.end.value(i))
+        const start = Tensor.toVec3(Vec3(), vectorSpace, axes.start.value(i))
+        const end = Tensor.toVec3(Vec3(), vectorSpace, axes.end.value(i))
         builderState.currentGroup = i
         addSphere(builderState, start, radius, 2)
         addSphere(builderState, end, radius, 2)

@@ -74,7 +74,7 @@ function getGaussianConformation(data: mmCIF['ihm_gaussian_obj_site']): CoarseGa
     const { covariance_matrix: cm } = data;
 
     for (let i = 0, _i = cm.rowCount; i < _i; i++) {
-        covariance_matrix[i] = Tensor.toMat3(matrix_space, cm.value(i));
+        covariance_matrix[i] = Tensor.toMat3(Mat3(), matrix_space, cm.value(i));
     }
 
     return {

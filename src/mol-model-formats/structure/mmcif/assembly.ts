@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat4, Tensor } from '../../../mol-math/linear-algebra'
+import { Mat4, Tensor, Vec3 } from '../../../mol-math/linear-algebra'
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
 import { Assembly, OperatorGroup, OperatorGroups } from '../../../mol-model/structure/model/properties/symmetry'
 import { Queries as Q } from '../../../mol-model/structure'
@@ -76,8 +76,8 @@ function getMatrices({ data }: mmCIF_Format): Matrices {
     const matrices = new Map<string, Mat4>();
 
     for (let i = 0, _i = pdbx_struct_oper_list._rowCount; i < _i; i++) {
-        const m = Tensor.toMat4(_schema.matrix.space, matrix.value(i));
-        const t = Tensor.toVec3(_schema.vector.space, vector.value(i));
+        const m = Tensor.toMat4(Mat4(), _schema.matrix.space, matrix.value(i));
+        const t = Tensor.toVec3(Vec3(), _schema.vector.space, vector.value(i));
         Mat4.setTranslation(m, t);
         Mat4.setValue(m, 3, 3, 1);
         matrices.set(id.value(i), m);

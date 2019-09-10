@@ -56,40 +56,36 @@ export namespace Tensor {
     export function ColumnMajorMatrix(rows: number, cols: number, ctor?: ArrayCtor) { return Space([rows, cols], [1, 0], ctor); }
     export function RowMajorMatrix(rows: number, cols: number, ctor?: ArrayCtor) { return Space([rows, cols], [0, 1], ctor); }
 
-    export function toMat4(space: Space, data: Tensor.Data): Mat4 {
+    export function toMat4(out: Mat4, space: Space, data: Tensor.Data): Mat4 {
         if (space.rank !== 2) throw new Error('Invalid tensor rank');
-        const mat = Mat4.zero();
         const d0 = Math.min(4, space.dimensions[0]), d1 = Math.min(4, space.dimensions[1]);
         for (let i = 0; i < d0; i++) {
-            for (let j = 0; j < d1; j++) Mat4.setValue(mat, i, j, space.get(data, i, j));
+            for (let j = 0; j < d1; j++) Mat4.setValue(out, i, j, space.get(data, i, j));
         }
-        return mat;
+        return out;
     }
 
-    export function toMat3(space: Space, data: Tensor.Data): Mat3 {
+    export function toMat3(out: Mat3, space: Space, data: Tensor.Data): Mat3 {
         if (space.rank !== 2) throw new Error('Invalid tensor rank');
-        const mat = Mat3.zero();
         const d0 = Math.min(3, space.dimensions[0]), d1 = Math.min(3, space.dimensions[1]);
         for (let i = 0; i < d0; i++) {
-            for (let j = 0; j < d1; j++) Mat3.setValue(mat, i, j, space.get(data, i, j));
+            for (let j = 0; j < d1; j++) Mat3.setValue(out, i, j, space.get(data, i, j));
         }
-        return mat;
+        return out;
     }
 
-    export function toVec3(space: Space, data: Tensor.Data): Vec3 {
+    export function toVec3(out: Vec3, space: Space, data: Tensor.Data): Vec3 {
         if (space.rank !== 1) throw new Error('Invalid tensor rank');
-        const vec = Vec3.zero();
         const d0 = Math.min(3, space.dimensions[0]);
-        for (let i = 0; i < d0; i++) vec[i] = data[i];
-        return vec;
+        for (let i = 0; i < d0; i++) out[i] = data[i];
+        return out;
     }
 
-    export function toVec4(space: Space, data: Tensor.Data): Vec4 {
+    export function toVec4(out: Vec4, space: Space, data: Tensor.Data): Vec4 {
         if (space.rank !== 1) throw new Error('Invalid tensor rank');
-        const vec = Vec4.zero();
         const d0 = Math.min(4, space.dimensions[0]);
-        for (let i = 0; i < d0; i++) vec[i] = data[i];
-        return vec;
+        for (let i = 0; i < d0; i++) out[i] = data[i];
+        return out;
     }
 
     export function areEqualExact(a: Tensor.Data, b: Tensor.Data) {
