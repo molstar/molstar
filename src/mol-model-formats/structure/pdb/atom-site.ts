@@ -108,9 +108,9 @@ export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer,
 
     // 27             AChar           Code for insertion of residues.
     if (str.charCodeAt(s + 26) === 32) { // ' '
-        TokenBuilder.add(sites.label_alt_id, 0, 0);
+        TokenBuilder.add(sites.pdbx_PDB_ins_code, 0, 0);
     } else {
-        TokenBuilder.add(sites.label_alt_id, s + 26, s + 27);
+        TokenBuilder.add(sites.pdbx_PDB_ins_code, s + 26, s + 27);
     }
 
     // 31 - 38        Real(8.3)       Orthogonal coordinates for X in Angstroms.
@@ -129,7 +129,7 @@ export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer,
     if (length >= 66) {
         TokenBuilder.addToken(sites.B_iso_or_equiv, Tokenizer.trim(data, s + 60, s + 66));
     } else {
-        TokenBuilder.add(sites.label_alt_id, 0, 0);
+        TokenBuilder.add(sites.B_iso_or_equiv, 0, 0);
     }
 
     // 73 - 76        LString(4)      Segment identifier, left-justified.
@@ -147,6 +147,9 @@ export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer,
     } else {
         guessElementSymbolTokens(sites.type_symbol, str, s + 12, s + 16)
     }
+
+    // 79 - 80        LString(2)    charge       Charge  on the atom.
+    // TODO
 
     sites.pdbx_PDB_model_num[sites.index] = model;
 
