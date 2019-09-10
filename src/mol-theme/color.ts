@@ -31,6 +31,7 @@ import { EntitySourceColorThemeProvider } from './color/entity-source';
 import { IllustrativeColorThemeProvider } from './color/illustrative';
 import { HydrophobicityColorThemeProvider } from './color/hydrophobicity';
 import { ModelIndexColorThemeProvider } from './color/model-index';
+import { OccupancyColorThemeProvider } from './color/occupancy';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -82,6 +83,7 @@ export const BuiltInColorThemes = {
     'illustrative': IllustrativeColorThemeProvider,
     'model-index': ModelIndexColorThemeProvider,
     'molecule-type': MoleculeTypeColorThemeProvider,
+    'occupancy': OccupancyColorThemeProvider,
     'polymer-id': PolymerIdColorThemeProvider,
     'polymer-index': PolymerIndexColorThemeProvider,
     'residue-name': ResidueNameColorThemeProvider,
