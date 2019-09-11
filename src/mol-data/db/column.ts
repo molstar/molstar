@@ -302,7 +302,7 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
     }
 }
 
-function windowColumn<T>(column: Column<T>, start: number, end: number) {
+function windowColumn<T>(column: Column<T>, start: number, end: number): Column<T> {
     if (!column.isDefined) return Column.Undefined(end - start, column.schema);
     if (start === 0 && end === column.rowCount) return column;
     if (!!column.__array && ColumnHelpers.isTypedArray(column.__array)) return windowTyped(column, start, end);
