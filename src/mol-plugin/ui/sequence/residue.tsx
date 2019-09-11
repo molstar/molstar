@@ -38,8 +38,8 @@ export class Residue extends PurePluginUIComponent<{ seqIdx: number, label: stri
     }
 
     get margin() {
-        return this.props.label.length > 1 && this.props.seqIdx
-            ? `0px 0px 0px 4px`
+        return this.props.label.length > 1
+            ? (this.props.seqIdx === 0 ? `0px 2px 0px 0px` : `0px 2px 0px 2px`)
             : undefined
     }
 

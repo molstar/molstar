@@ -57,13 +57,33 @@ function compId(l: StructureElement.Location) {
     return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])
 }
 
+function seqId(l: StructureElement.Location) {
+    return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element])
+}
+
+function hasMicroheterogeneity(l: StructureElement.Location) {
+    if (!Unit.isAtomic(l.unit)) notAtomic()
+    const entitySeq = l.unit.model.sequence.byEntityKey[eK(l)]
+    return entitySeq && entitySeq.sequence.microHet.has(seqId(l))
+}
+
+function microheterogeneityCompIds(l: StructureElement.Location) {
+    if (!Unit.isAtomic(l.unit)) notAtomic()
+    const entitySeq = l.unit.model.sequence.byEntityKey[eK(l)]
+    if (entitySeq) {
+        return entitySeq.sequence.microHet.get(seqId(l)) || [compId(l)]
+    } else {
+        return [compId(l)]
+    }
+}
+
 const residue = {
     key: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.residueIndex[l.element]),
 
     group_PDB: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
     label_comp_id: p(compId),
     auth_comp_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.element])),
-    label_seq_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element])),
+    label_seq_id: p(seqId),
     auth_seq_id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
     pdbx_PDB_ins_code: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element])),
 
@@ -74,6 +94,8 @@ const residue = {
         const id = compId(l)
         return l.unit.model.properties.modifiedResidues.parentId.get(id) || id
     }),
+    hasMicroheterogeneity: p(hasMicroheterogeneity),
+    microheterogeneityCompIds: p(microheterogeneityCompIds),
     secondary_structure_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.type[l.unit.residueIndex[l.element]]),
     secondary_structure_key: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.key[l.unit.residueIndex[l.element]]),
     chem_comp_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.type),

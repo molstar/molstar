@@ -108,13 +108,18 @@ export function atomicElementLabel(location: StructureElement.Location<Unit.Atom
     const atom_id = Props.atom.label_atom_id(location)
     const alt_id = Props.atom.label_alt_id(location)
 
+    const microHetCompIds = Props.residue.microheterogeneityCompIds(location)
+    const compId = granularity === 'residue' && microHetCompIds.length > 1 ?
+        `(${microHetCompIds.join('|')})` : comp_id
+
+
     const label: string[] = []
 
     switch (granularity) {
         case 'element':
             label.push(`${atom_id}${alt_id ? `%${alt_id}` : ''}`)
         case 'residue':
-            label.push(`${comp_id} ${seq_id}`)
+            label.push(`${compId} ${seq_id}`)
         case 'chain':
             label.push(`Chain ${label_asym_id}:${auth_asym_id}`)
     }

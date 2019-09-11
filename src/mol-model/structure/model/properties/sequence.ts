@@ -19,7 +19,7 @@ namespace StructureSequence {
     export interface Entity {
         readonly entityId: string,
         readonly num: Column<number>,
-        // Corresponds to _entity_poly_seq.mon_id
+        /** Corresponds to _entity_poly_seq.mon_id */
         readonly compId: Column<string>,
         readonly sequence: Sequence
     }

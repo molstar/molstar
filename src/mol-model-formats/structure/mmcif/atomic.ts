@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column, Table } from '../../../mol-data/db';
@@ -26,15 +27,15 @@ function findHierarchyOffsets(atom_site: AtomSite) {
     const start = 0, end = atom_site._rowCount;
     const residues = [start as ElementIndex], chains = [start as ElementIndex];
 
-    const { label_entity_id, label_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code, label_comp_id } = atom_site;
+    const { label_entity_id, label_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = atom_site;
 
     for (let i = start + 1 as ElementIndex; i < end; i++) {
         const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !label_asym_id.areValuesEqual(i - 1, i);
         const newResidue = newChain
             || !label_seq_id.areValuesEqual(i - 1, i)
             || !auth_seq_id.areValuesEqual(i - 1, i)
-            || !pdbx_PDB_ins_code.areValuesEqual(i - 1, i)
-            || !label_comp_id.areValuesEqual(i - 1, i);
+            || !pdbx_PDB_ins_code.areValuesEqual(i - 1, i);
+        // not checking label_comp_id to allow for MICROHETEROGENEITY
 
         if (newResidue) residues[residues.length] = i as ElementIndex;
         if (newChain) chains[chains.length] = i as ElementIndex;

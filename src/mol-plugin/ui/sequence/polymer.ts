@@ -25,7 +25,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 
     residueLabel(seqIdx: number) {
-        return this.sequence.sequence[seqIdx]
+        return this.sequence.labels[seqIdx]
     }
     residueColor(seqIdx: number) {
         return this.missing.has(this.modelNum, this.asymId, this.seqId(seqIdx))
