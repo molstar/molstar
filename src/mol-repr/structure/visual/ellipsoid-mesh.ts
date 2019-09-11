@@ -14,10 +14,12 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { sphereVertexCount } from '../../../mol-geo/primitive/sphere';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
-import { Vec3, Mat3, Tensor } from '../../../mol-math/linear-algebra';
+import { Vec3, Mat3, Tensor, EPSILON } from '../../../mol-math/linear-algebra';
 import { isHydrogen } from '../../../mol-repr/structure/visual/util/common';
 import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/mmcif/anisotropic'
+import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
+import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 
 export const EllipsoidMeshParams = {
     ...UnitsMeshParams,
@@ -65,9 +67,9 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
 
     const v = Vec3()
     const m = Mat3()
-    const eigenvalues = Vec3()
-    const eigenvector1 = Vec3()
-    const eigenvector2 = Vec3()
+    const eigvals = Vec3()
+    const eigvec1 = Vec3()
+    const eigvec2 = Vec3()
     const { elementToAnsiotrop, data } = atomSiteAnisotrop
     const { U } = data
     const space = data._schema.U.space
@@ -87,17 +89,21 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
         builderState.currentGroup = i
         Tensor.toMat3(m, space, U.value(ai))
         Mat3.symmtricFromLower(m, m)
-        Mat3.symmetricEigenvalues(eigenvalues, m)
-        Mat3.eigenvector(eigenvector1, m, eigenvalues[1])
-        Mat3.eigenvector(eigenvector2, m, eigenvalues[2])
+        Mat3.symmetricEigenvalues(eigvals, m)
+        Mat3.eigenvector(eigvec1, m, eigvals[1])
+        Mat3.eigenvector(eigvec2, m, eigvals[2])
         for (let j = 0; j < 3; ++j) {
             // show 50% probability surface, needs sqrt as U matrix is in angstrom-squared
             // take abs of eigenvalue to avoid reflection
             // multiply by given size-factor
-            eigenvalues[j] = sizeFactor * 1.5958 * Math.sqrt(Math.abs(eigenvalues[j]))
+            eigvals[j] = sizeFactor * 1.5958 * Math.sqrt(Math.abs(eigvals[j]))
         }
 
-        addEllipsoid(builderState, v, eigenvector2, eigenvector1, eigenvalues, detail)
+        if (equalEps(eigvals[0], eigvals[1], EPSILON) && equalEps(eigvals[1], eigvals[2], EPSILON)) {
+            addSphere(builderState, v, eigvals[0], detail)
+        } else {
+            addEllipsoid(builderState, v, eigvec2, eigvec1, eigvals, detail)
+        }
     }
 
     return MeshBuilder.getMesh(builderState)
