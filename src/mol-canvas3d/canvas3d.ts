@@ -140,7 +140,7 @@ namespace Canvas3D {
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
 
         let drawPending = false
-        let cameraResetRequested: boolean | Vec3 = false
+        let cameraResetRequested = false
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -271,8 +271,7 @@ namespace Canvas3D {
 
             runTask(scene.commit()).then(() => {
                 if (cameraResetRequested && !scene.isCommiting) {
-                    const dir = typeof cameraResetRequested === 'boolean' ? undefined : cameraResetRequested
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius, dir)
+                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
                     cameraResetRequested = false
                 }
                 if (debugHelper.isEnabled) debugHelper.update()
@@ -345,11 +344,11 @@ namespace Canvas3D {
             getLoci,
 
             handleResize,
-            resetCamera: (dir?: Vec3) => {
+            resetCamera: (/*dir?: Vec3*/) => {
                 if (scene.isCommiting) {
-                    cameraResetRequested = dir || true
+                    cameraResetRequested = true
                 } else {
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius, dir)
+                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
                     requestDraw(true);
                 }
             },
