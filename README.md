@@ -143,7 +143,7 @@ To get syntax highlighting for shader and graphql files add the following to Vis
 
 ## Deploy
     npm run test
-    NODE_ENV=production npm run build
+    npm run build
     node ./scripts/deploy.js # currently updates the viewer on molstar.org/viewer
 
 ## Contributing
