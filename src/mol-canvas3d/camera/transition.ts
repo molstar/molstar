@@ -22,7 +22,7 @@ class CameraTransitionManager {
     private current = Camera.createDefaultSnapshot();
 
     apply(to: Partial<Camera.Snapshot>, durationMs: number = 0, transition?: CameraTransitionManager.TransitionFunc) {
-        if (durationMs <= 0 || to.mode !== this.camera.state.mode) {
+        if (durationMs <= 0 || (typeof to.mode !== 'undefined' && to.mode !== this.camera.state.mode)) {
             this.finish(to);
             return;
         }

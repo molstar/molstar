@@ -6,10 +6,12 @@
  */
 
 import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra'
-import { Viewport, cameraProject, cameraUnproject } from './camera/util';
+import { Viewport, cameraProject, cameraUnproject, cameraSetClipping } from './camera/util';
 import { Object3D } from '../mol-gl/object3d';
 import { BehaviorSubject } from 'rxjs';
 import { CameraTransitionManager } from './camera/transition';
+import { Canvas3DProps } from './canvas3d';
+import Scene from '../mol-gl/scene';
 
 export { Camera }
 
@@ -80,8 +82,8 @@ class Camera implements Object3D {
         return changed;
     }
 
-    setState(snapshot: Partial<Camera.Snapshot>) {
-        this.transition.apply(snapshot);
+    setState(snapshot: Partial<Camera.Snapshot>, durationMs?: number) {
+        this.transition.apply(snapshot, durationMs);
     }
 
     getSnapshot() {
@@ -100,11 +102,17 @@ class Camera implements Object3D {
         Vec3.setMagnitude(this.deltaDirection, this.state.direction, targetDistance)
         Vec3.sub(this.newPosition, target, this.deltaDirection)
 
-        return { target: Vec3.clone(target), position: Vec3.clone(this.newPosition) };
+        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
+        state.target = Vec3.clone(target);
+        state.position = Vec3.clone(this.newPosition);
+
+        cameraSetClipping(state, this.scene.boundingSphere, this.canvasProps)
+
+        return state;
     }
 
-    focus(target: Vec3, radius: number) {
-        if (radius > 0) this.setState(this.getFocus(target, radius));
+    focus(target: Vec3, radius: number, durationMs?: number) {
+        if (radius > 0) this.setState(this.getFocus(target, radius), durationMs);
     }
 
     // lookAt(target: Vec3) {
@@ -128,7 +136,7 @@ class Camera implements Object3D {
         this.updatedViewProjection.complete();
     }
 
-    constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
+    constructor(private scene: Scene, private canvasProps: Canvas3DProps, state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
         this.viewport = viewport;
         Camera.copySnapshot(this.state, state);
     }
@@ -208,7 +216,7 @@ namespace Camera {
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
-        if (!source) return;
+        if (!source) return out;
 
         if (typeof source.mode !== 'undefined') out.mode = source.mode;
 
@@ -224,6 +232,8 @@ namespace Camera {
 
         if (typeof source.fov !== 'undefined') out.fov = source.fov;
         if (typeof source.zoom !== 'undefined') out.zoom = source.zoom;
+
+        return out;
     }
 }
 
