@@ -11,11 +11,8 @@ import { Object3D } from '../mol-gl/object3d';
 import { BehaviorSubject } from 'rxjs';
 import { CameraTransitionManager } from './camera/transition';
 import { Canvas3DProps } from './canvas3d';
-import Scene from '../mol-gl/scene';
 
 export { Camera }
-
-// TODO: slab controls that modify near/far planes?
 
 class Camera implements Object3D {
     readonly updatedViewProjection = new BehaviorSubject<Camera>(this);
@@ -57,6 +54,8 @@ class Camera implements Object3D {
         const snapshot = this.state as Camera.Snapshot;
         const height = 2 * Math.tan(snapshot.fov / 2) * Vec3.distance(snapshot.position, snapshot.target);
         snapshot.zoom = this.viewport.height / height;
+
+        cameraSetClipping(snapshot, this.canvasProps);
 
         switch (this.state.mode) {
             case 'orthographic': updateOrtho(this); break;
@@ -102,13 +101,12 @@ class Camera implements Object3D {
         Vec3.setMagnitude(this.deltaDirection, this.state.direction, targetDistance)
         Vec3.sub(this.newPosition, target, this.deltaDirection)
 
-        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
-        state.target = Vec3.clone(target);
-        state.position = Vec3.clone(this.newPosition);
+        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state)
+        state.target = Vec3.clone(target)
+        state.radius = radius
+        state.position = Vec3.clone(this.newPosition)
 
-        cameraSetClipping(state, this.scene.boundingSphere, this.canvasProps)
-
-        return state;
+        return state
     }
 
     focus(target: Vec3, radius: number, durationMs?: number) {
@@ -136,7 +134,7 @@ class Camera implements Object3D {
         this.updatedViewProjection.complete();
     }
 
-    constructor(private scene: Scene, private canvasProps: Canvas3DProps, state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
+    constructor(private canvasProps: Canvas3DProps, state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
         this.viewport = viewport;
         Camera.copySnapshot(this.state, state);
     }
@@ -186,6 +184,7 @@ namespace Camera {
             up: Vec3.create(0, 1, 0),
 
             target: Vec3.create(0, 0, 0),
+            radius: 10,
 
             near: 1,
             far: 10000,
@@ -204,7 +203,9 @@ namespace Camera {
         // Normalized camera direction, from Target to Position, for some reason?
         direction: Vec3,
         up: Vec3,
+
         target: Vec3,
+        radius: number
 
         near: number,
         far: number,
@@ -223,7 +224,9 @@ namespace Camera {
         if (typeof source.position !== 'undefined') Vec3.copy(out.position, source.position);
         if (typeof source.direction !== 'undefined') Vec3.copy(out.direction, source.direction);
         if (typeof source.up !== 'undefined') Vec3.copy(out.up, source.up);
+
         if (typeof source.target !== 'undefined') Vec3.copy(out.target, source.target);
+        if (typeof source.radius !== 'undefined') out.radius = source.radius;
 
         if (typeof source.near !== 'undefined') out.near = source.near;
         if (typeof source.far !== 'undefined') out.far = source.far;

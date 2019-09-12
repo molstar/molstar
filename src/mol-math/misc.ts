@@ -15,3 +15,18 @@ export function radToDeg (rad: number) {
 export function isPowerOfTwo (x: number) {
     return (x !== 0) && (x & (x - 1)) === 0
 }
+
+/** return the value that has the largest absolute value */
+export function absMax(...values: number[]) {
+    let max = 0
+    let absMax = 0
+    for (let i = 0, il = values.length; i < il; ++i) {
+        const value = values[i]
+        const abs = Math.abs(value)
+        if (abs > absMax) {
+            max = value
+            absMax = abs
+        }
+    }
+    return max
+}

@@ -147,6 +147,7 @@ function getCameraSnapshot(e: JoleculeSnapshot['camera']): Camera.Snapshot {
         mode: 'perspective',
         position: Vec3.scaleAndAdd(Vec3.zero(), e.pos, direction, e.slab.zoom),
         target: e.pos,
+        radius: e.slab.zoom,
         direction,
         up,
         near: e.slab.zoom + e.slab.z_front,

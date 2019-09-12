@@ -28,7 +28,7 @@ import { DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
 
 function createRenderer(gl: WebGLRenderingContext) {
     const ctx = createContext(gl)
-    const camera = new Camera(Scene.create(ctx), DefaultCanvas3DParams, {
+    const camera = new Camera(DefaultCanvas3DParams, {
         near: 0.01,
         far: 10000,
         position: Vec3.create(0, 0, 50)

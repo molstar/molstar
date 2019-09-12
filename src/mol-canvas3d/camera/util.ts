@@ -6,7 +6,6 @@
 
 import { Mat4, Vec3, Vec4, EPSILON } from '../../mol-math/linear-algebra'
 import { Camera } from '../camera'
-import { Sphere3D } from '../../mol-math/geometry'
 import { Canvas3DProps } from '../canvas3d'
 
 export { Viewport }
@@ -83,9 +82,9 @@ export function cameraLookAt(position: Vec3, up: Vec3, direction: Vec3, target: 
     }
 }
 
-export function cameraSetClipping(state: Camera.Snapshot, boundingSphere: Sphere3D, p: Canvas3DProps) {
+export function cameraSetClipping(state: Camera.Snapshot, p: Canvas3DProps) {
     const cDist = Vec3.distance(state.position, state.target)
-    const bRadius = Math.max(10, boundingSphere.radius)
+    const bRadius = Math.max(1, state.radius)
 
     const nearFactor = (50 - p.clip[0]) / 50
     const farFactor = -(50 - p.clip[1]) / 50
@@ -113,11 +112,6 @@ export function cameraSetClipping(state: Camera.Snapshot, boundingSphere: Sphere
     state.far = far;
     state.fogNear = fogNear;
     state.fogFar = fogFar;
-
-    // if (near !== currentNear || far !== currentFar || fogNear !== currentFogNear || fogFar !== currentFogFar) {
-    //     camera.setState({ near, far, fogNear, fogFar })
-    //     currentNear = near, currentFar = far, currentFogNear = fogNear, currentFogFar = fogFar
-    // }
 }
 
 const NEAR_RANGE = 0

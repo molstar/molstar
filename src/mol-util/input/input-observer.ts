@@ -60,10 +60,19 @@ export type ModifiersKeys = {
     meta: boolean
 }
 export namespace ModifiersKeys {
-    export const None: ModifiersKeys = { shift: false, alt: false, control: false, meta: false };
+    export const None = create();
 
     export function areEqual(a: ModifiersKeys, b: ModifiersKeys) {
         return a.shift === b.shift && a.alt === b.alt && a.control === b.control && a.meta === b.meta;
+    }
+
+    export function create(modifierKeys: Partial<ModifiersKeys> = {}): ModifiersKeys {
+        return {
+            shift: !!modifierKeys.shift,
+            alt: !!modifierKeys.alt,
+            control: !!modifierKeys.control,
+            meta: !!modifierKeys.meta
+        }
     }
 }
 
@@ -130,7 +139,7 @@ export type PinchInput = {
     fraction: number,
     distance: number,
     isStart: boolean
-}
+} & BaseInput
 
 export type ResizeInput = {
 
@@ -342,12 +351,19 @@ namespace InputObserver {
                 buttons = ButtonsType.Flag.Primary
                 onPointerDown(ev.touches[0])
             } else if (ev.touches.length >= 2) {
-                buttons = ButtonsType.Flag.Secondary
+                buttons = ButtonsType.Flag.Secondary & ButtonsType.Flag.Auxilary
                 onPointerDown(getCenterTouch(ev))
 
                 const touchDistance = getTouchDistance(ev)
                 lastTouchDistance = touchDistance
-                pinch.next({ distance: touchDistance, fraction: 1, delta: 0, isStart: true })
+                pinch.next({
+                    distance: touchDistance,
+                    fraction: 1,
+                    delta: 0,
+                    isStart: true,
+                    buttons,
+                    modifiers: getModifierKeys()
+                })
             }
         }
 
@@ -375,11 +391,14 @@ namespace InputObserver {
                     buttons = ButtonsType.Flag.Secondary
                     onPointerMove(getCenterTouch(ev))
                 } else {
+                    buttons = ButtonsType.Flag.Auxilary
                     pinch.next({
                         delta: touchDelta,
                         fraction: lastTouchDistance / touchDistance,
                         distance: touchDistance,
-                        isStart: false
+                        isStart: false,
+                        buttons,
+                        modifiers: getModifierKeys()
                     })
                 }
                 lastTouchDistance = touchDistance
@@ -460,6 +479,8 @@ namespace InputObserver {
             const dx = (ev.deltaX || 0) * scale
             const dy = (ev.deltaY || 0) * scale
             const dz = (ev.deltaZ || 0) * scale
+
+            buttons = ButtonsType.Flag.Auxilary
 
             if (dx || dy || dz) {
                 wheel.next({ dx, dy, dz, buttons, modifiers: getModifierKeys() })

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -81,8 +81,9 @@ namespace CameraTransitionManager {
         Quat.slerp(rot, rot, Quat.rotationTo(Quat.zero(), source.up, target.up), t);
         Vec3.transformQuat(out.up, source.up, rot);
 
-        // Lerp target
+        // Lerp target & radius
         Vec3.lerp(out.target, source.target, target.target, t);
+        out.radius = lerp(source.radius, target.radius, t);
 
         // Update position
         const dist = -lerp(Vec3.distance(source.position, source.target), Vec3.distance(target.position, target.target), t);

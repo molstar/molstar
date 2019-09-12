@@ -11,7 +11,7 @@ import InputObserver, { ModifiersKeys, ButtonsType } from '../mol-util/input/inp
 import Renderer, { RendererStats, RendererParams } from '../mol-gl/renderer'
 import { GraphicsRenderObject } from '../mol-gl/render-object'
 import { TrackballControls, TrackballControlsParams } from './controls/trackball'
-import { Viewport, cameraSetClipping } from './camera/util'
+import { Viewport } from './camera/util'
 import { createContext, WebGLContext, getGLContext } from '../mol-gl/webgl/context';
 import { Representation } from '../mol-repr/representation';
 import Scene from '../mol-gl/scene';
@@ -124,9 +124,7 @@ namespace Canvas3D {
 
         const scene = Scene.create(webgl)
 
-        const camera = new Camera(scene, p, {
-            near: 0.1,
-            far: 10000,
+        const camera = new Camera(p, {
             position: Vec3.create(0, 0, 100),
             mode: p.cameraMode
         })
@@ -174,18 +172,12 @@ namespace Canvas3D {
             }
         }
 
-        function setClipping() {
-            cameraSetClipping(camera.state, scene.boundingSphere, p);
-        }
-
         function render(variant: 'pick' | 'draw', force: boolean) {
             if (scene.isCommiting) return false
 
             let didRender = false
-            controls.update(currentTime);
-            // TODO: is this a good fix? Also, setClipping does not work if the user has manually set a clipping plane.
-            if (!camera.transition.inTransition) setClipping();
-            const cameraChanged = camera.updateMatrices();
+            controls.update(currentTime)
+            const cameraChanged = camera.updateMatrices()
             multiSample.update(force || cameraChanged, currentTime)
 
             if (force || cameraChanged || multiSample.enabled) {
