@@ -11,7 +11,7 @@ import InputObserver, { ModifiersKeys, ButtonsType } from '../mol-util/input/inp
 import Renderer, { RendererStats, RendererParams } from '../mol-gl/renderer'
 import { GraphicsRenderObject } from '../mol-gl/render-object'
 import { TrackballControls, TrackballControlsParams } from './controls/trackball'
-import { Viewport } from './camera/util'
+import { Viewport, cameraSetClipping } from './camera/util'
 import { createContext, WebGLContext, getGLContext } from '../mol-gl/webgl/context';
 import { Representation } from '../mol-repr/representation';
 import Scene from '../mol-gl/scene';
@@ -38,6 +38,7 @@ export const Canvas3DParams = {
     // maxFps: PD.Numeric(30),
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     cameraClipDistance: PD.Numeric(0, { min: 0.0, max: 50.0, step: 0.1 }, { description: 'The distance between camera and scene at which to clip regardless of near clipping plane.' }),
+    cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
 
@@ -116,19 +117,20 @@ namespace Canvas3D {
         const startTime = now()
         const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp)
 
-        const camera = new Camera({
-            near: 0.1,
-            far: 10000,
-            position: Vec3.create(0, 0, 100),
-            mode: p.cameraMode
-        })
-
         const webgl = createContext(gl)
 
         let width = gl.drawingBufferWidth
         let height = gl.drawingBufferHeight
 
         const scene = Scene.create(webgl)
+
+        const camera = new Camera(scene, p, {
+            near: 0.1,
+            far: 10000,
+            position: Vec3.create(0, 0, 100),
+            mode: p.cameraMode
+        })
+
         const controls = TrackballControls.create(input, camera, p.trackball)
         const renderer = Renderer.create(webgl, camera, p.renderer)
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
@@ -140,7 +142,7 @@ namespace Canvas3D {
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
 
         let drawPending = false
-        let cameraResetRequested: boolean | Vec3 = false
+        let cameraResetRequested = false
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -172,37 +174,8 @@ namespace Canvas3D {
             }
         }
 
-        let currentNear = -1, currentFar = -1, currentFogNear = -1, currentFogFar = -1
         function setClipping() {
-            const cDist = Vec3.distance(camera.state.position, camera.state.target)
-            const bRadius = Math.max(10, scene.boundingSphere.radius)
-
-            const nearFactor = (50 - p.clip[0]) / 50
-            const farFactor = -(50 - p.clip[1]) / 50
-            let near = cDist - (bRadius * nearFactor)
-            let far = cDist + (bRadius * farFactor)
-
-            const fogNearFactor = (50 - p.fog[0]) / 50
-            const fogFarFactor = -(50 - p.fog[1]) / 50
-            let fogNear = cDist - (bRadius * fogNearFactor)
-            let fogFar = cDist + (bRadius * fogFarFactor)
-
-            if (camera.state.mode === 'perspective') {
-                // set at least to 5 to avoid slow sphere impostor rendering
-                near = Math.max(5, p.cameraClipDistance, near)
-                far = Math.max(5, far)
-                fogNear = Math.max(5, fogNear)
-                fogFar = Math.max(5, fogFar)
-            } else if (camera.state.mode === 'orthographic') {
-                if (p.cameraClipDistance > 0) {
-                    near = Math.max(p.cameraClipDistance, near)
-                }
-            }
-
-            if (near !== currentNear || far !== currentFar || fogNear !== currentFogNear || fogFar !== currentFogFar) {
-                camera.setState({ near, far, fogNear, fogFar })
-                currentNear = near, currentFar = far, currentFogNear = fogNear, currentFogFar = fogFar
-            }
+            cameraSetClipping(camera.state, scene.boundingSphere, p);
         }
 
         function render(variant: 'pick' | 'draw', force: boolean) {
@@ -271,8 +244,7 @@ namespace Canvas3D {
 
             runTask(scene.commit()).then(() => {
                 if (cameraResetRequested && !scene.isCommiting) {
-                    const dir = typeof cameraResetRequested === 'boolean' ? undefined : cameraResetRequested
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius, dir)
+                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
                     cameraResetRequested = false
                 }
                 if (debugHelper.isEnabled) debugHelper.update()
@@ -345,11 +317,11 @@ namespace Canvas3D {
             getLoci,
 
             handleResize,
-            resetCamera: (dir?: Vec3) => {
+            resetCamera: (/*dir?: Vec3*/) => {
                 if (scene.isCommiting) {
-                    cameraResetRequested = dir || true
+                    cameraResetRequested = true
                 } else {
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius, dir)
+                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius, p.cameraResetDurationMs)
                     requestDraw(true);
                 }
             },
@@ -373,6 +345,7 @@ namespace Canvas3D {
                     camera.setState({ mode: props.cameraMode })
                 }
                 if (props.cameraClipDistance !== undefined) p.cameraClipDistance = props.cameraClipDistance
+                if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs
                 if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
                 if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
@@ -388,6 +361,7 @@ namespace Canvas3D {
                 return {
                     cameraMode: camera.state.mode,
                     cameraClipDistance: p.cameraClipDistance,
+                    cameraResetDurationMs: p.cameraResetDurationMs,
                     clip: p.clip,
                     fog: p.fog,
 

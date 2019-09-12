@@ -6,10 +6,12 @@
  */
 
 import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra'
-import { Viewport, cameraProject, cameraUnproject } from './camera/util';
+import { Viewport, cameraProject, cameraUnproject, cameraSetClipping } from './camera/util';
 import { Object3D } from '../mol-gl/object3d';
 import { BehaviorSubject } from 'rxjs';
 import { CameraTransitionManager } from './camera/transition';
+import { Canvas3DProps } from './canvas3d';
+import Scene from '../mol-gl/scene';
 
 export { Camera }
 
@@ -80,8 +82,8 @@ class Camera implements Object3D {
         return changed;
     }
 
-    setState(snapshot: Partial<Camera.Snapshot>) {
-        this.transition.apply(snapshot);
+    setState(snapshot: Partial<Camera.Snapshot>, durationMs?: number) {
+        this.transition.apply(snapshot, durationMs);
     }
 
     getSnapshot() {
@@ -90,30 +92,27 @@ class Camera implements Object3D {
         return ret;
     }
 
-    getFocus(target: Vec3, radius: number, dir?: Vec3): Partial<Camera.Snapshot> {
+    getFocus(target: Vec3, radius: number): Partial<Camera.Snapshot> {
         const fov = this.state.fov
         const { width, height } = this.viewport
         const aspect = width / height
         const aspectFactor = (height < width ? 1 : aspect)
-        const currentDistance = Vec3.distance(this.state.position, target)
         const targetDistance = Math.abs((radius / aspectFactor) / Math.sin(fov / 2))
 
-        const deltaDistance = Math.abs(currentDistance - targetDistance)
+        Vec3.setMagnitude(this.deltaDirection, this.state.direction, targetDistance)
+        Vec3.sub(this.newPosition, target, this.deltaDirection)
 
-        if (dir) {
-            Vec3.setMagnitude(this.deltaDirection, dir, targetDistance)
-            Vec3.add(this.newPosition, target, this.deltaDirection)
-        } else {
-            Vec3.setMagnitude(this.deltaDirection, this.state.direction, deltaDistance)
-            if (currentDistance < targetDistance) Vec3.negate(this.deltaDirection, this.deltaDirection)
-            Vec3.add(this.newPosition, this.state.position, this.deltaDirection)
-        }
+        const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
+        state.target = Vec3.clone(target);
+        state.position = Vec3.clone(this.newPosition);
 
-        return { target, position: Vec3.clone(this.newPosition) };
+        cameraSetClipping(state, this.scene.boundingSphere, this.canvasProps)
+
+        return state;
     }
 
-    focus(target: Vec3, radius: number, dir?: Vec3) {
-        if (radius > 0) this.setState(this.getFocus(target, radius, dir));
+    focus(target: Vec3, radius: number, durationMs?: number) {
+        if (radius > 0) this.setState(this.getFocus(target, radius), durationMs);
     }
 
     // lookAt(target: Vec3) {
@@ -137,7 +136,7 @@ class Camera implements Object3D {
         this.updatedViewProjection.complete();
     }
 
-    constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
+    constructor(private scene: Scene, private canvasProps: Canvas3DProps, state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
         this.viewport = viewport;
         Camera.copySnapshot(this.state, state);
     }
@@ -202,7 +201,7 @@ namespace Camera {
         mode: Mode,
 
         position: Vec3,
-        // Normalized camera direction
+        // Normalized camera direction, from Target to Position, for some reason?
         direction: Vec3,
         up: Vec3,
         target: Vec3,
@@ -217,7 +216,7 @@ namespace Camera {
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
-        if (!source) return;
+        if (!source) return out;
 
         if (typeof source.mode !== 'undefined') out.mode = source.mode;
 
@@ -233,6 +232,8 @@ namespace Camera {
 
         if (typeof source.fov !== 'undefined') out.fov = source.fov;
         if (typeof source.zoom !== 'undefined') out.zoom = source.zoom;
+
+        return out;
     }
 }
 

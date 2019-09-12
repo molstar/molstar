@@ -24,10 +24,11 @@ import { Color } from '../../mol-util/color';
 import { Sphere3D } from '../../mol-math/geometry';
 import { createEmptyOverpaint } from '../../mol-geo/geometry/overpaint-data';
 import { createEmptyTransparency } from '../../mol-geo/geometry/transparency-data';
+import { DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
 
 function createRenderer(gl: WebGLRenderingContext) {
     const ctx = createContext(gl)
-    const camera = new Camera({
+    const camera = new Camera(Scene.create(ctx), DefaultCanvas3DParams, {
         near: 0.01,
         far: 10000,
         position: Vec3.create(0, 0, 50)
