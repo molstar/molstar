@@ -174,38 +174,8 @@ namespace Canvas3D {
             }
         }
 
-        // let currentNear = -1, currentFar = -1, currentFogNear = -1, currentFogFar = -1
         function setClipping() {
             cameraSetClipping(camera.state, scene.boundingSphere, p);
-            // const cDist = Vec3.distance(camera.state.position, camera.state.target)
-            // const bRadius = Math.max(10, scene.boundingSphere.radius)
-
-            // const nearFactor = (50 - p.clip[0]) / 50
-            // const farFactor = -(50 - p.clip[1]) / 50
-            // let near = cDist - (bRadius * nearFactor)
-            // let far = cDist + (bRadius * farFactor)
-
-            // const fogNearFactor = (50 - p.fog[0]) / 50
-            // const fogFarFactor = -(50 - p.fog[1]) / 50
-            // let fogNear = cDist - (bRadius * fogNearFactor)
-            // let fogFar = cDist + (bRadius * fogFarFactor)
-
-            // if (camera.state.mode === 'perspective') {
-            //     // set at least to 5 to avoid slow sphere impostor rendering
-            //     near = Math.max(5, p.cameraClipDistance, near)
-            //     far = Math.max(5, far)
-            //     fogNear = Math.max(5, fogNear)
-            //     fogFar = Math.max(5, fogFar)
-            // } else if (camera.state.mode === 'orthographic') {
-            //     if (p.cameraClipDistance > 0) {
-            //         near = Math.max(p.cameraClipDistance, near)
-            //     }
-            // }
-
-            // if (near !== currentNear || far !== currentFar || fogNear !== currentFogNear || fogFar !== currentFogFar) {
-            //     camera.setState({ near, far, fogNear, fogFar })
-            //     currentNear = near, currentFar = far, currentFogNear = fogNear, currentFogFar = fogFar
-            // }
         }
 
         function render(variant: 'pick' | 'draw', force: boolean) {
