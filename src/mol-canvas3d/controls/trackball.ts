@@ -79,6 +79,9 @@ namespace TrackballControls {
         const _zoomStart = Vec2()
         const _zoomEnd = Vec2()
 
+        const _focusStart = Vec2()
+        const _focusEnd = Vec2()
+
         const _panStart = Vec2()
         const _panEnd = Vec2()
 
@@ -185,6 +188,20 @@ namespace TrackballControls {
             }
         }
 
+        function focusCamera() {
+            const factor = (_focusEnd[1] - _focusStart[1]) * p.zoomSpeed
+            if (factor !== 0.0) {
+                const radius = Math.max(1, camera.state.radius + 10 * factor)
+                camera.setState({ radius })
+            }
+
+            if (p.staticMoving) {
+                Vec2.copy(_focusStart, _focusEnd)
+            } else {
+                _focusStart[1] += (_focusEnd[1] - _focusStart[1]) * p.dynamicDampingFactor
+            }
+        }
+
         const panMouseChange = Vec2()
         const panObjUp = Vec3()
         const panOffset = Vec3()
@@ -220,12 +237,14 @@ namespace TrackballControls {
                 Vec3.setMagnitude(_eye, _eye, p.maxDistance)
                 Vec3.add(camera.position, camera.target, _eye)
                 Vec2.copy(_zoomStart, _zoomEnd)
+                Vec2.copy(_focusStart, _focusEnd)
             }
 
             if (Vec3.squaredMagnitude(_eye) < p.minDistance * p.minDistance) {
                 Vec3.setMagnitude(_eye, _eye, p.minDistance)
                 Vec3.add(camera.position, camera.target, _eye)
                 Vec2.copy(_zoomStart, _zoomEnd)
+                Vec2.copy(_focusStart, _focusEnd)
             }
         }
 
@@ -240,6 +259,7 @@ namespace TrackballControls {
             rotateCamera()
             zRotateCamera()
             zoomCamera()
+            focusCamera()
             panCamera()
 
             Vec3.add(camera.position, camera.target, _eye)
@@ -271,6 +291,7 @@ namespace TrackballControls {
             const dragRotateZ = Bindings.match(p.bindings.drag.rotateZ, buttons, modifiers)
             const dragPan = Bindings.match(p.bindings.drag.pan, buttons, modifiers)
             const dragZoom = Bindings.match(p.bindings.drag.zoom, buttons, modifiers)
+            const dragFocus = Bindings.match(p.bindings.drag.focus, buttons, modifiers)
 
             getMouseOnCircle(pageX, pageY)
             getMouseOnScreen(pageX, pageY)
@@ -288,6 +309,10 @@ namespace TrackballControls {
                     Vec2.copy(_zoomStart, mouseOnScreenVec2)
                     Vec2.copy(_zoomEnd, _zoomStart)
                 }
+                if (dragFocus) {
+                    Vec2.copy(_focusStart, mouseOnScreenVec2)
+                    Vec2.copy(_focusEnd, _focusStart)
+                }
                 if (dragPan) {
                     Vec2.copy(_panStart, mouseOnScreenVec2)
                     Vec2.copy(_panEnd, _panStart)
@@ -297,6 +322,7 @@ namespace TrackballControls {
             if (dragRotate) Vec2.copy(_rotCurr, mouseOnCircleVec2)
             if (dragRotateZ) Vec2.copy(_zRotCurr, mouseOnCircleVec2)
             if (dragZoom) Vec2.copy(_zoomEnd, mouseOnScreenVec2)
+            if (dragFocus) Vec2.copy(_focusEnd, mouseOnScreenVec2)
             if (dragPan) Vec2.copy(_panEnd, mouseOnScreenVec2)
         }
 
@@ -305,12 +331,12 @@ namespace TrackballControls {
         }
 
         function onWheel({ dx, dy, dz, buttons, modifiers }: WheelInput) {
+            const delta = absMax(dx, dy, dz)
             if (Bindings.match(p.bindings.scroll.zoom, buttons, modifiers)) {
-                _zoomEnd[1] += absMax(dx, dy, dz) * 0.0001
+                _zoomEnd[1] += delta * 0.0001
             }
-            if (Bindings.match(p.bindings.scroll.clipNear, buttons, modifiers)) {
-                const radius = Math.max(0, camera.state.radius + absMax(dx, dy, dz) * 0.005)
-                camera.setState({ radius })
+            if (Bindings.match(p.bindings.scroll.focus, buttons, modifiers)) {
+                _focusEnd[1] += delta * 0.0001
             }
         }
 

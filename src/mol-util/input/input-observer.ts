@@ -350,7 +350,7 @@ namespace InputObserver {
             if (ev.touches.length === 1) {
                 buttons = ButtonsType.Flag.Primary
                 onPointerDown(ev.touches[0])
-            } else if (ev.touches.length >= 2) {
+            } else if (ev.touches.length === 2) {
                 buttons = ButtonsType.Flag.Secondary & ButtonsType.Flag.Auxilary
                 onPointerDown(getCenterTouch(ev))
 
@@ -364,6 +364,9 @@ namespace InputObserver {
                     buttons,
                     modifiers: getModifierKeys()
                 })
+            } else if (ev.touches.length === 3) {
+                buttons = ButtonsType.Flag.Forth
+                onPointerDown(getCenterTouch(ev))
             }
         }
 
@@ -384,7 +387,7 @@ namespace InputObserver {
             if (ev.touches.length === 1) {
                 buttons = ButtonsType.Flag.Primary
                 onPointerMove(ev.touches[0])
-            } else if (ev.touches.length >= 2) {
+            } else if (ev.touches.length === 2) {
                 const touchDistance = getTouchDistance(ev)
                 const touchDelta = lastTouchDistance - touchDistance
                 if (Math.abs(touchDelta) < 4) {
@@ -402,6 +405,9 @@ namespace InputObserver {
                     })
                 }
                 lastTouchDistance = touchDistance
+            } else if (ev.touches.length === 3) {
+                buttons = ButtonsType.Flag.Forth
+                onPointerMove(getCenterTouch(ev))
             }
         }
 
