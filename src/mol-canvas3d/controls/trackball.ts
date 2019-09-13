@@ -292,6 +292,7 @@ namespace TrackballControls {
             const dragPan = Bindings.match(p.bindings.drag.pan, buttons, modifiers)
             const dragZoom = Bindings.match(p.bindings.drag.zoom, buttons, modifiers)
             const dragFocus = Bindings.match(p.bindings.drag.focus, buttons, modifiers)
+            const dragFocusZoom = Bindings.match(p.bindings.drag.focusZoom, buttons, modifiers)
 
             getMouseOnCircle(pageX, pageY)
             getMouseOnScreen(pageX, pageY)
@@ -305,7 +306,7 @@ namespace TrackballControls {
                     Vec2.copy(_zRotCurr, mouseOnCircleVec2)
                     Vec2.copy(_zRotPrev, _zRotCurr)
                 }
-                if (dragZoom) {
+                if (dragZoom || dragFocusZoom) {
                     Vec2.copy(_zoomStart, mouseOnScreenVec2)
                     Vec2.copy(_zoomEnd, _zoomStart)
                 }
@@ -321,8 +322,12 @@ namespace TrackballControls {
 
             if (dragRotate) Vec2.copy(_rotCurr, mouseOnCircleVec2)
             if (dragRotateZ) Vec2.copy(_zRotCurr, mouseOnCircleVec2)
-            if (dragZoom) Vec2.copy(_zoomEnd, mouseOnScreenVec2)
+            if (dragZoom || dragFocusZoom) Vec2.copy(_zoomEnd, mouseOnScreenVec2)
             if (dragFocus) Vec2.copy(_focusEnd, mouseOnScreenVec2)
+            if (dragFocusZoom) {
+                const dist = Vec3.distance(camera.state.position, camera.state.target);
+                camera.setState({ radius: dist / 5 })
+            }
             if (dragPan) Vec2.copy(_panEnd, mouseOnScreenVec2)
         }
 
