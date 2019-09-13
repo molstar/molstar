@@ -6,17 +6,12 @@
  */
 
 import { Mat4, Vec3, Vec4, EPSILON } from '../mol-math/linear-algebra'
-import { Viewport, cameraProject, cameraUnproject, cameraSetClipping } from './camera/util';
-import { Object3D } from '../mol-gl/object3d';
-import { BehaviorSubject } from 'rxjs';
+import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { CameraTransitionManager } from './camera/transition';
-import { Canvas3DProps } from './canvas3d';
 
 export { Camera }
 
-class Camera implements Object3D {
-    readonly updatedViewProjection = new BehaviorSubject<Camera>(this);
-
+class Camera {
     readonly view: Mat4 = Mat4.identity();
     readonly projection: Mat4 = Mat4.identity();
     readonly projectionView: Mat4 = Mat4.identity();
@@ -31,13 +26,16 @@ class Camera implements Object3D {
         width: 1, height: 1
     }
 
+    near = 1
+    far = 10000
+    fogNear = 5000
+    fogFar = 10000
+    zoom = 1
+
     readonly transition: CameraTransitionManager = new CameraTransitionManager(this);
 
     get position() { return this.state.position; }
     set position(v: Vec3) { Vec3.copy(this.state.position, v); }
-
-    get direction() { return this.state.direction; }
-    set direction(v: Vec3) { Vec3.copy(this.state.direction, v); }
 
     get up() { return this.state.up; }
     set up(v: Vec3) { Vec3.copy(this.state.up, v); }
@@ -50,12 +48,12 @@ class Camera implements Object3D {
     private deltaDirection = Vec3.zero();
     private newPosition = Vec3.zero();
 
-    updateMatrices() {
+    update() {
         const snapshot = this.state as Camera.Snapshot;
         const height = 2 * Math.tan(snapshot.fov / 2) * Vec3.distance(snapshot.position, snapshot.target);
-        snapshot.zoom = this.viewport.height / height;
+        this.zoom = this.viewport.height / height;
 
-        cameraSetClipping(snapshot, this.canvasProps);
+        updateClip(this);
 
         switch (this.state.mode) {
             case 'orthographic': updateOrtho(this); break;
@@ -65,17 +63,12 @@ class Camera implements Object3D {
 
         const changed = !Mat4.areEqual(this.projection, this.prevProjection, EPSILON) || !Mat4.areEqual(this.view, this.prevView, EPSILON);
 
-        Mat4.mul(this.projectionView, this.projection, this.view)
-        Mat4.invert(this.inverseProjectionView, this.projectionView)
-
-
         if (changed) {
             Mat4.mul(this.projectionView, this.projection, this.view)
             Mat4.invert(this.inverseProjectionView, this.projectionView)
 
             Mat4.copy(this.prevView, this.view);
             Mat4.copy(this.prevProjection, this.projection);
-            this.updatedViewProjection.next(this);
         }
 
         return changed;
@@ -98,7 +91,8 @@ class Camera implements Object3D {
         const aspectFactor = (height < width ? 1 : aspect)
         const targetDistance = Math.abs((radius / aspectFactor) / Math.sin(fov / 2))
 
-        Vec3.setMagnitude(this.deltaDirection, this.state.direction, targetDistance)
+        Vec3.sub(this.deltaDirection, this.target, this.position)
+        Vec3.setMagnitude(this.deltaDirection, this.deltaDirection, targetDistance)
         Vec3.sub(this.newPosition, target, this.deltaDirection)
 
         const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state)
@@ -113,15 +107,6 @@ class Camera implements Object3D {
         if (radius > 0) this.setState(this.getFocus(target, radius), durationMs);
     }
 
-    // lookAt(target: Vec3) {
-    //     cameraLookAt(this.position, this.up, this.direction, target);
-    // }
-
-    // translate(v: Vec3) {
-    //     Vec3.add(this.position, this.position, v);
-    //     cameraLookAt(this.position, this.up, this.direction, this.target);
-    // }
-
     project(out: Vec4, point: Vec3) {
         return cameraProject(out, point, this.viewport, this.projectionView)
     }
@@ -130,11 +115,7 @@ class Camera implements Object3D {
         return cameraUnproject(out, point, this.viewport, this.inverseProjectionView)
     }
 
-    dispose() {
-        this.updatedViewProjection.complete();
-    }
-
-    constructor(private canvasProps: Canvas3DProps, state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
+    constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {
         this.viewport = viewport;
         Camera.copySnapshot(this.state, state);
     }
@@ -143,13 +124,6 @@ class Camera implements Object3D {
 
 namespace Camera {
     export type Mode = 'perspective' | 'orthographic'
-
-    export interface ClippingInfo {
-        near: number,
-        far: number,
-        fogNear: number,
-        fogFar: number
-    }
 
     /**
      * Sets an offseted view in a larger frustum. This is useful for
@@ -178,71 +152,48 @@ namespace Camera {
     export function createDefaultSnapshot(): Snapshot {
         return {
             mode: 'perspective',
+            fov: Math.PI / 4,
 
             position: Vec3.create(0, 0, 100),
-            direction: Vec3.create(0, 0, 1),
             up: Vec3.create(0, 1, 0),
-
             target: Vec3.create(0, 0, 0),
+
             radius: 10,
-
-            near: 1,
-            far: 10000,
-            fogNear: 1,
-            fogFar: 10000,
-
-            fov: Math.PI / 4,
-            zoom: 1,
+            fog: 50,
         };
     }
 
     export interface Snapshot {
-        mode: Mode,
+        mode: Mode
+        fov: number
 
-        position: Vec3,
-        // Normalized camera direction, from Target to Position, for some reason?
-        direction: Vec3,
-        up: Vec3,
+        position: Vec3
+        up: Vec3
+        target: Vec3
 
-        target: Vec3,
         radius: number
-
-        near: number,
-        far: number,
-        fogNear: number,
-        fogFar: number,
-
-        fov: number,
-        zoom: number,
+        fog: number
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
         if (!source) return out;
 
         if (typeof source.mode !== 'undefined') out.mode = source.mode;
+        if (typeof source.fov !== 'undefined') out.fov = source.fov;
 
         if (typeof source.position !== 'undefined') Vec3.copy(out.position, source.position);
-        if (typeof source.direction !== 'undefined') Vec3.copy(out.direction, source.direction);
         if (typeof source.up !== 'undefined') Vec3.copy(out.up, source.up);
-
         if (typeof source.target !== 'undefined') Vec3.copy(out.target, source.target);
+
         if (typeof source.radius !== 'undefined') out.radius = source.radius;
-
-        if (typeof source.near !== 'undefined') out.near = source.near;
-        if (typeof source.far !== 'undefined') out.far = source.far;
-        if (typeof source.fogNear !== 'undefined') out.fogNear = source.fogNear;
-        if (typeof source.fogFar !== 'undefined') out.fogFar = source.fogFar;
-
-        if (typeof source.fov !== 'undefined') out.fov = source.fov;
-        if (typeof source.zoom !== 'undefined') out.zoom = source.zoom;
+        if (typeof source.fog !== 'undefined') out.fog = source.fog;
 
         return out;
     }
 }
 
-const _center = Vec3.zero();
 function updateOrtho(camera: Camera) {
-    const { viewport, state: { zoom, near, far }, viewOffset } = camera
+    const { viewport, zoom, near, far, viewOffset } = camera
 
     const fullLeft = -(viewport.width - viewport.x) / 2
     const fullRight = (viewport.width - viewport.x) / 2
@@ -274,16 +225,15 @@ function updateOrtho(camera: Camera) {
     Mat4.ortho(camera.projection, left, right, top, bottom, near, far)
 
     // build view matrix
-    Vec3.add(_center, camera.position, camera.direction)
-    Mat4.lookAt(camera.view, camera.position, _center, camera.up)
+    Mat4.lookAt(camera.view, camera.position, camera.target, camera.up)
 }
 
 function updatePers(camera: Camera) {
     const aspect = camera.viewport.width / camera.viewport.height
 
-    const { state: { fov, near, far }, viewOffset } = camera
+    const { near, far, viewOffset } = camera
 
-    let top = near * Math.tan(0.5 * fov)
+    let top = near * Math.tan(0.5 * camera.state.fov)
     let height = 2 * top
     let width = aspect * height
     let left = -0.5 * width
@@ -299,6 +249,30 @@ function updatePers(camera: Camera) {
     Mat4.perspective(camera.projection, left, left + width, top, top - height, near, far)
 
     // build view matrix
-    Vec3.add(_center, camera.position, camera.direction)
-    Mat4.lookAt(camera.view, camera.position, _center, camera.up)
+    Mat4.lookAt(camera.view, camera.position, camera.target, camera.up)
+}
+
+function updateClip(camera: Camera) {
+    const { radius, mode, fog } = camera.state
+
+    const cDist = Vec3.distance(camera.position, camera.target)
+    const bRadius = Math.max(1, radius)
+
+    let near = cDist - bRadius
+    let far = cDist + bRadius
+
+    const fogNearFactor = -(50 - fog) / 50
+    let fogNear = cDist - (bRadius * fogNearFactor)
+    let fogFar = cDist + bRadius
+
+    if (mode === 'perspective') {
+        // set at least to 5 to avoid slow sphere impostor rendering
+        near = Math.max(5, near)
+        far = Math.max(5, far)
+    }
+
+    camera.near = near;
+    camera.far = far;
+    camera.fogNear = fogNear;
+    camera.fogFar = fogFar;
 }

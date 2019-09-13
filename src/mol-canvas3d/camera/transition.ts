@@ -68,34 +68,21 @@ class CameraTransitionManager {
 namespace CameraTransitionManager {
     export type TransitionFunc = (out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot) => void
 
+    const _rot = Quat.identity();
     export function defaultTransition(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
         Camera.copySnapshot(out, target);
 
-        // Rotate direction
-        const rot = Quat.identity();
-        Quat.slerp(rot, rot, Quat.rotationTo(Quat.zero(), source.direction, target.direction), t);
-        Vec3.transformQuat(out.direction, source.direction, rot);
-
         // Rotate up
-        Quat.setIdentity(rot);
-        Quat.slerp(rot, rot, Quat.rotationTo(Quat.zero(), source.up, target.up), t);
-        Vec3.transformQuat(out.up, source.up, rot);
+        Quat.slerp(_rot, Quat.Identity, Quat.rotationTo(_rot, source.up, target.up), t);
+        Vec3.transformQuat(out.up, source.up, _rot);
 
-        // Lerp target & radius
+        // Lerp target, position & radius
         Vec3.lerp(out.target, source.target, target.target, t);
+        Vec3.lerp(out.position, source.position, target.position, t);
         out.radius = lerp(source.radius, target.radius, t);
 
-        // Update position
-        const dist = -lerp(Vec3.distance(source.position, source.target), Vec3.distance(target.position, target.target), t);
-        Vec3.scale(out.position, out.direction, dist);
-        Vec3.add(out.position, out.position, out.target);
-
-        // Lerp other props
-        out.zoom = lerp(source.zoom, target.zoom, t);
+        // Lerp fov & fog
         out.fov = lerp(source.fov, target.fov, t);
-        out.near = lerp(source.near, target.near, t);
-        out.far = lerp(source.far, target.far, t);
-        out.fogNear = lerp(source.fogNear, target.fogNear, t);
-        out.fogFar = lerp(source.fogFar, target.fogFar, t);
+        out.fog = lerp(source.fog, target.fog, t);
     }
 }

@@ -135,7 +135,7 @@ export class MultiSamplePass {
         for (let i = 0; i < offsetList.length; ++i) {
             const offset = offsetList[i]
             Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height)
-            camera.updateMatrices()
+            camera.update()
 
             // the theory is that equal weights for each sample lead to an accumulation of rounding
             // errors. The following equation varies the sampleWeight per sample so that it is uniformly
@@ -174,7 +174,7 @@ export class MultiSamplePass {
         compose.render()
 
         camera.viewOffset.enabled = false
-        camera.updateMatrices()
+        camera.update()
     }
 
     private renderTemporalMultiSample() {
@@ -223,7 +223,7 @@ export class MultiSamplePass {
         for (let i = 0; i < numSamplesPerFrame; ++i) {
             const offset = offsetList[this.sampleIndex]
             Camera.setViewOffset(camera.viewOffset, width, height, offset[0], offset[1], width, height)
-            camera.updateMatrices()
+            camera.update()
 
             // render scene and optionally postprocess
             drawPass.render(false)
@@ -269,7 +269,7 @@ export class MultiSamplePass {
         }
 
         camera.viewOffset.enabled = false
-        camera.updateMatrices()
+        camera.update()
         if (this.sampleIndex >= offsetList.length) this.sampleIndex = -1
     }
 }

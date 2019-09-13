@@ -28,6 +28,7 @@ import { EPSILON } from './common';
 import { NumberArray } from '../../../mol-util/type-helpers';
 
 interface Quat extends Array<number> { [d: number]: number, '@type': 'quat', length: 4 }
+interface ReadonlyQuat extends Array<number> { readonly [d: number]: number, '@type': 'quat', length: 4 }
 
 function Quat() {
     return Quat.zero();
@@ -440,6 +441,8 @@ namespace Quat {
     export function toString(a: Quat, precision?: number) {
         return `[${a[0].toPrecision(precision)} ${a[1].toPrecision(precision)} ${a[2].toPrecision(precision)}  ${a[3].toPrecision(precision)}]`;
     }
+
+    export const Identity: ReadonlyQuat = identity()
 }
 
 export default Quat

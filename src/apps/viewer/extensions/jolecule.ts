@@ -138,24 +138,19 @@ function buildSnapshot(plugin: PluginContext, template: { tree: StateTree, struc
 }
 
 function getCameraSnapshot(e: JoleculeSnapshot['camera']): Camera.Snapshot {
-    const direction = Vec3.sub(Vec3.zero(), e.pos, e.in);
+    const direction = Vec3.sub(Vec3(), e.pos, e.in);
     Vec3.normalize(direction, direction);
-    const up = Vec3.sub(Vec3.zero(), e.pos, e.up);
+    const up = Vec3.sub(Vec3(), e.pos, e.up);
     Vec3.normalize(up, up);
 
     const s: Camera.Snapshot = {
         mode: 'perspective',
-        position: Vec3.scaleAndAdd(Vec3.zero(), e.pos, direction, e.slab.zoom),
-        target: e.pos,
-        radius: e.slab.zoom,
-        direction,
-        up,
-        near: e.slab.zoom + e.slab.z_front,
-        far: e.slab.zoom + e.slab.z_back,
-        fogNear: e.slab.zoom + e.slab.z_front,
-        fogFar: e.slab.zoom + e.slab.z_back,
         fov: Math.PI / 4,
-        zoom: 1
+        position: Vec3.scaleAndAdd(Vec3(), e.pos, direction, e.slab.zoom),
+        target: e.pos,
+        radius: (e.slab.z_back - e.slab.z_front) / 2,
+        fog: 50,
+        up,
     };
     return s;
 }

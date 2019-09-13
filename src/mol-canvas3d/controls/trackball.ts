@@ -9,7 +9,7 @@
  */
 
 import { Quat, Vec2, Vec3, EPSILON } from '../../mol-math/linear-algebra';
-import { cameraLookAt, Viewport } from '../camera/util';
+import { Viewport } from '../camera/util';
 import InputObserver, { DragInput, WheelInput, PinchInput } from '../../mol-util/input/input-observer';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera } from '../camera';
@@ -244,7 +244,6 @@ namespace TrackballControls {
 
             Vec3.add(camera.position, camera.target, _eye)
             checkDistances()
-            cameraLookAt(camera.position, camera.up, camera.direction, camera.target)
 
             if (Vec3.squaredDistance(lastPosition, camera.position) > EPSILON) {
                 Vec3.copy(lastPosition, camera.position)
@@ -260,7 +259,6 @@ namespace TrackballControls {
             Vec3.copy(camera.up, up0)
 
             Vec3.sub(_eye, camera.position, camera.target)
-            cameraLookAt(camera.position, camera.up, camera.direction, camera.target)
             Vec3.copy(lastPosition, camera.position)
         }
 

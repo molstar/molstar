@@ -4,9 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat4, Vec3, Vec4, EPSILON } from '../../mol-math/linear-algebra'
-import { Camera } from '../camera'
-import { Canvas3DProps } from '../canvas3d'
+import { Mat4, Vec3, Vec4 } from '../../mol-math/linear-algebra'
 
 export { Viewport }
 
@@ -56,63 +54,6 @@ namespace Viewport {
 }
 
 //
-
-const tmpVec3 = Vec3()
-
-/** Modifies the direction & up vectors in place, both are normalized */
-export function cameraLookAt(position: Vec3, up: Vec3, direction: Vec3, target: Vec3) {
-    Vec3.sub(tmpVec3, target, position)
-    Vec3.normalize(tmpVec3, tmpVec3)
-
-    if (!Vec3.isZero(tmpVec3)) {
-        // change direction vector to look at target
-        const d = Vec3.dot(tmpVec3, up)
-        if (Math.abs(d - 1) < EPSILON) { // parallel
-            Vec3.scale(up, direction, -1)
-        } else if (Math.abs(d + 1) < EPSILON) { // anti parallel
-            Vec3.copy(up, direction)
-        }
-        Vec3.copy(direction, tmpVec3)
-
-        // normalize up vector
-        Vec3.cross(tmpVec3, direction, up)
-        Vec3.normalize(tmpVec3, tmpVec3)
-        Vec3.cross(up, tmpVec3, direction)
-        Vec3.normalize(up, up)
-    }
-}
-
-export function cameraSetClipping(state: Camera.Snapshot, p: Canvas3DProps) {
-    const cDist = Vec3.distance(state.position, state.target)
-    const bRadius = Math.max(1, state.radius)
-
-    const nearFactor = (50 - p.clip[0]) / 50
-    const farFactor = -(50 - p.clip[1]) / 50
-    let near = cDist - (bRadius * nearFactor)
-    let far = cDist + (bRadius * farFactor)
-
-    const fogNearFactor = (50 - p.fog[0]) / 50
-    const fogFarFactor = -(50 - p.fog[1]) / 50
-    let fogNear = cDist - (bRadius * fogNearFactor)
-    let fogFar = cDist + (bRadius * fogFarFactor)
-
-    if (state.mode === 'perspective') {
-        // set at least to 5 to avoid slow sphere impostor rendering
-        near = Math.max(5, p.cameraClipDistance, near)
-        far = Math.max(5, far)
-        fogNear = Math.max(5, fogNear)
-        fogFar = Math.max(5, fogFar)
-    } else if (state.mode === 'orthographic') {
-        if (p.cameraClipDistance > 0) {
-            near = Math.max(p.cameraClipDistance, near)
-        }
-    }
-
-    state.near = near;
-    state.far = far;
-    state.fogNear = fogNear;
-    state.fogFar = fogFar;
-}
 
 const NEAR_RANGE = 0
 const FAR_RANGE = 1

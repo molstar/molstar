@@ -34,13 +34,9 @@ import { PickPass } from './passes/pick';
 import { Task } from '../mol-task';
 
 export const Canvas3DParams = {
-    // TODO: FPS cap?
-    // maxFps: PD.Numeric(30),
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
-    cameraClipDistance: PD.Numeric(0, { min: 0.0, max: 50.0, step: 0.1 }, { description: 'The distance between camera and scene at which to clip regardless of near clipping plane.' }),
+    cameraFog: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
-    clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
-    fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
 
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
@@ -124,9 +120,10 @@ namespace Canvas3D {
 
         const scene = Scene.create(webgl)
 
-        const camera = new Camera(p, {
+        const camera = new Camera({
             position: Vec3.create(0, 0, 100),
-            mode: p.cameraMode
+            mode: p.cameraMode,
+            fog: p.cameraFog
         })
 
         const controls = TrackballControls.create(input, camera, p.trackball)
@@ -177,7 +174,7 @@ namespace Canvas3D {
 
             let didRender = false
             controls.update(currentTime)
-            const cameraChanged = camera.updateMatrices()
+            const cameraChanged = camera.update()
             multiSample.update(force || cameraChanged, currentTime)
 
             if (force || cameraChanged || multiSample.enabled) {
@@ -336,10 +333,10 @@ namespace Canvas3D {
                 if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
                     camera.setState({ mode: props.cameraMode })
                 }
-                if (props.cameraClipDistance !== undefined) p.cameraClipDistance = props.cameraClipDistance
+                if (props.cameraFog !== undefined && props.cameraFog !== camera.state.fog) {
+                    camera.setState({ fog: props.cameraFog })
+                }
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs
-                if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
-                if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
                 if (props.postprocessing) postprocessing.setProps(props.postprocessing)
                 if (props.multiSample) multiSample.setProps(props.multiSample)
@@ -352,10 +349,8 @@ namespace Canvas3D {
             get props() {
                 return {
                     cameraMode: camera.state.mode,
-                    cameraClipDistance: p.cameraClipDistance,
+                    cameraFog: camera.state.fog,
                     cameraResetDurationMs: p.cameraResetDurationMs,
-                    clip: p.clip,
-                    fog: p.fog,
 
                     postprocessing: { ...postprocessing.props },
                     multiSample: { ...multiSample.props },
@@ -379,7 +374,6 @@ namespace Canvas3D {
                 input.dispose()
                 controls.dispose()
                 renderer.dispose()
-                camera.dispose()
                 interactionHelper.dispose()
             }
         }

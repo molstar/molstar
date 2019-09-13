@@ -160,10 +160,10 @@ export class PostprocessingPass {
     }
 
     render(toDrawingBuffer: boolean) {
-        ValueCell.update(this.renderable.values.uFar, this.camera.state.far)
-        ValueCell.update(this.renderable.values.uNear, this.camera.state.near)
-        ValueCell.update(this.renderable.values.uFogFar, this.camera.state.fogFar)
-        ValueCell.update(this.renderable.values.uFogNear, this.camera.state.fogNear)
+        ValueCell.update(this.renderable.values.uFar, this.camera.far)
+        ValueCell.update(this.renderable.values.uNear, this.camera.near)
+        ValueCell.update(this.renderable.values.uFogFar, this.camera.fogFar)
+        ValueCell.update(this.renderable.values.uFogNear, this.camera.fogNear)
         ValueCell.update(this.renderable.values.dOrthographic, this.camera.state.mode === 'orthographic' ? 1 : 0)
 
         const { gl, state } = this.webgl

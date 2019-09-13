@@ -101,10 +101,10 @@ namespace Renderer {
             uReflectivity: ValueCell.create(p.reflectivity),
 
             uCameraPosition: ValueCell.create(Vec3.clone(camera.state.position)),
-            uNear: ValueCell.create(camera.state.near),
-            uFar: ValueCell.create(camera.state.far),
-            uFogNear: ValueCell.create(camera.state.fogNear),
-            uFogFar: ValueCell.create(camera.state.fogFar),
+            uNear: ValueCell.create(camera.near),
+            uFar: ValueCell.create(camera.far),
+            uFogNear: ValueCell.create(camera.fogNear),
+            uFogFar: ValueCell.create(camera.fogFar),
             uFogColor: ValueCell.create(bgColor),
 
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
@@ -173,10 +173,10 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0))
 
             ValueCell.update(globalUniforms.uCameraPosition, camera.state.position)
-            ValueCell.update(globalUniforms.uFar, camera.state.far)
-            ValueCell.update(globalUniforms.uNear, camera.state.near)
-            ValueCell.update(globalUniforms.uFogFar, camera.state.fogFar)
-            ValueCell.update(globalUniforms.uFogNear, camera.state.fogNear)
+            ValueCell.update(globalUniforms.uFar, camera.far)
+            ValueCell.update(globalUniforms.uNear, camera.near)
+            ValueCell.update(globalUniforms.uFogFar, camera.fogFar)
+            ValueCell.update(globalUniforms.uFogNear, camera.fogNear)
 
             globalUniformsNeedUpdate = true
             state.currentRenderItemId = -1
