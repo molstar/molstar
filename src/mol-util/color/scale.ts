@@ -8,16 +8,7 @@ import { Color } from './color'
 import { getColorListFromName, ColorListName } from './lists'
 import { defaults } from '../../mol-util';
 import { NumberArray } from '../../mol-util/type-helpers';
-
-export interface ScaleLegend {
-    kind: 'scale-legend'
-    minLabel: string,
-    maxLabel: string,
-    colors: Color[]
-}
-export function ScaleLegend(minLabel: string, maxLabel: string, colors: Color[]): ScaleLegend {
-    return { kind: 'scale-legend', minLabel, maxLabel, colors }
-}
+import { ScaleLegend } from '../legend';
 
 export interface ColorScale {
     /** Returns hex color for given value */

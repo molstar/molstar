@@ -12,10 +12,9 @@ import { AssemblySymmetry } from '../assembly-symmetry';
 import { Color } from '../../../mol-util/color';
 import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
-import { ScaleLegend } from '../../../mol-util/color/scale';
+import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
 import { getSymmetrySelectParam } from '../util';
 import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
-import { TableLegend } from '../../../mol-util/color/lists';
 
 const DefaultColor = Color(0xCCCCCC)
 

@@ -17,6 +17,8 @@ import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
 import { NumericInput, IconButton, ControlGroup } from './common';
 import { _Props, _State } from '../base';
+import { legendFor } from './legend';
+import { Legend as LegendData } from '../../../mol-util/legend';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -73,13 +75,34 @@ function controlFor(param: PD.Any): ParamControl | undefined {
     }
 }
 
-// type ParamWrapperProps = { name: string, value: any, param: PD.Base<any>, onChange: ParamOnChange, control: ValueControl, onEnter?: () => void, isEnabled?: boolean }
+export class ParamHelp<L extends LegendData> extends React.PureComponent<{ legend?: L, description?: string }> {
+    render() {
+        const { legend, description } = this.props
+        const Legend = legend && legendFor(legend)
+
+        return <div className='msp-control-row msp-help-text'>
+            <div>
+                <div className='msp-help-description'><span className={`msp-icon msp-icon-help-circle`} />{description}</div>
+                <div className='msp-help-legend'>{Legend && <Legend legend={legend} />}</div>
+            </div>
+        </div>
+    }
+}
 
 export type ParamOnChange = (params: { param: PD.Base<any>, name: string, value: any }) => void
-export interface ParamProps<P extends PD.Base<any> = PD.Base<any>> { name: string, value: P['defaultValue'], param: P, isDisabled?: boolean, onChange: ParamOnChange, onEnter?: () => void }
+export interface ParamProps<P extends PD.Base<any> = PD.Base<any>> {
+    name: string,
+    value: P['defaultValue'],
+    param: P,
+    isDisabled?: boolean,
+    onChange: ParamOnChange,
+    onEnter?: () => void
+}
 export type ParamControl = React.ComponentClass<ParamProps<any>>
 
-export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<ParamProps<P>> {
+export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<ParamProps<P>, { isExpanded: boolean }> {
+    state = { isExpanded: false };
+
     protected update(value: P['defaultValue']) {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
     }
@@ -93,14 +116,33 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
         return className.join(' ')
     }
 
+    toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
+
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
-        return <div className={this.className}>
-            <span title={this.props.param.description}>{label}</span>
-            <div>
-                {this.renderControl()}
+        const help = this.props.param.help
+            ? this.props.param.help(this.props.value)
+            : { description: this.props.param.description, legend: this.props.param.legend }
+        const hasHelp = help.description || help.legend
+        return <>
+            <div className={this.className}>
+                <span title={this.props.param.description}>
+                    {label}
+                    {hasHelp &&
+                        <button className='msp-help msp-btn-link msp-btn-icon msp-conrol-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Hide' : 'Show'} help`}
+                                style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
+                                <span className={`msp-icon msp-icon-help-circle`} />
+                        </button>
+                    }
+                </span>
+                <div>
+                    {this.renderControl()}
+                </div>
             </div>
-        </div>;
+            {hasHelp && this.state.isExpanded && <div className='msp-control-offset'>
+                <ParamHelp legend={help.legend} description={help.description} />
+            </div>}
+        </>;
     }
 }
 
@@ -526,16 +568,24 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         const Mapped = controlFor(param);
 
-        const select = <SelectControl param={this.props.param.select}
+        const help = this.props.param.help
+        const select = help
+            ? {
+                ...this.props.param.select,
+                help: (name: any) => help({ name, params: this.getValues(name) })
+            }
+            : this.props.param.select
+
+        const Select = <SelectControl param={select}
             isDisabled={this.props.isDisabled} onChange={this.onChangeName} onEnter={this.props.onEnter}
             name={label} value={value.name} />
 
         if (!Mapped) {
-            return select;
+            return Select;
         }
 
         return <>
-            {select}
+            {Select}
             <Mapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
         </>
     }

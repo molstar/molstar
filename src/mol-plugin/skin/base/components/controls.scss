@@ -302,5 +302,64 @@
     > div {
         line-height: $row-height;
         text-align: center;
+        color: color-lower-contrast($font-color, 15%);
+    }
+}
+
+.msp-help span {
+    display: none;
+}
+
+.msp-help:hover span {
+    display: inline-block;
+    background: linear-gradient($default-background, change-color($default-background, $alpha: 0.5));
+}
+
+.msp-help-text {
+    height: auto !important;
+
+    > div {
+        padding: ($control-spacing / 2) $control-spacing;
+        text-align: left;
+        color: color-lower-contrast($font-color, 15%);
+    }
+}
+
+.msp-help-description {
+    font-style: italic;
+}
+
+.msp-help-legend {
+    padding-top: $control-spacing;
+}
+
+.msp-scale-legend {
+    > div {
+        width: 100%;
+        height: $control-spacing * 3;
+
+        > span {
+            padding: $control-spacing / 2;
+            color: white;
+            font-weight: bold;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+    }
+}
+
+.msp-table-legend {
+    > div {
+        // min-width: 60px;
+        margin-right: $control-spacing / 2;
+        display: inline-flex;
+
+        .msp-table-legend-color {
+            width: $control-spacing * 3;
+            height: $control-spacing * 2;
+        }
+
+        .msp-table-legend-text {
+            margin: 0 ($control-spacing / 2);
+        }
     }
 }

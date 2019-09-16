@@ -10,9 +10,8 @@ import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { ScaleLegend } from '../../mol-util/color/scale';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
-import { TableLegend } from '../../mol-util/color/lists';
+import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { Segmentation } from '../../mol-data/int';
 
 const DefaultColor = Color(0xFAFAFA)

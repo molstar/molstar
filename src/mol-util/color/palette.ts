@@ -6,9 +6,10 @@
 
 import { ParamDefinition as PD } from '../param-definition'
 import { DistinctColorsParams, distinctColors } from './distinct';
-import { ScaleLegend, ColorScale } from './scale';
+import { ColorScale } from './scale';
 import { Color } from '.';
-import { TableLegend, ColorListName, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName } from './lists';
+import { ColorListName, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName } from './lists';
+import { TableLegend, ScaleLegend } from '../legend';
 
 type PaletteType = 'generate' | 'scale' | 'set'
 
@@ -71,6 +72,7 @@ export function getPalette(count: number, props: PaletteProps) {
             colors = distinctColors(count, props.palette.params)
         }
         const colorsLength = colors.length
+        legend = TableLegend(colors.map((c, i) => [`${i + 1}`, c]))
         color = (i: number) => colors[i % colorsLength]
     }
 

@@ -12,7 +12,7 @@ import { Task } from '../../mol-task';
 import { ThemeDataContext, ThemeProvider } from '../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../mol-theme/color';
 import { Color } from '../../mol-util/color';
-import { TableLegend } from '../../mol-util/color/lists';
+import { TableLegend } from '../../mol-util/legend';
 import { Loci } from '../../mol-model/loci';
 import { OrderedSet } from '../../mol-data/int';
 

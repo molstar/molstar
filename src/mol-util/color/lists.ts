@@ -4,15 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color, ColorList } from './color';
-
-export interface TableLegend {
-    kind: 'table-legend'
-    table: [ string, Color ][]
-}
-export function TableLegend(table: [ string, Color ][]): TableLegend {
-    return { kind: 'table-legend', table }
-}
+import { ColorList } from './color';
 
 export const ColorLists = {
     /**

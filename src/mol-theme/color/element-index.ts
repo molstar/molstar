@@ -12,8 +12,7 @@ import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
-import { TableLegend } from '../../mol-util/color/lists';
-import { ScaleLegend } from '../../mol-util/color/scale';
+import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every element (atom or coarse sphere/gaussian) a unique color based on the position (index) of the element in the list of elements in the structure.'

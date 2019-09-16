@@ -10,8 +10,7 @@ import { StructureElement, Link, Structure } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { ScaleLegend } from '../../mol-util/color/scale';
-import { TableLegend } from '../../mol-util/color/lists';
+import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 
 const DefaultColor = Color(0xCCCCCC)

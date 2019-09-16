@@ -12,7 +12,7 @@ import { SecondaryStructureType, MoleculeType } from '../../mol-model/structure/
 import { getElementMoleculeType } from '../../mol-model/structure/util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { TableLegend } from '../../mol-util/color/lists';
+import { TableLegend } from '../../mol-util/legend';
 import { ComputedSecondaryStructure } from '../../mol-model-props/computed/secondary-structure';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
 

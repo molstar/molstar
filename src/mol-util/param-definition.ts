@@ -10,25 +10,32 @@ import { shallowEqual } from './index';
 import { Vec2 as Vec2Data, Vec3 as Vec3Data } from '../mol-math/linear-algebra';
 import { deepClone } from './object';
 import { Script as ScriptData } from '../mol-script/script';
+import { Legend } from './legend';
 
 export namespace ParamDefinition {
     export interface Info {
         label?: string,
         description?: string,
+        legend?: Legend,
         fieldLabels?: { [name: string]: string },
         isHidden?: boolean,
         shortLabel?: boolean,
         twoColumns?: boolean,
+
+        help?: (value: any) => { description?: string, legend?: Legend }
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
         if (!info) return param;
         if (info.label) param.label = info.label;
         if (info.description) param.description = info.description;
+        if (info.legend) param.legend = info.legend;
         if (info.fieldLabels) param.fieldLabels = info.fieldLabels;
         if (info.isHidden) param.isHidden = info.isHidden;
         if (info.shortLabel) param.shortLabel = info.shortLabel;
         if (info.twoColumns) param.twoColumns = info.twoColumns;
+
+        if (info.help) param.help = info.help;
         return param;
     }
 

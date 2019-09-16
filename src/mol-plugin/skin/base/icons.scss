@@ -4,45 +4,45 @@
   font-style: normal;
   font-weight: normal;
   speak: none;
- 
+
   display: inline-block;
   text-decoration: inherit;
   width: 1em;
   margin-right: .2em;
   text-align: center;
   /* opacity: .8; */
- 
+
   /* For safety - reset parent styles, that can break glyph codes*/
   font-variant: normal;
   text-transform: none;
- 
+
   /* fix buttons height, for twitter bootstrap */
   line-height: 1em;
- 
+
   /* Animation center compensation - margins should be symmetric */
   /* remove if not needed */
   margin-left: .2em;
- 
+
   /* you can be more comfortable with increased icons size */
   /* font-size: 120%; */
- 
+
   /* Font smoothing. That was taken from TWBS */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
- 
+
   /* Uncomment for 3D effect */
   /* text-shadow: 1px 1px 1px rgba(127, 127, 127, 0.3); */
 }
 
-.msp-icon-expand-layout:before { 
+.msp-icon-expand-layout:before {
 	content: "\e84a";
 }
 
-.msp-icon-plus:before { 
+.msp-icon-plus:before {
 	content: "\e816";
 }
 
-.msp-icon-minus:before { 
+.msp-icon-minus:before {
 	content: "\e819";
 }
 
@@ -50,19 +50,19 @@
 	content: "\e891";
 }
 
-.msp-icon-ok:before { 
+.msp-icon-ok:before {
 	content: "\e812";
 }
 
-.msp-icon-back:before { 
+.msp-icon-back:before {
 	content: "\e820";
 }
 
-.msp-icon-cross:before { 
+.msp-icon-cross:before {
 	content: "\e868";
 }
 
-.msp-icon-off:before { 
+.msp-icon-off:before {
 	content: "\e813";
 }
 
@@ -70,23 +70,23 @@
 	content: "\e885";
 }
 
-.msp-icon-collapse:before { 
+.msp-icon-collapse:before {
 	content: "\e883";
 }
 
-.msp-icon-visual-visibility:before { 
+.msp-icon-visual-visibility:before {
 	content: "\e826";
 }
 
-.msp-icon-abort:before { 
+.msp-icon-abort:before {
 	content: "\e814";
 }
 
-.msp-icon-focus-on-visual:before { 
+.msp-icon-focus-on-visual:before {
 	content: "\e8a3";
 }
 
-.msp-icon-settings:before  { 
+.msp-icon-settings:before  {
 	content: "\e855";
 }
 
@@ -104,6 +104,10 @@
 
 .msp-icon-help:before {
     content: '\e81c'
+}
+
+.msp-icon-help-circle:before {
+	content: '\e81d';
 }
 
 .msp-icon-info:before {
@@ -126,16 +130,8 @@
     content: '\e875'
 }
 
-.msp-icon-screenshot:before { 
+.msp-icon-screenshot:before {
 	content: "\e80f";
-}
-
-.msp-icon-help:before { 
-	content: "\e81c";
-}
-
-.msp-icon-help-circle:before { 
-	content: "\e81d";
 }
 
 .msp-icon-model-prev:before {

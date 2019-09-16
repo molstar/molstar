@@ -10,9 +10,8 @@ import { StructureElement, Link } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { ScaleLegend } from '../../mol-util/color/scale';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
-import { TableLegend } from '../../mol-util/color/lists';
+import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every model a unique color based on the position (index) of the model in the list of models in the structure.'

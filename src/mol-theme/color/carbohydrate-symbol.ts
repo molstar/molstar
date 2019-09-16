@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,7 @@ import { ColorTheme, LocationColor } from '../color';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
-import { TableLegend } from '../../mol-util/color/lists';
+import { TableLegend } from '../../mol-util/legend';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Assigns colors according to the Symbol Nomenclature for Glycans (SNFG).'
