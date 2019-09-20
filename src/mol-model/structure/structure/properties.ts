@@ -53,8 +53,14 @@ const atom = {
     vdw_radius: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.model.atomicHierarchy.atoms.type_symbol.value(l.element))),
 }
 
-function compId(l: StructureElement.Location) {
+function _compId(l: StructureElement.Location) {
     return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])
+}
+
+function compId(l: StructureElement.Location) {
+    if (!Unit.isAtomic(l.unit)) notAtomic()
+    if (!hasMicroheterogeneity(l)) return _compId(l)
+    return l.unit.model.sourceData.data.atom_site.label_comp_id.value(l.element)
 }
 
 function seqId(l: StructureElement.Location) {
