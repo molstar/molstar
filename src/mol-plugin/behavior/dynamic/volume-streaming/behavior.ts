@@ -287,7 +287,7 @@ export namespace VolumeStreaming {
         }
 
         constructor(public plugin: PluginContext, public info: VolumeServerInfo.Data) {
-            super(plugin);
+            super(plugin, {} as any);
         }
     }
 }

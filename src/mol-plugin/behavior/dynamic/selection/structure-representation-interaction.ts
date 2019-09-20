@@ -2,12 +2,12 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Structure, StructureElement } from '../../../../mol-model/structure';
 import { PluginBehavior } from '../../../../mol-plugin/behavior';
 import { PluginCommands } from '../../../../mol-plugin/command';
-import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject } from '../../../../mol-plugin/state/objects';
 import { StateTransforms } from '../../../../mol-plugin/state/transforms';
 import { StructureRepresentation3DHelpers } from '../../../../mol-plugin/state/transforms/representation';
@@ -16,11 +16,23 @@ import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder'
 import { StateObjectCell, StateSelection, StateTransform } from '../../../../mol-state';
 import { BuiltInColorThemes } from '../../../../mol-theme/color';
 import { BuiltInSizeThemes } from '../../../../mol-theme/size';
-import { ColorNames } from '../../../../mol-util/color/names';
-import { ButtonsType } from '../../../../mol-util/input/input-observer';
+import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
 import { Representation } from '../../../../mol-repr/representation';
+import { Binding } from '../../../../mol-util/binding';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
-type Params = { }
+const B = ButtonsType
+const M = ModifiersKeys
+const Trigger = Binding.Trigger
+
+const DefaultStructureRepresentationInteractionBindings = {
+    clickShowInteractionOnly: Binding(Trigger(B.Flag.Secondary, M.create()), 'Show only the interaction of the clicked element.'),
+    clickClearInteractionOnEmpty: Binding(Trigger(B.Flag.Secondary, M.create({ control: true })), 'Clear all interactions when the clicked element is empty.'),
+}
+const StructureRepresentationInteractionParams = {
+    bindings: PD.Value(DefaultStructureRepresentationInteractionBindings, { isHidden: true }),
+}
+type StructureRepresentationInteractionProps = PD.Values<typeof StructureRepresentationInteractionParams>
 
 enum Tags {
     Group = 'structure-interaction-group',
@@ -32,7 +44,7 @@ enum Tags {
 
 const TagSet: Set<Tags> = new Set([Tags.Group, Tags.ResidueSel, Tags.ResidueRepr, Tags.SurrSel, Tags.SurrRepr])
 
-export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<Params> {
+export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
 
     private createResVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
@@ -44,7 +56,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
     private createSurVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
             repr: BuiltInStructureRepresentations['ball-and-stick'],
-            color: [BuiltInColorThemes.uniform, () => ({ value: ColorNames.gray })],
+            color: [BuiltInColorThemes['element-symbol'], () => ({ saturation: -3, lightness: 0.6 })],
             size: [BuiltInSizeThemes.uniform, () => ({ value: 0.33 } )]
         });
     }
@@ -122,63 +134,47 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         });
 
         this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
-            if (buttons !== ButtonsType.Flag.Secondary) return;
+            const { clickShowInteractionOnly, clickClearInteractionOnEmpty } = this.params.bindings
 
-            if (current.loci.kind === 'empty-loci') {
-                if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
-                    this.clear(StateTransform.RootRef);
+            if (current.loci.kind === 'empty-loci' && Binding.match(clickClearInteractionOnEmpty, buttons, modifiers)) {
+                this.clear(StateTransform.RootRef);
+            } else if (Binding.match(clickShowInteractionOnly, buttons, modifiers)) {
+                // TODO: support link loci as well?
+                if (!StructureElement.Loci.is(current.loci)) return;
+
+                const parent = this.plugin.helpers.substructureParent.get(current.loci.structure);
+                if (!parent || !parent.obj) return;
+
+                if (Representation.Loci.areEqual(lastLoci, current)) {
+                    lastLoci = Representation.Loci.Empty;
+                    this.clear(parent.transform.ref);
                     return;
                 }
+
+                lastLoci = current;
+
+                const core = MS.struct.modifier.wholeResidues([
+                    StructureElement.Loci.toExpression(current.loci)
+                ]);
+
+                const surroundings = MS.struct.modifier.includeSurroundings({
+                    0: core,
+                    radius: 5,
+                    'as-whole-residues': true
+                });
+
+                const { state, builder, refs } = this.ensureShape(parent);
+
+                builder.to(refs[Tags.ResidueSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: core }));
+                builder.to(refs[Tags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings }));
+
+                PluginCommands.State.Update.dispatch(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
             }
-
-            // TODO: support link loci as well?
-            if (!StructureElement.Loci.is(current.loci)) return;
-
-            const parent = this.plugin.helpers.substructureParent.get(current.loci.structure);
-            if (!parent || !parent.obj) return;
-
-            if (Representation.Loci.areEqual(lastLoci, current)) {
-                lastLoci = Representation.Loci.Empty;
-                this.clear(parent.transform.ref);
-                return;
-            }
-
-            lastLoci = current;
-
-            const core = MS.struct.modifier.wholeResidues([
-                StructureElement.Loci.toExpression(current.loci)
-            ]);
-
-            const surroundings = MS.struct.modifier.includeSurroundings({
-                0: core,
-                radius: 5,
-                'as-whole-residues': true
-            });
-
-            // const surroundings = MS.struct.modifier.exceptBy({
-            //     0: MS.struct.modifier.includeSurroundings({
-            //         0: core,
-            //         radius: 5,
-            //         'as-whole-residues': true
-            //     }),
-            //     by: core
-            // });
-
-            const { state, builder, refs } = this.ensureShape(parent);
-
-            builder.to(refs[Tags.ResidueSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: core }));
-            builder.to(refs[Tags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings }));
-
-            PluginCommands.State.Update.dispatch(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
         });
     }
 
-    async update(params: Params) {
+    async update(params: StructureRepresentationInteractionProps) {
         return false;
-    }
-
-    constructor(public plugin: PluginContext) {
-        super(plugin);
     }
 }
 
@@ -186,5 +182,6 @@ export const StructureRepresentationInteraction = PluginBehavior.create({
     name: 'create-structure-representation-interaction',
     display: { name: 'Structure Representation Interaction' },
     category: 'interaction',
-    ctor: StructureRepresentationInteractionBehavior
+    ctor: StructureRepresentationInteractionBehavior,
+    params: () => StructureRepresentationInteractionParams
 });

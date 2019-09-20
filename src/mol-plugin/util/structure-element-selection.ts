@@ -87,6 +87,7 @@ class StructureElementSelectionManager {
         return EmptyLoci;
     }
 
+    /** Removes all selections and returns them */
     clear() {
         const keys = this.entries.keys();
         const selections: StructureElement.Loci[] = [];

@@ -154,13 +154,13 @@ export class StructureSelectionHelper {
     private _set(modifier: SelectionModifier, loci: Loci) {
         switch (modifier) {
             case 'add':
-                this.plugin.interactivity.lociSelections.add({ loci })
+                this.plugin.interactivity.lociSelects.select({ loci })
                 break
             case 'remove':
-                this.plugin.interactivity.lociSelections.remove({ loci })
+                this.plugin.interactivity.lociSelects.deselect({ loci })
                 break
             case 'only':
-                this.plugin.interactivity.lociSelections.only({ loci })
+                this.plugin.interactivity.lociSelects.selectOnly({ loci })
                 break
         }
     }

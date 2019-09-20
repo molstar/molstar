@@ -91,7 +91,7 @@ export class PluginContext {
             isUpdating: this.ev.behavior<boolean>(false)
         },
         interaction: {
-            highlight: this.ev.behavior<Interactivity.HighlightEvent>({ current: Interactivity.Loci.Empty }),
+            hover: this.ev.behavior<Interactivity.HoverEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 }),
             click: this.ev.behavior<Interactivity.ClickEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
         },
         labels: {

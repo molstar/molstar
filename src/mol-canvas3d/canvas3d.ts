@@ -88,7 +88,7 @@ const requestAnimationFrame = typeof window !== 'undefined' ? window.requestAnim
 const DefaultRunTask = (task: Task<unknown>) => task.run()
 
 namespace Canvas3D {
-    export interface HighlightEvent { current: Representation.Loci, modifiers?: ModifiersKeys }
+    export interface HoverEvent { current: Representation.Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
 
     export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, runTask = DefaultRunTask) {
@@ -145,7 +145,9 @@ namespace Canvas3D {
             reprRenderObjects.forEach((_, _repr) => {
                 const _loci = _repr.getLoci(pickingId)
                 if (!isEmptyLoci(_loci)) {
-                    if (!isEmptyLoci(loci)) console.warn('found another loci')
+                    if (!isEmptyLoci(loci)) {
+                        console.warn('found another loci, this should not happen')
+                    }
                     loci = _loci
                     repr = _repr
                 }

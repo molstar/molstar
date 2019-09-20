@@ -63,7 +63,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
         PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
-        PluginSpec.Behavior(PluginBehaviors.Camera.FocusLociOnSelect, { minRadius: 8, extraRadius: 4, durationMs: 250 }),
+        PluginSpec.Behavior(PluginBehaviors.Camera.FocusLoci),
         // PluginSpec.Behavior(PluginBehaviors.Labels.SceneLabels),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.MolstarSecondaryStructure, { autoAttach: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true, showTooltip: true }),

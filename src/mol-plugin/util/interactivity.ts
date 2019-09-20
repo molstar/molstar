@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Loci as ModelLoci, EmptyLoci } from '../../mol-model/loci';
+import { Loci as ModelLoci, EmptyLoci, EveryLoci, isEmptyLoci } from '../../mol-model/loci';
 import { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
 import { Representation } from '../../mol-repr/representation';
 import { StructureElement, Link } from '../../mol-model/structure';
@@ -20,7 +20,7 @@ import { capitalize } from '../../mol-util/string';
 export { Interactivity }
 
 class Interactivity {
-    readonly lociSelections: Interactivity.LociSelectionManager;
+    readonly lociSelects: Interactivity.LociSelectManager;
     readonly lociHighlights: Interactivity.LociHighlightManager;
 
     private _props = PD.getDefaultValues(Interactivity.Params)
@@ -28,14 +28,14 @@ class Interactivity {
     get props() { return { ...this._props } }
     setProps(props: Partial<Interactivity.Props>) {
         Object.assign(this._props, props)
-        this.lociSelections.setProps(this._props)
+        this.lociSelects.setProps(this._props)
         this.lociHighlights.setProps(this._props)
     }
 
     constructor(readonly ctx: PluginContext, props: Partial<Interactivity.Props> = {}) {
         Object.assign(this._props, props)
 
-        this.lociSelections = new Interactivity.LociSelectionManager(ctx, this._props);
+        this.lociSelects = new Interactivity.LociSelectManager(ctx, this._props);
         this.lociHighlights = new Interactivity.LociHighlightManager(ctx, this._props);
 
         PluginCommands.Interactivity.SetProps.subscribe(ctx, e => this.setProps(e.props));
@@ -62,16 +62,17 @@ namespace Interactivity {
     const GranularityOptions = Object.keys(Granularity).map(n => [n, capitalize(n)]) as [Granularity, string][]
 
     export const Params = {
-        granularity: PD.Select('residue', GranularityOptions),
+        granularity: PD.Select('residue', GranularityOptions, { description: 'Controls if selections are expanded to whole residues, chains, structures, or left as atoms and coarse elements' }),
     }
-    export type Props = PD.Values<typeof Params>
+    export type Params = typeof Params
+    export type Props = PD.Values<Params>
 
-    export interface HighlightEvent { current: Loci, modifiers?: ModifiersKeys }
+    export interface HoverEvent { current: Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
     export interface ClickEvent { current: Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
 
     export type LociMarkProvider = (loci: Loci, action: MarkerAction) => void
 
-    export abstract class LociMarkManager<MarkEvent extends any> {
+    export abstract class LociMarkManager {
         protected providers: LociMarkProvider[] = [];
         protected sel: StructureElementSelectionManager
 
@@ -114,27 +115,21 @@ namespace Interactivity {
             for (let p of this.providers) p(current, action);
         }
 
-        abstract apply(e: MarkEvent): void
-
         constructor(public readonly ctx: PluginContext, props: Partial<Props> = {}) {
             this.sel = ctx.helpers.structureSelectionManager
             this.setProps(props)
         }
     }
 
-    export class LociHighlightManager extends LociMarkManager<HighlightEvent> {
+    //
+
+    export class LociHighlightManager extends LociMarkManager {
         private prev: Loci = { loci: EmptyLoci, repr: void 0 };
 
-        apply(e: HighlightEvent) {
-            const { current, modifiers } = e
-
-            const normalized: Loci<ModelLoci> = this.normalizedLoci(current)
+        highlightOnly(current: Loci) {
+            const normalized = this.normalizedLoci(current)
             if (StructureElement.Loci.is(normalized.loci)) {
-                let loci: StructureElement.Loci = normalized.loci;
-                if (modifiers && modifiers.shift) {
-                    loci = this.sel.tryGetRange(loci) || loci;
-                }
-
+                const loci = normalized.loci;
                 this.mark(this.prev, MarkerAction.RemoveHighlight);
                 const toHighlight = { loci, repr: normalized.repr };
                 this.mark(toHighlight, MarkerAction.Highlight);
@@ -148,14 +143,74 @@ namespace Interactivity {
             }
         }
 
-        constructor(ctx: PluginContext, props: Partial<Props> = {}) {
-            super(ctx, props)
-            ctx.behaviors.interaction.highlight.subscribe(e => this.apply(e));
+        highlightOnlyExtend(current: Loci) {
+            const normalized = this.normalizedLoci(current)
+            if (StructureElement.Loci.is(normalized.loci)) {
+                const loci = this.sel.tryGetRange(normalized.loci) || normalized.loci;
+                this.mark(this.prev, MarkerAction.RemoveHighlight);
+                const toHighlight = { loci, repr: normalized.repr };
+                this.mark(toHighlight, MarkerAction.Highlight);
+                this.prev = toHighlight;
+            }
         }
     }
 
-    export class LociSelectionManager extends LociMarkManager<ClickEvent> {
-        toggleSel(current: Loci<ModelLoci>) {
+    //
+
+    export class LociSelectManager extends LociMarkManager {
+        selectToggle(current: Loci<ModelLoci>) {
+            const normalized = this.normalizedLoci(current)
+            if (StructureElement.Loci.is(normalized.loci)) {
+                this.toggleSel(normalized);
+            } else {
+                this.mark(normalized, MarkerAction.Toggle);
+            }
+        }
+
+        selectExtend(current: Loci<ModelLoci>) {
+            const normalized = this.normalizedLoci(current)
+            if (StructureElement.Loci.is(normalized.loci)) {
+                const loci = this.sel.tryGetRange(normalized.loci) || normalized.loci;
+                this.toggleSel({ loci, repr: normalized.repr });
+            }
+        }
+
+        select(current: Loci<ModelLoci>) {
+            const normalized = this.normalizedLoci(current)
+            if (StructureElement.Loci.is(normalized.loci)) {
+                this.sel.add(normalized.loci);
+            }
+            this.mark(normalized, MarkerAction.Select);
+        }
+
+        selectOnly(current: Loci<ModelLoci>) {
+            this.deselectAll()
+            const normalized = this.normalizedLoci(current)
+            if (StructureElement.Loci.is(normalized.loci)) {
+                this.sel.set(normalized.loci);
+            }
+            this.mark(normalized, MarkerAction.Select);
+        }
+
+        deselect(current: Loci<ModelLoci>) {
+            const normalized = this.normalizedLoci(current)
+            if (StructureElement.Loci.is(normalized.loci)) {
+                this.sel.remove(normalized.loci);
+            }
+            this.mark(normalized, MarkerAction.Deselect);
+        }
+
+        deselectAll() {
+            this.sel.clear();
+            this.mark({ loci: EveryLoci }, MarkerAction.Deselect);
+        }
+
+        deselectAllOnEmpty(current: Loci<ModelLoci>) {
+            const normalized = this.normalizedLoci(current)
+            if (isEmptyLoci(normalized.loci)) this.deselectAll()
+        }
+
+        private toggleSel(current: Loci<ModelLoci>) {
             if (this.sel.has(current.loci)) {
                 this.sel.remove(current.loci);
                 this.mark(current, MarkerAction.Deselect);
@@ -163,63 +218,6 @@ namespace Interactivity {
                 this.sel.add(current.loci);
                 this.mark(current, MarkerAction.Select);
             }
-        }
-
-        // TODO create better API that is independent of a `ClickEvent`
-        apply(e: ClickEvent) {
-            const { current, buttons, modifiers } = e
-            const normalized: Loci<ModelLoci> = this.normalizedLoci(current)
-            if (normalized.loci.kind === 'empty-loci') {
-                if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
-                    // clear the selection on Ctrl + Right-Click on empty
-                    const sels = this.sel.clear();
-                    for (const s of sels) this.mark({ loci: s }, MarkerAction.Deselect);
-                }
-            } else if (StructureElement.Loci.is(normalized.loci)) {
-                if (modifiers.control && buttons === ButtonsType.Flag.Secondary) {
-                    // select only the current element on Ctrl + Right-Click
-                    const old = this.sel.get(normalized.loci.structure);
-                    this.mark({ loci: old }, MarkerAction.Deselect);
-                    this.sel.set(normalized.loci);
-                    this.mark(normalized, MarkerAction.Select);
-                } else if (modifiers.control && buttons === ButtonsType.Flag.Primary) {
-                    // toggle current element on Ctrl + Left-Click
-                    this.toggleSel(normalized as Representation.Loci<StructureElement.Loci>);
-                } else if (modifiers.shift && buttons === ButtonsType.Flag.Primary) {
-                    // try to extend sequence on Shift + Left-Click
-                    let loci: StructureElement.Loci = normalized.loci;
-                    if (modifiers.shift) {
-                        loci = this.sel.tryGetRange(loci) || loci;
-                    }
-                    this.toggleSel({ loci, repr: normalized.repr });
-                }
-            } else {
-                if (!ButtonsType.has(buttons, ButtonsType.Flag.Secondary)) return;
-                for (let p of this.providers) p(normalized, MarkerAction.Toggle);
-            }
-        }
-
-        add(current: Loci<ModelLoci>) {
-            const normalized: Loci<ModelLoci> = this.normalizedLoci(current, false)
-            this.sel.add(normalized.loci);
-            this.mark(normalized, MarkerAction.Select);
-        }
-
-        remove(current: Loci<ModelLoci>) {
-            const normalized: Loci<ModelLoci> = this.normalizedLoci(current, false)
-            this.sel.remove(normalized.loci);
-            this.mark(normalized, MarkerAction.Deselect);
-        }
-
-        only(current: Loci<ModelLoci>) {
-            const sels = this.sel.clear();
-            for (const s of sels) this.mark({ loci: s }, MarkerAction.Deselect);
-            this.add(current);
-        }
-
-        constructor(ctx: PluginContext, props: Partial<Props> = {}) {
-            super(ctx, props)
-            ctx.behaviors.interaction.click.subscribe(e => this.apply(e));
         }
     }
 }

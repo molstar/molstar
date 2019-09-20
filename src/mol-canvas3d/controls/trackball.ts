@@ -10,11 +10,28 @@
 
 import { Quat, Vec2, Vec3, EPSILON } from '../../mol-math/linear-algebra';
 import { Viewport } from '../camera/util';
-import InputObserver, { DragInput, WheelInput, PinchInput } from '../../mol-util/input/input-observer';
+import InputObserver, { DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys } from '../../mol-util/input/input-observer';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera } from '../camera';
-import { Bindings } from './bindings';
 import { absMax } from '../../mol-math/misc';
+import { Binding } from '../../mol-util/binding';
+
+const B = ButtonsType
+const M = ModifiersKeys
+const Trigger = Binding.Trigger
+
+export const DefaultTrackballBindings = {
+    dragRotate: Binding(Trigger(B.Flag.Primary, M.create()), 'Rotate the 3D scene by dragging using ${trigger}'),
+    dragRotateZ: Binding(Trigger(B.Flag.Primary, M.create({ shift: true })), 'Rotate the 3D scene around the z-axis by dragging using ${trigger}'),
+    dragPan: Binding(Trigger(B.Flag.Secondary, M.create()), 'Pan the 3D scene by dragging using ${trigger}'),
+    dragZoom: Binding.Empty,
+    dragFocus: Binding(Trigger(B.Flag.Forth, M.create()), 'Focus the 3D scene by dragging using ${trigger}'),
+    dragFocusZoom: Binding(Trigger(B.Flag.Auxilary, M.create()), 'Focus and zoom the 3D scene by dragging using ${trigger}'),
+
+    scrollZoom: Binding(Trigger(B.Flag.Auxilary, M.create()), 'Zoom the 3D scene by scrolling using ${trigger}'),
+    scrollFocus: Binding(Trigger(B.Flag.Auxilary, M.create({ shift: true })), 'Focus the 3D scene by dragging using ${trigger}'),
+    scrollFocusZoom: Binding.Empty,
+}
 
 export const TrackballControlsParams = {
     noScroll: PD.Boolean(true, { isHidden: true }),
@@ -32,7 +49,7 @@ export const TrackballControlsParams = {
     minDistance: PD.Numeric(0.01, {}, { isHidden: true }),
     maxDistance: PD.Numeric(1e150, {}, { isHidden: true }),
 
-    bindings: PD.Value(Bindings.Default, { isHidden: true })
+    bindings: PD.Value(DefaultTrackballBindings, { isHidden: true })
 }
 export type TrackballControlsProps = PD.Values<typeof TrackballControlsParams>
 
@@ -287,12 +304,12 @@ namespace TrackballControls {
         function onDrag({ pageX, pageY, buttons, modifiers, isStart }: DragInput) {
             _isInteracting = true;
 
-            const dragRotate = Bindings.match(p.bindings.drag.rotate, buttons, modifiers)
-            const dragRotateZ = Bindings.match(p.bindings.drag.rotateZ, buttons, modifiers)
-            const dragPan = Bindings.match(p.bindings.drag.pan, buttons, modifiers)
-            const dragZoom = Bindings.match(p.bindings.drag.zoom, buttons, modifiers)
-            const dragFocus = Bindings.match(p.bindings.drag.focus, buttons, modifiers)
-            const dragFocusZoom = Bindings.match(p.bindings.drag.focusZoom, buttons, modifiers)
+            const dragRotate = Binding.match(p.bindings.dragRotate, buttons, modifiers)
+            const dragRotateZ = Binding.match(p.bindings.dragRotateZ, buttons, modifiers)
+            const dragPan = Binding.match(p.bindings.dragPan, buttons, modifiers)
+            const dragZoom = Binding.match(p.bindings.dragZoom, buttons, modifiers)
+            const dragFocus = Binding.match(p.bindings.dragFocus, buttons, modifiers)
+            const dragFocusZoom = Binding.match(p.bindings.dragFocusZoom, buttons, modifiers)
 
             getMouseOnCircle(pageX, pageY)
             getMouseOnScreen(pageX, pageY)
@@ -337,16 +354,16 @@ namespace TrackballControls {
 
         function onWheel({ dx, dy, dz, buttons, modifiers }: WheelInput) {
             const delta = absMax(dx, dy, dz)
-            if (Bindings.match(p.bindings.scroll.zoom, buttons, modifiers)) {
+            if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
                 _zoomEnd[1] += delta * 0.0001
             }
-            if (Bindings.match(p.bindings.scroll.focus, buttons, modifiers)) {
+            if (Binding.match(p.bindings.scrollFocus, buttons, modifiers)) {
                 _focusEnd[1] += delta * 0.0001
             }
         }
 
         function onPinch({ fraction, buttons, modifiers }: PinchInput) {
-            if (Bindings.match(p.bindings.scroll.zoom, buttons, modifiers)) {
+            if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
                 _isInteracting = true;
                 _zoomEnd[1] += (fraction - 1) * 0.1
             }

@@ -11,13 +11,15 @@ import InputObserver, { ModifiersKeys, ButtonsType } from '../../mol-util/input/
 import { RxEventHelper } from '../../mol-util/rx-event-helper';
 
 type Canvas3D = import('../canvas3d').Canvas3D
+type HoverEvent = import('../canvas3d').Canvas3D.HoverEvent
+type ClickEvent = import('../canvas3d').Canvas3D.ClickEvent
 
 export class Canvas3dInteractionHelper {
     private ev = RxEventHelper.create();
 
     readonly events = {
-        highlight: this.ev<import('../canvas3d').Canvas3D.HighlightEvent>(),
-        click: this.ev<import('../canvas3d').Canvas3D.ClickEvent>(),
+        hover: this.ev<HoverEvent>(),
+        click: this.ev<ClickEvent>(),
     };
 
     private cX = -1;
@@ -52,14 +54,14 @@ export class Canvas3dInteractionHelper {
             return;
         }
 
-        // only highlight the latest
         if (!this.inside || this.currentIdentifyT !== t) {
             return;
         }
 
         const loci = this.getLoci(this.id);
+        // only broadcast the latest hover
         if (!Representation.Loci.areEqual(this.prevLoci, loci)) {
-            this.events.highlight.next({ current: loci, modifiers: this.modifiers });
+            this.events.hover.next({ current: loci, buttons: this.buttons, modifiers: this.modifiers });
             this.prevLoci = loci;
         }
     }
@@ -76,12 +78,13 @@ export class Canvas3dInteractionHelper {
         this.inside = false;
         if (this.prevLoci.loci !== EmptyLoci) {
             this.prevLoci = Representation.Loci.Empty;
-            this.events.highlight.next({ current: this.prevLoci });
+            this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, modifiers: this.modifiers });
         }
     }
 
-    move(x: number, y: number, modifiers: ModifiersKeys) {
+    move(x: number, y: number, buttons: ButtonsType, modifiers: ModifiersKeys) {
         this.inside = true;
+        this.buttons = buttons;
         this.modifiers = modifiers;
         this.cX = x;
         this.cY = y;
@@ -98,7 +101,7 @@ export class Canvas3dInteractionHelper {
     modify(modifiers: ModifiersKeys) {
         if (this.prevLoci.loci === EmptyLoci || ModifiersKeys.areEqual(modifiers, this.modifiers)) return;
         this.modifiers = modifiers;
-        this.events.highlight.next({ current: this.prevLoci, modifiers: this.modifiers });
+        this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, modifiers: this.modifiers });
     }
 
     dispose() {
@@ -107,8 +110,8 @@ export class Canvas3dInteractionHelper {
 
     constructor(private canvasIdentify: Canvas3D['identify'], private getLoci: Canvas3D['getLoci'], input: InputObserver, private maxFps: number = 15) {
         input.move.subscribe(({x, y, inside, buttons, modifiers }) => {
-            if (!inside || buttons) { return; }
-            this.move(x, y, modifiers);
+            if (!inside) return;
+            this.move(x, y, buttons, modifiers);
         });
 
         input.leave.subscribe(() => {

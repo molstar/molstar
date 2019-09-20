@@ -51,21 +51,21 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P, Sequ
 
     componentDidMount() {
         this.plugin.interactivity.lociHighlights.addProvider(this.lociHighlightProvider)
-        this.plugin.interactivity.lociSelections.addProvider(this.lociSelectionProvider)
+        this.plugin.interactivity.lociSelects.addProvider(this.lociSelectionProvider)
     }
 
     componentWillUnmount() {
         this.plugin.interactivity.lociHighlights.removeProvider(this.lociHighlightProvider)
-        this.plugin.interactivity.lociSelections.removeProvider(this.lociSelectionProvider)
+        this.plugin.interactivity.lociSelects.removeProvider(this.lociSelectionProvider)
     }
 
-    highlight(seqId?: number, modifiers?: ModifiersKeys) {
-        const ev = { current: Interactivity.Loci.Empty, modifiers }
+    hover(seqId: number | undefined, buttons: ButtonsType, modifiers: ModifiersKeys) {
+        const ev = { current: Interactivity.Loci.Empty, buttons, modifiers }
         if (seqId !== undefined) {
             const loci = this.props.sequenceWrapper.getLoci(seqId);
             if (!StructureElement.Loci.isEmpty(loci)) ev.current = { loci };
         }
-        this.plugin.behaviors.interaction.highlight.next(ev)
+        this.plugin.behaviors.interaction.hover.next(ev)
     }
 
     click(seqId: number | undefined, buttons: ButtonsType, modifiers: ModifiersKeys) {

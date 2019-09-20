@@ -127,7 +127,7 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
         this.subscribe(canvas3d.input.resize, this.handleResize);
 
         this.subscribe(canvas3d.interaction.click, e => this.plugin.behaviors.interaction.click.next(e));
-        this.subscribe(canvas3d.interaction.highlight, e => this.plugin.behaviors.interaction.highlight.next(e));
+        this.subscribe(canvas3d.interaction.hover, e => this.plugin.behaviors.interaction.hover.next(e));
         this.subscribe(this.plugin.layout.events.updated, () => {
             setTimeout(this.handleResize, 50);
         });

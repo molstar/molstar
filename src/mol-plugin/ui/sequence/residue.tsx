@@ -14,12 +14,15 @@ import { Color } from '../../../mol-util/color';
 export class Residue extends PurePluginUIComponent<{ seqIdx: number, label: string, parent: Sequence<any>, marker: number, color: Color }> {
 
     mouseEnter = (e: React.MouseEvent) => {
+        const buttons = getButtons(e.nativeEvent)
         const modifiers = getModifiers(e.nativeEvent)
-        this.props.parent.highlight(this.props.seqIdx, modifiers);
+        this.props.parent.hover(this.props.seqIdx, buttons, modifiers);
     }
 
-    mouseLeave = () => {
-        this.props.parent.highlight();
+    mouseLeave = (e: React.MouseEvent) => {
+        const buttons = getButtons(e.nativeEvent)
+        const modifiers = getModifiers(e.nativeEvent)
+        this.props.parent.hover(undefined, buttons, modifiers);
     }
 
     mouseDown = (e: React.MouseEvent) => {

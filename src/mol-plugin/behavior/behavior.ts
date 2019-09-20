@@ -152,7 +152,7 @@ namespace PluginBehavior {
             this.subs = [];
         }
 
-        constructor(protected plugin: PluginContext) {
+        constructor(protected plugin: PluginContext, protected params: P) {
         }
     }
 }
