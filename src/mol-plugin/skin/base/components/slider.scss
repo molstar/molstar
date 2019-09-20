@@ -20,7 +20,7 @@
   &-rail {
     position: absolute;
     width: 100%;
-    background-color: $border-color;
+    background-color: $control-background;
     height: 4px;
     border-radius: 2px;
   }
@@ -42,7 +42,7 @@
     cursor: pointer;
     border-radius: 50%;
     background-color: $font-color;
-    border: 4px solid $border-color;
+    border: 4px solid $control-background;
 
     &:hover {
       background-color: $hover-font-color;
