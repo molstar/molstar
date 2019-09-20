@@ -16,29 +16,29 @@
     font-family: "Helvetica Neue", "Source Sans Pro", Helvetica, Arial, sans-serif;
     font-size: 14px;
     line-height: 1.42857143;
-    
+
     position: absolute;
     left: 0;
     top: 0;
     right: 0;
     bottom: 0;
     @import 'variables';
-    
+
     // for bootstrap
     $border-radius-base:        0;
     $border-radius-large:       0;
     $border-radius-small:       0;
-    
+
     @import 'bootstrap/bootstrap';
 
-    @import 'icons';   
+    @import 'icons';
     @import 'layout';
     @import 'ui';
     @import 'logo';
-        
+
     .msp-plugin-content {
         color: $font-color;
     }
-    
+
     background: $default-background;
 }

@@ -7,6 +7,10 @@
     bottom: 0;
 }
 
+.msp-layout-standard {
+    border: 1px solid $border-color;
+}
+
 .msp-layout-region {
     overflow: hidden;
     background: $default-background;
