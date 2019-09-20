@@ -6,9 +6,36 @@
 
 import { ElementSymbol } from '../../../model/types';
 
-export interface LinkComputationParameters {
-    maxHbondLength: number,
+export interface LinkComputationProps {
+    /**
+     * Experimental covalent hydrogen bond lengths
+     *
+     * C-H (https://cccbdb.nist.gov/expbondlengths2x.asp?descript=rCH)
+     * - Average	1.091 (+/- 0.017)
+     * - Min	0.931
+     * - Max	1.140
+     *
+     * N-H (https://cccbdb.nist.gov/expbondlengths2x.asp?descript=rNH)
+     * - Average	1.009 (+/- 0.043)
+     * - Min	0.836
+     * - Max	1.090
+     *
+     * O-H (https://cccbdb.nist.gov/expbondlengths2x.asp?descript=rOH)
+     * - Average	0.967 (+/- 0.022)
+     * - Min	0.912
+     * - Max	1.033
+     *
+     * S-H (https://cccbdb.nist.gov/expbondlengths2x.asp?descript=rSH)
+     * - Average	1.345 (+/- 0.020)
+     * - Min	1.322
+     * - Max	1.400
+     */
+    maxCovalentHydrogenBondingLength: number,
     forceCompute: boolean
+}
+export const DefaultLinkComputationProps: LinkComputationProps = {
+    maxCovalentHydrogenBondingLength: 1.45,
+    forceCompute: false
 }
 
 // H,D,T are all mapped to H

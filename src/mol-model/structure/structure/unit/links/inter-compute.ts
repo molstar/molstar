@@ -8,7 +8,7 @@
 import { LinkType } from '../../../model/types';
 import Structure from '../../structure';
 import Unit from '../../unit';
-import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, LinkComputationParameters, MetalsSet } from './common';
+import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, LinkComputationProps, MetalsSet, DefaultLinkComputationProps } from './common';
 import { InterUnitBonds } from './data';
 import { UniqueArray } from '../../../../../mol-data/generic';
 import { SortedArray } from '../../../../../mol-data/int';
@@ -39,7 +39,7 @@ function addLink(indexA: number, indexB: number, order: number, flag: LinkType.F
 
 const _imageTransform = Mat4.zero();
 
-function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkComputationParameters, map: Map<number, InterUnitBonds.UnitPairBonds[]>) {
+function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComputationProps, map: Map<number, InterUnitBonds.UnitPairBonds[]>) {
     const state: PairState = { mapAB: new Map(), mapBA: new Map(), bondedA: UniqueArray.create(), bondedB: UniqueArray.create() };
     let bondCount = 0;
 
@@ -68,7 +68,7 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
         if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform);
         if (Vec3.squaredDistance(imageA, bCenter) > testDistanceSq) continue;
 
-        const structConnEntries = params.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
+        const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
         if (structConnEntries && structConnEntries.length) {
             for (const se of structConnEntries) {
                 if (se.distance < MAX_RADIUS) continue;
@@ -126,7 +126,7 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
             }
 
             if (isHa || isHb) {
-                if (dist < params.maxHbondLength) {
+                if (dist < props.maxCovalentHydrogenBondingLength) {
                     addLink(_aI, _bI, 1, LinkType.Flag.Covalent | LinkType.Flag.Computed, state); // TODO: check if correct
                     bondCount++;
                 }
@@ -153,15 +153,15 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
     return bondCount;
 }
 
-export interface InterLinkComputationParameters extends LinkComputationParameters {
+export interface InterLinkComputationProps extends LinkComputationProps {
     validUnitPair: (unitA: Unit, unitB: Unit) => boolean
 }
 
-function findLinks(structure: Structure, params: InterLinkComputationParameters) {
+function findLinks(structure: Structure, props: InterLinkComputationProps) {
     const map = new Map<number, InterUnitBonds.UnitPairBonds[]>();
     if (!structure.units.some(u => Unit.isAtomic(u))) return new InterUnitBonds(map);
 
-    const { validUnitPair } = params;
+    const { validUnitPair } = props;
     const lookup = structure.lookup3d;
     const imageCenter = Vec3.zero();
 
@@ -175,8 +175,8 @@ function findLinks(structure: Structure, params: InterLinkComputationParameters)
             const other = structure.units[closeUnits.indices[i]];
             if (!Unit.isAtomic(other) || unit.id >= other.id || !validUnitPair(unit, other)) continue;
 
-            if (other.elements.length >= unit.elements.length) findPairLinks(unit, other, params, map);
-            else findPairLinks(other, unit, params, map);
+            if (other.elements.length >= unit.elements.length) findPairLinks(unit, other, props, map);
+            else findPairLinks(other, unit, props, map);
         }
     }
 
@@ -192,11 +192,10 @@ function ValidUnitPair(structure: Structure) {
     }
 }
 
-function computeInterUnitBonds(structure: Structure, params?: Partial<InterLinkComputationParameters>): InterUnitBonds {
+function computeInterUnitBonds(structure: Structure, props?: Partial<InterLinkComputationProps>): InterUnitBonds {
     return findLinks(structure, {
-        maxHbondLength: (params && params.maxHbondLength) || 1.15,
-        forceCompute: !!(params && params.forceCompute),
-        validUnitPair: (params && params.validUnitPair) || ValidUnitPair(structure),
+        ...DefaultLinkComputationProps,
+        validUnitPair: (props && props.validUnitPair) || ValidUnitPair(structure),
     });
 }
 

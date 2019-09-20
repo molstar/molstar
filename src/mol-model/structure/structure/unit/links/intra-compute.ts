@@ -8,7 +8,7 @@ import { LinkType } from '../../../model/types'
 import { IntraUnitLinks } from './data'
 import Unit from '../../unit'
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
-import { LinkComputationParameters, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold } from './common';
+import { LinkComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold, DefaultLinkComputationProps } from './common';
 import { SortedArray } from '../../../../../mol-data/int';
 import { StructConn, ComponentBond } from '../../../../../mol-model-formats/structure/mmcif/bonds';
 
@@ -25,7 +25,7 @@ function getGraph(atomA: number[], atomB: number[], _order: number[], _flags: nu
     return builder.createGraph({ flags, order });
 }
 
-function _computeBonds(unit: Unit.Atomic, params: LinkComputationParameters): IntraUnitLinks {
+function _computeBonds(unit: Unit.Atomic, props: LinkComputationProps): IntraUnitLinks {
     const MAX_RADIUS = 4;
 
     const { x, y, z } = unit.model.atomicConformation;
@@ -50,7 +50,7 @@ function _computeBonds(unit: Unit.Atomic, params: LinkComputationParameters): In
         const aI =  atoms[_aI];
         const raI = residueIndex[aI];
 
-        if (!params.forceCompute && raI !== lastResidue) {
+        if (!props.forceCompute && raI !== lastResidue) {
             const resn = label_comp_id.value(raI)!;
             if (!!component && component.entries.has(resn)) {
                 componentMap = component.entries.get(resn)!.map;
@@ -69,7 +69,7 @@ function _computeBonds(unit: Unit.Atomic, params: LinkComputationParameters): In
         const thresholdA = getElementThreshold(aeI);
         const altA = label_alt_id.value(aI);
         const metalA = MetalsSet.has(aeI);
-        const structConnEntries = params.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
+        const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
 
         if (structConnEntries) {
             for (const se of structConnEntries) {
@@ -141,7 +141,7 @@ function _computeBonds(unit: Unit.Atomic, params: LinkComputationParameters): In
             }
 
             if (isHa || isHb) {
-                if (dist < params.maxHbondLength) {
+                if (dist < props.maxCovalentHydrogenBondingLength) {
                     atomA[atomA.length] = _aI;
                     atomB[atomB.length] = _bI;
                     order[order.length] = 1;
@@ -167,11 +167,8 @@ function _computeBonds(unit: Unit.Atomic, params: LinkComputationParameters): In
     return getGraph(atomA, atomB, order, flags, atomCount);
 }
 
-function computeIntraUnitBonds(unit: Unit.Atomic, params?: Partial<LinkComputationParameters>) {
-    return _computeBonds(unit, {
-        maxHbondLength: (params && params.maxHbondLength) || 1.15,
-        forceCompute: !!(params && params.forceCompute),
-    });
+function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<LinkComputationProps>) {
+    return _computeBonds(unit, { ...DefaultLinkComputationProps, ...props });
 }
 
 export { computeIntraUnitBonds }
