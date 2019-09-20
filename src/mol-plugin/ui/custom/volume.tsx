@@ -146,6 +146,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         // TODO: factor common things out
         const OptionsParams = {
             view: PD.MappedStatic(params.view.name, {
+                'off': PD.Group({}, { description: 'Display off.' }),
                 'box': PD.Group({
                     bottomLeft: PD.Vec3(Vec3.zero()),
                     topRight: PD.Vec3(Vec3.zero()),
@@ -161,8 +162,8 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     detailLevel: this.props.info.params.detailLevel,
                     isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
                 }, { description: 'Box around the structure\'s bounding box.' }),
-                // 'auto': PD.Group({  }), // based on camera distance/active selection/whatever, show whole structure or slice.
-            }, { options: [['box', 'Bounded Box'], ['selection-box', 'Selection'], ['cell', 'Whole Structure']] })
+                // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
+            }, { options: [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Surroundings'], ['cell', 'Whole Structure']] })
         };
         const options = {
             view: {

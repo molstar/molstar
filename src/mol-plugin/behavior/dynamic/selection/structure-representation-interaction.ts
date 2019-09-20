@@ -20,14 +20,14 @@ import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-obs
 import { Representation } from '../../../../mol-repr/representation';
 import { Binding } from '../../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { isEmptyLoci } from '../../../../mol-model/loci';
 
 const B = ButtonsType
 const M = ModifiersKeys
 const Trigger = Binding.Trigger
 
 const DefaultStructureRepresentationInteractionBindings = {
-    clickShowInteractionOnly: Binding(Trigger(B.Flag.Secondary, M.create()), 'Show only the interaction of the clicked element.'),
-    clickClearInteractionOnEmpty: Binding(Trigger(B.Flag.Secondary, M.create({ control: true })), 'Clear all interactions when the clicked element is empty.'),
+    clickInteractionAroundOnly: Binding(Trigger(B.Flag.Secondary, M.create()), 'Show the structure interaction around only the clicked element.'),
 }
 const StructureRepresentationInteractionParams = {
     bindings: PD.Value(DefaultStructureRepresentationInteractionBindings, { isHidden: true }),
@@ -134,12 +134,16 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         });
 
         this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
-            const { clickShowInteractionOnly, clickClearInteractionOnEmpty } = this.params.bindings
+            const { clickInteractionAroundOnly } = this.params.bindings
 
-            if (current.loci.kind === 'empty-loci' && Binding.match(clickClearInteractionOnEmpty, buttons, modifiers)) {
-                this.clear(StateTransform.RootRef);
-            } else if (Binding.match(clickShowInteractionOnly, buttons, modifiers)) {
-                // TODO: support link loci as well?
+            if (Binding.match(clickInteractionAroundOnly, buttons, modifiers)) {
+                if (isEmptyLoci(current.loci)) {
+                    this.clear(StateTransform.RootRef);
+                    lastLoci = current;
+                    return;
+                }
+
+                // TODO: support link and structure loci as well?
                 if (!StructureElement.Loci.is(current.loci)) return;
 
                 const parent = this.plugin.helpers.substructureParent.get(current.loci.structure);
