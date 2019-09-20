@@ -14,7 +14,7 @@ import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-obj
 import { createEmptyTheme, Theme } from '../../mol-theme/theme';
 import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
-import { EmptyLoci, Loci } from '../../mol-model/loci';
+import { EmptyLoci, Loci, isEveryLoci } from '../../mol-model/loci';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
 
@@ -57,11 +57,16 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
     function mark(loci: Loci, action: MarkerAction) {
         if (!_structure) return false
-        if (!StructureElement.Loci.is(loci) && !Link.isLoci(loci)) return false
-        if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
-        // Remap `loci` from equivalent structure to the current `_structure`
-        loci = Loci.remap(loci, _structure)
-        if (Loci.isEmpty(loci)) return false
+        if (StructureElement.Loci.is(loci) || Link.isLoci(loci)) {
+            if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
+            // Remap `loci` from equivalent structure to the current `_structure`
+            loci = Loci.remap(loci, _structure)
+            if (Loci.isEmpty(loci)) return false
+        } else if (isEveryLoci(loci)) {
+            // pass through
+        } else {
+            return false
+        }
         return visual ? visual.mark(loci, action) : false
     }
 

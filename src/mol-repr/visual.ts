@@ -7,7 +7,7 @@
 import { RuntimeContext } from '../mol-task'
 import { GraphicsRenderObject } from '../mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
-import { Loci, isEmptyLoci } from '../mol-model/loci';
+import { Loci, isEmptyLoci, isEveryLoci } from '../mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../mol-util/marker-action';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { WebGLContext } from '../mol-gl/webgl/context';
@@ -62,13 +62,16 @@ namespace Visual {
     export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply) {
         if (!renderObject) return false
 
-        const { tMarker } = renderObject.values
+        const { tMarker, uGroupCount, instanceCount } = renderObject.values
+        const count = uGroupCount.ref.value * instanceCount.ref.value
+        const { array } = tMarker.ref.value
 
-        function apply(interval: Interval) {
-            return applyMarkerAction(tMarker.ref.value.array, interval, action)
+        let changed = false
+        if (isEveryLoci(loci)) {
+            changed = applyMarkerAction(array, Interval.ofLength(count), action)
+        } else if (!isEmptyLoci(loci)) {
+            changed = lociApply(loci, interval => applyMarkerAction(array, interval, action))
         }
-
-        const changed = lociApply(loci, apply)
         if (changed) ValueCell.update(tMarker, tMarker.ref.value)
         return changed
     }
@@ -78,12 +81,13 @@ namespace Visual {
 
         const { tOverpaint, uGroupCount, instanceCount } = renderObject.values
         const count = uGroupCount.ref.value * instanceCount.ref.value
+        const { array } = tOverpaint.ref.value
 
         // ensure texture has right size
         createOverpaint(overpaint.layers.length ? count : 0, renderObject.values)
 
         // clear all if requested
-        if (clear) clearOverpaint(tOverpaint.ref.value.array, 0, count)
+        if (clear) clearOverpaint(array, 0, count)
 
         for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
             const { loci, color, clear } = overpaint.layers[i]
@@ -91,8 +95,8 @@ namespace Visual {
                 const start = Interval.start(interval)
                 const end = Interval.end(interval)
                 return clear
-                    ? clearOverpaint(tOverpaint.ref.value.array, start, end)
-                    : applyOverpaintColor(tOverpaint.ref.value.array, start, end, color, overpaint.alpha)
+                    ? clearOverpaint(array, start, end)
+                    : applyOverpaintColor(array, start, end, color, overpaint.alpha)
             }
             lociApply(loci, apply)
         }
@@ -104,6 +108,7 @@ namespace Visual {
 
         const { tTransparency, uGroupCount, instanceCount } = renderObject.values
         const count = uGroupCount.ref.value * instanceCount.ref.value
+        const { array } = tTransparency.ref.value
 
         const { loci, value, variant } = transparency
 
@@ -111,12 +116,12 @@ namespace Visual {
         createTransparency(value && !isEmptyLoci(loci) ? count : 0, variant, renderObject.values)
 
         // clear if requested
-        if (clear) clearTransparency(tTransparency.ref.value.array, 0, count)
+        if (clear) clearTransparency(array, 0, count)
 
         const apply = (interval: Interval) => {
             const start = Interval.start(interval)
             const end = Interval.end(interval)
-            return applyTransparencyValue(tTransparency.ref.value.array, start, end, value)
+            return applyTransparencyValue(array, start, end, value)
         }
         lociApply(loci, apply)
 
