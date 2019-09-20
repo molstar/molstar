@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react';
-import { PluginUIComponent } from '../base';
+import { CollapsableControls } from '../base';
 import { StructureSelectionQueries, SelectionModifier } from '../../util/structure-selection-helper';
 import { ButtonSelect, Options } from '../controls/common';
 import { PluginCommands } from '../../command';
@@ -18,9 +18,7 @@ const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,
 }
 
-export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
-    state = {}
-
+export class StructureSelectionControls extends CollapsableControls {
     componentDidMount() {
         this.subscribe(this.plugin.events.interactivity.selectionUpdated, () => {
             this.forceUpdate()
@@ -61,38 +59,40 @@ export class StructureSelectionControls extends PluginUIComponent<{}, {}> {
     remove = (value: string) => this.set('remove', value)
     only = (value: string) => this.set('only', value)
 
-    render() {
+    defaultState() {
+        return {
+            isCollapsed: false,
+            header: 'Selection'
+        }
+    }
+
+    renderControls() {
         const queries = Object.keys(StructureSelectionQueries).map(name => {
             return [name, camelCaseToWords(name)] as [string, string]
         })
 
-        return <div className='msp-transform-wrapper'>
-            <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block'>Selection</button>
+        return <div>
+            <div className='msp-control-row msp-row-text'>
+                <div>{this.stats}</div>
             </div>
-            <div>
-                <div className='msp-control-row msp-row-text'>
-                    <div>{this.stats}</div>
-                </div>
-                <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} />
-                <div className='msp-control-row'>
-                    <div className='msp-select-row'>
-                        <ButtonSelect label='Add' onChange={this.add}>
-                            <optgroup label='Add'>
-                                {Options(queries)}
-                            </optgroup>
-                        </ButtonSelect>
-                        <ButtonSelect label='Remove' onChange={this.remove}>
-                            <optgroup label='Remove'>
-                                {Options(queries)}
-                            </optgroup>
-                        </ButtonSelect>
-                        <ButtonSelect label='Only' onChange={this.only}>
-                            <optgroup label='Only'>
-                                {Options(queries)}
-                            </optgroup>
-                        </ButtonSelect>
-                    </div>
+            <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} />
+            <div className='msp-control-row'>
+                <div className='msp-select-row'>
+                    <ButtonSelect label='Add' onChange={this.add}>
+                        <optgroup label='Add'>
+                            {Options(queries)}
+                        </optgroup>
+                    </ButtonSelect>
+                    <ButtonSelect label='Remove' onChange={this.remove}>
+                        <optgroup label='Remove'>
+                            {Options(queries)}
+                        </optgroup>
+                    </ButtonSelect>
+                    <ButtonSelect label='Only' onChange={this.only}>
+                        <optgroup label='Only'>
+                            {Options(queries)}
+                        </optgroup>
+                    </ButtonSelect>
                 </div>
             </div>
         </div>

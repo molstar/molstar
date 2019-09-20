@@ -15,6 +15,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/base';
 import { StructureRepresentationPresets as P } from '../../util/structure-representation-helper';
 import { camelCaseToWords } from '../../../mol-util/string';
+import { CollapsableControls } from '../base';
 
 abstract class BaseStructureRepresentationControls extends PluginUIComponent {
     onChange = (value: string) => {
@@ -85,7 +86,7 @@ class SelectionStructureRepresentationControls extends BaseStructureRepresentati
     }
 }
 
-export class StructureRepresentationControls extends PluginUIComponent {
+export class StructureRepresentationControls extends CollapsableControls {
     preset = async (value: string) => {
         const presetFn = P[value as keyof typeof P]
         if (presetFn) {
@@ -121,15 +122,19 @@ export class StructureRepresentationControls extends PluginUIComponent {
         }
     }
 
-    render() {
+    defaultState() {
+        return {
+            isCollapsed: false,
+            header: 'Representation'
+        }
+    }
+
+    renderControls() {
         const presets = Object.keys(P).map(name => {
             return [name, camelCaseToWords(name)] as [string, string]
         })
 
-        return <div className='msp-transform-wrapper'>
-            <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block'>Representation</button>
-            </div>
+        return <div>
             <div className='msp-control-row'>
                 <div className='msp-select-row'>
                     <ButtonSelect label='Preset' onChange={this.preset}>

@@ -259,7 +259,7 @@
     }
 }
 
-.msp-conrol-group-expander {
+.msp-control-group-expander {
     display: block;
     position: absolute;
     line-height: $row-height;
@@ -312,7 +312,7 @@
 
 .msp-help:hover span {
     display: inline-block;
-    background: linear-gradient($default-background, change-color($default-background, $alpha: 0.5));
+    background: linear-gradient($default-background, change-color($default-background, $alpha: 0.8));
 }
 
 .msp-help-text {

@@ -129,9 +129,9 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
                 <span title={this.props.param.description}>
                     {label}
                     {hasHelp &&
-                        <button className='msp-help msp-btn-link msp-btn-icon msp-conrol-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Hide' : 'Show'} help`}
+                        <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Hide' : 'Show'} help`}
                                 style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                                <span className={`msp-icon msp-icon-help-circle`} />
+                                <span className={`msp-icon msp-icon-help-circle-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
                         </button>
                     }
                 </span>

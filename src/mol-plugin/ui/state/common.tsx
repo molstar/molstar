@@ -182,18 +182,13 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         const wrapClass = this.state.isCollapsed
             ? 'msp-transform-wrapper msp-transform-wrapper-collapsed'
             : 'msp-transform-wrapper';
-        // this.isUpdate()
-        //     ? !isEmpty && !this.state.isCollapsed
-        //     ? 'msp-transform-update-wrapper'
-        //     : 'msp-transform-update-wrapper-collapsed'
-        //     : 'msp-transform-wrapper';
 
         const { a, b } = this.getSourceAndTarget();
         return <div className={wrapClass}>
             <div className='msp-transform-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded} title={display.description}>
+                    <span className={`msp-icon msp-icon-${this.state.isCollapsed ? 'expand' : 'collapse'}`} />
                     {display.name}
-                    {/* {!isEmpty && this.state.isCollapsed && this.isUpdate() && <small>Click to Edit</small>} */}
                 </button>
             </div>
             {!isEmpty && !this.state.isCollapsed && <>

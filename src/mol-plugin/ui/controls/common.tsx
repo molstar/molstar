@@ -122,7 +122,7 @@ export class ExpandableGroup extends React.Component<{
             <div className='msp-control-row'>
                 <span>
                     {label}
-                    <button className='msp-btn-link msp-btn-icon msp-conrol-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Less' : 'More'} options`}
+                    <button className='msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Less' : 'More'} options`}
                         style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
                         <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'minus' : 'plus'}`} style={{ display: 'inline-block' }} />
                     </button>
