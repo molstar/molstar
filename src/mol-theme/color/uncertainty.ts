@@ -13,7 +13,7 @@ import { ThemeDataContext } from '../theme';
 import { ColorListName, ColorListOptionsScale } from '../../mol-util/color/lists';
 
 const DefaultUncertaintyColor = Color(0xffff99)
-const Description = `Assigns a color based on the uncertainty of an element's position, , e.g. B-factor or RMSF, depending on the data availability and experimental technique.`
+const Description = `Assigns a color based on the uncertainty or disorder of an element's position, e.g. B-factor or RMSF, depending on the data availability and experimental technique.`
 
 export const UncertaintyColorThemeParams = {
     domain: PD.Interval([0, 100]),
@@ -63,7 +63,7 @@ export function UncertaintyColorTheme(ctx: ThemeDataContext, props: PD.Values<Un
 }
 
 export const UncertaintyColorThemeProvider: ColorTheme.Provider<UncertaintyColorThemeParams> = {
-    label: 'Uncertainty',
+    label: 'Uncertainty/Disorder',
     factory: UncertaintyColorTheme,
     getParams: getUncertaintyColorThemeParams,
     defaultValues: PD.getDefaultValues(UncertaintyColorThemeParams),

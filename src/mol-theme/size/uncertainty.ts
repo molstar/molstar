@@ -10,7 +10,7 @@ import { SizeTheme } from '../size';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 
-const Description = `Assigns a size reflecting the uncertainty of an element's position, e.g. B-factor or RMSF, depending on the data availability and experimental technique.`
+const Description = `Assigns a size reflecting the uncertainty or disorder of an element's position, e.g. B-factor or RMSF, depending on the data availability and experimental technique.`
 
 export const UncertaintySizeThemeParams = {
     bfactorFactor: PD.Numeric(0.1, { min: 0, max: 1, step: 0.01 }),
@@ -53,7 +53,7 @@ export function UncertaintySizeTheme(ctx: ThemeDataContext, props: PD.Values<Unc
 }
 
 export const UncertaintySizeThemeProvider: SizeTheme.Provider<UncertaintySizeThemeParams> = {
-    label: 'Uncertainty',
+    label: 'Uncertainty/Disorder',
     factory: UncertaintySizeTheme,
     getParams: getUncertaintySizeThemeParams,
     defaultValues: PD.getDefaultValues(UncertaintySizeThemeParams),
