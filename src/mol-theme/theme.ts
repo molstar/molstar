@@ -66,7 +66,7 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
     private _map = new Map<string, ThemeProvider<T, any>>()
     private _name = new Map<ThemeProvider<T, any>, string>()
 
-    get default() { return this._list[0]; }
+    get default() { return this._list[0] }
     get list() { return this._list }
     get types(): [string, string][] { return getTypes(this._list) }
 

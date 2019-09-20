@@ -1,10 +1,10 @@
-import { OrderedSet } from '../mol-data/int';
-
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
+
+import { OrderedSet } from '../mol-data/int';
 
 export enum MarkerAction {
     Highlight,
