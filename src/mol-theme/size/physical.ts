@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 
 const DefaultSize = 1
-const Description = 'Assigns a physical size.'
+const Description = 'Assigns a physical size, i.e. vdW radius for atoms or given radius for coarse spheres.'
 
 export const PhysicalSizeThemeParams = {}
 export type PhysicalSizeThemeParams = typeof PhysicalSizeThemeParams

@@ -63,5 +63,5 @@ export const OccupancyColorThemeProvider: ColorTheme.Provider<OccupancyColorThem
     factory: OccupancyColorTheme,
     getParams: getOccupancyColorThemeParams,
     defaultValues: PD.getDefaultValues(OccupancyColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => m.atomicConformation.occupancy.isDefined)
 }

@@ -72,5 +72,5 @@ export const CrossLinkColorThemeProvider: ColorTheme.Provider<CrossLinkColorThem
     factory: CrossLinkColorTheme,
     getParams: getCrossLinkColorThemeParams,
     defaultValues: PD.getDefaultValues(CrossLinkColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.crossLinkRestraints.count > 0
 }

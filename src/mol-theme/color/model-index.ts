@@ -64,5 +64,5 @@ export const ModelIndexColorThemeProvider: ColorTheme.Provider<ModelIndexColorTh
     factory: ModelIndexColorTheme,
     getParams: getModelIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(ModelIndexColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.length > 1
 }
