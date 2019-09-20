@@ -85,9 +85,10 @@ export function linkLabel(link: Link.Location) {
 export type LabelGranularity = 'element' | 'residue' | 'chain' | 'structure'
 
 export function elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element') {
-    const model = location.unit.model.entry
+    const entry = location.unit.model.entry
+    const model = `Model ${location.unit.model.modelNum}`
     const instance = location.unit.conformation.operator.name
-    const label = [model, instance]
+    const label = [entry, model, instance]
 
     if (Unit.isAtomic(location.unit)) {
         label.push(atomicElementLabel(location as StructureElement.Location<Unit.Atomic>, granularity))
