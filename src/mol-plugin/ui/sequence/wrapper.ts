@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { OrderedSet } from '../../../mol-data/int';
-import { Loci } from '../../../mol-model/loci';
+import { OrderedSet, Interval } from '../../../mol-data/int';
+import { Loci, isEveryLoci } from '../../../mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../../mol-util/marker-action';
 import { StructureElement, Structure, Unit } from '../../../mol-model/structure';
 import { Color } from '../../../mol-util/color';
@@ -22,9 +22,13 @@ abstract class SequenceWrapper<D> {
     abstract getLoci(seqIdx: number): StructureElement.Loci
 
     markResidue(loci: Loci, action: MarkerAction) {
-        return this.eachResidue(loci, (set: OrderedSet) => {
-            return applyMarkerAction(this.markerArray, set, action)
-        })
+        if (isEveryLoci(loci)) {
+            return applyMarkerAction(this.markerArray, Interval.ofLength(this.length), action)
+        } else {
+            return this.eachResidue(loci, (set: OrderedSet) => {
+                return applyMarkerAction(this.markerArray, set, action)
+            })
+        }
     }
 
     constructor(readonly data: D, readonly markerArray: Uint8Array, readonly length: number) {

@@ -27,7 +27,7 @@ const M = ModifiersKeys
 const Trigger = Binding.Trigger
 
 const DefaultStructureRepresentationInteractionBindings = {
-    clickInteractionAroundOnly: Binding(Trigger(B.Flag.Secondary, M.create()), 'Show the structure interaction around only the clicked element.'),
+    clickInteractionAroundOnly: Binding(Trigger(B.Flag.Secondary, M.create()), 'Show the structure interaction around only the clicked element using ${trigger}.'),
 }
 const StructureRepresentationInteractionParams = {
     bindings: PD.Value(DefaultStructureRepresentationInteractionBindings, { isHidden: true }),

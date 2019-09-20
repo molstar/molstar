@@ -66,11 +66,10 @@ export const HighlightLoci = PluginBehavior.create({
 
 const DefaultSelectLociBindings = {
     clickSelect: Binding.Empty,
-    clickSelectExtend: Binding(Trigger(B.Flag.Primary, M.create({ shift: true })), 'Try to extend selection to clicked element along polymer.'),
-    clickSelectOnly: Binding(Trigger(B.Flag.Secondary, M.create({ control: true })), 'Select only the clicked element.'),
-    clickSelectToggle: Binding(Trigger(B.Flag.Primary, M.create({ control: true })), 'Toggle clicked element.'),
+    clickSelectExtend: Binding(Trigger(B.Flag.Primary, M.create({ shift: true })), 'Extend selection to clicked element along polymer using ${trigger}.'),
+    clickSelectOnly: Binding(Trigger(B.Flag.Secondary, M.create({ control: true })), 'Select only the clicked element using ${trigger}.'),
+    clickSelectToggle: Binding(Trigger(B.Flag.Primary, M.create({ control: true })), 'Toggle selection of clicked element using ${trigger}.'),
     clickDeselect: Binding.Empty,
-    clickDeselectAllOnEmpty: Binding(Trigger(B.Flag.Secondary, M.create({ control: true })), 'Clear the selection when the clicked element is empty.'),
 }
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),
@@ -119,10 +118,6 @@ export const SelectLoci = PluginBehavior.create({
 
                 if (Binding.match(this.params.bindings.clickDeselect, buttons, modifiers)) {
                     this.ctx.interactivity.lociSelects.deselect(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickDeselectAllOnEmpty, buttons, modifiers)) {
-                    this.ctx.interactivity.lociSelects.deselectAllOnEmpty(current)
                 }
             });
             this.ctx.interactivity.lociSelects.addProvider(this.lociMarkProvider)
