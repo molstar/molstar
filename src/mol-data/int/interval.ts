@@ -14,6 +14,8 @@ namespace Interval {
     export const ofRange: <T extends number = number>(min: T, max: T) => Interval<T> = Impl.ofRange as any;
     /** Create interval from bounds [start, end), i.e. [start, end - 1] */
     export const ofBounds: <T extends number = number>(start: T, end: T) => Interval<T> = Impl.ofBounds as any;
+    /** Create interval from length [0, length), i.e. [0, length - 1] */
+    export const ofLength: <T extends number = number>(length: T) => Interval<T> = Impl.ofLength as any;
     export const is: <T extends number = number>(v: any) => v is Interval<T> = Impl.is as any;
 
     /** Test if a value is within the bounds of the interval */

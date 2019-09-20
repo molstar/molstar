@@ -9,6 +9,7 @@ import Tuple from '../tuple'
 export const Empty = Tuple.Zero;
 export function ofRange(min: number, max: number) { return max < min ? Tuple.create(min, min) : Tuple.create(min, max + 1); }
 export function ofBounds(start: number, end: number) { return end <= start ? Tuple.create(start, start) : Tuple.create(start, end); }
+export function ofLength(length: number) { return length < 0 ? Tuple.create(0, 0) : Tuple.create(0, length); }
 export const is = Tuple.is;
 
 export const start = Tuple.fst;
