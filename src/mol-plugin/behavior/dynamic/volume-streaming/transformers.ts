@@ -2,6 +2,7 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginStateObject as SO, PluginStateTransform } from '../../../state/objects';
@@ -13,38 +14,39 @@ import { urlCombine } from '../../../../mol-util/url';
 import { createIsoValueParam } from '../../../../mol-repr/volume/isosurface';
 import { VolumeIsoValue } from '../../../../mol-model/volume';
 import { StateAction, StateObject, StateTransformer } from '../../../../mol-state';
-import { getStreamingMethod, getEmdbIdAndContourLevel } from './util';
+import { getStreamingMethod, getId, getContourLevel, getEmdbId } from './util';
 import { VolumeStreaming } from './behavior';
 import { VolumeRepresentation3DHelpers } from '../../../../mol-plugin/state/transforms/representation';
 import { BuiltInVolumeRepresentations } from '../../../../mol-repr/volume/registry';
 import { createTheme } from '../../../../mol-theme/theme';
 import { Box3D } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
-// import { PluginContext } from '../../../../mol-plugin/context';
 
 export const InitVolumeStreaming = StateAction.build({
     display: { name: 'Volume Streaming' },
     from: SO.Molecule.Structure,
     params(a) {
         const method = getStreamingMethod(a && a.data);
+        const id = getId(a && a.data);
         return {
             method: PD.Select<VolumeServerInfo.Kind>(method, [['em', 'EM'], ['x-ray', 'X-Ray']]),
-            id: PD.Text((a && a.data.models.length > 0 && a.data.models[0].entry) || ''),
+            id: PD.Text(id),
             serverUrl: PD.Text('https://ds.litemol.org'),
             defaultView: PD.Text<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box'),
-            behaviorRef: PD.Text('', { isHidden: true })
+            behaviorRef: PD.Text('', { isHidden: true }),
+            emContourProvider: PD.Select<'wwpdb' | 'pdbe'>('wwpdb', [['wwpdb', 'wwPDB'], ['pdbe', 'PDBe']], { isHidden: true }),
         };
     },
     isApplicable: (a) => a.data.models.length === 1
 })(({ ref, state, params }, plugin: PluginContext) => Task.create('Volume Streaming', async taskCtx => {
-    // TODO: custom react view for this and the VolumeStreamingBehavior transformer
-
     let dataId = params.id.toLowerCase(), emDefaultContourLevel: number | undefined;
     if (params.method === 'em') {
         await taskCtx.update('Getting EMDB info...');
-        const emInfo = await getEmdbIdAndContourLevel(plugin, taskCtx, dataId);
-        dataId = emInfo.emdbId;
-        emDefaultContourLevel = emInfo.contour;
+        if (!dataId.toUpperCase().startsWith('EMD')) {
+            dataId = await getEmdbId(plugin, taskCtx, dataId)
+        }
+        const contourLevel = await getContourLevel(params.emContourProvider, plugin, taskCtx, dataId);
+        emDefaultContourLevel = contourLevel || 0;
     }
 
     const infoTree = state.build().to(ref)
