@@ -9,6 +9,7 @@
 
 import { Task, RuntimeContext } from '../mol-task';
 import { utf8Read } from '../mol-io/common/utf8';
+import { parseXml } from './xml-parser';
 // polyfill XMLHttpRequest in node.js
 const XHR = typeof document === 'undefined' ? require('xhr2') as {
     prototype: XMLHttpRequest;
@@ -25,7 +26,7 @@ const XHR = typeof document === 'undefined' ? require('xhr2') as {
 //     Gzip
 // }
 
-export interface AjaxGetParams<T extends 'string' | 'binary' | 'json' = 'string'> {
+export interface AjaxGetParams<T extends 'string' | 'binary' | 'json' | 'xml' = 'string'> {
     url: string,
     type?: T,
     title?: string,
@@ -49,10 +50,10 @@ export function readFromFile(file: File, type: 'string' | 'binary') {
 export function ajaxGet(url: string): Task<string>
 export function ajaxGet(params: AjaxGetParams<'string'>): Task<string>
 export function ajaxGet(params: AjaxGetParams<'binary'>): Task<Uint8Array>
-export function ajaxGet<T = any>(params: AjaxGetParams<'json'>): Task<T>
+export function ajaxGet<T = any>(params: AjaxGetParams<'json' | 'xml'>): Task<T>
 export function ajaxGet(params: AjaxGetParams<'string' | 'binary'>): Task<string | Uint8Array>
-export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json'>): Task<string | Uint8Array | object>
-export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json'> | string) {
+export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json' | 'xml'>): Task<string | Uint8Array | object>
+export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json' | 'xml'> | string) {
     if (typeof params === 'string') return ajaxGetInternal(params, params, 'string', false);
     return ajaxGetInternal(params.title, params.url, params.type || 'string', false /* params.compression === DataCompressionMethod.Gzip */, params.body);
 }
@@ -174,7 +175,7 @@ async function processAjax(ctx: RuntimeContext, asUint8Array: boolean, decompres
     }
 }
 
-function ajaxGetInternal(title: string | undefined, url: string, type: 'json' | 'string' | 'binary', decompressGzip: boolean, body?: string): Task<string | Uint8Array> {
+function ajaxGetInternal(title: string | undefined, url: string, type: 'json' | 'xml' | 'string' | 'binary', decompressGzip: boolean, body?: string): Task<string | Uint8Array> {
     let xhttp: XMLHttpRequest | undefined = void 0;
     return Task.create(title ? title : 'Download', async ctx => {
         try {
@@ -195,8 +196,10 @@ function ajaxGetInternal(title: string | undefined, url: string, type: 'json' | 
 
             if (type === 'json') {
                 ctx.update({ message: 'Parsing JSON...', canAbort: false });
-                const data = JSON.parse(result);
-                return data;
+                return JSON.parse(result);
+            } else if (type === 'xml') {
+                ctx.update({ message: 'Parsing XML...', canAbort: false });
+                return parseXml(result);
             }
 
             return result;
