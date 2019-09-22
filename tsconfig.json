@@ -5,7 +5,7 @@
         "alwaysStrict": true,
         "noImplicitAny": true,
         "noImplicitThis": true,
-        "sourceMap": false,
+        "sourceMap": true,
         "noUnusedLocals": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
@@ -13,7 +13,7 @@
         "jsx": "react",
         "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
         "rootDir": "src",
-        "outDir": "lib",
+        "outDir": "lib"
     },
-    "include": [ "src/**/*" ],
+    "include": [ "src/**/*" ]
 }
