@@ -20,12 +20,12 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly modelNum: number
     private readonly asymId: string
 
-    seqId(seqIdx: number) {
-        return this.sequence.offset + seqIdx + 1
+    private seqId(seqIdx: number) {
+        return this.sequence.seqId.value(seqIdx)
     }
 
     residueLabel(seqIdx: number) {
-        return this.sequence.labels[seqIdx]
+        return this.sequence.label.value(seqIdx)
     }
     residueColor(seqIdx: number) {
         return this.missing.has(this.modelNum, this.asymId, this.seqId(seqIdx))
@@ -63,13 +63,14 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
     constructor(data: StructureUnit) {
         const l = StructureElement.Location.create(data.unit, data.unit.elements[0])
-        const sequence = data.unit.model.sequence.byEntityKey[SP.entity.key(l)].sequence
-        const length = sequence.sequence.length
+        const entitySeq = data.unit.model.sequence.byEntityKey[SP.entity.key(l)]
+
+        const length = entitySeq.sequence.length
         const markerArray = new Uint8Array(length)
 
         super(data, markerArray, length)
 
-        this.sequence = sequence
+        this.sequence = entitySeq.sequence
         this.missing = data.unit.model.properties.missingResidues
 
         this.modelNum = data.unit.model.modelNum

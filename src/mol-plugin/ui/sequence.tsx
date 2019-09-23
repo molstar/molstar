@@ -19,6 +19,8 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { HeteroSequenceWrapper } from './sequence/hetero';
 import { State, StateSelection } from '../../mol-state';
 
+const MaxDisplaySequenceLength = 10000
+
 function opKey(l: StructureElement.Location) {
     const ids = SP.unit.pdbx_struct_oper_list_ids(l)
     const ncs = SP.unit.struct_ncs_oper_id(l)
@@ -32,7 +34,7 @@ function splitModelEntityId(modelEntityId: string) {
     return [ parseInt(modelIdx), entityId ]
 }
 
-function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureElementSelectionManager): SequenceWrapper.Any | undefined {
+function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureElementSelectionManager): SequenceWrapper.Any | string {
     const { structure, modelEntityId, invariantUnitId, operatorKey } = state
     const l = StructureElement.Location.create()
     const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
@@ -43,11 +45,21 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
         if (unit.invariantId !== invariantUnitId) continue
         if (opKey(l) !== operatorKey) continue
 
+        if (unit.polymerElements.length) {
+            const l = StructureElement.Location.create(unit, unit.elements[0])
+            const entitySeq = unit.model.sequence.byEntityKey[SP.entity.key(l)]
+            // check if entity sequence is available
+            if (!entitySeq) return 'No sequence available'
+            // check if sequence is too long
+            if (entitySeq.sequence.length > MaxDisplaySequenceLength) return 'Sequence too long'
+        }
+
         const Wrapper = unit.polymerElements.length ? PolymerSequenceWrapper : HeteroSequenceWrapper
         const sw = new Wrapper({ structure, unit })
         sw.markResidue(structureSelection.get(structure), MarkerAction.Select)
         return sw
     }
+    return 'No sequence available'
 }
 
 function getModelEntityOptions(structure: Structure) {
@@ -266,12 +278,9 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
                 <ParameterControls params={this.params} values={this.values} onChange={this.setParamProps} />
             </div>
 
-            {sequenceWrapper !== undefined
-                ? (sequenceWrapper.length <= 10000
-                    ? <Sequence sequenceWrapper={sequenceWrapper} />
-                    : <div className='msp-sequence-wrapper'>Sequence too long</div>
-                )
-                : <div className='msp-sequence-wrapper'>No sequence available</div>}
+            {typeof sequenceWrapper === 'string'
+                ? <div className='msp-sequence-wrapper'>{sequenceWrapper}</div>
+                : <Sequence sequenceWrapper={sequenceWrapper} />}
         </div>;
     }
 }

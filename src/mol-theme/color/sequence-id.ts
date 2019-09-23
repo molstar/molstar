@@ -61,7 +61,7 @@ function getSequenceLength(unit: Unit, element: ElementIndex) {
     if (entityId === '') return 0
     const entityIndex = model.entities.getEntityIndex(entityId)
     if (entityIndex === -1) return 0
-    return model.sequence.byEntityKey[entityIndex].sequence.sequence.length
+    return model.sequence.byEntityKey[entityIndex].sequence.length
 }
 
 export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<SequenceIdColorThemeParams>): ColorTheme<SequenceIdColorThemeParams> {

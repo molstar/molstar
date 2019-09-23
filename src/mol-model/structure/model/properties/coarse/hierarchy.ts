@@ -11,14 +11,17 @@ import { ElementIndex, ChainIndex, EntityIndex } from '../../indexing';
 import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
 
 export interface CoarsedElementKeys {
-    // assign a key to each element
+    /** Assign a key to each element */
     chainKey: ArrayLike<ChainIndex>,
-    // assign a key to each element, index to the Model.entities.data table
+    /** Assign a key to each element, index to the Model.entities.data table */
     entityKey: ArrayLike<EntityIndex>,
 
-    /** find index of the residue/feature element where seq_id is included */
+    /** Find index of the residue/feature element where seq_id is included */
     findSequenceKey(entityId: string, asym_id: string, seq_id: number): ElementIndex
     findChainKey(entityId: string, asym_id: string): ChainIndex
+
+    /** Returns index or -1 if not present. */
+    getEntityFromChain(cI: ChainIndex): EntityIndex
 }
 
 export interface CoarseElementData {

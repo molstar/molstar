@@ -44,7 +44,7 @@ function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIn
     if (seqIdBegin === seqIdEnd) {
         const { modifiedResidues } = unit.model.properties
         const entityKey = unit.coarseElements.entityKey[element]
-        const seq = unit.model.sequence.byEntityKey[entityKey]
+        const seq = unit.model.sequence.byEntityKey[entityKey].sequence
         let compId = seq.compId.value(seqIdBegin - 1) // 1-indexed
         const parentId = modifiedResidues.parentId.get(compId)
         return parentId === undefined ? compId : parentId

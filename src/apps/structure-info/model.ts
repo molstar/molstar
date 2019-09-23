@@ -15,6 +15,7 @@ import { OrderedSet } from '../../mol-data/int';
 import { openCif, downloadCif } from './helpers';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
+import { Sequence } from '../../mol-model/sequence';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -110,9 +111,10 @@ export function printSequence(model: Model) {
     console.log('\nSequence\n=============');
     const { byEntityKey } = model.sequence;
     for (const key of Object.keys(byEntityKey)) {
-        const seq = byEntityKey[+key];
-        console.log(`${seq.entityId} (${seq.sequence.kind} ${seq.num.value(0)} (offset ${seq.sequence.offset}), ${seq.num.value(seq.num.rowCount - 1)}) (${seq.compId.value(0)}, ${seq.compId.value(seq.compId.rowCount - 1)})`);
-        console.log(`${seq.sequence.sequence}`);
+        const { sequence, entityId } = byEntityKey[+key];
+        const { seqId, compId } = sequence
+        console.log(`${entityId} (${sequence.kind} ${seqId.value(0)} (offset ${sequence.offset}), ${seqId.value(seqId.rowCount - 1)}) (${compId.value(0)}, ${compId.value(compId.rowCount - 1)})`);
+        console.log(`${Sequence.getSequenceString(sequence)}`);
     }
     console.log();
 }
@@ -159,14 +161,14 @@ export function printUnits(structure: Structure) {
             console.log(`Coarse unit ${unit.id} ${unit.conformation.operator.name} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
 
             const props = StructureProperties.coarse;
-            const seq = l.unit.model.sequence;
+            const modelSeq = l.unit.model.sequence;
 
             for (let j = 0, _j = Math.min(size, 3); j < _j; j++) {
                 l.element = OrderedSet.getAt(elements, j);
 
                 const residues: string[] = [];
                 const start = props.seq_id_begin(l), end = props.seq_id_end(l);
-                const compId = seq.byEntityKey[props.entityKey(l)].compId.value;
+                const compId = modelSeq.byEntityKey[props.entityKey(l)].sequence.compId.value;
                 for (let e = start; e <= end; e++) residues.push(compId(e));
                 console.log(`${props.asym_id(l)}:${start}-${end} (${residues.join('-')}) ${props.asym_id(l)} [${props.x(l).toFixed(2)}, ${props.y(l).toFixed(2)}, ${props.z(l).toFixed(2)}]`);
             }

@@ -12,7 +12,7 @@ import Matrix from '../../mol-math/linear-algebra/matrix/matrix';
 
 export function getCoarseBegCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIndex) {
     const entityKey = unit.coarseElements.entityKey[element]
-    const seq = unit.model.sequence.byEntityKey[entityKey]
+    const seq = unit.model.sequence.byEntityKey[entityKey].sequence
     const seq_id_begin = unit.coarseElements.seq_id_begin.value(element)
     return seq.compId.value(seq_id_begin - 1) // 1-indexed
 }

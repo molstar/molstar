@@ -23,9 +23,15 @@ namespace Sequence {
 
     export interface Base<K extends Kind, Alphabet extends string> {
         readonly kind: K,
+        readonly length: number,
         readonly offset: number,
-        readonly sequence: ArrayLike<Alphabet>
-        readonly labels: ArrayLike<string>
+
+        readonly code: Column<Alphabet>
+        readonly label: Column<string>
+
+        readonly seqId: Column<number>
+        readonly compId: Column<string>
+
         /** maps seqId to list of compIds */
         readonly microHet: ReadonlyMap<number, string[]>
     }
@@ -35,12 +41,14 @@ namespace Sequence {
     export interface DNA extends Base<Kind.DNA, NuclecicAlphabet> { }
     export interface Generic extends Base<Kind.Generic, 'X' | '-'> { }
 
-    export function create<K extends Kind, Alphabet extends string>(kind: K, sequence: Alphabet[], labels: string[], microHet: Map<number, string[]>, offset: number = 0): Base<K, Alphabet> {
-        return { kind: kind, sequence: sequence, labels, microHet, offset };
+    export function create<K extends Kind, Alphabet extends string>(kind: K, code: Column<Alphabet>, label: Column<string>, seqId: Column<number>, compId: Column<string>, microHet: Map<number, string[]>, offset: number = 0): Base<K, Alphabet> {
+        const length = code.rowCount
+        return { kind, code, label, seqId, compId, microHet, offset, length };
     }
 
     export function getSequenceString(seq: Sequence) {
-        return seq.sequence as string;
+        const array = seq.code.toArray()
+        return (array instanceof Array ? array : Array.from(array)).join('')
     }
 
     function determineKind(names: Column<string>) {
@@ -61,39 +69,46 @@ namespace Sequence {
         }
     }
 
-    export function ofResidueNames(residueName: Column<string>, seqId: Column<number>, modifiedMap?: ReadonlyMap<string, string>): Sequence {
+    export function ofResidueNames(compId: Column<string>, seqId: Column<number>, modifiedMap?: ReadonlyMap<string, string>): Sequence {
         if (seqId.rowCount === 0) throw new Error('cannot be empty');
 
-        const { kind, code } = determineKind(residueName);
+        const { kind, code } = determineKind(compId);
 
         if (!modifiedMap || modifiedMap.size === 0) {
-            return new Impl(kind, residueName, seqId, code) as Sequence;
+            return new ResidueNamesImpl(kind, compId, seqId, code) as Sequence;
         }
-        return new Impl(kind, residueName, seqId, modCode(code, modifiedMap)) as Sequence;
+        return new ResidueNamesImpl(kind, compId, seqId, modCode(code, modifiedMap)) as Sequence;
     }
 
-    class Impl<K extends Kind, Alphabet extends string> implements Base<K, Alphabet> {
+    class ResidueNamesImpl<K extends Kind, Alphabet extends string> implements Base<K, Alphabet> {
         private _offset = 0;
-        private _seq: ArrayLike<Alphabet> | undefined = void 0;
-        private _labels: ArrayLike<string> | undefined = void 0;
+        private _length = 0;
         private _microHet: ReadonlyMap<number, string[]> | undefined = void 0;
+        private _code: Column<Alphabet> | undefined = undefined
+        private _label: Column<string> | undefined = undefined
+
+        get code(): Column<Alphabet> {
+            if (this._code !== void 0) return this._code;
+            this.create();
+            return this._code!;
+        }
+
+        get label(): Column<string> {
+            if (this._label !== void 0) return this._label;
+            this.create();
+            return this._label!;
+        }
 
         get offset() {
-            if (this._seq !== void 0) return this._offset;
+            if (this._code !== void 0) return this._offset;
             this.create();
             return this._offset;
         }
 
-        get sequence(): ArrayLike<Alphabet> {
-            if (this._seq !== void 0) return this._seq;
+        get length() {
+            if (this._code !== void 0) return this._length;
             this.create();
-            return this._seq!;
-        }
-
-        get labels(): ArrayLike<string> {
-            if (this._labels !== void 0) return this._labels;
-            this.create();
-            return this._labels!;
+            return this._length;
         }
 
         get microHet(): ReadonlyMap<number, string[]> {
@@ -126,8 +141,8 @@ namespace Sequence {
             for (let i = 0, _i = this.seqId.rowCount; i < _i; i++) {
                 const seqId = this.seqId.value(i)
                 const idx = seqId - minSeqId;
-                const name = this.residueName.value(i);
-                const code = this.code(name);
+                const name = this.compId.value(i);
+                const code = this.getCode(name);
                 // in case of MICROHETEROGENEITY `sequenceArray[idx]` may already be set
                 if (!sequenceArray[idx] || sequenceArray[idx] === '-') {
                     sequenceArray[idx] = code;
@@ -141,14 +156,62 @@ namespace Sequence {
                 if (compIds[i].length > 1) microHet.set(i, compIds[i])
             }
 
-            this._seq = sequenceArray.join('') as unknown as ArrayLike<Alphabet>;
-            this._labels = labels.map(l => l.length > 1 ? `(${l.join('|')})` : l.join(''));
+            this._code = Column.ofStringArray(sequenceArray) as Column<Alphabet>
+            this._label = Column.ofLambda({
+                value: i => {
+                    const l = labels[i]
+                    return l.length > 1 ? `(${l.join('|')})` : l.join('')
+                },
+                rowCount: labels.length,
+                schema: Column.Schema.str
+            })
             this._microHet = microHet
             this._offset = minSeqId - 1;
+            this._length = count
         }
 
-        constructor(public kind: K, private residueName: Column<string>, private seqId: Column<number>, private code: (name: string) => string) {
+        constructor(public kind: K, public compId: Column<string>, public seqId: Column<number>, private getCode: (name: string) => string) {
 
+        }
+    }
+
+    export function ofSequenceRanges(seqIdBegin: Column<number>, seqIdEnd: Column<number>): Sequence {
+        const kind = Kind.Generic
+
+        return new SequenceRangesImpl(kind, seqIdBegin, seqIdEnd) as Sequence;
+    }
+
+    class SequenceRangesImpl<K extends Kind, Alphabet extends string> implements Base<K, Alphabet> {
+        public offset: number
+        public length: number
+        public code: Column<Alphabet>
+        public label: Column<string>
+        public seqId: Column<number>
+        public compId: Column<string>
+        public microHet: ReadonlyMap<number, string[]>
+
+        constructor(public kind: K, private seqIdStart: Column<number>, private seqIdEnd: Column<number>) {
+            let maxSeqId = 0, minSeqId = Number.MAX_SAFE_INTEGER;
+            for (let i = 0, _i = this.seqIdStart.rowCount; i < _i; i++) {
+                const idStart = this.seqIdStart.value(i);
+                const idEnd = this.seqIdEnd.value(i);
+                if (idStart < minSeqId) minSeqId = idStart;
+                if (maxSeqId < idEnd) maxSeqId = idEnd;
+            }
+
+            const count = maxSeqId - minSeqId + 1;
+
+            this.code = Column.ofConst('X', count, Column.Schema.str) as Column<Alphabet>
+            this.label = Column.ofConst('', count, Column.Schema.str)
+            this.seqId = Column.ofLambda({
+                value: row => row + minSeqId + 1,
+                rowCount: count,
+                schema: Column.Schema.int
+            })
+            this.compId = Column.ofConst('', count, Column.Schema.str)
+
+            this.offset = minSeqId - 1;
+            this.length = count
         }
     }
 }

@@ -129,16 +129,26 @@ export function atomicElementLabel(location: StructureElement.Location<Unit.Atom
 }
 
 export function coarseElementLabel(location: StructureElement.Location<Unit.Spheres | Unit.Gaussians>, granularity: LabelGranularity) {
-    // TODO handle granularity
     const asym_id = Props.coarse.asym_id(location)
     const seq_id_begin = Props.coarse.seq_id_begin(location)
     const seq_id_end = Props.coarse.seq_id_end(location)
-    if (seq_id_begin === seq_id_end) {
-        const entityIndex = Props.coarse.entityKey(location)
-        const seq = location.unit.model.sequence.byEntityKey[entityIndex]
-        const comp_id = seq.compId.value(seq_id_begin - 1) // 1-indexed
-        return `${comp_id} ${seq_id_begin}:${asym_id}`
-    } else {
-        return `${seq_id_begin}-${seq_id_end}:${asym_id}`
+
+    const label: string[] = []
+
+    switch (granularity) {
+        case 'element':
+        case 'residue':
+            if (seq_id_begin === seq_id_end) {
+                const entityIndex = Props.coarse.entityKey(location)
+                const seq = location.unit.model.sequence.byEntityKey[entityIndex]
+                const comp_id = seq.sequence.compId.value(seq_id_begin - 1) // 1-indexed
+                label.push(`${comp_id} ${seq_id_begin}-${seq_id_end}`)
+            } else {
+                label.push(`${seq_id_begin}-${seq_id_end}`)
+            }
+        case 'chain':
+            label.push(`Chain ${asym_id}`)
     }
+
+    return label.reverse().join(' | ')
 }

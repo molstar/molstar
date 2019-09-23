@@ -58,7 +58,7 @@ function addSrc(seqToSrcByModelEntity: Map<string, Int16Array>, srcKeySerialMap:
         if (!seqToSrcByModelEntity.has(mK)) {
             const entityIndex = model.entities.getEntityIndex(entityId)
             const seq = model.sequence.sequences[entityIndex].sequence
-            seqToSrc = new Int16Array(seq.sequence.length)
+            seqToSrc = new Int16Array(seq.length)
             seqToSrcByModelEntity.set(mK, seqToSrc)
         } else {
             seqToSrc = seqToSrcByModelEntity.get(mK)!
