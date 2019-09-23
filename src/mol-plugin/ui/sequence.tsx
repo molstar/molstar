@@ -51,7 +51,9 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
             // check if entity sequence is available
             if (!entitySeq) return 'No sequence available'
             // check if sequence is too long
-            if (entitySeq.sequence.length > MaxDisplaySequenceLength) return 'Sequence too long'
+            if (entitySeq.sequence.length > MaxDisplaySequenceLength) {
+                return `Sequence too long (${entitySeq.sequence.length} residues)`
+            }
         }
 
         const Wrapper = unit.polymerElements.length ? PolymerSequenceWrapper : HeteroSequenceWrapper
