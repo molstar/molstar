@@ -1,3 +1,9 @@
+== v3.4 ==
+
+* Fixed HET group reset.
+* Updated core.
+* Removed Camera Cliping.
+
 == v3.3 ==
 
 * Camera Clipping.

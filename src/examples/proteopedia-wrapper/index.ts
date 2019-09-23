@@ -37,7 +37,7 @@ require('../../mol-plugin/skin/light.scss')
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 3;
-    static VERSION_MINOR = 3;
+    static VERSION_MINOR = 4;
 
     private _ev = RxEventHelper.create();
 
@@ -335,7 +335,7 @@ class MolStarProteopediaWrapper {
 
     hetGroups = {
         reset: () => {
-            const update = this.state.build().delete(StateElements.HetGroupFocus);
+            const update = this.state.build().delete(StateElements.HetGroupFocusGroup);
             PluginCommands.State.Update.dispatch(this.plugin, { state: this.state, tree: update });
             PluginCommands.Camera.Reset.dispatch(this.plugin, { });
         },
