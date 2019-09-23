@@ -174,7 +174,7 @@ function moveNextInternal(state: State) {
 
     if (tokenizer.position >= tokenizer.length) {
         state.tokenType = CsvTokenType.End;
-        return true;
+        return false;
     }
 
     tokenizer.tokenStart = tokenizer.position;
