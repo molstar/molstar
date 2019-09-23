@@ -12,7 +12,7 @@ import { PluginStateObject } from '../objects';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Ccp4Provider, Dsn6Provider, DscifProvider } from './volume';
 import { StateTransforms } from '../transforms';
-import { MmcifProvider, PdbProvider, GroProvider } from './structure';
+import { MmcifProvider, PdbProvider, GroProvider, Provider3dg } from './structure';
 import msgpackDecode from '../../../mol-io/common/msgpack/decode'
 import { PlyProvider } from './shape';
 
@@ -55,6 +55,7 @@ export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | Plugin
     }
 
     constructor() {
+        this.add('3dg', Provider3dg)
         this.add('ccp4', Ccp4Provider)
         this.add('dscif', DscifProvider)
         this.add('dsn6', Dsn6Provider)

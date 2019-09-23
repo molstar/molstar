@@ -26,11 +26,14 @@ import { shapeFromPly } from '../../../mol-model-formats/shape/ply';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ensureSecondaryStructure } from './helpers';
 import { Script } from '../../../mol-script/script';
+import { parse3DG } from '../../../mol-io/reader/3dg/parser';
+import { trajectoryFrom3DG } from '../../../mol-model-formats/structure/3dg';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
+export { TrajectoryFrom3DG };
 export { ModelFromTrajectory };
 export { StructureFromTrajectory };
 export { StructureFromModel };
@@ -131,6 +134,24 @@ const TrajectoryFromGRO = PluginStateTransform.BuiltIn({
             const parsed = await parseGRO(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromGRO(parsed.result).runInContext(ctx);
+            const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
+type TrajectoryFrom3DG = typeof TrajectoryFrom3DG
+const TrajectoryFrom3DG = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-3dg',
+    display: { name: 'Parse 3DG', description: 'Parse 3DG string and create trajectory.' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse 3DG', async ctx => {
+            const parsed = await parse3DG(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const models = await trajectoryFrom3DG(parsed.result).runInContext(ctx);
             const props = { label: `${models[0].entry}`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);
         });

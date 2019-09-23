@@ -69,7 +69,23 @@ export const GroProvider: DataFormatProvider<any> = {
     }
 }
 
-type StructureFormat = 'pdb' | 'cif' | 'gro'
+export const Provider3dg: DataFormatProvider<any> = {
+    label: '3DG',
+    description: '3DG',
+    stringExtensions: ['3dg'],
+    binaryExtensions: [],
+    isApplicable: (info: FileInfo, data: string) => {
+        return info.ext === '3dg'
+    },
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
+        return Task.create('3DG default builder', async taskCtx => {
+            const traj = createModelTree(data, '3dg');
+            await state.updateTree(options.visuals ? createStructureTree(ctx, traj, false) : traj).runInContext(taskCtx)
+        })
+    }
+}
+
+type StructureFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
 //
 
@@ -218,6 +234,9 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
             break
         case 'gro':
             parsed = b.apply(StateTransforms.Model.TrajectoryFromGRO);
+            break
+        case '3dg':
+            parsed = b.apply(StateTransforms.Model.TrajectoryFrom3DG);
             break
         default:
             throw new Error('unsupported format')
