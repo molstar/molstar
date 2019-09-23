@@ -218,6 +218,16 @@ namespace Table {
         return ret;
     }
 
+    export function toArrays<S extends Schema>(table: Table<S>) {
+        const arrays: { [k: string]: ArrayLike<any> } = {}
+        const { _columns } = table;
+        for (let i = 0; i < _columns.length; i++) {
+            const c = _columns[i]
+            arrays[c] = table[c].toArray();
+        }
+        return arrays as { [k in keyof S]: ArrayLike<S[k]['T']> }
+    }
+
     export function formatToString<S extends Schema>(table: Table<S>) {
         const sb = StringBuilder.create();
 
