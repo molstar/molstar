@@ -51,7 +51,7 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
         if (!cell || !cell.sourceRef || cell.status !== 'ok') return false;
         const parentCell = state.cells.get(cell.sourceRef)!;
 
-        return autoUpdate({ a: cell.obj!, b: parentCell.obj!, oldParams: this.getInfo().initialValues, newParams }, this.plugin);
+        return autoUpdate({ a: parentCell.obj!, b: cell.obj!, oldParams: this.getInfo().initialValues, newParams }, this.plugin);
     }
 
     componentDidMount() {
