@@ -209,22 +209,26 @@ function moveNext(state: State) {
 function readRecordsChunk(chunkSize: number, state: State) {
     if (state.tokenType === CsvTokenType.End) return 0
 
-    let newRecord = moveNext(state);
-    if (newRecord) ++state.recordCount
+    let counter = 0;
+    let newRecord: boolean | undefined
 
     const { tokens, tokenizer } = state;
-    let counter = 0;
+
     while (state.tokenType === CsvTokenType.Value && counter < chunkSize) {
         TokenBuilder.add(tokens[state.fieldCount % state.columnCount], tokenizer.tokenStart, tokenizer.tokenEnd);
         ++state.fieldCount
         newRecord = moveNext(state);
-        if (newRecord) ++state.recordCount
-        ++counter;
+        if (newRecord) {
+            ++state.recordCount
+            ++counter;
+        }
     }
     return counter;
 }
 
 function readRecordsChunks(state: State) {
+    let newRecord = moveNext(state);
+    if (newRecord) ++state.recordCount
     return chunkedSubtask(state.runtimeCtx, 100000, state, readRecordsChunk,
         (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.data.length }));
 }
