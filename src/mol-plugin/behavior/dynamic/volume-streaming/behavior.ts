@@ -22,7 +22,7 @@ import { PluginCommands } from '../../../command';
 import { StateSelection } from '../../../../mol-state';
 import { Representation } from '../../../../mol-repr/representation';
 import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
-import { StructureElement } from '../../../../mol-model/structure';
+import { StructureElement, Link } from '../../../../mol-model/structure';
 import { PluginContext } from '../../../context';
 import { Binding } from '../../../../mol-util/binding';
 
@@ -72,7 +72,7 @@ export namespace VolumeStreaming {
                 }, { description: 'Box around last-interacted element.', isFlat: true }),
                 'cell': PD.Group({}),
                 // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
-            }, { options: [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Surroundings'], ['cell', 'Whole Structure']] }),
+            }, { options: ViewTypeOptions as any }),
             detailLevel: PD.Select<number>(Math.min(3, info.header.availablePrecisions.length - 1),
                 info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string])),
             channels: info.kind === 'em'
@@ -87,6 +87,8 @@ export namespace VolumeStreaming {
             bindings: PD.Value(DefaultBindings, { isHidden: true }),
         };
     }
+
+    export const ViewTypeOptions = [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Surroundings'], ['cell', 'Whole Structure']];
 
     export type ViewTypes = 'off' | 'box' | 'selection-box' | 'cell'
 
@@ -113,6 +115,8 @@ export namespace VolumeStreaming {
     export class Behavior extends PluginBehavior.WithSubscribers<Params> {
         private cache = LRUCache.create<ChannelsData>(25);
         public params: Params = {} as any;
+        private lastLoci: Representation.Loci = Representation.Loci.Empty;
+        private ref: string = '';
 
         channels: Channels = {}
 
@@ -166,7 +170,7 @@ export namespace VolumeStreaming {
             return ret;
         }
 
-        private updateDynamicBox(ref: string, box: Box3D) {
+        private updateDynamicBox(box: Box3D) {
             if (this.params.view.name !== 'selection-box') return;
 
             const state = this.plugin.state.dataState;
@@ -181,64 +185,87 @@ export namespace VolumeStreaming {
                     }
                 }
             };
-            const update = state.build().to(ref).update(newParams);
+            const update = state.build().to(this.ref).update(newParams);
 
             PluginCommands.State.Update.dispatch(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
         }
 
-        private getStructureRoot(ref: string) {
-            return this.plugin.state.dataState.select(StateSelection.Generators.byRef(ref).rootOfType([PluginStateObject.Molecule.Structure]))[0];
+        private getStructureRoot() {
+            return this.plugin.state.dataState.select(StateSelection.Generators.byRef(this.ref).rootOfType([PluginStateObject.Molecule.Structure]))[0];
         }
 
         register(ref: string): void {
-            let lastLoci: Representation.Loci = Representation.Loci.Empty;
+            this.ref = ref;
 
             this.subscribeObservable(this.plugin.events.state.object.removed, o => {
-                if (!PluginStateObject.Molecule.Structure.is(o.obj) || lastLoci.loci.kind !== 'element-loci') return;
-                if (lastLoci.loci.structure === o.obj.data) {
-                    lastLoci = Representation.Loci.Empty;
+                if (!PluginStateObject.Molecule.Structure.is(o.obj) || this.lastLoci.loci.kind !== 'element-loci') return;
+                if (this.lastLoci.loci.structure === o.obj.data) {
+                    this.lastLoci = Representation.Loci.Empty;
                 }
             });
 
             this.subscribeObservable(this.plugin.events.state.object.updated, o => {
-                if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || lastLoci.loci.kind !== 'element-loci') return;
-                if (lastLoci.loci.structure === o.oldObj.data) {
-                    lastLoci = Representation.Loci.Empty;
+                if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || this.lastLoci.loci.kind !== 'element-loci') return;
+                if (this.lastLoci.loci.structure === o.oldObj.data) {
+                    this.lastLoci = Representation.Loci.Empty;
                 }
             });
 
             this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
-                if (this.params.view.name !== 'selection-box') return;
                 if (!Binding.match(this.params.bindings.clickVolumeAroundOnly, buttons, modifiers)) return;
-
-                if (current.loci.kind === 'empty-loci') {
-                    this.updateDynamicBox(ref, Box3D.empty());
-                    lastLoci = current;
-                    return;
+                if (this.params.view.name !== 'selection-box') {
+                    this.lastLoci = current;
+                } else {
+                    this.updateInteraction(current);
                 }
-
-                // TODO: support link and structure loci as well?
-                if (!StructureElement.Loci.is(current.loci)) return;
-
-                const parent = this.plugin.helpers.substructureParent.get(current.loci.structure);
-                if (!parent) return;
-                const root = this.getStructureRoot(ref);
-                if (!root || !root.obj || root.obj !== parent.obj) return;
-
-                if (Representation.Loci.areEqual(lastLoci, current)) {
-                    lastLoci = Representation.Loci.Empty;
-                    this.updateDynamicBox(ref, Box3D.empty());
-                    return;
-                }
-                lastLoci = current;
-
-                const loci = StructureElement.Loci.extendToWholeResidues(current.loci);
-                const box = StructureElement.Loci.getBoundary(loci).box;
-                this.updateDynamicBox(ref, box);
             });
         }
 
+        private getBoxFromLoci(current: Representation.Loci) {
+            if (current.loci.kind === 'empty-loci') {
+                return;
+            }
+
+            let loci: StructureElement.Loci;
+
+            // TODO: support structure loci as well?
+            if (StructureElement.Loci.is(current.loci)) {
+                loci = current.loci;
+            } else if (Link.isLoci(current.loci) && current.loci.links.length !== 0) {
+                loci = Link.toStructureElementLoci(current.loci);
+            } else {
+                return;
+            }
+
+            const parent = this.plugin.helpers.substructureParent.get(loci.structure);
+            if (!parent) return;
+            const root = this.getStructureRoot();
+            if (!root || !root.obj || root.obj !== parent.obj) return;
+
+            return StructureElement.Loci.getBoundary(StructureElement.Loci.extendToWholeResidues(loci)).box;
+        }
+
+        private updateInteraction(current: Representation.Loci) {
+            if (Representation.Loci.areEqual(this.lastLoci, current)) {
+                this.lastLoci = Representation.Loci.Empty;
+                this.updateDynamicBox(Box3D.empty());
+                return;
+            }
+
+            if (current.loci.kind === 'empty-loci') {
+                this.updateDynamicBox(Box3D.empty());
+                this.lastLoci = current;
+                return;
+            }
+
+            const box = this.getBoxFromLoci(current);
+            if (!box) return;
+            this.updateDynamicBox(box);
+        }
+
         async update(params: Params) {
+            const switchedToSelection = params.view.name === 'selection-box' && this.params && this.params.view && this.params.view.name !== 'selection-box';
+
             this.params = params;
 
             let box: Box3D | undefined = void 0, emptyData = false;
@@ -252,7 +279,11 @@ export namespace VolumeStreaming {
                     emptyData = Box3D.volume(box) < 0.0001;
                     break;
                 case 'selection-box': {
-                    box = Box3D.create(Vec3.clone(params.view.params.bottomLeft), Vec3.clone(params.view.params.topRight));
+                    if (switchedToSelection) {
+                        box = this.getBoxFromLoci(this.lastLoci) || Box3D.empty();
+                    } else {
+                        box = Box3D.create(Vec3.clone(params.view.params.bottomLeft), Vec3.clone(params.view.params.topRight));
+                    }
                     const r = params.view.params.radius;
                     emptyData = Box3D.volume(box) < 0.0001;
                     Box3D.expand(box, box, Vec3.create(r, r, r));

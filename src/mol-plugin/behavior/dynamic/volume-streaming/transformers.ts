@@ -32,7 +32,7 @@ export const InitVolumeStreaming = StateAction.build({
             method: PD.Select<VolumeServerInfo.Kind>(method, [['em', 'EM'], ['x-ray', 'X-Ray']]),
             id: PD.Text(id),
             serverUrl: PD.Text('https://ds.litemol.org'),
-            defaultView: PD.Text<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box'),
+            defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
             behaviorRef: PD.Text('', { isHidden: true }),
             emContourProvider: PD.Select<'wwpdb' | 'pdbe'>('wwpdb', [['wwpdb', 'wwPDB'], ['pdbe', 'PDBe']], { isHidden: true }),
         };
