@@ -4,6 +4,12 @@
     border: none;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
+
+    
+    &[disabled] {
+        background: $default-background;
+        opacity: 0.35;
+    }
 }
 
 .msp-btn, .msp-btn:active, .msp-btn-link:focus, .msp-btn:hover {
