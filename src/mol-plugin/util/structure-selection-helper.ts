@@ -7,7 +7,7 @@
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { StateSelection } from '../../mol-state';
 import { PluginStateObject } from '../state/objects';
-import { QueryContext, StructureSelection } from '../../mol-model/structure';
+import { QueryContext, StructureSelection, StructureQuery } from '../../mol-model/structure';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
@@ -59,6 +59,18 @@ const nucleic = MS.struct.modifier.union([
             MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
             MS.core.str.match([
                 MS.re('(nucleotide|peptide nucleic acid)', 'i'),
+                MS.ammp('entitySubtype')
+            ])
+        ])
+    })
+])
+
+const proteinAndNucleic = MS.struct.modifier.union([
+    MS.struct.generator.atomGroups({
+        'entity-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+            MS.core.str.match([
+                MS.re('(polypeptide|cyclic-pseudo-peptide|nucleotide|peptide nucleic acid)', 'i'),
                 MS.ammp('entitySubtype')
             ])
         ])
@@ -118,6 +130,12 @@ const ligandPlusConnected = MS.struct.modifier.union([
     })
 ])
 
+const modified = MS.struct.modifier.union([
+    MS.struct.generator.atomGroups({
+        'residue-test': MS.ammp('isModified')
+    })
+])
+
 const coarse = MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'chain-test': MS.core.set.has([
@@ -132,14 +150,24 @@ export const StructureSelectionQueries = {
     trace,
     protein,
     nucleic,
+    proteinAndNucleic,
     water,
     branched,
     branchedPlusConnected,
     branchedConnectedOnly,
     ligand,
     ligandPlusConnected,
+    modified,
     coarse,
 }
+
+export const CompiledStructureSelectionQueries = (function () {
+    const ret: { [K in keyof typeof StructureSelectionQueries]: StructureQuery } = Object.create(null);
+    for (const k of Object.keys(StructureSelectionQueries)) {
+        (ret as any)[k] = compile<StructureSelection>((StructureSelectionQueries as any)[k]);
+    }
+    return ret;
+})();
 
 //
 

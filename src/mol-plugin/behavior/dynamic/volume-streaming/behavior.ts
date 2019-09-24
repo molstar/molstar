@@ -212,7 +212,7 @@ export namespace VolumeStreaming {
             });
 
             this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
-                if (!Binding.match(this.params.bindings.clickVolumeAroundOnly, buttons, modifiers)) return;
+                if (!Binding.match(this.params.bindings.clickVolumeAroundOnly || DefaultBindings.clickVolumeAroundOnly, buttons, modifiers)) return;
                 if (this.params.view.name !== 'selection-box') {
                     this.lastLoci = current;
                 } else {
