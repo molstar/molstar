@@ -425,7 +425,7 @@ const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
         return new SO.Molecule.Structure(s, props);
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
-        if (Script.areEqual(oldParams.script, newParams.script)) {
+        if (!Script.areEqual(oldParams.script, newParams.script)) {
             return StateTransformer.UpdateResult.Recreate;
         }
 
