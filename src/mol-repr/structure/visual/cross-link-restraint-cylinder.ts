@@ -68,7 +68,8 @@ export function CrossLinkRestraintVisual(materialId: number): ComplexVisual<Cros
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CrossLinkRestraintParams>, currentProps: PD.Values<CrossLinkRestraintParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.radialSegments !== currentProps.radialSegments
+                newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.linkCap !== currentProps.linkCap
             )
         }
     }, materialId)

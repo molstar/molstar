@@ -18,6 +18,7 @@ import { VisualContext } from '../../../../mol-repr/visual';
 export const LinkCylinderParams = {
     linkScale: PD.Numeric(0.4, { min: 0, max: 1, step: 0.1 }),
     linkSpacing: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
+    linkCap: PD.Boolean(false),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
 }
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams)
@@ -71,7 +72,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
 
     if (!linkCount) return Mesh.createEmpty(mesh)
 
-    const { linkScale, linkSpacing, radialSegments } = props
+    const { linkScale, linkSpacing, radialSegments, linkCap: cap } = props
 
     const vertexCountEstimate = radialSegments * 2 * linkCount * 2
     const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 4, mesh)
@@ -83,8 +84,8 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
         radiusTop: 1,
         radiusBottom: 1,
         radialSegments,
-        topCap: false,
-        bottomCap: false
+        topCap: cap,
+        bottomCap: cap
     }
 
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
@@ -111,13 +112,13 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
             Vec3.setMagnitude(vShift, vShift, absOffset)
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius
-            cylinderProps.topCap = cylinderProps.bottomCap = false
+            cylinderProps.topCap = cylinderProps.bottomCap = cap
 
             if (o === 3) addCylinder(builderState, va, vb, 0.5, cylinderProps)
             addDoubleCylinder(builderState, va, vb, 0.5, vShift, cylinderProps)
         } else {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius
-            cylinderProps.topCap = cylinderProps.bottomCap = false
+            cylinderProps.topCap = cylinderProps.bottomCap = cap
             addCylinder(builderState, va, vb, 0.5, cylinderProps)
         }
     }

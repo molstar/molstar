@@ -78,7 +78,8 @@ export function InterUnitLinkVisual(materialId: number): ComplexVisual<InterUnit
                 newProps.radialSegments !== currentProps.radialSegments ||
                 newProps.linkScale !== currentProps.linkScale ||
                 newProps.linkSpacing !== currentProps.linkSpacing ||
-                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.linkCap !== currentProps.linkCap
             )
         }
     }, materialId)

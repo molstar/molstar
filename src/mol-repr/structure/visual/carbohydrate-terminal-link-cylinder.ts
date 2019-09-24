@@ -82,7 +82,8 @@ export function CarbohydrateTerminalLinkVisual(materialId: number): ComplexVisua
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateTerminalLinkParams>, currentProps: PD.Values<CarbohydrateTerminalLinkParams>) => {
             state.createGeometry = (
                 newProps.terminalLinkSizeFactor !== currentProps.terminalLinkSizeFactor ||
-                newProps.radialSegments !== currentProps.radialSegments
+                newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.linkCap !== currentProps.linkCap
             )
         }
     }, materialId)
