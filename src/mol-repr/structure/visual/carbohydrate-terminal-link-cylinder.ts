@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,10 +20,11 @@ import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { OrderedSet, Interval } from '../../../mol-data/int';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
+import { getElementIdx, MetalsSet } from '../../../mol-model/structure/structure/unit/links/common';
 
 function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateTerminalLinkParams>, mesh?: Mesh) {
     const { terminalLinks, elements } = structure.carbohydrates
-    const { linkSizeFactor } = props
+    const { terminalLinkSizeFactor } = props
 
     const location = StructureElement.Location.create()
 
@@ -41,7 +42,12 @@ function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structur
             }
         },
         order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => BitFlags.create(LinkType.Flag.None),
+        flags: (edgeIndex: number) => {
+            const l = terminalLinks[edgeIndex]
+            const eI = l.elementUnit.elements[l.elementIndex]
+            const beI = getElementIdx(l.elementUnit.model.atomicHierarchy.atoms.type_symbol.value(eI));
+            return BitFlags.create(MetalsSet.has(beI) ? LinkType.Flag.MetallicCoordination : LinkType.Flag.None);
+        },
         radius: (edgeIndex: number) => {
             const l = terminalLinks[edgeIndex]
             if (l.fromCarbohydrate) {
@@ -51,7 +57,7 @@ function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structur
                 location.unit = l.elementUnit
                 location.element = l.elementUnit.elements[l.elementIndex]
             }
-            return theme.size.size(location) * linkSizeFactor
+            return theme.size.size(location) * terminalLinkSizeFactor
         },
         ignore: (edgeIndex: number) => false
     }
@@ -62,7 +68,7 @@ function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structur
 export const CarbohydrateTerminalLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    linkSizeFactor: PD.Numeric(0.3, { min: 0, max: 3, step: 0.01 }),
+    terminalLinkSizeFactor: PD.Numeric(0.2, { min: 0, max: 3, step: 0.01 }),
 }
 export type CarbohydrateTerminalLinkParams = typeof CarbohydrateTerminalLinkParams
 
@@ -75,7 +81,7 @@ export function CarbohydrateTerminalLinkVisual(materialId: number): ComplexVisua
         eachLocation: eachTerminalLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateTerminalLinkParams>, currentProps: PD.Values<CarbohydrateTerminalLinkParams>) => {
             state.createGeometry = (
-                newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
+                newProps.terminalLinkSizeFactor !== currentProps.terminalLinkSizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments
             )
         }
