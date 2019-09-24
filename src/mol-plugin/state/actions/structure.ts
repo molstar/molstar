@@ -17,7 +17,7 @@ import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from '.
 import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
 import { StructureElement } from '../../../mol-model/structure';
-import { createDefaultStructureComplex } from '../../util/structure-comlex-helper';
+import { createDefaultStructureComplex } from '../../util/structure-complex-helper';
 
 export const MmcifProvider: DataFormatProvider<any> = {
     label: 'mmCIF',
