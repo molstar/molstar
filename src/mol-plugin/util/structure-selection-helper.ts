@@ -132,6 +132,7 @@ const ligandPlusConnected = MS.struct.modifier.union([
 
 const modified = MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
+        'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
         'residue-test': MS.ammp('isModified')
     })
 ])
