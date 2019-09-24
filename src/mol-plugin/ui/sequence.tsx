@@ -18,8 +18,10 @@ import { ParameterControls } from './controls/parameters';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { HeteroSequenceWrapper } from './sequence/hetero';
 import { State, StateSelection } from '../../mol-state';
+import { ChainSequenceWrapper } from './sequence/chain';
+import { ElementSequenceWrapper } from './sequence/element';
 
-const MaxDisplaySequenceLength = 10000
+const MaxDisplaySequenceLength = 5000
 
 function opKey(l: StructureElement.Location) {
     const ids = SP.unit.pdbx_struct_oper_list_ids(l)
@@ -45,19 +47,33 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
         if (unit.invariantId !== invariantUnitId) continue
         if (opKey(l) !== operatorKey) continue
 
+        const data = { structure, unit }
+
+        let sw: SequenceWrapper<any>
         if (unit.polymerElements.length) {
             const l = StructureElement.Location.create(unit, unit.elements[0])
             const entitySeq = unit.model.sequence.byEntityKey[SP.entity.key(l)]
             // check if entity sequence is available
-            if (!entitySeq) return 'No sequence available'
-            // check if sequence is too long
-            if (entitySeq.sequence.length > MaxDisplaySequenceLength) {
-                return `Sequence too long (${entitySeq.sequence.length} residues)`
+            if (entitySeq && entitySeq.sequence.length <= MaxDisplaySequenceLength) {
+                sw = new PolymerSequenceWrapper(data)
+            } else {
+                if (Unit.isAtomic(unit) || unit.polymerElements.length > MaxDisplaySequenceLength) {
+                    sw = new ChainSequenceWrapper(data)
+                } else {
+                    sw = new ElementSequenceWrapper(data)
+                }
             }
+        } else if (Unit.isAtomic(unit)) {
+            if (unit.residueCount > MaxDisplaySequenceLength) {
+                sw = new ChainSequenceWrapper(data)
+            } else {
+                sw = new HeteroSequenceWrapper(data)
+            }
+        } else {
+            console.warn('should not happen, expecting coarse units to be polymeric')
+            sw = new ChainSequenceWrapper(data)
         }
 
-        const Wrapper = unit.polymerElements.length ? PolymerSequenceWrapper : HeteroSequenceWrapper
-        const sw = new Wrapper({ structure, unit })
         sw.markResidue(structureSelection.get(structure), MarkerAction.Select)
         return sw
     }
