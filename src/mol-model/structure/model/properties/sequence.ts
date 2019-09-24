@@ -24,6 +24,8 @@ namespace StructureSequence {
         readonly sequence: Sequence
     }
 
+    const Empty: StructureSequence = { byEntityKey: {}, sequences: [] }
+
     function merge(...entitySeqs: StructureSequence[]): StructureSequence {
         const sequences: StructureSequence.Entity[] = []
         const byEntityKey: { [key: number]: StructureSequence.Entity } = {}
@@ -37,7 +39,7 @@ namespace StructureSequence {
 
     export function fromHierarchy(entities: Entities, atomicHierarchy: AtomicHierarchy, coarseHierarchy: CoarseHierarchy, modResMap?: ReadonlyMap<string, string>): StructureSequence {
         const atomic = fromAtomicHierarchy(entities, atomicHierarchy, modResMap)
-        const coarse = fromCoarseHierarchy(entities, coarseHierarchy)
+        const coarse = coarseHierarchy.isDefined ? fromCoarseHierarchy(entities, coarseHierarchy) : Empty
         return merge(atomic, coarse)
     }
 
