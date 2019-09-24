@@ -14,7 +14,7 @@ import { ValueRef } from '../../../mol-util';
 import { UnitRings } from './unit/rings';
 import StructureElement from './element'
 import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
-import { IntMap, SortedArray } from '../../../mol-data/int';
+import { IntMap, SortedArray, Segmentation } from '../../../mol-data/int';
 import { hash2, hashFnv32a } from '../../../mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements, getNucleotideElements, getProteinElements } from './util/polymer';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
@@ -202,6 +202,20 @@ namespace Unit {
             return this.props.proteinElements.ref;
         }
 
+        get residueCount(): number {
+            if (this.props.residueCount.ref !== undefined) return this.props.residueCount.ref;
+
+            let residueCount = 0
+            const residueIt = Segmentation.transientSegments(this.model.atomicHierarchy.residueAtomSegments, this.elements)
+            while (residueIt.hasNext) {
+                residueIt.move()
+                residueCount += 1
+            }
+
+            this.props.residueCount.ref = residueCount;
+            return this.props.residueCount.ref!;
+        }
+
         getResidueIndex(elementIndex: StructureElement.UnitIndex) {
             return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
         }
@@ -227,6 +241,7 @@ namespace Unit {
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
         nucleotideElements: ValueRef<SortedArray<ElementIndex> | undefined>
         proteinElements: ValueRef<SortedArray<ElementIndex> | undefined>
+        residueCount: ValueRef<number | undefined>
     }
 
     function AtomicProperties(): AtomicProperties {
@@ -238,6 +253,7 @@ namespace Unit {
             gapElements: ValueRef.create(void 0),
             nucleotideElements: ValueRef.create(void 0),
             proteinElements: ValueRef.create(void 0),
+            residueCount: ValueRef.create(void 0),
         };
     }
 
