@@ -28,6 +28,7 @@ import { ensureSecondaryStructure } from './helpers';
 import { Script } from '../../../mol-script/script';
 import { parse3DG } from '../../../mol-io/reader/3dg/parser';
 import { trajectoryFrom3DG } from '../../../mol-model-formats/structure/3dg';
+import { CompiledStructureSelectionQueries } from '../../util/structure-selection-helper';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -502,27 +503,58 @@ const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
     }
 });
 
-namespace StructureComplexElement {
-    export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres'
-}
-const StructureComplexElementTypes: [StructureComplexElement.Types, StructureComplexElement.Types][] = ['atomic-sequence', 'water', 'atomic-het', 'spheres'].map(t => [t, t] as any);
+export const StructureComplexElementTypes = {
+    'protein-and-nucleic': 'protein-and-nucleic',
+
+    'protein': 'protein',
+    'nucleic': 'nucleic',
+    'water': 'water',
+
+    'branched': 'branched', // = carbs
+    'ligand': 'ligand',
+    'modified': 'modified',
+
+    'coarse': 'coarse',
+
+    // Legacy
+    'atomic-sequence': 'atomic-sequence',
+    'atomic-het': 'atomic-het',
+    'spheres': 'spheres'
+} as const
+export type StructureComplexElementTypes = keyof typeof StructureComplexElementTypes
+
+const StructureComplexElementTypeTuples = Object.keys(StructureComplexElementTypes).map(t => [t, t] as any);
+
 type StructureComplexElement = typeof StructureComplexElement
 const StructureComplexElement = PluginStateTransform.BuiltIn({
     name: 'structure-complex-element',
     display: { name: 'Complex Element', description: 'Create a molecular structure from the specified model.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
-    params: { type: PD.Select<StructureComplexElement.Types>('atomic-sequence', StructureComplexElementTypes, { isHidden: true }) }
+    params: { type: PD.Select<StructureComplexElementTypes>('atomic-sequence', StructureComplexElementTypeTuples, { isHidden: true }) }
 })({
     apply({ a, params }) {
         // TODO: update function.
 
         let query: StructureQuery, label: string;
         switch (params.type) {
-            case 'atomic-sequence': query = Queries.internal.atomicSequence(); label = 'Sequence'; break;
+            case 'protein-and-nucleic': query = CompiledStructureSelectionQueries.proteinAndNucleic; label = 'Sequence'; break;
+
+            case 'protein': query = CompiledStructureSelectionQueries.protein; label = 'Protein'; break;
+            case 'nucleic': query = CompiledStructureSelectionQueries.nucleic; label = 'Nucleic'; break;
             case 'water': query = Queries.internal.water(); label = 'Water'; break;
+
+            case 'branched': query = CompiledStructureSelectionQueries.branchedPlusConnected; label = 'Branched'; break;
+            case 'ligand': query = CompiledStructureSelectionQueries.ligandPlusConnected; label = 'Ligand'; break;
+
+            case 'modified': query = CompiledStructureSelectionQueries.modified; label = 'Modified'; break;
+
+            case 'coarse': query = CompiledStructureSelectionQueries.coarse; label = 'Coarse'; break;
+
+            case 'atomic-sequence': query = Queries.internal.atomicSequence(); label = 'Sequence'; break;
             case 'atomic-het': query = Queries.internal.atomicHet(); label = 'HET Groups/Ligands'; break;
             case 'spheres': query = Queries.internal.spheres(); label = 'Coarse Spheres'; break;
+
             default: throw new Error(`${params.type} is a not valid complex element.`);
         }
 

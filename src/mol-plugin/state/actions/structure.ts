@@ -17,6 +17,7 @@ import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from '.
 import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
 import { StructureElement } from '../../../mol-model/structure';
+import { createDefaultStructureComplex } from '../../util/structure-comlex-helper';
 
 export const MmcifProvider: DataFormatProvider<any> = {
     label: 'mmCIF',
@@ -251,7 +252,7 @@ function createStructureTree(ctx: PluginContext, b: StateBuilder.To<PluginStateO
         root = root.apply(StateTransforms.Model.CustomModelProperties);
     }
     const structure = root.apply(StateTransforms.Model.StructureAssemblyFromModel);
-    complexRepresentation(ctx, structure);
+    createDefaultStructureComplex(ctx, structure);
 
     return root;
 }
@@ -287,7 +288,7 @@ export const CreateComplexRepresentation = StateAction.build({
     from: PluginStateObject.Molecule.Structure
 })(({ ref, state }, ctx: PluginContext) => {
     const root = state.build().to(ref);
-    complexRepresentation(ctx, root);
+    createDefaultStructureComplex(ctx, root);
     return state.updateTree(root);
 });
 
