@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -39,7 +40,7 @@ interface RootState {
     position: string | null,
     overflow: string | null,
     viewports: HTMLElement[],
-    zindex: string | null
+    zIndex: string | null
 }
 
 export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
@@ -48,7 +49,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
     }
 
     private updateProps(state: Partial<PluginLayoutStateProps>) {
-        let prevExpanded = !!this.state.isExpanded;
+        const prevExpanded = !!this.state.isExpanded;
         this.updateState(state);
         if (this.root && typeof state.isExpanded === 'boolean' && state.isExpanded !== prevExpanded) this.handleExpand();
 
@@ -76,15 +77,15 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
 
     private handleExpand() {
         try {
-            let body = document.getElementsByTagName('body')[0];
-            let head = document.getElementsByTagName('head')[0];
+            const body = document.getElementsByTagName('body')[0];
+            const head = document.getElementsByTagName('head')[0];
 
             if (!body || !head || !this.root) return;
 
             if (this.state.isExpanded) {
-                let children = head.children;
+                const children = head.children;
+                const viewports: HTMLElement[] = [];
                 let hasExp = false;
-                let viewports: HTMLElement[] = [];
                 for (let i = 0; i < children.length; i++) {
                     if (children[i] === this.expandedViewport) {
                         hasExp = true;
@@ -100,14 +101,14 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
                 if (!hasExp) head.appendChild(this.expandedViewport);
 
 
-                let s = body.style;
+                const s = body.style;
 
-                let doc = this.getScrollElement();
-                let scrollLeft = doc.scrollLeft;
-                let scrollTop = doc.scrollTop;
+                const doc = this.getScrollElement();
+                const scrollLeft = doc.scrollLeft;
+                const scrollTop = doc.scrollTop;
 
                 this.rootState = {
-                    top: s.top, bottom: s.bottom, right: s.right, left: s.left, scrollTop, scrollLeft, position: s.position, overflow: s.overflow, viewports, zindex: this.root.style.zIndex,
+                    top: s.top, bottom: s.bottom, right: s.right, left: s.left, scrollTop, scrollLeft, position: s.position, overflow: s.overflow, viewports, zIndex: this.root.style.zIndex,
                     width: s.width, height: s.height,
                     maxWidth: s.maxWidth, maxHeight: s.maxHeight,
                     margin: s.margin, marginLeft: s.marginLeft, marginRight: s.marginRight, marginTop: s.marginTop, marginBottom: s.marginBottom
@@ -133,7 +134,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
                 // TODO: setting this breaks viewport controls for some reason. Is there a fix?
                 // this.root.style.zIndex = '100000';
             } else {
-                let children = head.children;
+                const children = head.children;
                 for (let i = 0; i < children.length; i++) {
                     if (children[i] === this.expandedViewport) {
                         head.removeChild(this.expandedViewport);
@@ -142,10 +143,12 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
                 }
 
                 if (this.rootState) {
-                    let s = body.style, t = this.rootState;
+                    const t = this.rootState;
                     for (let v of t.viewports) {
                         head.appendChild(v);
                     }
+
+                    const s = body.style
                     s.top = t.top;
                     s.bottom = t.bottom;
                     s.left = t.left;
@@ -162,17 +165,20 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
                     s.marginBottom = t.marginBottom;
 
                     s.position = t.position;
-                    s.overflow = t.overflow || 'fixed';
-                    let doc = this.getScrollElement();
+                    s.overflow = t.overflow || '';
+
+                    const doc = this.getScrollElement();
                     doc.scrollTop = t.scrollTop;
                     doc.scrollLeft = t.scrollLeft;
+
                     this.rootState = void 0;
-                    this.root.style.zIndex = t.zindex;
+                    this.root.style.zIndex = t.zIndex;
                 }
             }
         } catch (e) {
-            this.context.log.error('Layout change error, you might have to reload the page.');
-            console.log('Layout change error, you might have to reload the page.', e);
+            const msg = 'Layout change error, you might have to reload the page.'
+            this.context.log.error(msg);
+            console.error(msg, e);
         }
     }
 
