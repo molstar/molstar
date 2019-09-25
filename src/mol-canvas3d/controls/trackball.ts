@@ -40,7 +40,7 @@ export const TrackballControlsParams = {
     zoomSpeed: PD.Numeric(6.0, { min: 0.1, max: 10, step: 0.1 }),
     panSpeed: PD.Numeric(0.8, { min: 0.1, max: 5, step: 0.1 }),
 
-    spin: PD.Boolean(false),
+    spin: PD.Boolean(false, { description: 'Spin the 3D scene around the x-axis in view space' }),
     spinSpeed: PD.Numeric(1, { min: -100, max: 100, step: 1 }),
 
     staticMoving: PD.Boolean(true, { isHidden: true }),

@@ -106,8 +106,8 @@ export class StructureRepresentationControls extends CollapsableControls {
         const { options } = this.values
         return {
             options: PD.Group({
-                showHydrogens: PD.Boolean(options.showHydrogens),
-                visualQuality: PD.Select<VisualQuality>(options.visualQuality, VisualQualityOptions),
+                showHydrogens: PD.Boolean(options.showHydrogens, { description: 'Toggle display of hydrogen atoms in representations' }),
+                visualQuality: PD.Select<VisualQuality>(options.visualQuality, VisualQualityOptions, { description: 'Control the visual/rendering quality of representations' }),
             }, { isExpanded: true })
         }
     }

@@ -45,7 +45,7 @@ interface Renderer {
 }
 
 export const RendererParams = {
-    backgroundColor: PD.Color(Color(0x000000)),
+    backgroundColor: PD.Color(Color(0x000000), { description: 'Background color of the 3D canvas' }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
     interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
 
