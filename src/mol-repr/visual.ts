@@ -81,10 +81,10 @@ namespace Visual {
 
         const { tOverpaint, uGroupCount, instanceCount } = renderObject.values
         const count = uGroupCount.ref.value * instanceCount.ref.value
-        const { array } = tOverpaint.ref.value
 
         // ensure texture has right size
         createOverpaint(overpaint.layers.length ? count : 0, renderObject.values)
+        const { array } = tOverpaint.ref.value
 
         // clear all if requested
         if (clear) clearOverpaint(array, 0, count)
@@ -108,12 +108,12 @@ namespace Visual {
 
         const { tTransparency, uGroupCount, instanceCount } = renderObject.values
         const count = uGroupCount.ref.value * instanceCount.ref.value
-        const { array } = tTransparency.ref.value
 
         const { loci, value, variant } = transparency
 
         // ensure texture has right size and variant
         createTransparency(value && !isEmptyLoci(loci) ? count : 0, variant, renderObject.values)
+        const { array } = tTransparency.ref.value
 
         // clear if requested
         if (clear) clearTransparency(array, 0, count)
