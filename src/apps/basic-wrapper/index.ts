@@ -18,6 +18,7 @@ import { StripedResidues } from './coloring';
 // import { BasicWrapperControls } from './controls';
 import { StaticSuperpositionTestData, buildStaticSuperposition, dynamicSuperpositionTest } from './superposition';
 import { PDBeStructureQualityReport } from '../../mol-plugin/behavior/dynamic/custom-props';
+import { CustomToastMessage } from './controls';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -158,6 +159,23 @@ class BasicWrapper {
             const state = this.plugin.state.behaviorState;
             const tree = state.build().to(PDBeStructureQualityReport.id).update(PDBeStructureQualityReport, p => ({ ...p, showTooltip: !p.showTooltip }));
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
+        },
+        showToasts: () => {
+            PluginCommands.Toast.Show.dispatch(this.plugin, {
+                title: 'Toast 1',
+                message: 'This is an example text, timeout 3s',
+                key: 'toast-1',
+                timeoutMs: 3000
+            });
+            PluginCommands.Toast.Show.dispatch(this.plugin, {
+                title: 'Toast 2',
+                message: CustomToastMessage,
+                key: 'toast-2'
+            });
+        },
+        hideToasts: () => {
+            PluginCommands.Toast.Hide.dispatch(this.plugin, { key: 'toast-1' });
+            PluginCommands.Toast.Hide.dispatch(this.plugin, { key: 'toast-2' });
         }
     }
 }

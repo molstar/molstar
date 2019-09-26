@@ -1,10 +1,9 @@
 
 .msp-toast-container {
-    position: absolute;
-    max-width: 100%;
-    bottom: $control-spacing;    
-    right: $control-spacing;
-    margin-left: $control-spacing;
+    position: relative;
+    // bottom: $control-spacing;    
+    // right: $control-spacing;
+    // margin-left: $control-spacing;
     z-index: 1001;
     
     .msp-toast-entry {

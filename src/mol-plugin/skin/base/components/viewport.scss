@@ -75,23 +75,25 @@
     }
 }
 
-/* highlight */
+/* highlight & toasts */
+
+.msp-highlight-toast-wrapper {
+    position: absolute;
+    right: $control-spacing;
+    bottom: $control-spacing;
+    max-width: 95%;
+    
+    z-index: 10000;
+}
 
 .msp-highlight-info {
-
     color: $highlight-info-font-color;
     padding: $info-vertical-padding $control-spacing;
     background: $default-background; //$highlight-info-background;
 
-    position: absolute;
-    right: $control-spacing;
-    bottom: $control-spacing;
+    min-height: $row-height;    
     text-align: right;
-    min-height: $row-height;
-    max-width: 95%;
 
-    //border-bottom-right-radius: 6px;
-    z-index: 10000;
     @include non-selectable;
 }
 

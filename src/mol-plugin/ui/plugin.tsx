@@ -12,7 +12,7 @@ import { LogEntry } from '../../mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
-import { LociLabelControl, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls, StructureToolsWrapper } from './controls';
+import { LociLabels, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls, StructureToolsWrapper } from './controls';
 import { StateSnapshots } from './state';
 import { StateObjectActions } from './state/actions';
 import { StateTree } from './state/tree';
@@ -21,6 +21,7 @@ import { Viewport, ViewportControls } from './viewport';
 import { StateTransform } from '../../mol-state';
 import { UpdateTransformControl } from './state/update-transform';
 import { SequenceView } from './sequence';
+import { Toasts } from './toast';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -146,7 +147,10 @@ export class ViewportWrapper extends PluginUIComponent {
             <div style={{ position: 'absolute', left: '10px', bottom: '10px' }}>
                 <BackgroundTaskProgress />
             </div>
-            <LociLabelControl />
+            <div className='msp-highlight-toast-wrapper'>
+                <LociLabels />
+                <Toasts />
+            </div>
         </>;
     }
 }

@@ -20,3 +20,11 @@ export class BasicWrapperControls extends PluginUIComponent {
         </div>;
     }
 }
+
+export class CustomToastMessage extends PluginUIComponent {
+    render() {
+        return <>
+            Custom <i>Toast</i> content. No timeout.
+        </>;
+    }
+}

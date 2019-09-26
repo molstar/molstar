@@ -12,6 +12,7 @@ import { PluginLayoutStateProps } from './layout';
 import { StructureElement } from '../mol-model/structure';
 import { PluginState } from './state';
 import { Interactivity } from './util/interactivity';
+import { PluginToast } from './state/toast';
 
 export * from './command/base';
 
@@ -52,6 +53,10 @@ export const PluginCommands = {
     },
     Layout: {
         Update: PluginCommand<{ state: Partial<PluginLayoutStateProps> }>()
+    },
+    Toast: {
+        Show: PluginCommand<PluginToast>(),
+        Hide: PluginCommand<{ key: string }>()
     },
     Camera: {
         Reset: PluginCommand<{}>(),

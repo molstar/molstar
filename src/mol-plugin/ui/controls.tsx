@@ -238,7 +238,7 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
     }
 }
 
-export class LociLabelControl extends PluginUIComponent<{}, { entries: ReadonlyArray<LociLabelEntry> }> {
+export class LociLabels extends PluginUIComponent<{}, { entries: ReadonlyArray<LociLabelEntry> }> {
     state = { entries: [] }
 
     componentDidMount() {
@@ -246,7 +246,9 @@ export class LociLabelControl extends PluginUIComponent<{}, { entries: ReadonlyA
     }
 
     render() {
-        if (this.state.entries.length === 0) return null;
+        if (this.state.entries.length === 0) {
+            return null;
+        }
 
         return <div className='msp-highlight-info'>
             {this.state.entries.map((e, i) => <div key={'' + i}>{e}</div>)}

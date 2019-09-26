@@ -40,6 +40,7 @@ import { Interactivity } from './util/interactivity';
 import { StructureRepresentationHelper } from './util/structure-representation-helper';
 import { StructureSelectionHelper } from './util/structure-selection-helper';
 import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
+import { PluginToastManager } from './state/toast';
 
 interface Log {
     entries: List<LogEntry>
@@ -100,7 +101,8 @@ export class PluginContext {
     } as const
 
     readonly canvas3d: Canvas3D;
-    readonly layout: PluginLayout = new PluginLayout(this);
+    readonly layout = new PluginLayout(this);
+    readonly toasts = new PluginToastManager(this);
     readonly interactivity: Interactivity;
 
     readonly lociLabels: LociLabelManager;
