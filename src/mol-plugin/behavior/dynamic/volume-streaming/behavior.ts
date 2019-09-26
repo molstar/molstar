@@ -49,11 +49,11 @@ export namespace VolumeStreaming {
         valuesInfo: [{ mean: 0, min: -1, max: 1, sigma: 0.1 }, { mean: 0, min: -1, max: 1, sigma: 0.1 }]
     };
 
-    const DefaultBindings = {
+    export const DefaultBindings = {
         clickVolumeAroundOnly: Binding(Trigger(B.Flag.Secondary, M.create()), 'Show the volume around only the clicked element using ${trigger}.'),
     }
 
-    export function createParams(data?: VolumeServerInfo.Data, defaultView?: ViewTypes) {
+    export function createParams(data?: VolumeServerInfo.Data, defaultView?: ViewTypes, binding?: typeof DefaultBindings) {
         // fake the info
         const info = data || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: VolumeIsoValue.relative(0) };
         const box = (data && data.structure.boundary.box) || Box3D.empty();
@@ -84,7 +84,7 @@ export namespace VolumeStreaming {
                     'fo-fc(+ve)': channelParam('Fo-Fc(+ve)', Color(0x33BB33), VolumeIsoValue.relative(3), info.header.sampling[0].valuesInfo[1]),
                     'fo-fc(-ve)': channelParam('Fo-Fc(-ve)', Color(0xBB3333), VolumeIsoValue.relative(-3), info.header.sampling[0].valuesInfo[1]),
                 }, { isFlat: true }),
-            bindings: PD.Value(DefaultBindings, { isHidden: true }),
+            bindings: PD.Value(binding || DefaultBindings, { isHidden: true }),
         };
     }
 

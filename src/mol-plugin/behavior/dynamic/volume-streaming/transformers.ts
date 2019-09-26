@@ -35,6 +35,7 @@ export const InitVolumeStreaming = StateAction.build({
             defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
             behaviorRef: PD.Text('', { isHidden: true }),
             emContourProvider: PD.Select<'wwpdb' | 'pdbe'>('wwpdb', [['wwpdb', 'wwPDB'], ['pdbe', 'PDBe']], { isHidden: true }),
+            bindings: PD.Value(VolumeStreaming.DefaultBindings, { isHidden: true }),
         };
     },
     isApplicable: (a) => a.data.models.length === 1
@@ -61,7 +62,7 @@ export const InitVolumeStreaming = StateAction.build({
     const infoObj = await state.updateTree(infoTree).runInContext(taskCtx);
 
     const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior,
-        PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data, params.defaultView)),
+        PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data, params.defaultView, params.bindings)),
         { ref: params.behaviorRef ? params.behaviorRef : void 0 });
 
     if (params.method === 'em') {
