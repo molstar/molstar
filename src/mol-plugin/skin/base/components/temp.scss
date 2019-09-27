@@ -63,6 +63,7 @@
 
         text-align-last: center;
         background: none !important;
+        padding: 0 $control-spacing;
 
         > option[value = _] {
             display: none;
