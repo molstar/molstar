@@ -40,17 +40,20 @@ export function addServerArgs(parser: argparse.ArgumentParser) {
     parser.addArgument([ '--defaultPort' ], {
         defaultValue: DefaultServerConfig.defaultPort,
         metavar: 'PORT',
-        help: `Specify the prefix of the API, i.e. <host>/<apiPrefix>/<API queries>`
+        type: 'int',
+        help: `Specify the port the server is running on`
     });
 
     parser.addArgument([ '--shutdownTimeoutMinutes' ], {
         defaultValue: DefaultServerConfig.shutdownTimeoutMinutes,
         metavar: 'TIME',
+        type: 'int',
         help: `0 for off, server will shut down after this amount of minutes.`
     });
     parser.addArgument([ '--shutdownTimeoutVarianceMinutes' ], {
         defaultValue: DefaultServerConfig.shutdownTimeoutVarianceMinutes,
         metavar: 'VARIANCE',
+        type: 'int',
         help: `modifies the shutdown timer by +/- timeoutVarianceMinutes (to avoid multiple instances shutting at the same time)`
     });
     parser.addArgument([ '--idMap' ], {
