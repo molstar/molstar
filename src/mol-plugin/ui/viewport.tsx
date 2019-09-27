@@ -96,8 +96,19 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     }
 }
 
+export const Logo = () =>
+    <div className='msp-logo'>
+        <div>
+            <div>
+                <div />
+                <div className='msp-logo-image' />
+            </div>
+        </div>
+    </div>
+
 interface ViewportState {
     noWebGl: boolean
+    showLogo: boolean
 }
 
 export class Viewport extends PluginUIComponent<{ }, ViewportState> {
@@ -105,8 +116,13 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
     private canvas = React.createRef<HTMLCanvasElement>();
 
     state: ViewportState = {
-        noWebGl: false
+        noWebGl: false,
+        showLogo: true
     };
+
+    private handleLogo = () => {
+        this.setState({ showLogo: this.plugin.canvas3d.reprCount.value === 0 })
+    }
 
     private handleResize = () => {
         const container = this.container.current;
@@ -121,9 +137,11 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
         if (!this.canvas.current || !this.container.current || !this.plugin.initViewer(this.canvas.current!, this.container.current!)) {
             this.setState({ noWebGl: true });
         }
+        this.handleLogo();
         this.handleResize();
 
         const canvas3d = this.plugin.canvas3d;
+        this.subscribe(canvas3d.reprCount, this.handleLogo);
         this.subscribe(canvas3d.input.resize, this.handleResize);
 
         this.subscribe(canvas3d.interaction.click, e => this.plugin.behaviors.interaction.click.next(e));
@@ -155,6 +173,7 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
             <div className='msp-viewport-host3d' ref={this.container}>
                 <canvas ref={this.canvas} />
             </div>
+            {this.state.showLogo && <Logo />}
         </div>;
     }
 }
