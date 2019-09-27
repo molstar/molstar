@@ -8,7 +8,7 @@ const sharedConfig = {
     module: {
         rules: [
             {
-                test: /\.(woff2?|ttf|otf|eot|svg|html)$/,
+                test: /\.(woff2?|ttf|otf|eot|svg|html|ico)$/,
                 use: [{
                     loader: 'file-loader',
                     options: { name: '[name].[ext]' }

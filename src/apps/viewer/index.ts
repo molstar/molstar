@@ -7,6 +7,7 @@
 
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
 import './index.html'
+import './favicon.ico'
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/command';
 import { PluginSpec } from '../../mol-plugin/spec';
