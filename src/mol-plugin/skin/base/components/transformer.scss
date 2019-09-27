@@ -1,5 +1,5 @@
-.msp-transformer {    
-    
+.msp-transformer {
+
     .msp-entity-badge {
         position: absolute;
         top: 0;
@@ -15,24 +15,24 @@
 }
 
 .msp-transformer-wrapper {
-    position: relative;    
+    position: relative;
 }
 
-.msp-transformer-wrapper {   
-    
+.msp-transformer-wrapper {
+
     .msp-entity-badge {
         left: 0;
         top: 0;
     }
-    
+
     &:first-child {
         .msp-panel-description-content {
             top: $row-height + 1;
         }
     }
-    
+
     &:not(:first-child) {
-        .msp-panel-description-content {            
+        .msp-panel-description-content {
             bottom: $row-height + 1;
         }
     }
