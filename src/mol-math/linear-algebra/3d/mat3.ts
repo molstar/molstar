@@ -17,7 +17,7 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import { Mat4, Vec3 } from '../3d'
+import { Mat4, Vec3, EPSILON } from '../3d'
 import { NumberArray } from '../../../mol-util/type-helpers';
 
 interface Mat3 extends Array<number> { [d: number]: number, '@type': 'mat3', length: 9 }
@@ -116,6 +116,11 @@ namespace Mat3 {
         out[7] = a21
         out[8] = a22
         return out;
+    }
+
+    const _id = identity();
+    export function isIdentity(m: Mat3, eps?: number) {
+        return areEqual(m, _id, typeof eps === 'undefined' ? EPSILON : eps);
     }
 
     export function hasNaN(m: Mat3) {
