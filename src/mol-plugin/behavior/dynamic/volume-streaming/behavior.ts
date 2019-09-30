@@ -244,7 +244,12 @@ export namespace VolumeStreaming {
             const root = this.getStructureRoot();
             if (!root || !root.obj || root.obj !== parent.obj) return Box3D.empty();
 
-            return StructureElement.Loci.getBoundary(StructureElement.Loci.extendToWholeResidues(loci)).box;
+            const extendedLoci = StructureElement.Loci.extendToWholeResidues(loci)
+            const box = StructureElement.Loci.getBoundary(extendedLoci).box
+            if (StructureElement.Loci.size(extendedLoci) === 1) {
+                Box3D.expand(box, box, Vec3.create(1, 1, 1))
+            }
+            return box;
         }
 
         private updateInteraction(current: Representation.Loci) {
@@ -263,7 +268,6 @@ export namespace VolumeStreaming {
             }
 
             const box = this.getBoxFromLoci(loci);
-            if (!box) return;
             this.updateDynamicBox(box);
         }
 
