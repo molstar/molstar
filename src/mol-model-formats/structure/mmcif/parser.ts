@@ -374,11 +374,19 @@ function getEntities(format: mmCIF_Format): Entities {
     }
 
     if (assignSubtype) {
+        const chemCompType = new Map<string, string>()
+        const { id, type } = format.data.chem_comp;
+        for (let i = 0, il = format.data.chem_comp._rowCount; i < il; i++) {
+            chemCompType.set(id.value(i), type.value(i))
+        }
+
         const { label_entity_id, label_comp_id } = format.data.atom_site;
         for (let i = 0 as ElementIndex, il = format.data.atom_site._rowCount; i < il; i++) {
             const entityId = label_entity_id.value(i);
             if (!entityIds.has(entityId)) {
-                subtypes[getEntityIndex(entityId)] = getEntitySubtype(label_comp_id.value(i))
+                const compId = label_comp_id.value(i)
+                const compType = chemCompType.get(compId) || ''
+                subtypes[getEntityIndex(entityId)] = getEntitySubtype(compId, compType)
                 entityIds.add(entityId)
             }
         }

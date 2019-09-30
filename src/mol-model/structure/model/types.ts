@@ -113,19 +113,34 @@ export const NucleicBackboneAtoms = new Set([
     'O2*', 'O3*', 'O4*', 'O5*', 'C1*', 'C2*', 'C3*', 'C4*', 'C5*'
 ])
 
-/** Chemical component type names for protein */
-export const ProteinComponentTypeNames = new Set([
-    'D-PEPTIDE LINKING', 'L-PEPTIDE LINKING', 'D-PEPTIDE NH3 AMINO TERMINUS',
-    'L-PEPTIDE NH3 AMINO TERMINUS', 'D-PEPTIDE COOH CARBOXY TERMINUS',
-    'L-PEPTIDE COOH CARBOXY TERMINUS', 'PEPTIDE LINKING', 'PEPTIDE-LIKE',
-    'L-GAMMA-PEPTIDE, C-DELTA LINKING', 'D-GAMMA-PEPTIDE, C-DELTA LINKING',
-    'L-BETA-PEPTIDE, C-GAMMA LINKING', 'D-BETA-PEPTIDE, C-GAMMA LINKING',
+/** Chemical component type names for D-linked protein */
+export const DProteinComponentTypeNames = new Set([
+    'D-PEPTIDE LINKING', 'D-PEPTIDE NH3 AMINO TERMINUS',
+    'D-PEPTIDE COOH CARBOXY TERMINUS', 'D-GAMMA-PEPTIDE, C-DELTA LINKING',
+    'D-BETA-PEPTIDE, C-GAMMA LINKING'
 ])
 
+/** Chemical component type names for L-linked protein */
+export const LProteinComponentTypeNames = new Set([
+    'L-PEPTIDE LINKING', 'L-PEPTIDE NH3 AMINO TERMINUS',
+    'L-PEPTIDE COOH CARBOXY TERMINUS', 'L-GAMMA-PEPTIDE, C-DELTA LINKING',
+    'L-BETA-PEPTIDE, C-GAMMA LINKING'
+])
+
+/** Chemical component type names for pepdite-like protein */
+export const OtherProteinComponentTypeNames = new Set([
+    'PEPTIDE LINKING', 'PEPTIDE-LIKE',
+])
+
+/** Chemical component type names for protein */
+export const ProteinComponentTypeNames = SetUtils.unionMany(
+    DProteinComponentTypeNames, LProteinComponentTypeNames, OtherProteinComponentTypeNames
+)
+
 /** Chemical component type names for DNA */
-export const DNAComponentTypeNames = [
+export const DNAComponentTypeNames = new Set([
     'DNA LINKING', 'L-DNA LINKING', 'DNA OH 5 PRIME TERMINUS', 'DNA OH 3 PRIME TERMINUS',
-]
+])
 
 /** Chemical component type names for RNA */
 export const RNAComponentTypeNames = new Set([
@@ -200,7 +215,7 @@ export function getMoleculeType(compType: string, compId: string) {
         return MoleculeType.protein
     } else if (RNAComponentTypeNames.has(compType)) {
         return MoleculeType.RNA
-    } else if (DNAComponentTypeNames.includes(compType)) {
+    } else if (DNAComponentTypeNames.has(compType)) {
         return MoleculeType.DNA
     } else if (SaccharideComponentTypeNames.has(compType)) {
         return MoleculeType.saccharide
@@ -243,9 +258,20 @@ export function getEntityType(compId: string): mmCIF_Schema['entity']['type']['T
     }
 }
 
-export function getEntitySubtype(compId: string): EntitySubtype {
+export function getEntitySubtype(compId: string, compType: string): EntitySubtype {
     compId = compId.toUpperCase()
-    if (SaccharideCompIdMap.has(compId)) {
+    compType = compType.toUpperCase()
+    if (LProteinComponentTypeNames.has(compType)) {
+        return 'polypeptide(L)'
+    } else if (DProteinComponentTypeNames.has(compType)) {
+        return 'polypeptide(D)'
+    } else if (RNAComponentTypeNames.has(compType)) {
+        return 'polyribonucleotide'
+    } else if (DNAComponentTypeNames.has(compType)) {
+        return 'polydeoxyribonucleotide'
+    } else if (SaccharideComponentTypeNames.has(compType)) {
+        return 'oligosaccharide'
+    } else if (SaccharideCompIdMap.has(compId)) {
         return 'oligosaccharide'
     } else if (PeptideBaseNames.has(compId)) {
         return 'peptide nucleic acid'
