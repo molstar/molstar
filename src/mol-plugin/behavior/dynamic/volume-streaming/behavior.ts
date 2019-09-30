@@ -22,9 +22,10 @@ import { PluginCommands } from '../../../command';
 import { StateSelection } from '../../../../mol-state';
 import { Representation } from '../../../../mol-repr/representation';
 import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
-import { StructureElement, Link } from '../../../../mol-model/structure';
+import { StructureElement, Link, Structure } from '../../../../mol-model/structure';
 import { PluginContext } from '../../../context';
 import { Binding } from '../../../../mol-util/binding';
+import { EmptyLoci, Loci, isEmptyLoci } from '../../../../mol-model/loci';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -115,7 +116,7 @@ export namespace VolumeStreaming {
     export class Behavior extends PluginBehavior.WithSubscribers<Params> {
         private cache = LRUCache.create<ChannelsData>(25);
         public params: Params = {} as any;
-        private lastLoci: Representation.Loci = Representation.Loci.Empty;
+        private lastLoci: StructureElement.Loci | EmptyLoci = EmptyLoci;
         private ref: string = '';
 
         channels: Channels = {}
@@ -198,67 +199,70 @@ export namespace VolumeStreaming {
             this.ref = ref;
 
             this.subscribeObservable(this.plugin.events.state.object.removed, o => {
-                if (!PluginStateObject.Molecule.Structure.is(o.obj) || this.lastLoci.loci.kind !== 'element-loci') return;
-                if (this.lastLoci.loci.structure === o.obj.data) {
-                    this.lastLoci = Representation.Loci.Empty;
+                if (!PluginStateObject.Molecule.Structure.is(o.obj) || !StructureElement.Loci.is(this.lastLoci)) return;
+                if (this.lastLoci.structure === o.obj.data) {
+                    this.lastLoci = EmptyLoci;
                 }
             });
 
             this.subscribeObservable(this.plugin.events.state.object.updated, o => {
-                if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || this.lastLoci.loci.kind !== 'element-loci') return;
-                if (this.lastLoci.loci.structure === o.oldObj.data) {
-                    this.lastLoci = Representation.Loci.Empty;
+                if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || !StructureElement.Loci.is(this.lastLoci)) return;
+                if (this.lastLoci.structure === o.oldObj.data) {
+                    this.lastLoci = EmptyLoci;
                 }
             });
 
             this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
                 if (!Binding.match(this.params.bindings.clickVolumeAroundOnly || DefaultBindings.clickVolumeAroundOnly, buttons, modifiers)) return;
                 if (this.params.view.name !== 'selection-box') {
-                    this.lastLoci = current;
+                    this.lastLoci = this.getNormalizedLoci(current.loci);
                 } else {
                     this.updateInteraction(current);
                 }
             });
         }
 
-        private getBoxFromLoci(current: Representation.Loci) {
-            if (current.loci.kind === 'empty-loci') {
-                return;
-            }
-
-            let loci: StructureElement.Loci;
-
-            // TODO: support structure loci as well?
-            if (StructureElement.Loci.is(current.loci)) {
-                loci = current.loci;
-            } else if (Link.isLoci(current.loci) && current.loci.links.length !== 0) {
-                loci = Link.toStructureElementLoci(current.loci);
+        private getNormalizedLoci(loci: Loci): StructureElement.Loci | EmptyLoci {
+            if (StructureElement.Loci.is(loci)) {
+                return loci;
+            } else if (Link.isLoci(loci)) {
+                return Link.toStructureElementLoci(loci);
+            } else if (Structure.isLoci(loci)) {
+                return Structure.toStructureElementLoci(loci);
             } else {
-                return;
+                return EmptyLoci;
+            }
+        }
+
+        private getBoxFromLoci(loci: StructureElement.Loci | EmptyLoci): Box3D {
+            if (isEmptyLoci(loci) || StructureElement.Loci.isEmpty(loci)) {
+                return Box3D.empty();
             }
 
             const parent = this.plugin.helpers.substructureParent.get(loci.structure);
-            if (!parent) return;
+            if (!parent) return Box3D.empty();
             const root = this.getStructureRoot();
-            if (!root || !root.obj || root.obj !== parent.obj) return;
+            if (!root || !root.obj || root.obj !== parent.obj) return Box3D.empty();
 
             return StructureElement.Loci.getBoundary(StructureElement.Loci.extendToWholeResidues(loci)).box;
         }
 
         private updateInteraction(current: Representation.Loci) {
-            if (Representation.Loci.areEqual(this.lastLoci, current)) {
-                this.lastLoci = Representation.Loci.Empty;
+            const loci = this.getNormalizedLoci(current.loci)
+            if (Loci.areEqual(this.lastLoci, loci)) {
+                this.lastLoci = EmptyLoci;
                 this.updateDynamicBox(Box3D.empty());
                 return;
             }
 
-            if (current.loci.kind === 'empty-loci') {
+            this.lastLoci = loci;
+
+            if (isEmptyLoci(loci)) {
                 this.updateDynamicBox(Box3D.empty());
-                this.lastLoci = current;
                 return;
             }
 
-            const box = this.getBoxFromLoci(current);
+            const box = this.getBoxFromLoci(loci);
             if (!box) return;
             this.updateDynamicBox(box);
         }

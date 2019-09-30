@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, StructureElement } from '../../../../mol-model/structure';
+import { Structure, StructureElement, Link } from '../../../../mol-model/structure';
 import { PluginBehavior } from '../../../../mol-plugin/behavior';
 import { PluginCommands } from '../../../../mol-plugin/command';
 import { PluginStateObject } from '../../../../mol-plugin/state/objects';
@@ -17,10 +17,9 @@ import { StateObjectCell, StateSelection, StateTransform } from '../../../../mol
 import { BuiltInColorThemes } from '../../../../mol-theme/color';
 import { BuiltInSizeThemes } from '../../../../mol-theme/size';
 import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
-import { Representation } from '../../../../mol-repr/representation';
 import { Binding } from '../../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { isEmptyLoci } from '../../../../mol-model/loci';
+import { isEmptyLoci, Loci, EmptyLoci } from '../../../../mol-model/loci';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -117,19 +116,19 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
     }
 
     register(ref: string): void {
-        let lastLoci: Representation.Loci = Representation.Loci.Empty;
+        let lastLoci: Loci = EmptyLoci;
 
         this.subscribeObservable(this.plugin.events.state.object.removed, o => {
-            if (!PluginStateObject.Molecule.Structure.is(o.obj) || lastLoci.loci.kind !== 'element-loci') return;
-            if (lastLoci.loci.structure === o.obj.data) {
-                lastLoci = Representation.Loci.Empty;
+            if (!PluginStateObject.Molecule.Structure.is(o.obj) || !StructureElement.Loci.is(lastLoci)) return;
+            if (lastLoci.structure === o.obj.data) {
+                lastLoci = EmptyLoci;
             }
         });
 
         this.subscribeObservable(this.plugin.events.state.object.updated, o => {
-            if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || lastLoci.loci.kind !== 'element-loci') return;
-            if (lastLoci.loci.structure === o.oldObj.data) {
-                lastLoci = Representation.Loci.Empty;
+            if (!PluginStateObject.Molecule.Structure.is(o.oldObj) || !StructureElement.Loci.is(lastLoci)) return;
+            if (lastLoci.structure === o.oldObj.data) {
+                lastLoci = EmptyLoci;
             }
         });
 
@@ -139,26 +138,36 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
             if (Binding.match(clickInteractionAroundOnly, buttons, modifiers)) {
                 if (isEmptyLoci(current.loci)) {
                     this.clear(StateTransform.RootRef);
-                    lastLoci = current;
+                    lastLoci = current.loci;
                     return;
                 }
 
-                // TODO: support link and structure loci as well?
-                if (!StructureElement.Loci.is(current.loci)) return;
+                let loci: StructureElement.Loci;
+                if (StructureElement.Loci.is(current.loci)) {
+                    loci = current.loci;
+                } else if (Link.isLoci(current.loci)) {
+                    loci = Link.toStructureElementLoci(current.loci);
+                } else if (Structure.isLoci(current.loci)) {
+                    loci = Structure.toStructureElementLoci(current.loci);
+                } else {
+                    return;
+                }
 
-                const parent = this.plugin.helpers.substructureParent.get(current.loci.structure);
+                if (StructureElement.Loci.isEmpty(loci)) return;
+
+                const parent = this.plugin.helpers.substructureParent.get(loci.structure);
                 if (!parent || !parent.obj) return;
 
-                if (Representation.Loci.areEqual(lastLoci, current)) {
-                    lastLoci = Representation.Loci.Empty;
+                if (Loci.areEqual(lastLoci, loci)) {
+                    lastLoci = EmptyLoci;
                     this.clear(parent.transform.ref);
                     return;
                 }
 
-                lastLoci = current;
+                lastLoci = loci;
 
                 const core = MS.struct.modifier.wholeResidues([
-                    StructureElement.Loci.toExpression(current.loci)
+                    StructureElement.Loci.toExpression(loci)
                 ]);
 
                 const surroundings = MS.struct.modifier.includeSurroundings({

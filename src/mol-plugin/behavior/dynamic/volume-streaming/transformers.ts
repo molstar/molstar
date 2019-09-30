@@ -148,7 +148,8 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
 })({
     canAutoUpdate: ({ oldParams, newParams }) => {
         return oldParams.view === newParams.view
-            || (oldParams.view.name === newParams.view.name && oldParams.view.name === 'selection-box');
+            || newParams.view.name === 'selection-box'
+            || newParams.view.name === 'off';
     },
     apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume streaming', async _ => {
         const behavior = new VolumeStreaming.Behavior(plugin, a.data);
