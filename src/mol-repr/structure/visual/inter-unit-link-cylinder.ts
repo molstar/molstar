@@ -43,7 +43,11 @@ function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structur
             const b = bonds[edgeIndex]
             location.unit = b.unitA
             location.element = b.unitA.elements[b.indexA]
-            return theme.size.size(location) * sizeFactor * sizeAspectRatio
+            const sizeA = theme.size.size(location)
+            location.unit = b.unitB
+            location.element = b.unitB.elements[b.indexB]
+            const sizeB = theme.size.size(location)
+            return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio
         },
         ignore: ignoreHydrogens ? (edgeIndex: number) => {
             const b = bonds[edgeIndex]

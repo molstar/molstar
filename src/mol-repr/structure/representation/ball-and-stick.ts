@@ -29,7 +29,7 @@ export const BallAndStickParams = {
     ...IntraUnitLinkParams,
     ...InterUnitLinkParams,
     unitKinds: PD.MultiSelect<UnitKind>(['atomic'], UnitKindOptions),
-    sizeFactor: PD.Numeric(0.3, { min: 0.01, max: 10, step: 0.01 }),
+    sizeFactor: PD.Numeric(0.2, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2/3, { min: 0.01, max: 3, step: 0.01 }),
     visuals: PD.MultiSelect<BallAndStickVisualName>(['element-sphere', 'intra-link', 'inter-link'], BallAndStickVisualOptions),
 }
@@ -50,6 +50,6 @@ export const BallAndStickRepresentationProvider: StructureRepresentationProvider
     getParams: getBallAndStickParams,
     defaultValues: PD.getDefaultValues(BallAndStickParams),
     defaultColorTheme: 'element-symbol',
-    defaultSizeTheme: 'uniform',
+    defaultSizeTheme: 'physical',
     isApplicable: (structure: Structure) => structure.elementCount > 0
 }

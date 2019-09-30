@@ -63,7 +63,10 @@ function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structu
         flags: (edgeIndex: number) => BitFlags.create(_flags[edgeIndex]),
         radius: (edgeIndex: number) => {
             location.element = elements[a[edgeIndex]]
-            return theme.size.size(location) * sizeFactor * sizeAspectRatio
+            const sizeA = theme.size.size(location)
+            location.element = elements[b[edgeIndex]]
+            const sizeB = theme.size.size(location)
+            return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio
         },
         ignore: ignoreHydrogens ? (edgeIndex: number) => {
             return isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]])
