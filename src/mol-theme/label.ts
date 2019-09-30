@@ -105,6 +105,7 @@ export function atomicElementLabel(location: StructureElement.Location<Unit.Atom
     const label_asym_id = Props.chain.label_asym_id(location)
     const auth_asym_id = Props.chain.auth_asym_id(location)
     const seq_id = location.unit.model.atomicHierarchy.residues.auth_seq_id.isDefined ? Props.residue.auth_seq_id(location) : Props.residue.label_seq_id(location)
+    const ins_code = Props.residue.pdbx_PDB_ins_code(location)
     const comp_id = Props.residue.label_comp_id(location)
     const atom_id = Props.atom.label_atom_id(location)
     const alt_id = Props.atom.label_alt_id(location)
@@ -120,7 +121,7 @@ export function atomicElementLabel(location: StructureElement.Location<Unit.Atom
         case 'element':
             label.push(`${atom_id}${alt_id ? `%${alt_id}` : ''}`)
         case 'residue':
-            label.push(`${compId} ${seq_id}`)
+            label.push(`${compId} ${seq_id}${ins_code ? ins_code : ''}`)
         case 'chain':
             label.push(`Chain ${label_asym_id}:${auth_asym_id}`)
     }
