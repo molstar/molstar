@@ -137,7 +137,7 @@ export class PluginContext {
      * Used to store application specific custom state which is then available
      * to State Actions and similar constructs via the PluginContext.
      */
-    readonly customState: any = Object.create(null);
+    readonly customState: unknown = Object.create(null);
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
