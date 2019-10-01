@@ -251,6 +251,7 @@ namespace InputObserver {
 
             element.addEventListener('wheel', onMouseWheel as any, false)
             element.addEventListener('mousedown', onMouseDown as any, false)
+
             // for dragging to work outside canvas bounds,
             // mouse move/up events have to be added to a parent, i.e. window
             window.addEventListener('mousemove', onMouseMove as any, false)
@@ -263,7 +264,8 @@ namespace InputObserver {
             element.addEventListener('touchmove', onTouchMove as any, false)
             element.addEventListener('touchend', onTouchEnd as any, false)
 
-            element.addEventListener('blur', handleBlur)
+            // reset buttons and modifier keys state when browser window looses focus
+            window.addEventListener('blur', handleBlur)
             window.addEventListener('keyup', handleKeyUp as EventListener, false)
             window.addEventListener('keydown', handleKeyDown as EventListener, false)
 
@@ -288,7 +290,7 @@ namespace InputObserver {
             element.removeEventListener('touchmove', onTouchMove as any, false)
             element.removeEventListener('touchend', onTouchEnd as any, false)
 
-            element.removeEventListener('blur', handleBlur)
+            window.removeEventListener('blur', handleBlur)
             window.removeEventListener('keyup', handleKeyUp as EventListener, false)
             window.removeEventListener('keydown', handleKeyDown as EventListener, false)
 
