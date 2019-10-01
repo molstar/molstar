@@ -16,6 +16,7 @@ import { StateSelection } from '../../../mol-state';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { EmptyLoci } from '../../../mol-model/loci';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -43,13 +44,20 @@ export const HighlightLoci = PluginBehavior.create({
         register() {
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d) return
+                let matched = false
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnly, buttons, modifiers)) {
                     this.ctx.interactivity.lociHighlights.highlightOnly(current)
+                    matched = true
                 }
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnlyExtend, buttons, modifiers)) {
                     this.ctx.interactivity.lociHighlights.highlightOnlyExtend(current)
+                    matched = true
+                }
+
+                if (!matched) {
+                    this.ctx.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EmptyLoci })
                 }
             });
             this.ctx.interactivity.lociHighlights.addProvider(this.lociMarkProvider)
