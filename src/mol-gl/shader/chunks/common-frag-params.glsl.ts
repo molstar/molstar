@@ -5,7 +5,11 @@ uniform int uGroupCount;
 
 uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
-varying float vMarker;
+#if __VERSION__ != 300
+    varying float vMarker;
+#else
+    flat in float vMarker;
+#endif
 
 varying vec3 vViewPosition;
 

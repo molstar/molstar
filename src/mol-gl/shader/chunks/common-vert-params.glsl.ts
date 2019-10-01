@@ -8,7 +8,11 @@ uniform int uGroupCount;
 
 uniform vec2 uMarkerTexDim;
 uniform sampler2D tMarker;
-varying float vMarker;
+#if __VERSION__ != 300
+    varying float vMarker;
+#else
+    flat out float vMarker;
+#endif
 
 varying vec3 vViewPosition;
 `
