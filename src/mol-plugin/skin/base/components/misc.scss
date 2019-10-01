@@ -71,3 +71,32 @@
 .msp-controls-section {
     margin-bottom: $control-spacing;
 }
+
+.msp-combined-color-button {
+    border: 4px solid $msp-form-control-background !important;
+    margin: 0;
+    text-align: center;
+    padding-right: $control-spacing;
+    padding-left: $control-spacing;        
+    
+    &:hover {
+        border-color: color-increase-contrast($msp-form-control-background, 5%) !important;
+        border: none;
+        outline-offset: -1px  !important;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;  
+    }
+}
+
+.msp-combined-color-swatch {
+    width: 100%;
+    display: grid;
+    grid-gap: 1px;
+    grid-template-columns: repeat(6, auto);
+
+    .msp-btn {
+        &:hover {
+            outline-offset: -1px  !important;
+            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;  
+        }
+    }
+}

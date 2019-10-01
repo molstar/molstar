@@ -19,6 +19,7 @@ import { NumericInput, IconButton, ControlGroup } from './common';
 import { _Props, _State } from '../base';
 import { legendFor } from './legend';
 import { Legend as LegendData } from '../../../mol-util/legend';
+import { CombinedColorControl } from './color';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -55,7 +56,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'converted': return ConvertedControl;
         case 'conditioned': return ConditionedControl;
         case 'multi-select': return MultiSelectControl;
-        case 'color': return ColorControl;
+        case 'color': return CombinedColorControl;
         case 'color-list': return ColorListControl;
         case 'vec3': return Vec3Control;
         case 'file': return FileControl;
