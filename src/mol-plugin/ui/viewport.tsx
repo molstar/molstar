@@ -76,10 +76,10 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     render() {
         return <div className={'msp-viewport-controls'} onMouseMove={this.onMouseMove}>
             <div className='msp-viewport-controls-buttons'>
-                {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}<br/>
-                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}<br/>
-                {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}<br />
-                {!this.props.hideSettingsIcon && this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}<br/>
+                {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
+                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
+                {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
+                {!this.props.hideSettingsIcon && this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
             </div>
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-scene-options'>
                 <ControlGroup header='Layout' initialExpanded={true}>

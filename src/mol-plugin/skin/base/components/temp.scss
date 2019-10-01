@@ -225,13 +225,13 @@
         float: left;
         margin-right: $control-spacing;
         position: relative;
-        // background-color: $msp-form-control-background;
+        background: $default-background;
 
         .msp-animation-viewport-controls-select {
             width: 290px;
             position: absolute;
             left: 0;
-            top: $row-height + $control-spacing;
+            margin-top: $control-spacing;
             background: $control-background;
 
             .msp-control-row:first-child {

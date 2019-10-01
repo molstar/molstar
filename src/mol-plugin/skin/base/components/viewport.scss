@@ -34,6 +34,7 @@
     right: $control-spacing;
     top: $control-spacing;
     width: 32px;
+    background: $default-background;
 }
 
 .msp-viewport-controls-buttons {
@@ -44,14 +45,6 @@
         text-align: center;
         width: $row-height;
     }
-
-    > button:last-child {
-        margin-left: $control-spacing;
-    }
-
-    // .msp-btn-link, .msp-btn-link-toggle-on {
-    //     color: #eee;
-    // }
 
     .msp-btn-link-toggle-off {
         color: $msp-btn-link-toggle-off-font-color;
@@ -69,6 +62,7 @@
     right: 0px;
     position: absolute;
     background: $control-background;
+    margin-top: $control-spacing;
 
     .msp-control-group-wrapper:first-child {
         padding-top: 0;
@@ -82,7 +76,7 @@
     right: $control-spacing;
     bottom: $control-spacing;
     max-width: 95%;
-    
+
     z-index: 10000;
 }
 
@@ -91,7 +85,7 @@
     padding: $info-vertical-padding $control-spacing;
     background: $default-background; //$highlight-info-background;
 
-    min-height: $row-height;    
+    min-height: $row-height;
     text-align: right;
 
     @include non-selectable;
