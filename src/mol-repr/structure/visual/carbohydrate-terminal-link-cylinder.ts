@@ -136,7 +136,6 @@ function getTerminalLinkLoci(pickingId: PickingId, structure: Structure, id: num
     return EmptyLoci
 }
 
-// TODO for each link when both of the link elements are in a StructureElement.Loci
 function eachTerminalLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getTerminalLinkIndex } = structure.carbohydrates
     let changed = false
@@ -158,6 +157,11 @@ function eachTerminalLink(loci: Loci, structure: Structure, apply: (interval: In
                 if (carbI !== undefined) {
                     const carb = elements[carbI]
                     const indices = getTerminalLinkIndices(carb.unit, carb.anomericCarbon)
+                    for (let i = 0, il = indices.length; i < il; ++i) {
+                        if (apply(Interval.ofSingleton(indices[i]))) changed = true
+                    }
+                } else {
+                    const indices = getTerminalLinkIndices(e.unit, e.unit.elements[v])
                     for (let i = 0, il = indices.length; i < il; ++i) {
                         if (apply(Interval.ofSingleton(indices[i]))) changed = true
                     }
