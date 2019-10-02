@@ -76,6 +76,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     render() {
         return <div className={'msp-viewport-controls'} onMouseMove={this.onMouseMove}>
             <div className='msp-viewport-controls-buttons'>
+                <div className='msp-semi-transparent-background' />
                 {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
                 {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
                 {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}

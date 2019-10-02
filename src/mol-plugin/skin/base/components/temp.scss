@@ -225,7 +225,16 @@
         float: left;
         margin-right: $control-spacing;
         position: relative;
-        background: $default-background;
+        // background: $default-background;
+
+        > div:first-child {
+            position: relative;
+            display: inline-block;
+
+            > button {
+                position: relative;
+            }
+        }
 
         .msp-animation-viewport-controls-select {
             width: 290px;

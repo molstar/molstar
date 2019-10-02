@@ -34,16 +34,17 @@
     right: $control-spacing;
     top: $control-spacing;
     width: 32px;
-    background: $default-background;
 }
 
 .msp-viewport-controls-buttons {
     text-align: right;
+    position: relative;
 
     > button {
         padding: 0;
         text-align: center;
         width: $row-height;
+        position: relative;
     }
 
     .msp-btn-link-toggle-off {
@@ -53,6 +54,16 @@
     .msp-btn-link:hover {
         color: $hover-font-color;
     }
+}
+
+.msp-semi-transparent-background {    
+    background: $default-background;
+    opacity: 0.2;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .msp-viewport-controls-scene-options {
