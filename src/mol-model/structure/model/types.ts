@@ -9,7 +9,7 @@ import BitFlags from '../../../mol-util/bit-flags'
 import { SaccharideCompIdMap } from '../structure/carbohydrates/constants';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { SetUtils } from '../../../mol-util/set';
-import { EntitySubtype } from './properties/common';
+import { EntitySubtype, ChemicalComponent } from './properties/common';
 
 const _esCache = (function () {
     const cache = Object.create(null);
@@ -243,6 +243,20 @@ export function getComponentType(compId: string): mmCIF_Schema['chem_comp']['typ
     } else {
         return 'other'
     }
+}
+
+export function getDefaultChemicalComponent(compId: string): ChemicalComponent {
+    // TODO: this is to make the chem_comp_type property work if chem_comp category is not present.
+    // should we try to set the formula etc better?
+    return {
+        formula: '',
+        formula_weight: 0,
+        id: compId,
+        name: compId,
+        mon_nstd_flag: 'n',
+        pdbx_synonyms: [],
+        type: getComponentType(compId)
+    };
 }
 
 export function getEntityType(compId: string): mmCIF_Schema['entity']['type']['T'] {
