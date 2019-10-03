@@ -26,6 +26,17 @@ export function arrayMin(array: ArrayLike<number>) {
     return min
 }
 
+/** Get the minimum & maximum value in an array */
+export function arrayMinMax(array: ArrayLike<number>) {
+    let min = Infinity
+    let max = -Infinity
+    for (let i = 0, il = array.length; i < il; ++i) {
+        if (array[i] < min) min = array[i]
+        if (array[i] > max) max = array[i]
+    }
+    return [min, max]
+}
+
 /** Get the sum of values in an array */
 export function arraySum(array: ArrayLike<number>, stride = 1, offset = 0) {
     const n = array.length
