@@ -15,6 +15,8 @@ import { CustomProperties } from '../common/custom-property';
 import { SecondaryStructure } from './properties/seconday-structure';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from '../../../mol-model-formats/structure/format';
+import { calcModelCenter } from './util';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -75,4 +77,12 @@ export interface Model extends Readonly<{
 export namespace Model {
     // TODO: is this enough?
     export type Trajectory = ReadonlyArray<Model>
+
+    const CenterProp = '__Center__'
+    export function getCenter(model: Model): Vec3 {
+        if (model._dynamicPropertyData[CenterProp]) return model._dynamicPropertyData[CenterProp]
+        const center = calcModelCenter(model.atomicConformation, model.coarseConformation)
+        model._dynamicPropertyData[CenterProp] = center
+        return center
+    }
 }
