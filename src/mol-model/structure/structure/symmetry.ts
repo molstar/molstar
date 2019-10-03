@@ -10,7 +10,7 @@ import { EquivalenceClasses } from '../../../mol-data/util';
 import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext, Task } from '../../../mol-task';
-import { ModelSymmetry } from '../model';
+import { ModelSymmetry, Model } from '../model';
 import { QueryContext, StructureSelection } from '../query';
 import Structure from './structure';
 import Unit from './unit';
@@ -95,7 +95,7 @@ namespace StructureSymmetry {
     }
 }
 
-function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
+function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3, modelCenter: Vec3) {
     const { spacegroup, ncsOperators } = symmetry;
     const ncsCount = (ncsOperators && ncsOperators.length) || 0
     const operators: SymmetryOperator[] = [];
@@ -107,13 +107,17 @@ function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
         operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0)
     }
 
+    const { toFractional } = spacegroup.cell
+    const ref = Vec3.transformMat4(Vec3(), modelCenter, toFractional)
+
     for (let op = 0; op < spacegroup.operators.length; op++) {
         for (let i = ijkMin[0]; i <= ijkMax[0]; i++) {
             for (let j = ijkMin[1]; j <= ijkMax[1]; j++) {
                 for (let k = ijkMin[2]; k <= ijkMax[2]; k++) {
                     // check if we have added identity as the 1st operator.
                     if (!ncsCount && op === 0 && i === 0 && j === 0 && k === 0) continue;
-                    const symOp = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
+
+                    const symOp = Spacegroup.getSymmetryOperatorRef(spacegroup, op, i, j, k, ref)
                     if (ncsCount) {
                         for (let u = 0; u < ncsCount; ++u) {
                             const ncsOp = ncsOperators![u]
@@ -131,10 +135,15 @@ function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
     return operators;
 }
 
-function getOperatorsCached333(symmetry: ModelSymmetry) {
-    if (typeof symmetry._operators_333 !== 'undefined') return symmetry._operators_333;
-    symmetry._operators_333 = getOperators(symmetry, Vec3.create(-3, -3, -3), Vec3.create(3, 3, 3));
-    return symmetry._operators_333;
+function getOperatorsCached333(symmetry: ModelSymmetry, ref: Vec3) {
+    if (symmetry._operators_333 && Vec3.equals(ref, symmetry._operators_333.ref)) {
+        return symmetry._operators_333.operators;
+    }
+    symmetry._operators_333 = {
+        ref: Vec3.clone(ref),
+        operators: getOperators(symmetry, Vec3.create(-3, -3, -3), Vec3.create(3, 3, 3), ref)
+    };
+    return symmetry._operators_333.operators;
 }
 
 function assembleOperators(structure: Structure, operators: ReadonlyArray<SymmetryOperator>) {
@@ -164,7 +173,8 @@ async function findSymmetryRange(ctx: RuntimeContext, structure: Structure, ijkM
     const { spacegroup } = models[0].symmetry;
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 
-    const operators = getOperators(models[0].symmetry, ijkMin, ijkMax);
+    const modelCenter = Model.getCenter(models[0])
+    const operators = getOperators(models[0].symmetry, ijkMin, ijkMax, modelCenter);
     return assembleOperators(structure, operators);
 }
 
@@ -177,7 +187,8 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 
     if (ctx.shouldUpdate) await ctx.update('Initialing...');
-    const operators = getOperatorsCached333(symmetry);
+    const modelCenter = Model.getCenter(models[0])
+    const operators = getOperatorsCached333(symmetry, modelCenter);
     const lookup = structure.lookup3d;
 
     const assembler = Structure.Builder();

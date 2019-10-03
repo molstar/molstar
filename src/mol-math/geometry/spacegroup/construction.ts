@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Vec3, Mat4 } from '../../linear-algebra'
@@ -73,7 +74,7 @@ namespace SpacegroupCell {
 
 
 namespace Spacegroup {
-    // P1 with [1, 1, 1] cell.
+    /** P1 with [1, 1, 1] cell */
     export const ZeroP1 = create(SpacegroupCell.Zero);
 
     export function create(cell: SpacegroupCell): Spacegroup {
@@ -81,18 +82,56 @@ namespace Spacegroup {
         return { name: SpacegroupNames[cell.index], cell, operators };
     }
 
-    const _tempVec = Vec3.zero(), _tempMat = Mat4.zero();
-    export function updateOperatorMatrix(spacegroup: Spacegroup, index: number, i: number, j: number, k: number, target: Mat4) {
-        _tempVec[0] = i;
-        _tempVec[1] = j;
-        _tempVec[2] = k;
+    const _ijkVec = Vec3();
+    const _tempMat = Mat4();
+    export function setOperatorMatrix(spacegroup: Spacegroup, index: number, i: number, j: number, k: number, target: Mat4) {
+        Vec3.set(_ijkVec, i, j, k);
 
-        Mat4.fromTranslation(_tempMat, _tempVec);
-        return Mat4.mul(target, Mat4.mul(target, Mat4.mul(target, spacegroup.cell.fromFractional, _tempMat), spacegroup.operators[index]), spacegroup.cell.toFractional);
+        Mat4.fromTranslation(_tempMat, _ijkVec);
+        return Mat4.mul(
+            target,
+            Mat4.mul(
+                target,
+                Mat4.mul(target, spacegroup.cell.fromFractional, _tempMat),
+                spacegroup.operators[index]
+            ),
+            spacegroup.cell.toFractional
+        );
     }
 
     export function getSymmetryOperator(spacegroup: Spacegroup, index: number, i: number, j: number, k: number): SymmetryOperator {
-        const operator = updateOperatorMatrix(spacegroup, index, i, j, k, Mat4.zero());
+        const operator = setOperatorMatrix(spacegroup, index, i, j, k, Mat4.zero());
+        return SymmetryOperator.create(`${index + 1}_${5 + i}${5 + j}${5 + k}`, operator, { id: '', operList: [] }, '', Vec3.create(i, j, k), index);
+    }
+
+    const _translationRef = Vec3()
+    const _translationRefSymop = Vec3()
+    const _translationSymop = Vec3()
+    export function setOperatorMatrixRef(spacegroup: Spacegroup, index: number, i: number, j: number, k: number, ref: Vec3, target: Mat4) {
+        Vec3.set(_ijkVec, i, j, k);
+        Vec3.floor(_translationRef, ref)
+
+        Mat4.copy(target, spacegroup.operators[index])
+
+        Vec3.floor(_translationRefSymop, Vec3.transformMat4(_translationRefSymop, ref, target))
+
+        Mat4.getTranslation(_translationSymop, target)
+        Vec3.sub(_translationSymop, _translationSymop, _translationRefSymop)
+        Vec3.add(_translationSymop, _translationSymop, _translationRef)
+        Vec3.add(_translationSymop, _translationSymop, _ijkVec)
+
+        Mat4.setTranslation(target, _translationSymop)
+        Mat4.mul(target, spacegroup.cell.fromFractional, target)
+        Mat4.mul(target, target, spacegroup.cell.toFractional)
+        return target
+    }
+
+    /**
+     * Get Symmetry operator for transformation around the given
+     * reference point `ref` in fractional coordinates
+     */
+    export function getSymmetryOperatorRef(spacegroup: Spacegroup, index: number, i: number, j: number, k: number, ref: Vec3) {
+        const operator = setOperatorMatrixRef(spacegroup, index, i, j, k, ref, Mat4.zero());
         return SymmetryOperator.create(`${index + 1}_${5 + i}${5 + j}${5 + k}`, operator, { id: '', operList: [] }, '', Vec3.create(i, j, k), index);
     }
 

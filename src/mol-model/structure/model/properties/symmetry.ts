@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -9,6 +9,7 @@ import { arrayFind } from '../../../../mol-data/util'
 import { StructureQuery } from '../../query'
 import { Model } from '../../model'
 import { Spacegroup } from '../../../../mol-math/geometry';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 
 /** Determine an atom set and a list of operators that should be applied to that set  */
 export interface OperatorGroup {
@@ -47,8 +48,14 @@ interface ModelSymmetry {
     readonly isNonStandardCrytalFrame: boolean,
     readonly ncsOperators?: ReadonlyArray<SymmetryOperator>,
 
-    // optionally cached operators from [-3, -3, -3] to [3, 3, 3]
-    _operators_333?: SymmetryOperator[]
+    /**
+     * optionally cached operators from [-3, -3, -3] to [3, 3, 3]
+     * around reference point `ref` in fractional coordinates
+     */
+    _operators_333?: {
+        ref: Vec3,
+        operators: SymmetryOperator[]
+    }
 }
 
 namespace ModelSymmetry {
