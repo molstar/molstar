@@ -101,9 +101,9 @@ export namespace MeshBuilder {
         }
     }
 
-    export function addCage(state: State, t: Mat4, cage: Cage, radius: number, detail: number) {
+    export function addCage(state: State, t: Mat4, cage: Cage, radius: number, detail: number, radialSegments: number) {
         const { vertices: va, edges: ea } = cage
-        const cylinderProps = { radiusTop: radius, radiusBottom: radius }
+        const cylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments }
         for (let i = 0, il = ea.length; i < il; i += 2) {
             Vec3.fromArray(tmpVecA, va, ea[i] * 3)
             Vec3.fromArray(tmpVecB, va, ea[i + 1] * 3)

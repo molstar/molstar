@@ -30,6 +30,14 @@ export function createPrimitive(vertices: ArrayLike<number>, indices: ArrayLike<
     return builder.getPrimitive()
 }
 
+export function copyPrimitive(primitive: Primitive): Primitive {
+    return {
+        vertices: new Float32Array(primitive.vertices),
+        normals: new Float32Array(primitive.normals),
+        indices: new Uint32Array(primitive.indices)
+    }
+}
+
 export interface PrimitiveBuilder {
     add(a: Vec3, b: Vec3, c: Vec3): void
     getPrimitive(): Primitive

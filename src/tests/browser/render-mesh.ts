@@ -31,7 +31,7 @@ function meshRepr() {
     const builderState = MeshBuilder.createState()
 
     const t = Mat4.identity()
-    MeshBuilder.addCage(builderState, t, HexagonalPrismCage(), 0.005, 2)
+    MeshBuilder.addCage(builderState, t, HexagonalPrismCage(), 0.005, 2, 20)
 
     const t2 = Mat4.identity()
     Mat4.scaleUniformly(t2, t2, 0.1)
