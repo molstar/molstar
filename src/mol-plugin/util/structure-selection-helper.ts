@@ -127,9 +127,17 @@ const ligand = MS.struct.modifier.union([
     })
 ])
 
+// don't innclude branched entities as they have their own link representation
 const ligandPlusConnected = MS.struct.modifier.union([
-    MS.struct.modifier.includeConnected({
-        0: ligand, 'layer-count': 1, 'as-whole-residues': true
+    MS.struct.modifier.exceptBy({
+        0: MS.struct.modifier.union([
+            MS.struct.modifier.includeConnected({
+                0: ligand,
+                'layer-count': 1,
+                'as-whole-residues': true
+            })
+        ]),
+        by: branched
     })
 ])
 
