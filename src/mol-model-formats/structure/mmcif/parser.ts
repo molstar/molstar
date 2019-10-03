@@ -23,7 +23,7 @@ import { getSecondaryStructure } from './secondary-structure';
 import { getSequence } from './sequence';
 import { sortAtomSite } from './sort';
 import { StructConn } from './bonds/struct_conn';
-import { getMoleculeType, MoleculeType, getEntityType, getEntitySubtype } from '../../../mol-model/structure/model/types';
+import { getMoleculeType, MoleculeType, getEntityType, getEntitySubtype, getDefaultChemicalComponent } from '../../../mol-model/structure/model/types';
 import { ModelFormat } from '../format';
 import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from '../../../mol-model/structure/structure/carbohydrates/constants';
 import mmCIF_Format = ModelFormat.mmCIF
@@ -127,9 +127,17 @@ function getMissingResidues(format: mmCIF_Format): Model['properties']['missingR
 function getChemicalComponentMap(format: mmCIF_Format): Model['properties']['chemicalComponentMap'] {
     const map = new Map<string, ChemicalComponent>();
     const { chem_comp } = format.data
-    const { id } = chem_comp
-    for (let i = 0, il = id.rowCount; i < il; ++i) {
-        map.set(id.value(i), Table.getRow(chem_comp, i))
+
+    if (chem_comp._rowCount > 0) {
+        const { id } = chem_comp
+        for (let i = 0, il = id.rowCount; i < il; ++i) {
+            map.set(id.value(i), Table.getRow(chem_comp, i))
+        }
+    } else {
+        const uniqueNames = getUniqueComponentNames(format);
+        uniqueNames.forEach(n => {
+            map.set(n, getDefaultChemicalComponent(n));
+        });
     }
     return map
 }
