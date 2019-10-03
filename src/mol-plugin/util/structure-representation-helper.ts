@@ -178,14 +178,14 @@ export class StructureRepresentationHelper {
         const s = structures[0].obj!.data
 
         if (s.elementCount < 50000) {
-            polymerAndLigand(this)
+            await polymerAndLigand(this)
         } else if (s.elementCount < 200000) {
-            proteinAndNucleic(this)
+            await proteinAndNucleic(this)
         } else {
             if (s.unitSymmetryGroups[0].units.length > 10) {
-                capsid(this)
+                await capsid(this)
             } else {
-                coarseCapsid(this)
+                await coarseCapsid(this)
             }
         }
     }
