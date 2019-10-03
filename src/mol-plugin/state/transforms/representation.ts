@@ -31,6 +31,7 @@ import { Overpaint } from '../../../mol-theme/overpaint';
 import { Transparency } from '../../../mol-theme/transparency';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Script } from '../../../mol-script/script';
+import { getUnitcellRepresentation, UnitcellParams } from '../../util/model-unitcell';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -664,6 +665,34 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Shape Representation', async ctx => {
             const props = { ...b.data.repr.props, ...newParams }
             await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
+            return StateTransformer.UpdateResult.Updated;
+        });
+    }
+});
+
+export { ModelUnitcell3D }
+type ModelUnitcell3D = typeof ModelUnitcell3D
+const ModelUnitcell3D = PluginStateTransform.BuiltIn({
+    name: 'model-unitcell-3d',
+    display: 'Model Unitcell',
+    from: SO.Molecule.Model,
+    to: SO.Shape.Representation3D,
+    params: {
+        ...UnitcellParams,
+    }
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }) {
+        return Task.create('Model Unitcell', async ctx => {
+            const repr = await getUnitcellRepresentation(ctx, a.data, params);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Unitcell`, description: a.data.symmetry.spacegroup.name });
+        });
+    },
+    update({ a, b, newParams }) {
+        return Task.create('Model Unitcell', async ctx => {
+            await getUnitcellRepresentation(ctx, a.data, newParams, b.data.repr as ShapeRepresentation<any, any, any>);
             return StateTransformer.UpdateResult.Updated;
         });
     }
