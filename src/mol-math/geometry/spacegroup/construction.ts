@@ -9,9 +9,10 @@ import { SpacegroupName, TransformData, GroupData, getSpacegroupIndex, OperatorD
 import { SymmetryOperator } from '../../geometry';
 
 interface SpacegroupCell {
-    // zero based spacegroup number
+    /** Zero based spacegroup number */
     readonly index: number,
     readonly size: Vec3,
+    readonly volume: number,
     readonly anglesInRadians: Vec3,
     /** Transfrom cartesian -> fractional coordinates within the cell */
     readonly toFractional: Mat4,
@@ -34,13 +35,15 @@ namespace SpacegroupCell {
         return cell.index === 0 && cell.size[0] === 1 && cell.size[1] === 1 && cell.size[1] === 1;
     }
 
-    // returns Zero cell if the spacegroup does not exist
+    /** Returns Zero cell if the spacegroup does not exist */
     export function create(nameOrNumber: number | string | SpacegroupName, size: Vec3, anglesInRadians: Vec3): SpacegroupCell {
         const index = getSpacegroupIndex(nameOrNumber);
         if (index < 0) {
             console.warn(`Unknown spacegroup '${nameOrNumber}', returning a 'P 1' with cellsize [1, 1, 1]`)
             return Zero;
         }
+
+        const volume = size[0] * size[1] * size[2]
 
         const alpha = anglesInRadians[0];
         const beta = anglesInRadians[1];
@@ -64,7 +67,7 @@ namespace SpacegroupCell {
         ]);
         const toFractional = Mat4.invert(Mat4.zero(), fromFractional)!;
 
-        return { index, size, anglesInRadians, toFractional, fromFractional };
+        return { index, size, volume, anglesInRadians, toFractional, fromFractional };
     }
 }
 
