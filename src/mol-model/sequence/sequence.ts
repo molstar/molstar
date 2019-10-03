@@ -54,30 +54,37 @@ namespace Sequence {
     function determineKind(names: Column<string>) {
         for (let i = 0, _i = Math.min(names.rowCount, 10); i < _i; i++) {
             const name = names.value(i) || '';
-            if (getProteinOneLetterCode(name) !== 'X') return { kind: Kind.Protein, code: getProteinOneLetterCode };
-            if (getRnaOneLetterCode(name) !== 'X') return { kind: Kind.RNA, code: getRnaOneLetterCode };
-            if (getDnaOneLetterCode(name) !== 'X') return { kind: Kind.DNA, code: getDnaOneLetterCode };
+            if (getProteinOneLetterCode(name) !== 'X') return Kind.Protein;
+            if (getRnaOneLetterCode(name) !== 'X') return Kind.RNA;
+            if (getDnaOneLetterCode(name) !== 'X') return Kind.DNA;
         }
-        return { kind: Kind.Generic, code: (v: string) => 'X' };
+        return Kind.Generic;
     }
 
-    function modCode(code: (name: string) => string, map: ReadonlyMap<string, string>): (name: string) => string {
-        return n => {
-            const ret = code(n);
-            if (ret !== 'X' || !map.has(n)) return ret;
-            return code(map.get(n)!);
+    function codeProvider(kind: Kind, map?: ReadonlyMap<string, string>) {
+        let code: (name: string) => string
+        switch (kind) {
+            case Kind.Protein: code = getProteinOneLetterCode; break;
+            case Kind.DNA: code = getDnaOneLetterCode; break;
+            case Kind.RNA: code = getRnaOneLetterCode; break;
+            case Kind.Generic: code = () => 'X'; break;
+            default: throw new Error(`unknown kind '${kind}'`)
         }
+        if (map && map.size > 0) {
+            return (name: string) => {
+                const ret = code(name);
+                if (ret !== 'X' || !map.has(name)) return ret;
+                return code(map.get(name)!);
+            }
+        }
+        return code
     }
 
     export function ofResidueNames(compId: Column<string>, seqId: Column<number>, modifiedMap?: ReadonlyMap<string, string>): Sequence {
         if (seqId.rowCount === 0) throw new Error('cannot be empty');
 
-        const { kind, code } = determineKind(compId);
-
-        if (!modifiedMap || modifiedMap.size === 0) {
-            return new ResidueNamesImpl(kind, compId, seqId, code) as Sequence;
-        }
-        return new ResidueNamesImpl(kind, compId, seqId, modCode(code, modifiedMap)) as Sequence;
+        const kind = determineKind(compId);
+        return new ResidueNamesImpl(kind, compId, seqId, modifiedMap) as Sequence;
     }
 
     class ResidueNamesImpl<K extends Kind, Alphabet extends string> implements Base<K, Alphabet> {
@@ -86,6 +93,8 @@ namespace Sequence {
         private _microHet: ReadonlyMap<number, string[]> | undefined = void 0;
         private _code: Column<Alphabet> | undefined = undefined
         private _label: Column<string> | undefined = undefined
+
+        private codeFromName: (name: string) => string
 
         get code(): Column<Alphabet> {
             if (this._code !== void 0) return this._code;
@@ -142,10 +151,14 @@ namespace Sequence {
                 const seqId = this.seqId.value(i)
                 const idx = seqId - minSeqId;
                 const name = this.compId.value(i);
-                const code = this.getCode(name);
+                const code = this.codeFromName(name);
                 // in case of MICROHETEROGENEITY `sequenceArray[idx]` may already be set
                 if (!sequenceArray[idx] || sequenceArray[idx] === '-') {
-                    sequenceArray[idx] = code;
+                    if (code === 'X' && this.modifiedMap && this.modifiedMap.has(name)) {
+                        sequenceArray[idx] = this.modifiedMap.get(name)!
+                    } else {
+                        sequenceArray[idx] = code;
+                    }
                 }
                 labels[idx].push(code === 'X' ? name : code);
                 compIds[seqId].push(name);
@@ -170,8 +183,9 @@ namespace Sequence {
             this._length = count
         }
 
-        constructor(public kind: K, public compId: Column<string>, public seqId: Column<number>, private getCode: (name: string) => string) {
+        constructor(public kind: K, public compId: Column<string>, public seqId: Column<number>, private modifiedMap?: ReadonlyMap<string, string>) {
 
+            this.codeFromName = codeProvider(kind)
         }
     }
 
