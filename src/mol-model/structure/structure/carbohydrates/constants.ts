@@ -172,6 +172,19 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'Tag', name: 'Tagatose', color: SaccharideColors.Yellow, type: SaccharideType.Assigned },
     { abbr: 'Sor', name: 'Sorbose', color: SaccharideColors.Orange, type: SaccharideType.Assigned },
     { abbr: 'Psi', name: 'Psicose', color: SaccharideColors.Pink, type: SaccharideType.Assigned },
+
+    { abbr: 'Hexose', name: 'Hexose', color: SaccharideColors.Secondary, type: SaccharideType.Hexose },
+    { abbr: 'HexNAc', name: 'HexNAc', color: SaccharideColors.Secondary, type: SaccharideType.HexNAc },
+    { abbr: 'Hexosamine', name: 'Hexosamine', color: SaccharideColors.Secondary, type: SaccharideType.Hexosamine },
+    { abbr: 'Hexuronate', name: 'Hexuronate', color: SaccharideColors.Secondary, type: SaccharideType.Hexuronate },
+    { abbr: 'Deoxyhexose', name: 'Deoxyhexose', color: SaccharideColors.Secondary, type: SaccharideType.Deoxyhexose },
+    { abbr: 'DeoxyhexNAc', name: 'DeoxyhexNAc', color: SaccharideColors.Secondary, type: SaccharideType.DeoxyhexNAc },
+    { abbr: 'Di-deoxyhexose', name: 'Di-deoxyhexose', color: SaccharideColors.Secondary, type: SaccharideType.DiDeoxyhexose },
+    { abbr: 'Pentose', name: 'Pentose', color: SaccharideColors.Secondary, type: SaccharideType.Pentose },
+    { abbr: 'Deoxynonulosonate', name: 'Deoxynonulosonate', color: SaccharideColors.Secondary, type: SaccharideType.Deoxynonulosonate },
+    { abbr: 'Di-deoxynonulosonate', name: 'Di-deoxynonulosonate', color: SaccharideColors.Secondary, type: SaccharideType.DiDeoxynonulosonate	 },
+    { abbr: 'Unknown', name: 'Unknown', color: SaccharideColors.Secondary, type: SaccharideType.Unknown },
+    { abbr: 'Assigned', name: 'Assigned', color: SaccharideColors.Secondary, type: SaccharideType.Assigned },
 ]
 
 export const SaccharidesSnfgMap = (function () {
@@ -200,33 +213,27 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     // Hexose
     Glc: [
         'GLC', 'BGC',
-        'BOG', // via GlyFinder
-        'TRE', // via GlyFinder, di-saccharide but homomer
-        'MLR', // via GlyFinder, tri-saccharide but homomer
+        'TRE', // di-saccharide but homomer
+        'MLR', // tri-saccharide but homomer
     ],
     Man: ['MAN', 'BMA'],
-    Gal: [
-        'GAL', 'GLA',
-        'GXL' // via PubChem
-    ],
-    Gul: ['GUP', 'GL0'],
-    Alt: ['ALT'],
-    All: ['ALL', 'AFD'],
-    Tal: ['TAL'],
-    Ido: ['4N2'],
+    Gal: ['GLA', 'GAL', 'GZL'],
+    Gul: ['4GL', 'GL0'],
+    Alt: ['Z6H', '3MK'],
+    All: ['AFD', 'ALL'],
+    Tal: [],
+    Ido: ['Z0F', '4N2'],
     // HexNAc
-    GlcNAc: ['NAG', 'NDG'],
-    ManNAc: ['NGA', 'A2G'],
-    GulNAc: [],
+    GlcNAc: ['NDG', 'NAG'],
+    ManNAc: ['BM3', 'BM7'],
+    GalNAc: ['A2G', 'NGA'],
+    GulNAc: ['LXB'],
     AltNAc: [],
     AllNAc: ['NAA'],
     TalNAc: [],
-    IdoNAc: ['HSQ'],
+    IdoNAc: [],
     // Hexosamine
-    GlcN: [
-        'GCS', 'PA1',
-        'IDU', 'SGN', 'SUS', // via GlyFinder
-    ],
+    GlcN: ['PA1', 'GCS'],
     ManN: ['95Z'],
     GalN: ['X6X', '1GN'],
     GulN: [],
@@ -237,66 +244,76 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     // Hexuronate
     GlcA: ['GCU', 'BDP'],
     ManA: ['MAV', 'BEM'],
-    GalA: ['ADA', 'GTR'],
-    GulA: ['LGU'],
+    GalA: ['ADA', 'GTR', 'GTK'],
+    GulA: [],
     AltA: [],
     AllA: [],
-    TalA: ['X0X', 'X1X'],
-    IdoA: [
-        'IDR',
-        'IDS', // via GlyFinder
-    ],
+    TalA: ['X1X', 'X0X'],
+    IdoA: ['IDR'],
     // Deoxyhexose
-    Qui: ['G6D'],
+    Qui: ['G6D', 'YYK'],
     Rha: ['RAM', 'RM4'],
-    '6dGul': [],
+    '6dGul': ['66O'],
     '6dAlt': [],
     '6dTal': [],
     Fuc: ['FUC', 'FUL'],
     // DeoxyhexNAc
-    QuiNAc: [],
+    QuiNAc: ['Z9W'],
     RhaNAc: [],
     '6dAltNAc': [],
     '6dTalNAc': [],
     FucNAc: [],
     // Di-deoxyhexose
-    Oli: ['DDA'],
+    Oli: ['DDA', 'RAE', 'Z5J'],
     Tyv: ['TYV'],
     Abe: ['ABE'],
     Par: ['PZU'],
-    Dig: [],
+    Dig: ['Z3U'],
     Col: [],
     // Pentose
-    Ara: ['ARA', 'ARB'],
-    Lyx: ['LDY'],
-    Xyl: ['XYS', 'XYP'],
-    Rib: ['RIP', '0MK'],
+    Ara: ['ARA', 'ARB', 'AHR', 'FUB'],
+    Lyx: ['LDY', 'Z4W'],
+    Xyl: ['XZS', 'XYP', 'XYZ'],
+    Rib: ['YYM', 'RIP', 'RIB', 'BDR'],
     // Deoxynonulosonate
-    Kdn: ['KDN', 'KDM'],
+    Kdn: ['KDM', 'KDN'],
     Neu5Ac: ['SIA', 'SLB'],
     Neu5Gc: ['NGC', 'NGE'],
     Neu: [],
     Sia: [],
     // Di-deoxynonulosonate
-    Pse: ['6PZ'],
+    Pse: [],
     Leg: [],
     Aci: [],
     '4eLeg': [],
     // Unknown
-    Bac: ['B6D'],
+    Bac: [],
     LDManHep: ['GMH'],
     Kdo: ['KDO'],
     Dha: [],
-    DDManHep: [],
-    MurNAc: ['AMU'],
+    DDManHep: ['289'],
+    MurNAc: ['MUB', 'AMU'],
     MurNGc: [],
-    Mur: ['MUR'],
+    Mur: ['1S4', 'MUR'],
     // Assigned
     Api: ['XXM'],
-    Fru: ['BDF'],
+    Fru: ['BDF', 'Z9N', 'FRU'],
     Tag: ['T6T'],
     Sor: ['SOE'],
-    Psi: [],
+    Psi: ['PSV'],
+    // Generic
+    Hexose: [],
+    HexNAc: [],
+    Hexosamine: [],
+    Hexuronate: [],
+    Deoxyhexose: [],
+    DeoxyhexNAc: [],
+    'Di-deoxyhexose': [],
+    Pentose: [],
+    Deoxynonulosonate: [],
+    'Di-deoxynonulosonate': [],
+    Unknown: [],
+    Assigned: ['PUF'],
 }
 
 const UnknownSaccharideNames = [

@@ -114,8 +114,11 @@ const branchedConnectedOnly = MS.struct.modifier.union([
 const ligand = MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.and([
-            MS.core.rel.neq([MS.ammp('entityType'), 'branched']),
-            MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer'])
+            MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+            MS.core.logic.not([MS.core.str.match([
+                MS.re('oligosaccharide', 'i'),
+                MS.ammp('entitySubtype')
+            ])])
         ]),
         'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
         'residue-test': MS.core.logic.not([

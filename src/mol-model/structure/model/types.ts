@@ -224,7 +224,12 @@ export function getMoleculeType(compType: string, compId: string) {
     } else if (IonNames.has(compId)) {
         return MoleculeType.ion
     } else if (OtherComponentTypeNames.has(compType)) {
-        return MoleculeType.other
+        if (SaccharideCompIdMap.has(compId)) {
+            // trust our saccharide table more than given 'non-polymer' or 'other' component type
+            return MoleculeType.saccharide
+        } else {
+            return MoleculeType.other
+        }
     } else {
         return MoleculeType.unknown
     }
@@ -679,5 +684,5 @@ export const ResidueHydrophobicity = {
     'TRP': [ -1.85, -2.09, -0.24 ],
     'TYR': [ -0.94, -0.71, 0.23 ],
     'VAL': [ 0.07, -0.46, -0.53 ]
-  }
-  export const DefaultResidueHydrophobicity = [ 0.00, 0.00, 0.00 ]
+}
+export const DefaultResidueHydrophobicity = [ 0.00, 0.00, 0.00 ]

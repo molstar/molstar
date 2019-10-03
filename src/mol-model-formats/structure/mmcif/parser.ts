@@ -144,10 +144,13 @@ function getChemicalComponentMap(format: mmCIF_Format): Model['properties']['che
 
 function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap {
     const map = new Map<string, SaccharideComponent>();
-    const { pdbx_chem_comp_identifier } = format.data
-    if (pdbx_chem_comp_identifier._rowCount > 0) {
-        const { comp_id, type, identifier } = pdbx_chem_comp_identifier
-        for (let i = 0, il = pdbx_chem_comp_identifier._rowCount; i < il; ++i) {
+
+    if (format.data.pdbx_chem_comp_identifier._rowCount > 0) {
+        // note that `pdbx_chem_comp_identifier` does not contain
+        // a 'SNFG CARB SYMBOL' entry for 'Unknown' saccharide components
+        // so we always need to check `chem_comp` for those
+        const { comp_id, type, identifier } = format.data.pdbx_chem_comp_identifier
+        for (let i = 0, il = comp_id.rowCount; i < il; ++i) {
             if (type.value(i) === 'SNFG CARB SYMBOL') {
                 const snfgName = identifier.value(i)
                 const saccharideComp = SaccharidesSnfgMap.get(snfgName)
@@ -158,21 +161,24 @@ function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap
                 }
             }
         }
-    } else if (format.data.chem_comp._rowCount > 0) {
+    }
+
+    if (format.data.chem_comp._rowCount > 0) {
         const { id, type  } = format.data.chem_comp
         for (let i = 0, il = id.rowCount; i < il; ++i) {
             const _id = id.value(i)
+            if (map.has(_id)) continue
             const _type = type.value(i)
             if (SaccharideCompIdMap.has(_id)) {
                 map.set(_id, SaccharideCompIdMap.get(_id)!)
-            } else if (!map.has(_id) && getMoleculeType(_type, _id) === MoleculeType.saccharide) {
+            } else if (getMoleculeType(_type, _id) === MoleculeType.saccharide) {
                 map.set(_id, UnknownSaccharideComponent)
             }
         }
     } else {
         const uniqueNames = getUniqueComponentNames(format)
         SaccharideCompIdMap.forEach((v, k) => {
-            if (uniqueNames.has(k)) map.set(k, v)
+            if (!map.has(k) && uniqueNames.has(k)) map.set(k, v)
         })
     }
     return map
