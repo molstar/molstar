@@ -297,7 +297,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
             </div>
 
             {typeof sequenceWrapper === 'string'
-                ? <div className='msp-sequence-wrapper'>{sequenceWrapper}</div>
+                ? <div className='msp-sequence-wrapper msp-sequence-wrapper-non-empty'>{sequenceWrapper}</div>
                 : <Sequence sequenceWrapper={sequenceWrapper} />}
         </div>;
     }

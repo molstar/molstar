@@ -104,7 +104,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P, Sequ
         }
 
         return <div
-            className='msp-sequence-wrapper'
+            className='msp-sequence-wrapper msp-sequence-wrapper-non-empty'
             onContextMenu={this.contextMenu}
             onMouseDown={this.mouseDown}
         >
