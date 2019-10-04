@@ -242,7 +242,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         return {
             structure: PD.Select(structureOptions[0][0], structureOptions, { shortLabel: true }),
             entity: PD.Select(entityOptions[0][0], entityOptions, { shortLabel: true }),
-            unit: PD.Select(unitOptions[0][0], unitOptions, { shortLabel: true, twoColumns: true }),
+            unit: PD.Select(unitOptions[0][0], unitOptions, { shortLabel: true, twoColumns: true, label: 'Chain' }),
             operator: PD.Select(operatorOptions[0][0], operatorOptions, { shortLabel: true, twoColumns: true })
         }
     }
