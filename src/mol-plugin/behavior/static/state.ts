@@ -12,6 +12,8 @@ import { PluginStateObject as SO } from '../../state/objects';
 import { getFormattedTime } from '../../../mol-util/date';
 import { readFromFile } from '../../../mol-util/data-source';
 import { download } from '../../../mol-util/download';
+import { Structure } from '../../../mol-model/structure';
+import { EmptyLoci, EveryLoci } from '../../../mol-model/loci';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -99,24 +101,25 @@ function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: 
     ctx.state.updateCellState(t.ref, { isHidden: ctx.value });
 }
 
-// TODO make isHighlighted and isSelect part of StateObjectCell.State and subscribe from there???
-// TODO select structures of subtree
-// TODO should also work for volumes and shapes
 export function Highlight(ctx: PluginContext) {
     PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
-        // const cell = state.select(ref)[0]
-        // const repr = cell && SO.isRepresentation3D(cell.obj) ? cell.obj.data : undefined
-        // if (cell && cell.obj && cell.obj.type === PluginStateObject.Molecule.Structure.type) {
-        //     ctx.behaviors.canvas3d.highlight.next({ current: { loci: Structure.Loci(cell.obj.data) } });
-        // } else if (repr) {
-        //     ctx.behaviors.canvas3d.highlight.next({ current: { loci: EveryLoci, repr } });
-        // }
+        const cell = state.select(ref)[0];
+        if (!cell) return;
+        if (SO.Molecule.Structure.is(cell.obj)) {
+            ctx.interactivity.lociHighlights.highlightOnly({ loci: Structure.Loci(cell.obj.data) });
+        } else if (cell && SO.isRepresentation3D(cell.obj)) {
+            const loci = SO.Molecule.Structure.is(cell.obj.data.source) ? Structure.Loci(cell.obj.data.source.data) : EveryLoci
+            ctx.interactivity.lociHighlights.highlightOnly({ loci, repr: cell.obj.data.repr });
+        }
+
+        // TODO: highlight volumes and shapes?
+        // TODO: select structures of subtree?
     });
 }
 
 export function ClearHighlight(ctx: PluginContext) {
     PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
-        // ctx.behaviors.canvas3d.highlight.next({ current: { loci: EmptyLoci } });
+        ctx.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
     });
 }
 
