@@ -246,7 +246,7 @@ namespace InputObserver {
             dispose
         }
 
-        function attach () {
+        function attach() {
             element.addEventListener('contextmenu', onContextMenu, false )
 
             element.addEventListener('wheel', onMouseWheel as any, false)
@@ -272,7 +272,7 @@ namespace InputObserver {
             window.addEventListener('resize', onResize, false)
         }
 
-        function dispose () {
+        function dispose() {
             if (disposed) return
             disposed = true
 
@@ -303,14 +303,21 @@ namespace InputObserver {
             }
         }
 
-        function handleBlur () {
+        function updateModifierKeys(event: MouseEvent | WheelEvent | TouchEvent) {
+            modifierKeys.alt = event.altKey
+            modifierKeys.shift = event.shiftKey
+            modifierKeys.control = event.ctrlKey
+            modifierKeys.meta = event.metaKey
+        }
+
+        function handleBlur() {
             if (buttons || modifierKeys.shift || modifierKeys.alt || modifierKeys.meta || modifierKeys.control) {
                 buttons = 0 as ButtonsType
                 modifierKeys.shift = modifierKeys.alt = modifierKeys.control = modifierKeys.meta = false
             }
         }
 
-        function handleKeyDown (event: KeyboardEvent) {
+        function handleKeyDown(event: KeyboardEvent) {
             let changed = false;
             if (!modifierKeys.alt && event.altKey) { changed = true; modifierKeys.alt = true; }
             if (!modifierKeys.shift && event.shiftKey) { changed = true; modifierKeys.shift = true; }
@@ -320,7 +327,7 @@ namespace InputObserver {
             if (changed && isInside) modifiers.next(getModifierKeys());
         }
 
-        function handleKeyUp (event: KeyboardEvent) {
+        function handleKeyUp(event: KeyboardEvent) {
             let changed = false;
 
             if (modifierKeys.alt && !event.altKey) { changed = true; modifierKeys.alt = false; }
@@ -331,7 +338,7 @@ namespace InputObserver {
             if (changed && isInside) modifiers.next(getModifierKeys());
         }
 
-        function getCenterTouch (ev: TouchEvent): PointerEvent {
+        function getCenterTouch(ev: TouchEvent): PointerEvent {
             const t0 = ev.touches[0]
             const t1 = ev.touches[1]
             return {
@@ -342,13 +349,13 @@ namespace InputObserver {
             }
         }
 
-        function getTouchDistance (ev: TouchEvent) {
+        function getTouchDistance(ev: TouchEvent) {
             const dx = ev.touches[0].pageX - ev.touches[1].pageX;
             const dy = ev.touches[0].pageY - ev.touches[1].pageY;
             return Math.sqrt(dx * dx + dy * dy);
         }
 
-        function onTouchStart (ev: TouchEvent) {
+        function onTouchStart(ev: TouchEvent) {
             if (ev.touches.length === 1) {
                 buttons = ButtonsType.Flag.Primary
                 onPointerDown(ev.touches[0])
@@ -372,11 +379,11 @@ namespace InputObserver {
             }
         }
 
-        function onTouchEnd (ev: TouchEvent) {
+        function onTouchEnd(ev: TouchEvent) {
             endDrag()
         }
 
-        function onTouchMove (ev: TouchEvent) {
+        function onTouchMove(ev: TouchEvent) {
             if (noPinchZoom) {
                 ev.preventDefault();
                 ev.stopPropagation();
@@ -397,6 +404,7 @@ namespace InputObserver {
                     onPointerMove(getCenterTouch(ev))
                 } else {
                     buttons = ButtonsType.Flag.Auxilary
+                    updateModifierKeys(ev)
                     pinch.next({
                         delta: touchDelta,
                         fraction: lastTouchDistance / touchDistance,
@@ -413,17 +421,20 @@ namespace InputObserver {
             }
         }
 
-        function onMouseDown (ev: MouseEvent) {
+        function onMouseDown(ev: MouseEvent) {
+            updateModifierKeys(ev)
             buttons = getButtons(ev)
             onPointerDown(ev)
         }
 
-        function onMouseMove (ev: MouseEvent) {
+        function onMouseMove(ev: MouseEvent) {
+            updateModifierKeys(ev)
             buttons = getButtons(ev)
             onPointerMove(ev)
         }
 
-        function onMouseUp (ev: MouseEvent) {
+        function onMouseUp(ev: MouseEvent) {
+            updateModifierKeys(ev)
             onPointerUp(ev)
             endDrag()
         }
@@ -432,7 +443,7 @@ namespace InputObserver {
             interactionEnd.next()
         }
 
-        function onPointerDown (ev: PointerEvent) {
+        function onPointerDown(ev: PointerEvent) {
             eventOffset(pointerStart, ev)
             Vec2.copy(pointerDown, pointerStart)
 
@@ -441,7 +452,7 @@ namespace InputObserver {
             }
         }
 
-        function onPointerUp (ev: PointerEvent) {
+        function onPointerUp(ev: PointerEvent) {
             dragging = DraggingState.Stopped
 
             eventOffset(pointerEnd, ev);
@@ -453,7 +464,7 @@ namespace InputObserver {
             }
         }
 
-        function onPointerMove (ev: PointerEvent) {
+        function onPointerMove(ev: PointerEvent) {
             eventOffset(pointerEnd, ev)
             const { pageX, pageY } = ev
             const [ x, y ] = pointerEnd
@@ -495,21 +506,21 @@ namespace InputObserver {
             }
         }
 
-        function onMouseEnter (ev: Event) {
+        function onMouseEnter(ev: Event) {
             isInside = true;
             enter.next();
         }
 
-        function onMouseLeave (ev: Event) {
+        function onMouseLeave(ev: Event) {
             isInside = false;
             leave.next();
         }
 
-        function onResize (ev: Event) {
+        function onResize(ev: Event) {
             resize.next()
         }
 
-        function insideBounds (pos: Vec2) {
+        function insideBounds(pos: Vec2) {
             if (element instanceof Window || element instanceof Document || element === document.body) {
                 return true
             } else {
@@ -518,13 +529,13 @@ namespace InputObserver {
             }
         }
 
-        function getClientSize (out: Vec2) {
+        function getClientSize(out: Vec2) {
             out[0] = element.clientWidth
             out[1] = element.clientHeight
             return out
         }
 
-        function eventOffset (out: Vec2, ev: PointerEvent) {
+        function eventOffset(out: Vec2, ev: PointerEvent) {
             const cx = ev.clientX || 0
             const cy = ev.clientY || 0
             const rect = element.getBoundingClientRect()
