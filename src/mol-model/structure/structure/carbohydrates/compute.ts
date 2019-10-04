@@ -22,7 +22,12 @@ import { UnitRings, UnitRing } from '../unit/rings';
 import { ElementIndex } from '../../model/indexing';
 
 const C = ElementSymbol('C'), O = ElementSymbol('O');
-const SugarRingFps = [UnitRing.elementFingerprint([C, C, C, C, C, O]), UnitRing.elementFingerprint([C, C, C, C, O])]
+const SugarRingFps = [
+    UnitRing.elementFingerprint([C, C, C, O]),
+    UnitRing.elementFingerprint([C, C, C, C, O]),
+    UnitRing.elementFingerprint([C, C, C, C, C, O]),
+    UnitRing.elementFingerprint([C, C, C, C, C, C, O]),
+]
 
 function getAnomericCarbon(unit: Unit.Atomic, ringAtoms: ArrayLike<StructureElement.UnitIndex>): ElementIndex {
     let indexHasTwoOxygen = -1, indexHasOxygenAndCarbon = -1, indexHasC1Name = -1, indexIsCarbon = -1
