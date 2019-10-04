@@ -37,8 +37,7 @@ export function getButtons(event: MouseEvent | Touch) {
     return 0
 }
 
-export type MouseModifiers = { alt: boolean, shift: boolean, control: boolean, meta: boolean }
-export function getModifiers(event: MouseEvent | Touch): MouseModifiers {
+export function getModifiers(event: MouseEvent | Touch): ModifiersKeys {
     return {
         alt: 'altKey' in event ? event.altKey : false,
         shift: 'shiftKey' in event ? event.shiftKey : false,

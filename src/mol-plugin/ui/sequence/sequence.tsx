@@ -9,7 +9,7 @@ import * as React from 'react'
 import { PluginUIComponent } from '../base';
 import { Interactivity } from '../../util/interactivity';
 import { MarkerAction } from '../../../mol-util/marker-action';
-import { ButtonsType, ModifiersKeys, getButtons, getModifiers, MouseModifiers } from '../../../mol-util/input/input-observer';
+import { ButtonsType, ModifiersKeys, getButtons, getModifiers } from '../../../mol-util/input/input-observer';
 import { SequenceWrapper } from './wrapper';
 import { StructureElement } from '../../../mol-model/structure';
 import { Subject } from 'rxjs';
@@ -22,7 +22,7 @@ type SequenceProps = { sequenceWrapper: SequenceWrapper.Any }
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     private parentDiv = React.createRef<HTMLDivElement>();
     private lastMouseOverSeqIdx = -1;
-    private highlightQueue = new Subject<{ seqIdx: number, buttons: number, modifiers: MouseModifiers }>();
+    private highlightQueue = new Subject<{ seqIdx: number, buttons: number, modifiers: ModifiersKeys }>();
 
     private lociHighlightProvider = (loci: Interactivity.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action)
@@ -38,7 +38,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.plugin.interactivity.lociHighlights.addProvider(this.lociHighlightProvider)
         this.plugin.interactivity.lociSelects.addProvider(this.lociSelectionProvider)
 
-        this.subscribe(debounceTime<{ seqIdx: number, buttons: number, modifiers: MouseModifiers }>(15)(this.highlightQueue), (e) => {
+        this.subscribe(debounceTime<{ seqIdx: number, buttons: number, modifiers: ModifiersKeys }>(15)(this.highlightQueue), (e) => {
             this.hover(e.seqIdx < 0 ? void 0 : e.seqIdx, e.buttons, e.modifiers);
         });
     }
