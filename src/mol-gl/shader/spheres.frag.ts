@@ -124,8 +124,8 @@ void main(void){
     #elif defined(dColorType_depth)
         gl_FragColor = material;
     #else
-        vec3 normal = cameraNormal;
-        vec3 vViewPosition = -cameraPos;
+        vec3 normal = -cameraNormal;
+        vec3 vViewPosition = cameraPos;
         #include apply_light_color
 
         if (interior) {

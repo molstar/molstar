@@ -36,7 +36,7 @@ geometry.normal = normal;
 geometry.viewDir = normalize(vViewPosition);
 
 IncidentLight directLight;
-directLight.direction = geometry.viewDir;
+directLight.direction = vec3(0.0, 0.0, -1.0);
 directLight.color = vec3(uLightIntensity);
 
 RE_Direct_Physical(directLight, geometry, physicalMaterial, reflectedLight);

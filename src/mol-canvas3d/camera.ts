@@ -269,6 +269,9 @@ function updateClip(camera: Camera) {
         // set at least to 5 to avoid slow sphere impostor rendering
         near = Math.max(5, near)
         far = Math.max(5, far)
+    } else {
+        near = Math.max(0, near)
+        far = Math.max(0, far)
     }
 
     camera.near = near;
