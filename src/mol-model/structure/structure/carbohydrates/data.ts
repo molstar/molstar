@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -30,6 +30,7 @@ export interface CarbohydrateElement {
     readonly residueIndex: ResidueIndex,
     readonly component: SaccharideComponent,
     readonly ringAltId: string,
+    readonly ringMemberCount: number,
 }
 
 /** partial carbohydrate with no ring present */

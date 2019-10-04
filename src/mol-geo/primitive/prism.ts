@@ -78,8 +78,20 @@ export function PentagonalPrism() {
 
 let hexagonalPrism: Primitive
 export function HexagonalPrism() {
-    if (!hexagonalPrism) hexagonalPrism = Prism(polygon(6, true))
+    if (!hexagonalPrism) hexagonalPrism = Prism(polygon(6, false))
     return hexagonalPrism
+}
+
+let shiftedHexagonalPrism: Primitive
+export function ShiftedHexagonalPrism() {
+    if (!shiftedHexagonalPrism) shiftedHexagonalPrism = Prism(polygon(6, true))
+    return shiftedHexagonalPrism
+}
+
+let heptagonalPrism: Primitive
+export function HeptagonalPrism() {
+    if (!heptagonalPrism) heptagonalPrism = Prism(polygon(7, false))
+    return heptagonalPrism
 }
 
 //
@@ -133,6 +145,6 @@ export function PentagonalPrismCage() {
 
 let hexagonalPrismCage: Cage
 export function HexagonalPrismCage() {
-    if (!hexagonalPrismCage) hexagonalPrismCage = PrismCage(polygon(6, true))
+    if (!hexagonalPrismCage) hexagonalPrismCage = PrismCage(polygon(6, false))
     return hexagonalPrismCage
 }

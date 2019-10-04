@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -9,9 +9,13 @@ import { Color, ColorMap } from '../../../../mol-util/color';
 
 // follows community standard from https://www.ncbi.nlm.nih.gov/glycans/snfg.html
 
-export const enum SaccharideShapes {
+export const enum SaccharideShape {
+    // standard shapes
     FilledSphere, FilledCube, CrossedCube, DividedDiamond, FilledCone, DevidedCone,
-    FlatBox, FilledStar, FilledDiamond, FlatDiamond, FlatHexagon, Pentagon
+    FlatBox, FilledStar, FilledDiamond, FlatDiamond, FlatHexagon, Pentagon,
+
+    // generic shapes for rings with 4, 5, 6, or 7 members
+    DiamondPrism, PentagonalPrism, HexagonalPrism, HeptagonalPrism
 }
 
 export const SaccharideColors = ColorMap({
@@ -53,22 +57,30 @@ export function getSaccharideName(type: SaccharideType) {
 }
 
 const SaccharideTypeShapeMap = {
-    [SaccharideType.Hexose]: SaccharideShapes.FilledSphere,
-    [SaccharideType.HexNAc]: SaccharideShapes.FilledCube,
-    [SaccharideType.Hexosamine]: SaccharideShapes.CrossedCube,
-    [SaccharideType.Hexuronate]: SaccharideShapes.DividedDiamond,
-    [SaccharideType.Deoxyhexose]: SaccharideShapes.FilledCone,
-    [SaccharideType.DeoxyhexNAc]: SaccharideShapes.DevidedCone,
-    [SaccharideType.DiDeoxyhexose]: SaccharideShapes.FlatBox,
-    [SaccharideType.Pentose]: SaccharideShapes.FilledStar,
-    [SaccharideType.Deoxynonulosonate]: SaccharideShapes.FilledDiamond,
-    [SaccharideType.DiDeoxynonulosonate]: SaccharideShapes.FlatDiamond,
-    [SaccharideType.Unknown]: SaccharideShapes.FlatHexagon,
-    [SaccharideType.Assigned]: SaccharideShapes.Pentagon,
+    [SaccharideType.Hexose]: SaccharideShape.FilledSphere,
+    [SaccharideType.HexNAc]: SaccharideShape.FilledCube,
+    [SaccharideType.Hexosamine]: SaccharideShape.CrossedCube,
+    [SaccharideType.Hexuronate]: SaccharideShape.DividedDiamond,
+    [SaccharideType.Deoxyhexose]: SaccharideShape.FilledCone,
+    [SaccharideType.DeoxyhexNAc]: SaccharideShape.DevidedCone,
+    [SaccharideType.DiDeoxyhexose]: SaccharideShape.FlatBox,
+    [SaccharideType.Pentose]: SaccharideShape.FilledStar,
+    [SaccharideType.Deoxynonulosonate]: SaccharideShape.FilledDiamond,
+    [SaccharideType.DiDeoxynonulosonate]: SaccharideShape.FlatDiamond,
+    [SaccharideType.Unknown]: SaccharideShape.FlatHexagon,
+    [SaccharideType.Assigned]: SaccharideShape.Pentagon,
 }
 
-export function getSaccharideShape(type: SaccharideType) {
-    return SaccharideTypeShapeMap[type]
+export function getSaccharideShape(type: SaccharideType, ringMemberCount: number): SaccharideShape {
+    if (type === SaccharideType.Unknown) {
+        if (ringMemberCount === 4) return SaccharideShape.DiamondPrism
+        else if (ringMemberCount === 5) return SaccharideShape.PentagonalPrism
+        else if (ringMemberCount === 6) return SaccharideShape.HexagonalPrism
+        else if (ringMemberCount === 7) return SaccharideShape.HeptagonalPrism
+        else return SaccharideShape.FlatHexagon
+    } else {
+        return SaccharideTypeShapeMap[type]
+    }
 }
 
 export type SaccharideComponent = {
@@ -172,19 +184,6 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'Tag', name: 'Tagatose', color: SaccharideColors.Yellow, type: SaccharideType.Assigned },
     { abbr: 'Sor', name: 'Sorbose', color: SaccharideColors.Orange, type: SaccharideType.Assigned },
     { abbr: 'Psi', name: 'Psicose', color: SaccharideColors.Pink, type: SaccharideType.Assigned },
-
-    { abbr: 'Hexose', name: 'Hexose', color: SaccharideColors.Secondary, type: SaccharideType.Hexose },
-    { abbr: 'HexNAc', name: 'HexNAc', color: SaccharideColors.Secondary, type: SaccharideType.HexNAc },
-    { abbr: 'Hexosamine', name: 'Hexosamine', color: SaccharideColors.Secondary, type: SaccharideType.Hexosamine },
-    { abbr: 'Hexuronate', name: 'Hexuronate', color: SaccharideColors.Secondary, type: SaccharideType.Hexuronate },
-    { abbr: 'Deoxyhexose', name: 'Deoxyhexose', color: SaccharideColors.Secondary, type: SaccharideType.Deoxyhexose },
-    { abbr: 'DeoxyhexNAc', name: 'DeoxyhexNAc', color: SaccharideColors.Secondary, type: SaccharideType.DeoxyhexNAc },
-    { abbr: 'Di-deoxyhexose', name: 'Di-deoxyhexose', color: SaccharideColors.Secondary, type: SaccharideType.DiDeoxyhexose },
-    { abbr: 'Pentose', name: 'Pentose', color: SaccharideColors.Secondary, type: SaccharideType.Pentose },
-    { abbr: 'Deoxynonulosonate', name: 'Deoxynonulosonate', color: SaccharideColors.Secondary, type: SaccharideType.Deoxynonulosonate },
-    { abbr: 'Di-deoxynonulosonate', name: 'Di-deoxynonulosonate', color: SaccharideColors.Secondary, type: SaccharideType.DiDeoxynonulosonate	 },
-    { abbr: 'Unknown', name: 'Unknown', color: SaccharideColors.Secondary, type: SaccharideType.Unknown },
-    { abbr: 'Assigned', name: 'Assigned', color: SaccharideColors.Secondary, type: SaccharideType.Assigned },
 ]
 
 export const SaccharidesSnfgMap = (function () {
@@ -301,24 +300,13 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Tag: ['T6T'],
     Sor: ['SOE'],
     Psi: ['PSV'],
-    // Generic
-    Hexose: [],
-    HexNAc: [],
-    Hexosamine: [],
-    Hexuronate: [],
-    Deoxyhexose: [],
-    DeoxyhexNAc: [],
-    'Di-deoxyhexose': [],
-    Pentose: [],
-    Deoxynonulosonate: [],
-    'Di-deoxynonulosonate': [],
-    Unknown: [],
-    Assigned: ['PUF'],
 }
 
 const UnknownSaccharideNames = [
     'NGZ', // via CCD
     'LAT', // BETA-LACTOSE, Gal-Glc di-saccharide via GlyFinder
+
+    'PUF', 'GDA', '9WJ', // via updated CCD
 ]
 
 export const SaccharideCompIdMap = (function () {
