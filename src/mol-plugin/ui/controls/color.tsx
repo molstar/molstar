@@ -86,7 +86,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
                     <button onClick={this.toggleExpanded} className='msp-combined-color-button' style={{ background: Color.toStyle(this.props.value) }}></button>
                 </div>
             </div>
-            {this.state.isExpanded && <>
+            {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.swatch()}
                 <div className='msp-control-row'>
                     <div style={{ position: 'relative' }}>
@@ -97,7 +97,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
                         <div style={this.stripStyle()} />
                     </div>
                 </div>
-            </>}
+            </div>}
         </>;
     }
 }
