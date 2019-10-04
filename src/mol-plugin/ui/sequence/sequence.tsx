@@ -156,6 +156,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             onContextMenu={this.contextMenu}
             onMouseDown={this.mouseDown}
             onMouseMove={this.mouseMove}
+            onMouseLeave={this.mouseLeave}
             ref={this.parentDiv}
         >
             {elems}
