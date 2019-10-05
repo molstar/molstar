@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Structure, Unit } from '../../mol-model/structure';
+import { Structure, Unit, StructureElement } from '../../mol-model/structure';
 import { RepresentationProps } from '../representation';
 import { Visual, VisualContext } from '../visual';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
@@ -214,8 +214,17 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
                 : createEmptyGeometry(geometry)
     }
 
+    function lociIsSuperset(loci: Loci) {
+        if (isEveryLoci(loci)) return true
+        if (Structure.isLoci(loci) && Structure.areRootsEquivalent(loci.structure, currentStructureGroup.structure)) return true
+        if (StructureElement.Loci.is(loci) && Structure.areRootsEquivalent(loci.structure, currentStructureGroup.structure)) {
+            if (StructureElement.Loci.isWholeStructure(loci)) return true
+        }
+        return false
+    }
+
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
-        if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areRootsEquivalent(loci.structure, currentStructureGroup.structure))) {
+        if (lociIsSuperset(loci)) {
             return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount))
         } else {
             return eachLocation(loci, currentStructureGroup, apply)

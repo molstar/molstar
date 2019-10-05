@@ -54,7 +54,11 @@ export namespace Loci {
     }
 
     export function isEmpty(loci: Loci) {
-        return size(loci) === 0 ? true : false
+        return size(loci) === 0
+    }
+
+    export function isWholeStructure(loci: Loci) {
+        return size(loci) === loci.structure.elementCount
     }
 
     export function size(loci: Loci) {

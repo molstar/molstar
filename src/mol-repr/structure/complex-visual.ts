@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureParams, StructureMeshParams, StructureDirectVolumeParams } from './representation';
 import { Visual, VisualContext } from '../visual';
-import { Structure } from '../../mol-model/structure';
+import { Structure, StructureElement } from '../../mol-model/structure';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme, createEmptyTheme } from '../../mol-theme/theme';
@@ -164,8 +164,17 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         if (newGeometry) geometry = newGeometry
     }
 
+    function lociIsSuperset(loci: Loci) {
+        if (isEveryLoci(loci)) return true
+        if (Structure.isLoci(loci) && Structure.areRootsEquivalent(loci.structure, currentStructure)) return true
+        if (StructureElement.Loci.is(loci) && Structure.areRootsEquivalent(loci.structure, currentStructure)) {
+            if (StructureElement.Loci.isWholeStructure(loci)) return true
+        }
+        return false
+    }
+
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
-        if (isEveryLoci(loci) || (Structure.isLoci(loci) && Structure.areRootsEquivalent(loci.structure, currentStructure))) {
+        if (lociIsSuperset(loci)) {
             return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount))
         } else {
             return eachLocation(loci, currentStructure, apply)
