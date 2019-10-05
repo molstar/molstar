@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import { Color } from '../../../mol-util/color';
+import { PurePluginUIComponent } from '../base';
 
 export class ControlGroup extends React.Component<{ header: string, initialExpanded?: boolean }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }
@@ -28,6 +29,128 @@ export class ControlGroup extends React.Component<{ header: string, initialExpan
     }
 }
 
+export interface TextInputProps<T> {
+    className?: string,
+    style?: React.CSSProperties,
+    value: T,
+    fromValue?(v: T): string,
+    toValue?(s: string): T,
+    // TODO: add error/help messages here?
+    isValid?(s: string): boolean,
+    onChange(value: T): void,
+    onEnter?(): void,
+    onBlur?(): void,
+    delayMs?: number,
+    blurOnEnter?: boolean,
+    blurOnEscape?: boolean,
+    isDisabled?: boolean,
+    placeholder?: string
+}
+
+interface TextInputState {
+    originalValue: string,
+    value: string
+}
+
+function _id(x: any) { return x; }
+
+export class TextInput<T = string> extends PurePluginUIComponent<TextInputProps<T>, TextInputState> {
+    private input = React.createRef<HTMLInputElement>();
+    private delayHandle: any = void 0;
+    private pendingValue: T | undefined = void 0;
+
+    state = { originalValue: '', value: '' }
+
+    onBlur = () => {
+        this.setState({ value: '' + this.state.originalValue });
+        if (this.props.onBlur) this.props.onBlur();
+    }
+
+    get isPending() { return typeof this.delayHandle !== 'undefined'; }
+
+    clearTimeout() {
+        if (this.isPending) {
+            clearTimeout(this.delayHandle);
+            this.delayHandle = void 0;
+        }
+    }
+
+    raiseOnChange = () => {
+        this.props.onChange(this.pendingValue!);
+        this.pendingValue = void 0;
+    }
+
+    triggerChanged(formatted: string, converted: T) {
+        this.clearTimeout();
+
+        if (formatted === this.state.originalValue) return;
+
+        if (this.props.delayMs) {
+            this.pendingValue = converted;
+            this.delayHandle = setTimeout(this.raiseOnChange, this.props.delayMs);
+        } else {
+            this.props.onChange(converted);
+        }
+    }
+
+    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+
+        if (this.props.isValid && !this.props.isValid(value)) {
+            this.clearTimeout();
+            this.setState({ value });
+            return;
+        }
+
+        const converted = (this.props.toValue || _id)(value);
+        const formatted = (this.props.fromValue || _id)(converted);
+        this.setState({ value: formatted }, () => this.triggerChanged(formatted, converted));
+    }
+
+    onKeyUp  = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.charCode === 27 || e.keyCode === 27 /* esc */) {
+            if (this.props.blurOnEscape && this.input.current) {
+                this.input.current.blur();
+            }
+        }
+    }
+
+    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.keyCode === 13 || e.charCode === 13 /* enter */) {
+            if (this.isPending) {
+                this.clearTimeout();
+                this.raiseOnChange();
+            }
+            if (this.props.blurOnEnter && this.input.current) {
+                this.input.current.blur();
+            }
+            if (this.props.onEnter) this.props.onEnter();
+        }
+    }
+
+    static getDerivedStateFromProps(props: TextInputProps<any>, state: TextInputState) {
+        const value = props.fromValue ? props.fromValue(props.value) : props.value;
+        if (value === state.originalValue) return null;
+        return { originalValue: value, value };
+    }
+
+    render() {
+        return <input type='text'
+            className={this.props.className}
+            style={this.props.style}
+            ref={this.input}
+            onBlur={this.onBlur}
+            value={this.state.value}
+            placeholder={this.props.placeholder}
+            onChange={this.onChange}
+            onKeyPress={this.props.onEnter || this.props.blurOnEnter || this.props.blurOnEscape ? this.onKeyPress : void 0}
+            onKeyDown={this.props.blurOnEscape ? this.onKeyUp : void 0}
+            disabled={!!this.props.isDisabled}
+        />;
+    }
+}
+
+// TODO: replace this with parametrized TextInput
 export class NumericInput extends React.PureComponent<{
     value: number,
     onChange: (v: number) => void,

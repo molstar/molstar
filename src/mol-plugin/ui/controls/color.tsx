@@ -11,6 +11,7 @@ import { camelCaseToWords } from '../../../mol-util/string';
 import * as React from 'react';
 import { _Props, _State } from '../base';
 import { ParamProps } from './parameters';
+import { TextInput } from './common';
 
 export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Color>, { isExpanded: boolean }> {
     state = { isExpanded: false }
@@ -38,6 +39,12 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
         }
     }
 
+    onChangeText = (value: Color) => {
+        if (value !== this.props.value) {
+            this.update(value);
+        }
+    }
+
     swatch() {
         // const def = this.props.param.defaultValue;
         return <div className='msp-combined-color-swatch'>
@@ -45,25 +52,6 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
             {SwatchColors.map(c => <button key={c} className='msp-form-control msp-btn' data-color={c} onClick={this.onClickSwatch} style={{ background: Color.toStyle(c) }}></button>)}
         </div>;
     }
-
-    // TODO: include text options as well?
-    // onChangeText = () => {};
-    // text() {
-    //     const [r, g, b] = Color.toRgb(this.props.value);
-    //     return <input type='text'
-    //         value={`${r} ${g} ${b}`}
-    //         placeholder={'Red Green Blue'}
-    //         onChange={this.onChangeText}
-    //         onKeyPress={this.props.onEnter ? this.onKeyPress : void 0}
-    //         disabled={this.props.isDisabled}
-    //     />;
-    // }
-    // onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    //     if (!this.props.onEnter) return;
-    //     if ((e.keyCode === 13 || e.charCode === 13)) {
-    //         this.props.onEnter();
-    //     }
-    // }
 
     stripStyle(): React.CSSProperties {
         return {
@@ -75,7 +63,6 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
             left: '0'
         };
     }
-
 
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
@@ -89,7 +76,17 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.swatch()}
                 <div className='msp-control-row'>
-                    <div style={{ position: 'relative' }}>
+                    <span>RGB</span>
+                    <div>
+                        <TextInput onChange={this.onChangeText} value={this.props.value}
+                            fromValue={formatColorRGB} toValue={getColorFromString} isValid={isValidColorString}
+                            className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+                            placeholder='e.g. 127 127 127' delayMs={250} />
+                    </div>
+                </div>
+                <div className='msp-control-row'>
+                    <span>Color List</span>
+                    <div>
                         <select value={this.props.value} onChange={this.onChangeSelect}>
                             {ColorValueOption(this.props.value)}
                             {ColorOptions()}
@@ -100,6 +97,28 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
             </div>}
         </>;
     }
+}
+
+function formatColorRGB(c: Color) {
+    const [r, g, b] = Color.toRgb(c);
+    return `${r} ${g} ${b}`;
+}
+
+function getColorFromString(s: string) {
+    const cs = s.split(/\s+/g);
+    return Color.fromRgb(+cs[0], +cs[1], +cs[2]);
+}
+
+function isValidColorString(s: string) {
+    const cs = s.split(/\s+/g);
+    if (cs.length !== 3 && !(cs.length === 4 && cs[3] === '')) return false;
+    for (const c of cs) {
+        if (c === '') continue;
+        const n = +c;
+        if ('' + n !== c) return false;
+        if (n < 0 || n > 255) return false;
+    }
+    return true;
 }
 
 // the 1st color is the default value.
