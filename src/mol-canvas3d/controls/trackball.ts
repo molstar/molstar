@@ -29,7 +29,7 @@ export const DefaultTrackballBindings = {
     dragFocusZoom: Binding(Trigger(B.Flag.Auxilary, M.create()), 'Focus and zoom the 3D scene by dragging using ${trigger}'),
 
     scrollZoom: Binding(Trigger(B.Flag.Auxilary, M.create()), 'Zoom the 3D scene by scrolling using ${trigger}'),
-    scrollFocus: Binding(Trigger(B.Flag.Auxilary, M.create({ shift: true })), 'Focus the 3D scene by dragging using ${trigger}'),
+    scrollFocus: Binding(Trigger(B.Flag.Auxilary, M.create({ shift: true })), 'Focus the 3D scene by scrolling using ${trigger}'),
     scrollFocusZoom: Binding.Empty,
 }
 
