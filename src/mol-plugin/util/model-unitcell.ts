@@ -48,7 +48,7 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
     Mat4.fromTranslation(tmpTranslate, tmpRef)
     const cellCage = transformCage(copyCage(unitCage), tmpTranslate)
 
-    const radius = (Math.cbrt(data.symmetry.spacegroup.cell.volume) / 100) * props.cellScale
+    const radius = (Math.cbrt(data.symmetry.spacegroup.cell.volume) / 300) * props.cellScale
     state.currentGroup = 1
     MeshBuilder.addCage(state, fromFractional, cellCage, radius, 2, 20)
 
