@@ -191,7 +191,13 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
     const operators = getOperatorsCached333(symmetry, modelCenter);
     const lookup = structure.lookup3d;
 
-    const assembler = Structure.Builder();
+    // keep track of added invariant-unit and operator combinations
+    const added = new Set<string>()
+    function hash(unit: Unit, oper: SymmetryOperator) {
+        return `${unit.invariantId}|${oper.name}`
+    }
+
+    const assembler = Structure.Builder({ label: structure.label });
 
     const { units } = structure;
     const center = Vec3.zero();
@@ -204,12 +210,16 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
             for (let uI = 0, _uI = closeUnits.count; uI < _uI; uI++) {
                 const closeUnit = units[closeUnits.indices[uI]];
                 if (!closeUnit.lookup3d.check(center[0], center[1], center[2], boundingSphere.radius + radius)) continue;
-                assembler.addWithOperator(unit, oper);
+
+                const h = hash(unit, oper)
+                if (!added.has(h)) {
+                    assembler.addWithOperator(unit, oper);
+                    added.add(h)
+                }
             }
         }
         if (ctx.shouldUpdate) await ctx.update('Building symmetry...');
     }
-
 
     return assembler.getStructure();
 }

@@ -40,6 +40,7 @@ export { StructureFromTrajectory };
 export { StructureFromModel };
 export { StructureAssemblyFromModel };
 export { StructureSymmetryFromModel };
+export { StructureSymmetryMatesFromModel };
 export { TransformStructureConformation };
 export { TransformStructureConformationByMatrix };
 export { StructureSelectionFromExpression };
@@ -296,6 +297,31 @@ const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
             const s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
             await ensureSecondaryStructure(s)
             const props = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: structureDesc(s) };
+            return new SO.Molecule.Structure(s, props);
+        })
+    }
+});
+
+type StructureSymmetryMatesFromModel = typeof StructureSymmetryMatesFromModel
+const StructureSymmetryMatesFromModel = PluginStateTransform.BuiltIn({
+    name: 'structure-symmetry-mates-from-model',
+    display: { name: 'Structure Symmetry Mates', description: 'Create molecular structure symmetry mates.' },
+    from: SO.Molecule.Model,
+    to: SO.Molecule.Structure,
+    params(a) {
+        return {
+            radius: PD.Numeric(5),
+        }
+    }
+})({
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Build Symmetry Mates', async ctx => {
+            const { radius } = params
+            const model = a.data;
+            const base = Structure.ofModel(model);
+            const s = await StructureSymmetry.builderSymmetryMates(base, radius).runInContext(ctx);
+            await ensureSecondaryStructure(s)
+            const props = { label: `Symmetry Mates`, description: structureDesc(s) };
             return new SO.Molecule.Structure(s, props);
         })
     }
