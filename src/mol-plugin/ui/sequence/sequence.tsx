@@ -41,6 +41,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.subscribe(debounceTime<{ seqIdx: number, buttons: number, modifiers: ModifiersKeys }>(15)(this.highlightQueue), (e) => {
             this.hover(e.seqIdx < 0 ? void 0 : e.seqIdx, e.buttons, e.modifiers);
         });
+
+        // this.updateMarker()
     }
 
     componentWillUnmount() {
@@ -98,13 +100,13 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     private updateMarker() {
         if (!this.parentDiv.current) return;
         const xs = this.parentDiv.current.children;
-        const markerData = this.props.sequenceWrapper.markerArray;
+        const { markerArray } = this.props.sequenceWrapper;
 
-        for (let i = 0, _i = markerData.length; i < _i; i++) {
+        for (let i = 0, _i = markerArray.length; i < _i; i++) {
             const span = xs[i] as HTMLSpanElement;
             if (!span) continue;
 
-            const backgroundColor = this.getBackgroundColor(markerData[i]);
+            const backgroundColor = this.getBackgroundColor(markerArray[i]);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
         }
     }
@@ -142,14 +144,17 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     render() {
-        const markerData = this.props.sequenceWrapper.markerArray;
         const sw = this.props.sequenceWrapper
 
         const elems: JSX.Element[] = [];
         for (let i = 0, il = sw.length; i < il; ++i) {
-            elems[elems.length] = this.residue(i, sw.residueLabel(i), markerData[i], sw.residueColor(i));
+            elems[elems.length] = this.residue(i, sw.residueLabel(i), sw.markerArray[i], sw.residueColor(i));
             // TODO: add seq idx markers every N residues? Would need to modify "updateMarker"
         }
+
+        // calling .updateMarker here is neccesary to ensure existing
+        // residue spans are updated as react won't update them
+        this.updateMarker()
 
         return <div
             className='msp-sequence-wrapper msp-sequence-wrapper-non-empty'
