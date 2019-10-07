@@ -27,7 +27,10 @@ export function getPolymerIdColorThemeParams(ctx: ThemeDataContext) {
     if (ctx.structure) {
         if (getPolymerAsymIdSerialMap(ctx.structure.root).size > 12) {
             params.palette.defaultValue.name = 'scale'
-            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+            params.palette.defaultValue.params = {
+                ...params.palette.defaultValue.params,
+                list: 'red-yellow-blue'
+            }
         }
     }
     return params
@@ -87,6 +90,9 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Poly
     if (ctx.structure) {
         const l = StructureElement.Location.create()
         const polymerAsymIdSerialMap = getPolymerAsymIdSerialMap(ctx.structure.root)
+
+        const labelTable = Array.from(polymerAsymIdSerialMap.keys())
+        props.palette.params.valueLabel = (i: number) => labelTable[i]
 
         const palette = getPalette(polymerAsymIdSerialMap.size, props)
         legend = palette.legend

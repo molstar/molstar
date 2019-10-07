@@ -20,19 +20,28 @@ const DefaultGetPaletteProps = {
 }
 type GetPaletteProps = typeof DefaultGetPaletteProps
 
+const LabelParams = {
+    valueLabel: PD.Value((i: number) => `${i + 1}`, { isHidden: true }),
+    minLabel: PD.Value('Start', { isHidden: true }),
+    maxLabel: PD.Value('End', { isHidden: true }),
+}
+
 export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
     const p = { ...DefaultGetPaletteProps, ...props }
     return {
         palette: PD.MappedStatic(p.type, {
             scale: PD.Group({
+                ...LabelParams,
                 list: PD.ColorList<ColorListName>(p.scaleList, ColorListOptionsScale),
             }, { isFlat: true }),
             set: PD.Group({
+                ...LabelParams,
                 list: PD.ColorList<ColorListName>(p.setList, ColorListOptionsSet),
             }, { isFlat: true }),
             generate: PD.Group({
+                ...LabelParams,
                 ...DistinctColorsParams,
-                maxCount: PD.Numeric(75, { min: 1, max: 250, step: 1 })
+                maxCount: PD.Numeric(75, { min: 1, max: 250, step: 1 }),
             }, { isFlat: true })
         }, {
             options: [
@@ -57,9 +66,9 @@ export function getPalette(count: number, props: PaletteProps) {
     let legend: ScaleLegend | TableLegend | undefined
 
     if (props.palette.name === 'scale') {
-        const listOrName = props.palette.params.list
+        const { list: listOrName, minLabel, maxLabel } = props.palette.params
         const domain: [number, number] = [0, count - 1]
-        const scale = ColorScale.create({ listOrName, domain, minLabel: 'Start', maxLabel: 'End' })
+        const scale = ColorScale.create({ listOrName, domain, minLabel, maxLabel })
         legend = scale.legend
         color = scale.color
     } else {
@@ -71,8 +80,18 @@ export function getPalette(count: number, props: PaletteProps) {
             count = Math.min(count, props.palette.params.maxCount)
             colors = distinctColors(count, props.palette.params)
         }
+        const { valueLabel } = props.palette.params
         const colorsLength = colors.length
-        legend = TableLegend(colors.map((c, i) => [`${i + 1}`, c]))
+        const table: [string, Color][] = []
+        for (let i = 0; i < count; ++i) {
+            const j = i % colorsLength
+            if (table[j] === undefined) {
+                table[j] = [valueLabel(i), colors[j]]
+            } else {
+                table[j][0] += `, ${valueLabel(i)}`
+            }
+        }
+        legend = TableLegend(table)
         color = (i: number) => colors[i % colorsLength]
     }
 

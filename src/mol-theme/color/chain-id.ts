@@ -26,7 +26,10 @@ export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
     if (ctx.structure) {
         if (getAsymIdSerialMap(ctx.structure.root).size > 12) {
             params.palette.defaultValue.name = 'scale'
-            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+            params.palette.defaultValue.params = {
+                ...params.palette.defaultValue.params,
+                list: 'red-yellow-blue'
+            }
         }
     }
     return params
@@ -78,6 +81,9 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
     if (ctx.structure) {
         const l = StructureElement.Location.create()
         const asymIdSerialMap = getAsymIdSerialMap(ctx.structure.root)
+
+        const labelTable = Array.from(asymIdSerialMap.keys())
+        props.palette.params.valueLabel = (i: number) => labelTable[i]
 
         const palette = getPalette(asymIdSerialMap.size, props)
         legend = palette.legend

@@ -25,7 +25,10 @@ export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {
     if (ctx.structure) {
         if (getPolymerChainCount(ctx.structure.root) > 12) {
             params.palette.defaultValue.name = 'scale'
-            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+            params.palette.defaultValue.params = {
+                ...params.palette.defaultValue.params,
+                list: 'red-yellow-blue'
+            }
         }
     }
     return params

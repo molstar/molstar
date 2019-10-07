@@ -27,7 +27,10 @@ export function getEntitySourceColorThemeParams(ctx: ThemeDataContext) {
     if (ctx.structure) {
         if (getMaps(ctx.structure.root.models).srcKeySerialMap.size > 12) {
             params.palette.defaultValue.name = 'scale'
-            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+            params.palette.defaultValue.params = {
+                ...params.palette.defaultValue.params,
+                list: 'red-yellow-blue'
+            }
         }
     }
     return params
@@ -107,6 +110,13 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
         const l = StructureElement.Location.create()
         const { models } = ctx.structure.root
         const { seqToSrcByModelEntity, srcKeySerialMap } = getMaps(models)
+
+        const labelTable = Array.from(srcKeySerialMap.keys()).map(v => {
+            const l = v.split('|')[2]
+            return l === '1' ? 'Unnamed' : l
+        })
+        labelTable.push('Unknown')
+        props.palette.params.valueLabel = (i: number) => labelTable[i]
 
         const palette = getPalette(srcKeySerialMap.size + 1, props)
         legend = palette.legend

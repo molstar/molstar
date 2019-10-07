@@ -25,7 +25,10 @@ export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {
     if (ctx.structure) {
         if (ctx.structure.root.units.length > 12) {
             params.palette.defaultValue.name = 'scale'
-            params.palette.defaultValue.params = { list: 'red-yellow-blue' }
+            params.palette.defaultValue.params = {
+                ...params.palette.defaultValue.params,
+                list: 'red-yellow-blue'
+            }
         }
     }
     return params
