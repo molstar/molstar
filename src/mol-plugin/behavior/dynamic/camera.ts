@@ -36,12 +36,11 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                 if (!this.ctx.canvas3d) return;
 
                 const p = this.params;
-                const durationMs = typeof p.durationMs === 'undefined' ? 250 : p.durationMs;
                 if (Binding.match(this.params.bindings.clickCenterFocus, buttons, modifiers)) {
                     const sphere = Loci.getBoundingSphere(current.loci);
                     if (sphere) {
                         const radius = Math.max(sphere.radius + p.extraRadius, p.minRadius);
-                        this.ctx.canvas3d.camera.focus(sphere.center, radius, durationMs);
+                        this.ctx.canvas3d.camera.focus(sphere.center, radius, p.durationMs);
                     }
                 }
             });

@@ -104,7 +104,7 @@ namespace Loci {
     export function getBoundingSphere(loci: Loci, boundingSphere?: Sphere3D): Sphere3D | undefined {
         if (loci.kind === 'every-loci' || loci.kind === 'empty-loci') return void 0;
 
-        if (!boundingSphere) boundingSphere = Sphere3D.zero()
+        if (!boundingSphere) boundingSphere = Sphere3D()
         sphereHelper.reset();
 
         if (loci.kind === 'structure-loci') {

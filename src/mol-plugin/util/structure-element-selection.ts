@@ -12,6 +12,11 @@ import { StateObject } from '../../mol-state';
 import { PluginContext } from '../context';
 import { PluginStateObject } from '../state/objects';
 import { structureElementStatsLabel } from '../../mol-theme/label';
+import { Vec3 } from '../../mol-math/linear-algebra';
+import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
+import { Boundary } from '../../mol-model/structure/structure/util/boundary';
+
+const boundaryHelper = new BoundaryHelper();
 
 export { StructureElementSelectionManager };
 class StructureElementSelectionManager {
@@ -28,6 +33,37 @@ class StructureElementSelectionManager {
         }
 
         return this.entries.get(ref)!;
+    }
+
+    getBoundary() {
+        const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
+        const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
+
+        boundaryHelper.reset(0);
+
+        const boundaries: Boundary[] = []
+        this.entries.forEach(v => {
+            const loci = v.selection
+            if (!StructureElement.Loci.isEmpty(loci)) {
+                boundaries.push(StructureElement.Loci.getBoundary(loci))
+            }
+        })
+
+        for (let i = 0, il = boundaries.length; i < il; ++i) {
+            const { box, sphere } = boundaries[i];
+            Vec3.min(min, min, box.min);
+            Vec3.max(max, max, box.max);
+            boundaryHelper.boundaryStep(sphere.center, sphere.radius)
+        }
+
+        boundaryHelper.finishBoundaryStep();
+
+        for (let i = 0, il = boundaries.length; i < il; ++i) {
+            const { sphere } = boundaries[i];
+            boundaryHelper.extendStep(sphere.center, sphere.radius);
+        }
+
+        return { box: { min, max }, sphere: boundaryHelper.getSphere() };
     }
 
     get stats() {

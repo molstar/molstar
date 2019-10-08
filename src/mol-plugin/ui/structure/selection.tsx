@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react';
-import { CollapsableControls } from '../base';
+import { CollapsableControls, CollapsableState } from '../base';
 import { StructureSelectionQueries, SelectionModifier } from '../../util/structure-selection-helper';
 import { ButtonSelect, Options } from '../controls/common';
 import { PluginCommands } from '../../command';
@@ -18,7 +18,13 @@ const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,
 }
 
-export class StructureSelectionControls extends CollapsableControls {
+interface StructureSelectionControlsState extends CollapsableState {
+    minRadius: number,
+    extraRadius: number,
+    durationMs: number
+}
+
+export class StructureSelectionControls<P, S extends StructureSelectionControlsState> extends CollapsableControls<P, S> {
     componentDidMount() {
         this.subscribe(this.plugin.events.interactivity.selectionUpdated, () => {
             this.forceUpdate()
@@ -38,6 +44,14 @@ export class StructureSelectionControls extends CollapsableControls {
         }
     }
 
+    focus = () => {
+        const { extraRadius, minRadius, durationMs } = this.state
+        const { sphere } = this.plugin.helpers.structureSelectionManager.getBoundary();
+        if (sphere.radius === 0) return
+        const radius = Math.max(sphere.radius + extraRadius, minRadius);
+        this.plugin.canvas3d.camera.focus(sphere.center, radius, durationMs);
+    }
+
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         if (p.name === 'granularity') {
             PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { granularity: p.value } });
@@ -46,7 +60,7 @@ export class StructureSelectionControls extends CollapsableControls {
 
     get values () {
         return {
-            granularity: this.plugin.interactivity.props.granularity
+            granularity: this.plugin.interactivity.props.granularity,
         }
     }
 
@@ -62,8 +76,12 @@ export class StructureSelectionControls extends CollapsableControls {
     defaultState() {
         return {
             isCollapsed: false,
-            header: 'Selection'
-        }
+            header: 'Selection',
+
+            minRadius: 8,
+            extraRadius: 4,
+            durationMs: 250
+        } as S
     }
 
     renderControls() {
@@ -73,7 +91,10 @@ export class StructureSelectionControls extends CollapsableControls {
 
         return <div>
             <div className='msp-control-row msp-row-text'>
-                <div>{this.stats}</div>
+                <button className='msp-btn msp-btn-block' onClick={this.focus}>
+                    <span className={`msp-icon msp-icon-focus-on-visual`} style={{ position: 'absolute', left: '10px' }} />
+                    {this.stats}
+                </button>
             </div>
             <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} />
             <div className='msp-control-row'>
