@@ -190,6 +190,7 @@ export interface WebGLContext {
     readonly framebufferCache: FramebufferCache
 
     readonly maxTextureSize: number
+    readonly maxRenderbufferSize: number
     readonly maxDrawBuffers: number
 
     unbindFramebuffer: () => void
@@ -212,6 +213,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
 
     const parameters = {
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
+        maxRenderbufferSize: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number,
         maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) as number : 0,
         maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) as number,
     }
@@ -274,6 +276,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         framebufferCache,
 
         get maxTextureSize () { return parameters.maxTextureSize },
+        get maxRenderbufferSize () { return parameters.maxRenderbufferSize },
         get maxDrawBuffers () { return parameters.maxDrawBuffers },
 
         unbindFramebuffer: () => unbindFramebuffer(gl),

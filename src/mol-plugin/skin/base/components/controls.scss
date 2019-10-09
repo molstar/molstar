@@ -363,3 +363,24 @@
         }
     }
 }
+
+.msp-image-preview {
+    position: relative;
+    background: $default-background;
+    margin-top: 1px;
+    display: flex;
+    justify-content: center;
+
+    > canvas {
+        max-height: 200px;
+        border-width: 0px 1px 0px 1px;
+        border-style: solid;
+        border-color: $border-color;
+
+        background-color: $default-background;
+        background-image: linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey),
+        linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey);
+        background-size: 20px 20px;
+        background-position: 0 0, 10px 10px;
+    }
+}

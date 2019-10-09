@@ -22,6 +22,7 @@ import { StateTransform } from '../../mol-state';
 import { UpdateTransformControl } from './state/update-transform';
 import { SequenceView } from './sequence';
 import { Toasts } from './toast';
+import { ImageControls } from './image';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -129,6 +130,7 @@ export class ControlsWrapper extends PluginUIComponent {
             {/* <AnimationControlsWrapper /> */}
             {/* <CameraSnapshots /> */}
             <StructureToolsWrapper />
+            <ImageControls />
             <StateSnapshots />
         </div>;
     }
