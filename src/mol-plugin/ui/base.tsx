@@ -95,6 +95,10 @@ export abstract class CollapsableControls<P extends CollapsableProps = Collapsab
 
     constructor(props: P, context?: any) {
         super(props, context)
-        this.state = this.defaultState()
+
+        const state = this.defaultState()
+        if (props.initiallyCollapsed !== undefined) state.isCollapsed = props.initiallyCollapsed
+        if (props.header !== undefined) state.header = props.header
+        this.state = state
     }
 }
