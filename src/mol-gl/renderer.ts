@@ -38,7 +38,7 @@ interface Renderer {
     readonly props: Readonly<RendererProps>
 
     clear: () => void
-    render: (scene: Scene, variant: GraphicsRenderVariant, clear: boolean) => void
+    render: (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean) => void
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     dispose: () => void
@@ -60,39 +60,40 @@ export const RendererParams = {
 export type RendererProps = PD.Values<typeof RendererParams>
 
 namespace Renderer {
-    export function create(ctx: WebGLContext, camera: Camera, props: Partial<RendererProps> = {}): Renderer {
+    export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
         const { gl, state, stats } = ctx
         const p = deepClone({ ...PD.getDefaultValues(RendererParams), ...props })
 
         const viewport = Viewport()
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor)
 
-        const view = Mat4.clone(camera.view)
-        const invView = Mat4.invert(Mat4.identity(), view)
-        const modelView = Mat4.clone(camera.view)
-        const invModelView = Mat4.invert(Mat4.identity(), modelView)
-        const invProjection = Mat4.invert(Mat4.identity(), camera.projection)
-        const modelViewProjection = Mat4.mul(Mat4.identity(), modelView, camera.projection)
-        const invModelViewProjection = Mat4.invert(Mat4.identity(), modelViewProjection)
+        const view = Mat4()
+        const invView = Mat4()
+        const modelView = Mat4()
+        const invModelView = Mat4()
+        const invProjection = Mat4()
+        const modelViewProjection = Mat4()
+        const invModelViewProjection = Mat4()
 
-        const viewOffset = camera.viewOffset.enabled ? Vec2.create(camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2()
+        const viewOffset = Vec2()
 
         const globalUniforms: GlobalUniformValues = {
             uModel: ValueCell.create(Mat4.identity()),
-            uView: ValueCell.create(camera.view),
+            uView: ValueCell.create(view),
             uInvView: ValueCell.create(invView),
             uModelView: ValueCell.create(modelView),
             uInvModelView: ValueCell.create(invModelView),
             uInvProjection: ValueCell.create(invProjection),
-            uProjection: ValueCell.create(Mat4.clone(camera.projection)),
+            uProjection: ValueCell.create(Mat4()),
             uModelViewProjection: ValueCell.create(modelViewProjection),
             uInvModelViewProjection: ValueCell.create(invModelViewProjection),
 
-            uIsOrtho: ValueCell.create(camera.state.mode === 'orthographic' ? 1 : 0),
+            uIsOrtho: ValueCell.create(1),
+            uViewOffset: ValueCell.create(viewOffset),
+
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
             uViewportHeight: ValueCell.create(viewport.height),
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
-            uViewOffset: ValueCell.create(viewOffset),
 
             uLightIntensity: ValueCell.create(p.lightIntensity),
             uAmbientIntensity: ValueCell.create(p.ambientIntensity),
@@ -101,11 +102,11 @@ namespace Renderer {
             uRoughness: ValueCell.create(p.roughness),
             uReflectivity: ValueCell.create(p.reflectivity),
 
-            uCameraPosition: ValueCell.create(Vec3.clone(camera.state.position)),
-            uNear: ValueCell.create(camera.near),
-            uFar: ValueCell.create(camera.far),
-            uFogNear: ValueCell.create(camera.fogNear),
-            uFogFar: ValueCell.create(camera.fogFar),
+            uCameraPosition: ValueCell.create(Vec3()),
+            uNear: ValueCell.create(1),
+            uFar: ValueCell.create(10000),
+            uFogNear: ValueCell.create(1),
+            uFogFar: ValueCell.create(10000),
             uFogColor: ValueCell.create(bgColor),
 
             uTransparentBackground: ValueCell.create(p.transparentBackground ? 1 : 0),
@@ -160,7 +161,7 @@ namespace Renderer {
             }
         }
 
-        const render = (scene: Scene, variant: GraphicsRenderVariant, clear: boolean) => {
+        const render = (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean) => {
             ValueCell.update(globalUniforms.uModel, scene.view)
             ValueCell.update(globalUniforms.uView, camera.view)
             ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view))

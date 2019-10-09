@@ -30,7 +30,7 @@ function createRenderer(gl: WebGLRenderingContext) {
     const camera = new Camera({
         position: Vec3.create(0, 0, 50)
     })
-    const renderer = Renderer.create(ctx, camera)
+    const renderer = Renderer.create(ctx)
     return { ctx, camera, renderer }
 }
 

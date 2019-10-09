@@ -32,6 +32,7 @@ import { readTexture } from '../mol-gl/compute/util';
 import { DrawPass } from './passes/draw';
 import { PickPass } from './passes/pick';
 import { Task } from '../mol-task';
+import { ImagePass, ImageProps } from './passes/image';
 
 export const Canvas3DParams = {
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
@@ -74,6 +75,7 @@ interface Canvas3D {
     downloadScreenshot: () => void
     getPixelData: (variant: GraphicsRenderVariant) => PixelData
     setProps: (props: Partial<Canvas3DProps>) => void
+    getImagePass: () => ImagePass
 
     /** Returns a copy of the current Canvas3D instance props */
     readonly props: Readonly<Canvas3DProps>
@@ -128,12 +130,12 @@ namespace Canvas3D {
         })
 
         const controls = TrackballControls.create(input, camera, p.trackball)
-        const renderer = Renderer.create(webgl, camera, p.renderer)
+        const renderer = Renderer.create(webgl, p.renderer)
         const debugHelper = new BoundingSphereHelper(webgl, scene, p.debug);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input);
 
-        const drawPass = new DrawPass(webgl, renderer, scene, debugHelper)
-        const pickPass = new PickPass(webgl, renderer, scene, 0.5)
+        const drawPass = new DrawPass(webgl, renderer, scene, camera, debugHelper)
+        const pickPass = new PickPass(webgl, renderer, scene, camera, 0.5)
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing)
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
 
@@ -177,6 +179,7 @@ namespace Canvas3D {
 
             let didRender = false
             controls.update(currentTime)
+            Viewport.set(camera.viewport, 0, 0, width, height)
             const cameraChanged = camera.update()
             multiSample.update(force || cameraChanged, currentTime)
 
@@ -186,9 +189,9 @@ namespace Canvas3D {
                         pickPass.render()
                         break;
                     case 'draw':
-                        renderer.setViewport(0, 0, width, height);
+                        renderer.setViewport(0, 0, width, height)
                         if (multiSample.enabled) {
-                            multiSample.render()
+                            multiSample.render(true)
                         } else {
                             drawPass.render(!postprocessing.enabled)
                             if (postprocessing.enabled) postprocessing.render(true)
@@ -309,7 +312,7 @@ namespace Canvas3D {
             getLoci,
 
             handleResize,
-            resetCamera: (/*dir?: Vec3*/) => {
+            resetCamera: () => {
                 if (scene.isCommiting) {
                     cameraResetRequested = true
                 } else {
@@ -347,6 +350,9 @@ namespace Canvas3D {
                 if (props.trackball) controls.setProps(props.trackball)
                 if (props.debug) debugHelper.setProps(props.debug)
                 requestDraw(true)
+            },
+            getImagePass: (props: Partial<ImageProps> = {}) => {
+                return new ImagePass(webgl, renderer, scene, camera, debugHelper, props)
             },
 
             get props() {

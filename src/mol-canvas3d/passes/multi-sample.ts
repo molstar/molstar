@@ -54,6 +54,7 @@ export type MultiSampleProps = PD.Values<typeof MultiSampleParams>
 
 export class MultiSamplePass {
     props: MultiSampleProps
+    colorTarget: RenderTarget
 
     private composeTarget: RenderTarget
     private holdTarget: RenderTarget
@@ -65,6 +66,7 @@ export class MultiSamplePass {
 
     constructor(private webgl: WebGLContext, private camera: Camera, private drawPass: DrawPass, private postprocessing: PostprocessingPass, props: Partial<MultiSampleProps>) {
         const { gl } = webgl
+        this.colorTarget = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.composeTarget = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.holdTarget = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture)
@@ -92,6 +94,7 @@ export class MultiSamplePass {
     }
 
     setSize(width: number, height: number) {
+        this.colorTarget.setSize(width, height)
         this.composeTarget.setSize(width, height)
         this.holdTarget.setSize(width, height)
         ValueCell.update(this.compose.values.uTexSize, Vec2.set(this.compose.values.uTexSize.ref.value, width, height))
@@ -102,15 +105,15 @@ export class MultiSamplePass {
         if (props.sampleLevel !== undefined) this.props.sampleLevel = props.sampleLevel
     }
 
-    render() {
+    render(toDrawingBuffer: boolean) {
         if (this.props.mode === 'temporal') {
-            this.renderTemporalMultiSample()
+            this.renderTemporalMultiSample(toDrawingBuffer)
         } else {
-            this.renderMultiSample()
+            this.renderMultiSample(toDrawingBuffer)
         }
     }
 
-    private renderMultiSample() {
+    private renderMultiSample(toDrawingBuffer: boolean) {
         const { camera, compose, composeTarget, drawPass, postprocessing, webgl } = this
         const { gl, state } = webgl
 
@@ -168,7 +171,11 @@ export class MultiSamplePass {
         ValueCell.update(compose.values.tColor, composeTarget.texture)
         compose.update()
 
-        webgl.unbindFramebuffer()
+        if (toDrawingBuffer) {
+            webgl.unbindFramebuffer()
+        } else {
+            this.colorTarget.bind()
+        }
         gl.viewport(0, 0, width, height)
         state.disable(gl.BLEND)
         compose.render()
@@ -177,7 +184,7 @@ export class MultiSamplePass {
         camera.update()
     }
 
-    private renderTemporalMultiSample() {
+    private renderTemporalMultiSample(toDrawingBuffer: boolean) {
         const { camera, compose, composeTarget, holdTarget, postprocessing, drawPass, webgl } = this
         const { gl, state } = webgl
 
@@ -252,7 +259,11 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, 1.0)
             ValueCell.update(compose.values.tColor, composeTarget.texture)
             compose.update()
-            webgl.unbindFramebuffer()
+            if (toDrawingBuffer) {
+                webgl.unbindFramebuffer()
+            } else {
+                this.colorTarget.bind()
+            }
             gl.viewport(0, 0, width, height)
             state.disable(gl.BLEND)
             compose.render()
@@ -261,7 +272,11 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, 1.0 - accumulationWeight)
             ValueCell.update(compose.values.tColor, holdTarget.texture)
             compose.update()
-            webgl.unbindFramebuffer()
+            if (toDrawingBuffer) {
+                webgl.unbindFramebuffer()
+            } else {
+                this.colorTarget.bind()
+            }
             gl.viewport(0, 0, width, height)
             if (accumulationWeight === 0) state.disable(gl.BLEND)
             else state.enable(gl.BLEND)

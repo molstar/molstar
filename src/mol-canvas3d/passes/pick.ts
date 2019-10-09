@@ -10,6 +10,7 @@ import Renderer from '../../mol-gl/renderer';
 import Scene from '../../mol-gl/scene';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { decodeFloatRGB } from '../../mol-util/float-packing';
+import { Camera } from '../camera';
 
 export class PickPass {
     pickDirty = true
@@ -26,7 +27,7 @@ export class PickPass {
     private pickWidth: number
     private pickHeight: number
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private pickBaseScale: number) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private pickBaseScale: number) {
         const { gl } = webgl
         const width = gl.drawingBufferWidth
         const height = gl.drawingBufferHeight
@@ -64,14 +65,14 @@ export class PickPass {
     }
 
     render() {
-        const { renderer, scene } = this
+        const { renderer, scene, camera } = this
         renderer.setViewport(0, 0, this.pickWidth, this.pickHeight);
         this.objectPickTarget.bind();
-        renderer.render(scene, 'pickObject', true);
+        renderer.render(scene, camera, 'pickObject', true);
         this.instancePickTarget.bind();
-        renderer.render(scene, 'pickInstance', true);
+        renderer.render(scene, camera, 'pickInstance', true);
         this.groupPickTarget.bind();
-        renderer.render(scene, 'pickGroup', true);
+        renderer.render(scene, camera, 'pickGroup', true);
 
         this.pickDirty = false
     }
