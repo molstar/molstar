@@ -22,6 +22,7 @@ uniform vec3 uFogColor;
 uniform float uAlpha;
 uniform float uPickingAlphaThreshold;
 uniform int uPickable;
+uniform int uTransparentBackground;
 
 uniform float uInteriorDarkening;
 `

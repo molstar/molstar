@@ -168,6 +168,7 @@ export const GlobalUniformSchema = {
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
 
+    uTransparentBackground: UniformSpec('i'),
     uPickingAlphaThreshold: UniformSpec('f'),
     uInteriorDarkening: UniformSpec('f'),
 }

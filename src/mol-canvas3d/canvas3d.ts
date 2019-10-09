@@ -93,10 +93,11 @@ namespace Canvas3D {
 
     export function fromCanvas(canvas: HTMLCanvasElement, props: Partial<Canvas3DProps> = {}, runTask = DefaultRunTask) {
         const gl = getGLContext(canvas, {
-            alpha: false,
+            alpha: true,
             antialias: true,
             depth: true,
-            preserveDrawingBuffer: true
+            preserveDrawingBuffer: true,
+            premultipliedAlpha: false,
         })
         if (gl === null) throw new Error('Could not create a WebGL rendering context')
         const input = InputObserver.fromElement(canvas)

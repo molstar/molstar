@@ -46,6 +46,7 @@ interface Renderer {
 
 export const RendererParams = {
     backgroundColor: PD.Color(Color(0x000000), { description: 'Background color of the 3D canvas' }),
+    transparentBackground: PD.Boolean(false, { description: 'Background opacity of the 3D canvas' }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
     interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
 
@@ -107,6 +108,7 @@ namespace Renderer {
             uFogFar: ValueCell.create(camera.fogFar),
             uFogColor: ValueCell.create(bgColor),
 
+            uTransparentBackground: ValueCell.create(p.transparentBackground ? 1 : 0),
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
             uInteriorDarkening: ValueCell.create(p.interiorDarkening),
         }
@@ -191,7 +193,7 @@ namespace Renderer {
 
             if (clear) {
                 if (variant === 'color') {
-                    state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
+                    state.clearColor(bgColor[0], bgColor[1], bgColor[2], p.transparentBackground ? 0 : 1)
                 } else {
                     state.clearColor(1, 1, 1, 1)
                 }
@@ -204,7 +206,7 @@ namespace Renderer {
                     if (r.state.opaque) renderObject(r, variant)
                 }
 
-                state.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+                state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE)
                 state.enable(gl.BLEND)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
@@ -224,7 +226,7 @@ namespace Renderer {
             clear: () => {
                 state.depthMask(true)
                 state.colorMask(true, true, true, true)
-                state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1.0)
+                state.clearColor(bgColor[0], bgColor[1], bgColor[2], p.transparentBackground ? 0 : 1)
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
             },
             render,
@@ -242,6 +244,10 @@ namespace Renderer {
                     p.backgroundColor = props.backgroundColor
                     Color.toVec3Normalized(bgColor, p.backgroundColor)
                     ValueCell.update(globalUniforms.uFogColor, Vec3.copy(globalUniforms.uFogColor.ref.value, bgColor))
+                }
+                if (props.transparentBackground !== undefined && props.transparentBackground !== p.transparentBackground) {
+                    p.transparentBackground = props.transparentBackground
+                    ValueCell.update(globalUniforms.uTransparentBackground, p.transparentBackground ? 1 : 0)
                 }
                 if (props.lightIntensity !== undefined && props.lightIntensity !== p.lightIntensity) {
                     p.lightIntensity = props.lightIntensity
