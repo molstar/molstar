@@ -54,7 +54,7 @@ function getResidueCount(unit: Unit.Atomic) {
     return residueAtomSegments.index[elementEnd] - residueAtomSegments.index[elementStart]
 }
 
-export function structureElementStatsLabel(stats: StructureElement.Stats, countsOnly = false) {
+export function structureElementStatsLabel(stats: StructureElement.Stats, countsOnly = false): string {
     const { unitCount, residueCount, elementCount } = stats
 
     if (!countsOnly && elementCount === 1 && residueCount === 0 && unitCount === 0) {
@@ -74,34 +74,45 @@ export function structureElementStatsLabel(stats: StructureElement.Stats, counts
     }
 }
 
-export function linkLabel(link: Link.Location) {
+export function linkLabel(link: Link.Location): string {
     if (!elementLocA) elementLocA = StructureElement.Location.create()
     if (!elementLocB) elementLocB = StructureElement.Location.create()
     setElementLocation(elementLocA, link.aUnit, link.aIndex)
     setElementLocation(elementLocB, link.bUnit, link.bIndex)
-    return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
+    const labelA = _elementLabel(elementLocA)
+    const labelB = _elementLabel(elementLocB)
+    let offset = 0
+    for (let i = 0, il = Math.min(labelA.length, labelB.length); i < il; ++i) {
+        if (labelA[i] === labelB[i]) offset += 1
+        else break
+    }
+    return `${labelA.join(' | ')} \u2014 ${labelB.slice(offset).join(' | ')}`
 }
 
 export type LabelGranularity = 'element' | 'residue' | 'chain' | 'structure'
 
-export function elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element') {
+export function elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element'): string {
+    return _elementLabel(location, granularity).join(' | ')
+}
+
+function _elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element'): string[] {
     const entry = location.unit.model.entry
     const model = `Model ${location.unit.model.modelNum}`
     const instance = location.unit.conformation.operator.name
     const label = [entry, model, instance]
 
     if (Unit.isAtomic(location.unit)) {
-        label.push(atomicElementLabel(location as StructureElement.Location<Unit.Atomic>, granularity))
+        label.push(..._atomicElementLabel(location as StructureElement.Location<Unit.Atomic>, granularity))
     } else if (Unit.isCoarse(location.unit)) {
-        label.push(coarseElementLabel(location as StructureElement.Location<Unit.Spheres | Unit.Gaussians>, granularity))
+        label.push(..._coarseElementLabel(location as StructureElement.Location<Unit.Spheres | Unit.Gaussians>, granularity))
     } else {
         label.push('Unknown')
     }
 
-    return label.join(' | ')
+    return label
 }
 
-export function atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, granularity: LabelGranularity) {
+function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, granularity: LabelGranularity): string[] {
     const label_asym_id = Props.chain.label_asym_id(location)
     const auth_asym_id = Props.chain.auth_asym_id(location)
     const seq_id = location.unit.model.atomicHierarchy.residues.auth_seq_id.isDefined ? Props.residue.auth_seq_id(location) : Props.residue.label_seq_id(location)
@@ -126,10 +137,10 @@ export function atomicElementLabel(location: StructureElement.Location<Unit.Atom
             label.push(`Chain ${label_asym_id}:${auth_asym_id}`)
     }
 
-    return label.reverse().join(' | ')
+    return label.reverse()
 }
 
-export function coarseElementLabel(location: StructureElement.Location<Unit.Spheres | Unit.Gaussians>, granularity: LabelGranularity) {
+function _coarseElementLabel(location: StructureElement.Location<Unit.Spheres | Unit.Gaussians>, granularity: LabelGranularity): string[] {
     const asym_id = Props.coarse.asym_id(location)
     const seq_id_begin = Props.coarse.seq_id_begin(location)
     const seq_id_end = Props.coarse.seq_id_end(location)
@@ -151,5 +162,5 @@ export function coarseElementLabel(location: StructureElement.Location<Unit.Sphe
             label.push(`Chain ${asym_id}`)
     }
 
-    return label.reverse().join(' | ')
+    return label.reverse()
 }
