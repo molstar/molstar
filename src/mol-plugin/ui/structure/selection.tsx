@@ -46,8 +46,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     focus = () => {
         const { extraRadius, minRadius, durationMs } = this.state
+        if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
         const { sphere } = this.plugin.helpers.structureSelectionManager.getBoundary();
-        if (sphere.radius === 0) return
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
         this.plugin.canvas3d.camera.focus(sphere.center, radius, durationMs);
     }
