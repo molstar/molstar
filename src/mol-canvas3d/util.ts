@@ -6,8 +6,8 @@
 
 /** Set canvas size taking `devicePixelRatio` into account */
 export function setCanvasSize(canvas: HTMLCanvasElement, width: number, height: number) {
-    canvas.width = window.devicePixelRatio * width
-    canvas.height = window.devicePixelRatio * height
+    canvas.width = Math.round(window.devicePixelRatio * width)
+    canvas.height = Math.round(window.devicePixelRatio * height)
     Object.assign(canvas.style, { width: `${width}px`, height: `${height}px` })
 }
 
@@ -28,7 +28,7 @@ function _canvasToBlob(canvas: HTMLCanvasElement, callback: BlobCallback, type?:
     const len = bin.length
     const len32 = len >> 2
     const a8 = new Uint8Array(len)
-    const a32 = new Uint32Array( a8.buffer, 0, len32 )
+    const a32 = new Uint32Array(a8.buffer, 0, len32)
 
     let j = 0
     for (let i = 0; i < len32; ++i) {

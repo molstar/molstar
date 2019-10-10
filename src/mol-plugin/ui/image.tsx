@@ -64,7 +64,9 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
         }
         setCanvasSize(this.canvas, w, h)
         const { pixelRatio } = this.plugin.canvas3d.webgl
-        const imageData = this.imagePass.getImageData(w * pixelRatio, h * pixelRatio)
+        const pw = Math.round(w * pixelRatio)
+        const ph = Math.round(h * pixelRatio)
+        const imageData = this.imagePass.getImageData(pw, ph)
         this.canvasContext.putImageData(imageData, 0, 0)
     }
 
