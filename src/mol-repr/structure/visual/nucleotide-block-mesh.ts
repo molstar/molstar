@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -62,7 +62,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements)
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements)
 
-    const cylinderProps: CylinderProps = { radiusTop: 1 * sizeFactor, radiusBottom: 1 * sizeFactor, radialSegments }
+    const cylinderProps: CylinderProps = { radiusTop: 1 * sizeFactor, radiusBottom: 1 * sizeFactor, radialSegments, bottomCap: true }
 
     let i = 0
     while (chainIt.hasNext) {

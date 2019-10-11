@@ -10,29 +10,32 @@ import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
-import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, interpolateSizes, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement } from './util/polymer';
-import { isNucleic } from '../../../mol-model/structure/model/types';
+import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, interpolateSizes, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, HelixTension, StandardTension, StandardShift, NucleicShift, OverhangFactor } from './util/polymer';
+import { isNucleic, SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { addSheet } from '../../../mol-geo/geometry/mesh/builder/sheet';
 import { addRibbon } from '../../../mol-geo/geometry/mesh/builder/ribbon';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 
 export const PolymerTubeMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
     linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
 }
 export const DefaultPolymerTubeMeshProps = PD.getDefaultValues(PolymerTubeMeshParams)
 export type PolymerTubeMeshProps = typeof DefaultPolymerTubeMeshProps
 
-// TODO handle polymer ends properly
+const tmpV1 = Vec3()
 
 function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerTubeMeshProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
 
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
-    const { sizeFactor, linearSegments, radialSegments } = props
+    const { sizeFactor, detail, linearSegments, radialSegments } = props
 
     const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 10, mesh)
@@ -47,8 +50,9 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
         builderState.currentGroup = i
 
         const isNucleicType = isNucleic(v.moleculeType)
-        const tension = isNucleicType ? 0.5 : 0.9
-        const shift = isNucleicType ? 0.3 : 0.5
+        const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
+        const tension = isHelix ? HelixTension : StandardTension
+        const shift = isNucleicType ? NucleicShift : StandardShift
 
         interpolateCurveSegment(state, v, tension, shift)
 
@@ -61,12 +65,35 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
 
         interpolateSizes(state, s0, s1, s2, s0, s1, s2, shift)
 
-        if (radialSegments === 2) {
-            addRibbon(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0)
+        let segmentCount = linearSegments
+        if (v.initial) {
+            segmentCount = Math.max(Math.round(linearSegments * shift), 1)
+            const offset = linearSegments - segmentCount
+            curvePoints.copyWithin(0, offset * 3)
+            binormalVectors.copyWithin(0, offset * 3)
+            normalVectors.copyWithin(0, offset * 3)
+            widthValues.copyWithin(0, offset * 3)
+            heightValues.copyWithin(0, offset * 3)
+            Vec3.fromArray(tmpV1, curvePoints, 3)
+            Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1))
+            Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, s1 * OverhangFactor)
+            Vec3.toArray(tmpV1, curvePoints, 0)
+        } else if (v.final) {
+            segmentCount = Math.max(Math.round(linearSegments * (1 - shift)), 1)
+            Vec3.fromArray(tmpV1, curvePoints, segmentCount * 3 - 3)
+            Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1))
+            Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, s1 * OverhangFactor)
+            Vec3.toArray(tmpV1, curvePoints, segmentCount * 3)
+        }
+
+        if (v.initial === true && v.final === true) {
+            addSphere(builderState, v.p2, s1 * 2, detail)
+        } else if (radialSegments === 2) {
+            addRibbon(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0)
         } else if (radialSegments === 4) {
-            addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0, startCap, endCap)
+            addSheet(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0, startCap, endCap)
         } else {
-            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, startCap, endCap)
+            addTube(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, radialSegments, widthValues, heightValues, 1, startCap, endCap)
         }
 
         ++i
@@ -91,6 +118,7 @@ export function PolymerTubeVisual(materialId: number): UnitsVisual<PolymerTubePa
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTubeParams>, currentProps: PD.Values<PolymerTubeParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.detail !== currentProps.detail ||
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments
             )

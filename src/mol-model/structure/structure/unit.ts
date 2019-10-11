@@ -143,8 +143,9 @@ namespace Unit {
         readonly model: Model;
         readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
 
-        /** Reference some commonly accessed things for faster access. */
+        /** Reference `residueIndex` from `model` for faster access. */
         readonly residueIndex: ArrayLike<ResidueIndex>;
+        /** Reference `chainIndex` from `model` for faster access. */
         readonly chainIndex: ArrayLike<ChainIndex>;
 
         private props: AtomicProperties;

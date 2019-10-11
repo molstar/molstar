@@ -10,7 +10,7 @@ import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
-import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, interpolateSizes, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement } from './util/polymer';
+import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, interpolateSizes, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, HelixTension, NucleicShift, StandardShift, StandardTension, OverhangFactor } from './util/polymer';
 import { isNucleic, SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { addSheet } from '../../../mol-geo/geometry/mesh/builder/sheet';
 import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
@@ -18,9 +18,12 @@ import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '.
 import { VisualUpdateState } from '../../util';
 import { ComputedSecondaryStructure } from '../../../mol-model-props/computed/secondary-structure';
 import { addRibbon } from '../../../mol-geo/geometry/mesh/builder/ribbon';
+import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 export const PolymerTraceMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
     linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
     aspectRatio: PD.Numeric(5, { min: 0.1, max: 10, step: 0.1 }),
@@ -29,13 +32,13 @@ export const PolymerTraceMeshParams = {
 export const DefaultPolymerTraceMeshProps = PD.getDefaultValues(PolymerTraceMeshParams)
 export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps
 
-// TODO handle polymer ends properly
+const tmpV1 = Vec3()
 
 function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerTraceMeshProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
 
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
-    const { sizeFactor, linearSegments, radialSegments, aspectRatio, arrowFactor } = props
+    const { sizeFactor, detail, linearSegments, radialSegments, aspectRatio, arrowFactor } = props
 
     const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 10, mesh)
@@ -53,8 +56,8 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
         const isNucleicType = isNucleic(v.moleculeType)
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
         const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
-        const tension = isHelix ? 0.9 : 0.5
-        const shift = isNucleicType ? 0.3 : 0.5
+        const tension = isHelix ? HelixTension : StandardTension
+        const shift = isNucleicType ? NucleicShift : StandardShift
 
         interpolateCurveSegment(state, v, tension, shift)
 
@@ -70,7 +73,28 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
         const startCap = v.secStrucFirst || v.coarseBackboneFirst || v.first
         const endCap = v.secStrucLast || v.coarseBackboneLast || v.last
 
-        if (isSheet) {
+        let segmentCount = linearSegments
+        if (v.initial) {
+            segmentCount = Math.max(Math.round(linearSegments * shift), 1)
+            const offset = linearSegments - segmentCount
+            curvePoints.copyWithin(0, offset * 3)
+            binormalVectors.copyWithin(0, offset * 3)
+            normalVectors.copyWithin(0, offset * 3)
+            Vec3.fromArray(tmpV1, curvePoints, 3)
+            Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1))
+            Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, w1 * OverhangFactor)
+            Vec3.toArray(tmpV1, curvePoints, 0)
+        } else if (v.final) {
+            segmentCount = Math.max(Math.round(linearSegments * (1 - shift)), 1)
+            Vec3.fromArray(tmpV1, curvePoints, segmentCount * 3 - 3)
+            Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1))
+            Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, w1 * OverhangFactor)
+            Vec3.toArray(tmpV1, curvePoints, segmentCount * 3)
+        }
+
+        if (v.initial === true && v.final === true) {
+            addSphere(builderState, v.p2, w1 * 2, detail)
+        } else if (isSheet) {
             const h0 = w0 * aspectRatio
             const h1 = w1 * aspectRatio
             const h2 = w2 * aspectRatio
@@ -79,9 +103,9 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             interpolateSizes(state, w0, w1, w2, h0, h1, h2, shift)
 
             if (radialSegments === 2) {
-                addRibbon(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, arrowHeight)
+                addRibbon(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, arrowHeight)
             } else {
-                addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, arrowHeight, startCap, endCap)
+                addSheet(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, arrowHeight, startCap, endCap)
             }
         } else {
             let h0: number, h1: number, h2: number
@@ -108,14 +132,14 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
                 if (isNucleicType && !v.isCoarseBackbone) {
                     // TODO find a cleaner way to swap normal and binormal for nucleic types
                     for (let i = 0, il = binormalVectors.length; i < il; i++) binormalVectors[i] *= -1
-                    addRibbon(builderState, curvePoints, binormalVectors, normalVectors, linearSegments, heightValues, widthValues, 0)
+                    addRibbon(builderState, curvePoints, binormalVectors, normalVectors, segmentCount, heightValues, widthValues, 0)
                 } else {
-                    addRibbon(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0)
+                    addRibbon(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0)
                 }
             } else if (radialSegments === 4) {
-                addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, widthValues, heightValues, 0, startCap, endCap)
+                addSheet(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0, startCap, endCap)
             } else {
-                addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, widthValues, heightValues, 1, startCap, endCap)
+                addTube(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, radialSegments, widthValues, heightValues, 1, startCap, endCap)
             }
         }
 
@@ -141,6 +165,7 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTraceParams>, currentProps: PD.Values<PolymerTraceParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.detail !== currentProps.detail ||
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments ||
                 newProps.aspectRatio !== currentProps.aspectRatio ||

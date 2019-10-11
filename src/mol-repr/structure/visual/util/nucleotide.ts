@@ -35,7 +35,7 @@ export function getNucleotideElementLoci(pickingId: PickingId, structureGroup: S
         const { structure, group } = structureGroup
         const unit = group.units[instanceId]
         if (Unit.isAtomic(unit)) {
-            return getResidueLoci(structure, unit, unit.polymerElements[groupId])
+            return getResidueLoci(structure, unit, unit.nucleotideElements[groupId])
         }
     }
     return EmptyLoci

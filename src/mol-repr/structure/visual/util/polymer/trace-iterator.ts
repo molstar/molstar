@@ -34,6 +34,7 @@ interface PolymerTraceElement {
     centerPrev: StructureElement.Location
     centerNext: StructureElement.Location
     first: boolean, last: boolean
+    initial: boolean, final: boolean
     secStrucFirst: boolean, secStrucLast: boolean
     secStrucType: SecondaryStructureType
     moleculeType: MoleculeType
@@ -52,6 +53,7 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
         centerPrev: StructureElement.Location.create(unit),
         centerNext: StructureElement.Location.create(unit),
         first: false, last: false,
+        initial: false, final: false,
         secStrucFirst: false, secStrucLast: false,
         secStrucType: SecStrucTypeNA,
         moleculeType: MoleculeType.unknown,
@@ -222,6 +224,9 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             const residueIndexNext1 = this.getResidueIndex(residueIndex + 1)
             const residueIndexNext2 = this.getResidueIndex(residueIndex + 2)
             const residueIndexNext3 = this.getResidueIndex(residueIndex + 3)
+
+            value.initial = residueIndex === residueIndexPrev1
+            value.final = residueIndex === residueIndexNext1
 
             value.centerPrev.element = this.traceElementIndex[residueIndexPrev1]
             value.center.element = this.traceElementIndex[residueIndex]

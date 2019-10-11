@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,6 +17,12 @@ export * from './polymer/backbone-iterator'
 export * from './polymer/gap-iterator'
 export * from './polymer/trace-iterator'
 export * from './polymer/curve-segment'
+
+export const StandardTension = 0.5
+export const HelixTension = 0.9
+export const StandardShift = 0.5
+export const NucleicShift = 0.3
+export const OverhangFactor = 2
 
 export function getPolymerRanges(unit: Unit): SortedRanges<ElementIndex> {
     switch (unit.kind) {

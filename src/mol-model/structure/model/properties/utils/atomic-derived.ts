@@ -21,7 +21,7 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
 
     const moleculeTypeMap = new Map<string, MoleculeType>()
 
-    for (let i = 0; i < n; ++i) {
+    for (let i = 0 as ResidueIndex; i < n; ++i) {
         const compId = label_comp_id.value(i)
         const chemCompMap = chemicalComponentMap
         let molType: MoleculeType
@@ -39,18 +39,18 @@ export function getAtomicDerivedData(data: AtomicData, index: AtomicIndex, chemi
         moleculeType[i] = molType
 
         const traceAtomId = getAtomIdForAtomRole(molType, 'trace')
-        let traceIndex = index.findAtomsOnResidue(i as ResidueIndex, traceAtomId)
+        let traceIndex = index.findAtomsOnResidue(i, traceAtomId)
         if (traceIndex === -1) {
             const coarseAtomId = getAtomIdForAtomRole(molType, 'coarseBackbone')
-            traceIndex = index.findAtomsOnResidue(i as ResidueIndex, coarseAtomId)
+            traceIndex = index.findAtomsOnResidue(i, coarseAtomId)
         }
         traceElementIndex[i] = traceIndex
 
         const directionFromAtomId = getAtomIdForAtomRole(molType, 'directionFrom')
-        directionFromElementIndex[i] = index.findAtomsOnResidue(i as ResidueIndex, directionFromAtomId)
+        directionFromElementIndex[i] = index.findAtomsOnResidue(i, directionFromAtomId)
 
         const directionToAtomId = getAtomIdForAtomRole(molType, 'directionTo')
-        directionToElementIndex[i] = index.findAtomsOnResidue(i as ResidueIndex, directionToAtomId)
+        directionToElementIndex[i] = index.findAtomsOnResidue(i, directionToAtomId)
     }
 
     return {
