@@ -15,7 +15,6 @@ import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsS
 import { getAtomicIndex } from '../../../mol-model/structure/model/properties/utils/atomic-index';
 import { ElementSymbol } from '../../../mol-model/structure/model/types';
 import { Entities } from '../../../mol-model/structure/model/properties/common';
-import { getAtomicRanges } from '../../../mol-model/structure/model/properties/utils/atomic-ranges';
 import { getAtomicDerivedData } from '../../../mol-model/structure/model/properties/utils/atomic-derived';
 import { FormatData } from './parser';
 
@@ -100,7 +99,6 @@ export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceInd
 
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
     const derived = getAtomicDerivedData(hierarchyData, index, formatData.chemicalComponentMap);
-    const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, conformation, index, derived.residue.moleculeType);
-    const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, ...hierarchyRanges, index, derived };
+    const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, index, derived };
     return { sameAsPrevious: false, hierarchy, conformation };
 }

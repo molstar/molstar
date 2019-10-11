@@ -26,7 +26,7 @@ export const OverhangFactor = 2
 
 export function getPolymerRanges(unit: Unit): SortedRanges<ElementIndex> {
     switch (unit.kind) {
-        case Unit.Kind.Atomic: return unit.model.atomicHierarchy.polymerRanges
+        case Unit.Kind.Atomic: return unit.model.atomicRanges.polymerRanges
         case Unit.Kind.Spheres: return unit.model.coarseHierarchy.spheres.polymerRanges
         case Unit.Kind.Gaussians: return unit.model.coarseHierarchy.gaussians.polymerRanges
     }
@@ -34,7 +34,7 @@ export function getPolymerRanges(unit: Unit): SortedRanges<ElementIndex> {
 
 export function getGapRanges(unit: Unit): SortedRanges<ElementIndex> {
     switch (unit.kind) {
-        case Unit.Kind.Atomic: return unit.model.atomicHierarchy.gapRanges
+        case Unit.Kind.Atomic: return unit.model.atomicRanges.gapRanges
         case Unit.Kind.Spheres: return unit.model.coarseHierarchy.spheres.gapRanges
         case Unit.Kind.Gaussians: return unit.model.coarseHierarchy.gaussians.gapRanges
     }

@@ -30,6 +30,7 @@ import mmCIF_Format = ModelFormat.mmCIF
 import { memoize1 } from '../../../mol-util/memoize';
 import { ElementIndex, EntityIndex } from '../../../mol-model/structure/model';
 import { AtomSiteAnisotrop } from './anisotropic';
+import { getAtomicRanges } from '../../../mol-model/structure/model/properties/utils/atomic-ranges';
 
 export async function _parse_mmCif(format: mmCIF_Format, ctx: RuntimeContext) {
     const formatData = getFormatData(format)
@@ -224,6 +225,9 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIn
     }
 
     const coarse = EmptyIHMCoarse;
+    const sequence = getSequence(format.data, entities, atomic.hierarchy, coarse.hierarchy, formatData.modifiedResidues.parentId)
+    const atomicRanges = getAtomicRanges(atomic.hierarchy, entities, atomic.conformation, sequence)
+
     const entry = format.data.entry.id.valueKind(0) === Column.ValueKind.Present
         ? format.data.entry.id.value(0)
         : format.data._name;
@@ -241,9 +245,10 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIn
         modelNum,
         entities,
         symmetry: getSymmetry(format),
-        sequence: getSequence(format.data, entities, atomic.hierarchy, coarse.hierarchy, formatData.modifiedResidues.parentId),
+        sequence,
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
+        atomicRanges,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
@@ -259,6 +264,9 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, sourceIn
 function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatData): Model {
     const atomic = getAtomicHierarchyAndConformation(data.atom_site, data.atom_site_sourceIndex, data.entities, formatData);
     const coarse = getIHMCoarse(data, formatData);
+    const sequence = getSequence(format.data, data.entities, atomic.hierarchy, coarse.hierarchy, formatData.modifiedResidues.parentId)
+    const atomicRanges = getAtomicRanges(atomic.hierarchy, data.entities, atomic.conformation, sequence)
+
     const entry = format.data.entry.id.valueKind(0) === Column.ValueKind.Present
         ? format.data.entry.id.value(0)
         : format.data._name;
@@ -278,9 +286,10 @@ function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatD
         modelNum: data.model_id,
         entities: data.entities,
         symmetry: getSymmetry(format),
-        sequence: getSequence(format.data, data.entities, atomic.hierarchy, coarse.hierarchy, formatData.modifiedResidues.parentId),
+        sequence,
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
+        atomicRanges,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {

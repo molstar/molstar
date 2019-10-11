@@ -7,7 +7,7 @@
 
 import UUID from '../../../mol-util/uuid';
 import StructureSequence from './properties/sequence';
-import { AtomicHierarchy, AtomicConformation } from './properties/atomic';
+import { AtomicHierarchy, AtomicConformation, AtomicRanges } from './properties/atomic';
 import { ModelSymmetry } from './properties/symmetry';
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
 import { Entities, ChemicalComponentMap, MissingResidues } from './properties/common';
@@ -42,6 +42,7 @@ export interface Model extends Readonly<{
 
     atomicHierarchy: AtomicHierarchy,
     atomicConformation: AtomicConformation,
+    atomicRanges: AtomicRanges,
 
     properties: {
         /** secondary structure provided by the input file */

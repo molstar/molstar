@@ -222,7 +222,7 @@ export interface AtomicRanges {
     cyclicPolymerMap: Map<ResidueIndex, ResidueIndex>
 }
 
-type _Hierarchy = AtomicData & AtomicSegments & AtomicRanges
+type _Hierarchy = AtomicData & AtomicSegments
 export interface AtomicHierarchy extends _Hierarchy {
     index: AtomicIndex
     derived: AtomicDerivedData

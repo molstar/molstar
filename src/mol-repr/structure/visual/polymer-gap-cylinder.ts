@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,11 +13,11 @@ import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
 import { PolymerGapIterator, PolymerGapLocationIterator, getPolymerGapElementLoci, eachPolymerGapElement } from './util/polymer';
-import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { addFixedCountDashedCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { LinkCylinderParams } from './util/link';
 import { VisualUpdateState } from '../../util';
+// import { TriangularPyramid } from '../../../mol-geo/primitive/pyramid';
 
 const segmentCount = 10
 
@@ -27,6 +27,10 @@ export const PolymerGapCylinderParams = {
 }
 export const DefaultPolymerGapCylinderProps = PD.getDefaultValues(PolymerGapCylinderParams)
 export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps
+
+// const triangularPyramid = TriangularPyramid()
+// const t = Mat4.identity()
+// const pd = Vec3.zero()
 
 function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerGapCylinderProps, mesh?: Mesh) {
     const polymerGapCount = unit.gapElements.length
@@ -49,9 +53,14 @@ function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure:
     while (polymerGapIt.hasNext) {
         const { centerA, centerB } = polymerGapIt.move()
         if (centerA.element === centerB.element) {
-            builderState.currentGroup = i
-            pos(centerA.element, pA)
-            addSphere(builderState, pA, 0.6, 0)
+            // TODO
+            // builderState.currentGroup = i
+            // pos(centerA.element, pA)
+            // Vec3.add(pd, pA, Vec3.create(1, 0, 0))
+            // Mat4.targetTo(t, pA, pd, Vec3.create(0, 1, 0))
+            // Mat4.setTranslation(t, pA)
+            // Mat4.scale(t, t, Vec3.create(0.7, 0.7, 2.5))
+            // MeshBuilder.addPrimitive(builderState, t, triangularPyramid)
         } else {
             pos(centerA.element, pA)
             pos(centerB.element, pB)

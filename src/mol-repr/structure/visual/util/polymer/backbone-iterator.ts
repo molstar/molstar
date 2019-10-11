@@ -61,7 +61,7 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
             this.value.centerA.element = this.value.centerB.element
             this.value.centerB.element = this.traceElementIndex[this.residueSegment.index]
             if (!this.residueIt.hasNext) {
-                if (this.unit.model.atomicHierarchy.cyclicPolymerMap.has(this.residueSegment.index)) {
+                if (this.unit.model.atomicRanges.cyclicPolymerMap.has(this.residueSegment.index)) {
                     this.state = AtomicPolymerBackboneIteratorState.cycle
                 } else {
                     // TODO need to advance to a polymer that has two or more residues (can't assume it has)
@@ -69,7 +69,7 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
                 }
             }
         } else if (this.state === AtomicPolymerBackboneIteratorState.cycle) {
-            const { cyclicPolymerMap } = this.unit.model.atomicHierarchy
+            const { cyclicPolymerMap } = this.unit.model.atomicRanges
             this.value.centerA.element = this.value.centerB.element
             this.value.centerB.element = this.traceElementIndex[cyclicPolymerMap.get(this.residueSegment.index)!]
             // TODO need to advance to a polymer that has two or more residues (can't assume it has)

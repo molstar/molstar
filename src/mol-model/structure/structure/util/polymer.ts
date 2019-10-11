@@ -14,7 +14,7 @@ export function getAtomicPolymerElements(unit: Unit.Atomic) {
     const { elements, model } = unit
     const { residueAtomSegments } = unit.model.atomicHierarchy
     const { traceElementIndex } = model.atomicHierarchy.derived.residue
-    const polymerIt = SortedRanges.transientSegments(unit.model.atomicHierarchy.polymerRanges, elements)
+    const polymerIt = SortedRanges.transientSegments(unit.model.atomicRanges.polymerRanges, elements)
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements)
     while (polymerIt.hasNext) {
         const polymerSegment = polymerIt.move()
@@ -51,7 +51,7 @@ export function getAtomicGapElements(unit: Unit.Atomic) {
     const { elements, model, residueIndex } = unit
     const { residueAtomSegments } = unit.model.atomicHierarchy
     const { traceElementIndex } = model.atomicHierarchy.derived.residue
-    const gapIt = SortedRanges.transientSegments(unit.model.atomicHierarchy.gapRanges, unit.elements);
+    const gapIt = SortedRanges.transientSegments(unit.model.atomicRanges.gapRanges, unit.elements);
     while (gapIt.hasNext) {
         const gapSegment = gapIt.move();
         const indexStart = residueIndex[elements[gapSegment.start]]

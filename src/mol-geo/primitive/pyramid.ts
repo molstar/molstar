@@ -54,6 +54,12 @@ export function Pyramid(points: ArrayLike<number>): Primitive {
     return builder.getPrimitive()
 }
 
+let triangularPyramid: Primitive
+export function TriangularPyramid() {
+    if (!triangularPyramid) triangularPyramid = Pyramid(polygon(3, true))
+    return triangularPyramid
+}
+
 let octagonalPyramid: Primitive
 export function OctagonalPyramid() {
     if (!octagonalPyramid) octagonalPyramid = Pyramid(polygon(8, true))

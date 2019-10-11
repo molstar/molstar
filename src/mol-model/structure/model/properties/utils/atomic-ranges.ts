@@ -1,11 +1,10 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { AtomicSegments } from '../atomic';
-import { AtomicData, AtomicRanges, AtomicIndex } from '../atomic/hierarchy';
+import { AtomicRanges, AtomicIndex, AtomicHierarchy } from '../atomic/hierarchy';
 import { Segmentation, Interval } from '../../../../../mol-data/int';
 import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
 import { MoleculeType, isPolymer } from '../../types';
@@ -13,10 +12,10 @@ import { ElementIndex, ResidueIndex } from '../../indexing';
 import { getAtomIdForAtomRole } from '../../../util';
 import { AtomicConformation } from '../atomic/conformation';
 import { Vec3 } from '../../../../../mol-math/linear-algebra';
+import { Entities } from '../common';
+import StructureSequence from '../sequence';
 
-// TODO add gaps at the ends of the chains by comparing to the polymer sequence data
-
-function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, data: AtomicData, segments: AtomicSegments, conformation: AtomicConformation, index: AtomicIndex, moleculeType: ArrayLike<MoleculeType>) {
+function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, conformation: AtomicConformation, index: AtomicIndex, moleculeType: ArrayLike<MoleculeType>) {
     const mtStart = moleculeType[riStart]
     const mtEnd = moleculeType[riEnd]
     if (!isPolymer(mtStart) || !isPolymer(mtEnd)) return false
@@ -35,13 +34,16 @@ function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, data: 
     return Vec3.distance(pStart, pEnd) < 10 // TODO better distance check, take into account if protein/nucleic and if coarse
 }
 
-export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conformation: AtomicConformation, index: AtomicIndex, moleculeType: ArrayLike<MoleculeType>): AtomicRanges {
+export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, conformation: AtomicConformation, sequence: StructureSequence): AtomicRanges {
     const polymerRanges: number[] = []
     const gapRanges: number[] = []
     const cyclicPolymerMap = new Map<ResidueIndex, ResidueIndex>()
-    const chainIt = Segmentation.transientSegments(segments.chainAtomSegments, Interval.ofBounds(0, data.atoms._rowCount))
-    const residueIt = Segmentation.transientSegments(segments.residueAtomSegments, Interval.ofBounds(0, data.atoms._rowCount))
-    const { label_seq_id } = data.residues
+    const chainIt = Segmentation.transientSegments(hierarchy.chainAtomSegments, Interval.ofBounds(0, hierarchy.atoms._rowCount))
+    const residueIt = Segmentation.transientSegments(hierarchy.residueAtomSegments, Interval.ofBounds(0, hierarchy.atoms._rowCount))
+    const { index, derived } = hierarchy
+    const { label_seq_id } = hierarchy.residues
+    // const { label_entity_id } = hierarchy.chains
+    const { moleculeType, traceElementIndex } = derived.residue
 
     let prevSeqId: number
     let prevStart: number
@@ -56,18 +58,24 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conf
         prevEnd = -1
         startIndex = -1
 
-        const riStart = segments.residueAtomSegments.index[chainSegment.start]
-        const riEnd = segments.residueAtomSegments.index[chainSegment.end - 1]
-        if (areBackboneConnected(riStart, riEnd, data, segments, conformation, index, moleculeType)) {
+        const riStart = hierarchy.residueAtomSegments.index[chainSegment.start]
+        const riEnd = hierarchy.residueAtomSegments.index[chainSegment.end - 1]
+        if (areBackboneConnected(riStart, riEnd, conformation, index, moleculeType)) {
             cyclicPolymerMap.set(riStart, riEnd)
             cyclicPolymerMap.set(riEnd, riStart)
         }
+
+        // TODO
+        // const eI = entities.getEntityIndex(label_entity_id.value(chainSegment.index))
+        // const seq = sequence.byEntityKey[eI]
+        // const maxSeqId = seq ? seq.sequence.seqId.value(seq.sequence.seqId.rowCount - 1) : -1
 
         while (residueIt.hasNext) {
             const residueSegment = residueIt.move();
             const residueIndex = residueSegment.index
             const seqId = label_seq_id.value(residueIndex)
-            if (isPolymer(moleculeType[residueIndex])) {
+            // treat polymers residues that don't have a trace element resolved as gaps
+            if (isPolymer(moleculeType[residueIndex]) && traceElementIndex[residueIndex] !== -1) {
                 if (startIndex !== -1) {
                     if (seqId !== prevSeqId + 1) {
                         polymerRanges.push(startIndex, prevEnd - 1)
@@ -75,16 +83,24 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conf
                         startIndex = residueSegment.start
                     } else if (!residueIt.hasNext) {
                         polymerRanges.push(startIndex, residueSegment.end - 1)
+                        // TODO
+                        // if (seqId !== maxSeqId) {
+                        //     gapRanges.push(residueSegment.end - 1, residueSegment.end - 1)
+                        // }
                     } else {
-                        const riStart = segments.residueAtomSegments.index[residueSegment.start]
-                        const riEnd = segments.residueAtomSegments.index[prevEnd - 1]
-                        if (!areBackboneConnected(riStart, riEnd, data, segments, conformation, index, moleculeType)) {
+                        const riStart = hierarchy.residueAtomSegments.index[residueSegment.start]
+                        const riEnd = hierarchy.residueAtomSegments.index[prevEnd - 1]
+                        if (!areBackboneConnected(riStart, riEnd, conformation, hierarchy.index, moleculeType)) {
                             polymerRanges.push(startIndex, prevEnd - 1)
                             startIndex = residueSegment.start
                         }
                     }
                 } else {
                     startIndex = residueSegment.start // start polymer
+                    // TODO
+                    // if (seqId !== 1) {
+                    //     gapRanges.push(residueSegment.start, residueSegment.start)
+                    // }
                 }
             } else {
                 if (startIndex !== -1) {

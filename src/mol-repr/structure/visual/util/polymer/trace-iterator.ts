@@ -296,12 +296,12 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     constructor(private unit: Unit.Atomic, structure: Structure) {
         this.atomicConformation = unit.model.atomicConformation
         this.residueAtomSegments = unit.model.atomicHierarchy.residueAtomSegments
-        this.polymerRanges = unit.model.atomicHierarchy.polymerRanges
+        this.polymerRanges = unit.model.atomicRanges.polymerRanges
         this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex as ArrayLike<ElementIndex> // can assume it won't be -1 for polymer residues
         this.directionFromElementIndex = unit.model.atomicHierarchy.derived.residue.directionFromElementIndex
         this.directionToElementIndex = unit.model.atomicHierarchy.derived.residue.directionToElementIndex
         this.moleculeType = unit.model.atomicHierarchy.derived.residue.moleculeType
-        this.cyclicPolymerMap = unit.model.atomicHierarchy.cyclicPolymerMap
+        this.cyclicPolymerMap = unit.model.atomicRanges.cyclicPolymerMap
         this.polymerIt = SortedRanges.transientSegments(this.polymerRanges, unit.elements)
         this.residueIt = Segmentation.transientSegments(this.residueAtomSegments, unit.elements);
         this.value = createPolymerTraceElement(unit)
