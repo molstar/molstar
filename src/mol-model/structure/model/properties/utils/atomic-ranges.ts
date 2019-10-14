@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { AtomicRanges, AtomicIndex, AtomicHierarchy } from '../atomic/hierarchy';
+import { AtomicRanges, AtomicIndex, AtomicHierarchy, AtomicDerivedData } from '../atomic/hierarchy';
 import { Segmentation, Interval } from '../../../../../mol-data/int';
 import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
-import { MoleculeType, isPolymer } from '../../types';
+import { isPolymer } from '../../types';
 import { ElementIndex, ResidueIndex } from '../../indexing';
 import { getAtomIdForAtomRole } from '../../../util';
 import { AtomicConformation } from '../atomic/conformation';
@@ -15,10 +15,12 @@ import { Vec3 } from '../../../../../mol-math/linear-algebra';
 import { Entities } from '../common';
 import StructureSequence from '../sequence';
 
-function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, conformation: AtomicConformation, index: AtomicIndex, moleculeType: ArrayLike<MoleculeType>) {
+function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, conformation: AtomicConformation, index: AtomicIndex, derived: AtomicDerivedData) {
+    const { moleculeType, traceElementIndex, directionFromElementIndex, directionToElementIndex } = derived.residue
     const mtStart = moleculeType[riStart]
     const mtEnd = moleculeType[riEnd]
     if (!isPolymer(mtStart) || !isPolymer(mtEnd)) return false
+    if (traceElementIndex[riStart] === -1 || traceElementIndex[riEnd] === -1) return false
 
     let eiStart = index.findAtomsOnResidue(riStart, getAtomIdForAtomRole(mtStart, 'backboneStart'))
     let eiEnd = index.findAtomsOnResidue(riEnd, getAtomIdForAtomRole(mtEnd, 'backboneEnd'))
@@ -31,7 +33,8 @@ function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, confor
     const { x, y, z } = conformation
     const pStart = Vec3.create(x[eiStart], y[eiStart], z[eiStart])
     const pEnd = Vec3.create(x[eiEnd], y[eiEnd], z[eiEnd])
-    return Vec3.distance(pStart, pEnd) < 10 // TODO better distance check, take into account if protein/nucleic and if coarse
+    const isCoarse = directionFromElementIndex[riStart] === -1 || directionToElementIndex[riStart] === -1 || directionFromElementIndex[riEnd] === -1 || directionToElementIndex[riEnd] === -1
+    return Vec3.distance(pStart, pEnd) < (isCoarse ? 10 : 3)
 }
 
 export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, conformation: AtomicConformation, sequence: StructureSequence): AtomicRanges {
@@ -60,7 +63,7 @@ export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, 
 
         const riStart = hierarchy.residueAtomSegments.index[chainSegment.start]
         const riEnd = hierarchy.residueAtomSegments.index[chainSegment.end - 1]
-        if (areBackboneConnected(riStart, riEnd, conformation, index, moleculeType)) {
+        if (areBackboneConnected(riStart, riEnd, conformation, index, derived)) {
             cyclicPolymerMap.set(riStart, riEnd)
             cyclicPolymerMap.set(riEnd, riStart)
         }
@@ -90,7 +93,7 @@ export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, 
                     } else {
                         const riStart = hierarchy.residueAtomSegments.index[residueSegment.start]
                         const riEnd = hierarchy.residueAtomSegments.index[prevEnd - 1]
-                        if (!areBackboneConnected(riStart, riEnd, conformation, hierarchy.index, moleculeType)) {
+                        if (!areBackboneConnected(riStart, riEnd, conformation, hierarchy.index, derived)) {
                             polymerRanges.push(startIndex, prevEnd - 1)
                             startIndex = residueSegment.start
                         }
