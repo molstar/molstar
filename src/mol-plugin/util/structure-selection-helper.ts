@@ -112,19 +112,33 @@ const branchedConnectedOnly = MS.struct.modifier.union([
 ])
 
 const ligand = MS.struct.modifier.union([
-    MS.struct.generator.atomGroups({
-        'entity-test': MS.core.logic.and([
-            MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
-            MS.core.logic.not([MS.core.str.match([
-                MS.re('oligosaccharide', 'i'),
-                MS.ammp('entitySubtype')
-            ])])
+    MS.struct.combinator.merge([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': MS.core.logic.and([
+                    MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+                    MS.core.logic.not([MS.core.str.match([
+                        MS.re('oligosaccharide', 'i'),
+                        MS.ammp('entitySubtype')
+                    ])])
+                ]),
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': MS.core.logic.not([
+                    MS.core.str.match([MS.re('saccharide', 'i'), MS.ammp('chemCompType')])
+                ])
+            })
         ]),
-        'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-        'residue-test': MS.core.logic.not([
-            MS.core.str.match([MS.re('saccharide', 'i'), MS.ammp('chemCompType')])
+        // this is to get non-polymer components in polymer entities, e.g. PXZ in 4HIV
+        // one option to optimize this is to expose `_entity_poly.nstd_monomer` in molql
+        // and only check those entities residue by residue
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': MS.core.str.match([MS.re('non-polymer', 'i'), MS.ammp('chemCompType')])
+            })
         ])
-    })
+    ]),
 ])
 
 // don't innclude branched entities as they have their own link representation
