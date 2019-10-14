@@ -141,7 +141,7 @@ const ligand = MS.struct.modifier.union([
     ]),
 ])
 
-// don't innclude branched entities as they have their own link representation
+// don't include branched entities as they have their own link representation
 const ligandPlusConnected = MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.modifier.union([
@@ -153,6 +153,21 @@ const ligandPlusConnected = MS.struct.modifier.union([
         ]),
         by: branched
     })
+])
+
+const ligandConnectedOnly = MS.struct.modifier.union([
+    MS.struct.modifier.exceptBy({
+        0: ligandPlusConnected,
+        by: ligand
+    })
+])
+
+// residues connected to ligands or branched entities
+const connectedOnly = MS.struct.modifier.union([
+    MS.struct.combinator.merge([
+        branchedConnectedOnly,
+        ligandConnectedOnly
+    ]),
 ])
 
 const modified = MS.struct.modifier.union([
@@ -183,6 +198,8 @@ export const StructureSelectionQueries = {
     branchedConnectedOnly,
     ligand,
     ligandPlusConnected,
+    ligandConnectedOnly,
+    connectedOnly,
     modified,
     coarse,
 }
