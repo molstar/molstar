@@ -37,6 +37,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
 
             switch (loci.kind) {
                 case 'element-loci':
+                    if (loci.elements.length === 0) return void 0;
                     const e = loci.elements[0];
                     const u = e.unit;
                     if (!u.model.customProperties.has(StructureQualityReport.Descriptor)) return void 0;

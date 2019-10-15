@@ -11,14 +11,18 @@ import { PluginCommands } from '../../mol-plugin/command';
 import { StateTransforms } from '../../mol-plugin/state/transforms';
 import { StructureRepresentation3DHelpers } from '../../mol-plugin/state/transforms/representation';
 import { Color } from '../../mol-util/color';
-import { PluginStateObject as PSO } from '../../mol-plugin/state/objects';
+import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin/state/objects';
 import { AnimateModelIndex } from '../../mol-plugin/state/animation/built-in';
 import { StateBuilder, StateTransform } from '../../mol-state';
 import { StripedResidues } from './coloring';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 // import { BasicWrapperControls } from './controls';
 import { StaticSuperpositionTestData, buildStaticSuperposition, dynamicSuperpositionTest } from './superposition';
 import { PDBeStructureQualityReport } from '../../mol-plugin/behavior/dynamic/custom-props';
 import { CustomToastMessage } from './controls';
+import { EmptyLoci } from '../../mol-model/loci';
+import { compile } from '../../mol-script/runtime/query/compiler';
+import { StructureSelection, QueryContext } from '../../mol-model/structure';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -63,7 +67,7 @@ class BasicWrapper {
     }
 
     private visual(visualRoot: StateBuilder.To<PSO.Molecule.Structure>) {
-        visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
+        visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' }, { ref: 'seq' })
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsStatic(this.plugin, 'cartoon'), { ref: 'seq-visual' });
         visualRoot.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
@@ -141,6 +145,24 @@ class BasicWrapper {
             }
 
             await PluginCommands.State.Update.dispatch(this.plugin, { state, tree });
+        }
+    }
+
+    interactivity = {
+        highlightOn: () => {
+            const seq_id = 7;
+            const query = compile<StructureSelection>(
+                MS.struct.generator.atomGroups({
+                    'residue-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_seq_id(), seq_id]),
+                    'group-by': MS.struct.atomProperty.macromolecular.residueKey()
+                }));
+            const data = (this.plugin.state.dataState.select('asm')[0].obj as PluginStateObject.Molecule.Structure).data;
+            const sel = query(new QueryContext(data));
+            const loci = StructureSelection.toLoci2(sel);
+            this.plugin.interactivity.lociHighlights.highlightOnly({ loci });
+        },
+        clearHighlight: () => {
+            this.plugin.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
         }
     }
 

@@ -117,7 +117,7 @@ namespace CustomElementProperty {
         function LabelProvider(loci: Loci): string | undefined {
             if (loci.kind === 'element-loci') {
                 const e = loci.elements[0];
-                if (!has(e.unit.model)) return void 0;
+                if (!e || !has(e.unit.model)) return void 0;
                 return params.format!(get(StructureElement.Location.create(e.unit, e.unit.elements[OrderedSet.getAt(e.indices, 0)])));
             }
             return void 0;

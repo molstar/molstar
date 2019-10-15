@@ -105,6 +105,10 @@
 
             addControl('Apply Stripes', () => BasicMolStarWrapper.coloring.applyStripes());
 
+            addHeader('Interactivity');
+            addControl('Highlight seq_id=7', () => BasicMolStarWrapper.interactivity.highlightOn());
+            addControl('Clear Highlight', () => BasicMolStarWrapper.interactivity.clearHighlight());
+
             addHeader('Tests');
 
             addControl('Static Superposition', () => BasicMolStarWrapper.tests.staticSuperposition());
