@@ -43,6 +43,6 @@ namespace Script {
     export function toLoci(script: Script, structure: Structure): StructureElement.Loci {
         const query = toQuery(script)
         const result = query(new QueryContext(structure))
-        return StructureSelection.toLoci2(result)
+        return StructureSelection.toLociWithSourceUnits(result)
     }
 }

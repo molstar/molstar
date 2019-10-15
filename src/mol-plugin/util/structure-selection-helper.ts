@@ -242,7 +242,7 @@ export class StructureSelectionHelper {
         for (const so of this.structures) {
             const s = so.obj!.data
             const result = compiled(new QueryContext(s))
-            const loci = StructureSelection.toLoci2(result)
+            const loci = StructureSelection.toLociWithSourceUnits(result)
             this._set(modifier, loci)
         }
     }

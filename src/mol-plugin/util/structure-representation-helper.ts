@@ -100,7 +100,7 @@ export class StructureRepresentationHelper {
         return this.set(modifier, type, (structure) => {
             const compiled = compile<StructureSelection>(expression)
             const result = compiled(new QueryContext(structure))
-            return StructureSelection.toLoci2(result)
+            return StructureSelection.toLociWithSourceUnits(result)
         }, props)
     }
 

@@ -58,7 +58,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
     getLoci(seqIdx: number) {
         const query = createResidueQuery(this.data.unit.id, this.seqId(seqIdx));
-        return StructureSelection.toLoci2(StructureQuery.run(query, this.data.structure));
+        return StructureSelection.toLociWithSourceUnits(StructureQuery.run(query, this.data.structure));
     }
 
     constructor(data: StructureUnit) {

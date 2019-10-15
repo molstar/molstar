@@ -158,7 +158,7 @@ class BasicWrapper {
                 }));
             const data = (this.plugin.state.dataState.select('asm')[0].obj as PluginStateObject.Molecule.Structure).data;
             const sel = query(new QueryContext(data));
-            const loci = StructureSelection.toLoci2(sel);
+            const loci = StructureSelection.toLociWithSourceUnits(sel);
             this.plugin.interactivity.lociHighlights.highlightOnly({ loci });
         },
         clearHighlight: () => {

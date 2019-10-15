@@ -86,7 +86,7 @@ export async function dynamicSuperpositionTest(ctx: PluginContext, src: string[]
 
     const query = compile<StructureSelection>(pivot);
     const xs = state.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure));
-    const selections = xs.map(s => StructureSelection.toLoci(query(new QueryContext(s.obj!.data))));
+    const selections = xs.map(s => StructureSelection.toLociWithCurrentUnits(query(new QueryContext(s.obj!.data))));
 
     const transforms = superposeStructures(selections);
     const visuals = state.build();

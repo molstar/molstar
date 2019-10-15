@@ -35,7 +35,8 @@ namespace StructureSelection {
         return structureUnion(sel.source, sel.structures);
     }
 
-    export function toLoci(sel: StructureSelection): StructureElement.Loci {
+    /** Convert selection to loci and use "current structure units" in Loci elements */
+    export function toLociWithCurrentUnits(sel: StructureSelection): StructureElement.Loci {
         const elements: { unit: Unit, indices: OrderedSet<StructureElement.UnitIndex> }[] = [];
         const { unitMap } = sel.source;
 
@@ -57,7 +58,7 @@ namespace StructureSelection {
     }
 
     /** use source unit in loci.elements */
-    export function toLoci2(sel: StructureSelection): StructureElement.Loci {
+    export function toLociWithSourceUnits(sel: StructureSelection): StructureElement.Loci {
         const elements: { unit: Unit, indices: OrderedSet<StructureElement.UnitIndex> }[] = [];
         const { unitMap } = sel.source;
 
