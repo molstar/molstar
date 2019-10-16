@@ -15,6 +15,7 @@ import { VdwRadius, AtomWeight, AtomNumber } from '../../../mol-model/structure/
 import { cantorPairing } from '../../../mol-data/util';
 import C = QuerySymbolRuntime.Const
 import D = QuerySymbolRuntime.Dynamic
+import { bundleElementImpl, bundleGenerator } from '../../../mol-model/structure/query/queries/internal';
 
 const symbols = [
     // ============= TYPES =============
@@ -320,6 +321,12 @@ const symbols = [
     // ============= BOND PROPERTIES ================
     D(MolScript.structureQuery.linkProperty.order, (ctx, xs) => ctx.atomicLink.order),
     D(MolScript.structureQuery.linkProperty.flags, (ctx, xs) => ctx.atomicLink.type),
+
+
+    ////////////////////////////////////
+    // Internal
+    D(MolScript.internal.generator.bundleElement, (ctx, xs) => bundleElementImpl(xs.groupedUnits(ctx), xs.ranges(ctx), xs.set(ctx))),
+    D(MolScript.internal.generator.bundle, (ctx, xs) => bundleGenerator(xs.elements(ctx))),
 ];
 
 function atomProp(p: (e: StructureElement.Location) => any): (ctx: QueryContext, _: any) => any {

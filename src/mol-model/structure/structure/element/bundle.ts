@@ -12,8 +12,10 @@ import { hashFnv32a, hash2 } from '../../../../mol-data/util';
 import SortedRanges from '../../../../mol-data/int/sorted-ranges';
 import { UnitIndex } from './element';
 import { Loci } from './loci';
+import Expression from '../../../../mol-script/language/expression';
+import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
 
-interface BundleElement {
+export interface BundleElement {
     /**
      * Array (sorted by first element in sub-array) of
      * arrays of `Unit.id`s that share the same `Unit.invariantId`
@@ -190,6 +192,21 @@ export namespace Bundle {
             }
         }
         return Structure.create(units, { parent })
+    }
+
+
+    function elementToExpression(e: BundleElement): Expression {
+        return MS.internal.generator.bundleElement({
+            groupedUnits: MS.core.type.list(e.groupedUnits.map(u => MS.core.type.list(u))),
+            ranges: MS.core.type.list(e.ranges),
+            set: MS.core.type.list(e.set),
+        })
+    }
+
+    export function toExpression(bundle: Bundle): Expression {
+        return MS.internal.generator.bundle({
+            elements: MS.core.type.list(bundle.elements.map(elementToExpression))
+        });
     }
 
     export function areEqual(a: Bundle, b: Bundle) {

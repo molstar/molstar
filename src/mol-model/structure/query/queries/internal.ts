@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Segmentation } from '../../../../mol-data/int';
+import { Segmentation, SortedArray } from '../../../../mol-data/int';
 import StructureElement from '../../../../mol-model/structure/structure/element';
 import { StructureProperties as P, Unit } from '../../structure';
 import Structure from '../../structure/structure';
@@ -12,6 +12,8 @@ import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { QueryContext } from '../context';
 import { LinkType } from '../../model/types';
+import { BundleElement, Bundle } from '../../structure/element/bundle';
+import { UnitIndex } from '../../structure/element/element';
 
 export function defaultLinkTest(ctx: QueryContext) {
     return LinkType.isCovalent(ctx.atomicLink.type);
@@ -104,5 +106,24 @@ export function spheres(): StructureQuery {
             units.push(unit);
         }
         return StructureSelection.Singletons(inputStructure, new Structure(units, { parent: inputStructure }));
+    };
+}
+
+export function bundleElementImpl(groupedUnits: number[][], ranges: number[], set: number[]): BundleElement {
+    return {
+        groupedUnits: groupedUnits as any as SortedArray<number>[],
+        ranges: ranges as any as SortedArray<UnitIndex>,
+        set: set as any as SortedArray<UnitIndex>
+    };
+}
+
+export function bundleGenerator(elements: BundleElement[]): StructureQuery {
+    return ctx => {
+        const bundle: Bundle = {
+            hash: ctx.inputStructure.hashCode,
+            elements
+        };
+
+        return StructureSelection.Sequence(ctx.inputStructure, [Bundle.toStructure(bundle, ctx.inputStructure)]);
     };
 }

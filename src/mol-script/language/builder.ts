@@ -11,6 +11,7 @@ import { MolScriptSymbolTable as SymbolTable } from './symbol-table'
 export namespace MolScriptBuilder {
     export const core = SymbolTable.core;
     export const struct = SymbolTable.structureQuery;
+    export const internal = SymbolTable.internal;
 
     /** Atom-name constructor */
     export function atomName(s: string) { return struct.type.atomName([s]); }
