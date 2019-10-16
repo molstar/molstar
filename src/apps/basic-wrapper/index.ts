@@ -19,7 +19,8 @@ import { StaticSuperpositionTestData, buildStaticSuperposition, dynamicSuperposi
 import { PDBeStructureQualityReport } from '../../mol-plugin/behavior/dynamic/custom-props';
 import { CustomToastMessage } from './controls';
 import { EmptyLoci } from '../../mol-model/loci';
-import { StructureSelection, StructureQuery } from '../../mol-model/structure';
+import { StructureSelection } from '../../mol-model/structure';
+import { Script } from '../../mol-script/script';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -149,7 +150,7 @@ class BasicWrapper {
         highlightOn: () => {
             const seq_id = 7;
             const data = (this.plugin.state.dataState.select('asm')[0].obj as PluginStateObject.Molecule.Structure).data;
-            const sel = StructureQuery.runExpr(Q => Q.struct.generator.atomGroups({
+            const sel = Script.getStructureSelection(Q => Q.struct.generator.atomGroups({
                 'residue-test': Q.core.rel.eq([Q.struct.atomProperty.macromolecular.label_seq_id(), seq_id]),
                 'group-by': Q.struct.atomProperty.macromolecular.residueKey()
             }), data);

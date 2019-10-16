@@ -7,8 +7,9 @@
 import { transpileMolScript } from './script/mol-script/symbols';
 import { parseMolScript } from './language/parser';
 import Expression from './language/expression';
-import { StructureElement, QueryContext, StructureSelection, Structure, QueryFn } from '../mol-model/structure';
+import { StructureElement, QueryContext, StructureSelection, Structure, QueryFn, QueryContextOptions } from '../mol-model/structure';
 import { compile } from './runtime/query/compiler';
+import { MolScriptBuilder } from './language/builder';
 
 export { Script }
 
@@ -44,5 +45,11 @@ namespace Script {
         const query = toQuery(script)
         const result = query(new QueryContext(structure))
         return StructureSelection.toLociWithSourceUnits(result)
+    }
+
+    export function getStructureSelection(expr: Expression | ((builder: typeof MolScriptBuilder) => Expression), structure: Structure, options?: QueryContextOptions) {
+        const e = typeof expr === 'function' ? expr(MolScriptBuilder) : expr;
+        const query = compile<StructureSelection>(e);
+        return query(new QueryContext(structure, options));
     }
 }
