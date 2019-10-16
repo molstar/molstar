@@ -34,7 +34,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
         const params = this.props.params;
         const values = this.props.values;
         const keys = Object.keys(params);
-        if (keys.length === 0) return null;
+        if (keys.length === 0 || values === undefined) return null;
         return <>
             {keys.map(key => {
                 const param = params[key];
