@@ -78,6 +78,17 @@ export namespace Loci {
         return Loci(structure, []);
     }
 
+    export function toStructure(loci: Loci): Structure {
+        const units: Unit[] = []
+        for (const e of loci.elements) {
+            const { unit, indices } = e
+            const elements = new Int32Array(OrderedSet.size(indices))
+            OrderedSet.forEach(indices, (v, i) => elements[i] = unit.elements[v])
+            units.push(unit.getChild(SortedArray.ofSortedArray(elements)))
+        }
+        return Structure.create(units, { parent: loci.structure.parent })
+    }
+
     export function remap(loci: Loci, structure: Structure): Loci {
         if (structure === loci.structure) return loci
 
