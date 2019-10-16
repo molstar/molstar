@@ -161,6 +161,7 @@ class StructureElementSelectionManager {
         if (!entry) return;
 
         let xs = loci.elements[0];
+        if (!xs) return;
         let e: StructureElement.Loci['elements'][0] | undefined;
         for (const _e of entry.selection.elements) {
             if (xs.unit === _e.unit) {

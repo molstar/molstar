@@ -259,7 +259,7 @@ export namespace VolumeStreaming {
         }
 
         private getBoxFromLoci(loci: StructureElement.Loci | EmptyLoci): Box3D {
-            if (isEmptyLoci(loci) || StructureElement.Loci.isEmpty(loci)) {
+            if (Loci.isEmpty(loci)) {
                 return Box3D.empty();
             }
 

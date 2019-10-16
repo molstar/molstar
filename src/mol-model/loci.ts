@@ -16,15 +16,15 @@ import { Structure } from './structure/structure';
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
 export type EveryLoci = typeof EveryLoci
-export function isEveryLoci(x: any): x is EveryLoci {
+export function isEveryLoci(x?: Loci): x is EveryLoci {
     return !!x && x.kind === 'every-loci';
 }
 
 /** A Loci that is empty */
 export const EmptyLoci = { kind: 'empty-loci' as 'empty-loci' }
 export type EmptyLoci = typeof EmptyLoci
-export function isEmptyLoci(x: Loci): x is EmptyLoci {
-    return !!x && (x.kind === 'empty-loci' || (x.kind === 'element-loci' && x.elements.length === 0));
+export function isEmptyLoci(x?: Loci): x is EmptyLoci {
+    return !!x && x.kind === 'empty-loci';
 }
 
 /** A generic data loci */
@@ -34,7 +34,7 @@ export interface DataLoci {
     readonly tag: string
     readonly indices: OrderedSet<number>
 }
-export function isDataLoci(x: any): x is DataLoci {
+export function isDataLoci(x?: Loci): x is DataLoci {
     return !!x && x.kind === 'data-loci';
 }
 export function areDataLociEqual(a: DataLoci, b: DataLoci) {
@@ -76,7 +76,11 @@ namespace Loci {
         return false
     }
 
-    export function isEmpty(loci: Loci): boolean {
+    export function isEvery(loci?: Loci): loci is EveryLoci {
+        return !!loci && loci.kind === 'every-loci';
+    }
+
+    export function isEmpty(loci: Loci): loci is EmptyLoci {
         if (isEveryLoci(loci)) return false
         if (isEmptyLoci(loci)) return true
         if (isDataLoci(loci)) return isDataLociEmpty(loci)
