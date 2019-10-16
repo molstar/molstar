@@ -45,7 +45,7 @@ export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, 
     const residueIt = Segmentation.transientSegments(hierarchy.residueAtomSegments, Interval.ofBounds(0, hierarchy.atoms._rowCount))
     const { index, derived } = hierarchy
     const { label_seq_id } = hierarchy.residues
-    // const { label_entity_id } = hierarchy.chains
+    const { label_entity_id } = hierarchy.chains
     const { moleculeType, traceElementIndex } = derived.residue
 
     let prevSeqId: number
@@ -61,17 +61,19 @@ export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, 
         prevEnd = -1
         startIndex = -1
 
+        const eI = entities.getEntityIndex(label_entity_id.value(chainSegment.index))
+        const seq = sequence.byEntityKey[eI]
+        const maxSeqId = seq ? seq.sequence.seqId.value(seq.sequence.seqId.rowCount - 1) : -1
+
+        // check cyclic peptides, seqIds and distance must be compatible
         const riStart = hierarchy.residueAtomSegments.index[chainSegment.start]
         const riEnd = hierarchy.residueAtomSegments.index[chainSegment.end - 1]
-        if (areBackboneConnected(riStart, riEnd, conformation, index, derived)) {
+        const seqIdStart = label_seq_id.value(riStart)
+        const seqIdEnd = label_seq_id.value(riEnd)
+        if (seqIdStart === 1 && seqIdEnd === maxSeqId && areBackboneConnected(riStart, riEnd, conformation, index, derived)) {
             cyclicPolymerMap.set(riStart, riEnd)
             cyclicPolymerMap.set(riEnd, riStart)
         }
-
-        // TODO
-        // const eI = entities.getEntityIndex(label_entity_id.value(chainSegment.index))
-        // const seq = sequence.byEntityKey[eI]
-        // const maxSeqId = seq ? seq.sequence.seqId.value(seq.sequence.seqId.rowCount - 1) : -1
 
         while (residueIt.hasNext) {
             const residueSegment = residueIt.move();
