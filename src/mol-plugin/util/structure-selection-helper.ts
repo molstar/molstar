@@ -7,7 +7,7 @@
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { StateSelection } from '../../mol-state';
 import { PluginStateObject } from '../state/objects';
-import { QueryContext, StructureSelection, StructureQuery } from '../../mol-model/structure';
+import { QueryContext, StructureSelection, StructureQuery, StructureElement } from '../../mol-model/structure';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
@@ -185,6 +185,17 @@ const coarse = MS.struct.modifier.union([
     })
 ])
 
+const surroundings = MS.struct.modifier.union([
+    MS.struct.modifier.exceptBy({
+        0: MS.struct.modifier.includeSurroundings({
+            0: MS.internal.generator.current(),
+            radius: 5,
+            'as-whole-residues': true
+        }),
+        by: MS.internal.generator.current()
+    })
+])
+
 export const StructureSelectionQueries = {
     all,
     polymer,
@@ -202,6 +213,7 @@ export const StructureSelectionQueries = {
     connectedOnly,
     modified,
     coarse,
+    surroundings,
 }
 
 export const CompiledStructureSelectionQueries = (function () {
@@ -241,7 +253,13 @@ export class StructureSelectionHelper {
 
         for (const so of this.structures) {
             const s = so.obj!.data
-            const result = compiled(new QueryContext(s))
+
+            const current = this.plugin.helpers.structureSelectionManager.get(s)
+            const currentSelection = Loci.isEmpty(current)
+                ? StructureSelection.Empty(s)
+                : StructureSelection.Singletons(s, StructureElement.Loci.toStructure(current))
+
+            const result = compiled(new QueryContext(s, { currentSelection }))
             const loci = StructureSelection.toLociWithSourceUnits(result)
             this._set(modifier, loci)
         }
