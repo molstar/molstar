@@ -57,7 +57,7 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         const queries = structures.map(s => job.queryDefinition.query(job.normalizedParams, s));
         const result: Structure[] = [];
         for (let i = 0; i < structures.length; i++) {
-            const s = await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], Config.maxQueryTimeInMs))
+            const s = await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], { timeoutMs: Config.maxQueryTimeInMs }))
             if (s.elementCount > 0) result.push(s);
         }
         perf.end('query');

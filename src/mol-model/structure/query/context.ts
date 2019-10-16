@@ -9,6 +9,7 @@ import { now } from '../../../mol-util/now';
 import { ElementIndex } from '../model';
 import { Link } from '../structure/unit/links';
 import { LinkType } from '../model/types';
+import { StructureSelection } from './selection';
 
 export interface QueryContextView {
     readonly element: StructureElement.Location;
@@ -32,6 +33,9 @@ export class QueryContext implements QueryContextView {
 
     /** Current link between atoms */
     readonly atomicLink = QueryContextLinkInfo.empty<Unit.Atomic>();
+
+    /** Supply this from the outside. Used by the internal.generator.current symbol */
+    currentSelection: StructureSelection | undefined = void 0;
 
     setElement(unit: Unit, e: ElementIndex) {
         this.element.unit = unit;
@@ -88,10 +92,21 @@ export class QueryContext implements QueryContextView {
         }
     }
 
-    constructor(structure: Structure, timeoutMs = 0) {
-        this.inputStructure = structure;
-        this.timeoutMs = timeoutMs;
+    tryGetCurrentSelection() {
+        if (!this.currentSelection) throw new Error('The current selection is not assigned.');
+        return this.currentSelection;
     }
+
+    constructor(structure: Structure, options?: QueryContextOptions) {
+        this.inputStructure = structure;
+        this.timeoutMs = (options && options.timeoutMs) || 0;
+        this.currentSelection = options && options.currentSelection;
+    }
+}
+
+export interface QueryContextOptions {
+    timeoutMs?: number,
+    currentSelection?: StructureSelection
 }
 
 export interface QueryPredicate { (ctx: QueryContext): boolean }

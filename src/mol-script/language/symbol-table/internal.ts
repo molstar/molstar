@@ -22,6 +22,10 @@ const generator = {
     bundle: symbol(Arguments.Dictionary({
         elements: Argument(Type.Any) // BundleElement[]
     }), Struct.Types.ElementSelectionQuery, 'A selection with single structure containing represented by the bundle.'),
+
+    // Use with caution as this is not "state saveable"
+    // This query should never be used in any State Transform!
+    current: symbol(Arguments.None, Struct.Types.ElementSelectionQuery, 'Current selection provided by the query context. Avoid using this in State Transforms.')
 }
 
 export default {
