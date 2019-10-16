@@ -15,14 +15,11 @@ import { PluginStateObject as PSO, PluginStateObject } from '../../mol-plugin/st
 import { AnimateModelIndex } from '../../mol-plugin/state/animation/built-in';
 import { StateBuilder, StateTransform } from '../../mol-state';
 import { StripedResidues } from './coloring';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-// import { BasicWrapperControls } from './controls';
 import { StaticSuperpositionTestData, buildStaticSuperposition, dynamicSuperpositionTest } from './superposition';
 import { PDBeStructureQualityReport } from '../../mol-plugin/behavior/dynamic/custom-props';
 import { CustomToastMessage } from './controls';
 import { EmptyLoci } from '../../mol-model/loci';
-import { compile } from '../../mol-script/runtime/query/compiler';
-import { StructureSelection, QueryContext } from '../../mol-model/structure';
+import { StructureSelection, StructureQuery } from '../../mol-model/structure';
 require('mol-plugin/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
@@ -151,13 +148,11 @@ class BasicWrapper {
     interactivity = {
         highlightOn: () => {
             const seq_id = 7;
-            const query = compile<StructureSelection>(
-                MS.struct.generator.atomGroups({
-                    'residue-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_seq_id(), seq_id]),
-                    'group-by': MS.struct.atomProperty.macromolecular.residueKey()
-                }));
             const data = (this.plugin.state.dataState.select('asm')[0].obj as PluginStateObject.Molecule.Structure).data;
-            const sel = query(new QueryContext(data));
+            const sel = StructureQuery.runExpr(Q => Q.struct.generator.atomGroups({
+                'residue-test': Q.core.rel.eq([Q.struct.atomProperty.macromolecular.label_seq_id(), seq_id]),
+                'group-by': Q.struct.atomProperty.macromolecular.residueKey()
+            }), data);
             const loci = StructureSelection.toLociWithSourceUnits(sel);
             this.plugin.interactivity.lociHighlights.highlightOnly({ loci });
         },
