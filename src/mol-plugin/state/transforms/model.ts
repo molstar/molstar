@@ -28,7 +28,7 @@ import { ensureSecondaryStructure } from './helpers';
 import { Script } from '../../../mol-script/script';
 import { parse3DG } from '../../../mol-io/reader/3dg/parser';
 import { trajectoryFrom3DG } from '../../../mol-model-formats/structure/3dg';
-import { CompiledStructureSelectionQueries } from '../../util/structure-selection-helper';
+import { StructureSelectionQueries } from '../../util/structure-selection-helper';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -564,18 +564,18 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
 
         let query: StructureQuery, label: string;
         switch (params.type) {
-            case 'protein-and-nucleic': query = CompiledStructureSelectionQueries.proteinAndNucleic; label = 'Sequence'; break;
+            case 'protein-and-nucleic': query = StructureSelectionQueries.proteinAndNucleic.query; label = 'Sequence'; break;
 
-            case 'protein': query = CompiledStructureSelectionQueries.protein; label = 'Protein'; break;
-            case 'nucleic': query = CompiledStructureSelectionQueries.nucleic; label = 'Nucleic'; break;
+            case 'protein': query = StructureSelectionQueries.protein.query; label = 'Protein'; break;
+            case 'nucleic': query = StructureSelectionQueries.nucleic.query; label = 'Nucleic'; break;
             case 'water': query = Queries.internal.water(); label = 'Water'; break;
 
-            case 'branched': query = CompiledStructureSelectionQueries.branchedPlusConnected; label = 'Branched'; break;
-            case 'ligand': query = CompiledStructureSelectionQueries.ligandPlusConnected; label = 'Ligand'; break;
+            case 'branched': query = StructureSelectionQueries.branchedPlusConnected.query; label = 'Branched'; break;
+            case 'ligand': query = StructureSelectionQueries.ligandPlusConnected.query; label = 'Ligand'; break;
 
-            case 'modified': query = CompiledStructureSelectionQueries.modified; label = 'Modified'; break;
+            case 'modified': query = StructureSelectionQueries.modified.query; label = 'Modified'; break;
 
-            case 'coarse': query = CompiledStructureSelectionQueries.coarse; label = 'Coarse'; break;
+            case 'coarse': query = StructureSelectionQueries.coarse.query; label = 'Coarse'; break;
 
             case 'atomic-sequence': query = Queries.internal.atomicSequence(); label = 'Sequence'; break;
             case 'atomic-het': query = Queries.internal.atomicHet(); label = 'HET Groups/Ligands'; break;

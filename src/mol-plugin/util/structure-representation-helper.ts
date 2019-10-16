@@ -199,34 +199,42 @@ export class StructureRepresentationHelper {
 
 async function polymerAndLigand(r: StructureRepresentationHelper) {
     await r.clear()
-    await r.setFromExpression('add', 'cartoon', Q.all)
-    await r.setFromExpression('add', 'carbohydrate', Q.all)
+    await r.setFromExpression('add', 'cartoon', Q.all.expression)
+    await r.setFromExpression('add', 'carbohydrate', Q.all.expression)
     await r.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
-        MS.struct.combinator.merge([ Q.ligandPlusConnected, Q.branchedConnectedOnly, Q.water ])
+        MS.struct.combinator.merge([
+            Q.ligandPlusConnected.expression,
+            Q.branchedConnectedOnly.expression,
+            Q.water.expression
+        ])
     ]))
 }
 
 async function proteinAndNucleic(r: StructureRepresentationHelper) {
     await r.clear()
-    await r.setFromExpression('add', 'cartoon', Q.protein)
-    await r.setFromExpression('add', 'gaussian-surface', Q.nucleic)
+    await r.setFromExpression('add', 'cartoon', Q.protein.expression)
+    await r.setFromExpression('add', 'gaussian-surface', Q.nucleic.expression)
 
-    await r.setFromExpression('add', 'carbohydrate', Q.all)
+    await r.setFromExpression('add', 'carbohydrate', Q.all.expression)
     await r.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
-        MS.struct.combinator.merge([ Q.ligandPlusConnected, Q.branchedConnectedOnly, Q.water ])
+        MS.struct.combinator.merge([
+            Q.ligandPlusConnected.expression,
+            Q.branchedConnectedOnly.expression,
+            Q.water.expression
+        ])
     ]))
 }
 
 async function capsid(r: StructureRepresentationHelper) {
     await r.clear()
-    await r.setFromExpression('add', 'gaussian-surface', Q.polymer, {
+    await r.setFromExpression('add', 'gaussian-surface', Q.polymer.expression, {
         smoothness: 0.5,
     })
 }
 
 async function coarseCapsid(r: StructureRepresentationHelper) {
     await r.clear()
-    await r.setFromExpression('add', 'gaussian-surface', Q.trace, {
+    await r.setFromExpression('add', 'gaussian-surface', Q.trace.expression, {
         radiusOffset: 1,
         smoothness: 0.5,
         visuals: ['structure-gaussian-surface-mesh']

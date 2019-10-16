@@ -13,15 +13,26 @@ import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
 import Expression from '../../mol-script/language/expression';
 
-const all = MS.struct.generator.all()
+export interface StructureSelectionQuery {
+    label: string
+    query: StructureQuery
+    expression: Expression
+    description: string
+}
 
-const polymer = MS.struct.modifier.union([
+export function StructureSelectionQuery(label: string, expression: Expression, description = ''): StructureSelectionQuery {
+    return { label, expression, query: compile<StructureSelection>(expression), description }
+}
+
+const all = StructureSelectionQuery('All', MS.struct.generator.all())
+
+const polymer = StructureSelectionQuery('Polymer', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
     })
-])
+]))
 
-const trace = MS.struct.modifier.union([
+const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
     MS.struct.combinator.merge([
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
@@ -39,9 +50,9 @@ const trace = MS.struct.modifier.union([
             })
         ])
     ])
-])
+]))
 
-const protein = MS.struct.modifier.union([
+const protein = StructureSelectionQuery('Protein', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.and([
             MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
@@ -51,9 +62,9 @@ const protein = MS.struct.modifier.union([
             ])
         ])
     })
-])
+]))
 
-const nucleic = MS.struct.modifier.union([
+const nucleic = StructureSelectionQuery('Nucleic', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.and([
             MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
@@ -63,9 +74,9 @@ const nucleic = MS.struct.modifier.union([
             ])
         ])
     })
-])
+]))
 
-const proteinAndNucleic = MS.struct.modifier.union([
+const proteinAndNucleic = StructureSelectionQuery('Protein | Nucleic', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.and([
             MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
@@ -75,15 +86,15 @@ const proteinAndNucleic = MS.struct.modifier.union([
             ])
         ])
     })
-])
+]))
 
-const water = MS.struct.modifier.union([
+const water = StructureSelectionQuery('Water', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'water'])
     })
-])
+]))
 
-const branched = MS.struct.modifier.union([
+const branched = StructureSelectionQuery('Carbohydrate', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.or([
             MS.core.rel.eq([MS.ammp('entityType'), 'branched']),
@@ -96,22 +107,22 @@ const branched = MS.struct.modifier.union([
             ])
         ])
     })
-])
+]))
 
-const branchedPlusConnected = MS.struct.modifier.union([
+const branchedPlusConnected = StructureSelectionQuery('Carbohydrate with Connected', MS.struct.modifier.union([
     MS.struct.modifier.includeConnected({
-        0: branched, 'layer-count': 1, 'as-whole-residues': true
+        0: branched.expression, 'layer-count': 1, 'as-whole-residues': true
     })
-])
+]))
 
-const branchedConnectedOnly = MS.struct.modifier.union([
+const branchedConnectedOnly = StructureSelectionQuery('Connected to Carbohydrate', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
-        0: branchedPlusConnected,
-        by: branched
+        0: branchedPlusConnected.expression,
+        by: branched.expression
     })
-])
+]))
 
-const ligand = MS.struct.modifier.union([
+const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
     MS.struct.combinator.merge([
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
@@ -139,53 +150,53 @@ const ligand = MS.struct.modifier.union([
             })
         ])
     ]),
-])
+]))
 
 // don't include branched entities as they have their own link representation
-const ligandPlusConnected = MS.struct.modifier.union([
+const ligandPlusConnected = StructureSelectionQuery('Ligand with Connected', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.modifier.union([
             MS.struct.modifier.includeConnected({
-                0: ligand,
+                0: ligand.expression,
                 'layer-count': 1,
                 'as-whole-residues': true
             })
         ]),
-        by: branched
+        by: branched.expression
     })
-])
+]))
 
-const ligandConnectedOnly = MS.struct.modifier.union([
+const ligandConnectedOnly = StructureSelectionQuery('Connected to Ligand', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
-        0: ligandPlusConnected,
-        by: ligand
+        0: ligandPlusConnected.expression,
+        by: ligand.expression
     })
-])
+]))
 
 // residues connected to ligands or branched entities
-const connectedOnly = MS.struct.modifier.union([
+const connectedOnly = StructureSelectionQuery('Connected to Ligand | Carbohydrate', MS.struct.modifier.union([
     MS.struct.combinator.merge([
-        branchedConnectedOnly,
-        ligandConnectedOnly
+        branchedConnectedOnly.expression,
+        ligandConnectedOnly.expression
     ]),
-])
+]))
 
-const modified = MS.struct.modifier.union([
+const modified = StructureSelectionQuery('Modified Residues', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
         'residue-test': MS.ammp('isModified')
     })
-])
+]))
 
-const coarse = MS.struct.modifier.union([
+const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'chain-test': MS.core.set.has([
             MS.set('sphere', 'gaussian'), MS.ammp('objectPrimitive')
         ])
     })
-])
+]))
 
-const surroundings = MS.struct.modifier.union([
+const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B)', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.modifier.includeSurroundings({
             0: MS.internal.generator.current(),
@@ -194,7 +205,14 @@ const surroundings = MS.struct.modifier.union([
         }),
         by: MS.internal.generator.current()
     })
-])
+]), 'Select residues within 5 \u212B of the current selection.')
+
+const complement = StructureSelectionQuery('Complement', MS.struct.modifier.union([
+    MS.struct.modifier.exceptBy({
+        0: MS.struct.generator.all(),
+        by: MS.internal.generator.current()
+    })
+]), 'Select everything not in the current selection.')
 
 export const StructureSelectionQueries = {
     all,
@@ -214,15 +232,8 @@ export const StructureSelectionQueries = {
     modified,
     coarse,
     surroundings,
+    complement,
 }
-
-export const CompiledStructureSelectionQueries = (function () {
-    const ret: { [K in keyof typeof StructureSelectionQueries]: StructureQuery } = Object.create(null);
-    for (const k of Object.keys(StructureSelectionQueries)) {
-        (ret as any)[k] = compile<StructureSelection>((StructureSelectionQueries as any)[k]);
-    }
-    return ret;
-})();
 
 //
 
@@ -248,9 +259,7 @@ export class StructureSelectionHelper {
         }
     }
 
-    set(modifier: SelectionModifier, query: Expression) {
-        const compiled = compile<StructureSelection>(query)
-
+    set(modifier: SelectionModifier, query: StructureQuery) {
         for (const so of this.structures) {
             const s = so.obj!.data
 
@@ -259,7 +268,7 @@ export class StructureSelectionHelper {
                 ? StructureSelection.Empty(s)
                 : StructureSelection.Singletons(s, StructureElement.Loci.toStructure(current))
 
-            const result = compiled(new QueryContext(s, { currentSelection }))
+            const result = query(new QueryContext(s, { currentSelection }))
             const loci = StructureSelection.toLociWithSourceUnits(result)
             this._set(modifier, loci)
         }

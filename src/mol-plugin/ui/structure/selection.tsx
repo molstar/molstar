@@ -12,7 +12,6 @@ import { PluginCommands } from '../../command';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Interactivity } from '../../util/interactivity';
 import { ParameterControls } from '../controls/parameters';
-import { camelCaseToWords } from '../../../mol-util/string';
 
 const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,
@@ -66,7 +65,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     set = (modifier: SelectionModifier, value: string) => {
         const query = StructureSelectionQueries[value as keyof typeof StructureSelectionQueries]
-        this.plugin.helpers.structureSelection.set(modifier, query)
+        this.plugin.helpers.structureSelection.set(modifier, query.query)
     }
 
     add = (value: string) => this.set('add', value)
@@ -86,7 +85,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     renderControls() {
         const queries = Object.keys(StructureSelectionQueries).map(name => {
-            return [name, camelCaseToWords(name)] as [string, string]
+            return [name, StructureSelectionQueries[name as keyof typeof StructureSelectionQueries].label] as [string, string]
         })
 
         return <div>
