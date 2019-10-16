@@ -2,6 +2,7 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginStateObject } from '../../../state/objects';
@@ -12,13 +13,16 @@ export class VolumeServerInfo extends PluginStateObject.Create<VolumeServerInfo.
 
 export namespace VolumeServerInfo {
     export type Kind = 'x-ray' | 'em'
-    export interface Data  {
-        serverUrl: string,
+    export interface EntryData  {
         kind: Kind,
         // for em, the EMDB access code, for x-ray, the PDB id
         dataId: string,
         header: VolumeServerHeader,
         emDefaultContourLevel?: VolumeIsoValue,
+    }
+    export interface Data {
+        serverUrl: string,
+        entries: EntryData[],
         structure: Structure
     }
 }

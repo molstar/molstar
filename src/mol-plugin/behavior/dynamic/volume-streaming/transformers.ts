@@ -14,7 +14,7 @@ import { urlCombine } from '../../../../mol-util/url';
 import { createIsoValueParam } from '../../../../mol-repr/volume/isosurface';
 import { VolumeIsoValue } from '../../../../mol-model/volume';
 import { StateAction, StateObject, StateTransformer } from '../../../../mol-state';
-import { getStreamingMethod, getId, getContourLevel, getEmdbId } from './util';
+import { getStreamingMethod, getIds, getContourLevel, getEmdbIds } from './util';
 import { VolumeStreaming } from './behavior';
 import { VolumeRepresentation3DHelpers } from '../../../../mol-plugin/state/transforms/representation';
 import { BuiltInVolumeRepresentations } from '../../../../mol-repr/volume/registry';
@@ -22,15 +22,24 @@ import { createTheme } from '../../../../mol-theme/theme';
 import { Box3D } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 
+function addEntry(entries: InfoEntryProps[], method: VolumeServerInfo.Kind, dataId: string, emDefaultContourLevel: number) {
+    entries.push({
+        source: method === 'em'
+            ? { name: 'em', params: { isoValue: VolumeIsoValue.absolute(emDefaultContourLevel || 0) } }
+            : { name: 'x-ray', params: { } },
+        dataId
+    })
+}
+
 export const InitVolumeStreaming = StateAction.build({
     display: { name: 'Volume Streaming' },
     from: SO.Molecule.Structure,
     params(a) {
         const method = getStreamingMethod(a && a.data);
-        const id = getId(a && a.data);
+        const ids = getIds(method, a && a.data);
         return {
             method: PD.Select<VolumeServerInfo.Kind>(method, [['em', 'EM'], ['x-ray', 'X-Ray']]),
-            id: PD.Text(id),
+            entries: PD.ObjectList({ id: PD.Text(ids[0] || '') }, ({ id }) => id, { defaultValue: ids.map(id => ({ id })) }),
             serverUrl: PD.Text('https://ds.litemol.org'),
             defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
             behaviorRef: PD.Text('', { isHidden: true }),
@@ -40,23 +49,35 @@ export const InitVolumeStreaming = StateAction.build({
     },
     isApplicable: (a) => a.data.models.length === 1
 })(({ ref, state, params }, plugin: PluginContext) => Task.create('Volume Streaming', async taskCtx => {
-    let dataId = params.id.toLowerCase(), emDefaultContourLevel: number | undefined;
-    if (params.method === 'em') {
-        await taskCtx.update('Getting EMDB info...');
-        if (!dataId.toUpperCase().startsWith('EMD')) {
-            dataId = await getEmdbId(plugin, taskCtx, dataId)
+    const entries: InfoEntryProps[] = []
+
+    for (let i = 0, il = params.entries.length; i < il; ++i) {
+        let dataId = params.entries[i].id.toLowerCase()
+        let emDefaultContourLevel: number | undefined;
+
+        if (params.method === 'em') {
+            // if pdb ids are given for method 'em', get corresponding emd ids
+            // and continue the loop
+            if (!dataId.toUpperCase().startsWith('EMD')) {
+                await taskCtx.update('Getting EMDB info...');
+                const emdbIds = await getEmdbIds(plugin, taskCtx, dataId)
+                for (let j = 0, jl = emdbIds.length; j < jl; ++j) {
+                    const emdbId = emdbIds[j]
+                    const contourLevel = await getContourLevel(params.emContourProvider, plugin, taskCtx, emdbId)
+                    addEntry(entries, params.method, emdbId, contourLevel || 0)
+                }
+                continue;
+            }
+            emDefaultContourLevel = await getContourLevel(params.emContourProvider, plugin, taskCtx, dataId);
         }
-        const contourLevel = await getContourLevel(params.emContourProvider, plugin, taskCtx, dataId);
-        emDefaultContourLevel = contourLevel || 0;
+
+        addEntry(entries, params.method, dataId, emDefaultContourLevel || 0)
     }
 
     const infoTree = state.build().to(ref)
         .apply(CreateVolumeStreamingInfo, {
             serverUrl: params.serverUrl,
-            source: params.method === 'em'
-                ? { name: 'em', params: { isoValue: VolumeIsoValue.absolute(emDefaultContourLevel || 0) } }
-                : { name: 'x-ray', params: { } },
-            dataId
+            entries
         });
 
     const infoObj = await state.updateTree(infoTree).runInContext(taskCtx);
@@ -78,25 +99,42 @@ export const InitVolumeStreaming = StateAction.build({
 export const BoxifyVolumeStreaming = StateAction.build({
     display: { name: 'Boxify Volume Streaming', description: 'Make the current box permanent.' },
     from: VolumeStreaming,
-    isApplicable: (a) => a.data.params.view.name === 'selection-box'
+    isApplicable: (a) => a.data.params.entry.params.view.name === 'selection-box'
 })(({ a, ref, state }, plugin: PluginContext) => {
     const params = a.data.params;
-    if (params.view.name !== 'selection-box') return;
-    const box = Box3D.create(Vec3.clone(params.view.params.bottomLeft), Vec3.clone(params.view.params.topRight));
-    const r = params.view.params.radius;
+    if (params.entry.params.view.name !== 'selection-box') return;
+    const box = Box3D.create(Vec3.clone(params.entry.params.view.params.bottomLeft), Vec3.clone(params.entry.params.view.params.topRight));
+    const r = params.entry.params.view.params.radius;
     Box3D.expand(box, box, Vec3.create(r, r, r));
     const newParams: VolumeStreaming.Params = {
         ...params,
-        view: {
-            name: 'box' as 'box',
+        entry: {
+            name: params.entry.name,
             params: {
-                bottomLeft: box.min,
-                topRight: box.max
+                ...params.entry.params,
+                view: {
+                    name: 'box' as 'box',
+                    params: {
+                        bottomLeft: box.min,
+                        topRight: box.max
+                    }
+                }
             }
         }
     };
     return state.updateTree(state.build().to(ref).update(newParams));
 });
+
+const InfoEntryParams = {
+    dataId: PD.Text(''),
+    source: PD.MappedStatic('x-ray', {
+        'em': PD.Group({
+            isoValue: createIsoValueParam(VolumeIsoValue.relative(1))
+        }),
+        'x-ray': PD.Group({ })
+    })
+}
+type InfoEntryProps = PD.Values<typeof InfoEntryParams>
 
 export { CreateVolumeStreamingInfo }
 type CreateVolumeStreamingInfo = typeof CreateVolumeStreamingInfo
@@ -108,30 +146,34 @@ const CreateVolumeStreamingInfo = PluginStateTransform.BuiltIn({
     params(a) {
         return {
             serverUrl: PD.Text('https://ds.litemol.org'),
-            source: PD.MappedStatic('x-ray', {
-                'em': PD.Group({
-                    isoValue: createIsoValueParam(VolumeIsoValue.relative(1))
-                }),
-                'x-ray': PD.Group({ })
+            entries: PD.ObjectList<InfoEntryProps>(InfoEntryParams, ({ dataId }) => dataId, {
+                defaultValue: [{ dataId: '', source: { name: 'x-ray', params: {} } }]
             }),
-            dataId: PD.Text('')
         };
     }
 })({
     apply: ({ a, params }, plugin: PluginContext) => Task.create('', async taskCtx => {
-        const dataId = params.dataId;
-        const emDefaultContourLevel = params.source.name === 'em' ? params.source.params.isoValue : VolumeIsoValue.relative(1);
-        await taskCtx.update('Getting server header...');
-        const header = await plugin.fetch<VolumeServerHeader>({ url: urlCombine(params.serverUrl, `${params.source.name}/${dataId.toLocaleLowerCase()}`), type: 'json' }).runInContext(taskCtx);
+        const entries: VolumeServerInfo.EntryData[] = []
+        for (let i = 0, il = params.entries.length; i < il; ++i) {
+            const e = params.entries[i]
+            const dataId = e.dataId;
+            const emDefaultContourLevel = e.source.name === 'em' ? e.source.params.isoValue : VolumeIsoValue.relative(1);
+            await taskCtx.update('Getting server header...');
+            const header = await plugin.fetch<VolumeServerHeader>({ url: urlCombine(params.serverUrl, `${e.source.name}/${dataId.toLocaleLowerCase()}`), type: 'json' }).runInContext(taskCtx);
+            entries.push({
+                dataId,
+                kind: e.source.name,
+                header,
+                emDefaultContourLevel
+            })
+        }
+
         const data: VolumeServerInfo.Data = {
             serverUrl: params.serverUrl,
-            dataId,
-            kind: params.source.name,
-            header,
-            emDefaultContourLevel,
+            entries,
             structure: a.data
         };
-        return new VolumeServerInfo(data, { label: `Volume Server: ${dataId}` });
+        return new VolumeServerInfo(data, { label: 'Volume Server', description: `${entries.map(e => e.dataId). join(', ')}` });
     })
 });
 
@@ -147,17 +189,25 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     }
 })({
     canAutoUpdate: ({ oldParams, newParams }) => {
-        return oldParams.view === newParams.view
-            || newParams.view.name === 'selection-box'
-            || newParams.view.name === 'off';
+        return oldParams.entry.params.view === newParams.entry.params.view
+            || newParams.entry.params.view.name === 'selection-box'
+            || newParams.entry.params.view.name === 'off';
     },
     apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume streaming', async _ => {
         const behavior = new VolumeStreaming.Behavior(plugin, a.data);
         await behavior.update(params);
         return new VolumeStreaming(behavior, { label: 'Volume Streaming', description: behavior.getDescription() });
     }),
-    update({ b, newParams }) {
+    update({ a, b, oldParams, newParams }) {
         return Task.create('Update Volume Streaming', async _ => {
+            if (oldParams.entry.name !== newParams.entry.name) {
+                if ('em' in newParams.entry.params.channels) {
+                    const { emDefaultContourLevel } = b.data.infoMap.get(newParams.entry.name)!
+                    if (emDefaultContourLevel) {
+                        newParams.entry.params.channels['em'].isoValue = emDefaultContourLevel
+                    }
+                }
+            }
             const ret = await b.data.update(newParams) ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
             b.description = b.data.getDescription();
             return ret;

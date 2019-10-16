@@ -55,13 +55,27 @@ export namespace VolumeStreaming {
     }
 
     export function createParams(data?: VolumeServerInfo.Data, defaultView?: ViewTypes, binding?: typeof DefaultBindings) {
+        const map = new Map<string, VolumeServerInfo.EntryData>()
+        if (data) data.entries.forEach(d => map.set(d.dataId, d))
+        const names = data ? data.entries.map(d => [d.dataId, d.dataId] as [string, string]) : []
+        const defaultKey = data ? data.entries[0].dataId : ''
+        return {
+            entry: PD.Mapped<EntryParams>(defaultKey, names, name => PD.Group(createEntryParams(map.get(name)!, defaultView, data && data.structure))),
+            bindings: PD.Value(binding || DefaultBindings, { isHidden: true }),
+        }
+    }
+
+    export type EntryParamDefinition = typeof createEntryParams extends (...args: any[]) => (infer T) ? T : never
+    export type EntryParams = EntryParamDefinition extends PD.Params ? PD.Values<EntryParamDefinition> : {}
+
+    export function createEntryParams(entryData?: VolumeServerInfo.EntryData, defaultView?: ViewTypes, structure?: Structure) {
         // fake the info
-        const info = data || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: VolumeIsoValue.relative(0) };
-        const box = (data && data.structure.boundary.box) || Box3D.empty();
+        const info = entryData || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: VolumeIsoValue.relative(0) };
+        const box = (structure && structure.boundary.box) || Box3D.empty();
 
         return {
             view: PD.MappedStatic(defaultView || (info.kind === 'em' ? 'cell' : 'selection-box'), {
-                'off': PD.Group({}),
+                'off': PD.Group<{}>({}),
                 'box': PD.Group({
                     bottomLeft: PD.Vec3(box.min),
                     topRight: PD.Vec3(box.max),
@@ -85,7 +99,6 @@ export namespace VolumeStreaming {
                     'fo-fc(+ve)': channelParam('Fo-Fc(+ve)', Color(0x33BB33), VolumeIsoValue.relative(3), info.header.sampling[0].valuesInfo[1]),
                     'fo-fc(-ve)': channelParam('Fo-Fc(-ve)', Color(0xBB3333), VolumeIsoValue.relative(-3), info.header.sampling[0].valuesInfo[1]),
                 }, { isFlat: true }),
-            bindings: PD.Value(binding || DefaultBindings, { isHidden: true }),
         };
     }
 
@@ -118,11 +131,16 @@ export namespace VolumeStreaming {
         public params: Params = {} as any;
         private lastLoci: StructureElement.Loci | EmptyLoci = EmptyLoci;
         private ref: string = '';
+        public infoMap: Map<string, VolumeServerInfo.EntryData>
 
         channels: Channels = {}
 
+        public get info () {
+            return this.infoMap.get(this.params.entry.name)!
+        }
+
         private async queryData(box?: Box3D) {
-            let url = urlCombine(this.info.serverUrl, `${this.info.kind}/${this.info.dataId.toLowerCase()}`);
+            let url = urlCombine(this.data.serverUrl, `${this.info.kind}/${this.info.dataId.toLowerCase()}`);
 
             if (box) {
                 const { min: a, max: b } = box;
@@ -132,7 +150,7 @@ export namespace VolumeStreaming {
             } else {
                 url += `/cell`;
             }
-            url += `?detail=${this.params.detailLevel}`;
+            url += `?detail=${this.params.entry.params.detailLevel}`;
 
             let data = LRUCache.get(this.cache, url);
             if (data) {
@@ -165,24 +183,30 @@ export namespace VolumeStreaming {
                 const block = parsed.result.blocks[i];
 
                 const densityServerCif = CIF.schema.densityServer(block);
-                const volume = await this.plugin.runTask(await volumeFromDensityServerData(densityServerCif));
+                const volume = await this.plugin.runTask(volumeFromDensityServerData(densityServerCif));
                 (ret as any)[block.header as any] = volume;
             }
             return ret;
         }
 
         private updateDynamicBox(box: Box3D) {
-            if (this.params.view.name !== 'selection-box') return;
+            if (this.params.entry.params.view.name !== 'selection-box') return;
 
             const state = this.plugin.state.dataState;
             const newParams: Params = {
                 ...this.params,
-                view: {
-                    name: 'selection-box' as 'selection-box',
+                entry: {
+                    name: this.params.entry.name,
                     params: {
-                        radius: this.params.view.params.radius,
-                        bottomLeft: box.min,
-                        topRight: box.max
+                        ...this.params.entry.params,
+                        view: {
+                            name: 'selection-box' as 'selection-box',
+                            params: {
+                                radius: this.params.entry.params.view.params.radius,
+                                bottomLeft: box.min,
+                                topRight: box.max
+                            }
+                        }
                     }
                 }
             };
@@ -214,7 +238,7 @@ export namespace VolumeStreaming {
 
             this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
                 if (!Binding.match((this.params.bindings && this.params.bindings.clickVolumeAroundOnly) || DefaultBindings.clickVolumeAroundOnly, buttons, modifiers)) return;
-                if (this.params.view.name !== 'selection-box') {
+                if (this.params.entry.params.view.name !== 'selection-box') {
                     this.lastLoci = this.getNormalizedLoci(current.loci);
                 } else {
                     this.updateInteraction(current);
@@ -272,34 +296,34 @@ export namespace VolumeStreaming {
         }
 
         async update(params: Params) {
-            const switchedToSelection = params.view.name === 'selection-box' && this.params && this.params.view && this.params.view.name !== 'selection-box';
+            const switchedToSelection = params.entry.params.view.name === 'selection-box' && this.params && this.params.entry && this.params.entry.params && this.params.entry.params.view && this.params.entry.params.view.name !== 'selection-box';
 
             this.params = params;
 
             let box: Box3D | undefined = void 0, emptyData = false;
 
-            switch (params.view.name) {
+            switch (params.entry.params.view.name) {
                 case 'off':
                     emptyData = true;
                     break;
                 case 'box':
-                    box = Box3D.create(params.view.params.bottomLeft, params.view.params.topRight);
+                    box = Box3D.create(params.entry.params.view.params.bottomLeft, params.entry.params.view.params.topRight);
                     emptyData = Box3D.volume(box) < 0.0001;
                     break;
                 case 'selection-box': {
                     if (switchedToSelection) {
                         box = this.getBoxFromLoci(this.lastLoci) || Box3D.empty();
                     } else {
-                        box = Box3D.create(Vec3.clone(params.view.params.bottomLeft), Vec3.clone(params.view.params.topRight));
+                        box = Box3D.create(Vec3.clone(params.entry.params.view.params.bottomLeft), Vec3.clone(params.entry.params.view.params.topRight));
                     }
-                    const r = params.view.params.radius;
+                    const r = params.entry.params.view.params.radius;
                     emptyData = Box3D.volume(box) < 0.0001;
                     Box3D.expand(box, box, Vec3.create(r, r, r));
                     break;
                 }
                 case 'cell':
                     box = this.info.kind === 'x-ray'
-                        ? this.info.structure.boundary.box
+                        ? this.data.structure.boundary.box
                         : void 0;
                     break;
             }
@@ -308,7 +332,7 @@ export namespace VolumeStreaming {
 
             if (!data) return false;
 
-            const info = params.channels as ChannelsInfo;
+            const info = params.entry.params.channels as ChannelsInfo;
 
             if (this.info.kind === 'x-ray') {
                 this.channels['2fo-fc'] = this.createChannel(data['2FO-FC'] || VolumeData.One, info['2fo-fc'], this.info.header.sampling[0].valuesInfo[0]);
@@ -333,14 +357,17 @@ export namespace VolumeStreaming {
         }
 
         getDescription() {
-            if (this.params.view.name === 'selection-box') return 'Selection';
-            if (this.params.view.name === 'box') return 'Static Box';
-            if (this.params.view.name === 'cell') return 'Cell';
+            if (this.params.entry.params.view.name === 'selection-box') return 'Selection';
+            if (this.params.entry.params.view.name === 'box') return 'Static Box';
+            if (this.params.entry.params.view.name === 'cell') return 'Cell';
             return '';
         }
 
-        constructor(public plugin: PluginContext, public info: VolumeServerInfo.Data) {
+        constructor(public plugin: PluginContext, public data: VolumeServerInfo.Data) {
             super(plugin, {} as any);
+
+            this.infoMap = new Map<string, VolumeServerInfo.EntryData>()
+            this.data.entries.forEach(info => this.infoMap.set(info.dataId, info))
         }
     }
 }

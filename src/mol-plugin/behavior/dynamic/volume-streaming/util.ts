@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure } from '../../../../mol-model/structure';
+import { Structure, Model } from '../../../../mol-model/structure';
 import { VolumeServerInfo } from './model';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { RuntimeContext } from '../../../../mol-task';
@@ -25,20 +25,34 @@ export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.
     return 'x-ray';
 }
 
-export function getId(s?: Structure): string {
-    if (!s) return ''
+/** Returns EMD ID when available, otherwise falls back to PDB ID */
+export function getEmIds(model: Model): string[] {
+    const ids: string[] = []
+    if (model.sourceData.kind !== 'mmCIF') return [ model.entryId ]
 
-    const model = s.models[0]
-    if (model.sourceData.kind !== 'mmCIF') return ''
+    const { db_id, db_name, content_type } = model.sourceData.data.pdbx_database_related
+    if (!db_name.isDefined) return [ model.entryId ]
 
-    const d = model.sourceData.data
-    for (let i = 0, il = d.pdbx_database_related._rowCount; i < il; ++i) {
-        if (d.pdbx_database_related.db_name.value(i).toUpperCase() === 'EMDB') {
-            return d.pdbx_database_related.db_id.value(i)
+    for (let i = 0, il = db_name.rowCount; i < il; ++i) {
+        if (db_name.value(i).toUpperCase() === 'EMDB' && content_type.value(i) === 'associated EM volume') {
+            ids.push(db_id.value(i))
         }
     }
 
-    return s.models.length > 0 ? s.models[0].entryId : ''
+    return ids
+}
+
+export function getXrayIds(model: Model): string[] {
+    return [ model.entryId ]
+}
+
+export function getIds(method: VolumeServerInfo.Kind, s?: Structure): string[] {
+    if (!s || !s.models.length) return []
+    const model = s.models[0]
+    switch (method) {
+        case 'em': return getEmIds(model)
+        case 'x-ray': return getXrayIds(model)
+    }
 }
 
 export async function getContourLevel(provider: 'wwpdb' | 'pdbe', plugin: PluginContext, taskCtx: RuntimeContext, emdbId: string) {
@@ -71,21 +85,21 @@ export async function getContourLevelPdbe(plugin: PluginContext, taskCtx: Runtim
     return contourLevel;
 }
 
-export async function getEmdbId(plugin: PluginContext, taskCtx: RuntimeContext, pdbId: string) {
+export async function getEmdbIds(plugin: PluginContext, taskCtx: RuntimeContext, pdbId: string) {
     // TODO: parametrize to a differnt URL? in plugin settings perhaps
     const summary = await plugin.fetch({ url: `https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/${pdbId}`, type: 'json' }).runInContext(taskCtx);
 
     const summaryEntry = summary && summary[pdbId];
-    let emdbId: string;
+    let emdbIds: string[] = [];
     if (summaryEntry && summaryEntry[0] && summaryEntry[0].related_structures) {
-        const emdb = summaryEntry[0].related_structures.filter((s: any) => s.resource === 'EMDB');
+        const emdb = summaryEntry[0].related_structures.filter((s: any) => s.resource === 'EMDB' && s.relationship === 'associated EM volume');
         if (!emdb.length) {
             throw new Error(`No related EMDB entry found for '${pdbId}'.`);
         }
-        emdbId = emdb[0].accession;
+        emdbIds.push(...emdb.map((e: { accession: string }) => e.accession));
     } else {
         throw new Error(`No related EMDB entry found for '${pdbId}'.`);
     }
 
-    return emdbId
+    return emdbIds
 }

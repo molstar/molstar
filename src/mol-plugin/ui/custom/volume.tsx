@@ -61,14 +61,20 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
     }
 
     changeIso = (name: string, value: number, isRelative: boolean) => {
-        const old = this.props.params;
+        const old = this.props.params as VolumeStreaming.Params
         this.newParams({
             ...old,
-            channels: {
-                ...old.channels,
-                [name]: {
-                    ...old.channels[name],
-                    isoValue: isRelative ? VolumeIsoValue.relative(value) : VolumeIsoValue.absolute(value)
+            entry: {
+                name: old.entry.name,
+                params: {
+                    ...old.entry.params,
+                    channels: {
+                        ...old.entry.params.channels,
+                        [name]: {
+                            ...(old.entry.params.channels as any)[name],
+                            isoValue: isRelative ? VolumeIsoValue.relative(value) : VolumeIsoValue.absolute(value)
+                        }
+                    }
                 }
             }
         });
@@ -78,11 +84,17 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         const old = this.props.params;
         this.newParams({
             ...old,
-            channels: {
-                ...old.channels,
-                [name]: {
-                    ...old.channels[name],
-                    [param]: value
+            entry: {
+                name: old.entry.name,
+                params: {
+                    ...old.entry.params,
+                    channels: {
+                        ...old.entry.params.channels,
+                        [name]: {
+                            ...(old.entry.params.channels as any)[name],
+                            [param]: value
+                        }
+                    }
                 }
             }
         });
@@ -94,41 +106,62 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
             : VolumeIsoValue.toAbsolute(channel.isoValue, stats) }
     }
 
-    changeOption: ParamOnChange = ({ value }) => {
-        const b = (this.props.b as VolumeStreaming).data;
-        const isEM = b.info.kind === 'em';
+    changeOption: ParamOnChange = ({ name, value }) => {
+        const old = this.props.params as VolumeStreaming.Params
 
-        const isRelative = value.params.isRelative;
-        const sampling = b.info.header.sampling[0];
-        const old = this.props.params as VolumeStreaming.Params, oldChannels = old.channels as any;
-
-        const oldView = old.view.name === value.name
-            ? old.view.params
-            : (this.props.info.params as VolumeStreaming.ParamDefinition).view.map(value.name).defaultValue;
-
-        const viewParams = { ...oldView };
-        if (value.name === 'selection-box') {
-            viewParams.radius = value.params.radius;
-        } else if (value.name === 'box') {
-            viewParams.bottomLeft = value.params.bottomLeft;
-            viewParams.topRight = value.params.topRight;
-        }
-
-        this.newParams({
-            ...old,
-            view: {
-                name: value.name,
-                params: viewParams
-            },
-            detailLevel: value.params.detailLevel,
-            channels: isEM
-                ? { em: this.convert(oldChannels.em, sampling.valuesInfo[0], isRelative) }
-                : {
-                    '2fo-fc': this.convert(oldChannels['2fo-fc'], sampling.valuesInfo[0], isRelative),
-                    'fo-fc(+ve)': this.convert(oldChannels['fo-fc(+ve)'], sampling.valuesInfo[1], isRelative),
-                    'fo-fc(-ve)': this.convert(oldChannels['fo-fc(-ve)'], sampling.valuesInfo[1], isRelative)
+        if (name === 'entry') {
+            this.newParams({
+                ...old,
+                entry: {
+                    name: value,
+                    params: old.entry.params,
                 }
-        });
+            });
+        } else {
+            const b = (this.props.b as VolumeStreaming).data;
+            const isEM = b.info.kind === 'em';
+
+            const isRelative = value.params.isRelative;
+            const sampling = b.info.header.sampling[0];
+            const oldChannels = old.entry.params.channels as any;
+
+            const oldView = old.entry.params.view.name === value.name
+                ? old.entry.params.view.params
+                : (((this.props.info.params as VolumeStreaming.ParamDefinition)
+                    .entry.map(old.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>)
+                        .params as VolumeStreaming.EntryParamDefinition)
+                            .view.map(value.name).defaultValue;
+
+            const viewParams = { ...oldView };
+            if (value.name === 'selection-box') {
+                viewParams.radius = value.params.radius;
+            } else if (value.name === 'box') {
+                viewParams.bottomLeft = value.params.bottomLeft;
+                viewParams.topRight = value.params.topRight;
+            }
+
+            this.newParams({
+                ...old,
+                entry: {
+                    name: old.entry.name,
+                    params: {
+                        ...old.entry.params,
+                        view: {
+                            name: value.name,
+                            params: viewParams
+                        },
+                        detailLevel: value.params.detailLevel,
+                        channels: isEM
+                            ? { em: this.convert(oldChannels.em, sampling.valuesInfo[0], isRelative) }
+                            : {
+                                '2fo-fc': this.convert(oldChannels['2fo-fc'], sampling.valuesInfo[0], isRelative),
+                                'fo-fc(+ve)': this.convert(oldChannels['fo-fc(+ve)'], sampling.valuesInfo[1], isRelative),
+                                'fo-fc(-ve)': this.convert(oldChannels['fo-fc(-ve)'], sampling.valuesInfo[1], isRelative)
+                            }
+                    }
+                }
+            });
+        }
     };
 
     render() {
@@ -139,50 +172,54 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         const pivot = isEM ? 'em' : '2fo-fc';
 
         const params = this.props.params as VolumeStreaming.Params;
-        const isRelative = ((params.channels as any)[pivot].isoValue as VolumeIsoValue).kind === 'relative';
+        const detailLevel = ((this.props.info.params as VolumeStreaming.ParamDefinition)
+            .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>).params.detailLevel
+        const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as VolumeIsoValue).kind === 'relative';
 
         const sampling = b.info.header.sampling[0];
 
         // TODO: factor common things out
         const OptionsParams = {
-            view: PD.MappedStatic(params.view.name, {
+            entry: PD.Select(params.entry.name, b.data.entries.map(info => [info.dataId, info.dataId] as [string, string])),
+            view: PD.MappedStatic(params.entry.params.view.name, {
                 'off': PD.Group({}, { description: 'Display off.' }),
                 'box': PD.Group({
                     bottomLeft: PD.Vec3(Vec3.zero()),
                     topRight: PD.Vec3(Vec3.zero()),
-                    detailLevel: this.props.info.params.detailLevel,
+                    detailLevel,
                     isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
                 }, { description: 'Static box defined by cartesian coords.' }),
                 'selection-box': PD.Group({
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }),
-                    detailLevel: this.props.info.params.detailLevel,
+                    detailLevel,
                     isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
                 }, { description: 'Box around last-interacted element.' }),
                 'cell': PD.Group({
-                    detailLevel: this.props.info.params.detailLevel,
+                    detailLevel,
                     isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
                 }, { description: 'Box around the structure\'s bounding box.' }),
                 // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
             }, { options: [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Surroundings'], ['cell', 'Whole Structure']] })
         };
         const options = {
+            entry: params.entry.name,
             view: {
-                name: params.view.name,
+                name: params.entry.params.view.name,
                 params: {
-                    detailLevel: params.detailLevel,
-                    radius: (params.view.params as any).radius,
-                    bottomLeft: (params.view.params as any).bottomLeft,
-                    topRight: (params.view.params as any).topRight,
+                    detailLevel: params.entry.params.detailLevel,
+                    radius: (params.entry.params.view.params as any).radius,
+                    bottomLeft: (params.entry.params.view.params as any).bottomLeft,
+                    topRight: (params.entry.params.view.params as any).topRight,
                     isRelative
                 }
             }
         };
 
         return <>
-            {!isEM && <Channel label='2Fo-Fc' name='2fo-fc' channels={params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}
-            {!isEM && <Channel label='Fo-Fc(+ve)' name='fo-fc(+ve)' channels={params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[1]} />}
-            {!isEM && <Channel label='Fo-Fc(-ve)' name='fo-fc(-ve)' channels={params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[1]} />}
-            {isEM && <Channel label='EM' name='em' channels={params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}
+            {!isEM && <Channel label='2Fo-Fc' name='2fo-fc' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}
+            {!isEM && <Channel label='Fo-Fc(+ve)' name='fo-fc(+ve)' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[1]} />}
+            {!isEM && <Channel label='Fo-Fc(-ve)' name='fo-fc(-ve)' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[1]} />}
+            {isEM && <Channel label='EM' name='em' channels={params.entry.params.channels} changeIso={this.changeIso} changeParams={this.changeParams} isRelative={isRelative} params={this.props} stats={sampling.valuesInfo[0]} />}
 
             <ParameterControls onChange={this.changeOption} params={OptionsParams} values={options} onEnter={this.props.events.onEnter} />
         </>
