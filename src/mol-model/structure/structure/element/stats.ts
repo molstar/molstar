@@ -54,34 +54,22 @@ export namespace Stats {
                 while (i < size) {
                     const eI = elements[OrderedSet.getAt(indices, i)]
                     const rI = index[eI]
-                    if (offsets[rI] !== eI) {
-                        // partial residue, start missing
+                    while (i < size && index[elements[OrderedSet.getAt(indices, i)]] === rI) {
                         ++i
-                        stats.elementCount += 1
-                        while (i < size && index[elements[OrderedSet.getAt(indices, i)]] === rI) {
-                            ++i
-                            stats.elementCount += 1
+                    }
+
+                    if (offsets[rI + 1] - offsets[rI] === i) {
+                        // full residue
+                        stats.residueCount += 1
+                        if (stats.residueCount === 1) {
+                            Location.set(stats.firstResidueLoc, unit, elements[OrderedSet.start(indices)])
                         }
                     } else {
-                        ++i
-                        while (i < size && index[elements[OrderedSet.getAt(indices, i)]] === rI) {
-                            ++i
-                        }
-
-                        if (offsets[rI + 1] - 1 === elements[OrderedSet.getAt(indices, i - 1)]) {
-                            // full residue
-                            stats.residueCount += 1
-                            if (stats.residueCount === 1) {
-                                Location.set(stats.firstResidueLoc, unit, elements[OrderedSet.start(indices)])
-                            }
-                        } else {
-                            // partial residue, end missing
-                            stats.elementCount += offsets[rI + 1] - 1 - elements[OrderedSet.getAt(indices, i - 1)]
-                        }
+                        // partial residue
+                        stats.elementCount += i
                     }
                 }
             } else {
-                // TODO
                 stats.elementCount += size
                 if (stats.elementCount === 1) {
                     Location.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])

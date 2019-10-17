@@ -207,7 +207,7 @@ const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B)', 
     })
 ]), 'Select residues within 5 \u212B of the current selection.')
 
-const complement = StructureSelectionQuery('Complement', MS.struct.modifier.union([
+const complement = StructureSelectionQuery('Inverse / Complement', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.generator.all(),
         by: MS.internal.generator.current()
