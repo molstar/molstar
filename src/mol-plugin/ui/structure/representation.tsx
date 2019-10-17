@@ -16,14 +16,29 @@ import { VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/b
 import { StructureRepresentationPresets as P } from '../../util/structure-representation-helper';
 import { camelCaseToWords } from '../../../mol-util/string';
 import { CollapsableControls } from '../base';
+import { StateSelection } from '../../../mol-state';
+import { PluginStateObject } from '../../state/objects';
 
 abstract class BaseStructureRepresentationControls extends PluginUIComponent {
-    onChange = (value: string) => {
-        console.log('onChange', value)
-    }
-
     abstract label: string
     abstract lociGetter(structure: Structure): StructureElement.Loci
+
+    /** root structures */
+    protected get structures() {
+        return this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure)).map(s => s.obj!.data)
+    }
+
+    /** applicapble types */
+    private get types() {
+        const types: [string, string][] = []
+        const structures = this.structures
+        for (const e of this.plugin.structureRepresentation.registry.list) {
+            if (structures.some(s => e.provider.isApplicable(s))) {
+                types.push([e.name, e.provider.label])
+            }
+        }
+        return types
+    }
 
     show = (value: string) => {
         this.plugin.helpers.structureRepresentation.set('add', value, this.lociGetter)
@@ -46,19 +61,19 @@ abstract class BaseStructureRepresentationControls extends PluginUIComponent {
     }
 
     render() {
-        const { types } = this.plugin.structureRepresentation.registry
+        const TypeOptions = Options(this.types)
 
         return <div className='msp-control-row'>
             <span title={this.label}>{this.label}</span>
             <div className='msp-select-row'>
                 <ButtonSelect label='Show' onChange={this.show}>
-                    <optgroup label='Show'>{Options(types)}</optgroup>
+                    <optgroup label='Show'>{TypeOptions}</optgroup>
                 </ButtonSelect>
                 <ButtonSelect label='Hide' onChange={this.hide}>
                     <optgroup label='Clear'>
                         <option key={'__all__'} value={'__all__'}>All</option>
                     </optgroup>
-                    <optgroup label='Hide'>{Options(types)}</optgroup>
+                    <optgroup label='Hide'>{TypeOptions}</optgroup>
                 </ButtonSelect>
                 <ButtonSelect label='Color' onChange={this.color}>
                     <optgroup label='Clear'>

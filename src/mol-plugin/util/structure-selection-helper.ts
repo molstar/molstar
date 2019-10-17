@@ -241,8 +241,7 @@ export type SelectionModifier = 'add' | 'remove' | 'only'
 
 export class StructureSelectionHelper {
     private get structures() {
-        const state = this.plugin.state.dataState
-        return state.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure))
+        return this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure)).map(s => s.obj!.data)
     }
 
     private _set(modifier: SelectionModifier, loci: Loci) {
@@ -260,9 +259,7 @@ export class StructureSelectionHelper {
     }
 
     set(modifier: SelectionModifier, query: StructureQuery) {
-        for (const so of this.structures) {
-            const s = so.obj!.data
-
+        for (const s of this.structures) {
             const current = this.plugin.helpers.structureSelectionManager.get(s)
             const currentSelection = Loci.isEmpty(current)
                 ? StructureSelection.Empty(s)
