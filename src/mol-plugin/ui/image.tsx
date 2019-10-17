@@ -156,8 +156,8 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
             size: PD.MappedStatic('custom', {
                 canvas: PD.Group({}),
                 custom: PD.Group({
-                    width: PD.Numeric(width, { min: 1, max, step: 1 }),
-                    height: PD.Numeric(height, { min: 1, max, step: 1 }),
+                    width: PD.Numeric(width, { min: 128, max, step: 1 }),
+                    height: PD.Numeric(height, { min: 128, max, step: 1 }),
                 }, { isFlat: true })
             }, { options: [['canvas', 'Canvas'], ['custom', 'Custom']] })
         }
