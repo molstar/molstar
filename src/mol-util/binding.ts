@@ -10,31 +10,32 @@ import { interpolate, stringToWords } from './string';
 export { Binding }
 
 interface Binding {
-    trigger: Binding.Trigger
+    triggers: Binding.Trigger[]
     description: string
 }
 
-function Binding(trigger: Binding.Trigger, description = '') {
-    return Binding.create(trigger, description)
+function Binding(triggers: Binding.Trigger[], description = '') {
+    return Binding.create(triggers, description)
 }
 
 namespace Binding {
-    export function create(trigger: Trigger, description = ''): Binding {
-        return { trigger, description }
+    export function create(triggers: Trigger[], description = ''): Binding {
+        return { triggers, description }
     }
 
-    export const Empty: Binding = { trigger: {}, description: '' }
+    export const Empty: Binding = { triggers: [], description: '' }
     export function isEmpty(binding: Binding) {
-        return binding.trigger.buttons === undefined && binding.trigger.modifiers === undefined
+        return binding.triggers.length === 0 ||
+            binding.triggers.every(t => t.buttons === undefined && t.modifiers === undefined)
     }
 
     export function match(binding: Binding, buttons: ButtonsType, modifiers: ModifiersKeys) {
-        return Trigger.match(binding.trigger, buttons, modifiers)
+        return binding.triggers.some(t => Trigger.match(t, buttons, modifiers))
     }
 
     export function format(binding: Binding, name = '') {
         const help = binding.description || stringToWords(name)
-        return interpolate(help, { trigger: Trigger.format(binding.trigger) })
+        return interpolate(help, { triggers: binding.triggers.map(t => Trigger.format(t)).join(' or ') })
     }
 
     export interface Trigger {

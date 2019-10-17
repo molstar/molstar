@@ -16,7 +16,7 @@ import { StateSelection } from '../../../mol-state';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { EmptyLoci } from '../../../mol-model/loci';
+import { EmptyLoci, Loci } from '../../../mol-model/loci';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -25,8 +25,8 @@ const Trigger = Binding.Trigger
 //
 
 const DefaultHighlightLociBindings = {
-    hoverHighlightOnly: Binding(Trigger(B.Flag.None), 'Highlight hovered element using ${trigger}'),
-    hoverHighlightOnlyExtend: Binding(Trigger(B.Flag.None, M.create({ shift: true })), 'Extend highlight from selected to hovered element along polymer using ${trigger}'),
+    hoverHighlightOnly: Binding([Trigger(B.Flag.None)], 'Highlight hovered element using ${triggers}'),
+    hoverHighlightOnlyExtend: Binding([Trigger(B.Flag.None, M.create({ shift: true }))], 'Extend highlight from selected to hovered element along polymer using ${triggers}'),
 }
 const HighlightLociParams = {
     bindings: PD.Value(DefaultHighlightLociBindings, { isHidden: true }),
@@ -74,10 +74,11 @@ export const HighlightLoci = PluginBehavior.create({
 
 const DefaultSelectLociBindings = {
     clickSelect: Binding.Empty,
-    clickSelectExtend: Binding(Trigger(B.Flag.Primary, M.create({ shift: true })), 'Extend selection to clicked element along polymer using ${trigger}.'),
-    clickSelectOnly: Binding(Trigger(B.Flag.Secondary, M.create({ control: true })), 'Select only the clicked element using ${trigger}.'),
-    clickSelectToggle: Binding(Trigger(B.Flag.Primary, M.create({ control: true })), 'Toggle selection of clicked element using ${trigger}.'),
+    clickSelectExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Extend selection to clicked element along polymer using ${triggers}.'),
+    clickSelectOnly: Binding([Trigger(B.Flag.Primary, M.create({ alt: true, shift: true }))], 'Select only the clicked element using ${triggers}.'),
+    clickSelectToggle: Binding([Trigger(B.Flag.Primary, M.create({ alt: true }))], 'Toggle selection of clicked element using ${triggers}.'),
     clickDeselect: Binding.Empty,
+    clickDeselectAllOnEmpty: Binding.Empty,
 }
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),
@@ -126,6 +127,10 @@ export const SelectLoci = PluginBehavior.create({
 
                 if (Binding.match(this.params.bindings.clickDeselect, buttons, modifiers)) {
                     this.ctx.interactivity.lociSelects.deselect(current)
+                }
+
+                if (Binding.match(this.params.bindings.clickDeselectAllOnEmpty, buttons, modifiers)) {
+                    if (Loci.isEmpty(current.loci)) this.ctx.interactivity.lociSelects.deselect(current)
                 }
             });
             this.ctx.interactivity.lociSelects.addProvider(this.lociMarkProvider)

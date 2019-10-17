@@ -21,15 +21,15 @@ const M = ModifiersKeys
 const Trigger = Binding.Trigger
 
 export const DefaultTrackballBindings = {
-    dragRotate: Binding(Trigger(B.Flag.Primary, M.create()), 'Rotate the 3D scene by dragging using ${trigger}'),
-    dragRotateZ: Binding(Trigger(B.Flag.Primary, M.create({ shift: true })), 'Rotate the 3D scene around the z-axis by dragging using ${trigger}'),
-    dragPan: Binding(Trigger(B.Flag.Secondary, M.create()), 'Pan the 3D scene by dragging using ${trigger}'),
+    dragRotate: Binding([Trigger(B.Flag.Primary, M.create())], 'Rotate the 3D scene by dragging using ${triggers}'),
+    dragRotateZ: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Rotate the 3D scene around the z-axis by dragging using ${triggers}'),
+    dragPan: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Pan the 3D scene by dragging using ${triggers}'),
     dragZoom: Binding.Empty,
-    dragFocus: Binding(Trigger(B.Flag.Forth, M.create()), 'Focus the 3D scene by dragging using ${trigger}'),
-    dragFocusZoom: Binding(Trigger(B.Flag.Auxilary, M.create()), 'Focus and zoom the 3D scene by dragging using ${trigger}'),
+    dragFocus: Binding([Trigger(B.Flag.Forth, M.create())], 'Focus the 3D scene by dragging using ${triggers}'),
+    dragFocusZoom: Binding([Trigger(B.Flag.Auxilary, M.create())], 'Focus and zoom the 3D scene by dragging using ${triggers}'),
 
-    scrollZoom: Binding(Trigger(B.Flag.Auxilary, M.create()), 'Zoom the 3D scene by scrolling using ${trigger}'),
-    scrollFocus: Binding(Trigger(B.Flag.Auxilary, M.create({ shift: true })), 'Focus the 3D scene by scrolling using ${trigger}'),
+    scrollZoom: Binding([Trigger(B.Flag.Auxilary, M.create())], 'Zoom the 3D scene by scrolling using ${triggers}'),
+    scrollFocus: Binding([Trigger(B.Flag.Auxilary, M.create({ shift: true }))], 'Focus the 3D scene by scrolling using ${triggers}'),
     scrollFocusZoom: Binding.Empty,
 }
 

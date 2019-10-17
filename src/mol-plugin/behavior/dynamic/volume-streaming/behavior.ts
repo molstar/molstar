@@ -51,7 +51,7 @@ export namespace VolumeStreaming {
     };
 
     export const DefaultBindings = {
-        clickVolumeAroundOnly: Binding(Trigger(B.Flag.Secondary, M.create()), 'Show the volume around only the clicked element using ${trigger}.'),
+        clickVolumeAroundOnly: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Show the volume around only the clicked element using ${triggers}.'),
     }
 
     export function createParams(data?: VolumeServerInfo.Data, defaultView?: ViewTypes, binding?: typeof DefaultBindings) {

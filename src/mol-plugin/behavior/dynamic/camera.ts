@@ -16,7 +16,7 @@ const M = ModifiersKeys
 const Trigger = Binding.Trigger
 
 const DefaultFocusLociBindings = {
-    clickCenterFocus: Binding(Trigger(B.Flag.Primary, M.create()), 'Center and focus the clicked element using ${trigger}.'),
+    clickCenterFocus: Binding([Trigger(B.Flag.Primary, M.create())], 'Center and focus the clicked element using ${triggers}.'),
 }
 const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
