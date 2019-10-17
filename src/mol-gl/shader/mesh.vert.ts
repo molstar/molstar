@@ -23,7 +23,7 @@ attribute mat4 aTransform;
 attribute float aInstance;
 attribute float aGroup;
 
-#ifndef dFlatShaded
+#if !defined(dFlatShaded) || !defined(enabledStandardDerivatives)
     #ifdef dGeoTexture
         uniform sampler2D tNormal;
     #else
@@ -38,7 +38,7 @@ void main(){
     #include assign_marker_varying
     #include assign_position
 
-    #ifndef dFlatShaded
+    #if !defined(dFlatShaded) || !defined(enabledStandardDerivatives)
         #ifdef dGeoTexture
             vec3 normal = readFromTexture(tNormal, aGroup, uGeoTexDim).xyz;
         #else
