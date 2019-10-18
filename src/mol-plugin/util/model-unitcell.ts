@@ -66,8 +66,8 @@ export async function getUnitcellRepresentation(ctx: RuntimeContext, model: Mode
 }
 
 function getUnitcellLabel(data: UnitcellData) {
-    const { cell, name } = data.symmetry.spacegroup
-    const { index, size, anglesInRadians } = cell
+    const { cell, name, num } = data.symmetry.spacegroup
+    const { size, anglesInRadians } = cell
     const a = size[0].toFixed(2)
     const b = size[1].toFixed(2)
     const c = size[2].toFixed(2)
@@ -76,7 +76,7 @@ function getUnitcellLabel(data: UnitcellData) {
     const gamma = radToDeg(anglesInRadians[2]).toFixed(2)
     const label: string[] = []
     // name
-    label.push(`${name} #${index + 1}`)
+    label.push(`${name} #${num}`)
     // sizes
     label.push(`${a}\u00D7${b}\u00D7${c} \u212B`)
     // angles

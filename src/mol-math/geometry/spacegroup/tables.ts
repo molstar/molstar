@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 export const TransformData = [
@@ -31,26 +32,26 @@ export const TransformData = [
     [0.0, 0.0, -1.0, 0.75],
     [1.0, -1.0, 0.0, 0.0],
     [-1.0, 1.0, 0.0, 0.0],
-    [0.0, 0.0, 1.0, 0.333333333333333],
-    [0.0, 0.0, 1.0, 0.666666666666667],
-    [1.0, 0.0, 0.0, 0.666666666666667],
-    [0.0, 1.0, 0.0, 0.333333333333333],
-    [0.0, -1.0, 0.0, 0.666666666666667],
-    [1.0, -1.0, 0.0, 0.333333333333333],
-    [-1.0, 1.0, 0.0, 0.666666666666667],
-    [-1.0, 0.0, 0.0, 0.333333333333333],
-    [1.0, 0.0, 0.0, 0.333333333333333],
-    [0.0, 1.0, 0.0, 0.666666666666667],
-    [0.0, -1.0, 0.0, 0.333333333333333],
-    [1.0, -1.0, 0.0, 0.666666666666667],
-    [-1.0, 1.0, 0.0, 0.333333333333333],
-    [-1.0, 0.0, 0.0, 0.666666666666667],
-    [0.0, 0.0, -1.0, 0.333333333333333],
-    [0.0, 0.0, -1.0, 0.666666666666667],
-    [0.0, 0.0, 1.0, 0.833333333333333],
-    [0.0, 0.0, 1.0, 0.166666666666667],
-    [0.0, 0.0, -1.0, 0.833333333333333],
-    [0.0, 0.0, -1.0, 0.166666666666667],
+    [0.0, 0.0, 1.0, 1/3],
+    [0.0, 0.0, 1.0, 2/3],
+    [1.0, 0.0, 0.0, 2/3],
+    [0.0, 1.0, 0.0, 1/3],
+    [0.0, -1.0, 0.0, 2/3],
+    [1.0, -1.0, 0.0, 1/3],
+    [-1.0, 1.0, 0.0, 2/3],
+    [-1.0, 0.0, 0.0, 1/3],
+    [1.0, 0.0, 0.0, 1/3],
+    [0.0, 1.0, 0.0, 2/3],
+    [0.0, -1.0, 0.0, 1/3],
+    [1.0, -1.0, 0.0, 2/3],
+    [-1.0, 1.0, 0.0, 1/3],
+    [-1.0, 0.0, 0.0, 2/3],
+    [0.0, 0.0, -1.0, 1/3],
+    [0.0, 0.0, -1.0, 2/3],
+    [0.0, 0.0, 1.0, 5/6],
+    [0.0, 0.0, 1.0, 1/6],
+    [0.0, 0.0, -1.0, 5/6],
+    [0.0, 0.0, -1.0, 1/6],
 ];
 
 export const OperatorData = [
@@ -970,6 +971,16 @@ export const GroupData = [
     [0, 52, 16, 1, 26, 59, 20, 65],
     [0, 31, 1, 63],
     [0, 1, 24, 62],
+    [0, 15, 1, 9],  // 'P 1 21/n 1'
+    // X,Y,Z
+    // -X+1/2,Y+1/2,-Z+1/2
+    // -X,-Y,-Z
+    // X+1/2,-Y+1/2,Z+1/2
+    [0, 5, 1, 8],  // 'P 1 21/a 1'
+    // X,Y,Z
+    // -X+1/2,Y+1/2,-Z
+    // -X,-Y,-Z
+    // X+1/2,-Y+1/2,Z
     [0, 31, 1, 63, 26, 21, 65, 54],
     [0, 2, 57, 56],
     [0, 60, 3, 16],
@@ -985,7 +996,7 @@ export const GroupData = [
     [0, 22, 57, 3, 159, 279, 654, 655, 158, 274, 656, 657, 29, 18, 25, 27, 284, 658, 262, 269, 280, 659, 257, 267],
 ];
 
-export const ZeroBasedSpacegroupNumbers = {
+export const SpacegroupNameToIndexMap = {
     'P 1': 0,
     'P -1': 1,
     'P 1 2 1': 2,
@@ -1318,44 +1329,164 @@ export const ZeroBasedSpacegroupNumbers = {
     'B 1 1 2/m': 250,
     'P 1 1 2/b': 251,
     'P 1 1 21/b': 252,
-    'B 1 1 2/b': 253,
-    'P 21 2 2': 254,
-    'P 2 21 2': 255,
-    'P 21 21 2 (a)': 256,
-    'P 21 2 21': 257,
-    'P 2 21 21': 258,
-    'C 2 2 21a)': 259,
-    'C 2 2 2a': 260,
-    'F 2 2 2a': 261,
-    'I 2 2 2a': 262,
-    'P 21/m 21/m 2/n a': 263,
-    'P 42 21 2a': 264,
-    'I 2 3a': 265,
+    'P 1 21/n 1': 253,
+    'P 1 21/a 1': 254,
+    'B 1 1 2/b': 255,
+    'P 21 2 2': 256,
+    'P 2 21 2': 257,
+    'P 21 21 2 (a)': 258,
+    'P 21 2 21': 259,
+    'P 2 21 21': 260,
+    'C 2 2 21a)': 261,
+    'C 2 2 2a': 262,
+    'F 2 2 2a': 263,
+    'I 2 2 2a': 264,
+    'P 21/m 21/m 2/n a': 265,
+    'P 42 21 2a': 266,
+    'I 2 3a': 267,
 };
 
-export type SpacegroupName = keyof typeof ZeroBasedSpacegroupNumbers
+export function getSpacegroupIndexFromNumber(num: number) {
+    // 38 spacegroup variants as given CCP4s symop.lib
+    switch (num) {
+        case 1146: return 146
+        case 1148: return 149
+        case 1155: return 157
+        case 1160: return 163
+        case 1161: return 165
+        case 1166: return 171
+        case 1167: return 173
 
-export const SpacegroupNames: { [num: number]: SpacegroupName } = (function () {
+        case 1003: return 237  // 'P 1 1 2'  !(dyad along z)
+        case 1004: return 238  // 'P 1 1 21'  !(unique axis c)
+        case 1005: return 239  // 'B 1 1 2' 'B 2'
+        case 2005: return 240  // 'A 1 2 1'
+        case 3005: return 241  // 'C 1 21 1' ! (Origin on screw at 1/4X)
+        case 4005: return 242  // 'I 1 2 1' 'I 2' !!! GJK @ 2003-06-02
+        case 5005: return 243  // 'I 1 21 1'
+        case 1006: return 244  // 'P 1 1 m'
+        case 1007: return 245  // 'P 1 1 b'
+        case 1008: return 246  // 'B 1 1 m'
+        case 1009: return 247  // 'B 1 1 b'
+        case 1010: return 248  // 'P 1 1 2/m'
+        case 1011: return 249  // 'P 1 1 21/m'
+        case 1012: return 250  // 'B 1 1 2/m'
+        case 1013: return 251  // 'P 1 1 2/b'
+        case 1014: return 252  // 'P 1 1 21/b'
+        case 2014: return 253  // 'P 1 21/n 1'
+        case 3014: return 254  // 'P 1 21/a 1'
+        case 1015: return 255  // 'B 1 1 2/b'
+        case 1017: return 256  // 'P 21 2 2' !(unique axis a)
+        case 2017: return 257  // 'P 2 21 2' !(unique axis b)
+        case 1018: return 258  // 'P 21 21 2 (a)' ! origin on 21 21, shift (1/4,1/4,0)
+        case 2018: return 259  // 'P 21 2 21'  !(unique axis b)
+        case 3018: return 260  // 'P 2 21 21'  !(unique axis a)
+        case 1020: return 261  // 'C 2 2 21a)' ! P212121 with C centring, shift(1/4,0,0)
+        case 1021: return 262  // 'C 2 2 2a'  ! C21212a origin on 21 21
+        case 1022: return 263  // 'F 2 2 2a' ! same as 1018 with face centring  shift (1/4,0,0)
+        case 1023: return 264  // 'I 2 2 2a'  ! as 1018 with origin shift (1/4,1/4,1/4)
+        case 1059: return 265  // 'P 21/m 21/m 2/n a'
+        case 1094: return 266  // 'P 42 21 2a' ! (as P21212a) origin on 21 21 ie Shift 1/4,1/4,1/4
+        case 1197: return 267  // 'I 2 3a' ! Expansion of 1023 which is an expansion of 1018
+    }
+
+    let offset = 0
+    if (num > 146) ++offset
+    if (num > 148) ++offset
+    if (num > 155) ++offset
+    if (num > 160) ++offset
+    if (num > 161) ++offset
+    if (num > 166) ++offset
+    if (num > 167) ++offset
+
+    return num - 1 + offset
+}
+
+export function getSpacegroupNumberFromIndex(idx: number) {
+    if (idx < 146) return idx + 1
+    if (idx === 146) return 1146
+
+    if (idx < 149) return idx + 1 - 1
+    if (idx === 149) return 1148
+
+    if (idx < 157) return idx + 1 - 2
+    if (idx === 157) return 1155
+
+    if (idx < 163) return idx + 1 - 3
+    if (idx === 163) return 1160
+
+    if (idx < 165) return idx + 1 - 4
+    if (idx === 165) return 1161
+
+    if (idx < 171) return idx + 1 - 5
+    if (idx === 171) return 1166
+
+    if (idx < 173) return idx + 1 - 6
+    if (idx === 173) return 1167
+
+    if (idx < 237) return idx + 1 - 7
+    if (idx === 237) return 1003
+    if (idx === 238) return 1004
+    if (idx === 239) return 1005
+    if (idx === 240) return 2005
+    if (idx === 241) return 3005
+    if (idx === 242) return 4005
+    if (idx === 243) return 5005
+    if (idx === 244) return 1006
+    if (idx === 245) return 1007
+    if (idx === 246) return 1008
+    if (idx === 247) return 1009
+    if (idx === 248) return 1010
+    if (idx === 249) return 1011
+    if (idx === 250) return 1012
+    if (idx === 251) return 1013
+    if (idx === 252) return 1014
+
+    if (idx === 253) return 2014
+    if (idx === 254) return 3014
+    if (idx === 255) return 1015
+    if (idx === 256) return 1017
+    if (idx === 257) return 2017
+    if (idx === 258) return 1018
+    if (idx === 259) return 2018
+    if (idx === 260) return 3018
+    if (idx === 261) return 1020
+    if (idx === 262) return 1021
+    if (idx === 263) return 1022
+    if (idx === 264) return 1023
+    if (idx === 265) return 1059
+    if (idx === 266) return 1094
+    if (idx === 267) return 1197
+
+    throw new Error(`unknown spacegroup index '${idx}'`)
+}
+
+export type SpacegroupName = keyof typeof SpacegroupNameToIndexMap
+
+/** Maps spacegroup index to Hermann-Mauguin spacegroup name */
+export const SpacegroupName: { [idx: number]: SpacegroupName } = (function () {
     const names = Object.create(null);
-    for (const n of Object.keys(ZeroBasedSpacegroupNumbers)) {
-        names[(ZeroBasedSpacegroupNumbers as any)[n]] = n;
+    for (const n of Object.keys(SpacegroupNameToIndexMap)) {
+        names[(SpacegroupNameToIndexMap as any)[n]] = n;
     }
     return names;
 }());
 
-// return -1 if the spacegroup does not exist.
-export function getSpacegroupIndex(nameOrNumber: number | string | SpacegroupName): number {
-    let index: number
-    if (typeof nameOrNumber === 'number') {
-        // used by CCP4, see http://www.ccp4.ac.uk/html/pointless.html#setting
-        if (nameOrNumber === 1017) index = 254
-        else if (nameOrNumber === 2017) index = 255
-        else if (nameOrNumber === 2018) index = 257
-        else if (nameOrNumber === 3018) index = 258
-        else index = nameOrNumber - 1
-    } else {
-        index = ZeroBasedSpacegroupNumbers[nameOrNumber as SpacegroupName];
+/** Maps spacegroup index to spacegroup number from International Tables for Crystallography */
+export const SpacegroupNumber: { [idx: number]: number } = (function () {
+    const numbers = Object.create(null);
+    for (const n of Object.keys(SpacegroupNameToIndexMap)) {
+        const idx = (SpacegroupNameToIndexMap as any)[n]
+        numbers[idx] = getSpacegroupNumberFromIndex(idx);
     }
-    if (typeof index === 'undefined' || typeof SpacegroupNames[index] === 'undefined') return -1;
+    return numbers;
+}());
+
+/** return -1 if the spacegroup does not exist */
+export function getSpacegroupIndex(nameOrNumber: number | string | SpacegroupName): number {
+    const index = typeof nameOrNumber === 'number'
+        ? getSpacegroupIndexFromNumber(nameOrNumber)
+        : SpacegroupNameToIndexMap[nameOrNumber as SpacegroupName];
+    if (typeof index === 'undefined' || typeof SpacegroupName[index] === 'undefined') return -1;
     return index;
 }

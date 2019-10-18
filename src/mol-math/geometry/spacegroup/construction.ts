@@ -6,11 +6,11 @@
  */
 
 import { Vec3, Mat4 } from '../../linear-algebra'
-import { SpacegroupName, TransformData, GroupData, getSpacegroupIndex, OperatorData, SpacegroupNames } from './tables'
+import { SpacegroupName, TransformData, GroupData, getSpacegroupIndex, OperatorData, SpacegroupNumber } from './tables'
 import { SymmetryOperator } from '../../geometry';
 
 interface SpacegroupCell {
-    /** Zero based spacegroup number */
+    /** Index into spacegroup data table */
     readonly index: number,
     readonly size: Vec3,
     readonly volume: number,
@@ -22,7 +22,10 @@ interface SpacegroupCell {
 }
 
 interface Spacegroup {
+    /** Hermann-Mauguin spacegroup name */
     readonly name: string,
+    /** Spacegroup number from International Tables for Crystallography */
+    readonly num: number,
     readonly cell: SpacegroupCell,
     readonly operators: ReadonlyArray<Mat4>
 }
@@ -72,14 +75,15 @@ namespace SpacegroupCell {
     }
 }
 
-
 namespace Spacegroup {
     /** P1 with [1, 1, 1] cell */
     export const ZeroP1 = create(SpacegroupCell.Zero);
 
     export function create(cell: SpacegroupCell): Spacegroup {
         const operators = GroupData[cell.index].map(i => getOperatorMatrix(OperatorData[i]));
-        return { name: SpacegroupNames[cell.index], cell, operators };
+        const name = SpacegroupName[cell.index]
+        const num = SpacegroupNumber[cell.index]
+        return { name, num, cell, operators };
     }
 
     const _ijkVec = Vec3();

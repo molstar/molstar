@@ -54,11 +54,19 @@ function checkNonStandardCrystalFrame(format: mmCIF_Format, spacegroup: Spacegro
     return false;
 }
 
+function getSpacegroupNameOrNumber(symmetry: mmCIF_Format['data']['symmetry']) {
+    const groupNumber = symmetry['Int_Tables_number'].value(0);
+    const groupName = symmetry['space_group_name_H-M'].value(0);
+    if (!symmetry['Int_Tables_number'].isDefined) return groupName
+    if (!symmetry['space_group_name_H-M'].isDefined) return groupNumber
+    return groupName
+}
+
 function getSpacegroup(format: mmCIF_Format): Spacegroup {
     const { symmetry, cell } = format.data;
     if (symmetry._rowCount === 0 || cell._rowCount === 0) return Spacegroup.ZeroP1;
-    const groupName = symmetry['space_group_name_H-M'].value(0);
-    const spaceCell = SpacegroupCell.create(groupName,
+    const nameOrNumber = getSpacegroupNameOrNumber(symmetry)
+    const spaceCell = SpacegroupCell.create(nameOrNumber,
         Vec3.create(cell.length_a.value(0), cell.length_b.value(0), cell.length_c.value(0)),
         Vec3.scale(Vec3.zero(), Vec3.create(cell.angle_alpha.value(0), cell.angle_beta.value(0), cell.angle_gamma.value(0)), Math.PI / 180));
 
