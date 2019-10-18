@@ -80,7 +80,7 @@ export function getPalette(count: number, props: PaletteProps) {
             count = Math.min(count, props.palette.params.maxCount)
             colors = distinctColors(count, props.palette.params)
         }
-        const { valueLabel } = props.palette.params
+        const valueLabel = props.palette.params.valueLabel || (i => '' + i);
         const colorsLength = colors.length
         const table: [string, Color][] = []
         for (let i = 0; i < count; ++i) {
