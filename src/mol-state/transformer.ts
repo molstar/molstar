@@ -19,7 +19,9 @@ interface Transformer<A extends StateObject = StateObject, B extends StateObject
     toAction(): StateAction<A, void, P>,
     readonly namespace: string,
     readonly id: Transformer.Id,
-    readonly definition: Transformer.Definition<A, B, P>
+    readonly definition: Transformer.Definition<A, B, P>,
+    /** create a fresh copy of the params which can be edited in place */
+    createDefaultParams(a: A, globalCtx: unknown): P
 }
 
 namespace Transformer {
@@ -143,7 +145,8 @@ namespace Transformer {
             toAction() { return StateAction.fromTransformer(t); },
             namespace,
             id,
-            definition
+            definition,
+            createDefaultParams(a, globalCtx) { return definition.params ? PD.getDefaultValues( definition.params(a, globalCtx)) : {} as any; }
         };
         registry.set(id, t);
         _index(t);

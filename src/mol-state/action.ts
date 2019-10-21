@@ -17,7 +17,9 @@ export { StateAction };
 interface StateAction<A extends StateObject = StateObject, T = any, P extends {} = {}> {
     create(params: P): StateAction.Instance,
     readonly id: UUID,
-    readonly definition: StateAction.Definition<A, T, P>
+    readonly definition: StateAction.Definition<A, T, P>,
+    /** create a fresh copy of the params which can be edited in place */
+    createDefaultParams(a: A, globalCtx: unknown): P
 }
 
 namespace StateAction {
@@ -59,7 +61,8 @@ namespace StateAction {
         const action: StateAction<A, T, P> = {
             create(params) { return { action, params }; },
             id: UUID.create22(),
-            definition
+            definition,
+            createDefaultParams(a, globalCtx) { return definition.params ? PD.getDefaultValues( definition.params(a, globalCtx)) : {} as any; }
         };
         return action;
     }

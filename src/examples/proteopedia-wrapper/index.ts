@@ -28,7 +28,6 @@ import { BuiltInColorThemes } from '../../mol-theme/color';
 import { BuiltInSizeThemes } from '../../mol-theme/size';
 import { ColorNames } from '../../mol-util/color/names';
 import { InitVolumeStreaming, CreateVolumeStreamingInfo } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
-import { ParamDefinition } from '../../mol-util/param-definition';
 import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 // import { Vec3 } from 'mol-math/linear-algebra';
 // import { ParamDefinition } from 'mol-util/param-definition';
@@ -315,9 +314,11 @@ class MolStarProteopediaWrapper {
     experimentalData = {
         init: async (parent: Element) => {
             const asm = this.state.select(StateElements.Assembly)[0].obj!;
-            const params = ParamDefinition.getDefaultValues(InitVolumeStreaming.definition.params!(asm, this.plugin));
+            const params = InitVolumeStreaming.createDefaultParams(asm, this.plugin);
             params.options.behaviorRef = StateElements.VolumeStreaming;
             params.defaultView = 'box';
+            params.options.channelParams['fo-fc(+ve)'] = { wireframe: true };
+            params.options.channelParams['fo-fc(-ve)'] = { wireframe: true };
             await this.plugin.runTask(this.state.applyAction(InitVolumeStreaming, params, StateElements.Assembly));
             this.experimentalDataElement = parent;
             volumeStreamingControls(this.plugin, parent);
