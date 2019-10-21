@@ -40,11 +40,14 @@ export const InitVolumeStreaming = StateAction.build({
         return {
             method: PD.Select<VolumeServerInfo.Kind>(method, [['em', 'EM'], ['x-ray', 'X-Ray']]),
             entries: PD.ObjectList({ id: PD.Text(ids[0] || '') }, ({ id }) => id, { defaultValue: ids.map(id => ({ id })) }),
-            serverUrl: PD.Text('https://ds.litemol.org'),
             defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
-            behaviorRef: PD.Text('', { isHidden: true }),
-            emContourProvider: PD.Select<'wwpdb' | 'pdbe'>('wwpdb', [['wwpdb', 'wwPDB'], ['pdbe', 'PDBe']], { isHidden: true }),
-            bindings: PD.Value(VolumeStreaming.DefaultBindings, { isHidden: true }),
+            options: PD.Group({
+                serverUrl: PD.Text('https://ds.litemol.org'),
+                behaviorRef: PD.Text('', { isHidden: true }),
+                emContourProvider: PD.Select<'wwpdb' | 'pdbe'>('wwpdb', [['wwpdb', 'wwPDB'], ['pdbe', 'PDBe']], { isHidden: true }),
+                bindings: PD.Value(VolumeStreaming.DefaultBindings, { isHidden: true }),
+                channelParams: PD.Value<VolumeStreaming.DefaultChannelParams>({}, { isHidden: true })
+            })
         };
     },
     isApplicable: (a) => a.data.models.length === 1
@@ -63,12 +66,12 @@ export const InitVolumeStreaming = StateAction.build({
                 const emdbIds = await getEmdbIds(plugin, taskCtx, dataId)
                 for (let j = 0, jl = emdbIds.length; j < jl; ++j) {
                     const emdbId = emdbIds[j]
-                    const contourLevel = await getContourLevel(params.emContourProvider, plugin, taskCtx, emdbId)
+                    const contourLevel = await getContourLevel(params.options.emContourProvider, plugin, taskCtx, emdbId)
                     addEntry(entries, params.method, emdbId, contourLevel || 0)
                 }
                 continue;
             }
-            emDefaultContourLevel = await getContourLevel(params.emContourProvider, plugin, taskCtx, dataId);
+            emDefaultContourLevel = await getContourLevel(params.options.emContourProvider, plugin, taskCtx, dataId);
         }
 
         addEntry(entries, params.method, dataId, emDefaultContourLevel || 0)
@@ -76,15 +79,15 @@ export const InitVolumeStreaming = StateAction.build({
 
     const infoTree = state.build().to(ref)
         .apply(CreateVolumeStreamingInfo, {
-            serverUrl: params.serverUrl,
+            serverUrl: params.options.serverUrl,
             entries
         });
 
     const infoObj = await state.updateTree(infoTree).runInContext(taskCtx);
 
     const behTree = state.build().to(infoTree.ref).apply(CreateVolumeStreamingBehavior,
-        PD.getDefaultValues(VolumeStreaming.createParams(infoObj.data, params.defaultView, params.bindings)),
-        { ref: params.behaviorRef ? params.behaviorRef : void 0 });
+        PD.getDefaultValues(VolumeStreaming.createParams({ data: infoObj.data, defaultView: params.defaultView, binding: params.options.bindings, channelParams: params.options.channelParams })),
+        { ref: params.options.behaviorRef ? params.options.behaviorRef : void 0 });
 
     if (params.method === 'em') {
         behTree.apply(VolumeStreamingVisual, { channel: 'em' }, { state: { isGhost: true } });
@@ -185,7 +188,7 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     from: VolumeServerInfo,
     to: VolumeStreaming,
     params(a) {
-        return VolumeStreaming.createParams(a && a.data);
+        return VolumeStreaming.createParams({ data: a && a.data });
     }
 })({
     canAutoUpdate: ({ oldParams, newParams }) => {

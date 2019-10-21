@@ -316,7 +316,7 @@ class MolStarProteopediaWrapper {
         init: async (parent: Element) => {
             const asm = this.state.select(StateElements.Assembly)[0].obj!;
             const params = ParamDefinition.getDefaultValues(InitVolumeStreaming.definition.params!(asm, this.plugin));
-            params.behaviorRef = StateElements.VolumeStreaming;
+            params.options.behaviorRef = StateElements.VolumeStreaming;
             params.defaultView = 'box';
             await this.plugin.runTask(this.state.applyAction(InitVolumeStreaming, params, StateElements.Assembly));
             this.experimentalDataElement = parent;

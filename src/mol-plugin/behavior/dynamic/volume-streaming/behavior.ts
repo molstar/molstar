@@ -34,12 +34,20 @@ const Trigger = Binding.Trigger
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
 export namespace VolumeStreaming {
-    function channelParam(label: string, color: Color, defaultValue: VolumeIsoValue, stats: VolumeData['dataStats']) {
-        return PD.Group({
-            isoValue: createIsoValueParam(defaultValue, stats),
-            color: PD.Color(color),
-            wireframe: PD.Boolean(false),
-            opacity: PD.Numeric(0.3, { min: 0, max: 1, step: 0.01 })
+
+    export interface ChannelParams {
+        isoValue: VolumeIsoValue,
+        color: Color,
+        wireframe: boolean,
+        opacity: number
+    }
+
+    function channelParam(label: string, color: Color, defaultValue: VolumeIsoValue, stats: VolumeData['dataStats'], defaults: Partial<ChannelParams> = {}) {
+        return PD.Group<ChannelParams>({
+            isoValue: createIsoValueParam(typeof defaults.isoValue !== 'undefined' ? defaults.isoValue : defaultValue, stats),
+            color: PD.Color(typeof defaults.color !== 'undefined' ? defaults.color : color),
+            wireframe: PD.Boolean(typeof defaults.wireframe !== 'undefined' ? defaults.wireframe : false),
+            opacity: PD.Numeric(typeof defaults.opacity !== 'undefined' ? defaults.opacity : 0.3, { min: 0, max: 1, step: 0.01 })
         }, { label, isExpanded: true });
     }
 
@@ -54,13 +62,14 @@ export namespace VolumeStreaming {
         clickVolumeAroundOnly: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Show the volume around only the clicked element using ${triggers}.'),
     }
 
-    export function createParams(data?: VolumeServerInfo.Data, defaultView?: ViewTypes, binding?: typeof DefaultBindings) {
+    export function createParams(options: { data?: VolumeServerInfo.Data, defaultView?: ViewTypes, binding?: typeof DefaultBindings, channelParams?: DefaultChannelParams } = { }) {
+        const { data, defaultView, binding, channelParams } = options;
         const map = new Map<string, VolumeServerInfo.EntryData>()
         if (data) data.entries.forEach(d => map.set(d.dataId, d))
         const names = data ? data.entries.map(d => [d.dataId, d.dataId] as [string, string]) : []
         const defaultKey = data ? data.entries[0].dataId : ''
         return {
-            entry: PD.Mapped<EntryParams>(defaultKey, names, name => PD.Group(createEntryParams(map.get(name)!, defaultView, data && data.structure))),
+            entry: PD.Mapped<EntryParams>(defaultKey, names, name => PD.Group(createEntryParams({ entryData: map.get(name)!, defaultView, structure: data && data.structure, channelParams }))),
             bindings: PD.Value(binding || DefaultBindings, { isHidden: true }),
         }
     }
@@ -68,7 +77,9 @@ export namespace VolumeStreaming {
     export type EntryParamDefinition = typeof createEntryParams extends (...args: any[]) => (infer T) ? T : never
     export type EntryParams = EntryParamDefinition extends PD.Params ? PD.Values<EntryParamDefinition> : {}
 
-    export function createEntryParams(entryData?: VolumeServerInfo.EntryData, defaultView?: ViewTypes, structure?: Structure) {
+    export function createEntryParams(options: { entryData?: VolumeServerInfo.EntryData, defaultView?: ViewTypes, structure?: Structure, channelParams?: DefaultChannelParams }) {
+        const { entryData, defaultView, structure, channelParams = { } } = options;
+
         // fake the info
         const info = entryData || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: VolumeIsoValue.relative(0) };
         const box = (structure && structure.boundary.box) || Box3D.empty();
@@ -92,12 +103,12 @@ export namespace VolumeStreaming {
                 info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string])),
             channels: info.kind === 'em'
                 ? PD.Group({
-                    'em': channelParam('EM', Color(0x638F8F), info.emDefaultContourLevel || VolumeIsoValue.relative(1), info.header.sampling[0].valuesInfo[0])
+                    'em': channelParam('EM', Color(0x638F8F), info.emDefaultContourLevel || VolumeIsoValue.relative(1), info.header.sampling[0].valuesInfo[0], channelParams['em'])
                 }, { isFlat: true })
                 : PD.Group({
-                    '2fo-fc': channelParam('2Fo-Fc', Color(0x3362B2), VolumeIsoValue.relative(1.5), info.header.sampling[0].valuesInfo[0]),
-                    'fo-fc(+ve)': channelParam('Fo-Fc(+ve)', Color(0x33BB33), VolumeIsoValue.relative(3), info.header.sampling[0].valuesInfo[1]),
-                    'fo-fc(-ve)': channelParam('Fo-Fc(-ve)', Color(0xBB3333), VolumeIsoValue.relative(-3), info.header.sampling[0].valuesInfo[1]),
+                    '2fo-fc': channelParam('2Fo-Fc', Color(0x3362B2), VolumeIsoValue.relative(1.5), info.header.sampling[0].valuesInfo[0], channelParams['2fo-fc']),
+                    'fo-fc(+ve)': channelParam('Fo-Fc(+ve)', Color(0x33BB33), VolumeIsoValue.relative(3), info.header.sampling[0].valuesInfo[1], channelParams['fo-fc(+ve)']),
+                    'fo-fc(-ve)': channelParam('Fo-Fc(-ve)', Color(0xBB3333), VolumeIsoValue.relative(-3), info.header.sampling[0].valuesInfo[1], channelParams['fo-fc(-ve)']),
                 }, { isFlat: true }),
         };
     }
@@ -108,9 +119,6 @@ export namespace VolumeStreaming {
 
     export type ParamDefinition = typeof createParams extends (...args: any[]) => (infer T) ? T : never
     export type Params = ParamDefinition extends PD.Params ? PD.Values<ParamDefinition> : {}
-
-    type CT = typeof channelParam extends (...args: any[]) => (infer T) ? T : never
-    export type ChannelParams = CT extends PD.Group<infer T> ? T : {}
 
     type ChannelsInfo = { [name in ChannelType]?: { isoValue: VolumeIsoValue, color: Color, wireframe: boolean, opacity: number } }
     type ChannelsData = { [name in 'EM' | '2FO-FC' | 'FO-FC']?: VolumeData }
@@ -125,6 +133,8 @@ export namespace VolumeStreaming {
         opacity: number
     }
     export type Channels = { [name in ChannelType]?: ChannelInfo }
+
+    export type DefaultChannelParams = { [name in ChannelType]?: Partial<ChannelParams> }
 
     export class Behavior extends PluginBehavior.WithSubscribers<Params> {
         private cache = LRUCache.create<ChannelsData>(25);
