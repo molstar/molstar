@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
 
 export const PolymerIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
+    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
 }
 export type PolymerIndexColorThemeParams = typeof PolymerIndexColorThemeParams
 export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {

@@ -19,7 +19,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = `Assigns a color based on the operator HKL value of a transformed chain.`
 
 export const OperatorHklColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
+    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
 }
 export type OperatorHklColorThemeParams = typeof OperatorHklColorThemeParams
 export function getOperatorHklColorThemeParams(ctx: ThemeDataContext) {

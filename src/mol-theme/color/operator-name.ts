@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = `Assigns a color based on the operator name of a transformed chain.`
 
 export const OperatorNameColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
+    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
 }
 export type OperatorNameColorThemeParams = typeof OperatorNameColorThemeParams
 export function getOperatorNameColorThemeParams(ctx: ThemeDataContext) {

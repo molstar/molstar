@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
 
 export const UnitIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
+    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
 }
 export type UnitIndexColorThemeParams = typeof UnitIndexColorThemeParams
 export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {

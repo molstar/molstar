@@ -18,7 +18,7 @@ const DefaultColor = Color(0xFAFAFA)
 const Description = 'Gives every chain a color based on its `asym_id` value.'
 
 export const ChainIdColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
+    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
 }
 export type ChainIdColorThemeParams = typeof ChainIdColorThemeParams
 export function getChainIdColorThemeParams(ctx: ThemeDataContext) {

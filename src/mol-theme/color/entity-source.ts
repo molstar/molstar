@@ -19,7 +19,7 @@ const DefaultColor = Color(0xFAFAFA)
 const Description = 'Gives ranges of a polymer chain a color based on the entity source it originates from. Genes get the same color per entity.'
 
 export const EntitySourceColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'set-3' }),
+    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
 }
 export type EntitySourceColorThemeParams = typeof EntitySourceColorThemeParams
 export function getEntitySourceColorThemeParams(ctx: ThemeDataContext) {
