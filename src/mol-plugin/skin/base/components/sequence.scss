@@ -30,4 +30,13 @@
     span {
         cursor: pointer;
     }
+
+    .msp-sequence-marker {
+        color: $sequence-marker-color;
+        // vertical-align: middle;
+        text-decoration: underline;
+        padding: 0 0 0 1ch;
+        word-break: keep-all;
+        cursor: default;
+    }
 }

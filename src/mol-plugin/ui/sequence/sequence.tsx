@@ -11,12 +11,14 @@ import { Interactivity } from '../../util/interactivity';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { ButtonsType, ModifiersKeys, getButtons, getModifiers } from '../../../mol-util/input/input-observer';
 import { SequenceWrapper } from './wrapper';
-import { StructureElement } from '../../../mol-model/structure';
+import { StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { Color } from '../../../mol-util/color';
 
-type SequenceProps = { sequenceWrapper: SequenceWrapper.Any }
+type SequenceProps = { sequenceWrapper: SequenceWrapper.Any, hideMarkers?: boolean }
+
+const SequenceMarkerPeriod = 50
 
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
@@ -101,10 +103,16 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         if (!this.parentDiv.current) return;
         const xs = this.parentDiv.current.children;
         const { markerArray } = this.props.sequenceWrapper;
+        const markers = !this.props.hideMarkers;
 
+        let o = 0;
         for (let i = 0, _i = markerArray.length; i < _i; i++) {
-            const span = xs[i] as HTMLSpanElement;
-            if (!span) continue;
+            const span = xs[o] as HTMLSpanElement;
+            if (!span) return;
+            o++;
+            if (markers && i > 0 && i % SequenceMarkerPeriod === 0) {
+                o++;
+            }
 
             const backgroundColor = this.getBackgroundColor(markerArray[i]);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
@@ -147,9 +155,21 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const sw = this.props.sequenceWrapper
 
         const elems: JSX.Element[] = [];
+        const markers = !this.props.hideMarkers;
+        const location = StructureElement.Location.create();
         for (let i = 0, il = sw.length; i < il; ++i) {
             elems[elems.length] = this.residue(i, sw.residueLabel(i), sw.markerArray[i], sw.residueColor(i));
-            // TODO: add seq idx markers every N residues? Would need to modify "updateMarker"
+            if (markers && i > 0 && i % SequenceMarkerPeriod === 0) {
+                if (i === sw.length - 1) break;
+                // TODO: is this correct way to show the offset?
+                const l = StructureElement.Loci.getFirstLocation(sw.getLoci(i + 1), location);
+                if (l) {
+                    elems[elems.length] = <span key={`marker-${i}`} className='msp-sequence-marker'>{StructureProperties.residue.auth_seq_id(l)}</span>
+                } else {
+                    // do not show the marker if the seq id is not known.
+                    elems[elems.length] = <span key={`marker-${i}`} className='msp-sequence-marker'></span>
+                }
+            }
         }
 
         // calling .updateMarker here is neccesary to ensure existing

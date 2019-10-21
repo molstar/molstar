@@ -17,6 +17,7 @@ import { sortArray, hashFnv32a, hash2 } from '../../../../mol-data/util';
 import Expression from '../../../../mol-script/language/expression';
 import { ElementIndex } from '../../model';
 import { UnitIndex } from './element';
+import { Location } from './location';
 
 /** Represents multiple element index locations */
 export interface Loci {
@@ -76,6 +77,18 @@ export namespace Loci {
 
     export function none(structure: Structure): Loci {
         return Loci(structure, []);
+    }
+
+    export function getFirstLocation(loci: Loci, e?: Location): Location | undefined {
+        if (isEmpty(loci)) return void 0;
+        const unit = loci.elements[0].unit;
+        const element = unit.elements[OrderedSet.getAt(loci.elements[0].indices, 0)];
+        if (e) {
+            e.unit = loci.elements[0].unit;
+            e.element = element;
+            return e;
+        }
+        return Location.create(unit, element);
     }
 
     export function toStructure(loci: Loci): Structure {
