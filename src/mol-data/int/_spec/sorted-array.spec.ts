@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -67,18 +67,51 @@ describe('sortedArray', () => {
 
     it('union1', () => {
         compareArrays(
-            SortedArray.union(SortedArray.ofSortedArray([830, 831, 832, 833, 834, 836, 837, 838, 839, 840, 841, 842, 843]), SortedArray.ofSortedArray([835])),
+            SortedArray.union(
+                SortedArray.ofSortedArray([830, 831, 832, 833, 834, 836, 837, 838, 839, 840, 841, 842, 843]),
+                SortedArray.ofSortedArray([835])
+            ),
             SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843])
         )
     })
 
     it('union2', () => {
         compareArrays(
-            SortedArray.union(SortedArray.ofSortedArray([830, 832, 833]), SortedArray.ofSortedArray([831])),
+            SortedArray.union(
+                SortedArray.ofSortedArray([830, 832, 833]),
+                SortedArray.ofSortedArray([831])
+            ),
             SortedArray.ofSortedArray([830, 831, 832, 833])
         )
     })
 
-    // console.log(Interval.findPredecessorIndexInInterval(Interval.ofBounds(0, 3), 2, Interval.ofBounds(0, 3)))
-    // console.log(SortedArray.findPredecessorIndexInInterval(SortedArray.ofSortedArray([0, 1, 2]), 2, Interval.ofBounds(0, 3)))
+    it('union3ab', () => {
+        compareArrays(
+            SortedArray.union(
+                SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835]),
+                SortedArray.ofSortedArray([836, 837, 838, 839, 840, 841, 842, 843])
+            ),
+            SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843])
+        )
+    })
+
+    it('union3ba', () => {
+        compareArrays(
+            SortedArray.union(
+                SortedArray.ofSortedArray([836, 837, 838, 839, 840, 841, 842, 843]),
+                SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835])
+            ),
+            SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843])
+        )
+    })
+
+    it('union4', () => {
+        compareArrays(
+            SortedArray.union(
+                SortedArray.ofSortedArray([1, 3, 5, 7, 9]),
+                SortedArray.ofSortedArray([2, 4, 6, 8])
+            ),
+            SortedArray.ofSortedArray([1, 2, 3, 4, 5, 6, 7, 8, 9])
+        )
+    })
 });
