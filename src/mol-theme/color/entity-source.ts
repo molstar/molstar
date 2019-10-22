@@ -102,6 +102,14 @@ function getMaps(models: ReadonlyArray<Model>) {
     return { seqToSrcByModelEntity, srcKeySerialMap }
 }
 
+function getLabelTable(srcKeySerialMap: Map<string, number>) {
+    let unnamedCount = 0
+    return ['Unknown', ...Array.from(srcKeySerialMap.keys()).map(v => {
+        const l = v.split('|')[2]
+        return l === '1' ? `Unnamed ${++unnamedCount}` : l.split(',').join(', ')
+    })]
+}
+
 export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<EntitySourceColorThemeParams>): ColorTheme<EntitySourceColorThemeParams> {
     let color: LocationColor
     let legend: ScaleLegend | TableLegend | undefined
@@ -111,11 +119,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
         const { models } = ctx.structure.root
         const { seqToSrcByModelEntity, srcKeySerialMap } = getMaps(models)
 
-        const labelTable = Array.from(srcKeySerialMap.keys()).map(v => {
-            const l = v.split('|')[2]
-            return l === '1' ? 'Unnamed' : l
-        })
-        labelTable.push('Unknown')
+        const labelTable = getLabelTable(srcKeySerialMap)
         props.palette.params.valueLabel = (i: number) => labelTable[i]
 
         const palette = getPalette(srcKeySerialMap.size + 1, props)
