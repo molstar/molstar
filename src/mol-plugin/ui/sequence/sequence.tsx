@@ -160,14 +160,17 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         for (let i = 0, il = sw.length; i < il; ++i) {
             elems[elems.length] = this.residue(i, sw.residueLabel(i), sw.markerArray[i], sw.residueColor(i));
             if (markers && i > 0 && i % SequenceMarkerPeriod === 0) {
-                if (i === sw.length - 1) break;
+                if (i === sw.length - (1 + 5)) break;
                 // TODO: is this correct way to show the offset?
                 const l = StructureElement.Loci.getFirstLocation(sw.getLoci(i + 1), location);
                 if (l) {
-                    elems[elems.length] = <span key={`marker-${i}`} className='msp-sequence-marker'>{StructureProperties.residue.auth_seq_id(l)}</span>
+                    const seqId = StructureProperties.residue.auth_seq_id(l)
+                    const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l)
+                    const label = `${seqId}${insCode ? insCode : ''}`
+                    elems[elems.length] = <span key={`marker-${i}`} className='msp-sequence-marker'>{label.padEnd(5, '\u00A0')}</span>
                 } else {
-                    // do not show the marker if the seq id is not known.
-                    elems[elems.length] = <span key={`marker-${i}`} className='msp-sequence-marker'></span>
+                    // show empty marker if the seq id is not known.
+                    elems[elems.length] = <span key={`marker-${i}`} className='msp-sequence-marker'>{'\u00A0'.repeat(5)}</span>
                 }
             }
         }

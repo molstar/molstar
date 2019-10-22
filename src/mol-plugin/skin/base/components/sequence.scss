@@ -13,13 +13,14 @@
 }
 
 .msp-sequence-wrapper {
-    word-break: break-word;
+    word-break: break-all;
     padding: $info-vertical-padding $control-spacing $info-vertical-padding $control-spacing;
     user-select: none;
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
     font-size: 90%;
+    line-height: 180%;
 }
 
 .msp-sequence-wrapper-non-empty {
@@ -33,10 +34,13 @@
 
     .msp-sequence-marker {
         color: $sequence-marker-color;
-        // vertical-align: middle;
-        text-decoration: underline;
-        padding: 0 0 0 1ch;
         word-break: keep-all;
         cursor: default;
+        position: relative;
+        top: -1.1em;
+        left: 3em;
+        padding: 0px;
+        margin-left: -3em;
+        font-size: 80%;
     }
 }
