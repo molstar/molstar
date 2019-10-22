@@ -16,7 +16,7 @@ import { VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/b
 import { StructureRepresentationPresets as P } from '../../util/structure-representation-helper';
 import { camelCaseToWords } from '../../../mol-util/string';
 import { CollapsableControls } from '../base';
-import { StateSelection } from '../../../mol-state';
+import { StateSelection, StateObject } from '../../../mol-state';
 import { PluginStateObject } from '../../state/objects';
 
 abstract class BaseStructureRepresentationControls extends PluginUIComponent {
@@ -28,7 +28,7 @@ abstract class BaseStructureRepresentationControls extends PluginUIComponent {
         return this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure)).map(s => s.obj!.data)
     }
 
-    /** applicapble types */
+    /** applicable types */
     private get types() {
         const types: [string, string][] = []
         const structures = this.structures
@@ -38,6 +38,18 @@ abstract class BaseStructureRepresentationControls extends PluginUIComponent {
             }
         }
         return types
+    }
+
+    private forceUpdateIfStructure = (obj?: StateObject) => {
+        if (obj && obj.type === PluginStateObject.Molecule.Structure.type) {
+            this.forceUpdate()
+        }
+    }
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.state.object.created, ({ obj }) => this.forceUpdateIfStructure(obj));
+
+        this.subscribe(this.plugin.events.state.object.removed, ({ obj }) => this.forceUpdateIfStructure(obj));
     }
 
     show = (value: string) => {
