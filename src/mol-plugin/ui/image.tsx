@@ -87,8 +87,8 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
             canvasCtx.putImageData(imageData, 0, 0)
 
             await ctx.update('Downloading image...')
-            const blob = await canvasToBlob(canvas)
-            download(blob, 'molstar-image')
+            const blob = await canvasToBlob(canvas, 'png')
+            download(blob, 'molstar-image.png')
         })
     }
 
