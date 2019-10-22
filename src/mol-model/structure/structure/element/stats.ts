@@ -52,13 +52,15 @@ export namespace Stats {
                 const { index, offsets } = unit.model.atomicHierarchy.residueAtomSegments
                 let i = 0
                 while (i < size) {
+                    let j = 0
                     const eI = elements[OrderedSet.getAt(indices, i)]
                     const rI = index[eI]
                     while (i < size && index[elements[OrderedSet.getAt(indices, i)]] === rI) {
                         ++i
+                        ++j
                     }
 
-                    if (offsets[rI + 1] - offsets[rI] === i) {
+                    if (offsets[rI + 1] - offsets[rI] === j) {
                         // full residue
                         stats.residueCount += 1
                         if (stats.residueCount === 1) {
@@ -66,7 +68,7 @@ export namespace Stats {
                         }
                     } else {
                         // partial residue
-                        stats.elementCount += i
+                        stats.elementCount += j
                     }
                 }
             } else {
