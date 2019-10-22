@@ -65,6 +65,20 @@ describe('sortedArray', () => {
 
     test('intersectionSize', SortedArray.intersectionSize(a1234, a2468), 2);
 
+    it('union1', () => {
+        compareArrays(
+            SortedArray.union(SortedArray.ofSortedArray([830, 831, 832, 833, 834, 836, 837, 838, 839, 840, 841, 842, 843]), SortedArray.ofSortedArray([835])),
+            SortedArray.ofSortedArray([830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843])
+        )
+    })
+
+    it('union2', () => {
+        compareArrays(
+            SortedArray.union(SortedArray.ofSortedArray([830, 832, 833]), SortedArray.ofSortedArray([831])),
+            SortedArray.ofSortedArray([830, 831, 832, 833])
+        )
+    })
+
     // console.log(Interval.findPredecessorIndexInInterval(Interval.ofBounds(0, 3), 2, Interval.ofBounds(0, 3)))
     // console.log(SortedArray.findPredecessorIndexInInterval(SortedArray.ofSortedArray([0, 1, 2]), 2, Interval.ofBounds(0, 3)))
 });

@@ -187,8 +187,10 @@ export function union(a: Nums, b: Nums) {
     let offset = 0;
 
     // insert the "prefixes"
-    for (let k = 0; k < startI; k++) indices[offset++] = a[k];
-    for (let k = 0; k < startJ; k++) indices[offset++] = b[k];
+    let k = 0;
+    for (k = 0; k < startI; k++) indices[offset++] = a[k];
+    k = 0;
+    while (k <= startJ && a[startI] > b[k]) indices[offset++] = b[k++];
 
     // insert the common part
     let i = startI;
