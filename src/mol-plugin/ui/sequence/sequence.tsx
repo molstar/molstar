@@ -122,6 +122,10 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     private location = StructureElement.Location.create();
+    private padSeqNum(n: string) {
+        if (n.length < MaxSequenceNumberSize) return n + new Array(MaxSequenceNumberSize - n.length + 1).join('\u00A0');
+        return n;
+    }
     private getSequenceNumber(seqIdx: number, label: string) {
         let sequenceNumber = ''
         const loci = this.props.sequenceWrapper.getLoci(seqIdx)
@@ -131,17 +135,18 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l)
             sequenceNumber = `${seqId}${insCode ? insCode : ''}`
         }
-        return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, label)}>{sequenceNumber.padEnd(MaxSequenceNumberSize, '\u00A0')}</span>
+        return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, label)}>{this.padSeqNum(sequenceNumber)}</span>
     }
 
     private updateMarker() {
         if (!this.parentDiv.current) return;
         const xs = this.parentDiv.current.children;
         const { markerArray } = this.props.sequenceWrapper;
+        const hasNumbers = !this.props.hideSequenceNumbers, period = this.sequenceNumberPeriod;
 
         let o = 0;
-        for (let i = 0, _i = markerArray.length; i < _i; i++) {
-            if (this.hasSeqenceNumber(i)) o++;
+        for (let i = 0, il = markerArray.length; i < il; i++) {
+            if (hasNumbers && i % period === 0 && i < il) o++;
             const span = xs[o] as HTMLSpanElement;
             if (!span) return;
             o++;
@@ -149,12 +154,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             const backgroundColor = this.getBackgroundColor(markerArray[i]);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
         }
-    }
-
-    private hasSeqenceNumber(seqIdx: number) {
-        return !this.props.hideSequenceNumbers &&
-            seqIdx % this.sequenceNumberPeriod === 0 &&
-            seqIdx < this.props.sequenceWrapper.length
     }
 
     mouseMove = (e: React.MouseEvent) => {
@@ -194,10 +193,11 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
         const elems: JSX.Element[] = [];
 
+        const hasNumbers = !this.props.hideSequenceNumbers, period = this.sequenceNumberPeriod;
         for (let i = 0, il = sw.length; i < il; ++i) {
             const label = sw.residueLabel(i)
             // add sequence number before name so the html element do not get separated by a line-break
-            if (this.hasSeqenceNumber(i)) {
+            if (hasNumbers && i % period === 0 && i < il) {
                 elems[elems.length] = this.getSequenceNumber(i, label)
             }
             elems[elems.length] = this.residue(i, label, sw.markerArray[i], sw.residueColor(i));
