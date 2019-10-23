@@ -171,13 +171,17 @@ export function isSubset(a: Nums, b: Nums) {
     return equal === lenB;
 }
 
-export function union(a: Nums, b: Nums) {
+export function union(a: Nums, b: Nums): Nums {
     if (a === b) return a;
+
+    const lenA = a.length, lenB = b.length;
+    if (lenA === 0) return b;
+    if (lenB === 0) return a;
+    if (a[0] > b[0]) return union(b, a);
 
     const { startI, startJ, endI, endJ } = getSuitableIntersectionRange(a, b);
     const commonCount = getCommonCount(a, b, startI, startJ, endI, endJ);
 
-    const lenA = a.length, lenB = b.length;
     // A === B || B is subset of A ==> A
     if ((commonCount === lenA && commonCount === lenB) || commonCount === lenB) return a;
     // A is subset of B ===> B
