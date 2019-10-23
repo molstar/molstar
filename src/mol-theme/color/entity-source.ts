@@ -14,9 +14,10 @@ import { Table, Column } from '../../mol-data/db';
 import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
+import { isInteger } from '../../mol-util/number';
 
 const DefaultColor = Color(0xFAFAFA)
-const Description = 'Gives ranges of a polymer chain a color based on the entity source it originates from. Genes get the same color per entity.'
+const Description = 'Gives ranges of a polymer chain a color based on the entity source it originates from (e.g. gene, plasmid, organism).'
 
 export const EntitySourceColorThemeParams = {
     ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
@@ -46,13 +47,15 @@ type EntitySrc = Table<{
     pdbx_beg_seq_num: mmCIF_Schema['entity_src_gen']['pdbx_beg_seq_num'],
     pdbx_end_seq_num: mmCIF_Schema['entity_src_gen']['pdbx_end_seq_num'],
 }>
+type ScientificName = Column<mmCIF_Schema['entity_src_gen']['pdbx_gene_src_scientific_name']['T']>
 type GeneSrcGene = Column<mmCIF_Schema['entity_src_gen']['pdbx_gene_src_gene']['T']>
+type PlasmidName = Column<mmCIF_Schema['entity_src_gen']['plasmid_name']['T']>
 
-function srcKey(modelIndex: number, entityId: string, srcId: number, gene: string) {
-    return `${modelIndex}|${entityId}|${gene ? gene : srcId}`
+function srcKey(modelIndex: number, entityId: string, organism: string, srcId: number, plasmid: string, gene: string) {
+    return `${modelIndex}|${entityId}|${organism}|${gene ? gene : (plasmid ? plasmid : srcId)}`
 }
 
-function addSrc(seqToSrcByModelEntity: Map<string, Int16Array>, srcKeySerialMap: Map<string, number>, modelIndex: number, model: Model, entity_src: EntitySrc, gene_src_gene?: GeneSrcGene) {
+function addSrc(seqToSrcByModelEntity: Map<string, Int16Array>, srcKeySerialMap: Map<string, number>, modelIndex: number, model: Model, entity_src: EntitySrc, scientific_name: ScientificName, plasmid_name?: PlasmidName, gene_src_gene?: GeneSrcGene) {
     const { entity_id, pdbx_src_id, pdbx_beg_seq_num, pdbx_end_seq_num } = entity_src
     for (let j = 0, jl = entity_src._rowCount; j < jl; ++j) {
         const entityId = entity_id.value(j)
@@ -66,7 +69,10 @@ function addSrc(seqToSrcByModelEntity: Map<string, Int16Array>, srcKeySerialMap:
         } else {
             seqToSrc = seqToSrcByModelEntity.get(mK)!
         }
-        const sK = srcKey(modelIndex, entityId, pdbx_src_id.value(j), gene_src_gene ? gene_src_gene.value(j).join(',') : '')
+
+        const plasmid = plasmid_name ? plasmid_name.value(j) : ''
+        const gene = gene_src_gene ? gene_src_gene.value(j)[0] : ''
+        const sK = srcKey(modelIndex, entityId, scientific_name.value(j), pdbx_src_id.value(j), plasmid, gene)
 
         // may not be given (= 0) indicating src is for the whole seq
         const beg = pdbx_beg_seq_num.valueKind(j) === Column.ValueKind.Present ? pdbx_beg_seq_num.value(j) : 1
@@ -94,9 +100,9 @@ function getMaps(models: ReadonlyArray<Model>) {
         const m = models[i]
         if (m.sourceData.kind !== 'mmCIF') continue
         const { entity_src_gen, entity_src_nat, pdbx_entity_src_syn } = m.sourceData.data
-        addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_gen, entity_src_gen.pdbx_gene_src_gene)
-        addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_nat)
-        addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, pdbx_entity_src_syn)
+        addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_gen, entity_src_gen.pdbx_gene_src_scientific_name, entity_src_gen.plasmid_name, entity_src_gen.pdbx_gene_src_gene)
+        addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_nat, entity_src_nat.pdbx_organism_scientific, entity_src_nat.pdbx_plasmid_name)
+        addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, pdbx_entity_src_syn, pdbx_entity_src_syn.organism_scientific)
     }
 
     return { seqToSrcByModelEntity, srcKeySerialMap }
@@ -104,10 +110,12 @@ function getMaps(models: ReadonlyArray<Model>) {
 
 function getLabelTable(srcKeySerialMap: Map<string, number>) {
     let unnamedCount = 0
-    return ['Unknown', ...Array.from(srcKeySerialMap.keys()).map(v => {
-        const l = v.split('|')[2]
-        return l === '1' ? `Unnamed ${++unnamedCount}` : l.split(',').join(', ')
-    })]
+    return Array.from(srcKeySerialMap.keys()).map(v => {
+        const vs = v.split('|')
+        const organism = vs[2]
+        const name = isInteger(vs[3]) ? `Unnamed ${++unnamedCount}` : vs[3]
+        return `${name}${organism ? ` (${organism})` : ''}`
+    })
 }
 
 export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<EntitySourceColorThemeParams>): ColorTheme<EntitySourceColorThemeParams> {
@@ -122,7 +130,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
         const labelTable = getLabelTable(srcKeySerialMap)
         props.palette.params.valueLabel = (i: number) => labelTable[i]
 
-        const palette = getPalette(srcKeySerialMap.size + 1, props)
+        const palette = getPalette(srcKeySerialMap.size, props)
         legend = palette.legend
 
         const getSrcColor = (location: StructureElement.Location) => {
@@ -132,7 +140,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
             const seqToSrc = seqToSrcByModelEntity.get(mK)
             if (seqToSrc) {
                 // minus 1 to convert seqId to array index
-                return palette.color(seqToSrc[StructureProperties.residue.label_seq_id(location) - 1])
+                return palette.color(seqToSrc[StructureProperties.residue.label_seq_id(location) - 1] - 1)
             } else {
                 return DefaultColor
             }
