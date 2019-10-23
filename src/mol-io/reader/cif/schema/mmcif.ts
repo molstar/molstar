@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.314, IHM 1.01, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.317, IHM 1.04, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -142,12 +142,12 @@ export const mmCIF_Schema = {
          */
         id: int,
         /**
-         * A component of the identifier for this atom site.
-         * For further details, see the definition of the ATOM_SITE_ALT
-         * category.
-         *
-         * This data item is a pointer to _atom_sites_alt.id in the
-         * ATOM_SITES_ALT category.
+         * A place holder to indicate alternate conformation. The alternate conformation
+         * can be an entire polymer chain, or several residues or
+         * partial residue (several atoms within one residue). If
+         * an atom is provided in more than one position, then a
+         * non-blank alternate location indicator must be used for
+         * each of the atomic positions.
          */
         label_alt_id: str,
         /**
@@ -2216,14 +2216,17 @@ export const mmCIF_Schema = {
          */
         entity_id: str,
         /**
+         * Scientific name of the organism of the natural source.
+         */
+        pdbx_organism_scientific: str,
+        /**
+         * The plasmid containing the gene.
+         */
+        pdbx_plasmid_name: str,
+        /**
          * This data item is an ordinal identifier for entity_src_nat data records.
          */
         pdbx_src_id: int,
-        /**
-         * This data item identifies cases in which an alternative source
-         * modeled.
-         */
-        pdbx_alt_source_flag: Aliased<'sample' | 'model'>(str),
         /**
          * The beginning polymer sequence position for the polymer section corresponding
          * to this source.
@@ -2258,18 +2261,21 @@ export const mmCIF_Schema = {
          */
         pdbx_gene_src_gene: List(',', x => x),
         /**
+         * Scientific name of the organism.
+         */
+        pdbx_gene_src_scientific_name: str,
+        /**
+         * The name of the plasmid that produced the entity in the host
+         * organism. Where full details of the protein production are available
+         * it would be expected that this item would be derived from
+         * _pdbx_construct.name of the construct pointed to from
+         * _entity_src_gen_express.plasmid_id.
+         */
+        plasmid_name: str,
+        /**
          * This data item is an ordinal identifier for entity_src_gen data records.
          */
         pdbx_src_id: int,
-        /**
-         * This data item identifies cases in which an alternative source
-         * modeled.
-         */
-        pdbx_alt_source_flag: Aliased<'sample' | 'model'>(str),
-        /**
-         * This data item povides additional information about the sequence type.
-         */
-        pdbx_seq_type: Aliased<'N-terminal tag' | 'C-terminal tag' | 'Biological sequence' | 'Linker'>(str),
         /**
          * The beginning polymer sequence position for the polymer section corresponding
          * to this source.
@@ -2291,6 +2297,11 @@ export const mmCIF_Schema = {
      */
     pdbx_entity_src_syn: {
         /**
+         * The scientific name of the organism from which the sequence of
+         * the synthetic entity was derived.
+         */
+        organism_scientific: str,
+        /**
          * This data item is a pointer to _entity.id in the ENTITY category.
          */
         entity_id: str,
@@ -2298,11 +2309,6 @@ export const mmCIF_Schema = {
          * This data item is an ordinal identifier for pdbx_entity_src_syn data records.
          */
         pdbx_src_id: int,
-        /**
-         * This data item identifies cases in which an alternative source
-         * modeled.
-         */
-        pdbx_alt_source_flag: Aliased<'sample' | 'model'>(str),
         /**
          * The beginning polymer sequence position for the polymer section corresponding
          * to this source.
@@ -3050,7 +3056,7 @@ export const mmCIF_Schema = {
         /**
          * The type of data held in the dataset.
          */
-        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'SAS data' | 'CX-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Hydroxyl radical footprinting data' | 'Yeast two-hybrid screening data' | 'Other'>(str),
+        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'SAS data' | 'CX-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Hydroxyl radical footprinting data' | 'Yeast two-hybrid screening data' | 'Quantitative measurements of genetic interactions' | 'Other'>(str),
         /**
          * A flag that indicates whether the dataset is archived in
          * an IHM related database or elsewhere.
@@ -3225,7 +3231,7 @@ export const mmCIF_Schema = {
          */
         file_size_bytes: float,
         /**
-         * Textual description of what the external file is.
+         * Additional textual details regarding the external file.
          */
         details: str,
     },
@@ -3459,7 +3465,7 @@ export const mmCIF_Schema = {
         /**
          * The type of crosslinker used.
          */
-        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'Other'>(str),
+        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'Other'>(str),
         /**
          * Identifier to the crosslinking dataset.
          * This data item is a pointer to the _ihm_dataset_list.id in the
