@@ -47,3 +47,9 @@ export function getArrayDigitCount(xs: ArrayLike<number>, maxDigits: number, del
     }
     return { mantissaDigits, integerDigits };
 }
+
+export function isInteger(s: string) {
+    s = s.trim()
+    const n = parseInt(s, 10)
+    return isNaN(n) ? false : n.toString() === s
+}
