@@ -16,9 +16,14 @@ import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { Color } from '../../../mol-util/color';
 
-type SequenceProps = { sequenceWrapper: SequenceWrapper.Any, hideMarkers?: boolean }
+type SequenceProps = {
+    sequenceWrapper: SequenceWrapper.Any,
+    sequenceNumberPeriod?: number,
+    hideSequenceNumbers?: boolean
+}
 
-const SequenceMarkerPeriod = 50
+/** Note, if this is changed, the CSS for `msp-sequence-number` needs adjustment too */
+const MaxSequenceNumberSize = 5
 
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
@@ -34,6 +39,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     private lociSelectionProvider = (loci: Interactivity.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action)
         if (changed) this.updateMarker();
+    }
+
+    private get sequenceNumberPeriod() {
+        return this.props.sequenceNumberPeriod !== undefined
+            ? this.props.sequenceNumberPeriod as number
+            : (this.props.sequenceWrapper.length > 10 ? 10 : 1)
     }
 
     componentDidMount() {
@@ -94,29 +105,56 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         return marker === 0 ? '' : marker % 2 === 0 ? 'rgb(51, 255, 25)' /* selected */ : 'rgb(255, 102, 153)' /* highlighted */;
     }
 
+    private getResidueClass(seqIdx: number, label: string) {
+        return label.length > 1
+            ? (seqIdx === 0 ? 'msp-sequence-residue-long-begin' : 'msp-sequence-residue-long')
+            : void 0
+    }
+
     private residue(seqIdx: number, label: string, marker: number, color: Color) {
-        const margin = label.length > 1 ? (seqIdx === 0 ? `0px 2px 0px 0px` : `0px 2px 0px 2px`) : void 0
-        return <span key={seqIdx} data-seqid={seqIdx} style={{ color: Color.toStyle(color), backgroundColor: this.getBackgroundColor(marker), margin }}>{label}</span>;
+        return <span key={seqIdx} data-seqid={seqIdx} style={{ color: Color.toStyle(color), backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{label}</span>;
+    }
+
+    private getSequenceNumberClass(seqIdx: number, label: string) {
+        return label.length > 1 && seqIdx > 0
+            ? 'msp-sequence-number msp-sequence-number-long'
+            : 'msp-sequence-number'
+    }
+
+    private location = StructureElement.Location.create();
+    private getSequenceNumber(seqIdx: number, label: string) {
+        let sequenceNumber = ''
+        const loci = this.props.sequenceWrapper.getLoci(seqIdx)
+        const l = StructureElement.Loci.getFirstLocation(loci, this.location);
+        if (l) {
+            const seqId = StructureProperties.residue.auth_seq_id(l)
+            const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l)
+            sequenceNumber = `${seqId}${insCode ? insCode : ''}`
+        }
+        return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, label)}>{sequenceNumber.padEnd(MaxSequenceNumberSize, '\u00A0')}</span>
     }
 
     private updateMarker() {
         if (!this.parentDiv.current) return;
         const xs = this.parentDiv.current.children;
         const { markerArray } = this.props.sequenceWrapper;
-        const markers = !this.props.hideMarkers;
 
         let o = 0;
         for (let i = 0, _i = markerArray.length; i < _i; i++) {
+            if (this.hasSeqenceNumber(i)) o++;
             const span = xs[o] as HTMLSpanElement;
             if (!span) return;
             o++;
-            if (markers && i > 0 && i % SequenceMarkerPeriod === 0) {
-                o++;
-            }
 
             const backgroundColor = this.getBackgroundColor(markerArray[i]);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
         }
+    }
+
+    private hasSeqenceNumber(seqIdx: number) {
+        return !this.props.hideSequenceNumbers &&
+            seqIdx % this.sequenceNumberPeriod === 0 &&
+            seqIdx < this.props.sequenceWrapper.length
     }
 
     mouseMove = (e: React.MouseEvent) => {
@@ -155,24 +193,14 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const sw = this.props.sequenceWrapper
 
         const elems: JSX.Element[] = [];
-        const markers = !this.props.hideMarkers;
-        const location = StructureElement.Location.create();
+
         for (let i = 0, il = sw.length; i < il; ++i) {
-            elems[elems.length] = this.residue(i, sw.residueLabel(i), sw.markerArray[i], sw.residueColor(i));
-            if (markers && i > 0 && i % SequenceMarkerPeriod === 0) {
-                if (i === sw.length - (1 + 5)) break;
-                // TODO: is this correct way to show the offset?
-                const l = StructureElement.Loci.getFirstLocation(sw.getLoci(i + 1), location);
-                if (l) {
-                    const seqId = StructureProperties.residue.auth_seq_id(l)
-                    const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l)
-                    const label = `${seqId}${insCode ? insCode : ''}`
-                    elems[elems.length] = <span key={`marker-${i}`} className='msp-sequence-marker'>{label.padEnd(5, '\u00A0')}</span>
-                } else {
-                    // show empty marker if the seq id is not known.
-                    elems[elems.length] = <span key={`marker-${i}`} className='msp-sequence-marker'>{'\u00A0'.repeat(5)}</span>
-                }
+            const label = sw.residueLabel(i)
+            // add sequence number before name so the html element do not get separated by a line-break
+            if (this.hasSeqenceNumber(i)) {
+                elems[elems.length] = this.getSequenceNumber(i, label)
             }
+            elems[elems.length] = this.residue(i, label, sw.markerArray[i], sw.residueColor(i));
         }
 
         // calling .updateMarker here is neccesary to ensure existing
