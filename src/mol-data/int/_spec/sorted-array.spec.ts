@@ -114,4 +114,24 @@ describe('sortedArray', () => {
             SortedArray.ofSortedArray([1, 2, 3, 4, 5, 6, 7, 8, 9])
         )
     })
+
+    it('union5', () => {
+        compareArrays(
+            SortedArray.union(
+                SortedArray.ofSortedArray([2, 3, 4, 20, 21, 22]),
+                SortedArray.ofSortedArray([10, 11, 12])
+            ),
+            SortedArray.ofSortedArray([2, 3, 4, 10, 11, 12, 20, 21, 22])
+        )
+    })
+
+    it('union6', () => {
+        compareArrays(
+            SortedArray.union(
+                SortedArray.ofSortedArray([768, 769, 770, 771, 772, 773, 774, 775, 776, 819, 820, 821, 822, 823, 824, 825, 826, 827, 828, 829, 1811, 1812, 1813, 1814, 1815, 1816, 1817, 1818, 1819]),
+                SortedArray.ofSortedArray([1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758])
+            ),
+            SortedArray.ofSortedArray([768, 769, 770, 771, 772, 773, 774, 775, 776, 819, 820, 821, 822, 823, 824, 825, 826, 827, 828, 829, 1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758, 1811, 1812, 1813, 1814, 1815, 1816, 1817, 1818, 1819])
+        )
+    })
 });
