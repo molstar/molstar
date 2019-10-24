@@ -188,17 +188,13 @@ export function union(a: Nums, b: Nums): Nums {
     if (commonCount === lenA) return b;
 
     const indices = new Int32Array(lenA + lenB - commonCount);
-    let offset = 0;
+    let i = 0, j = 0, offset = 0;
 
     // insert the "prefixes"
-    let k = 0;
-    for (k = 0; k < startI; k++) indices[offset++] = a[k];
-    k = 0;
-    while (k <= startJ && a[startI] > b[k]) indices[offset++] = b[k++];
+    for (i = 0; i < startI; i++) indices[offset++] = a[i];
+    while (j < endJ && a[startI] > b[j]) indices[offset++] = b[j++];
 
     // insert the common part
-    let i = startI;
-    let j = startJ;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { indices[offset++] = x; i++; }
