@@ -92,15 +92,15 @@ export namespace VolumeStreaming {
                     topRight: PD.Vec3(box.max),
                 }, { description: 'Static box defined by cartesian coords.', isFlat: true }),
                 'selection-box': PD.Group({
-                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }),
+                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
                     bottomLeft: PD.Vec3(Vec3.create(0, 0, 0), { isHidden: true }),
                     topRight: PD.Vec3(Vec3.create(0, 0, 0), { isHidden: true }),
                 }, { description: 'Box around last-interacted element.', isFlat: true }),
                 'cell': PD.Group({}),
                 // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
-            }, { options: ViewTypeOptions as any }),
+            }, { options: ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Arround Interaction" shows the volume around the element/atom last interacted with. "Whole Structure" shows the volume for the whole structure.' }),
             detailLevel: PD.Select<number>(Math.min(3, info.header.availablePrecisions.length - 1),
-                info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string])),
+                info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string]), { description: 'Determines the maximum number of voxels. Depending on the size of the volume options are in the range from 0 (0.52M voxels) to 6 (25.17M voxels).' }),
             channels: info.kind === 'em'
                 ? PD.Group({
                     'em': channelParam('EM', Color(0x638F8F), info.emDefaultContourLevel || VolumeIsoValue.relative(1), info.header.sampling[0].valuesInfo[0], channelParams['em'])
@@ -113,7 +113,7 @@ export namespace VolumeStreaming {
         };
     }
 
-    export const ViewTypeOptions = [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Surroundings'], ['cell', 'Whole Structure']];
+    export const ViewTypeOptions = [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Around Interaction'], ['cell', 'Whole Structure']] as [ViewTypes, string][];
 
     export type ViewTypes = 'off' | 'box' | 'selection-box' | 'cell'
 

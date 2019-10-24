@@ -14,11 +14,12 @@ import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { Slider } from '../controls/slider';
 import { VolumeIsoValue, VolumeData } from '../../../mol-model/volume';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { ColorNames } from '../../../mol-util/color/names';
 
 const ChannelParams = {
-    color: PD.Color(0 as any),
-    wireframe: PD.Boolean(false),
-    opacity: PD.Numeric(0.3, { min: 0, max: 1, step: 0.01 })
+    color: PD.Color(ColorNames.black, { description: 'Display color of the volume.' }),
+    wireframe: PD.Boolean(false, { description: 'Control display of the volume as a wireframe.' }),
+    opacity: PD.Numeric(0.3, { min: 0, max: 1, step: 0.01 }, { description: 'Opacity of the volume.' })
 };
 type ChannelParams = PD.Values<typeof ChannelParams>
 
@@ -180,7 +181,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
 
         // TODO: factor common things out
         const OptionsParams = {
-            entry: PD.Select(params.entry.name, b.data.entries.map(info => [info.dataId, info.dataId] as [string, string])),
+            entry: PD.Select(params.entry.name, b.data.entries.map(info => [info.dataId, info.dataId] as [string, string]), { description: 'Which entry with volume data to display.' }),
             view: PD.MappedStatic(params.entry.params.view.name, {
                 'off': PD.Group({}, { description: 'Display off.' }),
                 'box': PD.Group({
@@ -190,7 +191,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
                 }, { description: 'Static box defined by cartesian coords.' }),
                 'selection-box': PD.Group({
-                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }),
+                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
                     detailLevel,
                     isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
                 }, { description: 'Box around last-interacted element.' }),
@@ -199,7 +200,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
                 }, { description: 'Box around the structure\'s bounding box.' }),
                 // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
-            }, { options: [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Surroundings'], ['cell', 'Whole Structure']] })
+            }, { options: [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Surroundings'], ['cell', 'Whole Structure']], description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Arround Interaction" shows the volume around the element/atom last interacted with. "Whole Structure" shows the volume for the whole structure.' })
         };
         const options = {
             entry: params.entry.name,
