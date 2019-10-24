@@ -91,7 +91,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         return <div>
             <div className='msp-control-row msp-row-text'>
                 <button className='msp-btn msp-btn-block' onClick={this.focus}>
-                    <span className={`msp-icon msp-icon-focus-on-visual`} style={{ position: 'absolute', left: '10px' }} />
+                    <span className={`msp-icon msp-icon-focus-on-visual`} style={{ position: 'absolute', left: '5px' }} />
                     {this.stats}
                 </button>
             </div>

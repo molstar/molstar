@@ -84,7 +84,7 @@ export abstract class CollapsableControls<P extends CollapsableProps = Collapsab
 
         return <div className={wrapClass}>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleCollapsed}>
+                <button className='msp-btn msp-btn-block msp-btn-collapse' onClick={this.toggleCollapsed}>
                     <span className={`msp-icon msp-icon-${this.state.isCollapsed ? 'expand' : 'collapse'}`} />
                     {this.state.header}
                 </button>

@@ -12,6 +12,10 @@
     }
 }
 
+.msp-btn-collapse {
+    padding: 0 $control-spacing / 2;
+}
+
 .msp-btn, .msp-btn:active, .msp-btn-link:focus, .msp-btn:hover {
     outline: none !important;
 }
