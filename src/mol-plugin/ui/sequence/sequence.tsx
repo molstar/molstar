@@ -11,7 +11,7 @@ import { Interactivity } from '../../util/interactivity';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { ButtonsType, ModifiersKeys, getButtons, getModifiers } from '../../../mol-util/input/input-observer';
 import { SequenceWrapper } from './wrapper';
-import { StructureElement, StructureProperties } from '../../../mol-model/structure';
+import { StructureElement, StructureProperties, Unit } from '../../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { Color } from '../../../mol-util/color';
@@ -131,9 +131,13 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const loci = this.props.sequenceWrapper.getLoci(seqIdx)
         const l = StructureElement.Loci.getFirstLocation(loci, this.location);
         if (l) {
-            const seqId = StructureProperties.residue.auth_seq_id(l)
-            const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l)
-            sequenceNumber = `${seqId}${insCode ? insCode : ''}`
+            if (Unit.isAtomic(l.unit)) {
+                const seqId = StructureProperties.residue.auth_seq_id(l)
+                const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l)
+                sequenceNumber = `${seqId}${insCode ? insCode : ''}`
+            } else if (Unit.isCoarse(l.unit)) {
+                sequenceNumber = `${seqIdx + 1}`
+            }
         }
         return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, label)}>{this.padSeqNum(sequenceNumber)}</span>
     }
