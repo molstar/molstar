@@ -34,6 +34,7 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
 export const GaussianWireframeParams = {
     ...UnitsLinesParams,
     ...GaussianDensityParams,
+    sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
     lineSizeAttenuation: PD.Boolean(false),
     ignoreHydrogens: PD.Boolean(false),
 }

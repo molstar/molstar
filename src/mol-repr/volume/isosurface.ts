@@ -120,6 +120,7 @@ export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume
 
 export const IsosurfaceWireframeParams = {
     ...Lines.Params,
+    sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
     ...VolumeIsosurfaceParams
 }
 export type IsosurfaceWireframeParams = typeof IsosurfaceWireframeParams

@@ -14,10 +14,10 @@ import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
 
 const GaussianSurfaceVisuals = {
-    'gaussian-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceMeshParams>) => UnitsRepresentation('Gaussian surface', ctx, getParams, GaussianSurfaceMeshVisual),
-    'structure-gaussian-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, StructureGaussianSurfaceMeshParams>) => ComplexRepresentation('Structure-Gaussian surface', ctx, getParams, StructureGaussianSurfaceMeshVisual),
-    'gaussian-surface-texture-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceMeshParams>) => UnitsRepresentation('Gaussian surface', ctx, getParams, GaussianSurfaceTextureMeshVisual),
-    'gaussian-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianWireframeParams>) => UnitsRepresentation('Gaussian wireframe', ctx, getParams, GaussianWireframeVisual),
+    'gaussian-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceMeshParams>) => UnitsRepresentation('Gaussian surface mesh', ctx, getParams, GaussianSurfaceMeshVisual),
+    'structure-gaussian-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, StructureGaussianSurfaceMeshParams>) => ComplexRepresentation('Structure-Gaussian surface mesh', ctx, getParams, StructureGaussianSurfaceMeshVisual),
+    'gaussian-surface-texture-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceMeshParams>) => UnitsRepresentation('Gaussian surface texture-mesh', ctx, getParams, GaussianSurfaceTextureMeshVisual),
+    'gaussian-surface-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianWireframeParams>) => UnitsRepresentation('Gaussian surface wireframe', ctx, getParams, GaussianWireframeVisual),
 }
 type GaussianSurfaceVisualName = keyof typeof GaussianSurfaceVisuals
 const GaussianSurfaceVisualOptions = Object.keys(GaussianSurfaceVisuals).map(name => [name, name] as [GaussianSurfaceVisualName, string])
