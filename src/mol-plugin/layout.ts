@@ -10,13 +10,12 @@ import { PluginComponent } from './component';
 import { PluginContext } from './context';
 import { PluginCommands } from './command';
 
-// TODO: support collapsed state control orientation
+export type PluginLayoutControlsDisplay = 'outside' | 'portrait' | 'landscape' | 'reactive'
 export const PluginLayoutStateParams = {
     isExpanded: PD.Boolean(false),
     showControls: PD.Boolean(true),
-    outsideControls: PD.Boolean(true, { isHidden: true })
+    controlsDisplay: PD.Value<PluginLayoutControlsDisplay>('outside', { isHidden: true })
 }
-
 export type PluginLayoutStateProps = PD.Values<typeof PluginLayoutStateParams>
 
 interface RootState {

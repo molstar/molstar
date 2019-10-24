@@ -93,12 +93,7 @@ class Layout extends PluginUIComponent {
         if (layout.isExpanded) {
             classList.push('msp-layout-expanded')
         } else {
-            classList.push('msp-layout-standard')
-            if (layout.outsideControls) {
-                classList.push('msp-layout-standard-outside')
-            } else {
-                classList.push('msp-layout-standard-landscape')
-            }
+            classList.push('msp-layout-standard', `msp-layout-standard-${layout.controlsDisplay}`)
         }
 
         return classList.join(' ')
