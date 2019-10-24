@@ -11,15 +11,18 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
+import { MolecularSurfaceWireframeParams, MolecularSurfaceWireframeVisual } from '../visual/molecular-surface-wireframe';
 
 const MolecularSurfaceVisuals = {
-    'molecular-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceMeshParams>) => UnitsRepresentation('Molecular surface', ctx, getParams, MolecularSurfaceMeshVisual),
+    'molecular-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceMeshParams>) => UnitsRepresentation('Molecular surface mesh', ctx, getParams, MolecularSurfaceMeshVisual),
+    'molecular-surface-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceWireframeParams>) => UnitsRepresentation('Molecular surface wireframe', ctx, getParams, MolecularSurfaceWireframeVisual),
 }
 type MolecularSurfaceVisualName = keyof typeof MolecularSurfaceVisuals
 const MolecularSurfaceVisualOptions = Object.keys(MolecularSurfaceVisuals).map(name => [name, name] as [MolecularSurfaceVisualName, string])
 
 export const MolecularSurfaceParams = {
     ...MolecularSurfaceMeshParams,
+    ...MolecularSurfaceWireframeParams,
     visuals: PD.MultiSelect<MolecularSurfaceVisualName>(['molecular-surface-mesh'], MolecularSurfaceVisualOptions),
 }
 export type MolecularSurfaceParams = typeof MolecularSurfaceParams
