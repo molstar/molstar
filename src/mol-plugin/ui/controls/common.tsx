@@ -260,7 +260,7 @@ export class ExpandableGroup extends React.Component<{
     }
 }
 
-export class ButtonSelect extends React.PureComponent<{ label: string, onChange: (value: string) => void }> {
+export class ButtonSelect extends React.PureComponent<{ label: string, onChange: (value: string) => void, disabled?: boolean }> {
 
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         e.preventDefault()
@@ -269,7 +269,7 @@ export class ButtonSelect extends React.PureComponent<{ label: string, onChange:
     }
 
     render() {
-        return <select value='_' onChange={this.onChange}>
+        return <select value='_' onChange={this.onChange} disabled={this.props.disabled}>
             <option key='_' value='_'>{this.props.label}</option>
             {this.props.children}
         </select>

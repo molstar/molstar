@@ -62,7 +62,7 @@
         height: $row-height;
 
         text-align-last: center;
-        background: none !important;
+        background: none;
         padding: 0 $control-spacing;
 
         > option[value = _] {

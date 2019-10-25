@@ -20,7 +20,9 @@ const StructureSelectionParams = {
 interface StructureSelectionControlsState extends CollapsableState {
     minRadius: number,
     extraRadius: number,
-    durationMs: number
+    durationMs: number,
+
+    isDisabled: boolean
 }
 
 export class StructureSelectionControls<P, S extends StructureSelectionControlsState> extends CollapsableControls<P, S> {
@@ -32,6 +34,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         this.subscribe(this.plugin.events.interactivity.propsUpdated, () => {
             this.forceUpdate()
         });
+
+        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => this.setState({ isDisabled: v }))
     }
 
     get stats() {
@@ -79,7 +83,9 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
             minRadius: 8,
             extraRadius: 4,
-            durationMs: 250
+            durationMs: 250,
+
+            isDisabled: false
         } as S
     }
 
@@ -95,20 +101,20 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                     {this.stats}
                 </button>
             </div>
-            <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} />
+            <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             <div className='msp-control-row'>
                 <div className='msp-select-row'>
-                    <ButtonSelect label='Add' onChange={this.add}>
+                    <ButtonSelect label='Add' onChange={this.add} disabled={this.state.isDisabled}>
                         <optgroup label='Add'>
                             {Options(queries)}
                         </optgroup>
                     </ButtonSelect>
-                    <ButtonSelect label='Remove' onChange={this.remove}>
+                    <ButtonSelect label='Remove' onChange={this.remove} disabled={this.state.isDisabled}>
                         <optgroup label='Remove'>
                             {Options(queries)}
                         </optgroup>
                     </ButtonSelect>
-                    <ButtonSelect label='Only' onChange={this.only}>
+                    <ButtonSelect label='Only' onChange={this.only} disabled={this.state.isDisabled}>
                         <optgroup label='Only'>
                             {Options(queries)}
                         </optgroup>

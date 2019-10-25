@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react';
-import { PluginUIComponent } from '../base';
+import { PluginUIComponent, CollapsableState, CollapsableProps } from '../base';
 import { Structure, StructureElement } from '../../../mol-model/structure';
 import { isEmptyLoci } from '../../../mol-model/loci';
 import { ColorOptions, ParameterControls } from '../controls/parameters';
@@ -19,9 +19,17 @@ import { CollapsableControls } from '../base';
 import { StateSelection, StateObject } from '../../../mol-state';
 import { PluginStateObject } from '../../state/objects';
 
-abstract class BaseStructureRepresentationControls extends PluginUIComponent {
+interface BaseStructureRepresentationControlsState {
+    isDisabled: boolean
+}
+
+abstract class BaseStructureRepresentationControls extends PluginUIComponent<{}, BaseStructureRepresentationControlsState> {
     abstract label: string
     abstract lociGetter(structure: Structure): StructureElement.Loci
+
+    state = {
+        isDisabled: false
+    }
 
     /** root structures */
     protected get structures() {
@@ -47,9 +55,11 @@ abstract class BaseStructureRepresentationControls extends PluginUIComponent {
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.object.created, ({ obj }) => this.forceUpdateIfStructure(obj));
+        this.subscribe(this.plugin.events.state.object.created, ({ obj }) => this.forceUpdateIfStructure(obj))
 
-        this.subscribe(this.plugin.events.state.object.removed, ({ obj }) => this.forceUpdateIfStructure(obj));
+        this.subscribe(this.plugin.events.state.object.removed, ({ obj }) => this.forceUpdateIfStructure(obj))
+
+        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => this.setState({ isDisabled: v }))
     }
 
     show = (value: string) => {
@@ -78,16 +88,16 @@ abstract class BaseStructureRepresentationControls extends PluginUIComponent {
         return <div className='msp-control-row'>
             <span title={this.label}>{this.label}</span>
             <div className='msp-select-row'>
-                <ButtonSelect label='Show' onChange={this.show}>
+                <ButtonSelect label='Show' onChange={this.show} disabled={this.state.isDisabled}>
                     <optgroup label='Show'>{TypeOptions}</optgroup>
                 </ButtonSelect>
-                <ButtonSelect label='Hide' onChange={this.hide}>
+                <ButtonSelect label='Hide' onChange={this.hide} disabled={this.state.isDisabled}>
                     <optgroup label='Clear'>
                         <option key={'__all__'} value={'__all__'}>All</option>
                     </optgroup>
                     <optgroup label='Hide'>{TypeOptions}</optgroup>
                 </ButtonSelect>
-                <ButtonSelect label='Color' onChange={this.color}>
+                <ButtonSelect label='Color' onChange={this.color} disabled={this.state.isDisabled}>
                     <optgroup label='Clear'>
                         <option key={-1} value={-1}>Theme</option>
                     </optgroup>
@@ -113,7 +123,15 @@ class SelectionStructureRepresentationControls extends BaseStructureRepresentati
     }
 }
 
-export class StructureRepresentationControls extends CollapsableControls {
+interface StructureRepresentationControlsState extends CollapsableState {
+    isDisabled: boolean
+}
+
+export class StructureRepresentationControls extends CollapsableControls<CollapsableProps, StructureRepresentationControlsState> {
+    componentDidMount() {
+        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => this.setState({ isDisabled: v }))
+    }
+
     preset = async (value: string) => {
         const presetFn = P[value as keyof typeof P]
         if (presetFn) {
@@ -152,7 +170,9 @@ export class StructureRepresentationControls extends CollapsableControls {
     defaultState() {
         return {
             isCollapsed: false,
-            header: 'Representation'
+            header: 'Representation',
+
+            isDisabled: false
         }
     }
 
@@ -172,7 +192,7 @@ export class StructureRepresentationControls extends CollapsableControls {
             <EverythingStructureRepresentationControls />
             <SelectionStructureRepresentationControls />
 
-            <ParameterControls params={this.params} values={this.values} onChange={this.onChange} />
+            <ParameterControls params={this.params} values={this.values} onChange={this.onChange} isDisabled={this.state.isDisabled} />
         </div>
     }
 }

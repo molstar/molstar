@@ -19,6 +19,8 @@ interface ImageControlsState extends CollapsableState {
     size: 'canvas' | 'custom'
     width: number
     height: number
+
+    isDisabled: boolean
 }
 
 const maxWidthUi = 260
@@ -134,7 +136,11 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
             this.handlePreview()
         })
 
-        this.subscribe(this.plugin.canvas3d.didDraw, () => this.handlePreview())
+        this.subscribe(this.plugin.canvas3d.didDraw, () => {
+            this.handlePreview()
+        })
+
+        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => this.setState({ isDisabled: v }))
     }
 
     private togglePreview = () => this.setState({ showPreview: !this.state.showPreview })
@@ -178,16 +184,18 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
 
             size: 'canvas',
             width: 1920,
-            height: 1080
+            height: 1080,
+
+            isDisabled: false
         } as S
     }
 
     protected renderControls() {
         return <div>
             <div className='msp-control-row'>
-                <button className='msp-btn msp-btn-block' onClick={this.download}>Download</button>
+                <button className='msp-btn msp-btn-block' onClick={this.download} disabled={this.state.isDisabled}>Download</button>
             </div>
-            <ParameterControls params={this.params} values={this.values} onChange={this.setProps} />
+            <ParameterControls params={this.params} values={this.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             <div className='msp-control-group-wrapper'>
                 <div className='msp-control-group-header'>
                     <button className='msp-btn msp-btn-block' onClick={this.togglePreview}>
