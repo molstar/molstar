@@ -202,7 +202,7 @@ namespace Canvas3D {
                 didRender = true
             }
 
-            return didRender && cameraChanged;
+            return didRender;
         }
 
         let forceNextDraw = false;
