@@ -132,10 +132,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const l = StructureElement.Loci.getFirstLocation(loci, this.location);
         if (l) {
             if (Unit.isAtomic(l.unit)) {
-                const { residues } = l.unit.model.atomicHierarchy
-                const seqId = residues.auth_seq_id.isDefined
-                    ? StructureProperties.residue.auth_seq_id(l)
-                    : StructureProperties.residue.label_seq_id(l)
+                const seqId = StructureProperties.residue.auth_seq_id(l)
                 const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l)
                 sequenceNumber = `${seqId}${insCode ? insCode : ''}`
             } else if (Unit.isCoarse(l.unit)) {
