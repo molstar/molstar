@@ -27,7 +27,7 @@ export function ExecuteInContext<T>(ctx: RuntimeContext, task: Task<T>) {
 }
 
 export function ExecuteObservableChild<T>(ctx: RuntimeContext, task: Task<T>, progress?: string | Partial<RuntimeContext.ProgressUpdate>) {
-    return (ctx as ObservableRuntimeContext).runChild(task, progress);
+    return (ctx as ObservableRuntimeContext).runChild(task as ExposedTask<T>, progress);
 }
 
 export namespace ExecuteObservable {
@@ -99,7 +99,7 @@ async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
         UserTiming.markEnd(task)
         UserTiming.measure(task)
         if (ctx.info.abortToken.abortRequested) {
-            abort(ctx.info, ctx.node);
+            abort(ctx.info);
         }
         return ret;
     } catch (e) {
@@ -108,20 +108,21 @@ async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
             if (ctx.node.children.length > 0) {
                 await new Promise(res => { ctx.onChildrenFinished = res; });
             }
-            if (task.onAbort) task.onAbort();
+            if (task.onAbort) {
+                task.onAbort();
+            }
         }
         if (ExecuteObservable.PRINT_ERRORS_TO_STD_ERR) console.error(e);
         throw e;
     }
 }
 
-function abort(info: ProgressInfo, node: Progress.Node) {
+function abort(info: ProgressInfo) {
     if (!info.abortToken.treeAborted) {
         info.abortToken.treeAborted = true;
         abortTree(info.root);
         notifyObserver(info, now());
     }
-
     throw Task.Aborted(info.abortToken.reason);
 }
 
@@ -157,7 +158,7 @@ class ObservableRuntimeContext implements RuntimeContext {
 
     private checkAborted() {
         if (this.info.abortToken.abortRequested) {
-            abort(this.info, this.node);
+            abort(this.info);
         }
     }
 
@@ -205,7 +206,7 @@ class ObservableRuntimeContext implements RuntimeContext {
         return Scheduler.immediatePromise();
     }
 
-    async runChild<T>(task: Task<T>, progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<T> {
+    async runChild<T>(task: ExposedTask<T>, progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<T> {
         this.updateProgress(progress);
 
         // Create a new child context and add it to the progress tree.

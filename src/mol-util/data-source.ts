@@ -91,13 +91,19 @@ function readData(ctx: RuntimeContext, action: string, data: XMLHttpRequest | Fi
             reject(error ? error : 'Failed.');
         };
 
-        data.onabort = () => reject(Task.Aborted(''));
-
+        let hasError = false;
         data.onprogress = (e: ProgressEvent) => {
-            if (e.lengthComputable) {
-                ctx.update({ message: action, isIndeterminate: false, current: e.loaded, max: e.total });
-            } else {
-                ctx.update({ message: `${action} ${(e.loaded / 1024 / 1024).toFixed(2)} MB`, isIndeterminate: true });
+            if (!ctx.shouldUpdate || hasError) return;
+
+            try {
+                if (e.lengthComputable) {
+                    ctx.update({ message: action, isIndeterminate: false, current: e.loaded, max: e.total });
+                } else {
+                    ctx.update({ message: `${action} ${(e.loaded / 1024 / 1024).toFixed(2)} MB`, isIndeterminate: true });
+                }
+            } catch (e) {
+                hasError = true;
+                reject(e);
             }
         }
         data.onload = (e: any) => resolve(e);
@@ -178,36 +184,36 @@ async function processAjax(ctx: RuntimeContext, asUint8Array: boolean, decompres
 function ajaxGetInternal(title: string | undefined, url: string, type: 'json' | 'xml' | 'string' | 'binary', decompressGzip: boolean, body?: string): Task<string | Uint8Array> {
     let xhttp: XMLHttpRequest | undefined = void 0;
     return Task.create(title ? title : 'Download', async ctx => {
-        try {
-            const asUint8Array = type === 'binary';
-            if (!asUint8Array && decompressGzip) {
-                throw 'Decompress is only available when downloading binary data.';
-            }
+        const asUint8Array = type === 'binary';
+        if (!asUint8Array && decompressGzip) {
+            throw 'Decompress is only available when downloading binary data.';
+        }
 
-            xhttp = RequestPool.get();
+        xhttp = RequestPool.get();
 
-            xhttp.open(body ? 'post' : 'get', url, true);
-            xhttp.responseType = asUint8Array ? 'arraybuffer' : 'text';
-            xhttp.send(body);
+        xhttp.open(body ? 'post' : 'get', url, true);
+        xhttp.responseType = asUint8Array ? 'arraybuffer' : 'text';
+        xhttp.send(body);
 
-            ctx.update({ message: 'Waiting for server...', canAbort: true });
-            const e = await readData(ctx, 'Downloading...', xhttp, asUint8Array);
-            const result = await processAjax(ctx, asUint8Array, decompressGzip, e)
+        await ctx.update({ message: 'Waiting for server...', canAbort: true });
+        const e = await readData(ctx, 'Downloading...', xhttp, asUint8Array);
+        xhttp = void 0;
+        const result = await processAjax(ctx, asUint8Array, decompressGzip, e)
 
-            if (type === 'json') {
-                ctx.update({ message: 'Parsing JSON...', canAbort: false });
-                return JSON.parse(result);
-            } else if (type === 'xml') {
-                ctx.update({ message: 'Parsing XML...', canAbort: false });
-                return parseXml(result);
-            }
+        if (type === 'json') {
+            await ctx.update({ message: 'Parsing JSON...', canAbort: false });
+            return JSON.parse(result);
+        } else if (type === 'xml') {
+            await ctx.update({ message: 'Parsing XML...', canAbort: false });
+            return parseXml(result);
+        }
 
-            return result;
-        } finally {
+        return result;
+    }, () => {
+        if (xhttp) {
+            xhttp.abort();
             xhttp = void 0;
         }
-    }, () => {
-        if (xhttp) xhttp.abort();
     });
 }
 

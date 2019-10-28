@@ -141,9 +141,7 @@ export class ViewportWrapper extends PluginUIComponent {
                 <StateSnapshotViewportControls />
             </div>
             <ViewportControls />
-            <div style={{ position: 'absolute', left: '10px', bottom: '10px' }}>
-                <BackgroundTaskProgress />
-            </div>
+            <BackgroundTaskProgress />
             <div className='msp-highlight-toast-wrapper'>
                 <LociLabels />
                 <Toasts />

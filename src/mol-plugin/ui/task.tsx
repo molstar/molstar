@@ -10,6 +10,7 @@ import { OrderedMap } from 'immutable';
 import { TaskManager } from '../../mol-plugin/util/task-manager';
 import { filter } from 'rxjs/operators';
 import { Progress } from '../../mol-task';
+import { IconButton } from './controls/common';
 
 export class BackgroundTaskProgress extends PluginUIComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
     componentDidMount() {
@@ -24,13 +25,18 @@ export class BackgroundTaskProgress extends PluginUIComponent<{ }, { tracked: Or
     state = { tracked: OrderedMap<number, TaskManager.ProgressEvent>() };
 
     render() {
-        return <div>
+        return <div className='msp-background-tasks'>
             {this.state.tracked.valueSeq().map(e => <ProgressEntry key={e!.id} event={e!} />)}
         </div>;
     }
 }
 
 class ProgressEntry extends PluginUIComponent<{ event: TaskManager.ProgressEvent }> {
+
+    abort = () => {
+        this.plugin.requestTaskAbort(this.props.event.id, 'User Request');
+    }
+
     render() {
         const root = this.props.event.progress.root;
         const subtaskCount = countSubtasks(this.props.event.progress.root) - 1;
@@ -39,9 +45,15 @@ class ProgressEntry extends PluginUIComponent<{ event: TaskManager.ProgressEvent
             : <>[{root.progress.current}/{root.progress.max}]</>;
         const subtasks = subtaskCount > 0
             ? <>[{subtaskCount} subtask(s)]</>
-            : void 0
-        return <div>
-            {root.progress.message} {pr} {subtasks}
+            : void 0;
+
+        return <div className='msp-task-state'>
+            <div>
+                {root.progress.canAbort && <IconButton onClick={this.abort} icon='abort' title='Abort' />}
+                <div>
+                    {root.progress.message} {pr} {subtasks}
+                </div>
+            </div>
         </div>;
     }
 }

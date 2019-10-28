@@ -176,6 +176,10 @@ export class PluginContext {
         return this.tasks.run(task);
     }
 
+    requestTaskAbort(task: Task<any> | number, reason?: string) {
+        this.tasks.requestAbort(task, reason);
+    }
+
     dispose() {
         if (this.disposed) return;
         this.commands.dispose();
