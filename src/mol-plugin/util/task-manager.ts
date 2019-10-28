@@ -22,7 +22,7 @@ class TaskManager {
 
     private track(internalId: number, taskId: number) {
         return (progress: Progress) => {
-            if (progress.canAbort && progress.requestAbort && this.abortRequests.has(taskId)) {
+            if (progress.canAbort && progress.requestAbort && this.abortRequests.has(progress.root.progress.taskId)) {
                 progress.requestAbort(this.abortRequests.get(taskId));
             }
             const elapsed = now() - progress.root.progress.startedTime;
@@ -45,8 +45,8 @@ class TaskManager {
         }
     }
 
-    requestAbort(task: Task<any> | number, reason?: string) {
-        this.abortRequests.set(typeof task === 'number' ? task : task.id, reason);
+    requestAbort(progress: Progress, reason?: string) {
+        this.abortRequests.set(progress.root.progress.taskId, reason);
     }
 
     dispose() {

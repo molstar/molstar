@@ -11,7 +11,7 @@ import { CustomPropertyRegistry } from '../mol-model-props/common/custom-propert
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { State, StateTransform, StateTransformer } from '../mol-state';
-import { Task } from '../mol-task';
+import { Task, Progress } from '../mol-task';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
 import { ThemeRegistryContext } from '../mol-theme/theme';
@@ -176,8 +176,8 @@ export class PluginContext {
         return this.tasks.run(task);
     }
 
-    requestTaskAbort(task: Task<any> | number, reason?: string) {
-        this.tasks.requestAbort(task, reason);
+    requestTaskAbort(progress: Progress, reason?: string) {
+        this.tasks.requestAbort(progress, reason);
     }
 
     dispose() {
