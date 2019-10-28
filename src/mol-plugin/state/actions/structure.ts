@@ -199,7 +199,7 @@ const DownloadStructure = StateAction.build({
             createStructureTree(ctx, traj, supportProps)
         }
     }
-    return state.updateTree(b);
+    return state.updateTree(b, { revertIfAborted: true });
 });
 
 function getDownloadParams(src: string, url: (id: string) => string, label: (id: string) => string, isBinary: boolean): StateTransformer.Params<Download>[] {

@@ -139,8 +139,10 @@ class State {
             if (!removed) return;
 
             try {
-                const ret = await this._updateTree(taskCtx, params);
-                return ret;
+                const ret = options && options.revertIfAborted
+                    ? await this._revertibleTreeUpdate(taskCtx, params)
+                    : await this._updateTree(taskCtx, params);
+                return ret.cell;
             } finally {
                 this.updateQueue.handled(params);
             }
@@ -151,6 +153,13 @@ class State {
 
     private updateQueue = new AsyncQueue<UpdateParams>();
 
+    private async _revertibleTreeUpdate(taskCtx: RuntimeContext, params: UpdateParams) {
+        const old = this.tree;
+        const ret = await this._updateTree(taskCtx, params);
+        if (ret.ctx.wasAborted) return await this._updateTree(taskCtx, { tree: old, options: params.options });
+        return ret;
+    }
+
     private async _updateTree(taskCtx: RuntimeContext, params: UpdateParams) {
         this.events.isUpdating.next(true);
         let updated = false;
@@ -159,8 +168,9 @@ class State {
             updated = await update(ctx);
             if (StateBuilder.isTo(params.tree)) {
                 const cell = this.select(params.tree.ref)[0];
-                return cell && cell.obj;
+                return { ctx, cell: cell && cell.obj };
             }
+            return { ctx };
         } finally {
             this.spine.current = undefined;
 
@@ -191,6 +201,7 @@ class State {
 
             changed: false,
             hadError: false,
+            wasAborted: false,
             newCurrent: void 0
         };
 
@@ -240,7 +251,8 @@ namespace State {
 
     export interface UpdateOptions {
         doNotLogTiming: boolean,
-        doNotUpdateCurrent: boolean
+        doNotUpdateCurrent: boolean,
+        revertIfAborted: boolean
     }
 
     export function create(rootObject: StateObject, params?: { globalContext?: unknown, rootState?: StateTransform.State }) {
@@ -250,7 +262,8 @@ namespace State {
 
 const StateUpdateDefaultOptions: State.UpdateOptions = {
     doNotLogTiming: false,
-    doNotUpdateCurrent: false
+    doNotUpdateCurrent: false,
+    revertIfAborted: false
 };
 
 type Ref = StateTransform.Ref
@@ -275,6 +288,7 @@ interface UpdateContext {
 
     changed: boolean,
     hadError: boolean,
+    wasAborted: boolean,
     newCurrent?: Ref
 }
 
@@ -504,7 +518,7 @@ function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>, cells: Ma
 }
 
 /** Set status and error text of the cell. Remove all existing objects in the subtree. */
-function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined, silent: boolean) {
+function doError(ctx: UpdateContext, ref: Ref, errorObject: any | undefined, silent: boolean) {
     if (!silent) {
         ctx.hadError = true;
         (ctx.parent as any as { errorFree: boolean }).errorFree = false;
@@ -512,9 +526,11 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined, si
 
     const cell = ctx.cells.get(ref)!;
 
-    if (errorText) {
-        setCellStatus(ctx, ref, 'error', errorText);
-        if (!silent) ctx.parent.events.log.next({ type: 'error', timestamp: new Date(), message: errorText });
+    if (errorObject) {
+        ctx.wasAborted = ctx.wasAborted || Task.isAbort(errorObject);
+        const message = '' + errorObject;
+        setCellStatus(ctx, ref, 'error', message);
+        if (!silent) ctx.parent.events.log.next({ type: 'error', timestamp: new Date(), message });
     } else {
         cell.params = void 0;
     }
@@ -569,7 +585,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
     } catch (e) {
         ctx.changed = true;
         if (!ctx.hadError) ctx.newCurrent = root;
-        doError(ctx, root, '' + e, false);
+        doError(ctx, root, e, false);
         console.error(e);
         return;
     }
