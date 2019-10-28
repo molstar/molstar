@@ -32,7 +32,17 @@ class UpdateTransformControl extends TransformControlBase<UpdateTransformControl
     getInfo() { return this._getInfo(this.props.transform); }
     getTransformerId() { return this.props.transform.transformer.id; }
     getHeader() { return this.props.customHeader || this.props.transform.transformer.definition.display; }
-    canApply() { return !this.state.error && !this.state.busy && !this.state.isInitial; }
+    canApply() {
+        const { state } = this.props;
+        const cell = state.cells.get(this.props.transform.ref);
+        if (!cell) return false;
+        if (cell.status === 'error') {
+            const parent = state.cells.get(this.props.transform.parent)!;
+            if (!parent) return false;
+            return parent.status === 'ok';
+        }
+        return !this.state.error && !this.state.busy && !this.state.isInitial;
+    }
     applyText() { return this.canApply() ? 'Update' : 'Nothing to Update'; }
     isUpdate() { return true; }
     getSourceAndTarget() {
