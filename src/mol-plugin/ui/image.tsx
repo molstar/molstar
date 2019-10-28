@@ -12,6 +12,8 @@ import { ImagePass } from '../../mol-canvas3d/passes/image';
 import { download } from '../../mol-util/download';
 import { setCanvasSize, canvasToBlob } from '../../mol-canvas3d/util';
 import { Task } from '../../mol-task';
+import { StateSelection } from '../../mol-state';
+import { PluginStateObject } from '../state/objects';
 
 interface ImageControlsState extends CollapsableState {
     showPreview: boolean
@@ -72,6 +74,14 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
         this.canvasContext.putImageData(imageData, 0, 0)
     }
 
+    private getFilename() {
+        const models = this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data)
+        const uniqueIds = new Set<string>()
+        models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()))
+        const idString = Array.from(uniqueIds).join('-')
+        return `${idString || 'molstar-image'}.png`
+    }
+
     private downloadTask = () => {
         return Task.create('Download Image', async ctx => {
             const { width, height } = this.getSize()
@@ -90,7 +100,7 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
 
             await ctx.update('Downloading image...')
             const blob = await canvasToBlob(canvas, 'png')
-            download(blob, 'molstar-image.png')
+            download(blob, this.getFilename())
         })
     }
 
