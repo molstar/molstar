@@ -19,11 +19,11 @@
 .msp-layout-standard-reactive {
     position: absolute;
 
-    @media (orientation:landscape) {
+    @media (orientation:landscape), (min-width: 1000px) {
         @import 'layout/controls-landscape';
     };
 
-    @media (orientation:portrait) {
+    @media (orientation:portrait) and (max-width: 1000px) {
         @import 'layout/controls-portrait';
     };
 }
