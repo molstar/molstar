@@ -10,6 +10,7 @@ import { Progress } from './progress'
 import { now } from '../../mol-util/now';
 import { Scheduler } from '../util/scheduler'
 import { UserTiming } from '../util/user-timing'
+import { isProductionMode } from '../../mol-util/debug'
 
 interface ExposedTask<T> extends Task<T> {
     f: (ctx: RuntimeContext) => Promise<T>,
@@ -28,10 +29,6 @@ export function ExecuteInContext<T>(ctx: RuntimeContext, task: Task<T>) {
 
 export function ExecuteObservableChild<T>(ctx: RuntimeContext, task: Task<T>, progress?: string | Partial<RuntimeContext.ProgressUpdate>) {
     return (ctx as ObservableRuntimeContext).runChild(task as ExposedTask<T>, progress);
-}
-
-export namespace ExecuteObservable {
-    export let PRINT_ERRORS_TO_STD_ERR = false;
 }
 
 function defaultProgress(task: Task<any>): Task.Progress {
@@ -112,7 +109,7 @@ async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
                 task.onAbort();
             }
         }
-        if (ExecuteObservable.PRINT_ERRORS_TO_STD_ERR) console.error(e);
+        if (!isProductionMode) console.error(e);
         throw e;
     }
 }

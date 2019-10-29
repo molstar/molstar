@@ -20,6 +20,7 @@ import { now, formatTimespan } from '../mol-util/now';
 import { ParamDefinition } from '../mol-util/param-definition';
 import { StateTreeSpine } from './tree/spine';
 import { AsyncQueue } from '../mol-util/async-queue';
+import { isProductionMode } from '../mol-util/debug'
 
 export { State }
 
@@ -586,7 +587,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.changed = true;
         if (!ctx.hadError) ctx.newCurrent = root;
         doError(ctx, root, e, false);
-        console.error(e);
+        if (!isProductionMode) console.error(e);
         return;
     }
 
