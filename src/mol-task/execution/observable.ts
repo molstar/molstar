@@ -10,7 +10,7 @@ import { Progress } from './progress'
 import { now } from '../../mol-util/now';
 import { Scheduler } from '../util/scheduler'
 import { UserTiming } from '../util/user-timing'
-import { isProductionMode } from '../../mol-util/debug'
+import { isDebugMode } from '../../mol-util/debug'
 
 interface ExposedTask<T> extends Task<T> {
     f: (ctx: RuntimeContext) => Promise<T>,
@@ -101,6 +101,8 @@ async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
         return ret;
     } catch (e) {
         if (Task.isAbort(e)) {
+            ctx.isAborted = true;
+
             // wait for all child computations to go thru the abort phase.
             if (ctx.node.children.length > 0) {
                 await new Promise(res => { ctx.onChildrenFinished = res; });
@@ -109,7 +111,7 @@ async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
                 task.onAbort();
             }
         }
-        if (!isProductionMode) console.error(e);
+        if (isDebugMode) console.error(e);
         throw e;
     }
 }
@@ -147,6 +149,8 @@ class ObservableRuntimeContext implements RuntimeContext {
     isExecuting = true;
     lastUpdatedTime = 0;
 
+    isAborted?: boolean;
+
     node: Progress.Node;
     info: ProgressInfo;
 
@@ -155,6 +159,7 @@ class ObservableRuntimeContext implements RuntimeContext {
 
     private checkAborted() {
         if (this.info.abortToken.abortRequested) {
+            this.isAborted = true;
             abort(this.info);
         }
     }
@@ -220,7 +225,7 @@ class ObservableRuntimeContext implements RuntimeContext {
                 // need to catch the error here because otherwise
                 // promises for running child tasks in a tree-like computation
                 // will get orphaned and cause "uncaught error in Promise".
-                return void 0 as any;
+                if (this.isAborted) return void 0 as any;
             }
             throw e;
         } finally {

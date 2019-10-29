@@ -28,9 +28,9 @@ function messageTree(root: Progress.Node, prefix = ''): string {
 
 function createTask<T>(delayMs: number, r: T): Task<T> {
     return Task.create('delayed value ' + r, async ctx => {
-        ctx.update('Processing delayed... ' + r, true);
+        ctx.update(`Processing delayed ${r} after ${delayMs}ms`, true);
         await Scheduler.delay(delayMs);
-        if (ctx.shouldUpdate) await ctx.update({ message: 'hello from delayed... ' });
+        if (ctx.shouldUpdate) await ctx.update({ message: `hello from delayed ${r} ${delayMs}` });
         return r;
     }, () => console.log('On abort called ' + r));
 }
@@ -63,7 +63,7 @@ export function testTree() {
         const r = await c1 + await c2 + await c3;
         if (ctx.shouldUpdate) await ctx.update({ message: 'Almost done...' });
         return r + 1;
-    });
+    }, () => console.log('On abort O'));
 }
 
 export type ChunkedState = { i: number, current: number, total: number }
@@ -115,7 +115,7 @@ async function test() {
         // const r = await Run(testTree(), abortingObserver, 250);
         // console.log(r);
 
-        const m = await ms({ i: 10 }).run(logP);
+        const m = await testTree().run(abortingObserver, 50);
         console.log(m);
     } catch (e) {
         console.error(e);
