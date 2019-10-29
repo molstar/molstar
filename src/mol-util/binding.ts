@@ -76,29 +76,29 @@ const B = ButtonsType
 function formatButtons(buttons?: ButtonsType) {
     const s: string[] = []
     if (buttons === undefined) {
-        s.push('any button')
+        s.push('any mouse button')
     } else if (buttons === 0) {
-        s.push('no button')
+        s.push('mouse hover')
     } else {
-        if (B.has(buttons, B.Flag.Primary)) s.push('left button')
-        if (B.has(buttons, B.Flag.Secondary)) s.push('right button')
-        if (B.has(buttons, B.Flag.Auxilary)) s.push('wheel/middle button')
+        if (B.has(buttons, B.Flag.Primary)) s.push('left mouse button')
+        if (B.has(buttons, B.Flag.Secondary)) s.push('right mouse button')
+        if (B.has(buttons, B.Flag.Auxilary)) s.push('wheel/middle mouse button')
         if (B.has(buttons, B.Flag.Forth)) s.push('three fingers')
     }
     return s.join(' + ')
 }
 
-function formatModifiers(modifiers?: ModifiersKeys) {
+function formatModifiers(modifiers?: ModifiersKeys, verbose?: boolean) {
     const s: string[] = []
     if (modifiers) {
-        if (modifiers.alt) s.push('alt')
-        if (modifiers.control) s.push('control')
-        if (modifiers.meta) s.push('meta/command')
-        if (modifiers.shift) s.push('shift')
+        if (modifiers.alt) s.push('alt key')
+        if (modifiers.control) s.push('control key')
+        if (modifiers.meta) s.push('meta/command key')
+        if (modifiers.shift) s.push('shift key')
 
-        if (s.length === 0) s.push('no key')
+        if (verbose && s.length === 0) s.push('no key')
     } else {
-        s.push('any key')
+        if (verbose) s.push('any key')
     }
     return s.join(' + ')
 }
