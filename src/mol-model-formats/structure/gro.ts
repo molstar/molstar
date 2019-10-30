@@ -36,7 +36,7 @@ function getCategories(atoms: GroAtoms) {
     let currentAsymIndex = 0
     let currentAsymId = ''
     let currentSeqId = 0
-    let prevMoleculeType = MoleculeType.unknown
+    let prevMoleculeType = MoleculeType.Unknown
     let prevResidueNumber = -1
 
     for (let i = 0, il = atoms.count; i < il; ++i) {

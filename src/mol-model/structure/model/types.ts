@@ -40,30 +40,49 @@ export const enum EntityType {
 }
 
 export const enum MoleculeType {
-    /** the molecule type is not known */
-    unknown,
-    /** a known, but here not listed molecule type */
-    other,
-    /** water molecule */
-    water,
-    /** small ionic molecule */
-    ion,
-    /** protein, e.g. component type included in `ProteinComponentTypeNames` */
-    protein,
+    /** The molecule type is not known */
+    Unknown,
+    /** A known, but here not listed molecule type */
+    Other,
+    /** Water molecule */
+    Water,
+    /** Small ionic molecule */
+    Ion,
+    /** Protein, e.g. component type included in `ProteinComponentTypeNames` */
+    Protein,
     /** RNA, e.g. component type included in `RNAComponentTypeNames` */
     RNA,
     /** DNA, e.g. component type included in `DNAComponentTypeNames` */
     DNA,
     /** PNA, peptide nucleic acid, comp id included in `PeptideBaseNames` */
     PNA,
-    /** sacharide, e.g. component type included in `SaccharideComponentTypeNames` */
-    saccharide
+    /** Saccharide, e.g. component type included in `SaccharideComponentTypeNames` */
+    Saccharide
+}
+
+export const enum PolymerType {
+    /** not applicable */
+    NA,
+    Protein,
+    GammaProtein,
+    BetaProtein,
+    RNA,
+    DNA,
+    PNA,
 }
 
 export type AtomRole = 'trace' | 'directionFrom' | 'directionTo' | 'backboneStart' | 'backboneEnd' | 'coarseBackbone'
 
-export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: Set<string> } } = {
-    [MoleculeType.protein]: {
+export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set<string> } } = {
+    [PolymerType.NA]: {
+        trace: new Set(),
+        directionFrom: new Set(),
+        directionTo: new Set(),
+        backboneStart: new Set(),
+        backboneEnd: new Set(),
+        coarseBackbone: new Set()
+    },
+    [PolymerType.Protein]: {
         trace: new Set(['CA']),
         directionFrom: new Set(['C']),
         directionTo: new Set(['O', 'OC1', 'O1', 'OX1', 'OXT']),
@@ -73,7 +92,23 @@ export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: Set<strin
         // BB is often used for coarse grained models
         coarseBackbone: new Set(['CA', 'BB', 'CA1'])
     },
-    [MoleculeType.RNA]: {
+    [PolymerType.GammaProtein]: {
+        trace: new Set(['CA']),
+        directionFrom: new Set(['C']),
+        directionTo: new Set(['O']),
+        backboneStart: new Set(['N']),
+        backboneEnd: new Set(['CD']),
+        coarseBackbone: new Set(['CA'])
+    },
+    [PolymerType.BetaProtein]: {
+        trace: new Set(['CA']),
+        directionFrom: new Set(['C']),
+        directionTo: new Set(['O']),
+        backboneStart: new Set(['N']),
+        backboneEnd: new Set(['CG']),
+        coarseBackbone: new Set(['CA'])
+    },
+    [PolymerType.RNA]: {
         trace: new Set(['C4\'', 'C4*']),
         directionFrom: new Set(['C4\'', 'C4*']),
         directionTo: new Set(['C3\'', 'C3*']),
@@ -81,7 +116,7 @@ export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: Set<strin
         backboneEnd: new Set(['O3\'', 'O3*']),
         coarseBackbone: new Set(['P'])
     },
-    [MoleculeType.DNA]: {
+    [PolymerType.DNA]: {
         trace: new Set(['C3\'', 'C3*']),
         directionFrom: new Set(['C3\'', 'C3*']),
         directionTo: new Set(['C1\'', 'C1*']),
@@ -89,7 +124,7 @@ export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: Set<strin
         backboneEnd: new Set(['O3\'', 'O3*']),
         coarseBackbone: new Set(['P'])
     },
-    [MoleculeType.PNA]: {
+    [PolymerType.PNA]: {
         trace: new Set(['N4\'', 'N4*']),
         directionFrom: new Set(['N4\'', 'N4*']),
         directionTo: new Set(['C7\'', 'C7*']),
@@ -125,6 +160,16 @@ export const LProteinComponentTypeNames = new Set([
     'L-PEPTIDE LINKING', 'L-PEPTIDE NH3 AMINO TERMINUS',
     'L-PEPTIDE COOH CARBOXY TERMINUS', 'L-GAMMA-PEPTIDE, C-DELTA LINKING',
     'L-BETA-PEPTIDE, C-GAMMA LINKING'
+])
+
+/** Chemical component type names for gamma protein, overlaps with D/L-linked */
+export const GammaProteinComponentTypeNames = new Set([
+    'D-GAMMA-PEPTIDE, C-DELTA LINKING', 'L-GAMMA-PEPTIDE, C-DELTA LINKING'
+])
+
+/** Chemical component type names for beta protein, overlaps with D/L-linked */
+export const BetaProteinComponentTypeNames = new Set([
+    'D-BETA-PEPTIDE, C-GAMMA LINKING', 'L-BETA-PEPTIDE, C-GAMMA LINKING'
 ])
 
 /** Chemical component type names for pepdite-like protein */
@@ -206,32 +251,53 @@ export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.has(comp
 export const PolymerNames = SetUtils.unionMany(AminoAcidNames, BaseNames)
 
 /** get the molecule type from component type and id */
-export function getMoleculeType(compType: string, compId: string) {
+export function getMoleculeType(compType: string, compId: string): MoleculeType {
     compType = compType.toUpperCase()
     compId = compId.toUpperCase()
     if (PeptideBaseNames.has(compId)) {
         return MoleculeType.PNA
     } else if (ProteinComponentTypeNames.has(compType)) {
-        return MoleculeType.protein
+        return MoleculeType.Protein
     } else if (RNAComponentTypeNames.has(compType)) {
         return MoleculeType.RNA
     } else if (DNAComponentTypeNames.has(compType)) {
         return MoleculeType.DNA
     } else if (SaccharideComponentTypeNames.has(compType)) {
-        return MoleculeType.saccharide
+        return MoleculeType.Saccharide
     } else if (WaterNames.has(compId)) {
-        return MoleculeType.water
+        return MoleculeType.Water
     } else if (IonNames.has(compId)) {
-        return MoleculeType.ion
+        return MoleculeType.Ion
     } else if (OtherComponentTypeNames.has(compType)) {
         if (SaccharideCompIdMap.has(compId)) {
             // trust our saccharide table more than given 'non-polymer' or 'other' component type
-            return MoleculeType.saccharide
+            return MoleculeType.Saccharide
         } else {
-            return MoleculeType.other
+            return MoleculeType.Other
         }
     } else {
-        return MoleculeType.unknown
+        return MoleculeType.Unknown
+    }
+}
+
+export function getPolymerType(compType: string, molType: MoleculeType): PolymerType {
+    compType = compType.toUpperCase()
+    if (molType === MoleculeType.Protein) {
+        if (GammaProteinComponentTypeNames.has(compType)) {
+            return PolymerType.GammaProtein
+        } else if (BetaProteinComponentTypeNames.has(compType)) {
+            return PolymerType.BetaProtein
+        } else {
+            return PolymerType.Protein
+        }
+    } else if (molType === MoleculeType.RNA) {
+        return PolymerType.RNA
+    } else if (molType === MoleculeType.DNA) {
+        return PolymerType.DNA
+    } else if (molType === MoleculeType.PNA) {
+        return PolymerType.PNA
+    } else {
+        return PolymerType.NA
     }
 }
 
@@ -316,7 +382,7 @@ export function isNucleic(moleculeType: MoleculeType) {
 }
 
 export function isProtein(moleculeType: MoleculeType) {
-    return moleculeType === MoleculeType.protein
+    return moleculeType === MoleculeType.Protein
 }
 
 /**

@@ -41,13 +41,13 @@ export function getMoleculeTypeColorThemeParams(ctx: ThemeDataContext) {
 export function moleculeTypeColor(colorMap: MoleculeTypeColors, unit: Unit, element: ElementIndex): Color {
     const moleculeType = getElementMoleculeType(unit, element)
     switch (moleculeType) {
-        case MoleculeType.water: return colorMap.water
-        case MoleculeType.ion: return colorMap.ion
-        case MoleculeType.protein: return colorMap.protein
+        case MoleculeType.Water: return colorMap.water
+        case MoleculeType.Ion: return colorMap.ion
+        case MoleculeType.Protein: return colorMap.protein
         case MoleculeType.RNA: return colorMap.RNA
         case MoleculeType.DNA: return colorMap.DNA
         case MoleculeType.PNA: return colorMap.PNA
-        case MoleculeType.saccharide: return colorMap.saccharide
+        case MoleculeType.Saccharide: return colorMap.saccharide
     }
     return DefaultMoleculeTypeColor
 }

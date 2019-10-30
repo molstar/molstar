@@ -75,9 +75,9 @@ export function secondaryStructureColor(colorMap: SecondaryStructureColors, unit
             return colorMap.dna
         } else if (moleculeType === MoleculeType.RNA) {
             return colorMap.rna
-        } else if (moleculeType === MoleculeType.saccharide) {
+        } else if (moleculeType === MoleculeType.Saccharide) {
             return colorMap.carbohydrate
-        } else if (moleculeType === MoleculeType.protein) {
+        } else if (moleculeType === MoleculeType.Protein) {
             return colorMap.coil
         }
     }

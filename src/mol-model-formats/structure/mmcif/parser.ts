@@ -180,7 +180,7 @@ function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap
             const _type = type.value(i)
             if (SaccharideCompIdMap.has(_id)) {
                 map.set(_id, SaccharideCompIdMap.get(_id)!)
-            } else if (getMoleculeType(_type, _id) === MoleculeType.saccharide) {
+            } else if (getMoleculeType(_type, _id) === MoleculeType.Saccharide) {
                 map.set(_id, UnknownSaccharideComponent)
             }
         }

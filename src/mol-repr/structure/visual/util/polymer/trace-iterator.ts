@@ -56,7 +56,7 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
         initial: false, final: false,
         secStrucFirst: false, secStrucLast: false,
         secStrucType: SecStrucTypeNA,
-        moleculeType: MoleculeType.unknown,
+        moleculeType: MoleculeType.Unknown,
         coarseBackboneFirst: false, coarseBackboneLast: false,
         isCoarseBackbone: false,
         p0: Vec3(), p1: Vec3(), p2: Vec3(), p3: Vec3(), p4: Vec3(),

@@ -192,7 +192,7 @@ namespace AccessibleSurfaceArea {
 
             if (isNucleic(residueType)) {
                  ctx.atomRadius[aI] = determineRadiusNucl(atomId, element, compId);
-            } else if (residueType === MoleculeType.protein) {
+            } else if (residueType === MoleculeType.Protein) {
                 ctx.atomRadius[aI] = determineRadiusAmino(atomId, element, compId);
             } else {
                 ctx.atomRadius[aI] = handleNonStandardCase(element);

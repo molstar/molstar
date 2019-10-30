@@ -5,7 +5,7 @@
  */
 
 import { Model, ResidueIndex, ElementIndex } from './model';
-import { MoleculeType, AtomRole, MoleculeTypeAtomRoleId, getMoleculeType } from './model/types';
+import { MoleculeType, AtomRole, PolymerTypeAtomRoleId, getMoleculeType, PolymerType } from './model/types';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { Unit } from './structure';
 import Matrix from '../../mol-math/linear-algebra/matrix/matrix';
@@ -28,7 +28,7 @@ export function getElementMoleculeType(unit: Unit, element: ElementIndex): Molec
             const cc = unit.model.properties.chemicalComponentMap.get(compId)
             if (cc) return getMoleculeType(cc.type, compId)
     }
-    return MoleculeType.unknown
+    return MoleculeType.Unknown
 }
 
 export function getAtomicMoleculeType(model: Model, rI: ResidueIndex): MoleculeType {
@@ -36,10 +36,10 @@ export function getAtomicMoleculeType(model: Model, rI: ResidueIndex): MoleculeT
 }
 
 const EmptyAtomIds = new Set<string>()
-export function getAtomIdForAtomRole(moleculeType: MoleculeType, atomRole: AtomRole) {
-    const m = MoleculeTypeAtomRoleId[moleculeType]
-    if (m !== undefined) {
-        const a = m[atomRole]
+export function getAtomIdForAtomRole(polymerType: PolymerType, atomRole: AtomRole) {
+    const p = PolymerTypeAtomRoleId[polymerType]
+    if (p !== undefined) {
+        const a = p[atomRole]
         if (a !== undefined) return a
     }
     return EmptyAtomIds

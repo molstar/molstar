@@ -159,7 +159,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
 
                     if (p.levels.includes('ligand') && !u.polymerElements.length) {
                         const moleculeType = getElementMoleculeType(u, u.elements[0])
-                        if (moleculeType === MoleculeType.other || moleculeType === MoleculeType.saccharide) {
+                        if (moleculeType === MoleculeType.Other || moleculeType === MoleculeType.Saccharide) {
                             label = `${StructureProperties.entity.pdbx_description(l).join(', ')} (${getAsymId(u)(l)})`
                         }
                     }

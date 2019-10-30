@@ -7,7 +7,7 @@
 import { AtomicRanges, AtomicIndex, AtomicHierarchy, AtomicDerivedData } from '../atomic/hierarchy';
 import { Segmentation, Interval } from '../../../../../mol-data/int';
 import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
-import { isPolymer } from '../../types';
+import { isPolymer, PolymerType } from '../../types';
 import { ElementIndex, ResidueIndex } from '../../indexing';
 import { getAtomIdForAtomRole } from '../../../util';
 import { AtomicConformation } from '../atomic/conformation';
@@ -16,18 +16,18 @@ import { Entities } from '../common';
 import StructureSequence from '../sequence';
 
 function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, conformation: AtomicConformation, index: AtomicIndex, derived: AtomicDerivedData) {
-    const { moleculeType, traceElementIndex, directionFromElementIndex, directionToElementIndex } = derived.residue
-    const mtStart = moleculeType[riStart]
-    const mtEnd = moleculeType[riEnd]
-    if (!isPolymer(mtStart) || !isPolymer(mtEnd)) return false
+    const { polymerType, traceElementIndex, directionFromElementIndex, directionToElementIndex } = derived.residue
+    const ptStart = polymerType[riStart]
+    const ptEnd = polymerType[riEnd]
+    if (ptStart === PolymerType.NA || ptEnd === PolymerType.NA) return false
     if (traceElementIndex[riStart] === -1 || traceElementIndex[riEnd] === -1) return false
 
-    let eiStart = index.findAtomsOnResidue(riStart, getAtomIdForAtomRole(mtStart, 'backboneStart'))
-    let eiEnd = index.findAtomsOnResidue(riEnd, getAtomIdForAtomRole(mtEnd, 'backboneEnd'))
+    let eiStart = index.findAtomsOnResidue(riStart, getAtomIdForAtomRole(ptStart, 'backboneStart'))
+    let eiEnd = index.findAtomsOnResidue(riEnd, getAtomIdForAtomRole(ptEnd, 'backboneEnd'))
 
     if (eiStart === -1 || eiEnd === -1) {
-        eiStart = index.findAtomsOnResidue(riStart, getAtomIdForAtomRole(mtStart, 'coarseBackbone'))
-        eiEnd = index.findAtomsOnResidue(riEnd, getAtomIdForAtomRole(mtEnd, 'coarseBackbone'))
+        eiStart = index.findAtomsOnResidue(riStart, getAtomIdForAtomRole(ptStart, 'coarseBackbone'))
+        eiEnd = index.findAtomsOnResidue(riEnd, getAtomIdForAtomRole(ptEnd, 'coarseBackbone'))
     }
 
     const { x, y, z } = conformation

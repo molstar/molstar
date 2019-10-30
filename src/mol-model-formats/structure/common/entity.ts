@@ -30,7 +30,7 @@ export class EntityBuilder {
     }
 
     getEntityId(compId: string, moleculeType: MoleculeType, chainId: string): string {
-        if (moleculeType === MoleculeType.water) {
+        if (moleculeType === MoleculeType.Water) {
             if (this.waterId === undefined) {
                 this.set('water', 'Water')
                 this.waterId = `${this.count}`

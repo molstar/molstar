@@ -8,7 +8,7 @@
 import { Column, Table } from '../../../../../mol-data/db'
 import { Segmentation } from '../../../../../mol-data/int'
 import { mmCIF_Schema as mmCIF } from '../../../../../mol-io/reader/cif/schema/mmcif'
-import { ElementSymbol, MoleculeType } from '../../types'
+import { ElementSymbol, MoleculeType, PolymerType } from '../../types'
 import { ChainIndex, EntityIndex, ResidueIndex, ElementIndex } from '../../indexing';
 import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
 
@@ -116,6 +116,7 @@ export interface AtomicDerivedData {
         readonly directionFromElementIndex: ArrayLike<ElementIndex | -1>
         readonly directionToElementIndex: ArrayLike<ElementIndex | -1>
         readonly moleculeType: ArrayLike<MoleculeType>
+        readonly polymerType: ArrayLike<PolymerType>
     }
 }
 
