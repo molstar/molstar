@@ -341,7 +341,6 @@ function expandConnected(ctx: QueryContext, structure: Structure, linkTest: Quer
 
     // Process intra unit links
     for (const unit of structure.units) {
-        processedUnits.add(unit.id);
 
         if (unit.kind !== Unit.Kind.Atomic) {
             // add the whole unit
@@ -379,7 +378,7 @@ function expandConnected(ctx: QueryContext, structure: Structure, linkTest: Quer
 
         // Process inter unit links
         for (const linkedUnit of interLinks.getLinkedUnits(inputUnit)) {
-            if (processedUnits.has(linkedUnit.unitB.id)) continue;
+            if (processedUnits.has(linkedUnit.unitA.id)) continue;
 
             atomicLink.link.bUnit = linkedUnit.unitB;
             for (const aI of linkedUnit.linkedElementIndices) {
@@ -397,6 +396,8 @@ function expandConnected(ctx: QueryContext, structure: Structure, linkTest: Quer
                 }
             }
         }
+
+        processedUnits.add(unit.id);
     }
 
     return builder.getStructure();
