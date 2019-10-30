@@ -100,6 +100,7 @@ const residue = {
         const id = compId(l)
         return l.unit.model.properties.modifiedResidues.parentId.get(id) || id
     }),
+    isNonStandard: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.mon_nstd_flag[0] !== 'y'),
     hasMicroheterogeneity: p(hasMicroheterogeneity),
     microheterogeneityCompIds: p(microheterogeneityCompIds),
     secondary_structure_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.type[l.unit.residueIndex[l.element]]),

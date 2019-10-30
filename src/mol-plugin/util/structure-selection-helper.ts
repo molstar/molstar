@@ -188,6 +188,14 @@ const modified = StructureSelectionQuery('Modified Residues', MS.struct.modifier
     })
 ]))
 
+const nonStandardPolymer = StructureSelectionQuery('Non-standard Residues in Polymers', MS.struct.modifier.union([
+    MS.struct.generator.atomGroups({
+        'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+        'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+        'residue-test': MS.ammp('isNonStandard')
+    })
+]))
+
 const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'chain-test': MS.core.set.has([
@@ -230,6 +238,7 @@ export const StructureSelectionQueries = {
     ligandConnectedOnly,
     connectedOnly,
     modified,
+    nonStandardPolymer,
     coarse,
     surroundings,
     complement,
