@@ -60,15 +60,16 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let resolution = defaults(props.resolution, 2)
 
     if (quality === 'auto' && data instanceof Structure) {
-        let score = data.elementCount
-        if (data.isCoarse) score *= 10
+        const structure = data.root
+        let score = structure.elementCount
+        if (structure.isCoarse) score *= 10
         if (score > 500_000) {
             quality = 'lowest'
-        } else if (score > 300_000) {
+        } else if (score > 200_000) {
             quality = 'lower'
-        } else if (score > 100_000) {
+        } else if (score > 60_000) {
             quality = 'low'
-        } else if (score > 30_000) {
+        } else if (score > 20_000) {
             quality = 'medium'
         } else if (score > 2_000) {
             quality = 'high'
