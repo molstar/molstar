@@ -343,9 +343,9 @@ function isIdentity(map: ArrayLike<number>, rowCount: number) {
 }
 
 function columnView<T>(c: Column<T>, map: ArrayLike<number>, checkIdentity: boolean): Column<T> {
-    if (!c.isDefined) return c;
+    if (!c.isDefined || c.rowCount === 0) return c;
     if (checkIdentity && isIdentity(map, c.rowCount)) return c;
-    if (!!c.__array) return arrayView(c, map);
+    if (!!c.__array && typeof c.value(0) === typeof c.__array[0]) return arrayView(c, map);
     return viewFull(c, map);
 }
 
