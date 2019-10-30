@@ -115,10 +115,15 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         return <span key={seqIdx} data-seqid={seqIdx} style={{ color: Color.toStyle(color), backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{label}</span>;
     }
 
-    private getSequenceNumberClass(seqIdx: number, label: string) {
-        return label.length > 1 && seqIdx > 0
-            ? 'msp-sequence-number msp-sequence-number-long'
-            : 'msp-sequence-number'
+    private getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {
+        const classList = ['msp-sequence-number']
+        if (seqNum.startsWith('-')) {
+            if (label.length > 1 && seqIdx > 0) classList.push('msp-sequence-number-long-negative')
+            else classList.push('msp-sequence-number-negative')
+        } else {
+            if (label.length > 1 && seqIdx > 0) classList.push('msp-sequence-number-long')
+        }
+        return classList.join(' ')
     }
 
     private location = StructureElement.Location.create();
@@ -127,19 +132,19 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         return n;
     }
     private getSequenceNumber(seqIdx: number, label: string) {
-        let sequenceNumber = ''
+        let seqNum = ''
         const loci = this.props.sequenceWrapper.getLoci(seqIdx)
         const l = StructureElement.Loci.getFirstLocation(loci, this.location);
         if (l) {
             if (Unit.isAtomic(l.unit)) {
                 const seqId = StructureProperties.residue.auth_seq_id(l)
                 const insCode = StructureProperties.residue.pdbx_PDB_ins_code(l)
-                sequenceNumber = `${seqId}${insCode ? insCode : ''}`
+                seqNum = `${seqId}${insCode ? insCode : ''}`
             } else if (Unit.isCoarse(l.unit)) {
-                sequenceNumber = `${seqIdx + 1}`
+                seqNum = `${seqIdx + 1}`
             }
         }
-        return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, label)}>{this.padSeqNum(sequenceNumber)}</span>
+        return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, seqNum, label)}>{this.padSeqNum(seqNum)}</span>
     }
 
     private updateMarker() {
