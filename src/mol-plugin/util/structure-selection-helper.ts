@@ -12,6 +12,7 @@ import { compile } from '../../mol-script/runtime/query/compiler';
 import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
 import Expression from '../../mol-script/language/expression';
+import { LinkType } from '../../mol-model/structure/model/types';
 
 export interface StructureSelectionQuery {
     label: string
@@ -139,7 +140,9 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
                 ])
             })
         ]),
-        // this is to get non-polymer components in polymer entities, e.g. PXZ in 4HIV
+        // this is to get non-polymer components in polymer entities,
+        // e.g. PXZ in 4HIV or generally ACE
+        //
         // one option to optimize this is to expose `_entity_poly.nstd_monomer` in molql
         // and only check those entities residue by residue
         MS.struct.modifier.union([
@@ -159,7 +162,13 @@ const ligandPlusConnected = StructureSelectionQuery('Ligand with Connected', MS.
             MS.struct.modifier.includeConnected({
                 0: ligand.expression,
                 'layer-count': 1,
-                'as-whole-residues': true
+                'as-whole-residues': true,
+                'link-test': MS.core.flags.hasAny([
+                    MS.struct.linkProperty.flags(),
+                    MS.core.type.bitflags([
+                        LinkType.Flag.Covalent | LinkType.Flag.MetallicCoordination
+                    ])
+                ])
             })
         ]),
         by: branched.expression

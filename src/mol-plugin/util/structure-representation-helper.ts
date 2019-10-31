@@ -199,8 +199,8 @@ export class StructureRepresentationHelper {
 
 async function polymerAndLigand(r: StructureRepresentationHelper) {
     await r.clear()
-    await r.setFromExpression('add', 'cartoon', Q.all.expression)
-    await r.setFromExpression('add', 'carbohydrate', Q.all.expression)
+    await r.setFromExpression('add', 'cartoon', Q.polymer.expression)
+    await r.setFromExpression('add', 'carbohydrate', Q.branched.expression)
     await r.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
         MS.struct.combinator.merge([
             Q.ligandPlusConnected.expression,
@@ -215,15 +215,6 @@ async function proteinAndNucleic(r: StructureRepresentationHelper) {
     await r.clear()
     await r.setFromExpression('add', 'cartoon', Q.protein.expression)
     await r.setFromExpression('add', 'gaussian-surface', Q.nucleic.expression)
-
-    await r.setFromExpression('add', 'carbohydrate', Q.all.expression)
-    await r.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
-        MS.struct.combinator.merge([
-            Q.ligandPlusConnected.expression,
-            Q.branchedConnectedOnly.expression,
-            Q.water.expression
-        ])
-    ]))
 }
 
 async function capsid(r: StructureRepresentationHelper) {
