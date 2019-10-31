@@ -72,8 +72,8 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
         // Selections
         if (!refs[Tags.ResidueSel]) {
-            refs[Tags.ResidueSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelectionFromExpression,
-                { expression: { } as any, label: 'Residue' }, { tags: Tags.ResidueSel }).ref;
+            refs[Tags.ResidueSel] = builder.to(refs['structure-interaction-group']).apply(StateTransforms.Model.StructureSelectionFromBundle,
+                { bundle: { } as any, label: 'Residue' }, { tags: Tags.ResidueSel }).ref;
         }
 
         if (!refs[Tags.SurrSel]) {
@@ -166,19 +166,18 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
                 lastLoci = loci;
 
-                const core = MS.struct.modifier.wholeResidues([
-                    StructureElement.Loci.toExpression(loci)
-                ]);
+                const residueLoci = StructureElement.Loci.extendToWholeResidues(loci)
+                const residueBundle = StructureElement.Bundle.fromLoci(residueLoci)
 
                 const surroundings = MS.struct.modifier.includeSurroundings({
-                    0: core,
+                    0: StructureElement.Bundle.toExpression(residueBundle),
                     radius: 5,
                     'as-whole-residues': true
                 });
 
                 const { state, builder, refs } = this.ensureShape(parent);
 
-                builder.to(refs[Tags.ResidueSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: core }));
+                builder.to(refs[Tags.ResidueSel]!).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle: residueBundle }));
                 builder.to(refs[Tags.SurrSel]!).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression: surroundings }));
 
                 PluginCommands.State.Update.dispatch(this.plugin, { state, tree: builder, options: { doNotLogTiming: true, doNotUpdateCurrent: true } });
