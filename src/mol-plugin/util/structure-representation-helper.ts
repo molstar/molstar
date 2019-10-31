@@ -200,7 +200,7 @@ export class StructureRepresentationHelper {
 async function polymerAndLigand(r: StructureRepresentationHelper) {
     await r.clear()
     await r.setFromExpression('add', 'cartoon', Q.polymer.expression)
-    await r.setFromExpression('add', 'carbohydrate', Q.branched.expression)
+    await r.setFromExpression('add', 'carbohydrate', Q.branchedPlusConnected.expression)
     await r.setFromExpression('add', 'ball-and-stick', MS.struct.modifier.union([
         MS.struct.combinator.merge([
             Q.ligandPlusConnected.expression,
