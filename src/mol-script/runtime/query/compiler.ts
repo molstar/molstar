@@ -61,7 +61,7 @@ export namespace QueryCompiledSymbol {
 
 export namespace CompiledQueryFn {
     export function Const(value: any): CompiledQueryFn  {
-        return { isConst: true, fn: ctx => value };
+        return { isConst: true, fn: function CompiledQueryFn_Const(ctx) { return value } };
     }
 
     export function Dynamic(fn: QueryFn): CompiledQueryFn {
@@ -140,7 +140,7 @@ class SymbolRuntimeImpl<S extends MSymbol> implements QuerySymbolRuntime {
 }
 
 function createDynamicFn<S extends MSymbol>(fn: QuerySymbolFn<S>, args: any): QueryFn {
-    return ctx => fn(ctx, args);
+    return function DynamicFn(ctx) { return fn(ctx, args) };
 }
 
 function _compile(ctx: QueryCompilerCtx, expression: Expression): CompiledQueryFn {

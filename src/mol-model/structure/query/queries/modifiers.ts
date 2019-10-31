@@ -45,7 +45,7 @@ function getWholeResidues(ctx: QueryContext, source: Structure, structure: Struc
 }
 
 export function wholeResidues(query: StructureQuery): StructureQuery {
-    return ctx => {
+    return function query_wholeResidues(ctx) {
         const inner = query(ctx);
         if (StructureSelection.isSingleton(inner)) {
             return StructureSelection.Singletons(ctx.inputStructure, getWholeResidues(ctx, ctx.inputStructure, inner.structure));
@@ -141,7 +141,7 @@ function findStructureRadius(ctx: QueryContext, eRadius: QueryFn<number>) {
 }
 
 export function includeSurroundings(query: StructureQuery, params: IncludeSurroundingsParams): StructureQuery {
-    return ctx => {
+    return function query_includeSurroundings(ctx) {
         const inner = query(ctx);
 
         if (params.elementRadius) {
@@ -180,7 +180,7 @@ export function includeSurroundings(query: StructureQuery, params: IncludeSurrou
 }
 
 export function querySelection(selection: StructureQuery, query: StructureQuery): StructureQuery {
-    return ctx => {
+    return function query_querySelection(ctx) {
         const targetSel = selection(ctx);
         if (StructureSelection.structureCount(targetSel) === 0) return targetSel;
 
@@ -198,7 +198,7 @@ export function querySelection(selection: StructureQuery, query: StructureQuery)
 }
 
 export function intersectBy(query: StructureQuery, by: StructureQuery): StructureQuery {
-    return ctx => {
+    return function query_intersectBy(ctx) {
         const selection = query(ctx);
         if (StructureSelection.structureCount(selection) === 0) return selection;
 
@@ -218,7 +218,7 @@ export function intersectBy(query: StructureQuery, by: StructureQuery): Structur
 }
 
 export function exceptBy(query: StructureQuery, by: StructureQuery): StructureQuery {
-    return ctx => {
+    return function query_exceptBy(ctx) {
         const selection = query(ctx);
         if (StructureSelection.structureCount(selection) === 0) return selection;
 
@@ -238,7 +238,7 @@ export function exceptBy(query: StructureQuery, by: StructureQuery): StructureQu
 }
 
 export function union(query: StructureQuery): StructureQuery {
-    return ctx => {
+    return function query_union(ctx) {
         const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
         ret.add(StructureSelection.unionStructure(query(ctx)));
         return ret.getSelection();
@@ -246,7 +246,7 @@ export function union(query: StructureQuery): StructureQuery {
 }
 
 export function expandProperty(query: StructureQuery, property: QueryFn): StructureQuery {
-    return ctx => {
+    return function query_expandProperty(ctx) {
         const src = query(ctx);
         const propertyToStructureIndexMap = new Map<any, UniqueArray<number>>();
 
@@ -307,7 +307,7 @@ export interface IncludeConnectedParams {
 export function includeConnected({ query, layerCount, wholeResidues, linkTest }: IncludeConnectedParams): StructureQuery {
     const bt = linkTest || defaultLinkTest;
     const lc = Math.max(layerCount, 0);
-    return ctx => {
+    return function query_includeConnected(ctx) {
         const builder = StructureSelection.UniqueBuilder(ctx.inputStructure);
         const src = query(ctx);
         ctx.pushCurrentLink();

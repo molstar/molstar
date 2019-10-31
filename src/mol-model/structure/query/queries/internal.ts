@@ -20,7 +20,7 @@ export function defaultLinkTest(ctx: QueryContext) {
 }
 
 export function atomicSequence(): StructureQuery {
-    return ctx => {
+    return function query_atomicSequence(ctx) {
         const { inputStructure } = ctx;
         const l = StructureElement.Location.create();
 
@@ -48,7 +48,7 @@ export function atomicSequence(): StructureQuery {
 }
 
 export function water(): StructureQuery {
-    return ctx => {
+    return function query_water(ctx) {
         const { inputStructure } = ctx;
         const l = StructureElement.Location.create();
 
@@ -67,7 +67,7 @@ export function water(): StructureQuery {
 }
 
 export function atomicHet(): StructureQuery {
-    return ctx => {
+    return function query_atomicHet(ctx) {
         const { inputStructure } = ctx;
         const l = StructureElement.Location.create();
 
@@ -97,7 +97,7 @@ export function atomicHet(): StructureQuery {
 }
 
 export function spheres(): StructureQuery {
-    return ctx => {
+    return function query_spheres(ctx) {
         const { inputStructure } = ctx;
 
         const units: Unit[] = [];
@@ -118,7 +118,7 @@ export function bundleElementImpl(groupedUnits: number[][], ranges: number[], se
 }
 
 export function bundleGenerator(elements: BundleElement[]): StructureQuery {
-    return ctx => {
+    return function query_bundleGenerator(ctx) {
         const bundle: Bundle = {
             hash: ctx.inputStructure.hashCode,
             elements

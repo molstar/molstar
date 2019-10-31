@@ -20,14 +20,14 @@ import { bundleElementImpl, bundleGenerator } from '../../../mol-model/structure
 const symbols = [
     // ============= TYPES =============
 
-    C(MolScript.core.type.bool, (ctx, v) => !!v[0](ctx)),
-    C(MolScript.core.type.num, (ctx, v) => +v[0](ctx)),
-    C(MolScript.core.type.str, (ctx, v) => '' + v[0](ctx)),
-    C(MolScript.core.type.list, (ctx, xs) => QueryRuntimeArguments.forEachEval(xs, ctx, (v, i, list) => list[i] = v, [] as any[])),
-    C(MolScript.core.type.set, (ctx, xs) => QueryRuntimeArguments.forEachEval(xs, ctx, (v, i, set) => set.add(v), new Set<any>())),
-    C(MolScript.core.type.regex, (ctx, v) => new RegExp(v[0](ctx), (v[1] && v[1](ctx)) || '')),
-    C(MolScript.core.type.bitflags, (ctx, v) => +v[0](ctx)),
-    C(MolScript.core.type.compositeKey, (ctx, xs) => QueryRuntimeArguments.forEachEval(xs, ctx, (v, i, list) => list[i] = '' + v, [] as string[]).join('-')),
+    C(MolScript.core.type.bool, function core_type_bool(ctx, v) { return !!v[0](ctx) }),
+    C(MolScript.core.type.num, function core_type_num(ctx, v) { return +v[0](ctx) }),
+    C(MolScript.core.type.str, function core_type_str(ctx, v) { return '' + v[0](ctx) }),
+    C(MolScript.core.type.list, function core_type_list(ctx, xs) { return QueryRuntimeArguments.forEachEval(xs, ctx, (v, i, list) => list[i] = v, [] as any[]) }),
+    C(MolScript.core.type.set, function core_type_set(ctx, xs) { return QueryRuntimeArguments.forEachEval(xs, ctx, function core_type_set_argEval(v, i, set) { return set.add(v) }, new Set<any>()) }),
+    C(MolScript.core.type.regex, function core_type_regex(ctx, v) { return new RegExp(v[0](ctx), (v[1] && v[1](ctx)) || '') }),
+    C(MolScript.core.type.bitflags, function core_type_bitflags(ctx, v) { return +v[0](ctx) }),
+    C(MolScript.core.type.compositeKey, function core_type_compositeKey(ctx, xs) { return QueryRuntimeArguments.forEachEval(xs, ctx, (v, i, list) => list[i] = '' + v, [] as string[]).join('-') }),
 
     // ============= LOGIC ================
     C(MolScript.core.logic.not, (ctx, v) => !v[0](ctx)),
@@ -152,8 +152,8 @@ const symbols = [
     C(MolScript.core.list.getAt, (ctx, v) => v[0](ctx)[v[1](ctx)]),
 
     // ============= SET ================
-    C(MolScript.core.set.has, (ctx, v) => v[0](ctx).has(v[1](ctx))),
-    C(MolScript.core.set.isSubset, (ctx, v) => SetUtils.isSuperset(v[1](ctx) as Set<any>, v[0](ctx) as Set<any>)),
+    C(MolScript.core.set.has, function core_set_has(ctx, v) { return v[0](ctx).has(v[1](ctx)) }),
+    C(MolScript.core.set.isSubset, function core_set_isSubset(ctx, v) { return SetUtils.isSuperset(v[1](ctx) as Set<any>, v[0](ctx) as Set<any>) }),
 
     // ============= FLAGS ================
     C(MolScript.core.flags.hasAny, (ctx, v) => {
@@ -219,34 +219,34 @@ const symbols = [
     })(ctx)),
 
     // ============= GENERATORS ================
-    D(MolScript.structureQuery.generator.atomGroups, (ctx, xs) => Queries.generators.atoms({
+    D(MolScript.structureQuery.generator.atomGroups, function structureQuery_generator_atomGroups(ctx, xs) { return Queries.generators.atoms({
         entityTest: xs['entity-test'],
         chainTest: xs['chain-test'],
         residueTest: xs['residue-test'],
         atomTest: xs['atom-test'],
         groupBy: xs['group-by']
-    })(ctx)),
+    })(ctx) }),
 
-    D(MolScript.structureQuery.generator.all, (ctx) => Queries.generators.all(ctx)),
-    D(MolScript.structureQuery.generator.empty, (ctx) => Queries.generators.none(ctx)),
+    D(MolScript.structureQuery.generator.all, function structureQuery_generator_all(ctx) { return Queries.generators.all(ctx) }),
+    D(MolScript.structureQuery.generator.empty, function structureQuery_generator_empty(ctx) { return Queries.generators.none(ctx) }),
 
     // ============= MODIFIERS ================
 
-    D(MolScript.structureQuery.modifier.includeSurroundings, (ctx, xs) => Queries.modifiers.includeSurroundings(xs[0] as any, {
+    D(MolScript.structureQuery.modifier.includeSurroundings, function structureQuery_modifier_includeSurroundings(ctx, xs) { return Queries.modifiers.includeSurroundings(xs[0] as any, {
         radius: xs['radius'](ctx),
         wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
         elementRadius: xs['atom-radius']
-    })(ctx)),
-    D(MolScript.structureQuery.modifier.wholeResidues, (ctx, xs) => Queries.modifiers.wholeResidues(xs[0] as any)(ctx)),
-    D(MolScript.structureQuery.modifier.union, (ctx, xs) => Queries.modifiers.union(xs[0] as any)(ctx)),
-    D(MolScript.structureQuery.modifier.expandProperty, (ctx, xs) => Queries.modifiers.expandProperty(xs[0] as any, xs['property'])(ctx)),
-    D(MolScript.structureQuery.modifier.exceptBy, (ctx, xs) => Queries.modifiers.exceptBy(xs[0] as any, xs['by'] as any)(ctx)),
-    D(MolScript.structureQuery.modifier.includeConnected, (ctx, xs) => Queries.modifiers.includeConnected({
+    })(ctx) }),
+    D(MolScript.structureQuery.modifier.wholeResidues, function structureQuery_modifier_wholeResidues(ctx, xs) { return Queries.modifiers.wholeResidues(xs[0] as any)(ctx) }),
+    D(MolScript.structureQuery.modifier.union, function structureQuery_modifier_union(ctx, xs) { return Queries.modifiers.union(xs[0] as any)(ctx) }),
+    D(MolScript.structureQuery.modifier.expandProperty, function structureQuery_modifier_expandProperty(ctx, xs) { return Queries.modifiers.expandProperty(xs[0] as any, xs['property'])(ctx) }),
+    D(MolScript.structureQuery.modifier.exceptBy, function structureQuery_modifier_exceptBy(ctx, xs) { return Queries.modifiers.exceptBy(xs[0] as any, xs['by'] as any)(ctx) }),
+    D(MolScript.structureQuery.modifier.includeConnected, function structureQuery_modifier_includeConnected(ctx, xs) { return Queries.modifiers.includeConnected({
         query: xs[0] as any,
         linkTest: xs['link-test'],
         wholeResidues: !!(xs['as-whole-residues'] && xs['as-whole-residues'](ctx)),
         layerCount: (xs['layer-count'] && xs['layer-count'](ctx)) || 1
-    })(ctx)),
+    })(ctx) }),
 
     // ============= COMBINATORS ================
 
@@ -326,9 +326,9 @@ const symbols = [
 
     ////////////////////////////////////
     // Internal
-    D(MolScript.internal.generator.bundleElement, (ctx, xs) => bundleElementImpl(xs.groupedUnits(ctx), xs.ranges(ctx), xs.set(ctx))),
-    D(MolScript.internal.generator.bundle, (ctx, xs) => bundleGenerator(xs.elements(ctx))(ctx)),
-    D(MolScript.internal.generator.current, (ctx, xs) => ctx.tryGetCurrentSelection()),
+    D(MolScript.internal.generator.bundleElement, function internal_generator_bundleElement(ctx, xs) { return bundleElementImpl(xs.groupedUnits(ctx), xs.ranges(ctx), xs.set(ctx)) }),
+    D(MolScript.internal.generator.bundle, function internal_generator_bundle(ctx, xs) { return bundleGenerator(xs.elements(ctx))(ctx) }),
+    D(MolScript.internal.generator.current, function internal_generator_current(ctx, xs) { return ctx.tryGetCurrentSelection() }),
 ];
 
 function atomProp(p: (e: StructureElement.Location) => any): (ctx: QueryContext, _: any) => any {

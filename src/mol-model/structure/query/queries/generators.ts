@@ -58,7 +58,7 @@ export function atoms(params?: Partial<AtomsQueryParams>): StructureQuery {
 }
 
 function atomGroupsLinear(atomTest: QueryPredicate): StructureQuery {
-    return ctx => {
+    return function query_atomGroupsLinear(ctx) {
         const { inputStructure } = ctx;
         const { units } = inputStructure;
         const l = ctx.pushCurrentElement();
@@ -83,7 +83,7 @@ function atomGroupsLinear(atomTest: QueryPredicate): StructureQuery {
 }
 
 function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, atomTest }: AtomsQueryParams): StructureQuery {
-    return ctx => {
+    return function query_atomGroupsSegmented(ctx) {
         const { inputStructure } = ctx;
         const { units } = inputStructure;
         const l = ctx.pushCurrentElement();
@@ -152,7 +152,7 @@ function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, ato
 }
 
 function atomGroupsGrouped({ unitTest, entityTest, chainTest, residueTest, atomTest, groupBy }: AtomsQueryParams): StructureQuery {
-    return ctx => {
+    return function query_atomGroupsGrouped(ctx) {
         const { inputStructure } = ctx;
         const { units } = inputStructure;
         const l = ctx.pushCurrentElement();
@@ -224,7 +224,7 @@ function getRingStructure(unit: Unit.Atomic, ring: UnitRing, inputStructure: Str
 }
 
 export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): StructureQuery {
-    return ctx => {
+    return function query_rings(ctx) {
         const { units } = ctx.inputStructure;
         let ret = StructureSelection.LinearBuilder(ctx.inputStructure);
 
@@ -258,7 +258,7 @@ export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): Structure
 }
 
 export function querySelection(selection: StructureQuery, query: StructureQuery, inComplement: boolean = false): StructureQuery {
-    return ctx => {
+    return function query_querySelection(ctx) {
         const targetSel = selection(ctx);
         if (StructureSelection.structureCount(targetSel) === 0) return targetSel;
 
