@@ -66,12 +66,23 @@ export const InitVolumeStreaming = StateAction.build({
                 const emdbIds = await getEmdbIds(plugin, taskCtx, dataId)
                 for (let j = 0, jl = emdbIds.length; j < jl; ++j) {
                     const emdbId = emdbIds[j]
-                    const contourLevel = await getContourLevel(params.options.emContourProvider, plugin, taskCtx, emdbId)
+                    let contourLevel: number | undefined;
+                    try {
+                        contourLevel = await getContourLevel(params.options.emContourProvider, plugin, taskCtx, emdbId)
+                    } catch (e) {
+                        console.info(`Could not get map info for ${emdbId}: ${e}`)
+                        continue;
+                    }
                     addEntry(entries, params.method, emdbId, contourLevel || 0)
                 }
                 continue;
             }
-            emDefaultContourLevel = await getContourLevel(params.options.emContourProvider, plugin, taskCtx, dataId);
+            try {
+                emDefaultContourLevel = await getContourLevel(params.options.emContourProvider, plugin, taskCtx, dataId);
+            } catch (e) {
+                console.info(`Could not get map info for ${dataId}: ${e}`)
+                continue;
+            }
         }
 
         addEntry(entries, params.method, dataId, emDefaultContourLevel || 0)
