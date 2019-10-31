@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.317, IHM 1.04, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.318, IHM 1.04, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -334,6 +334,50 @@ export const mmCIF_Schema = {
         fract_transf_vector: Vector(3),
     },
     /**
+     * Data items in the AUDIT_AUTHOR category record details about
+     * the author(s) of the data block.
+     */
+    audit_author: {
+        /**
+         * The name of an author of this data block. If there are multiple
+         * authors, _audit_author.name is looped with _audit_author.address.
+         * The family name(s), followed by a comma and including any
+         * dynastic components, precedes the first name(s) or initial(s).
+         */
+        name: str,
+        /**
+         * This data item defines the order of the author's name in the
+         * list of audit authors.
+         */
+        pdbx_ordinal: int,
+        /**
+         * The Open Researcher and Contributor ID (ORCID).
+         */
+        identifier_ORCID: str,
+    },
+    /**
+     * Data items in the AUDIT_CONFORM category describe the
+     * dictionary versions against which the data names appearing in
+     * the current data block are conformant.
+     */
+    audit_conform: {
+        /**
+         * A file name or uniform resource locator (URL) for the
+         * dictionary to which the current data block conforms.
+         */
+        dict_location: str,
+        /**
+         * The string identifying the highest-level dictionary defining
+         * data names used in this file.
+         */
+        dict_name: str,
+        /**
+         * The version number of the dictionary to which the current
+         * data block conforms.
+         */
+        dict_version: str,
+    },
+    /**
      * Data items in the CELL category record details about the
      * crystallographic cell parameters.
      */
@@ -498,6 +542,143 @@ export const mmCIF_Schema = {
          * A flag indicating an aromatic bond.
          */
         pdbx_aromatic_flag: Aliased<'Y' | 'N'>(str),
+    },
+    /**
+     * Data items in the CITATION category record details about the
+     * literature cited as being relevant to the contents of the data
+     * block.
+     */
+    citation: {
+        /**
+         * The name of the publisher of the citation; relevant
+         * for books or book chapters.
+         */
+        book_publisher: str,
+        /**
+         * The country/region of publication; relevant for books
+         * and book chapters.
+         */
+        country: str,
+        /**
+         * The value of _citation.id must uniquely identify a record in the
+         * CITATION list.
+         *
+         * The _citation.id 'primary' should be used to indicate the
+         * citation that the author(s) consider to be the most pertinent to
+         * the contents of the data block.
+         *
+         * Note that this item need not be a number; it can be any unique
+         * identifier.
+         */
+        id: str,
+        /**
+         * Abbreviated name of the cited journal as given in the
+         * Chemical Abstracts Service Source Index.
+         */
+        journal_abbrev: str,
+        /**
+         * The American Society for Testing and Materials (ASTM) code
+         * assigned to the journal cited (also referred to as the CODEN
+         * designator of the Chemical Abstracts Service); relevant for
+         * journal articles.
+         */
+        journal_id_ASTM: str,
+        /**
+         * The Cambridge Structural Database (CSD) code assigned to the
+         * journal cited; relevant for journal articles. This is also the
+         * system used at the Protein Data Bank (PDB).
+         */
+        journal_id_CSD: str,
+        /**
+         * The International Standard Serial Number (ISSN) code assigned to
+         * the journal cited; relevant for journal articles.
+         */
+        journal_id_ISSN: str,
+        /**
+         * Volume number of the journal cited; relevant for journal
+         * articles.
+         */
+        journal_volume: str,
+        /**
+         * The first page of the citation; relevant for journal
+         * articles, books and book chapters.
+         */
+        page_first: str,
+        /**
+         * The last page of the citation; relevant for journal
+         * articles, books and book chapters.
+         */
+        page_last: str,
+        /**
+         * The title of the citation; relevant for journal articles, books
+         * and book chapters.
+         */
+        title: str,
+        /**
+         * The year of the citation; relevant for journal articles, books
+         * and book chapters.
+         */
+        year: int,
+        /**
+         * Document Object Identifier used by doi.org to uniquely
+         * specify bibliographic entry.
+         */
+        pdbx_database_id_DOI: str,
+        /**
+         * Ascession number used by PubMed to categorize a specific
+         * bibliographic entry.
+         */
+        pdbx_database_id_PubMed: int,
+    },
+    /**
+     * Data items in the CITATION_AUTHOR category record details
+     * about the authors associated with the citations in the
+     * CITATION list.
+     */
+    citation_author: {
+        /**
+         * This data item is a pointer to _citation.id in the CITATION
+         * category.
+         */
+        citation_id: str,
+        /**
+         * Name of an author of the citation; relevant for journal
+         * articles, books and book chapters.
+         *
+         * The family name(s), followed by a comma and including any
+         * dynastic components, precedes the first name(s) or initial(s).
+         */
+        name: str,
+        /**
+         * This data item defines the order of the author's name in the
+         * list of authors of a citation.
+         */
+        ordinal: int,
+    },
+    /**
+     * Data items in the DATABASE_2 category record details about the
+     * database identifiers of the data block.
+     *
+     * These data items are assigned by database managers and should
+     * only appear in a data block if they originate from that source.
+     *
+     * The name of this category, DATABASE_2, arose because the
+     * category name DATABASE was already in use in the core CIF
+     * dictionary, but was used differently from the way it needed
+     * to be used in the mmCIF dictionary. Since CIF data names
+     * cannot be changed once they have been adopted, a new category
+     * had to be created.
+     */
+    database_2: {
+        /**
+         * An abbreviation that identifies the database.
+         */
+        database_id: Aliased<'CAS' | 'CSD' | 'EMDB' | 'ICSD' | 'MDF' | 'NDB' | 'NBS' | 'PDB' | 'PDF' | 'RCSB' | 'EBI' | 'PDBE' | 'BMRB' | 'WWPDB' | 'PDB_ACC'>(str),
+        /**
+         * The code assigned by the database identified in
+         * _database_2.database_id.
+         */
+        database_code: str,
     },
     /**
      * Data items in the ENTITY category record details (such as
@@ -741,6 +922,11 @@ export const mmCIF_Schema = {
          * and to distinguish this structural result from others.
          */
         title: str,
+        /**
+         * An automatically generated descriptor for an NDB structure or
+         * the unstructured content of the PDB COMPND record.
+         */
+        pdbx_descriptor: str,
     },
     /**
      * Data items in the STRUCT_ASYM category record details about the
@@ -1679,6 +1865,20 @@ export const mmCIF_Schema = {
          * The identifying content type of the related entry.
          */
         content_type: Aliased<'minimized average structure' | 'representative structure' | 'ensemble' | 'derivative structure' | 'native structure' | 'associated EM volume' | 'other EM volume' | 'associated NMR restraints' | 'associated structure factors' | 'associated SAS data' | 'protein target sequence and/or protocol data' | 'split' | 're-refinement' | 'complete structure' | 'unspecified' | 'other'>(str),
+    },
+    pdbx_entity_nonpoly: {
+        /**
+         * This data item is a pointer to _entity.id in the ENTITY category.
+         */
+        entity_id: str,
+        /**
+         * This data item is a pointer to _chem_comp.id in the CHEM_COMP category.
+         */
+        comp_id: str,
+        /**
+         * A name for the non-polymer entity
+         */
+        name: str,
     },
     /**
      * Data items in the CHEM_COMP_IDENTIFIER category provide
