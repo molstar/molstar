@@ -180,9 +180,10 @@ export namespace Bundle {
                     SortedRanges.forEach(e.ranges, (v, i) => _indices[i] = unit.elements[v])
                     indices = SortedArray.ofSortedArray(_indices)
                 } else {
-                    const rangesSize = SortedRanges.size(e.ranges)
                     SortedRanges.forEach(e.ranges, (v, i) => _indices[i] = unit.elements[v])
-                    SortedRanges.forEach(e.set, (v, i) => _indices[i + rangesSize] = unit.elements[v])
+                    for (let i = 0, il = e.set.length; i < il; ++i) {
+                        _indices[i + rangesSize] = unit.elements[e.set[i]]
+                    }
                     indices = SortedArray.ofUnsortedArray(_indices) // requires sort
                 }
 
