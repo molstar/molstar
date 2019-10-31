@@ -48,7 +48,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
     private createResVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
             repr: BuiltInStructureRepresentations['ball-and-stick'],
-            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.85 } )]
+            size: BuiltInSizeThemes.physical
         });
     }
 
@@ -56,7 +56,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
             repr: BuiltInStructureRepresentations['ball-and-stick'],
             color: [BuiltInColorThemes['element-symbol'], () => ({ saturation: -3, lightness: 0.6 })],
-            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.33 } )]
+            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.66 } )]
         });
     }
 
