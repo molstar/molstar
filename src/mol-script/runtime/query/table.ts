@@ -327,7 +327,7 @@ const symbols = [
     ////////////////////////////////////
     // Internal
     D(MolScript.internal.generator.bundleElement, (ctx, xs) => bundleElementImpl(xs.groupedUnits(ctx), xs.ranges(ctx), xs.set(ctx))),
-    D(MolScript.internal.generator.bundle, (ctx, xs) => bundleGenerator(xs.elements(ctx))),
+    D(MolScript.internal.generator.bundle, (ctx, xs) => bundleGenerator(xs.elements(ctx))(ctx)),
     D(MolScript.internal.generator.current, (ctx, xs) => ctx.tryGetCurrentSelection()),
 ];
 
