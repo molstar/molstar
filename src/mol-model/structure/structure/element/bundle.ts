@@ -167,24 +167,39 @@ export namespace Bundle {
                 const _units = getUnitsFromIds(g, parent)
                 if (_units.length === 0) continue
 
-                const unit = _units[0] // the elements are grouped by unit.invariantId
+                const ue = _units[0].elements // the elements are grouped by unit.invariantId
                 const rangesSize = SortedRanges.size(e.ranges)
-                const _indices = new Int32Array(e.set.length + rangesSize)
+                const setSize = e.set.length
+                const _indices = new Int32Array(setSize + rangesSize)
                 let indices: SortedArray<ElementIndex>
-                if (e.ranges.length === 0) {
-                    for (let i = 0, il = e.set.length; i < il; ++i) {
-                        _indices[i] = unit.elements[e.set[i]]
+                if (rangesSize === 0) {
+                    for (let i = 0, il = setSize; i < il; ++i) {
+                        _indices[i] = ue[e.set[i]]
                     }
                     indices = SortedArray.ofSortedArray(_indices)
-                } else if (e.set.length === 0) {
-                    SortedRanges.forEach(e.ranges, (v, i) => _indices[i] = unit.elements[v])
+                } else if (setSize === 0) {
+                    SortedRanges.forEach(e.ranges, (v, i) => _indices[i] = ue[v])
                     indices = SortedArray.ofSortedArray(_indices)
                 } else {
-                    SortedRanges.forEach(e.ranges, (v, i) => _indices[i] = unit.elements[v])
-                    for (let i = 0, il = e.set.length; i < il; ++i) {
-                        _indices[i + rangesSize] = unit.elements[e.set[i]]
+                    if (SortedArray.min(e.set) > SortedRanges.max(e.ranges)) {
+                        SortedRanges.forEach(e.ranges, (v, i) => _indices[i] = ue[v])
+                        for (let i = 0, il = setSize; i < il; ++i) {
+                            _indices[i + rangesSize] = ue[e.set[i]]
+                        }
+                        indices = SortedArray.ofSortedArray(_indices)
+                    } else if (SortedRanges.min(e.ranges) > SortedArray.max(e.set)) {
+                        for (let i = 0, il = setSize; i < il; ++i) {
+                            _indices[i] = ue[e.set[i]]
+                        }
+                        SortedRanges.forEach(e.ranges, (v, i) => _indices[i + setSize] = ue[v])
+                        indices = SortedArray.ofSortedArray(_indices)
+                    } else {
+                        SortedRanges.forEach(e.ranges, (v, i) => _indices[i] = ue[v])
+                        for (let i = 0, il = setSize; i < il; ++i) {
+                            _indices[i + rangesSize] = ue[e.set[i]]
+                        }
+                        indices = SortedArray.ofUnsortedArray(_indices) // requires sort
                     }
-                    indices = SortedArray.ofUnsortedArray(_indices) // requires sort
                 }
 
                 for (const unit of _units) {
