@@ -202,6 +202,10 @@ export function union(a: Nums, b: Nums): Nums {
         else { indices[offset++] = x; i++; j++; }
     }
 
+    // insert the remaining common part
+    for (; i < endI; i++) indices[offset++] = a[i];
+    for (; j < endJ; j++) indices[offset++] = b[j];
+
     // insert the "tail"
     for (; i < lenA; i++) indices[offset++] = a[i];
     for (; j < lenB; j++) indices[offset++] = b[j];

@@ -320,6 +320,7 @@ export function includeConnected({ query, layerCount, wholeResidues, linkTest }:
             if (sI % 10 === 0) ctx.throwIfTimedOut();
         });
         ctx.popCurrentLink();
+
         return builder.getSelection();
     }
 }
@@ -335,7 +336,7 @@ function expandConnected(ctx: QueryContext, structure: Structure, linkTest: Quer
     const interLinks = inputStructure.links;
     const builder = new StructureUniqueSubsetBuilder(inputStructure);
 
-    const processedUnits = new Set<number>();
+    // Note: each link is visited twice so that link.atom-a and link.atom-b both get the "swapped values"
 
     const atomicLink = ctx.atomicLink;
 
@@ -380,8 +381,6 @@ function expandConnected(ctx: QueryContext, structure: Structure, linkTest: Quer
 
         // Process inter unit links
         for (const linkedUnit of interLinks.getLinkedUnits(inputUnit)) {
-            if (processedUnits.has(linkedUnit.unitA.id)) continue;
-
             atomicLink.b.unit = linkedUnit.unitB;
             for (const aI of linkedUnit.linkedElementIndices) {
                 // check if the element is in the expanded structure
@@ -401,8 +400,6 @@ function expandConnected(ctx: QueryContext, structure: Structure, linkTest: Quer
                 }
             }
         }
-
-        processedUnits.add(unit.id);
     }
 
     return builder.getStructure();
