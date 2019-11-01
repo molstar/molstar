@@ -205,6 +205,7 @@ async function polymerAndLigand(r: StructureRepresentationHelper) {
         MS.struct.combinator.merge([
             Q.ligandPlusConnected.expression,
             Q.branchedConnectedOnly.expression,
+            Q.disulfideBridges.expression,
             Q.nonStandardPolymer.expression,
             Q.water.expression
         ])

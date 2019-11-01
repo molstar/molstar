@@ -190,6 +190,19 @@ const connectedOnly = StructureSelectionQuery('Connected to Ligand | Carbohydrat
     ]),
 ]))
 
+const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.modifier.union([
+    MS.struct.modifier.wholeResidues([
+        MS.struct.modifier.union([
+            MS.struct.generator.linkedAtomicPairs({
+                0: MS.core.flags.hasAny([
+                    MS.struct.linkProperty.flags(),
+                    MS.core.type.bitflags([LinkType.Flag.Sulfide])
+                ])
+            })
+        ])
+    ])
+]))
+
 const modified = StructureSelectionQuery('Modified Residues', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
@@ -246,6 +259,7 @@ export const StructureSelectionQueries = {
     ligandPlusConnected,
     ligandConnectedOnly,
     connectedOnly,
+    disulfideBridges,
     modified,
     nonStandardPolymer,
     coarse,
