@@ -8,6 +8,7 @@
 import { Unit, StructureElement, StructureProperties as Props, Link } from '../mol-model/structure';
 import { Loci } from '../mol-model/loci';
 import { OrderedSet } from '../mol-data/int';
+import { capitalize } from '../mol-util/string';
 
 // for `labelFirst`, don't create right away to avoid problems with circular dependencies/imports
 let elementLocA: StructureElement.Location
@@ -45,6 +46,10 @@ function countLabel(count: number, label: string) {
     return count === 1 ? `1 ${label}` : `${count} ${label}s`
 }
 
+function otherLabel(count: number, location: StructureElement.Location, granularity: LabelGranularity) {
+    return `${elementLabel(location, granularity)} [+ ${countLabel(count - 1, `other ${capitalize(granularity)}`)}]`
+}
+
 /** Gets residue count of the model chain segments the unit is a subset of */
 function getResidueCount(unit: Unit.Atomic) {
     const { elements, model } = unit
@@ -66,10 +71,10 @@ export function structureElementStatsLabel(stats: StructureElement.Stats, counts
         const granularity = (Unit.isAtomic(unit) && getResidueCount(unit) === 1) ? 'residue' : 'chain'
         return elementLabel(stats.firstUnitLoc, granularity)
     } else if (!countsOnly) {
-        const label: string[] = [];
-        if (unitCount > 0) label.push(`${elementLabel(stats.firstElementLoc, 'chain')} [+ ${countLabel(unitCount - 1, 'other chain')}]`);
-        if (residueCount > 0) label.push(`${elementLabel(stats.firstElementLoc, 'residue')} [+ ${countLabel(residueCount - 1, 'other residue')}]`);
-        if (elementCount > 0) label.push(`${elementLabel(stats.firstElementLoc, 'element')} [+ ${countLabel(elementCount - 1, 'other element')}]`);
+        const label: string[] = []
+        if (unitCount > 0) label.push(unitCount === 1 ? elementLabel(stats.firstElementLoc, 'chain') : otherLabel(unitCount, stats.firstElementLoc, 'chain'))
+        if (residueCount > 0) label.push(residueCount === 1 ? elementLabel(stats.firstElementLoc, 'residue') : otherLabel(residueCount, stats.firstElementLoc, 'residue'))
+        if (elementCount > 0) label.push(elementCount === 1 ? elementLabel(stats.firstElementLoc, 'element') : otherLabel(elementCount, stats.firstElementLoc, 'element'))
         return label.join(', ')
     } else {
         const label: string[] = []
