@@ -194,8 +194,8 @@ const symbols = [
 
     // ============= SLOTS ================
     // TODO: slots might not be needed after all: reducer simply pushes/pops current element
-    C(MolScript.structureQuery.slot.element, (ctx, _) => ctx.element),
-    // C(MolScript.structureQuery.slot.elementSetReduce, (ctx, _) => ctx.element),
+    // C(MolScript.structureQuery.slot.element, (ctx, _) => ctx_.element),
+    // C(MolScript.structureQuery.slot.elementSetReduce, (ctx, _) => ctx_.element),
 
     // ============= FILTERS ================
     D(MolScript.structureQuery.filter.pick, (ctx, xs) => Queries.filters.pick(xs[0] as any, xs['test'])(ctx)),
@@ -256,9 +256,9 @@ const symbols = [
 
     // ~~~ CORE ~~~
     D(MolScript.structureQuery.atomProperty.core.elementSymbol, atomProp(StructureProperties.atom.type_symbol)),
-    D(MolScript.structureQuery.atomProperty.core.vdw, (ctx, _) => VdwRadius(StructureProperties.atom.type_symbol(ctx.element))),
-    D(MolScript.structureQuery.atomProperty.core.mass, (ctx, _) => AtomWeight(StructureProperties.atom.type_symbol(ctx.element))),
-    D(MolScript.structureQuery.atomProperty.core.atomicNumber, (ctx, _) => AtomNumber(StructureProperties.atom.type_symbol(ctx.element))),
+    D(MolScript.structureQuery.atomProperty.core.vdw, (ctx, xs) => VdwRadius(StructureProperties.atom.type_symbol((xs && xs[0] && xs[0](ctx) as any) || ctx.element))),
+    D(MolScript.structureQuery.atomProperty.core.mass, (ctx, xs) => AtomWeight(StructureProperties.atom.type_symbol((xs && xs[0] && xs[0](ctx) as any) || ctx.element))),
+    D(MolScript.structureQuery.atomProperty.core.atomicNumber, (ctx, xs) => AtomNumber(StructureProperties.atom.type_symbol((xs && xs[0] && xs[0](ctx) as any) || ctx.element))),
     D(MolScript.structureQuery.atomProperty.core.x, atomProp(StructureProperties.atom.x)),
     D(MolScript.structureQuery.atomProperty.core.y, atomProp(StructureProperties.atom.y)),
     D(MolScript.structureQuery.atomProperty.core.z, atomProp(StructureProperties.atom.z)),
@@ -266,7 +266,10 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.core.operatorName, atomProp(StructureProperties.unit.operator_name)),
     D(MolScript.structureQuery.atomProperty.core.modelIndex, atomProp(StructureProperties.unit.model_index)),
     D(MolScript.structureQuery.atomProperty.core.modelLabel, atomProp(StructureProperties.unit.model_label)),
-    D(MolScript.structureQuery.atomProperty.core.atomKey, (ctx, _) => cantorPairing(ctx.element.unit.id, ctx.element.element)),
+    D(MolScript.structureQuery.atomProperty.core.atomKey, (ctx, xs) => {
+        const e = (xs && xs[0] && xs[0](ctx) as any) || ctx.element;
+        return cantorPairing(e.unit.id, e.element)
+    }),
 
     // TODO:
     // D(MolScript.structureQuery.atomProperty.core.bondCount, (ctx, _) => ),
@@ -283,13 +286,13 @@ const symbols = [
     // authResidueId: prop((env, v) => ResidueIdentifier.authOfResidueIndex(env.context.model, getAddress(env, v).residue)),
 
     // keys
-    D(MolScript.structureQuery.atomProperty.macromolecular.residueKey, (ctx, _) => StructureElement.residueIndex(ctx.element)),
-    D(MolScript.structureQuery.atomProperty.macromolecular.chainKey, (ctx, _) => StructureElement.chainIndex(ctx.element)),
-    D(MolScript.structureQuery.atomProperty.macromolecular.entityKey, (ctx, _) => StructureElement.entityIndex(ctx.element)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.residueKey, (ctx, xs) => StructureElement.residueIndex((xs && xs[0] && xs[0](ctx) as any) || ctx.element)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.chainKey, (ctx, xs) => StructureElement.chainIndex((xs && xs[0] && xs[0](ctx) as any) || ctx.element)),
+    D(MolScript.structureQuery.atomProperty.macromolecular.entityKey, (ctx, xs) => StructureElement.entityIndex((xs && xs[0] && xs[0](ctx) as any) || ctx.element)),
 
     // mmCIF
     D(MolScript.structureQuery.atomProperty.macromolecular.id, atomProp(StructureProperties.atom.id)),
-    D(MolScript.structureQuery.atomProperty.macromolecular.isHet, (ctx, _) => StructureProperties.residue.group_PDB(ctx.element) !== 'ATOM'),
+    D(MolScript.structureQuery.atomProperty.macromolecular.isHet, (ctx, xs) => StructureProperties.residue.group_PDB((xs && xs[0] && xs[0](ctx) as any) || ctx.element) !== 'ATOM'),
 
     D(MolScript.structureQuery.atomProperty.macromolecular.label_atom_id, atomProp(StructureProperties.atom.label_atom_id)),
     D(MolScript.structureQuery.atomProperty.macromolecular.label_alt_id, atomProp(StructureProperties.atom.label_alt_id)),
@@ -322,6 +325,9 @@ const symbols = [
     // ============= BOND PROPERTIES ================
     D(MolScript.structureQuery.linkProperty.order, (ctx, xs) => ctx.atomicLink.order),
     D(MolScript.structureQuery.linkProperty.flags, (ctx, xs) => ctx.atomicLink.type),
+    D(MolScript.structureQuery.linkProperty.atomA, (ctx, xs) => ctx.atomicLink.a),
+    D(MolScript.structureQuery.linkProperty.atomB, (ctx, xs) => ctx.atomicLink.b),
+    D(MolScript.structureQuery.linkProperty.length, (ctx, xs) => ctx.atomicLink.length),
 
 
     ////////////////////////////////////
@@ -331,8 +337,8 @@ const symbols = [
     D(MolScript.internal.generator.current, function internal_generator_current(ctx, xs) { return ctx.tryGetCurrentSelection() }),
 ];
 
-function atomProp(p: (e: StructureElement.Location) => any): (ctx: QueryContext, _: any) => any {
-    return (ctx, _) => p(ctx.element);
+function atomProp(p: (e: StructureElement.Location) => any): (ctx: QueryContext, xs: any) => any {
+    return (ctx, xs) => p((xs && xs[0] && xs[0](ctx) as any) || ctx.element);
 }
 
 function linkFlag(current: LinkType, f: string): LinkType {

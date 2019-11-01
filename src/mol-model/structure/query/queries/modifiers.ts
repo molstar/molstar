@@ -356,18 +356,20 @@ function expandConnected(ctx: QueryContext, structure: Structure, linkTest: Quer
         const { offset: intraLinkOffset, b: intraLinkB, edgeProps: { flags, order } } = inputUnit.links;
 
         // Process intra unit links
-        atomicLink.link.aUnit = inputUnit;
-        atomicLink.link.bUnit = inputUnit;
+        atomicLink.a.unit = inputUnit;
+        atomicLink.b.unit = inputUnit;
         for (let i = 0, _i = unit.elements.length; i < _i; i++) {
             // add the current element
             builder.addToUnit(unit.id, unit.elements[i]);
 
             const srcIndex = SortedArray.indexOf(inputUnit.elements, unit.elements[i]);
-            atomicLink.link.aIndex = srcIndex as StructureElement.UnitIndex;
+            atomicLink.aIndex = srcIndex as StructureElement.UnitIndex;
+            atomicLink.a.element = unit.elements[i];
 
             // check intra unit links
             for (let lI = intraLinkOffset[srcIndex], _lI = intraLinkOffset[srcIndex + 1]; lI < _lI; lI++) {
-                atomicLink.link.bIndex = intraLinkB[lI] as StructureElement.UnitIndex;
+                atomicLink.bIndex = intraLinkB[lI] as StructureElement.UnitIndex;
+                atomicLink.b.element = inputUnit.elements[intraLinkB[lI]];
                 atomicLink.type = flags[lI];
                 atomicLink.order = order[lI];
                 if (linkTest(ctx)) {
@@ -380,14 +382,17 @@ function expandConnected(ctx: QueryContext, structure: Structure, linkTest: Quer
         for (const linkedUnit of interLinks.getLinkedUnits(inputUnit)) {
             if (processedUnits.has(linkedUnit.unitA.id)) continue;
 
-            atomicLink.link.bUnit = linkedUnit.unitB;
+            atomicLink.b.unit = linkedUnit.unitB;
             for (const aI of linkedUnit.linkedElementIndices) {
                 // check if the element is in the expanded structure
                 if (!SortedArray.has(unit.elements, inputUnit.elements[aI])) continue;
 
-                atomicLink.link.aIndex = aI;
+                atomicLink.aIndex = aI;
+                atomicLink.a.element = inputUnit.elements[aI];
                 for (const bond of linkedUnit.getBonds(aI)) {
-                    atomicLink.link.bIndex = bond.indexB;
+                    atomicLink.bIndex = bond.indexB;
+                    // TODO: optimize the lookup?
+                    atomicLink.b.element = linkedUnit.unitB.elements[bond.indexB];
                     atomicLink.type = bond.flag;
                     atomicLink.order = bond.order;
                     if (linkTest(ctx)) {

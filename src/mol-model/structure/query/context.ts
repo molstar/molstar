@@ -7,7 +7,6 @@
 import { Structure, StructureElement, Unit } from '../structure';
 import { now } from '../../../mol-util/now';
 import { ElementIndex } from '../model';
-import { Link } from '../structure/unit/links';
 import { LinkType } from '../model/types';
 import { StructureSelection } from './selection';
 
@@ -32,7 +31,7 @@ export class QueryContext implements QueryContextView {
     currentStructure: Structure = void 0 as any;
 
     /** Current link between atoms */
-    readonly atomicLink = QueryContextLinkInfo.empty<Unit.Atomic>();
+    readonly atomicLink = new QueryContextLinkInfo<Unit.Atomic>();
 
     /** Supply this from the outside. Used by the internal.generator.current symbol */
     currentSelection: StructureSelection | undefined = void 0;
@@ -54,7 +53,7 @@ export class QueryContext implements QueryContextView {
 
     pushCurrentLink() {
         if (this.atomicLink) this.currentAtomicLinkStack.push(this.atomicLink);
-        (this.atomicLink as QueryContextLinkInfo<Unit.Atomic>) = QueryContextLinkInfo.empty();
+        (this.atomicLink as QueryContextLinkInfo<Unit.Atomic>) = new QueryContextLinkInfo();
         return this.atomicLink;
     }
 
@@ -112,14 +111,15 @@ export interface QueryContextOptions {
 export interface QueryPredicate { (ctx: QueryContext): boolean }
 export interface QueryFn<T = any> { (ctx: QueryContext): T }
 
-export interface QueryContextLinkInfo<U extends Unit = Unit> {
-    link: Link.Location<U>,
-    type: LinkType,
-    order: number
-}
+export class QueryContextLinkInfo<U extends Unit = Unit> {
+    a: StructureElement.Location<U> = StructureElement.Location.create();
+    aIndex: StructureElement.UnitIndex = 0 as StructureElement.UnitIndex;
+    b: StructureElement.Location<U> = StructureElement.Location.create();
+    bIndex: StructureElement.UnitIndex = 0 as StructureElement.UnitIndex;
+    type: LinkType = LinkType.Flag.None;
+    order: number = 0;
 
-export namespace QueryContextLinkInfo {
-    export function empty<U extends Unit = Unit>(): QueryContextLinkInfo<U> {
-        return { link: Link.Location() as Link.Location<U>, type: LinkType.Flag.None, order: 0 };
+    get length() {
+        return StructureElement.Location.distance(this.a, this. b);
     }
 }

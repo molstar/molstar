@@ -7,6 +7,7 @@
 
 import { ElementIndex } from '../../model';
 import Unit from '../unit';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 
 export { Location }
 
@@ -18,7 +19,7 @@ interface Location<U = Unit> {
 }
 
 namespace Location {
-    export function create(unit?: Unit, element?: ElementIndex): Location {
+    export function create<U extends Unit>(unit?: U, element?: ElementIndex): Location<U> {
         return { kind: 'element-location', unit: unit!, element: element || (0 as ElementIndex) };
     }
 
@@ -36,5 +37,12 @@ namespace Location {
 
     export function is(x: any): x is Location {
         return !!x && x.kind === 'element-location';
+    }
+
+    const pA = Vec3.zero(), pB = Vec3.zero();
+    export function distance(a: Location, b: Location) {
+        a.unit.conformation.position(a.element, pA);
+        b.unit.conformation.position(b.element, pB);
+        return Vec3.distance(pA, pB);
     }
 }

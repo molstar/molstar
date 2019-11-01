@@ -250,7 +250,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
         const linkedUnits = interLinks.getLinkedUnits(unit);
         const luCount = linkedUnits.length;
 
-        atomicLink.link.aUnit = inputUnit;
+        atomicLink.a.unit = inputUnit;
 
         const srcElements = unit.elements;
         const inputElements = inputUnit.elements;
@@ -258,14 +258,16 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
         for (let i = 0 as StructureElement.UnitIndex, _i = srcElements.length; i < _i; i++) {
             const inputIndex = SortedArray.indexOf(inputElements, srcElements[i]) as StructureElement.UnitIndex;
 
-            atomicLink.link.aIndex = inputIndex;
-            atomicLink.link.bUnit = inputUnit;
+            atomicLink.aIndex = inputIndex;
+            atomicLink.a.element = srcElements[i];
+            atomicLink.b.unit = inputUnit;
 
             tElement.unit = unit;
             for (let l = offset[inputIndex], _l = offset[inputIndex + 1]; l < _l; l++) {
                 tElement.element = inputElements[b[l]];
                 if (!target.hasElement(tElement)) continue;
-                atomicLink.link.bIndex = b[l] as StructureElement.UnitIndex;
+                atomicLink.bIndex = b[l] as StructureElement.UnitIndex;
+                atomicLink.b.element = inputUnit.elements[b[l]];
                 atomicLink.type = flags[l];
                 atomicLink.order = order[l];
                 if (linkTest(queryCtx)) return true;
@@ -274,14 +276,15 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
             for (let li = 0; li < luCount; li++) {
                 const lu = linkedUnits[li];
                 tElement.unit = lu.unitB;
-                atomicLink.link.bUnit = lu.unitB;
+                atomicLink.b.unit = lu.unitB;
                 const bElements = lu.unitB.elements;
                 const bonds = lu.getBonds(inputIndex);
                 for (let bi = 0, _bi = bonds.length; bi < _bi; bi++) {
                     const bond = bonds[bi];
                     tElement.element = bElements[bond.indexB];
                     if (!target.hasElement(tElement)) continue;
-                    atomicLink.link.bIndex = bond.indexB;
+                    atomicLink.bIndex = bond.indexB;
+                    atomicLink.b.element = tElement.element;
                     atomicLink.type = bond.flag;
                     atomicLink.order = bond.order;
                     if (linkTest(queryCtx)) return true;

@@ -314,7 +314,10 @@ const linkProperty = {
     '@header': 'Link Properties',
 
     flags: linkProp(Types.LinkFlags),
-    order: linkProp(Type.Num)
+    order: linkProp(Type.Num),
+    length: linkProp(Type.Num),
+    atomA: linkProp(Types.ElementReference),
+    atomB: linkProp(Types.ElementReference)
 }
 
 function atomProp(type: Type, description?: string) {

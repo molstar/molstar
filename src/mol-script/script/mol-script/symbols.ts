@@ -248,6 +248,9 @@ export const SymbolTable = [
         [
             'Link Properties',
             Alias(MolScript.structureQuery.linkProperty.order, 'link.order'),
+            Alias(MolScript.structureQuery.linkProperty.length, 'link.length'),
+            Alias(MolScript.structureQuery.linkProperty.atomA, 'link.atom-a'),
+            Alias(MolScript.structureQuery.linkProperty.atomB, 'link.atom-b'),
             Macro(MSymbol('link.is', Arguments.List(StructureQueryTypes.LinkFlag), Type.Bool,
                 `Test if the current link has at least one (or all if partial = false) of the specified flags: ${Type.oneOfValues(StructureQueryTypes.LinkFlag).join(', ')}`),
             args => B.core.flags.hasAny([B.struct.linkProperty.flags(), B.struct.type.linkFlags(getPositionalArgs(args))])),
