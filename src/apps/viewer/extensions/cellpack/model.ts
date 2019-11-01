@@ -385,17 +385,17 @@ export const LoadCellPackModel = StateAction.build({
         const hue = [Math.max(0, hcl[0] - 35), Math.min(360, hcl[0] + 35)] as [number, number]
         const p = { packing: i, baseUrl: params.baseUrl }
 
-        const expression = params.preset.traceOnly
-            ? MS.struct.generator.atomGroups({
+        let cellpackTree = tree.apply(StructureFromCellpack, p)
+        if (params.preset.traceOnly) {
+            const expression = MS.struct.generator.atomGroups({
                 'atom-test': MS.core.logic.or([
                     MS.core.rel.eq([MS.ammp('label_atom_id'), 'CA']),
                     MS.core.rel.eq([MS.ammp('label_atom_id'), 'P'])
                 ])
             })
-            : MS.struct.generator.all()
-
-        tree.apply(StructureFromCellpack, p)
-            .apply(StateTransforms.Model.StructureSelectionFromExpression, { expression }, { state: { isGhost: true } })
+            cellpackTree = cellpackTree.apply(StateTransforms.Model.StructureSelectionFromExpression, { expression }, { state: { isGhost: true } })
+        }
+        cellpackTree
             .apply(StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.createParams(ctx, Structure.Empty, {
                     repr: getReprParams(ctx, params.preset),
