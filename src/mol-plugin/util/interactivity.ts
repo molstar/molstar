@@ -97,9 +97,6 @@ namespace Interactivity {
                 // convert Link.Loci to a StructureElement.Loci so granularity can be applied
                 loci = Link.toStructureElementLoci(loci)
             }
-            if (applyGranularity) {
-                loci = Granularity[this.props.granularity](loci)
-            }
             if (Structure.isLoci(loci)) {
                 // convert to StructureElement.Loci
                 loci = Structure.toStructureElementLoci(loci)
@@ -107,6 +104,10 @@ namespace Interactivity {
             if (StructureElement.Loci.is(loci)) {
                 // ensure the root structure is used
                 loci = StructureElement.Loci.remap(loci, loci.structure.root)
+            }
+            if (applyGranularity) {
+                // needs to be applied AFTER remapping to root
+                loci = Granularity[this.props.granularity](loci)
             }
             return { loci, repr }
         }
