@@ -37,6 +37,11 @@ export namespace Stats {
         const { indices, unit } = element
         const { elements } = unit
         const size = OrderedSet.size(indices)
+
+        if (size > 0) {
+            Location.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])
+        }
+
         if (size === 1) {
             stats.elementCount += 1
             if (stats.elementCount === 1) {

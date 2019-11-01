@@ -65,6 +65,12 @@ export function structureElementStatsLabel(stats: StructureElement.Stats, counts
         const { unit } = stats.firstUnitLoc
         const granularity = (Unit.isAtomic(unit) && getResidueCount(unit) === 1) ? 'residue' : 'chain'
         return elementLabel(stats.firstUnitLoc, granularity)
+    } else if (!countsOnly) {
+        const label: string[] = [];
+        if (unitCount > 0) label.push(`${elementLabel(stats.firstElementLoc, 'chain')} [+ ${countLabel(unitCount - 1, 'other chain')}]`);
+        if (residueCount > 0) label.push(`${elementLabel(stats.firstElementLoc, 'residue')} [+ ${countLabel(residueCount - 1, 'other residue')}]`);
+        if (elementCount > 0) label.push(`${elementLabel(stats.firstElementLoc, 'element')} [+ ${countLabel(elementCount - 1, 'other element')}]`);
+        return label.join(', ')
     } else {
         const label: string[] = []
         if (unitCount > 0) label.push(countLabel(unitCount, 'Chain'))
