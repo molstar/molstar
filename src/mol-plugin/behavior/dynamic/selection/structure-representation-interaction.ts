@@ -102,13 +102,14 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         if (groups.length === 0) return;
 
         const update = state.build();
+        const bundle = StructureElement.Bundle.Empty;
         const expression = MS.struct.generator.empty();
         for (const g of groups) {
             // TODO: update props of the group node to ghost
 
             const res = StateSelection.findTagInSubtree(state.tree, g.transform.ref, Tags.ResidueSel);
             const surr = StateSelection.findTagInSubtree(state.tree, g.transform.ref, Tags.SurrSel);
-            if (res) update.to(res).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression }));
+            if (res) update.to(res).update(StateTransforms.Model.StructureSelectionFromBundle, old => ({ ...old, bundle }));
             if (surr) update.to(surr).update(StateTransforms.Model.StructureSelectionFromExpression, old => ({ ...old, expression }));
         }
 
@@ -166,7 +167,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
                 lastLoci = loci;
 
-                const residueLoci = StructureElement.Loci.extendToWholeResidues(loci)
+                const residueLoci = StructureElement.Loci.extendToWholeResidues(StructureElement.Loci.remap(loci, parent.obj!.data))
                 const residueBundle = StructureElement.Bundle.fromLoci(residueLoci)
 
                 const surroundings = MS.struct.modifier.includeSurroundings({
