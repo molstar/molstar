@@ -126,8 +126,8 @@ namespace Interactivity {
     export class LociHighlightManager extends LociMarkManager {
         private prev: Loci = { loci: EmptyLoci, repr: void 0 };
 
-        highlightOnly(current: Loci) {
-            const normalized = this.normalizedLoci(current)
+        highlightOnly(current: Loci, applyGranularity = true) {
+            const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 const loci = normalized.loci;
                 this.mark(this.prev, MarkerAction.RemoveHighlight);
@@ -143,8 +143,8 @@ namespace Interactivity {
             }
         }
 
-        highlightOnlyExtend(current: Loci) {
-            const normalized = this.normalizedLoci(current)
+        highlightOnlyExtend(current: Loci, applyGranularity = true) {
+            const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 const loci = this.sel.tryGetRange(normalized.loci) || normalized.loci;
                 this.mark(this.prev, MarkerAction.RemoveHighlight);
@@ -158,8 +158,8 @@ namespace Interactivity {
     //
 
     export class LociSelectManager extends LociMarkManager {
-        selectToggle(current: Loci<ModelLoci>) {
-            const normalized = this.normalizedLoci(current)
+        selectToggle(current: Loci<ModelLoci>, applyGranularity = true) {
+            const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.toggleSel(normalized);
             } else {
@@ -167,33 +167,33 @@ namespace Interactivity {
             }
         }
 
-        selectExtend(current: Loci<ModelLoci>) {
-            const normalized = this.normalizedLoci(current)
+        selectExtend(current: Loci<ModelLoci>, applyGranularity = true) {
+            const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 const loci = this.sel.tryGetRange(normalized.loci) || normalized.loci;
                 this.toggleSel({ loci, repr: normalized.repr });
             }
         }
 
-        select(current: Loci<ModelLoci>) {
-            const normalized = this.normalizedLoci(current)
+        select(current: Loci<ModelLoci>, applyGranularity = true) {
+            const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.add(normalized.loci);
             }
             this.mark(normalized, MarkerAction.Select);
         }
 
-        selectOnly(current: Loci<ModelLoci>) {
+        selectOnly(current: Loci<ModelLoci>, applyGranularity = true) {
             this.deselectAll()
-            const normalized = this.normalizedLoci(current)
+            const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.set(normalized.loci);
             }
             this.mark(normalized, MarkerAction.Select);
         }
 
-        deselect(current: Loci<ModelLoci>) {
-            const normalized = this.normalizedLoci(current)
+        deselect(current: Loci<ModelLoci>, applyGranularity = true) {
+            const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.sel.remove(normalized.loci);
             }
@@ -206,8 +206,7 @@ namespace Interactivity {
         }
 
         deselectAllOnEmpty(current: Loci<ModelLoci>) {
-            const normalized = this.normalizedLoci(current)
-            if (isEmptyLoci(normalized.loci)) this.deselectAll()
+            if (isEmptyLoci(current.loci)) this.deselectAll()
         }
 
         private toggleSel(current: Loci<ModelLoci>) {

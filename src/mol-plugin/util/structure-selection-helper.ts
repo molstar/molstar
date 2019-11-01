@@ -276,21 +276,21 @@ export class StructureSelectionHelper {
         return this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure)).map(s => s.obj!.data)
     }
 
-    private _set(modifier: SelectionModifier, loci: Loci) {
+    private _set(modifier: SelectionModifier, loci: Loci, applyGranularity = true) {
         switch (modifier) {
             case 'add':
-                this.plugin.interactivity.lociSelects.select({ loci })
+                this.plugin.interactivity.lociSelects.select({ loci }, applyGranularity)
                 break
             case 'remove':
-                this.plugin.interactivity.lociSelects.deselect({ loci })
+                this.plugin.interactivity.lociSelects.deselect({ loci }, applyGranularity)
                 break
             case 'only':
-                this.plugin.interactivity.lociSelects.selectOnly({ loci })
+                this.plugin.interactivity.lociSelects.selectOnly({ loci }, applyGranularity)
                 break
         }
     }
 
-    set(modifier: SelectionModifier, query: StructureQuery) {
+    set(modifier: SelectionModifier, query: StructureQuery, applyGranularity = true) {
         for (const s of this.structures) {
             const current = this.plugin.helpers.structureSelectionManager.get(s)
             const currentSelection = Loci.isEmpty(current)
@@ -299,7 +299,7 @@ export class StructureSelectionHelper {
 
             const result = query(new QueryContext(s, { currentSelection }))
             const loci = StructureSelection.toLociWithSourceUnits(result)
-            this._set(modifier, loci)
+            this._set(modifier, loci, applyGranularity)
         }
     }
 

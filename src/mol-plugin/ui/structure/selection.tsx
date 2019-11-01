@@ -69,7 +69,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     set = (modifier: SelectionModifier, value: string) => {
         const query = StructureSelectionQueries[value as keyof typeof StructureSelectionQueries]
-        this.plugin.helpers.structureSelection.set(modifier, query.query)
+        this.plugin.helpers.structureSelection.set(modifier, query.query, false)
     }
 
     add = (value: string) => this.set('add', value)
