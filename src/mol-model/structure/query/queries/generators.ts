@@ -7,7 +7,7 @@
 
 import { StructureQuery } from '../query'
 import { StructureSelection } from '../selection'
-import { Unit, StructureProperties as P } from '../../structure'
+import { Unit, StructureProperties as P, StructureElement } from '../../structure'
 import { Segmentation, SortedArray } from '../../../../mol-data/int'
 import { LinearGroupingBuilder } from '../utils/builders';
 import { QueryPredicate, QueryFn, QueryContextView } from '../context';
@@ -226,7 +226,7 @@ function getRingStructure(unit: Unit.Atomic, ring: UnitRing, inputStructure: Str
 export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): StructureQuery {
     return function query_rings(ctx) {
         const { units } = ctx.inputStructure;
-        let ret = StructureSelection.LinearBuilder(ctx.inputStructure);
+        const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
 
         if (!fingerprints || fingerprints.length === 0) {
             for (const u of units) {
@@ -274,4 +274,69 @@ export function querySelection(selection: StructureQuery, query: StructureQuery,
         ctx.popInputStructure();
         return StructureSelection.withInputStructure(result, ctx.inputStructure);
     }
+}
+
+export function linkedAtomicPairs(linkTest?: QueryPredicate): StructureQuery {
+    const test = linkTest || ((ctx: any) => true);
+    return function query_linkedAtomicPairs(ctx) {
+        const structure = ctx.inputStructure;
+
+        const interLinks = structure.links;
+        // Note: each link is called twice, that's why we need the unique builder.
+        const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
+
+        ctx.pushCurrentLink();
+        const atomicLink = ctx.atomicLink;
+
+        // Process intra unit links
+        for (const unit of structure.units) {
+            if (unit.kind !== Unit.Kind.Atomic) continue;
+
+            const { offset: intraLinkOffset, b: intraLinkB, edgeProps: { flags, order } } = unit.links;
+            atomicLink.a.unit = unit;
+            atomicLink.b.unit = unit;
+            for (let i = 0 as StructureElement.UnitIndex, _i = unit.elements.length; i < _i; i++) {
+                atomicLink.aIndex = i as StructureElement.UnitIndex;
+                atomicLink.a.element = unit.elements[i];
+
+                // check intra unit links
+                for (let lI = intraLinkOffset[i], _lI = intraLinkOffset[i + 1]; lI < _lI; lI++) {
+                    atomicLink.bIndex = intraLinkB[lI] as StructureElement.UnitIndex;
+                    atomicLink.b.element = unit.elements[intraLinkB[lI]];
+                    atomicLink.type = flags[lI];
+                    atomicLink.order = order[lI];
+                    if (test(ctx)) {
+                        const b = structure.subsetBuilder(false);
+                        b.beginUnit(unit.id);
+                        b.addElement(atomicLink.a.element);
+                        b.addElement(atomicLink.b.element);
+                        b.commitUnit();
+                        ret.add(b.getStructure());
+                    }
+                }
+            }
+        }
+
+        // Process inter unit links
+        for (const bond of interLinks.bonds) {
+            atomicLink.a.unit = bond.unitA;
+            atomicLink.a.element = bond.unitA.elements[bond.indexA];
+            atomicLink.aIndex = bond.indexA;
+            atomicLink.b.unit = bond.unitB;
+            atomicLink.b.element = bond.unitB.elements[bond.indexB];
+            atomicLink.bIndex = bond.indexB;
+            atomicLink.order = bond.order;
+            atomicLink.type = bond.flag;
+
+            if (test(ctx)) {
+                const b = structure.subsetBuilder(false);
+                b.addToUnit(atomicLink.a.unit.id, atomicLink.a.element);
+                b.addToUnit(atomicLink.b.unit.id, atomicLink.b.element);
+                ret.add(b.getStructure());
+            }
+        }
+
+        ctx.popCurrentLink();
+        return ret.getSelection();
+    };
 }

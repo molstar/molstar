@@ -93,6 +93,12 @@ const generator = {
         'group-by': Argument(Type.Any, { isOptional: true, defaultValue: `atom-key`, description: 'Group atoms to sets based on this property. Default: each atom has its own set' }),
     }), Types.ElementSelectionQuery, 'Return all atoms for which the tests are satisfied, grouped into sets.'),
 
+    linkedAtomicPairs: symbol(Arguments.Dictionary({
+        0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test each link with this predicate. Each link is visited twice with swapped atom order.' }),
+        // TODO: shoud we support this or just use queryEach to get similar behavior
+        // 'group-by': Argument(Type.Any, { isOptional: true, defaultValue: ``, description: 'Group the links using the privided value' }),
+    }), Types.ElementSelectionQuery, 'Return all pairs of atoms for which the test is satisfied.'),
+
     rings: symbol(Arguments.List(Types.RingFingerprint), Types.ElementSelectionQuery, 'Return rings with the specified fingerprint(s). If no fingerprints are given, return all rings.'),
 
     queryInSelection: symbol(Arguments.Dictionary({

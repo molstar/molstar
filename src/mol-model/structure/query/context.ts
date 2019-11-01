@@ -119,6 +119,20 @@ export class QueryContextLinkInfo<U extends Unit = Unit> {
     type: LinkType = LinkType.Flag.None;
     order: number = 0;
 
+    swap() {
+        const idxA = this.aIndex;
+        this.aIndex = this.bIndex;
+        this.bIndex = idxA;
+
+        const unitA = this.a.unit;
+        this.a.unit = this.b.unit;
+        this.b.unit = unitA;
+
+        const eA = this.a.element;
+        this.a.element = this.b.element;
+        this.b.element = eA;
+    }
+
     get length() {
         return StructureElement.Location.distance(this.a, this. b);
     }

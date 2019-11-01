@@ -106,6 +106,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.generator.rings, 'sel.atom.rings'),
             Alias(MolScript.structureQuery.generator.empty, 'sel.atom.empty'),
             Alias(MolScript.structureQuery.generator.all, 'sel.atom.all'),
+            Alias(MolScript.structureQuery.generator.linkedAtomicPairs, 'sel.atom.linked-pairs'),
 
             Macro(MSymbol('sel.atom.atoms', Arguments.Dictionary({
                 0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to each atom.' })

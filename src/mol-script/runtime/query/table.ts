@@ -229,6 +229,7 @@ const symbols = [
 
     D(MolScript.structureQuery.generator.all, function structureQuery_generator_all(ctx) { return Queries.generators.all(ctx) }),
     D(MolScript.structureQuery.generator.empty, function structureQuery_generator_empty(ctx) { return Queries.generators.none(ctx) }),
+    D(MolScript.structureQuery.generator.linkedAtomicPairs, function structureQuery_generator_linkedAtomicPairs(ctx, xs) { return Queries.generators.linkedAtomicPairs(xs && xs[0])(ctx) }),
 
     // ============= MODIFIERS ================
 
