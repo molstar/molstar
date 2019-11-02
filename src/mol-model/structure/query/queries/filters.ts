@@ -15,7 +15,6 @@ import { checkStructureMaxRadiusDistance, checkStructureMinMaxDistance } from '.
 import Structure from '../../structure/structure';
 import StructureElement from '../../structure/element';
 import { SortedArray } from '../../../../mol-data/int';
-import { defaultLinkTest } from './internal';
 
 export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {
     return ctx => {
@@ -231,13 +230,11 @@ function withinMinMaxRadius({ queryCtx, selection, target, minRadius, maxRadius,
 interface IsConnectedToCtx {
     queryCtx: QueryContext,
     input: Structure,
-    target: Structure,
-    linkTest: QueryFn<boolean>,
-    tElement: StructureElement.Location
+    target: Structure
 }
 
 function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
-    const { queryCtx, input, target, linkTest, tElement } = ctx;
+    const { queryCtx, input, target } = ctx;
     const atomicLink = queryCtx.atomicLink;
 
     const interLinks = input.links;
@@ -258,36 +255,41 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
         for (let i = 0 as StructureElement.UnitIndex, _i = srcElements.length; i < _i; i++) {
             const inputIndex = SortedArray.indexOf(inputElements, srcElements[i]) as StructureElement.UnitIndex;
 
-            atomicLink.aIndex = inputIndex;
-            atomicLink.a.element = srcElements[i];
+            atomicLink.a.unit = inputUnit;
             atomicLink.b.unit = inputUnit;
 
-            tElement.unit = unit;
+            // tElement.unit = unit;
             for (let l = offset[inputIndex], _l = offset[inputIndex + 1]; l < _l; l++) {
-                tElement.element = inputElements[b[l]];
-                if (!target.hasElement(tElement)) continue;
-                atomicLink.bIndex = b[l] as StructureElement.UnitIndex;
+                // tElement.element = inputElements[b[l]];
                 atomicLink.b.element = inputUnit.elements[b[l]];
+                if (!target.hasElement(atomicLink.b)) continue;
+
+                atomicLink.aIndex = inputIndex;
+                atomicLink.a.element = srcElements[i];
+                atomicLink.bIndex = b[l] as StructureElement.UnitIndex;
                 atomicLink.type = flags[l];
                 atomicLink.order = order[l];
-                if (linkTest(queryCtx)) return true;
+                if (atomicLink.test(queryCtx, true)) return true;
             }
 
             for (let li = 0; li < luCount; li++) {
                 const lu = linkedUnits[li];
-                tElement.unit = lu.unitB;
-                atomicLink.b.unit = lu.unitB;
                 const bElements = lu.unitB.elements;
                 const bonds = lu.getBonds(inputIndex);
                 for (let bi = 0, _bi = bonds.length; bi < _bi; bi++) {
                     const bond = bonds[bi];
-                    tElement.element = bElements[bond.indexB];
-                    if (!target.hasElement(tElement)) continue;
+                    atomicLink.b.unit = lu.unitB;
+                    atomicLink.b.element = bElements[bond.indexB];
+                    if (!target.hasElement(atomicLink.b)) continue;
+
+                    atomicLink.a.unit = inputUnit;
+                    atomicLink.aIndex = inputIndex;
+                    atomicLink.a.element = srcElements[i];
+
                     atomicLink.bIndex = bond.indexB;
-                    atomicLink.b.element = tElement.element;
                     atomicLink.type = bond.flag;
                     atomicLink.order = bond.order;
-                    if (linkTest(queryCtx)) return true;
+                    if (atomicLink.test(queryCtx, true)) return true;
                 }
             }
         }
@@ -314,15 +316,17 @@ export function isConnectedTo({ query, target, disjunct, invert, linkTest }: IsC
         const connCtx: IsConnectedToCtx = {
             queryCtx: ctx,
             input: ctx.inputStructure,
-            target: StructureSelection.unionStructure(targetSel),
-            linkTest: linkTest || defaultLinkTest,
-            tElement: StructureElement.Location.create()
+            target: StructureSelection.unionStructure(targetSel)
         }
 
         const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
         ctx.pushCurrentLink();
+        ctx.atomicLink.setTestFn(linkTest);
+
         StructureSelection.forEach(selection, (s, sI) => {
-            if (checkConnected(connCtx, s)) ret.add(s);
+            if (checkConnected(connCtx, s)) {
+                ret.add(s);
+            }
             if (sI % 5 === 0) ctx.throwIfTimedOut();
         })
         ctx.popCurrentLink();

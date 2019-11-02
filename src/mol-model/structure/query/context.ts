@@ -9,6 +9,7 @@ import { now } from '../../../mol-util/now';
 import { ElementIndex } from '../model';
 import { LinkType } from '../model/types';
 import { StructureSelection } from './selection';
+import { defaultLinkTest } from './queries/internal';
 
 export interface QueryContextView {
     readonly element: StructureElement.Location;
@@ -118,6 +119,35 @@ export class QueryContextLinkInfo<U extends Unit = Unit> {
     bIndex: StructureElement.UnitIndex = 0 as StructureElement.UnitIndex;
     type: LinkType = LinkType.Flag.None;
     order: number = 0;
+
+    private testFn: QueryPredicate = defaultLinkTest;
+
+    setTestFn(fn?: QueryPredicate) {
+        this.testFn = fn || defaultLinkTest;
+    }
+
+    test(ctx: QueryContext, trySwap: boolean) {
+        if (this.testFn(ctx)) return true;
+        if (trySwap) {
+            this.swap();
+            return this.testFn(ctx);
+        }
+        return false;
+    }
+
+    private swap() {
+        const idxA = this.aIndex;
+        this.aIndex = this.bIndex;
+        this.bIndex = idxA;
+
+        const unitA = this.a.unit;
+        this.a.unit = this.b.unit;
+        this.b.unit = unitA;
+
+        const eA = this.a.element;
+        this.a.element = this.b.element;
+        this.b.element = eA;
+    }
 
     get length() {
         return StructureElement.Location.distance(this.a, this. b);

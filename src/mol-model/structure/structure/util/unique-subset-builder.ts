@@ -34,6 +34,12 @@ export class StructureUniqueSubsetBuilder {
         }
     }
 
+    has(parentId: number, e: number) {
+        const unit = this.unitMap.get(parentId);
+        if (!unit) return false;
+        return UniqueArray.has(unit, e);
+    }
+
     beginUnit(parentId: number) {
         this.parentId = parentId;
         if (this.unitMap.has(parentId)) {

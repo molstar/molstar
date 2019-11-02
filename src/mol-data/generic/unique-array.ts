@@ -20,6 +20,10 @@ namespace UniqueArray {
         array[array.length] = value;
         return true;
     }
+
+    export function has<K, T>({ keys }: UniqueArray<K, T>, key: K) {
+        return keys.has(key);
+    }
 }
 
 export { UniqueArray }

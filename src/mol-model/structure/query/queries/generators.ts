@@ -277,7 +277,6 @@ export function querySelection(selection: StructureQuery, query: StructureQuery,
 }
 
 export function linkedAtomicPairs(linkTest?: QueryPredicate): StructureQuery {
-    const test = linkTest || ((ctx: any) => true);
     return function query_linkedAtomicPairs(ctx) {
         const structure = ctx.inputStructure;
 
@@ -287,6 +286,7 @@ export function linkedAtomicPairs(linkTest?: QueryPredicate): StructureQuery {
 
         ctx.pushCurrentLink();
         const atomicLink = ctx.atomicLink;
+        atomicLink.setTestFn(linkTest);
 
         // Process intra unit links
         for (const unit of structure.units) {
@@ -305,7 +305,8 @@ export function linkedAtomicPairs(linkTest?: QueryPredicate): StructureQuery {
                     atomicLink.b.element = unit.elements[intraLinkB[lI]];
                     atomicLink.type = flags[lI];
                     atomicLink.order = order[lI];
-                    if (test(ctx)) {
+                    // No need to "swap test" because each bond direction will be visited eventually.
+                    if (atomicLink.test(ctx, false)) {
                         const b = structure.subsetBuilder(false);
                         b.beginUnit(unit.id);
                         b.addElement(atomicLink.a.element);
@@ -328,7 +329,8 @@ export function linkedAtomicPairs(linkTest?: QueryPredicate): StructureQuery {
             atomicLink.order = bond.order;
             atomicLink.type = bond.flag;
 
-            if (test(ctx)) {
+            // No need to "swap test" because each bond direction will be visited eventually.
+            if (atomicLink.test(ctx, false)) {
                 const b = structure.subsetBuilder(false);
                 b.addToUnit(atomicLink.a.unit.id, atomicLink.a.element);
                 b.addToUnit(atomicLink.b.unit.id, atomicLink.b.element);
