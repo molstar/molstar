@@ -153,6 +153,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const { markerArray } = this.props.sequenceWrapper;
         const hasNumbers = !this.props.hideSequenceNumbers, period = this.sequenceNumberPeriod;
 
+        let first: HTMLSpanElement | undefined;
+
         let o = 0;
         for (let i = 0, il = markerArray.length; i < il; i++) {
             if (hasNumbers && i % period === 0 && i < il) o++;
@@ -160,8 +162,16 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             if (!span) return;
             o++;
 
+            if (!first && markerArray[i] > 0) {
+                first = span;
+            }
+
             const backgroundColor = this.getBackgroundColor(markerArray[i]);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
+        }
+
+        if (first) {
+            first.scrollIntoView({ block: 'nearest' });
         }
     }
 
