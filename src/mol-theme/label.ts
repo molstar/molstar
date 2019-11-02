@@ -47,8 +47,8 @@ function countLabel(count: number, label: string) {
     return count === 1 ? `1 ${label}` : `${count} ${label}s`
 }
 
-function otherLabel(count: number, location: StructureElement.Location, granularity: LabelGranularity) {
-    return `${elementLabel(location, granularity)} [+ ${countLabel(count - 1, `other ${capitalize(granularity)}`)}]`
+function otherLabel(count: number, location: StructureElement.Location, granularity: LabelGranularity, hidePrefix: boolean, altCount?: string) {
+    return `${elementLabel(location, granularity, hidePrefix)} <small>[+ ${countLabel(count - 1, `other ${altCount || capitalize(granularity)}`)}]</small>`
 }
 
 /** Gets residue count of the model chain segments the unit is a subset of */
@@ -73,16 +73,25 @@ export function structureElementStatsLabel(stats: StructureElement.Stats, counts
         return elementLabel(stats.firstUnitLoc, granularity)
     } else if (!countsOnly) {
         const label: string[] = []
-        if (unitCount > 0) label.push(unitCount === 1 ? elementLabel(stats.firstElementLoc, 'chain') : otherLabel(unitCount, stats.firstElementLoc, 'chain'))
-        if (residueCount > 0) label.push(residueCount === 1 ? elementLabel(stats.firstElementLoc, 'residue') : otherLabel(residueCount, stats.firstElementLoc, 'residue'))
-        if (elementCount > 0) label.push(elementCount === 1 ? elementLabel(stats.firstElementLoc, 'element') : otherLabel(elementCount, stats.firstElementLoc, 'element'))
-        return label.join(', ')
+        let hidePrefix = false;
+        if (unitCount > 0) {
+            label.push(unitCount === 1 ? elementLabel(stats.firstUnitLoc, 'chain') : otherLabel(unitCount, stats.firstElementLoc, 'chain', false, 'Instance'))
+            hidePrefix = true;
+        }
+        if (residueCount > 0) {
+            label.push(residueCount === 1 ? elementLabel(stats.firstResidueLoc, 'residue', hidePrefix) : otherLabel(residueCount, stats.firstElementLoc, 'residue', hidePrefix))
+            hidePrefix = true;
+        }
+        if (elementCount > 0) {
+            label.push(elementCount === 1 ? elementLabel(stats.firstElementLoc, 'element', hidePrefix) : otherLabel(elementCount, stats.firstElementLoc, 'element', hidePrefix))
+        }
+        return label.join('<small> + </small>')
     } else {
         const label: string[] = []
-        if (unitCount > 0) label.push(countLabel(unitCount, 'Chain'))
+        if (unitCount > 0) label.push(countLabel(unitCount, 'Instance'))
         if (residueCount > 0) label.push(countLabel(residueCount, 'Residue'))
         if (elementCount > 0) label.push(countLabel(elementCount, 'Element'))
-        return label.join(', ')
+        return label.join('<small> + </small>')
     }
 }
 
@@ -103,15 +112,20 @@ export function linkLabel(link: Link.Location): string {
 
 export type LabelGranularity = 'element' | 'residue' | 'chain' | 'structure'
 
-export function elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element'): string {
-    return _elementLabel(location, granularity).join(' | ')
+export function elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element', hidePrefix = false): string {
+    return _elementLabel(location, granularity, hidePrefix).join(' | ')
 }
 
-function _elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element'): string[] {
-    const entry = `<small>${location.unit.model.entry}</small>`
-    const model = `<small>Model ${location.unit.model.modelNum}</small>`
-    const instance = `<small>Instance ${location.unit.conformation.operator.name}</small>`
-    const label = [entry, model, instance]
+function _elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element', hidePrefix = false): string[] {
+    let label: string[];
+    if (hidePrefix) {
+        label = [];
+    } else {
+        const entry = `<small>${location.unit.model.entry}</small>`
+        const model = `<small>Model ${location.unit.model.modelNum}</small>`
+        const instance = `<small>Instance ${location.unit.conformation.operator.name}</small>`
+        label = [entry, model, instance]
+    }
 
     if (Unit.isAtomic(location.unit)) {
         label.push(..._atomicElementLabel(location as StructureElement.Location<Unit.Atomic>, granularity))
