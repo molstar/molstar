@@ -540,7 +540,8 @@ namespace Structure {
             for (let j = 0, jl = structure.units.length; j < jl; ++j) {
                 const u = structure.units[j]
                 const invariantId = u.invariantId + count
-                const newUnit = Unit.create(units.length, invariantId, u.kind, u.model, u.conformation.operator, u.elements)
+                const chainGroupId = u.chainGroupId + count
+                const newUnit = Unit.create(units.length, invariantId, chainGroupId, u.kind, u.model, u.conformation.operator, u.elements)
                 units.push(newUnit)
             }
             count = units.length
@@ -644,6 +645,7 @@ namespace Structure {
         const lookup = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(startIndices) }, gridCellCount);
         const { offset, count, array } = lookup.buckets;
 
+        builder.beginChainGroup();
         for (let i = 0, _i = offset.length; i < _i; i++) {
             const start = offset[i];
             const set: number[] = [];
@@ -655,6 +657,7 @@ namespace Structure {
             }
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(new Int32Array(set)));
         }
+        builder.endChainGroup();
     }
 
     function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {
@@ -685,9 +688,22 @@ namespace Structure {
         private units: Unit[] = [];
         private invariantId = idFactory()
 
+        private chainGroupId = -1;
+        private inChainGroup = false;
+
+        beginChainGroup() {
+            this.chainGroupId++;
+            this.inChainGroup = true;
+        }
+
+        endChainGroup() {
+            this.inChainGroup = false;
+        }
+
         addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, invariantId?: number): Unit {
             if (invariantId === undefined) invariantId = this.invariantId()
-            const unit = Unit.create(this.units.length, invariantId, kind, model, operator, elements);
+            const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
+            const unit = Unit.create(this.units.length, invariantId, chainGroupId, kind, model, operator, elements);
             this.units.push(unit);
             return unit;
         }
