@@ -254,7 +254,7 @@ export class LociLabels extends PluginUIComponent<{}, { entries: ReadonlyArray<L
         }
 
         return <div className='msp-highlight-info'>
-            {this.state.entries.map((e, i) => <div key={'' + i}>{e}</div>)}
+            {this.state.entries.map((e, i) => <div key={'' + i} dangerouslySetInnerHTML={{ __html: e }} />)}
         </div>;
     }
 }

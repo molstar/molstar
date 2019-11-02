@@ -9,6 +9,7 @@ import { Unit, StructureElement, StructureProperties as Props, Link } from '../m
 import { Loci } from '../mol-model/loci';
 import { OrderedSet } from '../mol-data/int';
 import { capitalize } from '../mol-util/string';
+import { Column } from '../mol-data/db';
 
 // for `labelFirst`, don't create right away to avoid problems with circular dependencies/imports
 let elementLocA: StructureElement.Location
@@ -107,9 +108,9 @@ export function elementLabel(location: StructureElement.Location, granularity: L
 }
 
 function _elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element'): string[] {
-    const entry = location.unit.model.entry
-    const model = `Model ${location.unit.model.modelNum}`
-    const instance = location.unit.conformation.operator.name
+    const entry = `<small>${location.unit.model.entry}</small>`
+    const model = `<small>Model ${location.unit.model.modelNum}</small>`
+    const instance = `<small>Instance ${location.unit.conformation.operator.name}</small>`
     const label = [entry, model, instance]
 
     if (Unit.isAtomic(location.unit)) {
@@ -126,7 +127,9 @@ function _elementLabel(location: StructureElement.Location, granularity: LabelGr
 function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, granularity: LabelGranularity): string[] {
     const label_asym_id = Props.chain.label_asym_id(location)
     const auth_asym_id = Props.chain.auth_asym_id(location)
-    const seq_id = location.unit.model.atomicHierarchy.residues.auth_seq_id.isDefined ? Props.residue.auth_seq_id(location) : Props.residue.label_seq_id(location)
+    const has_label_seq_id = location.unit.model.atomicHierarchy.residues.label_seq_id.valueKind(location.element) === Column.ValueKind.Present;
+    const label_seq_id = Props.residue.label_seq_id(location)
+    const auth_seq_id = Props.residue.auth_seq_id(location)
     const ins_code = Props.residue.pdbx_PDB_ins_code(location)
     const comp_id = Props.residue.label_comp_id(location)
     const atom_id = Props.atom.label_atom_id(location)
@@ -136,16 +139,19 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
     const compId = granularity === 'residue' && microHetCompIds.length > 1 ?
         `(${microHetCompIds.join('|')})` : comp_id
 
-
     const label: string[] = []
 
     switch (granularity) {
         case 'element':
-            label.push(`${atom_id}${alt_id ? `%${alt_id}` : ''}`)
+            label.push(`<b>${atom_id}</b>${alt_id ? `%${alt_id}` : ''}`)
         case 'residue':
-            label.push(`${compId} ${seq_id}${ins_code ? ins_code : ''}`)
+            label.push(`<b>${compId} ${has_label_seq_id ? label_seq_id : ''}</b>${label_seq_id !== auth_seq_id ? ` <small> [auth</small> <b>${auth_seq_id}</b><small>]</small>` : ''}<b>${ins_code ? ins_code : ''}</b>`)
         case 'chain':
-            label.push(`Chain ${label_asym_id}:${auth_asym_id}`)
+            if (label_asym_id === auth_asym_id) {
+                label.push(`<b>${label_asym_id}</b>`)
+            } else {
+                label.push(`<b>${label_asym_id}</b> <small>[auth</small> <b>${auth_asym_id}</b><small>]</small>`)
+            }
     }
 
     return label.reverse()
@@ -165,12 +171,12 @@ function _coarseElementLabel(location: StructureElement.Location<Unit.Spheres | 
                 const entityIndex = Props.coarse.entityKey(location)
                 const seq = location.unit.model.sequence.byEntityKey[entityIndex]
                 const comp_id = seq.sequence.compId.value(seq_id_begin - 1) // 1-indexed
-                label.push(`${comp_id} ${seq_id_begin}-${seq_id_end}`)
+                label.push(`<b>${comp_id} ${seq_id_begin}-${seq_id_end}</b>`)
             } else {
-                label.push(`${seq_id_begin}-${seq_id_end}`)
+                label.push(`<b>${seq_id_begin}-${seq_id_end}</b>`)
             }
         case 'chain':
-            label.push(`Chain ${asym_id}`)
+            label.push(`<b>${asym_id}</b>`)
     }
 
     return label.reverse()
