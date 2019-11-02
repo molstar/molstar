@@ -12,32 +12,46 @@ import { PluginStateObject } from '../state/objects';
 export { SubstructureParentHelper };
 
 class SubstructureParentHelper {
-    private root = new Map<Structure, string>();
+    private root = new Map<Structure, { ref: string, count: number }>();
     private tracked = new Map<string, Structure>();
 
     get(s: Structure): StateObjectCell<PluginStateObject.Molecule.Structure> | undefined {
         const r = this.root.get(s);
         if (!r) return;
-        return this.plugin.state.dataState.cells.get(r);
+        return this.plugin.state.dataState.cells.get(r.ref);
     }
 
     private addMapping(state: State, ref: string, obj: StateObject) {
         if (!PluginStateObject.Molecule.Structure.is(obj)) return;
         const parent = state.select(StateSelection.Generators.byRef(ref).rootOfType([PluginStateObject.Molecule.Structure]))[0];
+
         this.tracked.set(ref, obj.data);
+
+        // if the structure is already present in the tree, do not rewrite the root.
+        if (this.root.has(obj.data)) {
+            this.root.get(obj.data)!.count++;
+            return;
+        }
+
         if (!parent) {
-            this.root.set(obj.data, ref);
+            this.root.set(obj.data, { ref, count : 1 });
         } else {
-            this.root.set(obj.data, parent.transform.ref);
+            this.root.set(obj.data, { ref: parent.transform.ref, count: 1 });
         }
     }
 
     private removeMapping(ref: string) {
         if (!this.tracked.has(ref)) return;
+
         const s = this.tracked.get(ref)!;
         this.tracked.delete(ref);
-        this.root.get(s);
-        this.root.delete(s);
+
+        const root = this.root.get(s)!;
+        if (root.count > 1) {
+            root.count--;
+        } else {
+            this.root.delete(s);
+        }
     }
 
     private updateMapping(state: State, ref: string, oldObj: StateObject | undefined, obj: StateObject) {
