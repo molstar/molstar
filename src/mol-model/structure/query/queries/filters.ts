@@ -229,12 +229,13 @@ function withinMinMaxRadius({ queryCtx, selection, target, minRadius, maxRadius,
 
 interface IsConnectedToCtx {
     queryCtx: QueryContext,
+    disjunct: boolean,
     input: Structure,
     target: Structure
 }
 
 function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
-    const { queryCtx, input, target } = ctx;
+    const { queryCtx, input, target, disjunct } = ctx;
     const atomicLink = queryCtx.atomicLink;
 
     const interLinks = input.links;
@@ -262,6 +263,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
             for (let l = offset[inputIndex], _l = offset[inputIndex + 1]; l < _l; l++) {
                 // tElement.element = inputElements[b[l]];
                 atomicLink.b.element = inputUnit.elements[b[l]];
+                if (disjunct && SortedArray.has(unit.elements, atomicLink.b.element)) continue;
                 if (!target.hasElement(atomicLink.b)) continue;
 
                 atomicLink.aIndex = inputIndex;
@@ -281,6 +283,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
                     atomicLink.b.unit = lu.unitB;
                     atomicLink.b.element = bElements[bond.indexB];
                     if (!target.hasElement(atomicLink.b)) continue;
+                    if (disjunct && structure.hasElement(atomicLink.b)) continue;
 
                     atomicLink.a.unit = inputUnit;
                     atomicLink.aIndex = inputIndex;
@@ -316,6 +319,7 @@ export function isConnectedTo({ query, target, disjunct, invert, linkTest }: IsC
         const connCtx: IsConnectedToCtx = {
             queryCtx: ctx,
             input: ctx.inputStructure,
+            disjunct,
             target: StructureSelection.unionStructure(targetSel)
         }
 
@@ -325,6 +329,8 @@ export function isConnectedTo({ query, target, disjunct, invert, linkTest }: IsC
 
         StructureSelection.forEach(selection, (s, sI) => {
             if (checkConnected(connCtx, s)) {
+                ret.add(s);
+            } else if (invert) {
                 ret.add(s);
             }
             if (sI % 5 === 0) ctx.throwIfTimedOut();
