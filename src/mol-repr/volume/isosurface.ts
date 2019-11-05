@@ -18,6 +18,7 @@ import { EmptyLoci } from '../../mol-model/loci';
 import { VisualUpdateState } from '../util';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
+import { toPrecision } from '../../mol-util/number';
 
 const defaultStats: VolumeData['dataStats'] = { min: -1, max: 1, mean: 0, sigma: 0.1  };
 export function createIsoValueParam(defaultValue: VolumeIsoValue, stats?: VolumeData['dataStats']) {
@@ -43,12 +44,12 @@ export function createIsoValueParam(defaultValue: VolumeIsoValue, stats?: Volume
             'absolute': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toAbsolute(v, VolumeData.One.dataStats).absoluteValue,
                 (v: number) => VolumeIsoValue.absolute(v),
-                PD.Numeric(mean, { min, max, step: sigma / 100 })
+                PD.Numeric(mean, { min, max, step: toPrecision(sigma / 100, 2) })
             ),
             'relative': PD.Converted(
                 (v: VolumeIsoValue) => VolumeIsoValue.toRelative(v, VolumeData.One.dataStats).relativeValue,
                 (v: number) => VolumeIsoValue.relative(v),
-                PD.Numeric(Math.min(1, relMax), { min: relMin, max: relMax, step: Math.round(((max - min) / sigma)) / 100 })
+                PD.Numeric(Math.min(1, relMax), { min: relMin, max: relMax, step: toPrecision(Math.round(((max - min) / sigma)) / 100, 2) })
             )
         },
         (v: VolumeIsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',

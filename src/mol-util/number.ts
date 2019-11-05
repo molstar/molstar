@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 /**
@@ -52,4 +53,19 @@ export function isInteger(s: string) {
     s = s.trim()
     const n = parseInt(s, 10)
     return isNaN(n) ? false : n.toString() === s
+}
+
+export function getPrecision(v: number) {
+    if (!isFinite(v)) return 0
+    let e = 1
+    let p = 0
+    while (Math.round(v * e) / e !== v) {
+        e *= 10
+        ++p
+    }
+    return p
+}
+
+export function toPrecision(v: number, precision: number) {
+    return parseFloat(v.toPrecision(precision))
 }

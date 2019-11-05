@@ -15,6 +15,7 @@ import { Slider } from '../controls/slider';
 import { VolumeIsoValue, VolumeData } from '../../../mol-model/volume';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ColorNames } from '../../../mol-util/color/names';
+import { toPrecision } from '../../../mol-util/number';
 
 const ChannelParams = {
     color: PD.Color(ColorNames.black, { description: 'Display color of the volume.' }),
@@ -40,12 +41,12 @@ function Channel(props: {
     const value = channel.isoValue.kind === 'relative' ? channel.isoValue.relativeValue : channel.isoValue.absoluteValue;
     const relMin = (min - mean) / sigma;
     const relMax = (max - mean) / sigma;
+    const step = toPrecision(isRelative ? Math.round(((max - min) / sigma)) / 100 : sigma / 100, 2)
 
     return <ExpandableGroup
         label={props.label + (props.isRelative ? ' \u03C3' : '')}
         colorStripe={channel.color}
-        pivot={<Slider value={value} min={isRelative ? relMin : min} max={isRelative ? relMax : max}
-            step={isRelative ? sigma / 100 : Math.round(((max - min) / sigma)) / 100}
+        pivot={<Slider value={value} min={isRelative ? relMin : min} max={isRelative ? relMax : max} step={step}
             onChange={v => props.changeIso(props.name, v, isRelative)} disabled={props.params.isDisabled} onEnter={props.params.events.onEnter} />}
         controls={<ParameterControls onChange={({ name, value }) => props.changeParams(props.name, name, value)} params={ChannelParams} values={channel} onEnter={props.params.events.onEnter} />}
     />;
