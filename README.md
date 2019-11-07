@@ -62,6 +62,8 @@ This project builds on experience from previous solutions:
 ### Build with debug mode enabled:
     DEBUG=molstar npm run watch
 
+Debug/production mode in browsers can be turned on/off during runtime by calling ``setMolStarDebugMode(true/false, true/false)`` from the dev console.
+
 ### Build for production:
     NODE_ENV=production npm run build
 
