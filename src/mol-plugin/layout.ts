@@ -148,22 +148,22 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
                     }
 
                     const s = body.style
-                    s.top = t.top;
-                    s.bottom = t.bottom;
-                    s.left = t.left;
-                    s.right = t.right;
+                    s.top = t.top!;
+                    s.bottom = t.bottom!;
+                    s.left = t.left!;
+                    s.right = t.right!;
 
-                    s.width = t.width;
-                    s.height = t.height;
-                    s.maxWidth = t.maxWidth;
-                    s.maxHeight = t.maxHeight;
-                    s.margin = t.margin;
-                    s.marginLeft = t.marginLeft;
-                    s.marginRight = t.marginRight;
-                    s.marginTop = t.marginTop;
-                    s.marginBottom = t.marginBottom;
+                    s.width = t.width!;
+                    s.height = t.height!;
+                    s.maxWidth = t.maxWidth!;
+                    s.maxHeight = t.maxHeight!;
+                    s.margin = t.margin!;
+                    s.marginLeft = t.marginLeft!;
+                    s.marginRight = t.marginRight!;
+                    s.marginTop = t.marginTop!;
+                    s.marginBottom = t.marginBottom!;
 
-                    s.position = t.position;
+                    s.position = t.position!;
                     s.overflow = t.overflow || '';
 
                     const doc = this.getScrollElement();
@@ -171,7 +171,7 @@ export class PluginLayout extends PluginComponent<PluginLayoutStateProps> {
                     doc.scrollLeft = t.scrollLeft;
 
                     this.rootState = void 0;
-                    this.root.style.zIndex = t.zIndex;
+                    this.root.style.zIndex = t.zIndex!;
                 }
             }
         } catch (e) {
