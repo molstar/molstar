@@ -14,6 +14,7 @@ import { CCD_Schema, CCD_Database } from './cif/schema/ccd'
 import { BIRD_Schema, BIRD_Database } from './cif/schema/bird'
 import { dic_Schema, dic_Database } from './cif/schema/dic'
 import { DensityServer_Data_Schema, DensityServer_Data_Database } from './cif/schema/density-server'
+import { cifCore_Database, cifCore_Schema, cifCore_Aliases } from './cif/schema/cif-core'
 
 export const CIF = {
     parse: (data: string|Uint8Array) => typeof data === 'string' ? parseText(data) : parseBinary(data),
@@ -26,7 +27,8 @@ export const CIF = {
         CCD: (frame: CifFrame) => toDatabase<CCD_Schema, CCD_Database>(CCD_Schema, frame),
         BIRD: (frame: CifFrame) => toDatabase<BIRD_Schema, BIRD_Database>(BIRD_Schema, frame),
         dic: (frame: CifFrame) => toDatabase<dic_Schema, dic_Database>(dic_Schema, frame),
-        densityServer: (frame: CifFrame) => toDatabase<DensityServer_Data_Schema, DensityServer_Data_Database>(DensityServer_Data_Schema, frame)
+        cifCore: (frame: CifFrame) => toDatabase<cifCore_Schema, cifCore_Database>(cifCore_Schema, frame, cifCore_Aliases),
+        densityServer: (frame: CifFrame) => toDatabase<DensityServer_Data_Schema, DensityServer_Data_Database>(DensityServer_Data_Schema, frame),
     }
 }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -23,23 +23,31 @@ export function CifFile(blocks: ArrayLike<CifBlock>, name?: string): CifFile {
 
 export interface CifFrame {
     readonly header: string,
-    // Category names stored separately so that the ordering can be preserved.
+    /** Category names, stored separately so that the ordering can be preserved. */
     readonly categoryNames: ReadonlyArray<string>,
     readonly categories: CifCategories
 }
 
 export interface CifBlock extends CifFrame {
     readonly saveFrames: CifFrame[]
+    getField(name: string): CifField | undefined
 }
 
 export function CifBlock(categoryNames: string[], categories: CifCategories, header: string, saveFrames: CifFrame[] = []): CifBlock {
-    return { categoryNames, header, categories, saveFrames };
+    return {
+        categoryNames, header, categories, saveFrames,
+        getField(name: string) {
+            const [ category, field ] = name.split('.')
+            return categories[category].getField(field || '')
+        }
+    };
 }
 
-export function CifSafeFrame(categoryNames: string[], categories: CifCategories, header: string): CifFrame {
+export function CifSaveFrame(categoryNames: string[], categories: CifCategories, header: string): CifFrame {
     return { categoryNames, header, categories };
 }
 
+export type CifAliases = { readonly [name: string]: string[] }
 export type CifCategories = { readonly [name: string]: CifCategory }
 
 export interface CifCategory {

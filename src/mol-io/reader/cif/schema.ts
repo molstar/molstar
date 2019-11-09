@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,16 +10,31 @@ import { Tensor } from '../../../mol-math/linear-algebra'
 import { arrayEqual } from '../../../mol-util'
 import * as Data from './data-model'
 
-export function toDatabaseCollection<Schema extends Database.Schema>(schema: Schema, file: Data.CifFile): DatabaseCollection<Schema> {
+export namespace FieldPath {
+    export function canonical(path: string) {
+        return path.replace('.', '_').replace(/\[/, '_').replace(/(\[|\])/g, '')
+    }
+
+    export function equal(pathA: string, pathB: string) {
+        return canonical(pathA) === canonical(pathB)
+    }
+
+    export function create(category: string, field: string, asCanonical = false) {
+        const p = `${category}${field ? `.${field}` : ''}`
+        return asCanonical ? canonical(p) : p
+    }
+}
+
+export function toDatabaseCollection<Schema extends Database.Schema>(schema: Schema, file: Data.CifFile, aliases?: Data.CifAliases): DatabaseCollection<Schema> {
     const dbc: DatabaseCollection<Schema> = {}
     for (const data of file.blocks) {
-        dbc[data.header] = toDatabase(schema, data)
+        dbc[data.header] = toDatabase(schema, data, aliases)
     }
     return dbc;
 }
 
-export function toDatabase<Schema extends Database.Schema, Frame extends Database<Schema> = Database<Schema>>(schema: Schema, frame: Data.CifFrame): Frame {
-    return createDatabase(schema, frame) as Frame;
+export function toDatabase<Schema extends Database.Schema, Frame extends Database<Schema> = Database<Schema>>(schema: Schema, frame: Data.CifFrame, aliases?: Data.CifAliases): Frame {
+    return createDatabase(schema, frame, aliases) as Frame;
 }
 
 export function toTable<Schema extends Table.Schema, R extends Table<Schema> = Table<Schema>>(schema: Schema, category: Data.CifCategory): R {
@@ -51,7 +66,7 @@ function createColumn<T>(schema: Column.Schema, field: Data.CifField, value: (ro
     };
 }
 
-function createListColumn<T extends number|string>(schema: Column.Schema.List<T>, category: Data.CifCategory, key: string): Column<(number|string)[]> {
+function createListColumn<T extends number | string>(schema: Column.Schema.List<T>, category: Data.CifCategory, key: string): Column<(number | string)[]> {
     const separator = schema.separator;
     const itemParse = schema.itemParse;
 
@@ -134,15 +149,62 @@ class CategoryTable implements Table<any> { // tslint:disable-line:class-name
     }
 }
 
-function createDatabase(schema: Database.Schema, frame: Data.CifFrame): Database<any> {
+function createDatabase(schema: Database.Schema, frame: Data.CifFrame, aliases?: Data.CifAliases): Database<any> {
     const tables = Object.create(null);
     for (const k of Object.keys(schema)) {
-        tables[k] = createTable(k, (schema as any)[k], frame);
+        tables[k] = createTable(k, schema[k], frame, aliases);
     }
     return Database.ofTables(frame.header, schema, tables);
 }
 
-function createTable(key: string, schema: Table.Schema, frame: Data.CifFrame) {
-    const cat = frame.categories[key];
+type FlatFrame = { [k: string]: Data.CifField }
+
+function flattenFrame(frame: Data.CifFrame): FlatFrame {
+    const flatFrame = Object.create(null)
+    for (const c of Object.keys(frame.categories)) {
+        for (const f of frame.categories[c].fieldNames) {
+            const p =  FieldPath.create(c, f, true)
+            flatFrame[p] = frame.categories[c].getField(f)
+        }
+    }
+    return flatFrame
+}
+
+function getField(field: string, category: string, flatFrame: FlatFrame, aliases?: Data.CifAliases) {
+    const path = FieldPath.create(category, field)
+    const canonicalPath = FieldPath.canonical(path)
+    if (canonicalPath in flatFrame) return flatFrame[canonicalPath]
+    if (aliases && path in aliases) {
+        for (const aliased of aliases[path]) {
+            const canonicalAliased = FieldPath.canonical(aliased)
+            if (canonicalAliased in flatFrame) return flatFrame[canonicalAliased]
+        }
+    }
+}
+
+function createTable(key: string, schema: Table.Schema, frame: Data.CifFrame, aliases?: Data.CifAliases) {
+    let cat = frame.categories[key];
+    if (aliases) {
+        const flatFrame = flattenFrame(frame)
+        const fields: { [k: string]: Data.CifField } = Object.create(null)
+        const fieldNames: string[] = []
+        let rowCount = 0
+        for (const k of Object.keys(schema)) {
+            const field = getField(k, key, flatFrame, aliases)
+            if (field) {
+                fields[k] = field
+                fieldNames.push(k)
+                rowCount = field.rowCount
+            }
+        }
+        cat = {
+            rowCount,
+            name: key,
+            fieldNames: [...fieldNames],
+            getField(name: string) {
+                return fields[name];
+            }
+        }
+    }
     return new CategoryTable(cat || Data.CifCategory.empty(key), schema, !!cat);
 }
