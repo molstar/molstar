@@ -42,9 +42,13 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     private get sequenceNumberPeriod() {
-        return this.props.sequenceNumberPeriod !== undefined
-            ? this.props.sequenceNumberPeriod as number
-            : (this.props.sequenceWrapper.length > 10 ? 10 : 1)
+        if (this.props.sequenceNumberPeriod !== undefined) {
+            return this.props.sequenceNumberPeriod as number
+        }
+        if (this.props.sequenceWrapper.length > 10) return 10
+        const lastSeqNum = this.getSequenceNumber(this.props.sequenceWrapper.length - 1)
+        if (lastSeqNum.length > 1) return 5
+        return 1
     }
 
     componentDidMount() {
@@ -127,11 +131,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     private location = StructureElement.Location.create();
-    private padSeqNum(n: string) {
-        if (n.length < MaxSequenceNumberSize) return n + new Array(MaxSequenceNumberSize - n.length + 1).join('\u00A0');
-        return n;
-    }
-    private getSequenceNumber(seqIdx: number, label: string) {
+    private getSequenceNumber(seqIdx: number) {
         let seqNum = ''
         const loci = this.props.sequenceWrapper.getLoci(seqIdx)
         const l = StructureElement.Loci.getFirstLocation(loci, this.location);
@@ -144,6 +144,15 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
                 seqNum = `${seqIdx + 1}`
             }
         }
+        return seqNum
+    }
+
+    private padSeqNum(n: string) {
+        if (n.length < MaxSequenceNumberSize) return n + new Array(MaxSequenceNumberSize - n.length + 1).join('\u00A0');
+        return n;
+    }
+    private getSequenceNumberSpan(seqIdx: number, label: string) {
+        const seqNum = this.getSequenceNumber(seqIdx)
         return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, seqNum, label)}>{this.padSeqNum(seqNum)}</span>
     }
 
@@ -217,7 +226,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             const label = sw.residueLabel(i)
             // add sequence number before name so the html element do not get separated by a line-break
             if (hasNumbers && i % period === 0 && i < il) {
-                elems[elems.length] = this.getSequenceNumber(i, label)
+                elems[elems.length] = this.getSequenceNumberSpan(i, label)
             }
             elems[elems.length] = this.residue(i, label, sw.markerArray[i], sw.residueColor(i));
         }
