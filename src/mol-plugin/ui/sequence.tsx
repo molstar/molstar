@@ -224,12 +224,16 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     private getInitialState(): SequenceViewState {
-        // TODO reuse selected values from previous state if applicable
         const structureRef = getStructureOptions(this.plugin.state.dataState)[0][0]
         const structure = this.getStructure(structureRef)
-        const modelEntityId = getModelEntityOptions(structure)[0][0]
-        const invariantUnitId = getUnitOptions(structure, modelEntityId)[0][0]
-        const operatorKey = getOperatorOptions(structure, modelEntityId, invariantUnitId)[0][0]
+        let modelEntityId = getModelEntityOptions(structure)[0][0]
+        let invariantUnitId = getUnitOptions(structure, modelEntityId)[0][0]
+        let operatorKey = getOperatorOptions(structure, modelEntityId, invariantUnitId)[0][0]
+        if (this.state.structure && this.state.structure === structure) {
+            modelEntityId = this.state.modelEntityId
+            invariantUnitId = this.state.invariantUnitId
+            operatorKey = this.state.operatorKey
+        }
         return { structure, structureRef, modelEntityId, invariantUnitId, operatorKey }
     }
 
@@ -256,10 +260,8 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         }
     }
 
-    // TODO try to use selected option from previous state
     private setParamProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         const state = { ...this.state }
-        // console.log(p.name, p.value)
         switch (p.name) {
             case 'structure':
                 state.structureRef = p.value
