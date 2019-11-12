@@ -126,6 +126,7 @@ export class TextInput<T = string> extends PurePluginUIComponent<TextInputProps<
             }
             if (this.props.onEnter) this.props.onEnter();
         }
+        e.stopPropagation();
     }
 
     static getDerivedStateFromProps(props: TextInputProps<any>, state: TextInputState) {
@@ -179,6 +180,7 @@ export class NumericInput extends React.PureComponent<{
             }
             if (this.props.onEnter) this.props.onEnter();
         }
+        e.stopPropagation();
     }
 
     onBlur = () => {

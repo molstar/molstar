@@ -247,10 +247,10 @@ export class TextControl extends SimpleParam<PD.Text> {
     }
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!this.props.onEnter) return;
         if ((e.keyCode === 13 || e.charCode === 13)) {
-            this.props.onEnter();
+            if (this.props.onEnter) this.props.onEnter();
         }
+        e.stopPropagation();
     }
 
     renderControl() {
@@ -806,10 +806,10 @@ export class ScriptControl extends SimpleParam<PD.Script> {
     }
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!this.props.onEnter) return;
         if ((e.keyCode === 13 || e.charCode === 13)) {
-            this.props.onEnter();
+            if (this.props.onEnter) this.props.onEnter();
         }
+        e.stopPropagation();
     }
 
     renderControl() {
