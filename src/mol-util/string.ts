@@ -74,3 +74,8 @@ export function trimCharEnd(str: string, char: string) {
     while (end > 0 && str[end - 1] === char) --end;
     return (end < str.length) ? str.substring(0, end) : str;
 }
+
+/** Simple function to strip tags from a string */
+export function stripTags(str: string) {
+    return str.replace(/<\/?[^>]+>/g, '')
+}
