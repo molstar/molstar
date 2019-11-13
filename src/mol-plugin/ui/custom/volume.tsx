@@ -189,16 +189,16 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     bottomLeft: PD.Vec3(Vec3.zero()),
                     topRight: PD.Vec3(Vec3.zero()),
                     detailLevel,
-                    isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
+                    isRelative: PD.Boolean(isRelative, { description: 'Use normalized or absolute isocontour scale.', label: 'Normalized' })
                 }, { description: 'Static box defined by cartesian coords.' }),
                 'selection-box': PD.Group({
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
                     detailLevel,
-                    isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
+                    isRelative: PD.Boolean(isRelative, { description: 'Use normalized or absolute isocontour scale.', label: 'Normalized' })
                 }, { description: 'Box around last-interacted element.' }),
                 'cell': PD.Group({
                     detailLevel,
-                    isRelative: PD.Boolean(isRelative, { description: 'Use relative or absolute iso values.' })
+                    isRelative: PD.Boolean(isRelative, { description: 'Use normalized or absolute isocontour scale.', label: 'Normalized' })
                 }, { description: 'Box around the structure\'s bounding box.' }),
                 // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
             }, { options: VolumeStreaming.ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Interaction" shows the volume around the element/atom last interacted with. "Whole Structure" shows the volume for the whole structure.' })
