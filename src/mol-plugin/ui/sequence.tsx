@@ -20,6 +20,8 @@ import { HeteroSequenceWrapper } from './sequence/hetero';
 import { State, StateSelection } from '../../mol-state';
 import { ChainSequenceWrapper } from './sequence/chain';
 import { ElementSequenceWrapper } from './sequence/element';
+import { elementLabel } from '../../mol-theme/label';
+import { stripTags } from '../../mol-util/string';
 
 const MaxDisplaySequenceLength = 5000
 
@@ -123,12 +125,7 @@ function getUnitOptions(structure: Structure, modelEntityId: string) {
         // TODO handle special cases
         // - more than one chain in a unit
         // - chain spread over multiple units
-        let label = ''
-        if (Unit.isAtomic(unit)) {
-            label = `${SP.chain.label_asym_id(l)}: ${SP.chain.auth_asym_id(l)}`
-        } else {
-            label = `${SP.coarse.asym_id(l)}`
-        }
+        let label = stripTags(elementLabel(l, 'chain', true))
         if (SP.entity.type(l) === 'water') {
             const count = water.get(label) || 1
             water.set(label, count + 1)
