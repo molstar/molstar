@@ -145,3 +145,6 @@ export function getAdjustedColorMap<T extends { [k: string]: number }>(map: Colo
     }
     return adjustedMap as ColorMap<T>
 }
+
+export type ColorSwatch = [string, Color][]
+export function ColorSwatch(l: [string, number][]) { return l as unknown as ColorSwatch }

@@ -8,7 +8,7 @@ import * as React from 'react';
 import { PluginUIComponent, CollapsableState, CollapsableProps } from '../base';
 import { Structure, StructureElement } from '../../../mol-model/structure';
 import { isEmptyLoci } from '../../../mol-model/loci';
-import { ColorOptions, ParameterControls } from '../controls/parameters';
+import { ParameterControls } from '../controls/parameters';
 import { Color } from '../../../mol-util/color';
 import { ButtonSelect, Options } from '../controls/common'
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -18,6 +18,7 @@ import { camelCaseToWords } from '../../../mol-util/string';
 import { CollapsableControls } from '../base';
 import { StateSelection, StateObject } from '../../../mol-state';
 import { PluginStateObject } from '../../state/objects';
+import { ColorOptions } from '../controls/color';
 
 interface BaseStructureRepresentationControlsState {
     isDisabled: boolean

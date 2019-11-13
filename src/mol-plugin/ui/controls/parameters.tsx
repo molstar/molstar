@@ -8,7 +8,6 @@
 import { Vec2, Vec3 } from '../../../mol-math/linear-algebra';
 import { Color } from '../../../mol-util/color';
 import { ColorListName, getColorListFromName } from '../../../mol-util/color/lists';
-import { ColorNames, ColorNamesValueMap } from '../../../mol-util/color/names';
 import { memoize1 } from '../../../mol-util/memoize';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { camelCaseToWords } from '../../../mol-util/string';
@@ -19,7 +18,7 @@ import { NumericInput, IconButton, ControlGroup } from './common';
 import { _Props, _State } from '../base';
 import { legendFor } from './legend';
 import { Legend as LegendData } from '../../../mol-util/legend';
-import { CombinedColorControl } from './color';
+import { CombinedColorControl, ColorValueOption, ColorOptions } from './color';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -295,23 +294,6 @@ export class BoundedIntervalControl extends SimpleParam<PD.Interval> {
         return <Slider2 value={this.props.value} min={this.props.param.min!} max={this.props.param.max!}
             step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} onEnter={this.props.onEnter} />;
     }
-}
-
-let _colors: React.ReactFragment | undefined = void 0;
-export function ColorOptions() {
-    if (_colors) return _colors;
-    _colors = <>{Object.keys(ColorNames).map(name =>
-        <option key={name} value={(ColorNames as { [k: string]: Color })[name]} style={{ background: `${Color.toStyle((ColorNames as { [k: string]: Color })[name])}` }} >
-            {name}
-        </option>
-    )}</>;
-    return _colors;
-}
-
-function ColorValueOption(color: Color) {
-    return !ColorNamesValueMap.has(color) ? <option key={Color.toHexString(color)} value={color} style={{ background: `${Color.toStyle(color)}` }} >
-        {Color.toRgbString(color)}
-    </option> : null
 }
 
 export class ColorControl extends SimpleParam<PD.Color> {
