@@ -148,7 +148,7 @@ class StructureElementSelectionManager {
         if (StructureElement.Loci.is(loci)) {
             const entry = this.getEntry(loci.structure);
             if (entry) {
-                return StructureElement.Loci.areIntersecting(loci, entry.selection);
+                return StructureElement.Loci.isSubset(entry.selection, loci);
             }
         }
         return false;

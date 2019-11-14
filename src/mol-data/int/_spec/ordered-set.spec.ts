@@ -1,12 +1,11 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import OrderedSet from '../ordered-set'
 import Interval from '../interval'
-//import SortedArray from '../sorted-array';
 
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {

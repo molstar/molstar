@@ -8,17 +8,8 @@
 import { Unit, StructureElement, StructureProperties as Props, Link } from '../mol-model/structure';
 import { Loci } from '../mol-model/loci';
 import { OrderedSet } from '../mol-data/int';
-import { capitalize } from '../mol-util/string';
+import { capitalize, stripTags } from '../mol-util/string';
 import { Column } from '../mol-data/db';
-
-// for `labelFirst`, don't create right away to avoid problems with circular dependencies/imports
-let elementLocA: StructureElement.Location
-let elementLocB: StructureElement.Location
-
-function setElementLocation(loc: StructureElement.Location, unit: Unit, index: StructureElement.UnitIndex) {
-    loc.unit = unit
-    loc.element = unit.elements[index]
-}
 
 export function lociLabel(loci: Loci): string {
     switch (loci.kind) {
@@ -47,8 +38,8 @@ function countLabel(count: number, label: string) {
     return count === 1 ? `1 ${label}` : `${count} ${label}s`
 }
 
-function otherLabel(count: number, location: StructureElement.Location, granularity: LabelGranularity, hidePrefix: boolean, altCount?: string) {
-    return `${elementLabel(location, granularity, hidePrefix)} <small>[+ ${countLabel(count - 1, `other ${altCount || capitalize(granularity)}`)}]</small>`
+function otherLabel(count: number, location: StructureElement.Location, granularity: LabelGranularity, hidePrefix: boolean) {
+    return `${elementLabel(location, { granularity, hidePrefix })} <small>[+ ${countLabel(count - 1, `other ${capitalize(granularity)}`)}]</small>`
 }
 
 /** Gets residue count of the model chain segments the unit is a subset of */
@@ -61,47 +52,50 @@ function getResidueCount(unit: Unit.Atomic) {
 }
 
 export function structureElementStatsLabel(stats: StructureElement.Stats, countsOnly = false): string {
-    const { unitCount, residueCount, elementCount } = stats
+    const { unitCount, residueCount, conformationCount, elementCount } = stats
 
     if (!countsOnly && elementCount === 1 && residueCount === 0 && unitCount === 0) {
-        return elementLabel(stats.firstElementLoc, 'element')
+        return elementLabel(stats.firstElementLoc, { granularity: 'element' })
     } else if (!countsOnly && elementCount === 0 && residueCount === 1 && unitCount === 0) {
-        return elementLabel(stats.firstResidueLoc, 'residue')
+        return elementLabel(stats.firstResidueLoc, { granularity: 'residue' })
     } else if (!countsOnly && elementCount === 0 && residueCount === 0 && unitCount === 1) {
         const { unit } = stats.firstUnitLoc
         const granularity = (Unit.isAtomic(unit) && getResidueCount(unit) === 1) ? 'residue' : 'chain'
-        return elementLabel(stats.firstUnitLoc, granularity)
+        return elementLabel(stats.firstUnitLoc, { granularity })
     } else if (!countsOnly) {
         const label: string[] = []
         let hidePrefix = false;
         if (unitCount > 0) {
-            label.push(unitCount === 1 ? elementLabel(stats.firstUnitLoc, 'chain') : otherLabel(unitCount, stats.firstElementLoc, 'chain', false, 'Instance'))
+            label.push(unitCount === 1 ? elementLabel(stats.firstUnitLoc, { granularity: 'chain' }) : otherLabel(unitCount, stats.firstElementLoc, 'chain', false))
             hidePrefix = true;
         }
         if (residueCount > 0) {
-            label.push(residueCount === 1 ? elementLabel(stats.firstResidueLoc, 'residue', hidePrefix) : otherLabel(residueCount, stats.firstElementLoc, 'residue', hidePrefix))
+            label.push(residueCount === 1 ? elementLabel(stats.firstResidueLoc, { granularity: 'residue', hidePrefix }) : otherLabel(residueCount, stats.firstElementLoc, 'residue', hidePrefix))
+            hidePrefix = true;
+        }
+        if (conformationCount > 0) {
+            label.push(conformationCount === 1 ? elementLabel(stats.firstConformationLoc, { granularity: 'conformation', hidePrefix }) : otherLabel(conformationCount, stats.firstElementLoc, 'conformation', hidePrefix))
             hidePrefix = true;
         }
         if (elementCount > 0) {
-            label.push(elementCount === 1 ? elementLabel(stats.firstElementLoc, 'element', hidePrefix) : otherLabel(elementCount, stats.firstElementLoc, 'element', hidePrefix))
+            label.push(elementCount === 1 ? elementLabel(stats.firstElementLoc, { granularity: 'element', hidePrefix }) : otherLabel(elementCount, stats.firstElementLoc, 'element', hidePrefix))
         }
         return label.join('<small> + </small>')
     } else {
         const label: string[] = []
-        if (unitCount > 0) label.push(countLabel(unitCount, 'Instance'))
+        if (unitCount > 0) label.push(countLabel(unitCount, 'Chain'))
         if (residueCount > 0) label.push(countLabel(residueCount, 'Residue'))
+        if (conformationCount > 0) label.push(countLabel(conformationCount, 'Conformation'))
         if (elementCount > 0) label.push(countLabel(elementCount, 'Element'))
         return label.join('<small> + </small>')
     }
 }
 
 export function linkLabel(link: Link.Location): string {
-    if (!elementLocA) elementLocA = StructureElement.Location.create()
-    if (!elementLocB) elementLocB = StructureElement.Location.create()
-    setElementLocation(elementLocA, link.aUnit, link.aIndex)
-    setElementLocation(elementLocB, link.bUnit, link.bIndex)
-    const labelA = _elementLabel(elementLocA)
-    const labelB = _elementLabel(elementLocB)
+    const locA = StructureElement.Location.create(link.aUnit, link.aUnit.elements[link.aIndex])
+    const locB = StructureElement.Location.create(link.bUnit, link.bUnit.elements[link.bIndex])
+    const labelA = _elementLabel(locA)
+    const labelB = _elementLabel(locB)
     let offset = 0
     for (let i = 0, il = Math.min(labelA.length, labelB.length); i < il; ++i) {
         if (labelA[i] === labelB[i]) offset += 1
@@ -110,10 +104,19 @@ export function linkLabel(link: Link.Location): string {
     return `${labelA.join(' | ')} \u2014 ${labelB.slice(offset).join(' | ')}`
 }
 
-export type LabelGranularity = 'element' | 'residue' | 'chain' | 'structure'
+export type LabelGranularity = 'element' | 'conformation' | 'residue' | 'chain' | 'structure'
 
-export function elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element', hidePrefix = false): string {
-    return _elementLabel(location, granularity, hidePrefix).join(' | ')
+export const DefaultLabelOptions = {
+    granularity: 'element' as LabelGranularity,
+    hidePrefix: false,
+    htmlStyling: true,
+}
+export type LabelOptions = typeof DefaultLabelOptions
+
+export function elementLabel(location: StructureElement.Location, options: Partial<LabelOptions>): string {
+    const o = { ...DefaultLabelOptions, ...options }
+    const label = _elementLabel(location, o.granularity, o.hidePrefix).join(' | ')
+    return o.htmlStyling ? label : stripTags(label)
 }
 
 function _elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element', hidePrefix = false): string[] {
@@ -158,8 +161,12 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
     switch (granularity) {
         case 'element':
             label.push(`<b>${atom_id}</b>${alt_id ? `%${alt_id}` : ''}`)
+        case 'conformation':
+            if (granularity === 'conformation' && alt_id) {
+                label.push(`<small>Conformation</small> <b>${alt_id}</b>`)
+            }
         case 'residue':
-            label.push(`<b>${compId} ${has_label_seq_id ? label_seq_id : ''}</b>${label_seq_id !== auth_seq_id ? ` <small> [auth</small> <b>${auth_seq_id}</b><small>]</small>` : ''}<b>${ins_code ? ins_code : ''}</b>`)
+            label.push(`<b>${compId}${has_label_seq_id ? ` ${label_seq_id}` : ''}</b>${label_seq_id !== auth_seq_id ? ` <small>[auth</small> <b>${auth_seq_id}</b><small>]</small>` : ''}<b>${ins_code ? ins_code : ''}</b>`)
         case 'chain':
             if (label_asym_id === auth_asym_id) {
                 label.push(`<b>${label_asym_id}</b>`)
@@ -180,6 +187,7 @@ function _coarseElementLabel(location: StructureElement.Location<Unit.Spheres | 
 
     switch (granularity) {
         case 'element':
+        case 'conformation':
         case 'residue':
             if (seq_id_begin === seq_id_end) {
                 const entityIndex = Props.coarse.entityKey(location)

@@ -21,7 +21,6 @@ import { State, StateSelection } from '../../mol-state';
 import { ChainSequenceWrapper } from './sequence/chain';
 import { ElementSequenceWrapper } from './sequence/element';
 import { elementLabel } from '../../mol-theme/label';
-import { stripTags } from '../../mol-util/string';
 
 const MaxDisplaySequenceLength = 5000
 
@@ -125,7 +124,7 @@ function getUnitOptions(structure: Structure, modelEntityId: string) {
         // TODO handle special cases
         // - more than one chain in a unit
         // - chain spread over multiple units
-        let label = stripTags(elementLabel(l, 'chain', true))
+        let label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false })
         if (SP.entity.type(l) === 'water') {
             const count = water.get(label) || 1
             water.set(label, count + 1)

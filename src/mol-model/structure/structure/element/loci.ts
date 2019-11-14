@@ -200,13 +200,30 @@ export namespace Loci {
         return false;
     }
 
-    export function extendToWholeResidues(loci: Loci): Loci {
+    /** Check if second loci is a subset of the first */
+    export function isSubset(xs: Loci, ys: Loci): boolean {
+        if (Loci.isEmpty(xs)) return Loci.isEmpty(ys);
+
+        const map = new Map<number, OrderedSet<UnitIndex>>();
+
+        for (const e of xs.elements) map.set(e.unit.id, e.indices);
+        for (const e of ys.elements) {
+            if (!map.has(e.unit.id)) continue;
+            if (!OrderedSet.isSubset(map.get(e.unit.id)!, e.indices)) return false;
+        }
+
+        return true;
+    }
+
+    export function extendToWholeResidues(loci: Loci, restrictToConformation?: boolean): Loci {
         const elements: Loci['elements'][0][] = [];
+        const residueAltIds = new Set<string>()
 
         for (const lociElement of loci.elements) {
             if (lociElement.unit.kind === Unit.Kind.Atomic) {
                 const unitElements = lociElement.unit.elements;
                 const h = lociElement.unit.model.atomicHierarchy;
+                const { label_alt_id } = lociElement.unit.model.atomicHierarchy.atoms;
 
                 const { index: residueIndex, offsets: residueOffsets } = h.residueAtomSegments;
 
@@ -214,15 +231,26 @@ export namespace Loci {
                 const indices = lociElement.indices, len = OrderedSet.size(indices);
                 let i = 0;
                 while (i < len) {
-                    const rI = residueIndex[unitElements[OrderedSet.getAt(indices, i)]];
+                    residueAltIds.clear()
+                    const eI = unitElements[OrderedSet.getAt(indices, i)]
+                    const rI = residueIndex[eI];
+                    residueAltIds.add(label_alt_id.value(eI))
                     i++;
-                    while (i < len && residueIndex[unitElements[OrderedSet.getAt(indices, i)]] === rI) {
+                    while (i < len) {
+                        const eI = unitElements[OrderedSet.getAt(indices, i)]
+                        if (residueIndex[eI] !== rI) break;
+                        residueAltIds.add(label_alt_id.value(eI))
                         i++;
                     }
-
+                    const hasSharedAltId = residueAltIds.has('')
                     for (let j = residueOffsets[rI], _j = residueOffsets[rI + 1]; j < _j; j++) {
                         const idx = OrderedSet.indexOf(unitElements, j);
-                        if (idx >= 0) newIndices[newIndices.length] = idx as UnitIndex;
+                        if (idx >= 0) {
+                            const altId = label_alt_id.value(j)
+                            if (!restrictToConformation || hasSharedAltId || !altId || residueAltIds.has(altId)) {
+                                newIndices[newIndices.length] = idx as UnitIndex;
+                            }
+                        }
                     }
                 }
 
@@ -244,6 +272,7 @@ export namespace Loci {
         }
     }
 
+    // take chainGroupId into account
     export function extendToWholeChains(loci: Loci): Loci {
         const elements: Loci['elements'][0][] = [];
 

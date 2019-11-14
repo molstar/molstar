@@ -12,6 +12,7 @@ import { PluginCommands } from '../../command';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Interactivity } from '../../util/interactivity';
 import { ParameterControls } from '../controls/parameters';
+import { stripTags } from '../../../mol-util/string';
 
 const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,
@@ -43,7 +44,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         if (stats.structureCount === 0 || stats.elementCount === 0) {
             return 'Selected nothing'
         } else {
-            return `Selected ${stats.label}`
+            return `Selected ${stripTags(stats.label)}`
         }
     }
 

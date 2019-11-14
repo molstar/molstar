@@ -54,7 +54,7 @@ namespace Interactivity {
 
     const Granularity = {
         'element': (loci: ModelLoci) => loci,
-        'residue': (loci: ModelLoci) => SE.Loci.is(loci) ? SE.Loci.extendToWholeResidues(loci) : loci,
+        'residue': (loci: ModelLoci) => SE.Loci.is(loci) ? SE.Loci.extendToWholeResidues(loci, true) : loci,
         'chain': (loci: ModelLoci) => SE.Loci.is(loci) ? SE.Loci.extendToWholeChains(loci) : loci,
         'structure': (loci: ModelLoci) => SE.Loci.is(loci) ? Structure.Loci(loci.structure) : loci
     }
@@ -164,7 +164,7 @@ namespace Interactivity {
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.toggleSel(normalized);
             } else {
-                this.mark(normalized, MarkerAction.Toggle);
+                super.mark(normalized, MarkerAction.Toggle);
             }
         }
 
@@ -208,6 +208,18 @@ namespace Interactivity {
 
         deselectAllOnEmpty(current: Loci<ModelLoci>) {
             if (isEmptyLoci(current.loci)) this.deselectAll()
+        }
+
+        protected mark(current: Loci<ModelLoci>, action: MarkerAction.Select | MarkerAction.Deselect) {
+            const { loci } = current
+            if (StructureElement.Loci.is(loci)) {
+                // do a full deselect/select so visuals that are marked with
+                // granularity unequal to 'element' are handled properly
+                super.mark({ loci: EveryLoci }, MarkerAction.Deselect)
+                super.mark({ loci: this.sel.get(loci.structure) }, MarkerAction.Select)
+            } else {
+                super.mark(current, action)
+            }
         }
 
         private toggleSel(current: Loci<ModelLoci>) {
