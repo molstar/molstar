@@ -6,6 +6,7 @@
 
 import OrderedSet from '../ordered-set'
 import Interval from '../interval'
+import SortedArray from '../sorted-array';
 
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {
@@ -79,6 +80,13 @@ describe('ordered set', () => {
         expect(OrderedSet.isSubset(OrderedSet.ofSortedArray([0, 1, 2, 3, 7, 10]), OrderedSet.ofSortedArray([1, 3, 7]))).toBe(true);
         expect(OrderedSet.isSubset(arr136, OrderedSet.ofSortedArray([1, 3, 10, 45]))).toBe(false);
         expect(OrderedSet.isSubset(arr136, OrderedSet.ofSortedArray([12, 13, 16]))).toBe(false);
+    });
+
+    it('isSubsetIS', () => {
+        expect(OrderedSet.isSubset(
+            Interval.ofRange(1271, 1295),
+            OrderedSet.ofSortedArray([1271, 1272, 1274, 1275, 1276, 1278, 1280, 1282, 1284, 1286, 1288, 1290, 1292, 1294])
+        )).toBe(true);
     });
 
     it('access/membership', () => {
