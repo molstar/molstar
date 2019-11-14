@@ -126,7 +126,7 @@ function isSubsetIS(a: I, b: S) {
     const minA = I.min(a), maxA = I.max(a);
     if (maxA - minA + 1 === 0) return false;
     const minB = S.min(b), maxB = S.max(b);
-    return minB >= minA && maxA <= maxB;
+    return minB >= minA && maxB <= maxA;
 }
 
 function areRangesIntersecting(a: OrderedSetImpl, b: OrderedSetImpl) {

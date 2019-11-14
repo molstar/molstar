@@ -6,7 +6,7 @@
 
 import OrderedSet from '../ordered-set'
 import Interval from '../interval'
-import SortedArray from '../sorted-array';
+//import SortedArray from '../sorted-array';
 
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {
