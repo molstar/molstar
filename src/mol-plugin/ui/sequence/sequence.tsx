@@ -167,7 +167,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         let o = 0;
         for (let i = 0, il = markerArray.length; i < il; i++) {
             if (hasNumbers && i % period === 0 && i < il) o++;
-            const span = xs[o] as HTMLSpanElement;
+            // o + 1 to account for help icon
+            const span = xs[o + 1] as HTMLSpanElement;
             if (!span) return;
             o++;
 
@@ -243,6 +244,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             onMouseLeave={this.mouseLeave}
             ref={this.parentDiv}
         >
+            <span className={`msp-icon msp-icon-help`} style={{ cursor: 'help' }} title='This shows a single sequence. Use the menu on the left to show a different sequence.' />
             {elems}
         </div>;
     }
