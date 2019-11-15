@@ -221,6 +221,11 @@ export namespace Loci {
         const residueAltIds = new Set<string>()
 
         for (const lociElement of loci.elements) {
+            if (isWholeUnit(lociElement)) {
+                elements[elements.length] = lociElement;
+                continue;
+            }
+
             if (lociElement.unit.kind === Unit.Kind.Atomic) {
                 const unitElements = lociElement.unit.elements;
                 const h = lociElement.unit.model.atomicHierarchy;
@@ -273,23 +278,41 @@ export namespace Loci {
         }
     }
 
+    function isWholeUnit(element: Loci['elements'][0]) {
+        return element.unit.elements.length === OrderedSet.size(element.indices);
+    }
+
     function makeIndexSet(newIndices: number[]): OrderedSet<UnitIndex> {
         if (newIndices.length > 12 && newIndices[newIndices.length - 1] - newIndices[0] === newIndices.length - 1) {
             return Interval.ofRange(newIndices[0], newIndices[newIndices.length - 1])
         } else {
-            return  SortedArray.ofSortedArray(newIndices)
+            return SortedArray.ofSortedArray(newIndices)
         }
     }
 
     function collectChains(unit: Unit, chainIndices: Set<ChainIndex>, elements: Loci['elements'][0][]) {
         const { index } = getChainSegments(unit);
         const xs = unit.elements;
-        const newIndices: UnitIndex[] = [];
+        let size = 0;
         for (let i = 0 as UnitIndex, _i = xs.length; i < _i; i++) {
             const eI = xs[i];
             const cI = index[eI];
             if (!chainIndices.has(cI)) continue;
-            newIndices[newIndices.length] = i;
+            size++;
+        }
+
+        if (size === unit.elements.length) {
+            elements[elements.length] = { unit, indices: Interval.ofBounds(0, size) };
+            return;
+        }
+
+        const newIndices = new Int32Array(size) as any as UnitIndex[];
+        size = 0;
+        for (let i = 0 as UnitIndex, _i = xs.length; i < _i; i++) {
+            const eI = xs[i];
+            const cI = index[eI];
+            if (!chainIndices.has(cI)) continue;
+            newIndices[size++] = i;
         }
 
         if (newIndices.length > 0) {
@@ -341,7 +364,11 @@ export namespace Loci {
                 i--;
                 extendGroupToWholeChains(loci, start, end, true, elements);
             } else {
-                extendGroupToWholeChains(loci, i, i + 1, false, elements);
+                if (isWholeUnit(e)) {
+                    elements[elements.length] = e;
+                } else {
+                    extendGroupToWholeChains(loci, i, i + 1, false, elements);
+                }
             }
         }
 
