@@ -541,7 +541,7 @@ namespace Structure {
                 const u = structure.units[j]
                 const invariantId = u.invariantId + count
                 const chainGroupId = u.chainGroupId + count
-                const newUnit = Unit.create(units.length, invariantId, chainGroupId, u.kind, u.model, u.conformation.operator, u.elements)
+                const newUnit = Unit.create(units.length, invariantId, chainGroupId, u.multiChain, u.kind, u.model, u.conformation.operator, u.elements)
                 units.push(newUnit)
             }
             count = units.length
@@ -554,10 +554,12 @@ namespace Structure {
      * Construct a Structure from a model.
      *
      * Generally, a single unit corresponds to a single chain, with the exception
-     * of consecutive "single atom chains" with same entity id.
+     * of consecutive "single atom chains" with same entity_id and same auth_asym_id.
      */
     export function ofModel(model: Model): Structure {
         const chains = model.atomicHierarchy.chainAtomSegments;
+        const { index } = model.atomicHierarchy
+        const { auth_asym_id } = model.atomicHierarchy.chains
         const builder = new StructureBuilder({ label: model.label });
 
         for (let c = 0 as ChainIndex; c < chains.count; c++) {
@@ -567,27 +569,34 @@ namespace Structure {
             // note that it assumes there are no "zero atom residues"
             let singleAtomResidues = AtomicHierarchy.chainResidueCount(model.atomicHierarchy, c) === chains.offsets[c + 1] - chains.offsets[c]
 
-            // merge all consecutive "single atom chains" with same entity id
+            // merge all consecutive "single atom chains" with same entity_id and same auth_asym_id
+            let multiChain = false
             while (c + 1 < chains.count
                 && chains.offsets[c + 1] - chains.offsets[c] === 1
                 && chains.offsets[c + 2] - chains.offsets[c + 1] === 1
             ) {
-                c++;
                 singleAtomResidues = true
-                const e1 = model.atomicHierarchy.index.getEntityFromChain(c);
-                const e2 = model.atomicHierarchy.index.getEntityFromChain(c + 1 as ChainIndex);
+                const e1 = index.getEntityFromChain(c);
+                const e2 = index.getEntityFromChain(c + 1 as ChainIndex);
                 if (e1 !== e2) break
+
+                const a1 = auth_asym_id.value(c);
+                const a2 = auth_asym_id.value(c + 1);
+                if (a1 !== a2) break
+
+                multiChain = true
+                c++;
             }
 
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
 
             if (singleAtomResidues) {
-                partitionAtomicUnitByAtom(model, elements, builder);
+                partitionAtomicUnitByAtom(model, elements, builder, multiChain);
             } else if (elements.length > 200000 || isWaterChain(model, c)) {
                 // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
-                partitionAtomicUnitByResidue(model, elements, builder);
+                partitionAtomicUnitByResidue(model, elements, builder, multiChain);
             } else {
-                builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
+                builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, multiChain);
             }
         }
 
@@ -609,23 +618,25 @@ namespace Structure {
         return model.entities.data.type.value(e) === 'water';
     }
 
-    function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder) {
+    function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean) {
         const { x, y, z } = model.atomicConformation;
         const lookup = GridLookup3D({ x, y, z, indices }, 8192);
         const { offset, count, array } = lookup.buckets;
 
+        builder.beginChainGroup();
         for (let i = 0, _i = offset.length; i < _i; i++) {
             const start = offset[i];
             const set = new Int32Array(count[i]);
             for (let j = 0, _j = count[i]; j < _j; j++) {
                 set[j] = indices[array[start + j]];
             }
-            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(set));
+            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(set), multiChain);
         }
+        builder.endChainGroup();
     }
 
     // keeps atoms of residues together
-    function partitionAtomicUnitByResidue(model: Model, indices: SortedArray, builder: StructureBuilder) {
+    function partitionAtomicUnitByResidue(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean) {
         const { residueAtomSegments } = model.atomicHierarchy
 
         const startIndices: number[] = []
@@ -655,7 +666,7 @@ namespace Structure {
                     set[set.length] = l;
                 }
             }
-            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(new Int32Array(set)));
+            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(new Int32Array(set)), multiChain);
         }
         builder.endChainGroup();
     }
@@ -664,7 +675,7 @@ namespace Structure {
         const { chainElementSegments } = elements;
         for (let cI = 0; cI < chainElementSegments.count; cI++) {
             const elements = SortedArray.ofBounds<ElementIndex>(chainElementSegments.offsets[cI], chainElementSegments.offsets[cI + 1]);
-            builder.addUnit(kind, model, SymmetryOperator.Default, elements);
+            builder.addUnit(kind, model, SymmetryOperator.Default, elements, false);
         }
     }
 
@@ -700,10 +711,10 @@ namespace Structure {
             this.inChainGroup = false;
         }
 
-        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, invariantId?: number): Unit {
+        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, multiChain: boolean, invariantId?: number): Unit {
             if (invariantId === undefined) invariantId = this.invariantId()
             const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
-            const unit = Unit.create(this.units.length, invariantId, chainGroupId, kind, model, operator, elements);
+            const unit = Unit.create(this.units.length, invariantId, chainGroupId, multiChain, kind, model, operator, elements);
             this.units.push(unit);
             return unit;
         }

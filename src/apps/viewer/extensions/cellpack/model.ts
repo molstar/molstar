@@ -268,7 +268,7 @@ export function createStructureFromCellPack(packing: CellPacking, baseUrl: strin
             for (const u of s.units) {
                 const invariantId = u.invariantId + offsetInvariantId
                 if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId
-                builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, invariantId)
+                builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, false, invariantId)
             }
             offsetInvariantId += maxInvariantId
         }

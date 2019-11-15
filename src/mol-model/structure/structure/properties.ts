@@ -164,6 +164,8 @@ const entity = {
 
 const unit = {
     id: p(l => l.unit.id),
+    chainGroupId: p(l => l.unit.chainGroupId),
+    multiChain: p(l => l.unit.multiChain),
     object_primitive: p(l => l.unit.objectPrimitive),
     operator_name: p(l => l.unit.conformation.operator.name),
     model_index: p(l => l.unit.model.modelNum),
