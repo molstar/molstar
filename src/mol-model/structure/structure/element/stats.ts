@@ -245,7 +245,7 @@ export namespace Stats {
         chainCounts.forEach((count, cI) => {
             if (offsets[cI + 1] - offsets[cI] === count) {
                 // full chain
-                stats.chainCount += 1
+                stats.chainCount += 1;
                 if (stats.chainCount === 1) {
                     firstCI = cI;
                 }
@@ -268,7 +268,7 @@ export namespace Stats {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 const cI = index[eI];
                 if (cI === firstCI) {
-                    Location.set(stats.firstChainLoc, unit, elements[offsets[cI]]);
+                    Location.set(stats.firstChainLoc, unit, eI);
                     return;
                 }
             }
