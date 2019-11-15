@@ -211,26 +211,26 @@ export const MonosaccharidesColorTable: [string, Color][] = [
 const CommonSaccharideNames: { [k: string]: string[] } = {
     // Hexose
     Glc: [
-        'GLC', 'BGC',
+        'GLC', 'BGC', 'Z8T',
         'TRE', // di-saccharide but homomer
         'MLR', // tri-saccharide but homomer
     ],
     Man: ['MAN', 'BMA'],
-    Gal: ['GLA', 'GAL', 'GZL'],
-    Gul: ['4GL', 'GL0'],
-    Alt: ['Z6H', '3MK'],
-    All: ['AFD', 'ALL'],
-    Tal: [],
-    Ido: ['Z0F', '4N2'],
+    Gal: ['GLA', 'GAL', 'GZL', 'GXL', 'GIV'],
+    Gul: ['4GL', 'GL0', 'GUP', 'Z8H'],
+    Alt: ['Z6H', '3MK', 'SHD'],
+    All: ['AFD', 'ALL', 'WOO', 'Z2D'],
+    Tal: ['ZEE', 'A5C'],
+    Ido: ['ZCD', 'Z0F', '4N2'],
     // HexNAc
-    GlcNAc: ['NDG', 'NAG'],
+    GlcNAc: ['NDG', 'NAG', 'NGZ'],
     ManNAc: ['BM3', 'BM7'],
-    GalNAc: ['A2G', 'NGA'],
+    GalNAc: ['A2G', 'NGA', 'YYQ'],
     GulNAc: ['LXB'],
     AltNAc: [],
     AllNAc: ['NAA'],
     TalNAc: [],
-    IdoNAc: [],
+    IdoNAc: ['LXZ'],
     // Hexosamine
     GlcN: ['PA1', 'GCS'],
     ManN: ['95Z'],
@@ -244,24 +244,24 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     GlcA: ['GCU', 'BDP'],
     ManA: ['MAV', 'BEM'],
     GalA: ['ADA', 'GTR', 'GTK'],
-    GulA: [],
+    GulA: ['LGU'],
     AltA: [],
     AllA: [],
     TalA: ['X1X', 'X0X'],
     IdoA: ['IDR'],
     // Deoxyhexose
     Qui: ['G6D', 'YYK'],
-    Rha: ['RAM', 'RM4'],
+    Rha: ['RAM', 'RM4', 'XXR'],
     '6dGul': ['66O'],
     '6dAlt': [],
     '6dTal': [],
-    Fuc: ['FUC', 'FUL'],
+    Fuc: ['FUC', 'FUL', 'FCA', 'FCB'],
     // DeoxyhexNAc
     QuiNAc: ['Z9W'],
     RhaNAc: [],
     '6dAltNAc': [],
     '6dTalNAc': [],
-    FucNAc: [],
+    FucNAc: ['49T'],
     // Di-deoxyhexose
     Oli: ['DDA', 'RAE', 'Z5J'],
     Tyv: ['TYV'],
@@ -270,10 +270,10 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Dig: ['Z3U'],
     Col: [],
     // Pentose
-    Ara: ['ARA', 'ARB', 'AHR', 'FUB'],
+    Ara: ['64K', 'ARA', 'ARB', 'AHR', 'FUB', 'BXY', 'BXX'],
     Lyx: ['LDY', 'Z4W'],
-    Xyl: ['XZS', 'XYP', 'XYZ'],
-    Rib: ['YYM', 'RIP', 'RIB', 'BDR'],
+    Xyl: ['XYS', 'XYP', 'XYZ', 'HSY', 'LXC'],
+    Rib: ['YYM', 'RIP', 'RIB', 'BDR', '0MK', 'Z6J', '32O'],
     // Deoxynonulosonate
     Kdn: ['KDM', 'KDN'],
     Neu5Ac: ['SIA', 'SLB'],
@@ -296,10 +296,10 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Mur: ['1S4', 'MUR'],
     // Assigned
     Api: ['XXM'],
-    Fru: ['BDF', 'Z9N', 'FRU'],
+    Fru: ['BDF', 'Z9N', 'FRU', 'LFR'],
     Tag: ['T6T'],
     Sor: ['SOE'],
-    Psi: ['PSV'],
+    Psi: ['PSV', 'SF6', 'SF9'],
 }
 
 const UnknownSaccharideNames = [
