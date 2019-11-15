@@ -106,10 +106,10 @@ export function Highlight(ctx: PluginContext) {
         const cell = state.select(ref)[0];
         if (!cell) return;
         if (SO.Molecule.Structure.is(cell.obj)) {
-            ctx.interactivity.lociHighlights.highlightOnly({ loci: Structure.Loci(cell.obj.data) });
+            ctx.interactivity.lociHighlights.highlightOnly({ loci: Structure.Loci(cell.obj.data) }, false);
         } else if (cell && SO.isRepresentation3D(cell.obj)) {
             const loci = SO.Molecule.Structure.is(cell.obj.data.source) ? Structure.Loci(cell.obj.data.source.data) : EveryLoci
-            ctx.interactivity.lociHighlights.highlightOnly({ loci, repr: cell.obj.data.repr });
+            ctx.interactivity.lociHighlights.highlightOnly({ loci, repr: cell.obj.data.repr }, false);
         }
 
         // TODO: highlight volumes and shapes?
@@ -119,7 +119,7 @@ export function Highlight(ctx: PluginContext) {
 
 export function ClearHighlight(ctx: PluginContext) {
     PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
-        ctx.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
+        ctx.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci }, false);
     });
 }
 
