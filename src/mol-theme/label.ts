@@ -52,29 +52,29 @@ function getResidueCount(unit: Unit.Atomic) {
 }
 
 export function structureElementStatsLabel(stats: StructureElement.Stats, countsOnly = false): string {
-    const { unitCount, residueCount, conformationCount, elementCount } = stats
+    const { chainCount, residueCount, conformationCount, elementCount } = stats
 
-    if (!countsOnly && elementCount === 1 && residueCount === 0 && unitCount === 0) {
+    if (!countsOnly && elementCount === 1 && residueCount === 0 && chainCount === 0) {
         return elementLabel(stats.firstElementLoc, { granularity: 'element' })
-    } else if (!countsOnly && elementCount === 0 && residueCount === 1 && unitCount === 0) {
+    } else if (!countsOnly && elementCount === 0 && residueCount === 1 && chainCount === 0) {
         return elementLabel(stats.firstResidueLoc, { granularity: 'residue' })
-    } else if (!countsOnly && elementCount === 0 && residueCount === 0 && unitCount === 1) {
-        const { unit } = stats.firstUnitLoc
+    } else if (!countsOnly && elementCount === 0 && residueCount === 0 && chainCount === 1) {
+        const { unit } = stats.firstChainLoc
         const granularity = (Unit.isAtomic(unit) && getResidueCount(unit) === 1) ? 'residue' : 'chain'
-        return elementLabel(stats.firstUnitLoc, { granularity })
+        return elementLabel(stats.firstChainLoc, { granularity })
     } else if (!countsOnly) {
         const label: string[] = []
         let hidePrefix = false;
-        if (unitCount > 0) {
-            label.push(unitCount === 1 ? elementLabel(stats.firstUnitLoc, { granularity: 'chain' }) : otherLabel(unitCount, stats.firstElementLoc, 'chain', false))
+        if (chainCount > 0) {
+            label.push(chainCount === 1 ? elementLabel(stats.firstChainLoc, { granularity: 'chain' }) : otherLabel(chainCount, stats.firstChainLoc || stats.firstElementLoc, 'chain', false))
             hidePrefix = true;
         }
         if (residueCount > 0) {
-            label.push(residueCount === 1 ? elementLabel(stats.firstResidueLoc, { granularity: 'residue', hidePrefix }) : otherLabel(residueCount, stats.firstElementLoc, 'residue', hidePrefix))
+            label.push(residueCount === 1 ? elementLabel(stats.firstResidueLoc, { granularity: 'residue', hidePrefix }) : otherLabel(residueCount, stats.firstResidueLoc || stats.firstElementLoc, 'residue', hidePrefix))
             hidePrefix = true;
         }
         if (conformationCount > 0) {
-            label.push(conformationCount === 1 ? elementLabel(stats.firstConformationLoc, { granularity: 'conformation', hidePrefix }) : otherLabel(conformationCount, stats.firstElementLoc, 'conformation', hidePrefix))
+            label.push(conformationCount === 1 ? elementLabel(stats.firstConformationLoc, { granularity: 'conformation', hidePrefix }) : otherLabel(conformationCount, stats.firstConformationLoc || stats.firstElementLoc, 'conformation', hidePrefix))
             hidePrefix = true;
         }
         if (elementCount > 0) {
@@ -83,7 +83,7 @@ export function structureElementStatsLabel(stats: StructureElement.Stats, counts
         return label.join('<small> + </small>')
     } else {
         const label: string[] = []
-        if (unitCount > 0) label.push(countLabel(unitCount, 'Chain'))
+        if (chainCount > 0) label.push(countLabel(chainCount, 'Chain'))
         if (residueCount > 0) label.push(countLabel(residueCount, 'Residue'))
         if (conformationCount > 0) label.push(countLabel(conformationCount, 'Conformation'))
         if (elementCount > 0) label.push(countLabel(elementCount, 'Element'))
