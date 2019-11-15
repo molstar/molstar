@@ -208,12 +208,15 @@ export namespace Loci {
         const map = new Map<number, OrderedSet<UnitIndex>>();
 
         for (const e of xs.elements) map.set(e.unit.id, e.indices);
+
+        let isSubset = false;
         for (const e of ys.elements) {
             if (!map.has(e.unit.id)) continue;
             if (!OrderedSet.isSubset(map.get(e.unit.id)!, e.indices)) return false;
+            else isSubset = true;
         }
 
-        return true;
+        return isSubset;
     }
 
     export function extendToWholeResidues(loci: Loci, restrictToConformation?: boolean): Loci {
