@@ -295,7 +295,9 @@ export namespace Stats {
                 if (!Unit.Traits.is(e.unit.traits, Unit.Trait.Patitioned)) continue;
 
                 const start = i;
-                while (i < len && loci.elements[i].unit.chainGroupId === e.unit.chainGroupId) {
+                while (i < len
+                    && loci.elements[i].unit.chainGroupId === e.unit.chainGroupId
+                    && loci.elements[i].unit.conformation.operator === e.unit.conformation.operator) {
                     i++;
                 }
                 const end = i;

@@ -18,6 +18,7 @@ import Expression from '../../../../mol-script/language/expression';
 import { ElementIndex } from '../../model';
 import { UnitIndex } from './element';
 import { Location } from './location';
+import { ChainIndex } from '../../model/indexing';
 
 /** Represents multiple element index locations */
 export interface Loci {
@@ -272,39 +273,76 @@ export namespace Loci {
         }
     }
 
-    // take chainGroupId into account
+    function makeIndexSet(newIndices: number[]): OrderedSet<UnitIndex> {
+        if (newIndices.length > 12 && newIndices[newIndices.length - 1] - newIndices[0] === newIndices.length - 1) {
+            return Interval.ofRange(newIndices[0], newIndices[newIndices.length - 1])
+        } else {
+            return  SortedArray.ofSortedArray(newIndices)
+        }
+    }
+
+    function collectChains(unit: Unit, chainIndices: Set<ChainIndex>, elements: Loci['elements'][0][]) {
+        const { index } = getChainSegments(unit);
+        const xs = unit.elements;
+        const newIndices: UnitIndex[] = [];
+        for (let i = 0 as UnitIndex, _i = xs.length; i < _i; i++) {
+            const eI = xs[i];
+            const cI = index[eI];
+            if (!chainIndices.has(cI)) continue;
+            newIndices[newIndices.length] = i;
+        }
+
+        if (newIndices.length > 0) {
+            elements[elements.length] = { unit, indices: makeIndexSet(newIndices) };
+        }
+    }
+
+    function extendGroupToWholeChains(loci: Loci, start: number, end: number, isPartitioned: boolean, elements: Loci['elements'][0][]) {
+        const { index: chainIndex } = getChainSegments(loci.elements[0].unit);
+
+        const chainIndices = new Set<ChainIndex>();
+
+        for (let lI = start; lI < end; lI++) {
+            const lociElement = loci.elements[lI];
+            const indices = lociElement.indices;
+            const unitElements = lociElement.unit.elements;
+            for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                chainIndices.add(chainIndex[unitElements[OrderedSet.getAt(indices, i)]]);
+            }
+        }
+
+        if (isPartitioned) {
+            const groupId = loci.elements[0].unit.chainGroupId, operator = loci.elements[0].unit.conformation.operator;
+            // TODO: check for accidental quadratic for really large structures (but should be ok).
+            for (const unit of loci.structure.units) {
+                if (unit.chainGroupId !== groupId || unit.conformation.operator !== operator) continue;
+                collectChains(unit, chainIndices, elements);
+            }
+        } else {
+            for (let lI = start; lI < end; lI++) {
+                collectChains(loci.elements[lI].unit, chainIndices, elements);
+            }
+        }
+    }
+
     export function extendToWholeChains(loci: Loci): Loci {
         const elements: Loci['elements'][0][] = [];
 
-        for (const lociElement of loci.elements) {
-            const _newIndices: UnitIndex[] = [];
-            const unitElements = lociElement.unit.elements;
-
-            const { index: chainIndex, offsets: chainOffsets } = getChainSegments(lociElement.unit)
-
-            const indices = lociElement.indices, len = OrderedSet.size(indices);
-            let i = 0;
-            while (i < len) {
-                const cI = chainIndex[unitElements[OrderedSet.getAt(indices, i)]];
-                i++;
-                while (i < len && chainIndex[unitElements[OrderedSet.getAt(indices, i)]] === cI) {
+        for (let i = 0, len = loci.elements.length; i < len; i++) {
+            const e = loci.elements[i];
+            if (Unit.Traits.is(e.unit.traits, Unit.Trait.Patitioned)) {
+                const start = i;
+                while (i < len
+                    && loci.elements[i].unit.chainGroupId === e.unit.chainGroupId
+                    && loci.elements[i].unit.conformation.operator === e.unit.conformation.operator) {
                     i++;
                 }
-
-                for (let j = chainOffsets[cI], _j = chainOffsets[cI + 1]; j < _j; j++) {
-                    const idx = OrderedSet.indexOf(unitElements, j);
-                    if (idx >= 0) _newIndices[_newIndices.length] = idx as UnitIndex;
-                }
-            }
-
-            let newIndices: OrderedSet<UnitIndex>
-            if (_newIndices.length > 12 && _newIndices[_newIndices.length - 1] - _newIndices[0] === _newIndices.length - 1) {
-                newIndices = Interval.ofRange(_newIndices[0], _newIndices[_newIndices.length - 1])
+                const end = i;
+                i--;
+                extendGroupToWholeChains(loci, start, end, true, elements);
             } else {
-                newIndices = SortedArray.ofSortedArray(_newIndices)
+                extendGroupToWholeChains(loci, i, i + 1, false, elements);
             }
-
-            elements[elements.length] = { unit: lociElement.unit, indices: newIndices };
         }
 
         return Loci(loci.structure, elements);
