@@ -332,6 +332,12 @@ export namespace Stats {
             Location.copy(out.firstResidueLoc, b.firstResidueLoc)
         }
 
+        if (a.chainCount === 1 && b.chainCount === 0) {
+            Location.copy(out.firstChainLoc, a.firstChainLoc)
+        } else if (a.chainCount === 0 && b.chainCount === 1) {
+            Location.copy(out.firstChainLoc, b.firstChainLoc)
+        }
+
         if (a.unitCount === 1 && b.unitCount === 0) {
             Location.copy(out.firstUnitLoc, a.firstUnitLoc)
         } else if (a.unitCount === 0 && b.unitCount === 1) {
@@ -341,6 +347,7 @@ export namespace Stats {
         out.elementCount = a.elementCount + b.elementCount
         out.conformationCount = a.conformationCount + b.conformationCount
         out.residueCount = a.residueCount + b.residueCount
+        out.chainCount = a.chainCount + b.chainCount
         out.unitCount = a.unitCount + b.unitCount
         return out
     }
