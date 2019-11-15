@@ -47,16 +47,16 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
     private createResVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: BuiltInStructureRepresentations['ball-and-stick'],
-            size: BuiltInSizeThemes.physical
+            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ sizeAspectRatio: 1 })],
+            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.6 } )]
         });
     }
 
     private createSurVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: BuiltInStructureRepresentations['ball-and-stick'],
+            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ sizeAspectRatio: 1 })],
             color: [BuiltInColorThemes['element-symbol'], () => ({ saturation: -3, lightness: 0.6 })],
-            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.66 } )]
+            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.3 } )]
         });
     }
 
