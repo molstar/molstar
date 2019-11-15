@@ -365,6 +365,10 @@ namespace Unit {
 
     export class Spheres extends Coarse<Kind.Spheres, CoarseSphereConformation> { }
     export class Gaussians extends Coarse<Kind.Gaussians, CoarseGaussianConformation> { }
+
+    export function areSameChainOperatorGroup(a: Unit, b: Unit) {
+        return a.chainGroupId === b.chainGroupId && a.conformation.operator.name === b.conformation.operator.name;
+    }
 }
 
 export default Unit;

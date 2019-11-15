@@ -338,10 +338,10 @@ export namespace Loci {
         }
 
         if (isPartitioned) {
-            const groupId = loci.elements[0].unit.chainGroupId, operator = loci.elements[0].unit.conformation.operator;
+            const baseUnit = loci.elements[0].unit;
             // TODO: check for accidental quadratic for really large structures (but should be ok).
             for (const unit of loci.structure.units) {
-                if (unit.chainGroupId !== groupId || unit.conformation.operator !== operator) continue;
+                if (!Unit.areSameChainOperatorGroup(unit, baseUnit)) continue;
                 collectChains(unit, chainIndices, elements);
             }
         } else {
@@ -353,14 +353,12 @@ export namespace Loci {
 
     export function extendToWholeChains(loci: Loci): Loci {
         const elements: Loci['elements'][0][] = [];
-
+Unit
         for (let i = 0, len = loci.elements.length; i < len; i++) {
             const e = loci.elements[i];
             if (Unit.Traits.is(e.unit.traits, Unit.Trait.Patitioned)) {
                 const start = i;
-                while (i < len
-                    && loci.elements[i].unit.chainGroupId === e.unit.chainGroupId
-                    && loci.elements[i].unit.conformation.operator === e.unit.conformation.operator) {
+                while (i < len && Unit.areSameChainOperatorGroup(loci.elements[i].unit, e.unit)) {
                     i++;
                 }
                 const end = i;
