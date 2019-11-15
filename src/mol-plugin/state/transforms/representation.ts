@@ -61,9 +61,9 @@ namespace StructureRepresentation3DHelpers {
 
     export function createParams<R extends RepresentationProvider<Structure, any, any>, C extends ColorTheme.Provider<any>, S extends SizeTheme.Provider<any>>(
             ctx: PluginContext, structure: Structure, params: {
-            repr?: R | [R, (r: R, ctx: ThemeRegistryContext, s: Structure) => RepresentationProvider.ParamValues<R>],
-            color?: C | [C, (c: C, ctx: ThemeRegistryContext) => ColorTheme.ParamValues<C>],
-            size?: S | [S, (c: S, ctx: ThemeRegistryContext) => SizeTheme.ParamValues<S>]
+            repr?: R | [R, (r: R, ctx: ThemeRegistryContext, s: Structure) => Partial<RepresentationProvider.ParamValues<R>>],
+            color?: C | [C, (c: C, ctx: ThemeRegistryContext) => Partial<ColorTheme.ParamValues<C>>],
+            size?: S | [S, (c: S, ctx: ThemeRegistryContext) => Partial<SizeTheme.ParamValues<S>>]
         }): StateTransformer.Params<StructureRepresentation3D> {
 
         const themeCtx = ctx.structureRepresentation.themeCtx
@@ -79,16 +79,18 @@ namespace StructureRepresentation3DHelpers {
         const color = params.color
             ? params.color instanceof Array ? params.color[0] : params.color
             : themeCtx.colorThemeRegistry.get(repr.defaultColorTheme);
+        const colorDefaultParams = PD.getDefaultValues(color.getParams(themeCtx))
         const colorParams = params.color instanceof Array
-            ? params.color[1](color as C, themeCtx)
-            : PD.getDefaultValues(color.getParams(themeCtx));
+            ? { ...colorDefaultParams, ...params.color[1](color as C, themeCtx) }
+            : colorDefaultParams;
 
         const size = params.size
             ? params.size instanceof Array ? params.size[0] : params.size
             : themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme);
+        const sizeDefaultParams = PD.getDefaultValues(size.getParams(themeCtx))
         const sizeParams = params.size instanceof Array
-            ? params.size[1](size as S, themeCtx)
-            : PD.getDefaultValues(size.getParams(themeCtx));
+            ? { ...sizeDefaultParams, ...params.size[1](size as S, themeCtx) }
+            : sizeDefaultParams;
 
         return ({
             type: { name: ctx.structureRepresentation.registry.getName(repr), params: reprParams },
