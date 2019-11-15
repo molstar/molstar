@@ -38,17 +38,25 @@ function splitModelEntityId(modelEntityId: string) {
 }
 
 function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureElementSelectionManager): SequenceWrapper.Any | string {
-    const { structure, modelEntityId, invariantUnitId, operatorKey } = state
+    const { structure, modelEntityId, chainGroupId, operatorKey } = state
     const l = StructureElement.Location.create()
     const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
+
+    const units: Unit[] = []
+
     for (const unit of structure.units) {
         StructureElement.Location.set(l, unit, unit.elements[0])
         if (structure.getModelIndex(unit.model) !== modelIdx) continue
         if (SP.entity.id(l) !== entityId) continue
-        if (unit.invariantId !== invariantUnitId) continue
+        if (unit.chainGroupId !== chainGroupId) continue
         if (opKey(l) !== operatorKey) continue
 
-        const data = { structure, unit }
+        units.push(unit)
+    }
+
+    if (units.length > 0) {
+        const data = { structure, units }
+        const unit = units[0]
 
         let sw: SequenceWrapper<any>
         if (unit.polymerElements.length) {
@@ -77,8 +85,9 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
 
         sw.markResidue(structureSelection.get(structure), MarkerAction.Select)
         return sw
+    } else {
+        return 'No sequence available'
     }
-    return 'No sequence available'
 }
 
 function getModelEntityOptions(structure: Structure) {
@@ -106,11 +115,10 @@ function getModelEntityOptions(structure: Structure) {
     return options
 }
 
-function getUnitOptions(structure: Structure, modelEntityId: string) {
+function getChainOptions(structure: Structure, modelEntityId: string) {
     const options: [number, string][] = []
     const l = StructureElement.Location.create()
     const seen = new Set<number>()
-    const water = new Map<string, number>()
     const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
 
     for (const unit of structure.units) {
@@ -118,18 +126,12 @@ function getUnitOptions(structure: Structure, modelEntityId: string) {
         if (structure.getModelIndex(unit.model) !== modelIdx) continue
         if (SP.entity.id(l) !== entityId) continue
 
-        const id = unit.invariantId
+        const id = unit.chainGroupId
         if (seen.has(id)) continue
 
-        // TODO handle special cases
+        // TODO handle special case
         // - more than one chain in a unit
-        // - chain spread over multiple units
         let label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false })
-        if (SP.entity.type(l) === 'water') {
-            const count = water.get(label) || 1
-            water.set(label, count + 1)
-            label += ` #${count}`
-        }
 
         options.push([ id, label ])
         seen.add(id)
@@ -139,7 +141,7 @@ function getUnitOptions(structure: Structure, modelEntityId: string) {
     return options
 }
 
-function getOperatorOptions(structure: Structure, modelEntityId: string, invariantUnitId: number) {
+function getOperatorOptions(structure: Structure, modelEntityId: string, chainGroupId: number) {
     const options: [string, string][] = []
     const l = StructureElement.Location.create()
     const seen = new Set<string>()
@@ -149,7 +151,7 @@ function getOperatorOptions(structure: Structure, modelEntityId: string, invaria
         StructureElement.Location.set(l, unit, unit.elements[0])
         if (structure.getModelIndex(unit.model) !== modelIdx) continue
         if (SP.entity.id(l) !== entityId) continue
-        if (unit.invariantId !== invariantUnitId) continue
+        if (unit.chainGroupId !== chainGroupId) continue
 
         const id = opKey(l)
         if (seen.has(id)) continue
@@ -179,12 +181,12 @@ type SequenceViewState = {
     structure: Structure,
     structureRef: string,
     modelEntityId: string,
-    invariantUnitId: number,
+    chainGroupId: number,
     operatorKey: string
 }
 
 export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
-    state = { structure: Structure.Empty, structureRef: '', modelEntityId: '', invariantUnitId: -1, operatorKey: '' }
+    state = { structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '' }
 
     componentDidMount() {
         if (this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState())
@@ -223,26 +225,26 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         const structureRef = getStructureOptions(this.plugin.state.dataState)[0][0]
         const structure = this.getStructure(structureRef)
         let modelEntityId = getModelEntityOptions(structure)[0][0]
-        let invariantUnitId = getUnitOptions(structure, modelEntityId)[0][0]
-        let operatorKey = getOperatorOptions(structure, modelEntityId, invariantUnitId)[0][0]
+        let chainGroupId = getChainOptions(structure, modelEntityId)[0][0]
+        let operatorKey = getOperatorOptions(structure, modelEntityId, chainGroupId)[0][0]
         if (this.state.structure && this.state.structure === structure) {
             modelEntityId = this.state.modelEntityId
-            invariantUnitId = this.state.invariantUnitId
+            chainGroupId = this.state.chainGroupId
             operatorKey = this.state.operatorKey
         }
-        return { structure, structureRef, modelEntityId, invariantUnitId, operatorKey }
+        return { structure, structureRef, modelEntityId, chainGroupId, operatorKey }
     }
 
     private get params() {
-        const { structure, modelEntityId, invariantUnitId } = this.state
+        const { structure, modelEntityId, chainGroupId } = this.state
         const structureOptions = getStructureOptions(this.plugin.state.dataState)
         const entityOptions = getModelEntityOptions(structure)
-        const unitOptions = getUnitOptions(structure, modelEntityId)
-        const operatorOptions = getOperatorOptions(structure, modelEntityId, invariantUnitId)
+        const chainOptions = getChainOptions(structure, modelEntityId)
+        const operatorOptions = getOperatorOptions(structure, modelEntityId, chainGroupId)
         return {
             structure: PD.Select(structureOptions[0][0], structureOptions, { shortLabel: true }),
             entity: PD.Select(entityOptions[0][0], entityOptions, { shortLabel: true }),
-            unit: PD.Select(unitOptions[0][0], unitOptions, { shortLabel: true, twoColumns: true, label: 'Chain' }),
+            chain: PD.Select(chainOptions[0][0], chainOptions, { shortLabel: true, twoColumns: true, label: 'Chain' }),
             operator: PD.Select(operatorOptions[0][0], operatorOptions, { shortLabel: true, twoColumns: true })
         }
     }
@@ -251,7 +253,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         return {
             structure: this.state.structureRef,
             entity: this.state.modelEntityId,
-            unit: this.state.invariantUnitId,
+            chain: this.state.chainGroupId,
             operator: this.state.operatorKey
         }
     }
@@ -263,17 +265,17 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
                 state.structureRef = p.value
                 state.structure = this.getStructure(p.value)
                 state.modelEntityId = getModelEntityOptions(state.structure)[0][0]
-                state.invariantUnitId = getUnitOptions(state.structure, state.modelEntityId)[0][0]
-                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.invariantUnitId)[0][0]
+                state.chainGroupId = getChainOptions(state.structure, state.modelEntityId)[0][0]
+                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0]
                 break
             case 'entity':
                 state.modelEntityId = p.value
-                state.invariantUnitId = getUnitOptions(state.structure, state.modelEntityId)[0][0]
-                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.invariantUnitId)[0][0]
+                state.chainGroupId = getChainOptions(state.structure, state.modelEntityId)[0][0]
+                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0]
                 break
-            case 'unit':
-                state.invariantUnitId = p.value
-                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.invariantUnitId)[0][0]
+            case 'chain':
+                state.chainGroupId = p.value
+                state.operatorKey = getOperatorOptions(state.structure, state.modelEntityId, state.chainGroupId)[0][0]
                 break
             case 'operator':
                 state.operatorKey = p.value

@@ -11,7 +11,7 @@ import { Loci } from '../../../mol-model/loci';
 import { ColorNames } from '../../../mol-util/color/names';
 
 export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
-    private indices: Interval<StructureElement.UnitIndex>
+    private unitIndices: Map<number, Interval<StructureElement.UnitIndex>>
 
     residueLabel(seqIdx: number) {
         return 'X'
@@ -22,14 +22,15 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
     eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
         let changed = false
-        const { structure, unit } = this.data
+        const { structure, units } = this.data
         if (StructureElement.Loci.is(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
             loci = StructureElement.Loci.remap(loci, structure)
 
             for (const e of loci.elements) {
-                if (e.unit.id === unit.id) {
-                    if (OrderedSet.isSubset(this.indices, e.indices)) {
+                const indices = this.unitIndices.get(e.unit.id)
+                if (indices) {
+                    if (OrderedSet.isSubset(indices, e.indices)) {
                         if (apply(e.indices)) changed = true
                     }
                 }
@@ -37,25 +38,47 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
         } else if (Structure.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
 
-            if (apply(this.indices)) changed = true
+            for (let i = 0, il = units.length; i < il; ++i) {
+                const indices = this.unitIndices.get(units[i].id)!
+                if (apply(indices)) changed = true
+            }
         }
         return changed
     }
 
     getLoci(seqIdx: number) {
-        const elements: StructureElement.Loci['elements'][0][] = [{
-            unit: this.data.unit,
-            indices: Interval.ofSingleton(seqIdx)
-        }]
-        return StructureElement.Loci(this.data.structure, elements)
+        const { units } = this.data
+        const lociElements: StructureElement.Loci['elements'][0][] = []
+        let offset = 0
+        for (let i = 0, il = units.length; i < il; ++i) {
+            const unit = units[i]
+            if (seqIdx < offset + unit.elements.length) {
+                lociElements.push({ unit, indices: Interval.ofSingleton(seqIdx - offset) })
+                break
+            }
+            offset += unit.elements.length
+        }
+        return StructureElement.Loci(this.data.structure, lociElements)
     }
 
     constructor(data: StructureUnit) {
-        const length = data.unit.elements.length
+        let length = 0
+
+        const unitIndices = new Map<number, Interval<StructureElement.UnitIndex>>()
+        const lociElements: StructureElement.Loci['elements'][0][] = []
+
+        for (let i = 0, il = data.units.length; i < il; ++i) {
+            const unit = data.units[i]
+            length += unit.elements.length
+
+            const indices = Interval.ofBounds(0, unit.elements.length)
+            unitIndices.set(unit.id, indices)
+            lociElements.push({ unit, indices })
+        }
         const markerArray = new Uint8Array(length)
 
         super(data, markerArray, length)
 
-        this.indices = Interval.ofBounds(0, length)
+        this.unitIndices = unitIndices
     }
 }

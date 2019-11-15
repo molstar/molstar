@@ -10,7 +10,7 @@ import { MarkerAction, applyMarkerAction } from '../../../mol-util/marker-action
 import { StructureElement, Structure, Unit } from '../../../mol-model/structure';
 import { Color } from '../../../mol-util/color';
 
-export type StructureUnit = { structure: Structure, unit: Unit }
+export type StructureUnit = { structure: Structure, units: Unit[] }
 
 export { SequenceWrapper }
 

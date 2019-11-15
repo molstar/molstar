@@ -4,16 +4,18 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, StructureElement, ResidueIndex } from '../../../mol-model/structure';
+import { Structure, StructureElement, ResidueIndex, Unit } from '../../../mol-model/structure';
 import { SequenceWrapper, StructureUnit } from './wrapper';
 import { OrderedSet, Segmentation, Interval, SortedArray } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { ColorNames } from '../../../mol-util/color/names';
 
 export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
+    private readonly unitMap: Map<number, Unit>
     private readonly sequence: string[]
     private readonly sequenceIndices: Map<ResidueIndex, number>
     private readonly residueIndices: Map<number, ResidueIndex>
+    private readonly seqToUnit: Map<number, Unit>
 
     residueLabel(seqIdx: number) {
         return this.sequence[seqIdx]
@@ -24,13 +26,14 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
     eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
         let changed = false
-        const { structure, unit } = this.data
+        const { structure } = this.data
         if (StructureElement.Loci.is(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
             loci = StructureElement.Loci.remap(loci, structure)
 
             for (const e of loci.elements) {
-                if (e.unit.id === unit.id) {
+                const unit = this.unitMap.get(e.unit.id)
+                if (unit) {
                     const { index: residueIndex } = e.unit.model.atomicHierarchy.residueAtomSegments
                     OrderedSet.forEach(e.indices, v => {
                         const seqIdx = this.sequenceIndices.get(residueIndex[unit.elements[v]])
@@ -50,7 +53,7 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
         const elements: StructureElement.Loci['elements'][0][] = []
         const rI = this.residueIndices.get(seqIdx)
         if (rI !== undefined) {
-            const { unit } = this.data
+            const unit = this.seqToUnit.get(seqIdx)!
             const { offsets } = unit.model.atomicHierarchy.residueAtomSegments
             const start = SortedArray.findPredecessorIndex(unit.elements, offsets[rI])
             const end = SortedArray.findPredecessorIndex(unit.elements, offsets[rI + 1])
@@ -63,13 +66,19 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
         const sequence: string[] = []
         const sequenceIndices = new Map<ResidueIndex, number>()
         const residueIndices = new Map<number, ResidueIndex>()
+        const seqToUnit = new Map<number, Unit>()
 
-        const residueIt = Segmentation.transientSegments(data.unit.model.atomicHierarchy.residueAtomSegments, data.unit.elements)
-        while (residueIt.hasNext) {
-            const { index } = residueIt.move()
-            sequenceIndices.set(index, sequence.length)
-            residueIndices.set(sequence.length, index)
-            sequence.push(data.unit.model.atomicHierarchy.residues.label_comp_id.value(index))
+        for (let i = 0, il = data.units.length; i < il; ++i) {
+            const unit = data.units[i]
+            const { residueAtomSegments, residues } = unit.model.atomicHierarchy
+            const residueIt = Segmentation.transientSegments(residueAtomSegments, unit.elements)
+            while (residueIt.hasNext) {
+                const { index } = residueIt.move()
+                sequenceIndices.set(index, sequence.length)
+                residueIndices.set(sequence.length, index)
+                seqToUnit.set(sequence.length, unit)
+                sequence.push(residues.label_comp_id.value(index))
+            }
         }
 
         const length = sequence.length
@@ -77,8 +86,12 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
         super(data, markerArray, length)
 
+        this.unitMap = new Map()
+        for (const unit of data.units) this.unitMap.set(unit.id, unit)
+
         this.sequence = sequence
         this.sequenceIndices = sequenceIndices
         this.residueIndices = residueIndices
+        this.seqToUnit = seqToUnit
     }
 }

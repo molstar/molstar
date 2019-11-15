@@ -12,7 +12,7 @@ import { ColorNames } from '../../../mol-util/color/names';
 
 export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private label: string
-    private indices: Interval<StructureElement.UnitIndex>
+    private unitIndices: Map<number, Interval<StructureElement.UnitIndex>>
     private loci: StructureElement.Loci
 
     residueLabel(seqIdx: number) {
@@ -24,14 +24,15 @@ export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
     eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
         let changed = false
-        const { structure, unit } = this.data
+        const { structure } = this.data
         if (StructureElement.Loci.is(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
             loci = StructureElement.Loci.remap(loci, structure)
 
             for (const e of loci.elements) {
-                if (e.unit.id === unit.id) {
-                    if (OrderedSet.isSubset(this.indices, e.indices)) {
+                const indices = this.unitIndices.get(e.unit.id)
+                if (indices) {
+                    if (OrderedSet.isSubset(indices, e.indices)) {
                         if (apply(Interval.ofSingleton(0))) changed = true
                     }
                 }
@@ -49,21 +50,36 @@ export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 
     constructor(data: StructureUnit) {
+        let residueCount = 0
+        let elementCount = 0
         const counts: string[] = []
-        const l = StructureElement.Location.create(data.unit, data.unit.elements[0])
-        const entitySeq = data.unit.model.sequence.byEntityKey[StructureProperties.entity.key(l)]
-        if (entitySeq) counts.push(`${entitySeq.sequence.length} residues`)
-        counts.push(`${data.unit.elements.length} elements`)
+        const l = StructureElement.Location.create()
+
+        const unitIndices = new Map<number, Interval<StructureElement.UnitIndex>>()
+        const lociElements: StructureElement.Loci['elements'][0][] = []
+
+        for (let i = 0, il = data.units.length; i < il; ++i) {
+            const unit = data.units[i]
+            StructureElement.Location.set(l, unit, unit.elements[0])
+            const entitySeq = unit.model.sequence.byEntityKey[StructureProperties.entity.key(l)]
+            if (entitySeq) residueCount += entitySeq.sequence.length
+            elementCount += unit.elements.length
+
+            const indices = Interval.ofBounds(0, unit.elements.length)
+            unitIndices.set(unit.id, indices)
+            lociElements.push({ unit, indices })
+        }
+
+        if (residueCount > 0) counts.push(`${residueCount} residues`)
+        counts.push(`${elementCount} elements`)
 
         const length = 1
         const markerArray = new Uint8Array(length)
 
         super(data, markerArray, length)
 
-        this.label = `Whole Unit (${counts.join(', ')})`
-        this.indices = Interval.ofBounds(0, data.unit.elements.length)
-        this.loci = StructureElement.Loci(this.data.structure, [{
-            unit: this.data.unit, indices: this.indices
-        }])
+        this.label = `Whole Chain (${counts.join(', ')})`
+        this.unitIndices = unitIndices
+        this.loci = StructureElement.Loci(this.data.structure, lociElements)
     }
 }

@@ -13,6 +13,7 @@ import { MissingResidues } from '../../../mol-model/structure/model/properties/c
 import { ColorNames } from '../../../mol-util/color/names';
 
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
+    private readonly unitMap: Map<number, Unit>
     private readonly sequence: Sequence
     private readonly missing: MissingResidues
     private readonly observed: OrderedSet // sequences indices
@@ -35,14 +36,14 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
     eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
         let changed = false
-        const { structure, unit } = this.data
+        const { structure } = this.data
         if (StructureElement.Loci.is(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
             loci = StructureElement.Loci.remap(loci, structure)
 
             const { offset } = this.sequence
             for (const e of loci.elements) {
-                if (e.unit.id === unit.id) {
+                if (this.unitMap.has(e.unit.id)) {
                     OrderedSet.forEach(e.indices, v => {
                         if (apply(getSeqIndices(e.unit, e.unit.elements[v], offset))) changed = true
                     })
@@ -57,24 +58,27 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 
     getLoci(seqIdx: number) {
-        const query = createResidueQuery(this.data.unit.id, this.seqId(seqIdx));
+        const query = createResidueQuery(this.data.units[0].chainGroupId, this.seqId(seqIdx));
         return StructureSelection.toLociWithSourceUnits(StructureQuery.run(query, this.data.structure));
     }
 
     constructor(data: StructureUnit) {
-        const l = StructureElement.Location.create(data.unit, data.unit.elements[0])
-        const entitySeq = data.unit.model.sequence.byEntityKey[SP.entity.key(l)]
+        const l = StructureElement.Location.create(data.units[0], data.units[0].elements[0])
+        const entitySeq = data.units[0].model.sequence.byEntityKey[SP.entity.key(l)]
 
         const length = entitySeq.sequence.length
         const markerArray = new Uint8Array(length)
 
         super(data, markerArray, length)
 
-        this.sequence = entitySeq.sequence
-        this.missing = data.unit.model.properties.missingResidues
+        this.unitMap = new Map()
+        for (const unit of data.units) this.unitMap.set(unit.id, unit)
 
-        this.modelNum = data.unit.model.modelNum
-        this.asymId = Unit.isAtomic(data.unit) ? SP.chain.label_asym_id(l) : SP.coarse.asym_id(l)
+        this.sequence = entitySeq.sequence
+        this.missing = data.units[0].model.properties.missingResidues
+
+        this.modelNum = data.units[0].model.modelNum
+        this.asymId = Unit.isAtomic(data.units[0]) ? SP.chain.label_asym_id(l) : SP.coarse.asym_id(l)
 
         const missing: number[] = []
         for (let i = 0; i < length; ++i) {
@@ -84,10 +88,10 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 }
 
-function createResidueQuery(unitId: number, label_seq_id: number) {
+function createResidueQuery(chainGroupId: number, label_seq_id: number) {
     return Queries.generators.atoms({
         unitTest: ctx => {
-            return SP.unit.id(ctx.element) === unitId
+            return SP.unit.chainGroupId(ctx.element) === chainGroupId
         },
         residueTest: ctx => {
             if (ctx.element.unit.kind === Unit.Kind.Atomic) {
