@@ -10,7 +10,7 @@ import { Model } from '../model'
 import { GridLookup3D, Lookup3D } from '../../../mol-math/geometry'
 import { IntraUnitLinks, computeIntraUnitBonds } from './unit/links'
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
-import { ValueRef } from '../../../mol-util';
+import { ValueRef, BitFlags } from '../../../mol-util';
 import { UnitRings } from './unit/rings';
 import StructureElement from './element'
 import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
@@ -33,11 +33,11 @@ namespace Unit {
     export function isSpheres(u: Unit): u is Spheres { return u.kind === Kind.Spheres; }
     export function isGaussians(u: Unit): u is Gaussians { return u.kind === Kind.Gaussians; }
 
-    export function create(id: number, invariantId: number, chainGroupId: number, multiChain: boolean, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
+    export function create(id: number, invariantId: number, chainGroupId: number, traits: Traits, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, multiChain, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), AtomicProperties());
-            case Kind.Spheres: return createCoarse(id, invariantId, chainGroupId, multiChain, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)), CoarseProperties());
-            case Kind.Gaussians: return createCoarse(id, invariantId, chainGroupId, multiChain, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)), CoarseProperties());
+            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, traits, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), AtomicProperties());
+            case Kind.Spheres: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)), CoarseProperties());
+            case Kind.Gaussians: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)), CoarseProperties());
         }
     }
 
@@ -94,12 +94,23 @@ namespace Unit {
         return hash2(u.invariantId, SortedArray.hashCode(u.elements));
     }
 
+    export type Traits = BitFlags<Trait>
+    export const enum Trait {
+        None = 0x0,
+        MultiChain = 0x1,
+        Patitioned = 0x2
+    }
+    export namespace Traits {
+        export const is: (t: Traits, f: Trait) => boolean = BitFlags.has
+        export const create: (f: Trait) => Traits = BitFlags.create
+    }
+
     export interface Base {
         readonly id: number,
         /** invariant ID stays the same even if the Operator/conformation changes. */
         readonly invariantId: number,
         readonly chainGroupId: number,
-        readonly multiChain: boolean,
+        readonly traits: Traits,
         readonly elements: StructureElement.Set,
         readonly model: Model,
         readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>,
@@ -143,7 +154,7 @@ namespace Unit {
         readonly invariantId: number;
         /** Used to identify a single chain split into multiple units. */
         readonly chainGroupId: number;
-        readonly multiChain: boolean;
+        readonly traits: Traits;
         readonly elements: StructureElement.Set;
         readonly model: Model;
         readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
@@ -157,12 +168,12 @@ namespace Unit {
 
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this;
-            return new Atomic(this.id, this.invariantId, this.chainGroupId, this.multiChain, this.model, elements, this.conformation, AtomicProperties());
+            return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, this.model, elements, this.conformation, AtomicProperties());
         }
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            return new Atomic(id, this.invariantId, this.chainGroupId, this.multiChain, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation, this.conformation.r), this.props);
+            return new Atomic(id, this.invariantId, this.chainGroupId, this.traits, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation, this.conformation.r), this.props);
         }
 
         get lookup3d() {
@@ -226,11 +237,11 @@ namespace Unit {
             return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
         }
 
-        constructor(id: number, invariantId: number, chainGroupId: number, multiChain: boolean, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: AtomicProperties) {
+        constructor(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: AtomicProperties) {
             this.id = id;
             this.invariantId = invariantId;
             this.chainGroupId = chainGroupId;
-            this.multiChain = multiChain;
+            this.traits = traits;
             this.model = model;
             this.elements = elements;
             this.conformation = conformation;
@@ -272,7 +283,7 @@ namespace Unit {
         readonly id: number;
         readonly invariantId: number;
         readonly chainGroupId: number;
-        readonly multiChain: boolean;
+        readonly traits: Traits;
         readonly elements: StructureElement.Set;
         readonly model: Model;
         readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
@@ -284,12 +295,12 @@ namespace Unit {
 
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this as any as Unit /** lets call this an ugly temporary hack */;
-            return createCoarse(this.id, this.invariantId, this.chainGroupId, this.multiChain, this.model, this.kind, elements, this.conformation, CoarseProperties());
+            return createCoarse(this.id, this.invariantId, this.chainGroupId, this.traits, this.model, this.kind, elements, this.conformation, CoarseProperties());
         }
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            const ret = createCoarse(id, this.invariantId, this.chainGroupId, this.multiChain, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseConformation(), this.conformation.r), this.props);
+            const ret = createCoarse(id, this.invariantId, this.chainGroupId, this.traits, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseConformation(), this.conformation.r), this.props);
             // (ret as Coarse<K, C>)._lookup3d = this._lookup3d;
             return ret;
         }
@@ -318,13 +329,13 @@ namespace Unit {
             return this.kind === Kind.Spheres ? this.model.coarseConformation.spheres : this.model.coarseConformation.gaussians;
         }
 
-        constructor(id: number, invariantId: number, chainGroupId: number, multiChain: boolean, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties) {
+        constructor(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties) {
             this.kind = kind;
             this.objectPrimitive = kind === Kind.Spheres ? 'sphere' : 'gaussian'
             this.id = id;
             this.invariantId = invariantId;
             this.chainGroupId = chainGroupId;
-            this.multiChain = multiChain;
+            this.traits = traits;
             this.model = model;
             this.elements = elements;
             this.conformation = conformation;
@@ -348,8 +359,8 @@ namespace Unit {
         };
     }
 
-    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, chainGroupId: number, multiChain: boolean, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties): Unit {
-        return new Coarse(id, invariantId, chainGroupId, multiChain, model, kind, elements, conformation, props) as any as Unit /** lets call this an ugly temporary hack */;
+    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties): Unit {
+        return new Coarse(id, invariantId, chainGroupId, traits, model, kind, elements, conformation, props) as any as Unit /** lets call this an ugly temporary hack */;
     }
 
     export class Spheres extends Coarse<Kind.Spheres, CoarseSphereConformation> { }

@@ -10,7 +10,7 @@ import { PluginStateObject as PSO } from '../../../../mol-plugin/state/objects';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Ingredient, CellPacking, Cell } from './data';
 import { getFromPdb, getFromCellPackDB } from './util';
-import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext } from '../../../../mol-model/structure';
+import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../../../mol-model/structure';
 import { trajectoryFromMmCIF } from '../../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../../mol-model-formats/structure/pdb';
 import { Mat4, Vec3, Quat } from '../../../../mol-math/linear-algebra';
@@ -268,7 +268,7 @@ export function createStructureFromCellPack(packing: CellPacking, baseUrl: strin
             for (const u of s.units) {
                 const invariantId = u.invariantId + offsetInvariantId
                 if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId
-                builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, false, invariantId)
+                builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId)
             }
             offsetInvariantId += maxInvariantId
         }

@@ -541,7 +541,7 @@ namespace Structure {
                 const u = structure.units[j]
                 const invariantId = u.invariantId + count
                 const chainGroupId = u.chainGroupId + count
-                const newUnit = Unit.create(units.length, invariantId, chainGroupId, u.multiChain, u.kind, u.model, u.conformation.operator, u.elements)
+                const newUnit = Unit.create(units.length, invariantId, chainGroupId, u.traits, u.kind, u.model, u.conformation.operator, u.elements)
                 units.push(newUnit)
             }
             count = units.length
@@ -596,7 +596,7 @@ namespace Structure {
                 // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
                 partitionAtomicUnitByResidue(model, elements, builder, multiChain);
             } else {
-                builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, multiChain);
+                builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, multiChain ? Unit.Trait.MultiChain : Unit.Trait.None);
             }
         }
 
@@ -623,6 +623,8 @@ namespace Structure {
         const lookup = GridLookup3D({ x, y, z, indices }, 8192);
         const { offset, count, array } = lookup.buckets;
 
+        const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Patitioned : Unit.Trait.None);
+
         builder.beginChainGroup();
         for (let i = 0, _i = offset.length; i < _i; i++) {
             const start = offset[i];
@@ -630,7 +632,7 @@ namespace Structure {
             for (let j = 0, _j = count[i]; j < _j; j++) {
                 set[j] = indices[array[start + j]];
             }
-            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(set), multiChain);
+            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(set), traits);
         }
         builder.endChainGroup();
     }
@@ -656,6 +658,8 @@ namespace Structure {
         const lookup = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(startIndices) }, gridCellCount);
         const { offset, count, array } = lookup.buckets;
 
+        const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Patitioned : Unit.Trait.None);
+
         builder.beginChainGroup();
         for (let i = 0, _i = offset.length; i < _i; i++) {
             const start = offset[i];
@@ -666,7 +670,7 @@ namespace Structure {
                     set[set.length] = l;
                 }
             }
-            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(new Int32Array(set)), multiChain);
+            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(new Int32Array(set)), traits);
         }
         builder.endChainGroup();
     }
@@ -675,7 +679,7 @@ namespace Structure {
         const { chainElementSegments } = elements;
         for (let cI = 0; cI < chainElementSegments.count; cI++) {
             const elements = SortedArray.ofBounds<ElementIndex>(chainElementSegments.offsets[cI], chainElementSegments.offsets[cI + 1]);
-            builder.addUnit(kind, model, SymmetryOperator.Default, elements, false);
+            builder.addUnit(kind, model, SymmetryOperator.Default, elements, Unit.Trait.None);
         }
     }
 
@@ -711,10 +715,10 @@ namespace Structure {
             this.inChainGroup = false;
         }
 
-        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, multiChain: boolean, invariantId?: number): Unit {
+        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, traits: Unit.Traits, invariantId?: number): Unit {
             if (invariantId === undefined) invariantId = this.invariantId()
             const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
-            const unit = Unit.create(this.units.length, invariantId, chainGroupId, multiChain, kind, model, operator, elements);
+            const unit = Unit.create(this.units.length, invariantId, chainGroupId, traits, kind, model, operator, elements);
             this.units.push(unit);
             return unit;
         }

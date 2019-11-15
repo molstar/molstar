@@ -171,7 +171,7 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
             if (label_asym_id === auth_asym_id) {
                 label.push(`<b>${label_asym_id}</b>`)
             } else {
-                if (granularity === 'chain' && location.unit.multiChain) {
+                if (granularity === 'chain' && Unit.Traits.is(location.unit.traits, Unit.Trait.MultiChain)) {
                     label.push(`<small>[auth</small> <b>${auth_asym_id}</b><small>]</small>`)
                 } else {
                     label.push(`<b>${label_asym_id}</b> <small>[auth</small> <b>${auth_asym_id}</b><small>]</small>`)
