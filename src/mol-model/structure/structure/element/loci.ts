@@ -353,7 +353,7 @@ export namespace Loci {
 
     export function extendToWholeChains(loci: Loci): Loci {
         const elements: Loci['elements'][0][] = [];
-Unit
+
         for (let i = 0, len = loci.elements.length; i < len; i++) {
             const e = loci.elements[i];
             if (Unit.Traits.is(e.unit.traits, Unit.Trait.Patitioned)) {
