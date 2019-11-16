@@ -226,7 +226,7 @@ const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.uni
     })
 ]))
 
-const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B)', MS.struct.modifier.union([
+const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B) of Selection', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.modifier.includeSurroundings({
             0: MS.internal.generator.current(),
@@ -237,12 +237,18 @@ const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B)', 
     })
 ]), 'Select residues within 5 \u212B of the current selection.')
 
-const complement = StructureSelectionQuery('Inverse / Complement', MS.struct.modifier.union([
+const complement = StructureSelectionQuery('Inverse / Complement of Selection', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.generator.all(),
         by: MS.internal.generator.current()
     })
 ]), 'Select everything not in the current selection.')
+
+const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct.modifier.union([
+    MS.struct.modifier.includeConnected({
+        0: MS.internal.generator.current(), 'layer-count': 1, 'as-whole-residues': true
+    })
+]), 'Select residues covalently bonded to current selection.')
 
 export const StructureSelectionQueries = {
     all,
@@ -265,6 +271,7 @@ export const StructureSelectionQueries = {
     coarse,
     surroundings,
     complement,
+    bonded,
 }
 
 //

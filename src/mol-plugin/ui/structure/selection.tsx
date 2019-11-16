@@ -14,6 +14,12 @@ import { Interactivity } from '../../util/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../../mol-util/string';
 
+const SSQ = StructureSelectionQueries
+const DefaultQueries: (keyof typeof SSQ)[] = [
+    'all', 'polymer', 'trace', 'protein', 'nucleic', 'water', 'branched', 'ligand', 'nonStandardPolymer',
+    'surroundings', 'complement', 'bonded'
+]
+
 const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,
 }
@@ -69,7 +75,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     }
 
     set = (modifier: SelectionModifier, value: string) => {
-        const query = StructureSelectionQueries[value as keyof typeof StructureSelectionQueries]
+        const query = SSQ[value as keyof typeof SSQ]
         this.plugin.helpers.structureSelection.set(modifier, query.query, false)
     }
 
@@ -91,9 +97,9 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     }
 
     renderControls() {
-        const queries = Object.keys(StructureSelectionQueries).map(name => {
-            return [name, StructureSelectionQueries[name as keyof typeof StructureSelectionQueries].label] as [string, string]
-        })
+        const queries = Object.keys(StructureSelectionQueries)
+            .map(name => [name, SSQ[name as keyof typeof SSQ].label] as [string, string])
+            .filter(pair => DefaultQueries.includes(pair[0] as keyof typeof SSQ))
 
         return <div>
             <div className='msp-control-row msp-row-text'>
@@ -105,13 +111,13 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
             <div className='msp-control-row'>
                 <div className='msp-select-row'>
-                    <ButtonSelect label='Add' onChange={this.add} disabled={this.state.isDisabled}>
-                        <optgroup label='Add'>
+                    <ButtonSelect label='Select' onChange={this.add} disabled={this.state.isDisabled}>
+                        <optgroup label='Select'>
                             {Options(queries)}
                         </optgroup>
                     </ButtonSelect>
-                    <ButtonSelect label='Remove' onChange={this.remove} disabled={this.state.isDisabled}>
-                        <optgroup label='Remove'>
+                    <ButtonSelect label='Deselect' onChange={this.remove} disabled={this.state.isDisabled}>
+                        <optgroup label='Deselect'>
                             {Options(queries)}
                         </optgroup>
                     </ButtonSelect>
