@@ -48,6 +48,7 @@ export namespace Stats {
     }
 
     function handleElement(stats: Stats, element: Loci['elements'][0]) {
+        console.log('handleElement', stats, element)
         const { indices, unit } = element
         const { elements } = unit
         const size = OrderedSet.size(indices)
@@ -94,7 +95,7 @@ export namespace Stats {
                         // full residue
                         stats.residueCount += 1
                         if (stats.residueCount === 1) {
-                            Location.set(stats.firstResidueLoc, unit, elements[offsets[rI]])
+                            Location.set(stats.firstResidueLoc, unit, offsets[rI])
                         }
                     } else {
                         // partial residue
@@ -151,11 +152,11 @@ export namespace Stats {
 
         const segments = Unit.isAtomic(unit)
             ? unit.model.atomicHierarchy.chainAtomSegments
-            : Unit.isSpheres(unit)
+                : Unit.isSpheres(unit)
             ? unit.model.coarseHierarchy.spheres.chainElementSegments
-            : Unit.isGaussians(unit)
+                : Unit.isGaussians(unit)
             ? unit.model.coarseHierarchy.gaussians.chainElementSegments
-            : void 0;
+                : void 0;
 
         if (!segments) {
             console.warn('StructureElement loci stats: unknown unit type');
@@ -193,11 +194,11 @@ export namespace Stats {
         // all the elements have the same model since they are part of the same group so this is ok.
         const segments = Unit.isAtomic(element.unit)
             ? element.unit.model.atomicHierarchy.chainAtomSegments
-            : Unit.isSpheres(element.unit)
+                : Unit.isSpheres(element.unit)
             ? element.unit.model.coarseHierarchy.spheres.chainElementSegments
-            : Unit.isGaussians(element.unit)
+                : Unit.isGaussians(element.unit)
             ? element.unit.model.coarseHierarchy.gaussians.chainElementSegments
-            : void 0;
+                : void 0;
 
         if (!segments) {
             console.warn('StructureElement loci stats: unknown unit type');
@@ -288,7 +289,7 @@ export namespace Stats {
                 }
             }
         }
-
+        console.log('hasPartitions', hasPartitions)
         if (hasPartitions) {
             for (let i = 0, len = loci.elements.length; i < len; i++) {
                 const e = loci.elements[i];
