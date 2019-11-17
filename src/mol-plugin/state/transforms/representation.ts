@@ -32,6 +32,7 @@ import { Transparency } from '../../../mol-theme/transparency';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Script } from '../../../mol-script/script';
 import { getUnitcellRepresentation, UnitcellParams } from '../../util/model-unitcell';
+import { getStructureOrientationRepresentation, OrientationParams } from '../../util/structure-orientation';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -695,6 +696,34 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
     update({ a, b, newParams }) {
         return Task.create('Model Unitcell', async ctx => {
             await getUnitcellRepresentation(ctx, a.data, newParams, b.data.repr as ShapeRepresentation<any, any, any>);
+            return StateTransformer.UpdateResult.Updated;
+        });
+    }
+});
+
+export { StructureOrientation3D }
+type StructureOrientation3D = typeof StructureOrientation3D
+const StructureOrientation3D = PluginStateTransform.BuiltIn({
+    name: 'structure-orientation-3d',
+    display: 'Structure Orientation',
+    from: SO.Molecule.Structure,
+    to: SO.Shape.Representation3D,
+    params: {
+        ...OrientationParams,
+    }
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }) {
+        return Task.create('Structure Orientation', async ctx => {
+            const repr = await getStructureOrientationRepresentation(ctx, a.data, params);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Orientation` });
+        });
+    },
+    update({ a, b, newParams }) {
+        return Task.create('Structure Orientation', async ctx => {
+            await getStructureOrientationRepresentation(ctx, a.data, newParams, b.data.repr as ShapeRepresentation<any, any, any>);
             return StateTransformer.UpdateResult.Updated;
         });
     }
