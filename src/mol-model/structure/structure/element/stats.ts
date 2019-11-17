@@ -288,7 +288,7 @@ export namespace Stats {
                 }
             }
         }
-        console.log('hasPartitions', hasPartitions)
+
         if (hasPartitions) {
             for (let i = 0, len = loci.elements.length; i < len; i++) {
                 const e = loci.elements[i];
