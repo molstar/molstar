@@ -5,10 +5,7 @@
  */
 
 import { Model, ModelSymmetry } from '../../mol-model/structure';
-import { StateTransformer } from '../../mol-state';
-import { ModelUnitcell3D } from '../state/transforms/representation';
 import { ShapeRepresentation } from '../../mol-repr/shape/representation';
-import { Text } from '../../mol-geo/geometry/text/text';
 import { Shape } from '../../mol-model/shape';
 import { ColorNames } from '../../mol-util/color/names';
 import { RuntimeContext } from '../../mol-task';
@@ -55,7 +52,7 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
     return MeshBuilder.getMesh(state)
 }
 
-export async function getUnitcellRepresentation(ctx: RuntimeContext, model: Model, params: StateTransformer.Params<ModelUnitcell3D>, prev?: ShapeRepresentation<UnitcellData, Text, Text.Params>) {
+export async function getUnitcellRepresentation(ctx: RuntimeContext, model: Model, params: UnitcellProps, prev?: ShapeRepresentation<UnitcellData, Mesh, Mesh.Params>) {
     const repr = prev || ShapeRepresentation(getUnitcellShape, Mesh.Utils);
     const data = {
         symmetry: model.symmetry,
