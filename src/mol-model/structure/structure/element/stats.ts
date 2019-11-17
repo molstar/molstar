@@ -48,7 +48,6 @@ export namespace Stats {
     }
 
     function handleElement(stats: Stats, element: Loci['elements'][0]) {
-        console.log('handleElement', stats, element)
         const { indices, unit } = element
         const { elements } = unit
         const size = OrderedSet.size(indices)
