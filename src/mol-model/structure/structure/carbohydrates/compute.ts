@@ -9,7 +9,7 @@ import { Segmentation, SortedArray } from '../../../../mol-data/int';
 import { combinations } from '../../../../mol-data/util/combination';
 import { IntAdjacencyGraph } from '../../../../mol-math/graph';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
-import PrincipalAxes from '../../../../mol-math/linear-algebra/matrix/principal-axes';
+import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/principal-axes';
 import { fillSerial } from '../../../../mol-util/array';
 import { ResidueIndex, Model } from '../../model';
 import { ElementSymbol } from '../../model/types';
@@ -195,7 +195,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const ringAtoms = rings.all[sugarRings[j]];
                     const anomericCarbon = getAnomericCarbon(unit, ringAtoms)
 
-                    const pa = new PrincipalAxes(getPositionMatrix(unit, ringAtoms))
+                    const pa = PrincipalAxes.fromPoints(getPositionMatrix(unit, ringAtoms))
                     const center = Vec3.copy(Vec3.zero(), pa.center)
                     const normal = Vec3.copy(Vec3.zero(), pa.normVecC)
                     const direction = getDirection(Vec3.zero(), unit, anomericCarbon, center)

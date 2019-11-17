@@ -1,15 +1,20 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { NumberArray } from '../../../mol-util/type-helpers';
 
-interface Matrix { data: NumberArray, size: number, cols: number, rows: number }
+interface Matrix<N extends number = number, M extends number = number> {
+    data: NumberArray,
+    size: number,
+    cols: N,
+    rows: M
+}
 
 namespace Matrix {
-    export function create(cols: number, rows: number, ctor: { new (size: number): NumberArray } = Float32Array): Matrix {
+    export function create<N extends number, M extends number>(cols: N, rows: M, ctor: { new (size: number): NumberArray } = Float32Array): Matrix<N, M> {
         const size = cols * rows
         return { data: new ctor(size), size, cols, rows }
     }

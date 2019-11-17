@@ -81,7 +81,7 @@ export function elementLabel(model: Model, index: ElementIndex) {
 // }
 
 const matrixPos = Vec3.zero()
-export function getPositionMatrix(unit: Unit, indices: ArrayLike<number>) {
+export function getPositionMatrix(unit: Unit, indices: ArrayLike<number>): Matrix<3, number> {
     const pos = unit.conformation.position
     const mat = Matrix.create(3, indices.length)
     const { elements } = unit

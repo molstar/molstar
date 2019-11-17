@@ -1,21 +1,16 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import Matrix from './matrix';
 import { Vec3 } from '../3d';
-// import { Vec3, Mat4 } from '../3d.js';
 import { svd } from './svd';
 
-// const negateVector = Vec3.create(-1, -1, -1)
-// const tmpMatrix = Mat4.identity()
+export { PrincipalAxes }
 
-/**
- * Principal axes
- */
-class PrincipalAxes {
+interface PrincipalAxes {
     begA: Vec3
     endA: Vec3
     begB: Vec3
@@ -32,11 +27,13 @@ class PrincipalAxes {
     normVecA: Vec3
     normVecB: Vec3
     normVecC: Vec3
+}
 
+namespace PrincipalAxes {
     /**
-     * points is a 3xN matrix
+     * @param points 3xN matrix
      */
-    constructor(points: Matrix) {
+    export function fromPoints(points: Matrix<3, number>): PrincipalAxes {
         const n = points.rows
         const n3 = n / 3
         const pointsT = Matrix.create(n, 3)
@@ -53,46 +50,32 @@ class PrincipalAxes {
         svd(A, W, U, V)
 
         // center
-        const vm = Vec3.create(mean[0], mean[1], mean[2])
+        const center = Vec3.create(mean[0], mean[1], mean[2])
 
         // normalized
-        const van = Vec3.create(U.data[0], U.data[3], U.data[6])
-        const vbn = Vec3.create(U.data[1], U.data[4], U.data[7])
-        const vcn = Vec3.create(U.data[2], U.data[5], U.data[8])
+        const normVecA = Vec3.create(U.data[0], U.data[3], U.data[6])
+        const normVecB = Vec3.create(U.data[1], U.data[4], U.data[7])
+        const normVecC = Vec3.create(U.data[2], U.data[5], U.data[8])
 
         // scaled
-        const va = Vec3.scale(Vec3.zero(), van, Math.sqrt(W.data[0] / n3))
-        const vb = Vec3.scale(Vec3.zero(), vbn, Math.sqrt(W.data[1] / n3))
-        const vc = Vec3.scale(Vec3.zero(), vcn, Math.sqrt(W.data[2] / n3))
-        // const va = van.clone().multiplyScalar(Math.sqrt(W.data[0] / n3))
-        // const vb = vbn.clone().multiplyScalar(Math.sqrt(W.data[1] / n3))
-        // const vc = vcn.clone().multiplyScalar(Math.sqrt(W.data[2] / n3))
+        const vecA = Vec3.scale(Vec3.zero(), normVecA, Math.sqrt(W.data[0] / n3))
+        const vecB = Vec3.scale(Vec3.zero(), normVecB, Math.sqrt(W.data[1] / n3))
+        const vecC = Vec3.scale(Vec3.zero(), normVecC, Math.sqrt(W.data[2] / n3))
 
         // points
-        this.begA = Vec3.sub(Vec3.clone(vm), vm, va)
-        this.endA = Vec3.add(Vec3.clone(vm), vm, va)
-        this.begB = Vec3.sub(Vec3.clone(vm), vm, vb)
-        this.endB = Vec3.add(Vec3.clone(vm), vm, vb)
-        this.begC = Vec3.sub(Vec3.clone(vm), vm, vc)
-        this.endC = Vec3.add(Vec3.clone(vm), vm, vc)
-        // this.begA = vm.clone().sub(va)
-        // this.endA = vm.clone().add(va)
-        // this.begB = vm.clone().sub(vb)
-        // this.endB = vm.clone().add(vb)
-        // this.begC = vm.clone().sub(vc)
-        // this.endC = vm.clone().add(vc)
+        const begA = Vec3.sub(Vec3.clone(center), center, vecA)
+        const endA = Vec3.add(Vec3.clone(center), center, vecA)
+        const begB = Vec3.sub(Vec3.clone(center), center, vecB)
+        const endB = Vec3.add(Vec3.clone(center), center, vecB)
+        const begC = Vec3.sub(Vec3.clone(center), center, vecC)
+        const endC = Vec3.add(Vec3.clone(center), center, vecC)
 
-        //
-
-        this.center = vm
-
-        this.vecA = va
-        this.vecB = vb
-        this.vecC = vc
-
-        this.normVecA = van
-        this.normVecB = vbn
-        this.normVecC = vcn
+        return {
+            begA, endA, begB, endB, begC, endC,
+            center,
+            vecA, vecB, vecC,
+            normVecA, normVecB, normVecC
+        }
     }
 
     // TODO
@@ -187,5 +170,3 @@ class PrincipalAxes {
     //     }
     // }
 }
-
-export default PrincipalAxes
