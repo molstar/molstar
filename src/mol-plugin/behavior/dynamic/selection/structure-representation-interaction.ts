@@ -149,7 +149,7 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
                 } else if (Link.isLoci(current.loci)) {
                     loci = Link.toStructureElementLoci(current.loci);
                 } else if (Structure.isLoci(current.loci)) {
-                    loci = Structure.toStructureElementLoci(current.loci);
+                    loci = Structure.toStructureElementLoci(current.loci.structure);
                 } else {
                     return;
                 }

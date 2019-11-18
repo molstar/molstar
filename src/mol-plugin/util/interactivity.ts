@@ -56,7 +56,7 @@ namespace Interactivity {
         'element': (loci: ModelLoci) => loci,
         'residue': (loci: ModelLoci) => SE.Loci.is(loci) ? SE.Loci.extendToWholeResidues(loci, true) : loci,
         'chain': (loci: ModelLoci) => SE.Loci.is(loci) ? SE.Loci.extendToWholeChains(loci) : loci,
-        'structure': (loci: ModelLoci) => SE.Loci.is(loci) ? Structure.Loci(loci.structure) : loci
+        'structure': (loci: ModelLoci) => SE.Loci.is(loci) ? Structure.toStructureElementLoci(loci.structure) : loci
     }
     type Granularity = keyof typeof Granularity
     const GranularityOptions = Object.keys(Granularity).map(n => [n, capitalize(n)]) as [Granularity, string][]
@@ -99,7 +99,7 @@ namespace Interactivity {
             }
             if (Structure.isLoci(loci)) {
                 // convert to StructureElement.Loci
-                loci = Structure.toStructureElementLoci(loci)
+                loci = Structure.toStructureElementLoci(loci.structure)
             }
             if (StructureElement.Loci.is(loci)) {
                 // ensure the root structure is used

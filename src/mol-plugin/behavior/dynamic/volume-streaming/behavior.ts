@@ -262,7 +262,7 @@ export namespace VolumeStreaming {
             } else if (Link.isLoci(loci)) {
                 return Link.toStructureElementLoci(loci);
             } else if (Structure.isLoci(loci)) {
-                return Structure.toStructureElementLoci(loci);
+                return Structure.toStructureElementLoci(loci.structure);
             } else {
                 return EmptyLoci;
             }

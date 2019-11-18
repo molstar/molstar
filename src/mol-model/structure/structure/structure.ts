@@ -505,12 +505,12 @@ namespace Structure {
         return { kind: 'structure-loci', structure };
     }
 
-    export function toStructureElementLoci(loci: Loci): StructureElement.Loci {
+    export function toStructureElementLoci(structure: Structure): StructureElement.Loci {
         const elements: StructureElement.Loci['elements'][0][] = []
-        for (const unit of loci.structure.units) {
+        for (const unit of structure.units) {
             elements.push({ unit, indices: Interval.ofBounds(0, unit.elements.length) })
         }
-        return StructureElement.Loci(loci.structure, elements);
+        return StructureElement.Loci(structure, elements);
     }
 
     export function isLoci(x: any): x is Loci {
