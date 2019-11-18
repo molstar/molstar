@@ -10,6 +10,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginBehavior } from '../behavior';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
+import { PluginCommands } from '../../command';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -37,13 +38,17 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
         register(): void {
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
-
                 const p = this.params;
                 if (Binding.match(this.params.bindings.clickCenterFocus, buttons, modifiers)) {
-                    const sphere = Loci.getBoundingSphere(current.loci);
-                    if (sphere) {
-                        const radius = Math.max(sphere.radius + p.extraRadius, p.minRadius);
-                        this.ctx.canvas3d.camera.focus(sphere.center, radius, p.durationMs);
+                    const loci = Loci.normalize(current.loci, this.ctx.interactivity.props.granularity)
+                    if (Loci.isEmpty(loci)) {
+                        PluginCommands.Camera.Reset.dispatch(this.ctx, { })
+                    } else {
+                        const sphere = Loci.getBoundingSphere(loci);
+                        if (sphere) {
+                            const radius = Math.max(sphere.radius + p.extraRadius, p.minRadius);
+                            this.ctx.canvas3d.camera.focus(sphere.center, radius, p.durationMs);
+                        }
                     }
                 }
             });
