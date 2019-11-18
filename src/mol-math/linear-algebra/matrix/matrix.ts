@@ -52,9 +52,13 @@ namespace Matrix {
     }
 
     export function transpose<N extends number, M extends number>(out: Matrix<M, N>, mat: Matrix<N, M>): Matrix<M, N> {
+        if (out.cols !== mat.rows || out.rows !== mat.cols) {
+            throw new Error('transpose: matrix dimensions incompatible')
+        }
+        if (out.data === mat.data) {
+            throw new Error('transpose: matrices share memory')
+        }
         const nrows = mat.rows, ncols = mat.cols
-        // TODO add in-place transpose
-        if (out as any === mat) mat = clone(mat)
         const md = mat.data, mtd = out.data
         for (let i = 0, mi = 0, mti = 0; i < nrows; mti += 1, mi += ncols, ++i) {
             let ri = mti

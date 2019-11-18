@@ -45,7 +45,7 @@ namespace PrincipalAxes {
         // calculate
         const mean = Matrix.meanRows(points)
         const pointsM = Matrix.subRows(Matrix.clone(points), mean)
-        const pointsT = Matrix.transpose(pointsM as Matrix<number, 3>, pointsM)
+        const pointsT = Matrix.transpose(Matrix.create(n, 3), pointsM)
         Matrix.multiplyABt(A, pointsT, pointsT)
         svd(A, W, U, V)
 
