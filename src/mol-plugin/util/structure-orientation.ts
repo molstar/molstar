@@ -138,8 +138,8 @@ export async function getStructureOrientationRepresentation(ctx: RuntimeContext,
     const repr = prev || ShapeRepresentation(getOrientationShape, Mesh.Utils);
     const label = getLabel(structure)
     const positions = getPositions(structure)
-    const principalAxes = PrincipalAxes.ofPoints(Matrix.fromArray(positions.slice(), 3, structure.elementCount))
-    const projectedScale = PrincipalAxes.getProjectedScaleForPositions(positions, principalAxes)
+    const principalAxes = PrincipalAxes.ofPoints(Matrix.fromArray(positions, 3, structure.elementCount))
+    const projectedScale = PrincipalAxes.getProjectedScale(positions, principalAxes)
     const data: OrientationData = { label, principalAxes, projectedScale }
     await repr.createOrUpdate(params, data).runInContext(ctx);
     return repr;

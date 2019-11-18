@@ -37,7 +37,6 @@ namespace PrincipalAxes {
     export function ofPoints(points: Matrix<3, number>): PrincipalAxes {
         const n = points.rows
         const n3 = n / 3
-        const pointsT = Matrix.create(n, 3)
         const A = Matrix.create(3, 3)
         const W = Matrix.create(1, 3)
         const U = Matrix.create(3, 3)
@@ -45,8 +44,8 @@ namespace PrincipalAxes {
 
         // calculate
         const mean = Matrix.meanRows(points)
-        Matrix.subRows(points, mean)
-        Matrix.transpose(pointsT, points)
+        const pointsM = Matrix.subRows(Matrix.clone(points), mean)
+        const pointsT = Matrix.transpose(pointsM as Matrix<number, 3>, pointsM)
         Matrix.multiplyABt(A, pointsT, pointsT)
         svd(A, W, U, V)
 
@@ -59,9 +58,9 @@ namespace PrincipalAxes {
         const normVecC = Vec3.create(U.data[2], U.data[5], U.data[8])
 
         // scaled
-        const vecA = Vec3.scale(Vec3.zero(), normVecA, Math.sqrt(W.data[0] / n3))
-        const vecB = Vec3.scale(Vec3.zero(), normVecB, Math.sqrt(W.data[1] / n3))
-        const vecC = Vec3.scale(Vec3.zero(), normVecC, Math.sqrt(W.data[2] / n3))
+        const vecA = Vec3.scale(Vec3(), normVecA, Math.sqrt(W.data[0] / n3))
+        const vecB = Vec3.scale(Vec3(), normVecB, Math.sqrt(W.data[1] / n3))
+        const vecC = Vec3.scale(Vec3(), normVecC, Math.sqrt(W.data[2] / n3))
 
         // points
         const begA = Vec3.sub(Vec3.clone(center), center, vecA)
@@ -92,7 +91,7 @@ namespace PrincipalAxes {
      * Get the scale/length for each dimension for a box around the axes
      * to enclose the given positions
      */
-    export function getProjectedScaleForPositions(positions: NumberArray, principalAxes: PrincipalAxes) {
+    export function getProjectedScale(positions: NumberArray, principalAxes: PrincipalAxes) {
         let d1a = -Infinity
         let d1b = -Infinity
         let d2a = -Infinity
