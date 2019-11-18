@@ -8,14 +8,13 @@
 import { Loci as ModelLoci, EmptyLoci, EveryLoci, isEmptyLoci } from '../../mol-model/loci';
 import { ModifiersKeys, ButtonsType } from '../../mol-util/input/input-observer';
 import { Representation } from '../../mol-repr/representation';
-import { StructureElement, Link } from '../../mol-model/structure';
+import { StructureElement } from '../../mol-model/structure';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { StructureElementSelectionManager } from './structure-element-selection';
 import { PluginContext } from '../context';
-import { StructureElement as SE, Structure } from '../../mol-model/structure';
+import { Structure } from '../../mol-model/structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginCommands } from '../command';
-import { capitalize } from '../../mol-util/string';
 
 export { Interactivity }
 
@@ -52,17 +51,8 @@ namespace Interactivity {
         export const Empty: Loci = { loci: EmptyLoci };
     }
 
-    const Granularity = {
-        'element': (loci: ModelLoci) => loci,
-        'residue': (loci: ModelLoci) => SE.Loci.is(loci) ? SE.Loci.extendToWholeResidues(loci, true) : loci,
-        'chain': (loci: ModelLoci) => SE.Loci.is(loci) ? SE.Loci.extendToWholeChains(loci) : loci,
-        'structure': (loci: ModelLoci) => SE.Loci.is(loci) ? Structure.toStructureElementLoci(loci.structure) : loci
-    }
-    type Granularity = keyof typeof Granularity
-    const GranularityOptions = Object.keys(Granularity).map(n => [n, capitalize(n)]) as [Granularity, string][]
-
     export const Params = {
-        granularity: PD.Select('residue', GranularityOptions, { description: 'Controls if selections are expanded to whole residues, chains, structures, or left as atoms and coarse elements' }),
+        granularity: PD.Select('residue', ModelLoci.GranularityOptions, { description: 'Controls if selections are expanded to whole residues, chains, structures, or left as atoms and coarse elements' }),
     }
     export type Params = typeof Params
     export type Props = PD.Values<Params>
@@ -91,25 +81,10 @@ namespace Interactivity {
             // TODO clear, then re-apply remaining providers
         }
 
-        normalizedLoci(interactivityLoci: Loci, applyGranularity = true) {
-            let { loci, repr } = interactivityLoci
-            if (this.props.granularity !== 'element' && Link.isLoci(loci)) {
-                // convert Link.Loci to a StructureElement.Loci so granularity can be applied
-                loci = Link.toStructureElementLoci(loci)
-            }
-            if (Structure.isLoci(loci)) {
-                // convert to StructureElement.Loci
-                loci = Structure.toStructureElementLoci(loci.structure)
-            }
-            if (StructureElement.Loci.is(loci)) {
-                // ensure the root structure is used
-                loci = StructureElement.Loci.remap(loci, loci.structure.root)
-            }
-            if (applyGranularity) {
-                // needs to be applied AFTER remapping to root
-                loci = Granularity[this.props.granularity](loci)
-            }
-            return { loci, repr }
+        protected normalizedLoci(interactivityLoci: Loci, applyGranularity = true) {
+            const { loci, repr } = interactivityLoci
+            const granularity =  applyGranularity ? this.props.granularity : undefined
+            return { loci: ModelLoci.normalize(loci, granularity), repr }
         }
 
         protected mark(current: Loci<ModelLoci>, action: MarkerAction) {

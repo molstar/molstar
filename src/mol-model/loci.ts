@@ -12,6 +12,7 @@ import { CentroidHelper } from '../mol-math/geometry/centroid-helper';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { OrderedSet } from '../mol-data/int';
 import { Structure } from './structure/structure';
+import { capitalize } from '../mol-util/string';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -151,5 +152,56 @@ namespace Loci {
     export function getCenter(loci: Loci, center?: Vec3): Vec3 | undefined {
         const boundingSphere = getBoundingSphere(loci, tmpSphere3D)
         return boundingSphere ? Vec3.copy(center || Vec3.zero(), boundingSphere.center) : undefined
+    }
+
+    //
+
+    const Granularity = {
+        'element': (loci: Loci) => loci,
+        'residue': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToWholeResidues(loci, true)
+                : loci
+        },
+        'chain': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToWholeChains(loci)
+                : loci
+        },
+        'structure': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? Structure.toStructureElementLoci(loci.structure)
+                : loci
+        }
+    }
+    export type Granularity = keyof typeof Granularity
+    export const GranularityOptions = Object.keys(Granularity).map(n => [n, capitalize(n)]) as [Granularity, string][]
+
+    export function applyGranularity(loci: Loci, granularity: Granularity) {
+        return Granularity[granularity](loci)
+    }
+
+    /**
+     * Converts structure related loci to StructureElement.Loci and applies
+     * granularity if given
+    */
+    export function normalize(loci: Loci, granularity?: Granularity) {
+        if (granularity !== 'element' && Link.isLoci(loci)) {
+            // convert Link.Loci to a StructureElement.Loci so granularity can be applied
+            loci = Link.toStructureElementLoci(loci)
+        }
+        if (Structure.isLoci(loci)) {
+            // convert to StructureElement.Loci
+            loci = Structure.toStructureElementLoci(loci.structure)
+        }
+        if (StructureElement.Loci.is(loci)) {
+            // ensure the root structure is used
+            loci = StructureElement.Loci.remap(loci, loci.structure.root)
+        }
+        if (granularity) {
+            // needs to be applied AFTER remapping to root
+            loci = applyGranularity(loci, granularity)
+        }
+        return loci
     }
 }
