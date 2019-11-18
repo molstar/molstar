@@ -79,12 +79,10 @@ class Camera {
     }
 
     getSnapshot() {
-        const ret = Camera.createDefaultSnapshot();
-        Camera.copySnapshot(ret, this.state);
-        return ret;
+        return Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
     }
 
-    getFocus(target: Vec3, radius: number): Partial<Camera.Snapshot> {
+    getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
         const fov = this.state.fov
         const { width, height } = this.viewport
         const aspect = width / height
@@ -92,6 +90,7 @@ class Camera {
         const targetDistance = Math.abs((radius / aspectFactor) / Math.sin(fov / 2))
 
         Vec3.sub(this.deltaDirection, this.target, this.position)
+        if (dir) Vec3.matchDirection(this.deltaDirection, dir, this.deltaDirection)
         Vec3.setMagnitude(this.deltaDirection, this.deltaDirection, targetDistance)
         Vec3.sub(this.newPosition, target, this.deltaDirection)
 
@@ -99,12 +98,13 @@ class Camera {
         state.target = Vec3.clone(target)
         state.radius = radius
         state.position = Vec3.clone(this.newPosition)
+        if (up) Vec3.matchDirection(state.up, up, state.up)
 
         return state
     }
 
-    focus(target: Vec3, radius: number, durationMs?: number) {
-        if (radius > 0) this.setState(this.getFocus(target, radius), durationMs);
+    focus(target: Vec3, radius: number, durationMs?: number, up?: Vec3, dir?: Vec3) {
+        if (radius > 0) this.setState(this.getFocus(target, radius, up, dir), durationMs);
     }
 
     project(out: Vec4, point: Vec3) {

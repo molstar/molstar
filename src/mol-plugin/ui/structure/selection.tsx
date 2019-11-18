@@ -59,7 +59,9 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
         const { sphere } = this.plugin.helpers.structureSelectionManager.getBoundary();
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
-        this.plugin.canvas3d.camera.focus(sphere.center, radius, durationMs);
+        const principalAxes = this.plugin.helpers.structureSelectionManager.getPrincipalAxes();
+        const { center, normVecA, normVecC } = principalAxes
+        this.plugin.canvas3d.camera.focus(center, radius, durationMs, normVecA, normVecC);
     }
 
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {

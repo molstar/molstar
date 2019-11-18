@@ -195,7 +195,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const ringAtoms = rings.all[sugarRings[j]];
                     const anomericCarbon = getAnomericCarbon(unit, ringAtoms)
 
-                    const pa = PrincipalAxes.fromPoints(getPositionMatrix(unit, ringAtoms))
+                    const pa = PrincipalAxes.ofPoints(getPositionMatrix(unit, ringAtoms))
                     const center = Vec3.copy(Vec3.zero(), pa.center)
                     const normal = Vec3.copy(Vec3.zero(), pa.normVecC)
                     const direction = getDirection(Vec3.zero(), unit, anomericCarbon, center)

@@ -30,11 +30,11 @@ namespace Matrix {
         for (let i = 0, _l = m.data.length; i < _l; i++) m.data[i] = 0.0;
     }
 
-    export function fromArray(data: NumberArray, cols: number, rows: number): Matrix {
+    export function fromArray<N extends number, M extends number>(data: NumberArray, cols: N, rows: M): Matrix<N, M> {
         return { data, size: cols * rows, cols, rows }
     }
 
-    export function transpose(out: Matrix, mat: Matrix): Matrix {
+    export function transpose<N extends number, M extends number>(out: Matrix<M, N>, mat: Matrix<N, M>): Matrix<M, N> {
         const nrows = mat.rows, ncols = mat.cols
         const md = mat.data, mtd = out.data
 
@@ -42,7 +42,7 @@ namespace Matrix {
             let ri = mti
             for (let j = 0; j < ncols; ri += nrows, j++) mtd[ri] = md[mi + j]
         }
-        return mat
+        return out
     }
 
     /** out = matA * matB' */

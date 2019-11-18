@@ -19,6 +19,9 @@ import { ElementIndex } from '../../model';
 import { UnitIndex } from './element';
 import { Location } from './location';
 import { ChainIndex } from '../../model/indexing';
+import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/principal-axes';
+import Matrix from '../../../../mol-math/linear-algebra/matrix/matrix';
+import { NumberArray } from '../../../../mol-util/type-helpers';
 
 /** Represents multiple element index locations */
 export interface Loci {
@@ -376,7 +379,8 @@ export namespace Loci {
         return Loci(loci.structure, elements);
     }
 
-    const boundaryHelper = new BoundaryHelper(), tempPos = Vec3.zero();
+    const boundaryHelper = new BoundaryHelper();
+    const tempPosBoundary = Vec3.zero();
     export function getBoundary(loci: Loci): Boundary {
         boundaryHelper.reset(0);
 
@@ -386,8 +390,8 @@ export namespace Loci {
             const { elements } = e.unit;
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
-                pos(eI, tempPos);
-                boundaryHelper.boundaryStep(tempPos, r(eI));
+                pos(eI, tempPosBoundary);
+                boundaryHelper.boundaryStep(tempPosBoundary, r(eI));
             }
         }
         boundaryHelper.finishBoundaryStep();
@@ -397,12 +401,36 @@ export namespace Loci {
             const { elements } = e.unit;
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
-                pos(eI, tempPos);
-                boundaryHelper.extendStep(tempPos, r(eI));
+                pos(eI, tempPosBoundary);
+                boundaryHelper.extendStep(tempPosBoundary, r(eI));
             }
         }
 
         return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };
+    }
+
+    const tempPos = Vec3.zero();
+    export function toPositionsArray(loci: Loci, positions: NumberArray, offset = 0) {
+        let m = offset
+        for (const e of loci.elements) {
+            const { indices } = e
+            const pos = e.unit.conformation.position
+            const { elements } = e.unit
+            const indexCount = OrderedSet.size(indices)
+            for (let i = 0; i < indexCount; i++) {
+                const eI = elements[OrderedSet.getAt(indices, i)]
+                pos(eI, tempPos)
+                Vec3.toArray(tempPos, positions, m + i * 3)
+            }
+            m += indexCount * 3
+        }
+        return positions
+    }
+
+    export function getPrincipalAxes(loci: Loci): PrincipalAxes {
+        const elementCount = size(loci)
+        const positions = toPositionsArray(loci, new Float32Array(3 * elementCount))
+        return PrincipalAxes.ofPoints(Matrix.fromArray(positions, 3, elementCount))
     }
 
     function sourceIndex(unit: Unit, element: ElementIndex) {

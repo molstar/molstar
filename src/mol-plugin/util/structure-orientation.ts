@@ -85,7 +85,7 @@ function getOrientationMesh(data: OrientationData, props: OrientationProps, mesh
 export async function getStructureOrientationRepresentation(ctx: RuntimeContext, structure: Structure, params: OrientationProps, prev?: ShapeRepresentation<OrientationData, Mesh, Mesh.Params>) {
     const repr = prev || ShapeRepresentation(getOrientationShape, Mesh.Utils);
     const data = {
-        principalAxes: PrincipalAxes.fromPoints(getPositionMatrix(structure))
+        principalAxes: PrincipalAxes.ofPoints(getPositionMatrix(structure))
     }
     await repr.createOrUpdate(params, data).runInContext(ctx);
     return repr;

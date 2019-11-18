@@ -15,6 +15,8 @@ import { structureElementStatsLabel } from '../../mol-theme/label';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { Boundary } from '../../mol-model/structure/structure/util/boundary';
+import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
+import Matrix from '../../mol-math/linear-algebra/matrix/matrix';
 
 const boundaryHelper = new BoundaryHelper();
 
@@ -33,6 +35,15 @@ class StructureElementSelectionManager {
         }
 
         return this.entries.get(ref)!;
+    }
+
+    /** Count of all selected elements */
+    size() {
+        let count = 0
+        this.entries.forEach(v => {
+            count += StructureElement.Loci.size(v.selection)
+        })
+        return count
     }
 
     getBoundary() {
@@ -64,6 +75,17 @@ class StructureElementSelectionManager {
         }
 
         return { box: { min, max }, sphere: boundaryHelper.getSphere() };
+    }
+
+    getPrincipalAxes(): PrincipalAxes {
+        const elementCount = this.size()
+        const positions = new Float32Array(3 * elementCount)
+        let offset = 0
+        this.entries.forEach(v => {
+            StructureElement.Loci.toPositionsArray(v.selection, positions, offset)
+            offset += StructureElement.Loci.size(v.selection)
+        })
+        return PrincipalAxes.ofPoints(Matrix.fromArray(positions, 3, elementCount))
     }
 
     get stats() {

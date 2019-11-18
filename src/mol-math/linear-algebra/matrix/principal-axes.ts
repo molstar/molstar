@@ -33,7 +33,7 @@ namespace PrincipalAxes {
     /**
      * @param points 3xN matrix
      */
-    export function fromPoints(points: Matrix<3, number>): PrincipalAxes {
+    export function ofPoints(points: Matrix<3, number>): PrincipalAxes {
         const n = points.rows
         const n3 = n / 3
         const pointsT = Matrix.create(n, 3)
