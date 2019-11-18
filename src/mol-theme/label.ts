@@ -52,7 +52,7 @@ function getResidueCount(unit: Unit.Atomic) {
 }
 
 export function structureElementStatsLabel(stats: StructureElement.Stats, countsOnly = false): string {
-    const { chainCount, residueCount, conformationCount, elementCount } = stats
+    const { structureCount, chainCount, residueCount, conformationCount, elementCount } = stats
 
     if (!countsOnly && elementCount === 1 && residueCount === 0 && chainCount === 0) {
         return elementLabel(stats.firstElementLoc, { granularity: 'element' })
@@ -65,6 +65,9 @@ export function structureElementStatsLabel(stats: StructureElement.Stats, counts
     } else if (!countsOnly) {
         const label: string[] = []
         let hidePrefix = false;
+        if (structureCount > 0) {
+            label.push(structureCount === 1 ? elementLabel(stats.firstStructureLoc, { granularity: 'structure' }) : otherLabel(structureCount, stats.firstStructureLoc || stats.firstElementLoc, 'structure', false))
+        }
         if (chainCount > 0) {
             label.push(chainCount === 1 ? elementLabel(stats.firstChainLoc, { granularity: 'chain' }) : otherLabel(chainCount, stats.firstChainLoc || stats.firstElementLoc, 'chain', false))
             hidePrefix = true;
@@ -83,6 +86,7 @@ export function structureElementStatsLabel(stats: StructureElement.Stats, counts
         return label.join('<small> + </small>')
     } else {
         const label: string[] = []
+        if (structureCount > 0) label.push(countLabel(structureCount, 'Structure'))
         if (chainCount > 0) label.push(countLabel(chainCount, 'Chain'))
         if (residueCount > 0) label.push(countLabel(residueCount, 'Residue'))
         if (conformationCount > 0) label.push(countLabel(conformationCount, 'Conformation'))
@@ -120,14 +124,13 @@ export function elementLabel(location: StructureElement.Location, options: Parti
 }
 
 function _elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element', hidePrefix = false): string[] {
-    let label: string[];
-    if (hidePrefix) {
-        label = [];
-    } else {
-        const entry = `<small>${location.unit.model.entry}</small>`
-        const model = `<small>Model ${location.unit.model.modelNum}</small>`
-        const instance = `<small>Instance ${location.unit.conformation.operator.name}</small>`
-        label = [entry, model, instance]
+    const label: string[] = [];
+    if (!hidePrefix) {
+        label.push(`<small>${location.unit.model.entry}</small>`) // entry
+        if (granularity !== 'structure') {
+            label.push(`<small>Model ${location.unit.model.modelNum}</small>`) // model
+            label.push(`<small>Instance ${location.unit.conformation.operator.name}</small>`) // instance
+        }
     }
 
     if (Unit.isAtomic(location.unit)) {

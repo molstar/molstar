@@ -525,6 +525,11 @@ namespace Structure {
         return loci.structure.isEmpty
     }
 
+    export function remapLoci(loci: Loci, structure: Structure) {
+        if (structure === loci.structure) return loci
+        return Loci(structure)
+    }
+
     export function create(units: ReadonlyArray<Unit>, props?: Props): Structure {
         return new Structure(units, props);
     }

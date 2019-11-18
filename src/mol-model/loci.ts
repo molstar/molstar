@@ -96,6 +96,8 @@ namespace Loci {
         if (data instanceof Structure) {
             if (StructureElement.Loci.is(loci)) {
                 loci = StructureElement.Loci.remap(loci, data)
+            } else if (Structure.isLoci(loci)) {
+                loci = Structure.remapLoci(loci, data)
             } else if (Link.isLoci(loci)) {
                 loci = Link.remapLoci(loci, data)
             }

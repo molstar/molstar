@@ -17,12 +17,14 @@ export interface Stats {
     residueCount: number
     chainCount: number
     unitCount: number
+    structureCount: number
 
     firstElementLoc: Location
     firstConformationLoc: Location
     firstResidueLoc: Location
     firstChainLoc: Location
     firstUnitLoc: Location
+    firstStructureLoc: Location
 }
 
 export namespace Stats {
@@ -33,12 +35,14 @@ export namespace Stats {
             residueCount: 0,
             chainCount: 0,
             unitCount: 0,
+            structureCount: 0,
 
             firstElementLoc: Location.create(),
             firstConformationLoc: Location.create(),
             firstResidueLoc: Location.create(),
             firstChainLoc: Location.create(),
             firstUnitLoc: Location.create(),
+            firstStructureLoc: Location.create(),
         }
     }
 
@@ -277,8 +281,16 @@ export namespace Stats {
 
     export function ofLoci(loci: Loci) {
         const stats = create()
+        if (Loci.isEmpty(loci)) return stats
+
         let hasPartitions = false;
-        if (!Loci.isEmpty(loci)) {
+        if (Loci.isWholeStructure(loci)) {
+            stats.structureCount += 1
+            if (stats.structureCount === 1) {
+                const { unit, indices } = loci.elements[0]
+                Location.set(stats.firstStructureLoc, unit, unit.elements[OrderedSet.min(indices)])
+            }
+        } else {
             for (const e of loci.elements) {
                 handleElement(stats, e)
                 if (!Unit.Traits.is(e.unit.traits, Unit.Trait.Patitioned)) {
@@ -307,6 +319,7 @@ export namespace Stats {
                 }
             }
         }
+
         return stats
     }
 
@@ -342,11 +355,18 @@ export namespace Stats {
             Location.copy(out.firstUnitLoc, b.firstUnitLoc)
         }
 
+        if (a.structureCount === 1 && b.structureCount === 0) {
+            Location.copy(out.firstStructureLoc, a.firstStructureLoc)
+        } else if (a.structureCount === 0 && b.structureCount === 1) {
+            Location.copy(out.firstStructureLoc, b.firstStructureLoc)
+        }
+
         out.elementCount = a.elementCount + b.elementCount
         out.conformationCount = a.conformationCount + b.conformationCount
         out.residueCount = a.residueCount + b.residueCount
         out.chainCount = a.chainCount + b.chainCount
         out.unitCount = a.unitCount + b.unitCount
+        out.structureCount = a.structureCount + b.structureCount
         return out
     }
 }

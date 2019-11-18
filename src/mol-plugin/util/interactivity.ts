@@ -213,9 +213,9 @@ namespace Interactivity {
         protected mark(current: Loci<ModelLoci>, action: MarkerAction.Select | MarkerAction.Deselect) {
             const { loci } = current
             if (StructureElement.Loci.is(loci)) {
-                // do a full deselect/select so visuals that are marked with
-                // granularity unequal to 'element' are handled properly
-                super.mark({ loci: EveryLoci }, MarkerAction.Deselect)
+                // do a full deselect/select for the current structure so visuals
+                // that are marked with granularity unequal to 'element' are handled properly
+                super.mark({ loci: Structure.Loci(loci.structure) }, MarkerAction.Deselect)
                 super.mark({ loci: this.sel.get(loci.structure) }, MarkerAction.Select)
             } else {
                 super.mark(current, action)

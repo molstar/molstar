@@ -23,7 +23,7 @@ import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/princi
 import Matrix from '../../../../mol-math/linear-algebra/matrix/matrix';
 import { NumberArray } from '../../../../mol-util/type-helpers';
 
-/** Represents multiple element index locations */
+/** Represents multiple structure element index locations */
 export interface Loci {
     readonly kind: 'element-loci',
     readonly structure: Structure,
