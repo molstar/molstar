@@ -5,8 +5,9 @@
  */
 
 import Matrix from './matrix';
-import { Vec3 } from '../3d';
+import { Vec3, Mat4 } from '../3d';
 import { svd } from './svd';
+import { NumberArray } from '../../../mol-util/type-helpers';
 
 export { PrincipalAxes }
 
@@ -78,95 +79,68 @@ namespace PrincipalAxes {
         }
     }
 
-    // TODO
-    // /**
-    //  * Get the basis matrix descriping the axes
-    //  * @param  {Matrix4} [optionalTarget] - target object
-    //  * @return {Matrix4} the basis
-    //  */
-    // getBasisMatrix(optionalTarget = new Matrix4()) {
-    //     const basis = optionalTarget
+    /**
+     * Set basis matrix for given axes
+     */
+    export function setBasisMatrix(out: Mat4, principalAxes: PrincipalAxes) {
+        Mat4.setAxes(out, principalAxes.normVecB, principalAxes.normVecA, principalAxes.normVecC)
+        if (Mat4.determinant(out) < 0) Mat4.scaleUniformly(out, out, -1)
+        return out
+    }
 
-    //     basis.makeBasis(this.normVecB, this.normVecA, this.normVecC)
-    //     if (basis.determinant() < 0) {
-    //         basis.scale(negateVector)
-    //     }
+    /**
+     * Get the scale/length for each dimension for a box around the axes
+     * to enclose the given positions
+     */
+    export function getProjectedScaleForPositions(positions: NumberArray, principalAxes: PrincipalAxes) {
+        let d1a = -Infinity
+        let d1b = -Infinity
+        let d2a = -Infinity
+        let d2b = -Infinity
+        let d3a = -Infinity
+        let d3b = -Infinity
 
-    //     return basis
-    // }
+        const p = Vec3()
+        const t = Vec3()
 
-    // TODO
-    // /**
-    //  * Get a quaternion descriping the axes rotation
-    //  * @param  {Quaternion} [optionalTarget] - target object
-    //  * @return {Quaternion} the rotation
-    //  */
-    // getRotationQuaternion(optionalTarget = new Quaternion()) {
-    //     const q = optionalTarget
-    //     q.setFromRotationMatrix(this.getBasisMatrix(tmpMatrix))
+        const { center, normVecA, normVecB, normVecC } = principalAxes
 
-    //     return q.inverse()
-    // }
+        for (let i = 0, il = positions.length; i < il; i += 3) {
+            Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), normVecA, center)
+            const dp1 = Vec3.dot(normVecA, Vec3.normalize(t, Vec3.sub(t, p, center)))
+            const dt1 = Vec3.distance(p, center)
+            if (dp1 > 0) {
+                if (dt1 > d1a) d1a = dt1
+            } else {
+                if (dt1 > d1b) d1b = dt1
+            }
 
-    // TODO
-    // /**
-    //  * Get the scale/length for each dimension for a box around the axes
-    //  * to enclose the atoms of a structure
-    //  * @param  {Structure|StructureView} structure - the structure
-    //  * @return {{d1a: Number, d2a: Number, d3a: Number, d1b: Number, d2b: Number, d3b: Number}} scale
-    //  */
-    // getProjectedScaleForAtoms(structure: Structure) {
-    //     let d1a = -Infinity
-    //     let d1b = -Infinity
-    //     let d2a = -Infinity
-    //     let d2b = -Infinity
-    //     let d3a = -Infinity
-    //     let d3b = -Infinity
+            Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), normVecB, center)
+            const dp2 = Vec3.dot(normVecB, Vec3.normalize(t, Vec3.sub(t, p, center)))
+            const dt2 = Vec3.distance(p, center)
+            if (dp2 > 0) {
+                if (dt2 > d2a) d2a = dt2
+            } else {
+                if (dt2 > d2b) d2b = dt2
+            }
 
-    //     const p = new Vector3()
-    //     const t = new Vector3()
+            Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), normVecC, center)
+            const dp3 = Vec3.dot(normVecC, Vec3.normalize(t, Vec3.sub(t, p, center)))
+            const dt3 = Vec3.distance(p, center)
+            if (dp3 > 0) {
+                if (dt3 > d3a) d3a = dt3
+            } else {
+                if (dt3 > d3b) d3b = dt3
+            }
+        }
 
-    //     const center = this.center
-    //     const ax1 = this.normVecA
-    //     const ax2 = this.normVecB
-    //     const ax3 = this.normVecC
-
-    //     structure.eachAtom(function (ap: AtomProxy) {
-    //         projectPointOnVector(p.copy(ap as any), ax1, center)  // TODO
-    //         const dp1 = t.subVectors(p, center).normalize().dot(ax1)
-    //         const dt1 = p.distanceTo(center)
-    //         if (dp1 > 0) {
-    //             if (dt1 > d1a) d1a = dt1
-    //         } else {
-    //             if (dt1 > d1b) d1b = dt1
-    //         }
-
-    //         projectPointOnVector(p.copy(ap as any), ax2, center)
-    //         const dp2 = t.subVectors(p, center).normalize().dot(ax2)
-    //         const dt2 = p.distanceTo(center)
-    //         if (dp2 > 0) {
-    //             if (dt2 > d2a) d2a = dt2
-    //         } else {
-    //             if (dt2 > d2b) d2b = dt2
-    //         }
-
-    //         projectPointOnVector(p.copy(ap as any), ax3, center)
-    //         const dp3 = t.subVectors(p, center).normalize().dot(ax3)
-    //         const dt3 = p.distanceTo(center)
-    //         if (dp3 > 0) {
-    //             if (dt3 > d3a) d3a = dt3
-    //         } else {
-    //             if (dt3 > d3b) d3b = dt3
-    //         }
-    //     })
-
-    //     return {
-    //         d1a: d1a,
-    //         d2a: d2a,
-    //         d3a: d3a,
-    //         d1b: -d1b,
-    //         d2b: -d2b,
-    //         d3b: -d3b
-    //     }
-    // }
+        return {
+            d1a: d1a,
+            d2a: d2a,
+            d3a: d3a,
+            d1b: -d1b,
+            d2b: -d2b,
+            d3b: -d3b
+        }
+    }
 }
