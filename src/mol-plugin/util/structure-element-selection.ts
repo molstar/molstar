@@ -83,7 +83,7 @@ class StructureElementSelectionManager {
         let offset = 0
         this.entries.forEach(v => {
             StructureElement.Loci.toPositionsArray(v.selection, positions, offset)
-            offset += StructureElement.Loci.size(v.selection)
+            offset += StructureElement.Loci.size(v.selection) * 3
         })
         return PrincipalAxes.ofPoints(Matrix.fromArray(positions, 3, elementCount))
     }
