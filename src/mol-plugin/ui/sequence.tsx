@@ -103,8 +103,12 @@ function getModelEntityOptions(structure: Structure) {
         if (seen.has(key)) continue
 
         let description = SP.entity.pdbx_description(l).join(', ')
-        if (description.startsWith('Polymer ') && structure.models.length > 1) {
-            description += ` (${structure.models[modelIdx].entry})`
+        if (structure.models.length) {
+            if (structure.representativeModel) { // indicates model trajectory
+                description += ` (Model ${structure.models[modelIdx].modelNum})`
+            } else  if (description.startsWith('Polymer ')) { // indicates generic entity name
+                description += ` (${structure.models[modelIdx].entry})`
+            }
         }
         const label = `${id}: ${description}`
         options.push([ key, label ])

@@ -277,10 +277,12 @@ class Structure {
         return this._props.model;
     }
 
+    /** The master-model, other models can have links to it  */
     get masterModel(): Model | undefined {
         return this._props.masterModel
     }
 
+    /** A representative model, e.g. the first model of a trajectory */
     get representativeModel(): Model | undefined {
         return this._props.representativeModel
     }
