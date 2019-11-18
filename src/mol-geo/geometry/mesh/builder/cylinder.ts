@@ -26,8 +26,7 @@ function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number) {
     Vec3.add(tmpCylinderCenter, start, tmpCylinderMatDir)
     // ensure the direction used to create the rotation is always pointing in the same
     // direction so the triangles of adjacent cylinder will line up
-    Vec3.copy(tmpUp, up)
-    if (Vec3.dot(tmpCylinderMatDir, tmpUp) < 0) Vec3.scale(tmpUp, tmpUp, -1)
+    Vec3.matchDirection(tmpUp, up, tmpCylinderMatDir)
     Vec3.makeRotation(m, tmpUp, tmpCylinderMatDir)
     return Mat4.setTranslation(m, tmpCylinderCenter)
 }

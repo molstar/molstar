@@ -171,10 +171,8 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     }
 
     private setDirection(out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3) {
-        Vec3.copy(tmpVecA, v1)
-        Vec3.copy(tmpVecB, v3)
-        if (Vec3.dot(v2, tmpVecA) < 0) Vec3.scale(tmpVecA, tmpVecA, -1)
-        if (Vec3.dot(v2, tmpVecB) < 0) Vec3.scale(tmpVecB, tmpVecB, -1)
+        Vec3.matchDirection(tmpVecA, v1, v2)
+        Vec3.matchDirection(tmpVecB, v3, v2)
         Vec3.scale(out, Vec3.add(out, tmpVecA, Vec3.add(out, tmpVecB, Vec3.add(out, v2, v2))), 1/4)
     }
 

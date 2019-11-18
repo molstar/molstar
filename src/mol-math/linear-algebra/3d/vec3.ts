@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -23,6 +23,7 @@ import { spline as _spline, quadraticBezier as _quadraticBezier, clamp } from '.
 import { NumberArray } from '../../../mol-util/type-helpers';
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
+interface ReadonlyVec3 extends Array<number> { readonly [d: number]: number, '@type': 'vec3', length: 3 }
 
 function Vec3() {
     return Vec3.zero();
@@ -497,13 +498,12 @@ namespace Vec3 {
     }
 
     const rotTemp = zero();
-    const flipScaling = create(-1, -1, -1);
     export function makeRotation(mat: Mat4, a: Vec3, b: Vec3): Mat4 {
         const by = angle(a, b);
         if (Math.abs(by) < 0.0001) return Mat4.setIdentity(mat);
         if (Math.abs(by - Math.PI) < EPSILON) {
             // here, axis can be [0,0,0] but the rotation is a simple flip
-            return Mat4.fromScaling(mat, flipScaling);
+            return Mat4.fromScaling(mat, negUnit);
         }
         const axis = cross(rotTemp, a, b);
         return Mat4.fromRotation(mat, by, axis);
@@ -525,6 +525,16 @@ namespace Vec3 {
         return normalize(out, cross(out, cross(out, a, b), a));
     }
 
+    /**
+     * Get a vector like `a` that point into the same general direction as `b`,
+     * i.e. where the dot product is > 0
+     */
+    export function matchDirection(out: Vec3, a: Vec3, b: Vec3) {
+        if (Vec3.dot(a, b) > 0) Vec3.copy(out, a)
+        else Vec3.negate(out, Vec3.copy(out, a))
+        return out
+    }
+
     const triangleNormalTmpAB = zero();
     const triangleNormalTmpAC = zero();
     /** Calculate normal for the triangle defined by `a`, `b` and `c` */
@@ -537,6 +547,9 @@ namespace Vec3 {
     export function toString(a: Vec3, precision?: number) {
         return `[${a[0].toPrecision(precision)} ${a[1].toPrecision(precision)} ${a[2].toPrecision(precision)}]`;
     }
+
+    export const unit: ReadonlyVec3 = Vec3.create(1, 1, 1)
+    export const negUnit: ReadonlyVec3 = Vec3.create(-1, -1, -1)
 }
 
 export default Vec3

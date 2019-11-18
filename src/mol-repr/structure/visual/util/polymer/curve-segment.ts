@@ -100,10 +100,7 @@ export function interpolateNormals(state: CurveSegmentState, controls: CurveSegm
 
     Vec3.orthogonalize(firstNormalVec, firstTangentVec, firstDirection)
     Vec3.orthogonalize(lastNormalVec, lastTangentVec, lastDirection)
-
-    if (Vec3.dot(firstNormalVec, lastNormalVec) < 0) {
-        Vec3.scale(lastNormalVec, lastNormalVec, -1)
-    }
+    Vec3.matchDirection(lastNormalVec, lastNormalVec, firstNormalVec)
 
     Vec3.copy(prevNormal, firstNormalVec)
 
