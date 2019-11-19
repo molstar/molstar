@@ -48,6 +48,7 @@ export function getModifiers(event: MouseEvent | Touch): ModifiersKeys {
 
 export const DefaultInputObserverProps = {
     noScroll: true,
+    noMiddleClickScroll: true,
     noContextMenu: true,
     noPinchZoom: true
 }
@@ -206,7 +207,7 @@ namespace InputObserver {
     }
 
     export function fromElement(element: Element, props: InputObserverProps = {}): InputObserver {
-        let { noScroll, noContextMenu, noPinchZoom } = { ...DefaultInputObserverProps, ...props }
+        let { noScroll, noMiddleClickScroll, noContextMenu, noPinchZoom } = { ...DefaultInputObserverProps, ...props }
 
         let lastTouchDistance = 0
         const pointerDown = Vec2.zero()
@@ -424,6 +425,9 @@ namespace InputObserver {
         function onMouseDown(ev: MouseEvent) {
             updateModifierKeys(ev)
             buttons = getButtons(ev)
+            if (noMiddleClickScroll && buttons === ButtonsType.Flag.Auxilary) {
+                ev.preventDefault
+            }
             onPointerDown(ev)
         }
 
