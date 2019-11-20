@@ -70,16 +70,21 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
 
         const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
         if (structConnEntries && structConnEntries.length) {
+            let added = false;
             for (const se of structConnEntries) {
-                if (se.distance < MAX_RADIUS) continue;
+                if (se.distance > MAX_RADIUS) continue;
 
                 for (const p of se.partners) {
                     const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex);
                     if (_bI < 0) continue;
                     addLink(_aI, _bI, se.order, se.flags, state);
                     bondCount++;
+                    added = true;
                 }
             }
+            // assume, for an atom, that if any inter unit bond is given
+            // all are given and thus we don't need to compute any other
+            if (added) continue;
         }
 
         const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], MAX_RADIUS);
@@ -96,7 +101,6 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
             const bI = atomsB[_bI];
 
             const altB = label_alt_idB.value(bI);
-            // TODO: check if they have the same model?
             if (altA && altB && altA !== altB) continue;
 
             const beI = getElementIdx(type_symbolB.value(bI)!);
@@ -108,26 +112,9 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
             const dist = Math.sqrt(squaredDistances[ni]);
             if (dist === 0) continue;
 
-            // handle "struct conn" bonds.
-            if (structConnEntries && structConnEntries.length) {
-                let added = false;
-                for (const se of structConnEntries) {
-                    for (const p of se.partners) {
-                        if (p.atomIndex === bI) {
-                            addLink(_aI, _bI, se.order, se.flags, state);
-                            bondCount++;
-                            added = true;
-                            break;
-                        }
-                    }
-                    if (added) break;
-                }
-                if (added) continue;
-            }
-
             if (isHa || isHb) {
                 if (dist < props.maxCovalentHydrogenBondingLength) {
-                    addLink(_aI, _bI, 1, LinkType.Flag.Covalent | LinkType.Flag.Computed, state); // TODO: check if correct
+                    addLink(_aI, _bI, 1, LinkType.Flag.Covalent | LinkType.Flag.Computed, state);
                     bondCount++;
                 }
                 continue;

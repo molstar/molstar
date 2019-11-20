@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { LinkType } from '../../../model/types'
@@ -73,7 +74,7 @@ function _computeBonds(unit: Unit.Atomic, props: LinkComputationProps): IntraUni
 
         if (structConnEntries) {
             for (const se of structConnEntries) {
-                if (se.distance < MAX_RADIUS) continue;
+                if (se.distance > MAX_RADIUS) continue;
 
                 for (const p of se.partners) {
                     const _bI = SortedArray.indexOf(unit.elements, p.atomIndex);
@@ -121,31 +122,12 @@ function _computeBonds(unit: Unit.Atomic, props: LinkComputationProps): IntraUni
             const dist = Math.sqrt(squaredDistances[ni]);
             if (dist === 0) continue;
 
-            // handle "struct conn" bonds.
-            if (structConnEntries && structConnEntries.length) {
-                let added = false;
-                for (const se of structConnEntries) {
-                    for (const p of se.partners) {
-                        if (p.atomIndex === bI) {
-                            atomA[atomA.length] = _aI;
-                            atomB[atomB.length] = _bI;
-                            flags[flags.length] = se.flags;
-                            order[order.length] = se.order;
-                            added = true;
-                            break;
-                        }
-                    }
-                    if (added) break;
-                }
-                if (added) continue;
-            }
-
             if (isHa || isHb) {
                 if (dist < props.maxCovalentHydrogenBondingLength) {
                     atomA[atomA.length] = _aI;
                     atomB[atomB.length] = _bI;
                     order[order.length] = 1;
-                    flags[flags.length] = LinkType.Flag.Covalent | LinkType.Flag.Computed; // TODO: check if correct
+                    flags[flags.length] = LinkType.Flag.Covalent | LinkType.Flag.Computed;
                 }
                 continue;
             }
