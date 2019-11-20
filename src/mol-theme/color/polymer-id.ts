@@ -14,18 +14,20 @@ import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPalette, getPaletteParams } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { Segmentation } from '../../mol-data/int';
+import { ColorLists } from '../../mol-util/color/lists';
 
+const DefaultList = 'dark-2'
 const DefaultColor = Color(0xFAFAFA)
 const Description = 'Gives every polymer chain a color based on its `asym_id` value.'
 
 export const PolymerIdColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
+    ...getPaletteParams({ type: 'set', setList: DefaultList }),
 }
 export type PolymerIdColorThemeParams = typeof PolymerIdColorThemeParams
 export function getPolymerIdColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(PolymerIdColorThemeParams)
     if (ctx.structure) {
-        if (getPolymerAsymIdSerialMap(ctx.structure.root).size > 12) {
+        if (getPolymerAsymIdSerialMap(ctx.structure.root).size > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'scale'
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,

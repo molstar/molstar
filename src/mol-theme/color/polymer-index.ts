@@ -12,18 +12,20 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
+import { ColorLists } from '../../mol-util/color/lists';
 
+const DefaultList = 'dark-2'
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
 
 export const PolymerIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
+    ...getPaletteParams({ type: 'set', setList: DefaultList }),
 }
 export type PolymerIndexColorThemeParams = typeof PolymerIndexColorThemeParams
 export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(PolymerIndexColorThemeParams)
     if (ctx.structure) {
-        if (getPolymerChainCount(ctx.structure.root) > 12) {
+        if (getPolymerChainCount(ctx.structure.root) > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'scale'
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,

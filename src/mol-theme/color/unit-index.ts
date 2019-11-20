@@ -12,18 +12,20 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
+import { ColorLists } from '../../mol-util/color/lists';
 
+const DefaultList = 'dark-2'
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
 
 export const UnitIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
+    ...getPaletteParams({ type: 'set', setList: DefaultList }),
 }
 export type UnitIndexColorThemeParams = typeof UnitIndexColorThemeParams
 export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(UnitIndexColorThemeParams)
     if (ctx.structure) {
-        if (ctx.structure.root.units.length > 12) {
+        if (ctx.structure.root.units.length > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'scale'
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,

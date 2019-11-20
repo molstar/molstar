@@ -15,18 +15,20 @@ import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { isInteger } from '../../mol-util/number';
+import { ColorLists } from '../../mol-util/color/lists';
 
+const DefaultList = 'dark-2'
 const DefaultColor = Color(0xFAFAFA)
 const Description = 'Gives ranges of a polymer chain a color based on the entity source it originates from (e.g. gene, plasmid, organism).'
 
 export const EntitySourceColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
+    ...getPaletteParams({ type: 'set', setList: DefaultList }),
 }
 export type EntitySourceColorThemeParams = typeof EntitySourceColorThemeParams
 export function getEntitySourceColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(EntitySourceColorThemeParams)
     if (ctx.structure) {
-        if (getMaps(ctx.structure.root.models).srcKeySerialMap.size > 12) {
+        if (getMaps(ctx.structure.root.models).srcKeySerialMap.size > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'scale'
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,

@@ -13,18 +13,20 @@ import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { Segmentation } from '../../mol-data/int';
+import { ColorLists } from '../../mol-util/color/lists';
 
+const DefaultList = 'dark-2'
 const DefaultColor = Color(0xFAFAFA)
 const Description = 'Gives every chain a color based on its `asym_id` value.'
 
 export const ChainIdColorThemeParams = {
-    ...getPaletteParams({ type: 'set', setList: 'dark-2' }),
+    ...getPaletteParams({ type: 'set', setList: DefaultList }),
 }
 export type ChainIdColorThemeParams = typeof ChainIdColorThemeParams
 export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(ChainIdColorThemeParams)
     if (ctx.structure) {
-        if (getAsymIdSerialMap(ctx.structure.root).size > 12) {
+        if (getAsymIdSerialMap(ctx.structure.root).size > ColorLists[DefaultList].list.length) {
             params.palette.defaultValue.name = 'scale'
             params.palette.defaultValue.params = {
                 ...params.palette.defaultValue.params,
