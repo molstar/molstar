@@ -17,6 +17,7 @@ import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observ
 import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
+import { Structure } from '../../../mol-model/structure';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -94,12 +95,15 @@ export const SelectLoci = PluginBehavior.create({
             if (!this.ctx.canvas3d) return;
             this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
         }
-        private applySelectMark(ref: string) {
+        private applySelectMark(ref: string, clear?: boolean) {
             const cell = this.ctx.state.dataState.cells.get(ref)
             if (cell && SO.isRepresentation3D(cell.obj)) {
                 this.spine.current = cell
                 const so = this.spine.getRootOfType(SO.Molecule.Structure)
                 if (so) {
+                    if (clear) {
+                        this.lociMarkProvider({ loci: Structure.Loci(so.data) }, MarkerAction.Deselect)
+                    }
                     const loci = this.ctx.helpers.structureSelectionManager.get(so.data)
                     this.lociMarkProvider({ loci }, MarkerAction.Select)
                 }
@@ -142,7 +146,7 @@ export const SelectLoci = PluginBehavior.create({
                 const cell = this.ctx.state.dataState.cells.get(ref)
                 if (cell && SO.Molecule.Structure.is(cell.obj)) {
                     const reprs = this.ctx.state.dataState.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref))
-                    for (const repr of reprs) this.applySelectMark(repr.transform.ref)
+                    for (const repr of reprs) this.applySelectMark(repr.transform.ref, true)
                 }
             });
         }
