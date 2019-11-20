@@ -140,16 +140,18 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
                 ])
             })
         ]),
-        // this is to get non-polymer components in polymer entities,
-        // e.g. PXZ in 4HIV or generally ACE
-        //
-        // one option to optimize this is to expose `_entity_poly.nstd_monomer` in molql
-        // and only check those entities residue by residue
+        // this is to get non-polymer and peptide terminus components in polymer entities,
+        // - non-polymer, e.g. PXZ in 4HIV or generally ACE
+        // - carboxy terminus, e.g. FC0 in 4BP9, or ETA in 6DDE
+        // - amino terminus, e.g. ARF in 3K4V, or 4MM in 3EGV
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'residue-test': MS.core.str.match([MS.re('non-polymer', 'i'), MS.ammp('chemCompType')])
+                'residue-test': MS.core.str.match([
+                    MS.re('non-polymer|(amino|carboxy) terminus', 'i'),
+                    MS.ammp('chemCompType')
+                ])
             })
         ])
     ]),

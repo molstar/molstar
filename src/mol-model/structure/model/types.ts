@@ -172,6 +172,12 @@ export const BetaProteinComponentTypeNames = new Set([
     'D-BETA-PEPTIDE, C-GAMMA LINKING', 'L-BETA-PEPTIDE, C-GAMMA LINKING'
 ])
 
+/** Chemical component type names for protein termini, overlaps with D/L-linked */
+export const ProteinTerminusComponentTypeNames = new Set([
+    'D-PEPTIDE NH3 AMINO TERMINUS', 'D-PEPTIDE COOH CARBOXY TERMINUS',
+    'L-PEPTIDE NH3 AMINO TERMINUS', 'L-PEPTIDE COOH CARBOXY TERMINUS'
+])
+
 /** Chemical component type names for pepdite-like protein */
 export const OtherProteinComponentTypeNames = new Set([
     'PEPTIDE LINKING', 'PEPTIDE-LIKE',
@@ -287,6 +293,8 @@ export function getPolymerType(compType: string, molType: MoleculeType): Polymer
             return PolymerType.GammaProtein
         } else if (BetaProteinComponentTypeNames.has(compType)) {
             return PolymerType.BetaProtein
+        } else if (ProteinTerminusComponentTypeNames.has(compType)) {
+            return PolymerType.NA
         } else {
             return PolymerType.Protein
         }
