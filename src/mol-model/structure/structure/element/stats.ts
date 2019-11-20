@@ -63,15 +63,16 @@ export namespace Stats {
             Location.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])
         }
 
-        if (size === 1) {
-            stats.elementCount += 1
-            if (stats.elementCount === 1) {
-                Location.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])
-            }
-        } else if (size === elements.length) {
+        // count single element unit as unit not element
+        if (size === elements.length) {
             stats.unitCount += 1
             if (stats.unitCount === 1) {
                 Location.set(stats.firstUnitLoc, unit, elements[OrderedSet.start(indices)])
+            }
+        } else if (size === 1) {
+            stats.elementCount += 1
+            if (stats.elementCount === 1) {
+                Location.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])
             }
         } else {
             if (Unit.isAtomic(unit)) {
