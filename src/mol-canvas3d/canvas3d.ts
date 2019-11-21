@@ -53,8 +53,8 @@ export { Canvas3D }
 interface Canvas3D {
     readonly webgl: WebGLContext,
 
-    add: (repr: Representation.Any) => void
-    remove: (repr: Representation.Any) => void
+    add: (repr: Representation.Any) => Promise<void>
+    remove: (repr: Representation.Any) => Promise<void>
     update: (repr?: Representation.Any, keepBoundingSphere?: boolean) => void
     clear: () => void
 
@@ -237,7 +237,7 @@ namespace Canvas3D {
         function commit(renderObjects?: readonly GraphicsRenderObject[]) {
             scene.update(renderObjects, false)
 
-            runTask(scene.commit()).then(() => {
+            return runTask(scene.commit()).then(() => {
                 if (cameraResetRequested && !scene.isCommiting) {
                     camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
                     cameraResetRequested = false
@@ -255,14 +255,14 @@ namespace Canvas3D {
 
             if (oldRO) {
                 if (!SetUtils.areEqual(newRO, oldRO)) {
-                    for (const o of Array.from(newRO)) { if (!oldRO.has(o)) scene.add(o); }
+                    for (const o of Array.from(newRO)) { if (!oldRO.has(o)) scene.add(o) }
                     for (const o of Array.from(oldRO)) { if (!newRO.has(o)) scene.remove(o) }
                 }
             } else {
                 repr.renderObjects.forEach(o => scene.add(o))
             }
             reprRenderObjects.set(repr, newRO)
-            commit(repr.renderObjects)
+            return commit(repr.renderObjects)
         }
 
         handleResize()
@@ -271,10 +271,10 @@ namespace Canvas3D {
             webgl,
 
             add: (repr: Representation.Any) => {
-                add(repr)
                 reprUpdatedSubscriptions.set(repr, repr.updated.subscribe(_ => {
                     if (!repr.state.syncManually) add(repr)
                 }))
+                return add(repr)
             },
             remove: (repr: Representation.Any) => {
                 const updatedSubscription = reprUpdatedSubscriptions.get(repr)
@@ -285,8 +285,9 @@ namespace Canvas3D {
                 if (renderObjects) {
                     renderObjects.forEach(o => scene.remove(o))
                     reprRenderObjects.delete(repr)
-                    commit()
+                    return commit()
                 }
+                return Promise.resolve()
             },
             update: (repr, keepSphere) => {
                 if (repr) {
