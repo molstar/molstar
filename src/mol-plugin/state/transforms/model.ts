@@ -715,7 +715,7 @@ const MultiStructureSelection = PluginStateTransform.BuiltIn({
 
         console.log(loci);
 
-        const props = { label: `${params.label || 'Multi-selection'}`, description: `${params.selections} source(s), ${size} element(s) total` };
+        const props = { label: `${params.label || 'Multi-selection'}`, description: `${params.selections.length} source(s), ${size} element(s) total` };
         return new SO.Molecule.Structure.Selections(loci, props);
     },
     // TODO: implement this

@@ -215,26 +215,37 @@ class TransientTree implements StateTree {
         this.changeNodes();
         this.changeChildren();
 
+
         for (const n of st) {
             this.transforms.delete(n.ref);
             this.children.delete(n.ref);
             if (this._childMutations) this._childMutations.delete(n.ref);
+        }
+
+        const depRemoves: StateTransform[] = [];
+        for (const n of st) {
+
+            if (n.dependsOn) {
+                for (const d of n.dependsOn) {
+                    if (!this.transforms.has(d)) continue;
+                    this.mutateDependency(d, n.ref, 'remove');
+                }
+            }
 
             if (this.dependencies.has(n.ref)) {
+                const deps = this.dependencies.get(n.ref).toArray();
                 this.changeDependencies();
                 this.dependencies.delete(n.ref);
                 if (this._dependencyMutations) this._dependencyMutations.delete(n.ref);
+
+                for (const dep of deps) {
+                    if (!this.transforms.has(dep)) continue;
+                    for (const del of this.remove(dep)) depRemoves[depRemoves.length] = del;
+                }
             }
         }
 
-        for (const n of st) {
-            if (!n.dependsOn) continue;
-
-            for (const d of n.dependsOn) {
-                if (!this.transforms.has(d)) continue;
-                this.mutateDependency(d, n.ref, 'remove');
-            }
-        }
+        for (const dep of depRemoves) st[st.length] = dep;
 
         return st;
     }
