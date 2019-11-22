@@ -41,6 +41,7 @@ import { StructureRepresentationHelper } from './util/structure-representation-h
 import { StructureSelectionHelper } from './util/structure-selection-helper';
 import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './state/toast';
+import { StructureMeasurementManager } from './util/structure-measurement';
 
 interface Log {
     entries: List<LogEntry>
@@ -130,7 +131,8 @@ export class PluginContext {
         structureSelection: new StructureSelectionHelper(this),
         structureRepresentation: new StructureRepresentationHelper(this),
         structureOverpaint: new StructureOverpaintHelper(this),
-        substructureParent: new SubstructureParentHelper(this)
+        substructureParent: new SubstructureParentHelper(this),
+        measurement: new StructureMeasurementManager(this)
     } as const;
 
     /**

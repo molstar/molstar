@@ -77,6 +77,11 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         }
     }
 
+    measureDistance = () => {
+        const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
+        this.plugin.helpers.measurement.addDistance(loci[0].loci, loci[1].loci);
+    }
+
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         if (p.name === 'granularity') {
             PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { granularity: p.value } });
@@ -166,10 +171,17 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             {this.controls}
             { latest.length > 0 &&
             <>
-                <div className='msp-control-group-header' style={{ marginTop: '1px' }}><span>Latest Selections</span></div>
+                <div className='msp-control-group-header' style={{ marginTop: '1px' }}><span>Latest Selections &amp; Measurement</span></div>
                 <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
                     {latest}
                 </ul>
+                {latest.length >= 2 &&
+                    <div className='msp-control-row msp-row-text'>
+                    <button className='msp-btn msp-btn-block' onClick={this.measureDistance} title='Measure distance between latest 2 selections'>
+                        Measure Distance
+                    </button>
+                </div>
+                }
             </>}
         </div>
     }
