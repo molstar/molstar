@@ -35,7 +35,7 @@ class StructureMeasurementManager {
         arraySetAdd(dependsOn, cellB.transform.ref);
 
         const update = this.getGroup();
-        update.apply(StateTransforms.Model.MultiStructureSelection, {
+        update.apply(StateTransforms.Model.MultiStructureMeasurementSelection, {
             selections: [
                 { ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
                 { ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) }

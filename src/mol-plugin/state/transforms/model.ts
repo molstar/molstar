@@ -670,17 +670,17 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
     }
 });
 
-export { MultiStructureSelection }
+export { MultiStructureMeasurementSelection }
 type MultiStructureSelectionCacheEntry = {
     ref: string,
     expression: Expression,
     compiled: QueryFn<Sel>,
     source: Structure
 }
-type MultiStructureSelection = typeof MultiStructureSelection
-const MultiStructureSelection = PluginStateTransform.BuiltIn({
-    name: 'structure-multi-selection-from-expression',
-    display: { name: 'Multi-structure Selection', description: 'Create selection object from multiple structures.' },
+type MultiStructureMeasurementSelection = typeof MultiStructureMeasurementSelection
+const MultiStructureMeasurementSelection = PluginStateTransform.BuiltIn({
+    name: 'structure-multi-measurement-selection-from-expression',
+    display: { name: 'Multi-structure Measurement Selection', description: 'Create selection object from multiple structures.' },
     from: SO.Root,
     to: SO.Molecule.Structure.Selections,
     params: {
@@ -719,6 +719,7 @@ const MultiStructureSelection = PluginStateTransform.BuiltIn({
         return new SO.Molecule.Structure.Selections(loci, props);
     },
     // TODO: implement this
+    // TODO: check if the "next structures" are structurally equivalent and then the loci could be simply re-mapped!!!
     // update: ({ a, b, oldParams, newParams, cache }) => {
     //     if (oldParams.expression !== newParams.expression) return StateTransformer.UpdateResult.Recreate;
 
