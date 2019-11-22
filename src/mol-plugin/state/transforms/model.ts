@@ -670,16 +670,16 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
     }
 });
 
-export { MultiStructureMeasurementSelection }
+export { MultiStructureSelection }
 type MultiStructureSelectionCacheEntry = {
     ref: string,
     expression: Expression,
     compiled: QueryFn<Sel>,
     source: Structure
 }
-type MultiStructureMeasurementSelection = typeof MultiStructureMeasurementSelection
-const MultiStructureMeasurementSelection = PluginStateTransform.BuiltIn({
-    name: 'structure-multi-measurement-selection-from-expression',
+type MultiStructureSelection = typeof MultiStructureSelection
+const MultiStructureSelection = PluginStateTransform.BuiltIn({
+    name: 'structure-multi-selection-from-expression',
     display: { name: 'Multi-structure Measurement Selection', description: 'Create selection object from multiple structures.' },
     from: SO.Root,
     to: SO.Molecule.Structure.Selections,
