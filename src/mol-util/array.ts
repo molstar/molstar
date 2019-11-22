@@ -78,12 +78,15 @@ export function arrayRemoveInPlace<T>(xs: T[], x: T) {
         }
     }
     if (!found) return false;
-    i++;
-    for (; i < l; i++) {
-        xs[i - 1] = xs[i];
+    arrayRemoveAtInPlace(xs, i);
+    return true;
+}
+
+export function arrayRemoveAtInPlace<T>(xs: T[], idx: number) {
+    for (let i = idx, _i = xs.length - 1; i < _i; i++) {
+        xs[i] = xs[i + 1];
     }
     xs.pop();
-    return true;
 }
 
 export function arraySetAdd<T>(xs: T[], x: T) {

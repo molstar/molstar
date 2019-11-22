@@ -13,6 +13,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Interactivity } from '../../util/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../../mol-util/string';
+import { StructureElement } from '../../../mol-model/structure';
 
 const SSQ = StructureSelectionQueries
 const DefaultQueries: (keyof typeof SSQ)[] = [
@@ -64,6 +65,18 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         this.plugin.canvas3d.camera.focus(center, radius, durationMs, normVecA, normVecC);
     }
 
+    focusSingle(loci: StructureElement.Loci) {
+        return () => {
+            const { extraRadius, minRadius, durationMs } = this.state
+            if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
+            const { sphere } = StructureElement.Loci.getBoundary(loci);
+            const radius = Math.max(sphere.radius + extraRadius, minRadius);
+            // const principalAxes = this.plugin.helpers.structureSelectionManager.getPrincipalAxes();
+            // const { center, normVecA, normVecC } = principalAxes
+            this.plugin.canvas3d.camera.focus(sphere.center, radius, durationMs);
+        }
+    }
+
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         if (p.name === 'granularity') {
             PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { granularity: p.value } });
@@ -85,6 +98,30 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     remove = (value: string) => this.set('remove', value)
     only = (value: string) => this.set('only', value)
 
+    queries = Options(Object.keys(StructureSelectionQueries)
+            .map(name => [name, SSQ[name as keyof typeof SSQ].label] as [string, string])
+            .filter(pair => DefaultQueries.includes(pair[0] as keyof typeof SSQ)));
+
+    controls = <div className='msp-control-row'>
+        <div className='msp-select-row'>
+            <ButtonSelect label='Select' onChange={this.add} disabled={this.state.isDisabled}>
+                <optgroup label='Select'>
+                    {this.queries}
+                </optgroup>
+            </ButtonSelect>
+            <ButtonSelect label='Deselect' onChange={this.remove} disabled={this.state.isDisabled}>
+                <optgroup label='Deselect'>
+                    {this.queries}
+                </optgroup>
+            </ButtonSelect>
+            <ButtonSelect label='Only' onChange={this.only} disabled={this.state.isDisabled}>
+                <optgroup label='Only'>
+                    {this.queries}
+                </optgroup>
+            </ButtonSelect>
+        </div>
+    </div>
+
     defaultState() {
         return {
             isCollapsed: false,
@@ -99,9 +136,24 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     }
 
     renderControls() {
-        const queries = Object.keys(StructureSelectionQueries)
-            .map(name => [name, SSQ[name as keyof typeof SSQ].label] as [string, string])
-            .filter(pair => DefaultQueries.includes(pair[0] as keyof typeof SSQ))
+        const latest: JSX.Element[] = [];
+
+        const mng = this.plugin.helpers.structureSelectionManager;
+
+        // TODO: fix the styles, move them to CSS
+
+        for (let i = 0, _i = Math.min(3, mng.latestLoci.length); i < _i; i++) {
+            const e = mng.latestLoci[i];
+            latest.push(<li key={e!.label}>
+                <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
+                    title='Click to focus.' onClick={this.focusSingle(e.loci)}>
+                    <span dangerouslySetInnerHTML={{ __html: e.label }} />
+                </button>
+                {/* <div>
+                    <IconButton icon='remove' title='Remove' onClick={() => {}} />
+                </div> */}
+            </li>)
+        }
 
         return <div>
             <div className='msp-control-row msp-row-text'>
@@ -111,25 +163,14 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                 </button>
             </div>
             <ParameterControls params={StructureSelectionParams} values={this.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
-            <div className='msp-control-row'>
-                <div className='msp-select-row'>
-                    <ButtonSelect label='Select' onChange={this.add} disabled={this.state.isDisabled}>
-                        <optgroup label='Select'>
-                            {Options(queries)}
-                        </optgroup>
-                    </ButtonSelect>
-                    <ButtonSelect label='Deselect' onChange={this.remove} disabled={this.state.isDisabled}>
-                        <optgroup label='Deselect'>
-                            {Options(queries)}
-                        </optgroup>
-                    </ButtonSelect>
-                    <ButtonSelect label='Only' onChange={this.only} disabled={this.state.isDisabled}>
-                        <optgroup label='Only'>
-                            {Options(queries)}
-                        </optgroup>
-                    </ButtonSelect>
-                </div>
-            </div>
+            {this.controls}
+            { latest.length > 0 &&
+            <>
+                <div className='msp-control-group-header' style={{ marginTop: '1px' }}><span>Latest Selections</span></div>
+                <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
+                    {latest}
+                </ul>
+            </>}
         </div>
     }
 }

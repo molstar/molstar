@@ -226,6 +226,7 @@
 
 // TODO : get rid of the important
 .msp-control-group-header {
+    background: $default-background;
     > button {
         padding-left: $control-spacing / 2 !important;
         text-align: left !important;
@@ -234,6 +235,13 @@
         font-size: 70% !important;
         background: $default-background !important;
         color: color-lower-contrast($font-color, 15%) !important;
+    }
+    > span {
+        padding-left: $control-spacing / 2;
+        line-height: 2 * $row-height / 3;
+        font-size: 70%;
+        background: $default-background;
+        color: color-lower-contrast($font-color, 15%);
     }
 }
 

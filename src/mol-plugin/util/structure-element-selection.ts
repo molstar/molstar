@@ -17,12 +17,15 @@ import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { Boundary } from '../../mol-model/structure/structure/util/boundary';
 import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
 import Matrix from '../../mol-math/linear-algebra/matrix/matrix';
+import { arrayRemoveAtInPlace } from '../../mol-util/array';
 
 const boundaryHelper = new BoundaryHelper();
+const LATEST_LOCI_CAPACITY = 8;
 
 export { StructureElementSelectionManager };
 class StructureElementSelectionManager {
     private entries = new Map<string, SelectionEntry>();
+    private _latestLoci: LatestEntry[] = [];
 
     private getEntry(s: Structure) {
         const cell = this.plugin.helpers.substructureParent.get(s);
@@ -35,6 +38,10 @@ class StructureElementSelectionManager {
         }
 
         return this.entries.get(ref)!;
+    }
+
+    get latestLoci(): ReadonlyArray<LatestEntry> {
+        return this._latestLoci;
     }
 
     /** Count of all selected elements */
@@ -114,7 +121,8 @@ class StructureElementSelectionManager {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 entry.selection = StructureElement.Loci.union(entry.selection, loci);
-                this.plugin.events.interactivity.selectionUpdated.next()
+                this.addLatest(loci);
+                this.plugin.events.interactivity.selectionUpdated.next();
                 return entry.selection;
             }
         }
@@ -126,7 +134,8 @@ class StructureElementSelectionManager {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
-                this.plugin.events.interactivity.selectionUpdated.next()
+                this.removeLatest(loci);
+                this.plugin.events.interactivity.selectionUpdated.next();
                 return StructureElement.Loci.isEmpty(entry.selection) ? EmptyLoci : entry.selection;
             }
         }
@@ -216,7 +225,11 @@ class StructureElementSelectionManager {
     }
 
     private onRemove(ref: string) {
-        if (this.entries.has(ref)) this.entries.delete(ref);
+        if (this.entries.has(ref)) {
+            this.entries.delete(ref);
+            // TODO: property update the latest loci
+            this._latestLoci = [];
+        }
     }
 
     private onUpdate(ref: string, oldObj: StateObject | undefined, obj: StateObject) {
@@ -224,6 +237,9 @@ class StructureElementSelectionManager {
 
         if (this.entries.has(ref)) {
             if (!PluginStateObject.Molecule.Structure.is(oldObj) || oldObj === obj || oldObj.data === obj.data) return;
+
+            // TODO: property update the latest loci
+            this._latestLoci = [];
 
             // remap the old selection to be related to the new object if possible.
             if (Structure.areUnitAndIndicesEqual(oldObj.data, obj.data)) {
@@ -236,6 +252,50 @@ class StructureElementSelectionManager {
         }
     }
 
+    private addLatest(loci: StructureElement.Loci) {
+        if (Loci.isEmpty(loci)) return;
+
+        let idx = 0, entry: LatestEntry | undefined = void 0;
+        for (const l of this._latestLoci) {
+            if (Loci.areEqual(l.loci, loci)) {
+                entry = l;
+                break;
+            }
+            idx++;
+        }
+
+        if (entry) {
+            arrayRemoveAtInPlace(this._latestLoci, idx);
+            this._latestLoci.unshift(entry);
+            return;
+        }
+
+        const stats = StructureElement.Stats.ofLoci(loci);
+        const label = structureElementStatsLabel(stats)
+
+        this._latestLoci.unshift({ loci, label });
+        if (this._latestLoci.length > LATEST_LOCI_CAPACITY) this._latestLoci.pop();
+    }
+
+    private removeLatest(loci: Loci) {
+        if (Loci.isEmpty(loci)) return;
+
+        let idx = 0, found = false;
+        for (const l of this._latestLoci) {
+            if (Loci.areEqual(l.loci, loci)) {
+                found = true;
+                break;
+            }
+            idx++;
+        }
+
+        if (found) {
+            arrayRemoveAtInPlace(this._latestLoci, idx);
+        }
+    }
+
+    // private removeLatestOnChange
+
     constructor(private plugin: PluginContext) {
         plugin.state.dataState.events.object.removed.subscribe(e => this.onRemove(e.ref));
         plugin.state.dataState.events.object.updated.subscribe(e => this.onUpdate(e.ref, e.oldObj, e.obj));
@@ -244,6 +304,11 @@ class StructureElementSelectionManager {
 
 interface SelectionEntry {
     selection: StructureElement.Loci
+}
+
+interface LatestEntry {
+    loci: StructureElement.Loci,
+    label: string
 }
 
 function SelectionEntry(s: Structure): SelectionEntry {
