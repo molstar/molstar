@@ -15,6 +15,7 @@ import { SortedArray } from '../../../../../mol-data/int';
 import { Vec3, Mat4 } from '../../../../../mol-math/linear-algebra';
 import StructureElement from '../../element';
 import { StructConn } from '../../../../../mol-model-formats/structure/mmcif/bonds';
+import { ElementIndex } from '../../../model/indexing';
 
 const MAX_RADIUS = 4;
 
@@ -35,6 +36,14 @@ function addLink(indexA: number, indexB: number, order: number, flag: LinkType.F
     addMapEntry(state.mapBA, indexB, { indexB: indexA, order, flag });
     UniqueArray.add(state.bondedA, indexA, indexA);
     UniqueArray.add(state.bondedB, indexB, indexB);
+}
+
+const tmpDistVecA = Vec3()
+const tmpDistVecB = Vec3()
+function getDistance(unitA: Unit.Atomic, indexA: ElementIndex, unitB: Unit.Atomic, indexB: ElementIndex) {
+    unitA.conformation.position(indexA, tmpDistVecA)
+    unitB.conformation.position(indexB, tmpDistVecB)
+    return Vec3.distance(tmpDistVecA, tmpDistVecB)
 }
 
 const _imageTransform = Mat4.zero();
@@ -72,11 +81,11 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
         if (structConnEntries && structConnEntries.length) {
             let added = false;
             for (const se of structConnEntries) {
-                if (se.distance > MAX_RADIUS) continue;
-
                 for (const p of se.partners) {
                     const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex);
                     if (_bI < 0) continue;
+                    // check if the bond is within MAX_RADIUS for this pair of units
+                    if (getDistance(unitA, aI, unitB, p.atomIndex) > MAX_RADIUS) continue;
                     addLink(_aI, _bI, se.order, se.flags, state);
                     bondCount++;
                     added = true;
