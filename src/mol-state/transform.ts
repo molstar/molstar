@@ -15,6 +15,11 @@ interface Transform<T extends StateTransformer = StateTransformer> {
     readonly state: Transform.State,
     readonly tags?: string[],
     readonly ref: Transform.Ref,
+    /**
+     * Sibling-like dependency
+     * Do NOT make a cell dependent on its ancestor.
+     */
+    readonly dependsOn?: Transform.Ref[],
     readonly params?: StateTransformer.Params<T>,
     readonly version: string
 }
@@ -85,7 +90,8 @@ namespace Transform {
     export interface Options {
         ref?: string,
         tags?: string | string[],
-        state?: State
+        state?: State,
+        dependsOn?: Ref[]
     }
 
     export function create<T extends StateTransformer>(parent: Ref, transformer: T, params?: StateTransformer.Params<T>, options?: Options): Transform<T> {
@@ -100,6 +106,7 @@ namespace Transform {
             state: (options && options.state) || { },
             tags,
             ref,
+            dependsOn: options && options.dependsOn,
             params,
             version: UUID.create22()
         }
@@ -134,6 +141,7 @@ namespace Transform {
         state?: State,
         tags?: string[],
         ref: string,
+        dependsOn?: string[]
         version: string
     }
 
@@ -156,6 +164,7 @@ namespace Transform {
             state,
             tags: t.tags,
             ref: t.ref,
+            dependsOn: t.dependsOn,
             version: t.version
         };
     }
@@ -172,6 +181,7 @@ namespace Transform {
             state: t.state || { },
             tags: t.tags,
             ref: t.ref as Ref,
+            dependsOn: t.dependsOn,
             version: t.version
         };
     }

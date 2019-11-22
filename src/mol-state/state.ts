@@ -21,6 +21,8 @@ import { ParamDefinition } from '../mol-util/param-definition';
 import { StateTreeSpine } from './tree/spine';
 import { AsyncQueue } from '../mol-util/async-queue';
 import { isProductionMode } from '../mol-util/debug'
+import { arraySetAdd, arraySetRemove } from '../mol-util/array';
+import { UniqueArray } from '../mol-data/generic';
 
 export { State }
 
@@ -228,6 +230,7 @@ class State {
                 definition: {},
                 values: {}
             },
+            links: { from: [], to: [] },
             cache: { }
         });
 
@@ -322,7 +325,9 @@ async function update(ctx: UpdateContext) {
         }
 
         for (const d of deletes) {
-            const obj = ctx.cells.has(d) ? ctx.cells.get(d)!.obj : void 0;
+            const cell = ctx.cells.get(d);
+            if (cell) unlinkCell(cell);
+            const obj = cell && cell.obj;
             ctx.cells.delete(d);
             deletedObjects.push(obj);
         }
@@ -333,10 +338,10 @@ async function update(ctx: UpdateContext) {
 
     // Init empty cells where not present
     // this is done in "pre order", meaning that "parents" will be created 1st.
-    const addedCells = initCells(ctx, roots);
+    const init = initCells(ctx, roots);
 
     // Notify additions of new cells.
-    for (const cell of addedCells) {
+    for (const cell of init.added) {
         ctx.parent.events.cell.created.next({ state: ctx.parent, ref: cell.transform.ref, cell });
     }
 
@@ -348,6 +353,12 @@ async function update(ctx: UpdateContext) {
     }
 
     if (deletedObjects.length) deletedObjects = [];
+
+    if (init.dependent) {
+        for (const cell of init.dependent) {
+            roots.push(cell.transform.ref);
+        }
+    }
 
     // Set status of cells that will be updated to 'pending'.
     initCellStatus(ctx, roots);
@@ -450,8 +461,17 @@ function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
     }
 }
 
-type InitCellsCtx = { ctx: UpdateContext, added: StateObjectCell[] }
-function initCellsVisitor(transform: StateTransform, _: any, { ctx, added }: InitCellsCtx) {
+function unlinkCell(cell: StateObjectCell) {
+    for (const other of cell.links.to) {
+        arraySetRemove(other.links.from, cell);
+    }
+}
+
+type InitCellsCtx = { ctx: UpdateContext, visited: Set<Ref>, added: StateObjectCell[] }
+
+function addCellsVisitor(transform: StateTransform, _: any, { ctx, added, visited }: InitCellsCtx) {
+    visited.add(transform.ref);
+
     if (ctx.cells.has(transform.ref)) {
         return;
     }
@@ -464,18 +484,60 @@ function initCellsVisitor(transform: StateTransform, _: any, { ctx, added }: Ini
         state: { ...transform.state },
         errorText: void 0,
         params: void 0,
+        links: { from: [], to: [] },
         cache: void 0
     };
+
     ctx.cells.set(transform.ref, cell);
     added.push(cell);
 }
 
-function initCells(ctx: UpdateContext, roots: Ref[]) {
-    const initCtx: InitCellsCtx = { ctx, added: [] };
-    for (const root of roots) {
-        StateTree.doPreOrder(ctx.tree, ctx.tree.transforms.get(root), initCtx, initCellsVisitor);
+// type LinkCellsCtx = { ctx: UpdateContext, visited: Set<Ref>, dependent: UniqueArray<Ref, StateObjectCell> }
+
+function linkCells(target: StateObjectCell, ctx: UpdateContext) {
+    if (!target.transform.dependsOn) return;
+
+    for (const ref of target.transform.dependsOn) {
+        const t = ctx.tree.transforms.get(ref);
+        if (!t) {
+            throw new Error(`Cannot depend on a non-existent transform.`);
+        }
+
+        const cell = ctx.cells.get(ref)!;
+        arraySetAdd(target.links.to, cell);
+        arraySetAdd(cell.links.from, target);
     }
-    return initCtx.added;
+}
+
+function initCells(ctx: UpdateContext, roots: Ref[]) {
+    const initCtx: InitCellsCtx = { ctx, visited: new Set(), added: [] };
+
+    // Add new cells
+    for (const root of roots) {
+        StateTree.doPreOrder(ctx.tree, ctx.tree.transforms.get(root), initCtx, addCellsVisitor);
+    }
+
+    // Update links for newly added cells
+    for (const cell of initCtx.added) {
+        linkCells(cell, ctx);
+    }
+
+    let dependent: UniqueArray<Ref, StateObjectCell>;
+
+    // Find dependent cells
+    initCtx.visited.forEach(ref => {
+        const cell = ctx.cells.get(ref)!;
+        for (const on of cell.links.to) {
+            if (initCtx.visited.has(on.transform.ref)) continue;
+
+            if (!dependent) dependent = UniqueArray.create();
+            UniqueArray.add(dependent, on.transform.ref, on);
+        }
+    });
+
+    // TODO: check if dependent cells are all "proper roots"
+
+    return { added: initCtx.added, dependent: dependent! ? dependent!.array : void 0 };
 }
 
 function findNewCurrent(tree: StateTree, start: Ref, deletes: Ref[], cells: Map<Ref, StateObjectCell>) {

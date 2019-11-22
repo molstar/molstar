@@ -85,3 +85,19 @@ export function arrayRemoveInPlace<T>(xs: T[], x: T) {
     xs.pop();
     return true;
 }
+
+export function arraySetAdd<T>(xs: T[], x: T) {
+    if (xs.indexOf(x) >= 0) return false;
+    xs.push(x);
+    return true;
+}
+
+export function arraySetRemove<T>(xs: T[], x: T) {
+    const idx = xs.indexOf(x);
+    if (idx < 0) return false;
+    for (let i = idx, _i = xs.length - 1; i < _i; i++) {
+        xs[i] = xs[i + 1];
+    }
+    xs.pop();
+    return true;
+}

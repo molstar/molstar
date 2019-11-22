@@ -69,7 +69,12 @@ interface StateObjectCell<T extends StateObject = StateObject, F extends StateTr
     params: {
         definition: ParamDefinition.Params,
         values: any
-    } | undefined;
+    } | undefined,
+
+    links: {
+        from: StateObjectCell[],
+        to: StateObjectCell[]
+    },
 
     errorText?: string,
     obj?: T,
