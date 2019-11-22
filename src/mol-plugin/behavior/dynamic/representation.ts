@@ -77,9 +77,9 @@ const DefaultSelectLociBindings = {
     clickSelect: Binding.Empty,
     clickSelectExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Extend selection to clicked element along polymer using ${triggers}.'),
     clickSelectOnly: Binding.Empty,
-    clickSelectToggle: Binding([Trigger(B.Flag.Primary, M.create())], 'Toggle selection of clicked element using ${triggers}.'),
+    clickSelectToggle: Binding([Trigger(B.Flag.Primary)], 'Toggle selection of clicked element using ${triggers}.'),
     clickDeselect: Binding.Empty,
-    clickDeselectAllOnEmpty: Binding([Trigger(B.Flag.Primary)], 'Deselect all when clicking on nothing using ${triggers}.'),
+    clickDeselectAllOnEmpty: Binding([Trigger(B.Flag.Secondary)], 'Deselect all when clicking on nothing using ${triggers}.'),
 }
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),

@@ -135,6 +135,8 @@ namespace Interactivity {
 
     export class LociSelectManager extends LociMarkManager {
         selectToggle(current: Loci<ModelLoci>, applyGranularity = true) {
+            if (ModelLoci.isEmpty(current.loci)) return;
+
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 this.toggleSel(normalized);
@@ -144,6 +146,8 @@ namespace Interactivity {
         }
 
         selectExtend(current: Loci<ModelLoci>, applyGranularity = true) {
+            if (ModelLoci.isEmpty(current.loci)) return;
+
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
                 const loci = this.sel.tryGetRange(normalized.loci) || normalized.loci;
