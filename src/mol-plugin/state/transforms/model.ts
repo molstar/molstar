@@ -669,3 +669,67 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+export { MultiStructureSelection }
+type MultiStructureSelectionCacheEntry = {
+    ref: string,
+    expression: Expression,
+    compiled: QueryFn<Sel>,
+    source: Structure
+}
+type MultiStructureSelection = typeof MultiStructureSelection
+const MultiStructureSelection = PluginStateTransform.BuiltIn({
+    name: 'structure-multi-selection-from-expression',
+    display: { name: 'Multi-structure Selection', description: 'Create selection object from multiple structures.' },
+    from: SO.Root,
+    to: SO.Molecule.Structure.Selections,
+    params: {
+        selections: PD.ObjectList({
+            ref: PD.Text(),
+            expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.empty)
+        }, e => e.ref, { isHidden: true }),
+        label: PD.Optional(PD.Text('', { isHidden: true }))
+    }
+})({
+    apply({ params, cache, dependencies }) {
+        const queries: MultiStructureSelectionCacheEntry[] = [];
+        const loci: StructureElement.Loci[] = [];
+        let size = 0;
+
+        for (const sel of params.selections) {
+            const e: MultiStructureSelectionCacheEntry = {
+                ref: sel.ref,
+                expression: sel.expression,
+                compiled: compile<Sel>(sel.expression),
+                source: dependencies![sel.ref].data as Structure
+            };
+            queries.push(e);
+
+            const s = e.compiled(new QueryContext(e.source));
+            const l = Sel.toLociWithSourceUnits(s);
+            loci.push(l);
+            size += StructureElement.Loci.size(l);
+        }
+
+        (cache as object as any).queries = queries;
+
+        console.log(loci);
+
+        const props = { label: `${params.label || 'Multi-selection'}`, description: `${params.selections} source(s), ${size} element(s) total` };
+        return new SO.Molecule.Structure.Selections(loci, props);
+    },
+    // TODO: implement this
+    // update: ({ a, b, oldParams, newParams, cache }) => {
+    //     if (oldParams.expression !== newParams.expression) return StateTransformer.UpdateResult.Recreate;
+
+    //     if ((cache as { source: Structure }).source === a.data) {
+    //         return StateTransformer.UpdateResult.Unchanged;
+    //     }
+    //     (cache as { source: Structure }).source = a.data;
+
+    //     if (updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label)) {
+    //         return StateTransformer.UpdateResult.Updated;
+    //     }
+    //     return StateTransformer.UpdateResult.Null;
+    // }
+});

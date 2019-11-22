@@ -230,7 +230,7 @@ class State {
                 definition: {},
                 values: {}
             },
-            links: { from: [], to: [] },
+            dependencies: { dependentBy: [], dependsOn: [] },
             cache: { }
         });
 
@@ -462,8 +462,8 @@ function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
 }
 
 function unlinkCell(cell: StateObjectCell) {
-    for (const other of cell.links.to) {
-        arraySetRemove(other.links.from, cell);
+    for (const other of cell.dependencies.dependsOn) {
+        arraySetRemove(other.dependencies.dependentBy, cell);
     }
 }
 
@@ -484,7 +484,7 @@ function addCellsVisitor(transform: StateTransform, _: any, { ctx, added, visite
         state: { ...transform.state },
         errorText: void 0,
         params: void 0,
-        links: { from: [], to: [] },
+        dependencies: { dependentBy: [], dependsOn: [] },
         cache: void 0
     };
 
@@ -504,8 +504,8 @@ function linkCells(target: StateObjectCell, ctx: UpdateContext) {
         }
 
         const cell = ctx.cells.get(ref)!;
-        arraySetAdd(target.links.to, cell);
-        arraySetAdd(cell.links.from, target);
+        arraySetAdd(target.dependencies.dependsOn, cell);
+        arraySetAdd(cell.dependencies.dependentBy, target);
     }
 }
 
@@ -527,11 +527,11 @@ function initCells(ctx: UpdateContext, roots: Ref[]) {
     // Find dependent cells
     initCtx.visited.forEach(ref => {
         const cell = ctx.cells.get(ref)!;
-        for (const on of cell.links.to) {
-            if (initCtx.visited.has(on.transform.ref)) continue;
+        for (const by of cell.dependencies.dependentBy) {
+            if (initCtx.visited.has(by.transform.ref)) continue;
 
             if (!dependent) dependent = UniqueArray.create();
-            UniqueArray.add(dependent, on.transform.ref, on);
+            UniqueArray.add(dependent, by.transform.ref, by);
         }
     });
 
@@ -742,7 +742,22 @@ function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {
 
 function createObject(ctx: UpdateContext, cell: StateObjectCell, transformer: StateTransformer, a: StateObject, params: any) {
     if (!cell.cache) cell.cache = Object.create(null);
-    return runTask(transformer.definition.apply({ a, params, cache: cell.cache, spine: ctx.spine }, ctx.parent.globalContext), ctx.taskCtx);
+    return runTask(transformer.definition.apply({ a, params, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(ctx, cell) }, ctx.parent.globalContext), ctx.taskCtx);
+}
+
+function resolveDependencies(ctx: UpdateContext, cell: StateObjectCell) {
+    if (cell.dependencies.dependsOn.length === 0) return void 0;
+
+    const deps = Object.create(null);
+
+    for (const dep of cell.dependencies.dependsOn) {
+        if (!dep.obj) {
+            throw new Error('Unresolved dependency.');
+        }
+        deps[dep.transform.ref] = dep.obj;
+    }
+
+    return deps;
 }
 
 async function updateObject(ctx: UpdateContext, cell: StateObjectCell,  transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
@@ -750,5 +765,5 @@ async function updateObject(ctx: UpdateContext, cell: StateObjectCell,  transfor
         return StateTransformer.UpdateResult.Recreate;
     }
     if (!cell.cache) cell.cache = Object.create(null);
-    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine }, ctx.parent.globalContext), ctx.taskCtx);
+    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(ctx, cell) }, ctx.parent.globalContext), ctx.taskCtx);
 }

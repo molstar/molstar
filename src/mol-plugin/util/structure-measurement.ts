@@ -9,6 +9,7 @@ import { PluginContext } from '../context';
 import { StateSelection, StateTransform } from '../../mol-state';
 import { StateTransforms } from '../state/transforms';
 import { PluginCommands } from '../command';
+import { arraySetAdd } from '../../mol-util/array';
 
 export { StructureMeasurementManager }
 
@@ -30,9 +31,17 @@ class StructureMeasurementManager {
 
         if (!cellA || !cellB) return;
 
-        const update = this.getGroup();
+        const dependsOn = [cellA.transform.ref];
+        arraySetAdd(dependsOn, cellB.transform.ref);
 
-        console.log({ cellA, cellB });
+        const update = this.getGroup();
+        update.apply(StateTransforms.Model.MultiStructureSelection, {
+            selections: [
+                { ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
+                { ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) }
+            ],
+            label: 'Distance'
+        }, { dependsOn });
 
         const state = this.context.state.dataState;
         await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });

@@ -7,7 +7,7 @@
 
 import { CifFile } from '../../mol-io/reader/cif';
 import { PlyFile } from '../../mol-io/reader/ply/schema';
-import { Model as _Model, Structure as _Structure } from '../../mol-model/structure';
+import { Model as _Model, Structure as _Structure, StructureElement } from '../../mol-model/structure';
 import { VolumeData } from '../../mol-model/volume';
 import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
 import { Representation } from '../../mol-repr/representation';
@@ -98,6 +98,8 @@ export namespace PluginStateObject {
                 info?: unknown
             }
             export class Representation3DState extends Create<Representation3DStateData>({ name: 'Structure 3D State', typeClass: 'Object' }) { }
+
+            export class Selections extends Create<ReadonlyArray<StructureElement.Loci>>({ name: 'Selections', typeClass: 'Object' }) {}
         }
     }
 

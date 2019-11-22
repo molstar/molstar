@@ -71,9 +71,9 @@ interface StateObjectCell<T extends StateObject = StateObject, F extends StateTr
         values: any
     } | undefined,
 
-    links: {
-        from: StateObjectCell[],
-        to: StateObjectCell[]
+    dependencies: {
+        dependentBy: StateObjectCell[],
+        dependsOn: StateObjectCell[]
     },
 
     errorText?: string,
