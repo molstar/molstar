@@ -298,6 +298,8 @@ namespace Canvas3D {
                 }
             },
             clear: () => {
+                reprUpdatedSubscriptions.forEach(v => v.unsubscribe())
+                reprUpdatedSubscriptions.clear()
                 reprRenderObjects.clear()
                 scene.clear()
                 debugHelper.clear()
