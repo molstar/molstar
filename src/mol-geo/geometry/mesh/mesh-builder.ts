@@ -8,7 +8,6 @@ import { ValueCell } from '../../../mol-util/value-cell'
 import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra';
 import { ChunkedArray } from '../../../mol-data/util';
 import { Mesh } from './mesh';
-import { getNormalMatrix } from '../../util';
 import { Primitive } from '../../primitive/primitive';
 import { Cage } from '../../../mol-geo/primitive/cage';
 import { addSphere } from './builder/sphere';
@@ -85,7 +84,7 @@ export namespace MeshBuilder {
         const { vertices: va, normals: na, indices: ia } = primitive
         const { vertices, normals, indices, groups, currentGroup } = state
         const offset = vertices.elementCount
-        const n = getNormalMatrix(tmpMat3, t)
+        const n = Mat3.directionTransform(tmpMat3, t)
         for (let i = 0, il = va.length; i < il; i += 3) {
             // position
             Vec3.transformMat4(tmpV, Vec3.fromArray(tmpV, va, i), t)

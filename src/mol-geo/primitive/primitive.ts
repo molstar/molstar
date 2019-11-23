@@ -5,7 +5,6 @@
  */
 
 import { Vec3, Mat4, Mat3 } from '../../mol-math/linear-algebra';
-import { getNormalMatrix } from '../util';
 import { NumberArray } from '../../mol-util/type-helpers';
 
 export interface Primitive {
@@ -74,7 +73,7 @@ const tmpMat3 = Mat3.zero()
 /** Transform primitive in-place */
 export function transformPrimitive(primitive: Primitive, t: Mat4) {
     const { vertices, normals } = primitive
-    const n = getNormalMatrix(tmpMat3, t)
+    const n = Mat3.directionTransform(tmpMat3, t)
     for (let i = 0, il = vertices.length; i < il; i += 3) {
         // position
         Vec3.transformMat4(tmpV, Vec3.fromArray(tmpV, vertices, i), t)

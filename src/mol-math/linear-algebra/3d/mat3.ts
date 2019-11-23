@@ -441,6 +441,16 @@ namespace Mat3 {
         return out
     }
 
+    /**
+     * Get matrix to transform directions, e.g. normals
+     */
+    export function directionTransform(out: Mat3, t: Mat4) {
+        Mat3.fromMat4(out, t)
+        Mat3.invert(out, out)
+        Mat3.transpose(out, out)
+        return out
+    }
+
     export const Identity: ReadonlyMat3 = identity()
 }
 

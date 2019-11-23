@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,13 +18,6 @@ export function normalizeVec3Array<T extends NumberArray> (a: T) {
         a[ i + 1 ] = y * s
         a[ i + 2 ] = z * s
     }
-}
-
-export function getNormalMatrix(out: Mat3, t: Mat4) {
-    Mat3.fromMat4(out, t)
-    Mat3.invert(out, out)
-    Mat3.transpose(out, out)
-    return out
 }
 
 const tmpV3 = Vec3.zero()
