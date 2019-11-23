@@ -19,11 +19,14 @@ namespace Box3D {
     export function create(min: Vec3, max: Vec3): Box3D { return { min, max }; }
     export function empty(): Box3D { return { min: Vec3(), max: Vec3() }; }
 
-    export function clone(a: Box3D): Box3D {
-        const out = empty();
+    export function copy(out: Box3D, a: Box3D): Box3D {
         Vec3.copy(out.min, a.min);
         Vec3.copy(out.max, a.max);
         return out;
+    }
+
+    export function clone(a: Box3D): Box3D {
+        return copy(empty(), a);
     }
 
     export function computeBounding(data: PositionData): Box3D {
@@ -49,7 +52,7 @@ namespace Box3D {
     }
 
     const tmpSizeV = Vec3()
-    /** Get size of the box */
+    /** Get volume of the box */
     export function volume(box: Box3D): number {
         size(tmpSizeV, box)
         return tmpSizeV[0] * tmpSizeV[1] * tmpSizeV[2]

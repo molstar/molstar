@@ -10,6 +10,7 @@ import { PositionData } from '../common'
 import { OrderedSet } from '../../../mol-data/int';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Box3D } from './box3d';
+import { Axes3D } from './axes3d';
 
 interface Sphere3D { center: Vec3, radius: number }
 
@@ -84,6 +85,12 @@ namespace Sphere3D {
     export function fromBox3D(out: Sphere3D, box: Box3D) {
         Vec3.scale(out.center, Vec3.add(out.center, box.max, box.min), 0.5)
         out.radius = Vec3.distance(out.center, box.max)
+        return out
+    }
+
+    export function fromAxes3D(out: Sphere3D, axes: Axes3D) {
+        Vec3.copy(out.center, axes.origin)
+        out.radius = Math.max(Vec3.magnitude(axes.dirA), Vec3.magnitude(axes.dirB), Vec3.magnitude(axes.dirC))
         return out
     }
 
