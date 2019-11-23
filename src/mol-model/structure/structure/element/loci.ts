@@ -20,7 +20,6 @@ import { UnitIndex } from './element';
 import { Location } from './location';
 import { ChainIndex } from '../../model/indexing';
 import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/principal-axes';
-import Matrix from '../../../../mol-math/linear-algebra/matrix/matrix';
 import { NumberArray } from '../../../../mol-util/type-helpers';
 
 /** Represents multiple structure element index locations */
@@ -430,7 +429,7 @@ export namespace Loci {
     export function getPrincipalAxes(loci: Loci): PrincipalAxes {
         const elementCount = size(loci)
         const positions = toPositionsArray(loci, new Float32Array(3 * elementCount))
-        return PrincipalAxes.ofPoints(Matrix.fromArray(positions, 3, elementCount))
+        return PrincipalAxes.ofPositions(positions)
     }
 
     function sourceIndex(unit: Unit, element: ElementIndex) {

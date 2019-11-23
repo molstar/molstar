@@ -14,6 +14,8 @@ import { Interactivity } from '../../util/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../../mol-util/string';
 import { StructureElement } from '../../../mol-model/structure';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 const SSQ = StructureSelectionQueries
 const DefaultQueries: (keyof typeof SSQ)[] = [
@@ -58,21 +60,18 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     focus = () => {
         const { extraRadius, minRadius, durationMs } = this.state
         if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
-        const { sphere } = this.plugin.helpers.structureSelectionManager.getBoundary();
-        const radius = Math.max(sphere.radius + extraRadius, minRadius);
         const principalAxes = this.plugin.helpers.structureSelectionManager.getPrincipalAxes();
-        const { center, normVecA, normVecC } = principalAxes
-        this.plugin.canvas3d.camera.focus(center, radius, durationMs, normVecA, normVecC);
+        const { origin, dirA, dirC } = principalAxes.boxAxes
+        const radius = Math.max(Vec3.magnitude(dirA) + extraRadius, minRadius);
+        this.plugin.canvas3d.camera.focus(origin, radius, durationMs, dirA, dirC);
     }
 
-    focusSingle(loci: StructureElement.Loci) {
+    focusLoci(loci: StructureElement.Loci) {
         return () => {
             const { extraRadius, minRadius, durationMs } = this.state
             if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
-            const { sphere } = StructureElement.Loci.getBoundary(loci);
+            const sphere = Sphere3D.fromAxes3D(Sphere3D(), StructureElement.Loci.getPrincipalAxes(loci).boxAxes)
             const radius = Math.max(sphere.radius + extraRadius, minRadius);
-            // const principalAxes = this.plugin.helpers.structureSelectionManager.getPrincipalAxes();
-            // const { center, normVecA, normVecC } = principalAxes
             this.plugin.canvas3d.camera.focus(sphere.center, radius, durationMs);
         }
     }
@@ -151,7 +150,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             const e = mng.latestLoci[i];
             latest.push(<li key={e!.label}>
                 <button className='msp-btn msp-btn-block msp-form-control' style={{ borderRight: '6px solid transparent', overflow: 'hidden' }}
-                    title='Click to focus.' onClick={this.focusSingle(e.loci)}>
+                    title='Click to focus.' onClick={this.focusLoci(e.loci)}>
                     <span dangerouslySetInnerHTML={{ __html: e.label }} />
                 </button>
                 {/* <div>

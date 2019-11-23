@@ -13,7 +13,7 @@ import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/princi
 import { fillSerial } from '../../../../mol-util/array';
 import { ResidueIndex, Model } from '../../model';
 import { ElementSymbol } from '../../model/types';
-import { getPositionMatrix } from '../../util';
+import { getPositions } from '../../util';
 import StructureElement from '../element';
 import Structure from '../structure';
 import Unit from '../unit';
@@ -195,9 +195,9 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const ringAtoms = rings.all[sugarRings[j]];
                     const anomericCarbon = getAnomericCarbon(unit, ringAtoms)
 
-                    const pa = PrincipalAxes.ofPoints(getPositionMatrix(unit, ringAtoms))
-                    const center = Vec3.copy(Vec3.zero(), pa.center)
-                    const normal = Vec3.copy(Vec3.zero(), pa.normVecC)
+                    const ma = PrincipalAxes.calculateMomentsAxes(getPositions(unit, ringAtoms))
+                    const center = Vec3.copy(Vec3.zero(), ma.origin)
+                    const normal = Vec3.copy(Vec3.zero(), ma.dirC)
                     const direction = getDirection(Vec3.zero(), unit, anomericCarbon, center)
                     Vec3.orthogonalize(direction, normal, direction)
 

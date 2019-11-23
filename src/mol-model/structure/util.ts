@@ -8,7 +8,7 @@ import { Model, ResidueIndex, ElementIndex } from './model';
 import { MoleculeType, AtomRole, PolymerTypeAtomRoleId, getMoleculeType, PolymerType } from './model/types';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { Unit } from './structure';
-import Matrix from '../../mol-math/linear-algebra/matrix/matrix';
+import { NumberArray } from '../../mol-util/type-helpers';
 
 export function getCoarseBegCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIndex) {
     const entityKey = unit.coarseElements.entityKey[element]
@@ -80,14 +80,14 @@ export function elementLabel(model: Model, index: ElementIndex) {
 //     return Vec3.distance(centerMin, centroid)
 // }
 
-const matrixPos = Vec3.zero()
-export function getPositionMatrix(unit: Unit, indices: ArrayLike<number>): Matrix<3, number> {
+const tmpPositionsVec = Vec3.zero()
+export function getPositions(unit: Unit, indices: ArrayLike<number>): NumberArray {
     const pos = unit.conformation.position
-    const mat = Matrix.create(3, indices.length)
+    const positions = new Float32Array(indices.length * 3)
     const { elements } = unit
     for (let i = 0, il = indices.length; i < il; ++i) {
-        pos(elements[indices[i]], matrixPos)
-        Vec3.toArray(matrixPos, mat.data, i * 3)
+        pos(elements[indices[i]], tmpPositionsVec)
+        Vec3.toArray(tmpPositionsVec, positions, i * 3)
     }
-    return mat
+    return positions
 }

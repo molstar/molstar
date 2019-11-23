@@ -5,36 +5,31 @@
  */
 
 import Matrix from './matrix';
-import { Vec3, Mat4 } from '../3d';
+import { Vec3 } from '../3d';
 import { svd } from './svd';
 import { NumberArray } from '../../../mol-util/type-helpers';
+import { Axes3D } from '../../geometry';
 
 export { PrincipalAxes }
 
 interface PrincipalAxes {
-    begA: Vec3
-    endA: Vec3
-    begB: Vec3
-    endB: Vec3
-    begC: Vec3
-    endC: Vec3
-
-    center: Vec3
-
-    vecA: Vec3
-    vecB: Vec3
-    vecC: Vec3
-
-    normVecA: Vec3
-    normVecB: Vec3
-    normVecC: Vec3
+    momentsAxes: Axes3D
+    boxAxes: Axes3D
 }
 
 namespace PrincipalAxes {
-    /**
-     * @param points 3xN matrix
-     */
-    export function ofPoints(points: Matrix<3, number>): PrincipalAxes {
+    export function ofPositions(positions: NumberArray): PrincipalAxes {
+        const momentsAxes = calculateMomentsAxes(positions)
+        const boxAxes = calculateBoxAxes(positions, momentsAxes)
+        return { momentsAxes, boxAxes }
+    }
+
+    export function calculateMomentsAxes(positions: NumberArray): Axes3D {
+        if (positions.length === 3) {
+            return Axes3D.create(Vec3.fromArray(Vec3(), positions, 0), Vec3(), Vec3(), Vec3())
+        }
+
+        const points = Matrix.fromArray(positions, 3, positions.length / 3)
         const n = points.rows
         const n3 = n / 3
         const A = Matrix.create(3, 3)
@@ -49,49 +44,33 @@ namespace PrincipalAxes {
         Matrix.multiplyABt(A, pointsT, pointsT)
         svd(A, W, U, V)
 
-        // center
-        const center = Vec3.create(mean[0], mean[1], mean[2])
+        // origin
+        const origin = Vec3.create(mean[0], mean[1], mean[2])
 
-        // normalized
-        const normVecA = Vec3.create(U.data[0], U.data[3], U.data[6])
-        const normVecB = Vec3.create(U.data[1], U.data[4], U.data[7])
-        const normVecC = Vec3.create(U.data[2], U.data[5], U.data[8])
+        // directions
+        const dirA = Vec3.create(U.data[0], U.data[3], U.data[6])
+        const dirB = Vec3.create(U.data[1], U.data[4], U.data[7])
+        const dirC = Vec3.create(U.data[2], U.data[5], U.data[8])
+        Vec3.scale(dirA, dirA, Math.sqrt(W.data[0] / n3))
+        Vec3.scale(dirB, dirB, Math.sqrt(W.data[1] / n3))
+        Vec3.scale(dirC, dirC, Math.sqrt(W.data[2] / n3))
 
-        // scaled
-        const vecA = Vec3.scale(Vec3(), normVecA, Math.sqrt(W.data[0] / n3))
-        const vecB = Vec3.scale(Vec3(), normVecB, Math.sqrt(W.data[1] / n3))
-        const vecC = Vec3.scale(Vec3(), normVecC, Math.sqrt(W.data[2] / n3))
-
-        // points
-        const begA = Vec3.sub(Vec3.clone(center), center, vecA)
-        const endA = Vec3.add(Vec3.clone(center), center, vecA)
-        const begB = Vec3.sub(Vec3.clone(center), center, vecB)
-        const endB = Vec3.add(Vec3.clone(center), center, vecB)
-        const begC = Vec3.sub(Vec3.clone(center), center, vecC)
-        const endC = Vec3.add(Vec3.clone(center), center, vecC)
-
-        return {
-            begA, endA, begB, endB, begC, endC,
-            center,
-            vecA, vecB, vecC,
-            normVecA, normVecB, normVecC
-        }
+        return Axes3D.create(origin, dirA, dirB, dirC)
     }
 
-    /**
-     * Set basis matrix for given axes
-     */
-    export function setBasisMatrix(out: Mat4, principalAxes: PrincipalAxes) {
-        Mat4.setAxes(out, principalAxes.normVecB, principalAxes.normVecA, principalAxes.normVecC)
-        if (Mat4.determinant(out) < 0) Mat4.scaleUniformly(out, out, -1)
-        return out
-    }
-
+    const tmpBoxVec = Vec3()
+    const tmpBoxVecA = Vec3()
+    const tmpBoxVecB = Vec3()
+    const tmpBoxVecC = Vec3()
     /**
      * Get the scale/length for each dimension for a box around the axes
      * to enclose the given positions
      */
-    export function getProjectedScale(positions: NumberArray, principalAxes: PrincipalAxes) {
+    export function calculateBoxAxes(positions: NumberArray, momentsAxes: Axes3D): Axes3D {
+        if (positions.length === 3) {
+            return Axes3D.clone(momentsAxes)
+        }
+
         let d1a = -Infinity
         let d1b = -Infinity
         let d2a = -Infinity
@@ -102,7 +81,10 @@ namespace PrincipalAxes {
         const p = Vec3()
         const t = Vec3()
 
-        const { center, normVecA, normVecB, normVecC } = principalAxes
+        const center = momentsAxes.origin
+        const normVecA = Vec3.normalize(tmpBoxVecA, momentsAxes.dirA)
+        const normVecB = Vec3.normalize(tmpBoxVecB, momentsAxes.dirB)
+        const normVecC = Vec3.normalize(tmpBoxVecC, momentsAxes.dirC)
 
         for (let i = 0, il = positions.length; i < il; i += 3) {
             Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), normVecA, center)
@@ -133,13 +115,28 @@ namespace PrincipalAxes {
             }
         }
 
-        return {
-            d1a: d1a,
-            d2a: d2a,
-            d3a: d3a,
-            d1b: -d1b,
-            d2b: -d2b,
-            d3b: -d3b
+        const dirA = Vec3.setMagnitude(Vec3(), normVecA, (d1a + d1b) / 2)
+        const dirB = Vec3.setMagnitude(Vec3(), normVecB, (d2a + d2b) / 2)
+        const dirC = Vec3.setMagnitude(Vec3(), normVecC, (d3a + d3b) / 2)
+
+        const origin = Vec3()
+        const addCornerHelper = function (d1: number, d2: number, d3: number) {
+            Vec3.copy(tmpBoxVec, center)
+            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, normVecA, d1)
+            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, normVecB, d2)
+            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, normVecC, d3)
+            Vec3.add(origin, origin, tmpBoxVec)
         }
+        addCornerHelper(d1a, d2a, d3a)
+        addCornerHelper(d1a, d2a, -d3b)
+        addCornerHelper(d1a, -d2b, -d3b)
+        addCornerHelper(d1a, -d2b, d3a)
+        addCornerHelper(-d1b, -d2b, -d3b)
+        addCornerHelper(-d1b, -d2b, d3a)
+        addCornerHelper(-d1b, d2a, d3a)
+        addCornerHelper(-d1b, d2a, -d3b)
+        Vec3.scale(origin, origin, 1 / 8)
+
+        return Axes3D.create(origin, dirA, dirB, dirC)
     }
 }

@@ -16,7 +16,6 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { Boundary } from '../../mol-model/structure/structure/util/boundary';
 import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
-import Matrix from '../../mol-math/linear-algebra/matrix/matrix';
 import { arrayRemoveAtInPlace } from '../../mol-util/array';
 
 const boundaryHelper = new BoundaryHelper();
@@ -92,7 +91,7 @@ class StructureElementSelectionManager {
             StructureElement.Loci.toPositionsArray(v.selection, positions, offset)
             offset += StructureElement.Loci.size(v.selection) * 3
         })
-        return PrincipalAxes.ofPoints(Matrix.fromArray(positions, 3, elementCount))
+        return PrincipalAxes.ofPositions(positions)
     }
 
     get stats() {
