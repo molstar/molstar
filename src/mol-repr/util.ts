@@ -52,6 +52,24 @@ export interface QualityProps {
     resolution: number
 }
 
+export function getStructureQuality(structure: Structure): VisualQuality {
+    let score = structure.elementCount
+    if (structure.isCoarse) score *= 10
+    if (score > 500_000) {
+        return 'lowest'
+    } else if (score > 200_000) {
+        return 'lower'
+    } else if (score > 60_000) {
+        return 'low'
+    } else if (score > 20_000) {
+        return 'medium'
+    } else if (score > 2_000) {
+        return 'high'
+    } else {
+        return 'higher'
+    }
+}
+
 export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let quality = defaults(props.quality, 'auto' as VisualQuality)
     let detail = defaults(props.detail, 1)
@@ -60,22 +78,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let resolution = defaults(props.resolution, 2)
 
     if (quality === 'auto' && data instanceof Structure) {
-        const structure = data.root
-        let score = structure.elementCount
-        if (structure.isCoarse) score *= 10
-        if (score > 500_000) {
-            quality = 'lowest'
-        } else if (score > 200_000) {
-            quality = 'lower'
-        } else if (score > 60_000) {
-            quality = 'low'
-        } else if (score > 20_000) {
-            quality = 'medium'
-        } else if (score > 2_000) {
-            quality = 'high'
-        } else {
-            quality = 'higher'
-        }
+        quality = getStructureQuality(data.root)
     }
 
     switch (quality) {
