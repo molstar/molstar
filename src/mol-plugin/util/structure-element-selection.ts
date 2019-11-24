@@ -327,25 +327,13 @@ function remapSelectionEntry(e: SelectionEntry, s: Structure): SelectionEntry {
  * Assumes `ref` and `ext` belong to the same unit in the same structure
  */
 function tryGetElementRange(structure: Structure, ref: StructureElement.Loci['elements'][0], ext: StructureElement.Loci['elements'][0]) {
+    let start = OrderedSet.findPredecessorIndex(ref.indices, OrderedSet.min(ext.indices));
+    if (start >= OrderedSet.size(ref.indices)) start--;
+    let end = OrderedSet.findPredecessorIndex(ref.indices, OrderedSet.max(ext.indices));
+    if (end >= OrderedSet.size(ref.indices)) end--;
 
-    const refMin = OrderedSet.min(ref.indices)
-    const refMax = OrderedSet.max(ref.indices)
-    const extMin = OrderedSet.min(ext.indices)
-    const extMax = OrderedSet.max(ext.indices)
-
-    let min: number
-    let max: number
-
-    if (refMax < extMin) {
-        min = refMax + 1
-        max = extMax
-    } else if (extMax < refMin) {
-        min = extMin
-        max = refMin - 1
-    } else {
-        // TODO handle range overlap cases
-        return
-    }
+    const min = Math.min(OrderedSet.getAt(ref.indices, start), OrderedSet.min(ext.indices));
+    const max = Math.max(OrderedSet.getAt(ref.indices, end) - 1, OrderedSet.max(ext.indices));
 
     return StructureElement.Loci(structure, [{
         unit: ref.unit,
