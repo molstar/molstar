@@ -111,15 +111,13 @@ export const SelectLoci = PluginBehavior.create({
             }
         }
         register() {
-            const actions: [keyof typeof DefaultSelectLociBindings, (current: Interactivity.Loci) => void][] = [
-                ['clickSelect', current => this.ctx.interactivity.lociSelects.select(current)],
-                ['clickSelectToggle', current => this.ctx.interactivity.lociSelects.selectToggle(current)],
-                ['clickSelectExtend', current => this.ctx.interactivity.lociSelects.selectExtend(current)],
-                ['clickSelectOnly', current => this.ctx.interactivity.lociSelects.selectOnly(current)],
-                ['clickDeselect', current => this.ctx.interactivity.lociSelects.deselect(current)],
-                ['clickDeselectAllOnEmpty', current => {
-                    if (Loci.isEmpty(current.loci)) this.ctx.interactivity.lociSelects.deselectAll()
-                }],
+            const actions: [keyof typeof DefaultSelectLociBindings, (current: Interactivity.Loci) => void, ((current: Interactivity.Loci) => boolean) | undefined][] = [
+                ['clickSelect', current => this.ctx.interactivity.lociSelects.select(current), void 0],
+                ['clickSelectToggle', current => this.ctx.interactivity.lociSelects.selectToggle(current), void 0],
+                ['clickSelectExtend', current => this.ctx.interactivity.lociSelects.selectExtend(current), void 0],
+                ['clickSelectOnly', current => this.ctx.interactivity.lociSelects.selectOnly(current), void 0],
+                ['clickDeselect', current => this.ctx.interactivity.lociSelects.deselect(current), void 0],
+                ['clickDeselectAllOnEmpty', () => this.ctx.interactivity.lociSelects.deselectAll(), current => Loci.isEmpty(current.loci)],
             ];
 
             // sort the action so that the ones with more modifiers trigger sooner.
@@ -134,8 +132,8 @@ export const SelectLoci = PluginBehavior.create({
                 if (!this.ctx.canvas3d) return
 
                 // only trigger the 1st action that matches
-                for (const [binding, action] of actions) {
-                    if (Binding.match(this.params.bindings[binding], buttons, modifiers)) {
+                for (const [binding, action, condition] of actions) {
+                    if (Binding.match(this.params.bindings[binding], buttons, modifiers) && (!condition || condition(current))) {
                         action(current);
                         break;
                     }
