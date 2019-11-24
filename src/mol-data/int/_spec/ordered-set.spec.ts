@@ -168,6 +168,10 @@ describe('ordered set', () => {
         OrderedSet.ofSortedArray([1, 2, 4]),
         SortedArray.ofSortedArray([1, 2, 3, 4, 5, 6]),
         SortedArray.ofSortedArray([2, 4, 5, 8])), [0, 2]);
+    testEq('idxIntersect 2', OrderedSet.indexedIntersect(
+        OrderedSet.ofSortedArray([0, 1]),
+        SortedArray.ofSortedArray([1, 2]),
+        SortedArray.ofSortedArray([1, 2])), [0, 1]);
 
     testEq('subtract ES', OrderedSet.subtract(empty, singleton10), []);
     testEq('subtract ER', OrderedSet.subtract(empty, range1_4), []);

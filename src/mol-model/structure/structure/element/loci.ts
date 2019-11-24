@@ -114,31 +114,8 @@ export namespace Loci {
             if (!structure.unitMap.has(e.unit.id)) return
             const unit = structure.unitMap.get(e.unit.id)
 
-            if (SortedArray.areEqual(e.unit.elements, unit.elements)) {
-                elements.push({ unit, indices: e.indices })
-            } else {
-                const _indices: UnitIndex[] = []
-                const end = unit.elements.length
-                let start = 0
-                for (let i = 0; i < OrderedSet.size(e.indices); ++i) {
-                    const v = OrderedSet.getAt(e.indices, i)
-                    const eI = e.unit.elements[v]
-                    const uI = SortedArray.indexOfInRange(unit.elements, eI, start, end) as UnitIndex | -1
-                    if (uI !== -1) {
-                        _indices.push(uI)
-                        start = uI
-                    }
-                }
-
-                let indices: OrderedSet<UnitIndex>
-                if (_indices.length > 12 && _indices[_indices.length - 1] - _indices[0] === _indices.length - 1) {
-                    indices = Interval.ofRange(_indices[0], _indices[_indices.length - 1])
-                } else {
-                    indices = SortedArray.ofSortedArray(_indices)
-                }
-
-                if (OrderedSet.size(indices) > 0) elements.push({ unit, indices })
-            }
+            const indices = OrderedSet.indexedIntersect(e.indices, e.unit.elements, unit.elements);
+            if (OrderedSet.size(indices) > 0) elements.push({ unit, indices });
         });
 
         return Loci(structure, elements);
