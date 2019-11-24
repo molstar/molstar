@@ -39,6 +39,7 @@ namespace OrderedSet {
 
     export const union: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.union as any;
     export const intersect: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.intersect as any;
+    export const indexedIntersect: <T extends number = number, S extends number = number>(idxA: OrderedSet<T>, a: SortedArray<S>, b: SortedArray<S>) => OrderedSet<T> = Base.indexedIntersect as any;
     /** Returns elements of `a` that are not in `b`, i.e `a` - `b` */
     export const subtract: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.subtract as any;
 
