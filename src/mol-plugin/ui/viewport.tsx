@@ -58,6 +58,10 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { [p.name]: p.value } });
     }
 
+    screenshot = () => {
+        this.plugin.helpers.viewportScreenshot?.download();
+    }
+
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
@@ -78,6 +82,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
             <div className='msp-viewport-controls-buttons'>
                 <div className='msp-semi-transparent-background' />
                 {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
+                {this.icon('screenshot', this.screenshot, 'Download Screenshot')}
                 {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
                 {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
                 {!this.props.hideSettingsIcon && this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}

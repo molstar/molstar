@@ -42,6 +42,7 @@ import { StructureSelectionHelper } from './util/structure-selection-helper';
 import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './state/toast';
 import { StructureMeasurementManager } from './util/structure-measurement';
+import { ViewportScreenshotWrapper } from './util/viewport-screenshot';
 
 interface Log {
     entries: List<LogEntry>
@@ -132,7 +133,8 @@ export class PluginContext {
         structureRepresentation: new StructureRepresentationHelper(this),
         structureOverpaint: new StructureOverpaintHelper(this),
         substructureParent: new SubstructureParentHelper(this),
-        measurement: new StructureMeasurementManager(this)
+        measurement: new StructureMeasurementManager(this),
+        viewportScreenshot: void 0 as ViewportScreenshotWrapper | undefined
     } as const;
 
     /**
@@ -151,6 +153,7 @@ export class PluginContext {
             const renderer = this.canvas3d.props.renderer;
             PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { renderer: { ...renderer, backgroundColor: Color(0xFCFBF9) } } });
             this.canvas3d.animate();
+            (this.helpers.viewportScreenshot as ViewportScreenshotWrapper) = new ViewportScreenshotWrapper(this);
             return true;
         } catch (e) {
             this.log.error('' + e);

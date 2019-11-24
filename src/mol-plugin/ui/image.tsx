@@ -8,12 +8,7 @@ import * as React from 'react';
 import { CollapsableControls, CollapsableState } from './base';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
-import { ImagePass } from '../../mol-canvas3d/passes/image';
-import { download } from '../../mol-util/download';
-import { setCanvasSize, canvasToBlob } from '../../mol-canvas3d/util';
-import { Task } from '../../mol-task';
-import { StateSelection } from '../../mol-state';
-import { PluginStateObject } from '../state/objects';
+import { setCanvasSize } from '../../mol-canvas3d/util';
 
 interface ImageControlsState extends CollapsableState {
     showPreview: boolean
@@ -34,7 +29,11 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
     private canvas: HTMLCanvasElement
     private canvasContext: CanvasRenderingContext2D
 
-    private imagePass: ImagePass
+    // private imagePass: ImagePass
+
+    get imagePass() {
+        return this.plugin.helpers.viewportScreenshot!.imagePass;
+    }
 
     constructor(props: P, context?: any) {
         super(props, context)
@@ -74,38 +73,8 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
         this.canvasContext.putImageData(imageData, 0, 0)
     }
 
-    private getFilename() {
-        const models = this.plugin.state.dataState.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data)
-        const uniqueIds = new Set<string>()
-        models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()))
-        const idString = Array.from(uniqueIds).join('-')
-        return `${idString || 'molstar-image'}.png`
-    }
-
-    private downloadTask = () => {
-        return Task.create('Download Image', async ctx => {
-            const { width, height } = this.getSize()
-            if (width <= 0 || height <= 0) return
-
-            await ctx.update('Rendering image...')
-            const imageData = this.imagePass.getImageData(width, height)
-
-            await ctx.update('Encoding image...')
-            const canvas = document.createElement('canvas')
-            canvas.width = imageData.width
-            canvas.height = imageData.height
-            const canvasCtx = canvas.getContext('2d')
-            if (!canvasCtx) throw new Error('Could not create canvas 2d context')
-            canvasCtx.putImageData(imageData, 0, 0)
-
-            await ctx.update('Downloading image...')
-            const blob = await canvasToBlob(canvas, 'png')
-            download(blob, this.getFilename())
-        })
-    }
-
     private download = () => {
-        this.plugin.runTask(this.downloadTask())
+        this.plugin.helpers.viewportScreenshot?.download();
     }
 
     private syncCanvas() {
@@ -126,16 +95,11 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
     }
 
     componentDidUpdate() {
+        this.plugin.helpers.viewportScreenshot!.size = this.getSize();
         this.handlePreview()
     }
 
     componentDidMount() {
-        this.imagePass = this.plugin.canvas3d.getImagePass()
-        this.imagePass.setProps({
-            multiSample: { mode: 'on', sampleLevel: 2 },
-            postprocessing: this.plugin.canvas3d.props.postprocessing
-        })
-
         this.handlePreview()
 
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => {
