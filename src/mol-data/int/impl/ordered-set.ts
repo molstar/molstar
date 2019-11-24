@@ -291,11 +291,8 @@ export function forEach(set: OrderedSetImpl, f: (value: number, i: number, ctx: 
 
 export function indexedIntersect(idxA: OrderedSetImpl, a: S, b: S): OrderedSetImpl {
     if (a === b) return idxA;
-    const lenI  = size(idxA), lenA = a.length, lenB = b.length;
+    const lenI = size(idxA), lenA = a.length, lenB = b.length;
     if (lenI === 0 || lenA === 0 || lenB === 0) return Empty;
-
-    // const { startI, startJ, endI, endJ } = getSuitableIntersectionRange(a, b);
-    // const commonCount = getCommonCount(a, b, startI, startJ, endI, endJ);
 
     const startJ = S.findPredecessorIndex(b, a[min(idxA)]);
     const endJ = S.findPredecessorIndex(b, a[max(idxA)] + 1);
