@@ -18,6 +18,7 @@ import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Structure } from '../../../mol-model/structure';
+import { arrayMax } from '../../../mol-util/array';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -110,31 +111,34 @@ export const SelectLoci = PluginBehavior.create({
             }
         }
         register() {
+            const actions: [keyof typeof DefaultSelectLociBindings, (current: Interactivity.Loci) => void][] = [
+                ['clickSelect', current => this.ctx.interactivity.lociSelects.select(current)],
+                ['clickSelectToggle', current => this.ctx.interactivity.lociSelects.selectToggle(current)],
+                ['clickSelectExtend', current => this.ctx.interactivity.lociSelects.selectExtend(current)],
+                ['clickSelectOnly', current => this.ctx.interactivity.lociSelects.selectOnly(current)],
+                ['clickDeselect', current => this.ctx.interactivity.lociSelects.deselect(current)],
+                ['clickDeselectAllOnEmpty', current => {
+                    if (Loci.isEmpty(current.loci)) this.ctx.interactivity.lociSelects.deselectAll()
+                }],
+            ];
+
+            // sort the action so that the ones with more modifiers trigger sooner.
+            actions.sort((a, b) => {
+                const x = this.params.bindings[a[0]], y = this.params.bindings[b[0]];
+                const k = x.triggers.length === 0 ? 0 : arrayMax(x.triggers.map(t => M.size(t.modifiers)));
+                const l = y.triggers.length === 0 ? 0 : arrayMax(y.triggers.map(t => M.size(t.modifiers)));
+                return l - k;
+            })
+
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d) return
 
-                if (Binding.match(this.params.bindings.clickSelect, buttons, modifiers)) {
-                    this.ctx.interactivity.lociSelects.select(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickSelectExtend, buttons, modifiers)) {
-                    this.ctx.interactivity.lociSelects.selectExtend(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickSelectOnly, buttons, modifiers)) {
-                    this.ctx.interactivity.lociSelects.selectOnly(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickSelectToggle, buttons, modifiers)) {
-                    this.ctx.interactivity.lociSelects.selectToggle(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickDeselect, buttons, modifiers)) {
-                    this.ctx.interactivity.lociSelects.deselect(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickDeselectAllOnEmpty, buttons, modifiers)) {
-                    if (Loci.isEmpty(current.loci)) this.ctx.interactivity.lociSelects.deselectAll()
+                // only trigger the 1st action that matches
+                for (const [binding, action] of actions) {
+                    if (Binding.match(this.params.bindings[binding], buttons, modifiers)) {
+                        action(current);
+                        break;
+                    }
                 }
             });
             this.ctx.interactivity.lociSelects.addProvider(this.lociMarkProvider)
