@@ -22,6 +22,10 @@ function Script(expression: string, language: Script.Language): Script {
 namespace Script {
     export type Language = 'mol-script'
 
+    export function is(x: any): x is Script {
+        return !!x && typeof (x as Script).expression === 'string' && !!(x as Script).language;
+    }
+
     export function areEqual(a: Script, b: Script) {
         return a.language === b.language && a.expression === b.expression
     }

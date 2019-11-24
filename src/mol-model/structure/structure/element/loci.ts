@@ -105,6 +105,7 @@ export namespace Loci {
         return Structure.create(units, { parent: loci.structure.parent })
     }
 
+    // TODO: there should be a version that property supports partitioned units
     export function remap(loci: Loci, structure: Structure): Loci {
         if (structure === loci.structure) return loci
 

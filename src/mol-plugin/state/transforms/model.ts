@@ -9,12 +9,11 @@ import { parsePDB } from '../../../mol-io/reader/pdb/parser';
 import { Vec3, Mat4, Quat } from '../../../mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../mol-model-formats/structure/pdb';
-import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry, QueryFn, StructureElement } from '../../../mol-model/structure';
+import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry, StructureElement } from '../../../mol-model/structure';
 import { Assembly } from '../../../mol-model/structure/model/properties/symmetry';
 import { PluginContext } from '../../../mol-plugin/context';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 import Expression from '../../../mol-script/language/expression';
-import { compile } from '../../../mol-script/runtime/query/compiler';
 import { StateObject, StateTransformer } from '../../../mol-state';
 import { RuntimeContext, Task } from '../../../mol-task';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -29,6 +28,7 @@ import { Script } from '../../../mol-script/script';
 import { parse3DG } from '../../../mol-io/reader/3dg/parser';
 import { trajectoryFrom3DG } from '../../../mol-model-formats/structure/3dg';
 import { StructureSelectionQueries } from '../../util/structure-selection-helper';
+import { StructureQueryHelper } from '../../util/structure-query';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -44,6 +44,7 @@ export { StructureSymmetryMatesFromModel };
 export { TransformStructureConformation };
 export { TransformStructureConformationByMatrix };
 export { StructureSelectionFromExpression };
+export { MultiStructureSelectionFromExpression }
 export { StructureSelectionFromScript };
 export { StructureSelectionFromBundle };
 export { StructureComplexElement };
@@ -184,10 +185,6 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     }
 });
 
-function structureDesc(s: Structure) {
-    return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`
-}
-
 type StructureFromTrajectory = typeof StructureFromTrajectory
 const StructureFromTrajectory = PluginStateTransform.BuiltIn({
     name: 'structure-from-trajectory',
@@ -198,7 +195,7 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
     apply({ a }) {
         return Task.create('Build Structure', async ctx => {
             const s = Structure.ofTrajectory(a.data);
-            const props = { label: 'Ensemble', description: structureDesc(s) };
+            const props = { label: 'Ensemble', description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         })
     }
@@ -215,7 +212,7 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
         return Task.create('Build Structure', async ctx => {
             const s = Structure.ofModel(a.data);
             await ensureSecondaryStructure(s)
-            const props = { label: 'Deposited', description: structureDesc(s) };
+            const props = { label: 'Deposited', description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         })
     }
@@ -263,14 +260,14 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
             const base = Structure.ofModel(model);
             if (!asm) {
                 await ensureSecondaryStructure(base)
-                const label = { label: 'Deposited', description: structureDesc(base) };
+                const label = { label: 'Deposited', description: Structure.elementDescription(base) };
                 return new SO.Molecule.Structure(base, label);
             }
 
             id = asm.id;
             const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
             await ensureSecondaryStructure(s)
-            const props = { label: `Assembly ${id}`, description: structureDesc(s) };
+            const props = { label: `Assembly ${id}`, description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         })
     }
@@ -296,7 +293,7 @@ const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
             const base = Structure.ofModel(model);
             const s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
             await ensureSecondaryStructure(s)
-            const props = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: structureDesc(s) };
+            const props = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         })
     }
@@ -321,7 +318,7 @@ const StructureSymmetryMatesFromModel = PluginStateTransform.BuiltIn({
             const base = Structure.ofModel(model);
             const s = await StructureSymmetry.builderSymmetryMates(base, radius).runInContext(ctx);
             await ensureSecondaryStructure(s)
-            const props = { label: `Symmetry Mates`, description: structureDesc(s) };
+            const props = { label: `Symmetry Mates`, description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         })
     }
@@ -405,28 +402,152 @@ const StructureSelectionFromExpression = PluginStateTransform.BuiltIn({
     }
 })({
     apply({ a, params, cache }) {
-        const compiled = compile<Sel>(params.expression);
-        (cache as { compiled: QueryFn<Sel> }).compiled = compiled;
-        (cache as { source: Structure }).source = a.data;
+        const { selection, entry } = StructureQueryHelper.createAndRun(a.data, params.expression);
+        (cache as any).entry = entry;
 
-        const result = compiled(new QueryContext(a.data));
-        const s = Sel.unionStructure(result);
-        if (s.elementCount === 0) return StateObject.Null;
-        const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
+        if (Sel.isEmpty(selection)) return StateObject.Null;
+        const s = Sel.unionStructure(selection);
+        const props = { label: `${params.label || 'Selection'}`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, props);
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
         if (oldParams.expression !== newParams.expression) return StateTransformer.UpdateResult.Recreate;
 
-        if ((cache as { source: Structure }).source === a.data) {
+        const entry = (cache as { entry: StructureQueryHelper.CacheEntry }).entry;
+
+        if (entry.currentStructure === a.data) {
             return StateTransformer.UpdateResult.Unchanged;
         }
-        (cache as { source: Structure }).source = a.data;
 
-        if (updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label)) {
-            return StateTransformer.UpdateResult.Updated;
+        const selection = StructureQueryHelper.updateStructure(entry, a.data);
+        if (Sel.isEmpty(selection)) return StateTransformer.UpdateResult.Null;
+
+        StructureQueryHelper.updateStructureObject(b, selection, newParams.label);
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type MultiStructureSelectionFromExpression = typeof MultiStructureSelectionFromExpression
+const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
+    name: 'structure-multi-selection-from-expression',
+    display: { name: 'Multi-structure Measurement Selection', description: 'Create selection object from multiple structures.' },
+    from: SO.Root,
+    to: SO.Molecule.Structure.Selections,
+    params: {
+        selections: PD.ObjectList({
+            key: PD.Text(void 0, { description: 'A unique key.' }),
+            ref: PD.Text(),
+            expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.empty)
+        }, e => e.ref, { isHidden: true }),
+        isTransitive: PD.Optional(PD.Boolean(false, { isHidden: true, description: 'Remap the selections from the original structure if structurally equivalent.' })),
+        label: PD.Optional(PD.Text('', { isHidden: true }))
+    }
+})({
+    apply({ params, cache, dependencies }) {
+        const entries = new Map<string, StructureQueryHelper.CacheEntry>();
+
+        const selections: SO.Molecule.Structure.SelectionEntry[] = [];
+        let totalSize = 0;
+
+        for (const sel of params.selections) {
+            const { selection, entry } = StructureQueryHelper.createAndRun(dependencies![sel.ref].data as Structure, sel.expression);
+            entries.set(sel.key, entry);
+            const loci = Sel.toLociWithSourceUnits(selection);
+            selections.push({ key: sel.key, loci });
+            totalSize += StructureElement.Loci.size(loci);
         }
-        return StateTransformer.UpdateResult.Null;
+
+        (cache as object as any).entries = entries;
+
+        // console.log(selections);
+
+        const props = { label: `${params.label || 'Multi-selection'}`, description: `${params.selections.length} source(s), ${totalSize} element(s) total` };
+        return new SO.Molecule.Structure.Selections(selections, props);
+    },
+    update: ({ b, oldParams, newParams, cache, dependencies }) => {
+        if (!!oldParams.isTransitive !== !!newParams.isTransitive) return StateTransformer.UpdateResult.Recreate;
+
+        const cacheEntries = (cache as any).entries as Map<string, StructureQueryHelper.CacheEntry>;
+        const entries = new Map<string, StructureQueryHelper.CacheEntry>();
+
+        const current = new Map<string, SO.Molecule.Structure.SelectionEntry>();
+        for (const e of b.data) current.set(e.key, e);
+
+        let changed = false;
+        let totalSize = 0;
+
+        const selections: SO.Molecule.Structure.SelectionEntry[] = [];
+        for (const sel of newParams.selections) {
+            const structure = dependencies![sel.ref].data as Structure;
+
+            let recreate = false;
+
+            if (cacheEntries.has(sel.key)) {
+                const entry = cacheEntries.get(sel.key)!;
+                if (StructureQueryHelper.isUnchanged(entry, sel.expression, structure) && current.has(sel.key)) {
+                    const loci = current.get(sel.key)!;
+                    entries.set(sel.key, entry);
+                    selections.push(loci);
+                    totalSize += StructureElement.Loci.size(loci.loci);
+
+                    continue;
+                } if (entry.expression !== sel.expression) {
+                    recreate = true;
+                } else {
+                    // TODO: properly support "transitive" queries. For that Structure.areUnitAndIndicesEqual needs to be fixed;
+                    let update = false;
+
+                    if (!!newParams.isTransitive) {
+                        if (Structure.areUnitAndIndicesEqual(entry.originalStructure, structure)) {
+                            const selection = StructureQueryHelper.run(entry, entry.originalStructure);
+                            entry.currentStructure = structure;
+                            entries.set(sel.key, entry);
+                            const loci = StructureElement.Loci.remap(Sel.toLociWithSourceUnits(selection), structure);
+                            selections.push({ key: sel.key, loci });
+                            totalSize += StructureElement.Loci.size(loci);
+                            changed = true;
+                        } else {
+                            update = true;
+                        }
+                    } else {
+                        update = true;
+                    }
+
+                    if (update) {
+                        changed = true;
+                        const selection = StructureQueryHelper.updateStructure(entry, structure);
+                        entries.set(sel.key, entry);
+                        const loci = Sel.toLociWithSourceUnits(selection);
+                        selections.push({ key: sel.key, loci });
+                        totalSize += StructureElement.Loci.size(loci);
+                    }
+                }
+            } else {
+                recreate = true;
+            }
+
+            if (recreate) {
+                changed = true;
+
+                // create new selection
+                const { selection, entry } = StructureQueryHelper.createAndRun(structure, sel.expression);
+                entries.set(sel.key, entry);
+                const loci = Sel.toLociWithSourceUnits(selection);
+                selections.push({ key: sel.key, loci });
+                totalSize += StructureElement.Loci.size(loci);
+            }
+        }
+
+        if (!changed) return StateTransformer.UpdateResult.Unchanged;
+
+        (cache as object as any).entries = entries;
+        b.data = selections;
+        b.label = `${newParams.label || 'Multi-selection'}`;
+        b.description = `${selections.length} source(s), ${totalSize} element(s) total`;
+
+        // console.log('updated', selections);
+
+        return StateTransformer.UpdateResult.Updated;
     }
 });
 
@@ -442,13 +563,11 @@ const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
     }
 })({
     apply({ a, params, cache }) {
-        const query = Script.toQuery(params.script);
-        (cache as { query: QueryFn<Sel> }).query = query;
-        (cache as { source: Structure }).source = a.data;
-        const result = query(new QueryContext(a.data));
-        const s = Sel.unionStructure(result);
+        const { selection, entry } = StructureQueryHelper.createAndRun(a.data, params.script);
+        (cache as any).entry = entry;
 
-        const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
+        const s = Sel.unionStructure(selection);
+        const props = { label: `${params.label || 'Selection'}`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, props);
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
@@ -456,28 +575,17 @@ const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
             return StateTransformer.UpdateResult.Recreate;
         }
 
-        if ((cache as { source: Structure }).source === a.data) {
+        const entry = (cache as { entry: StructureQueryHelper.CacheEntry }).entry;
+
+        if (entry.currentStructure === a.data) {
             return StateTransformer.UpdateResult.Unchanged;
         }
-        (cache as { source: Structure }).source = a.data;
 
-        updateStructureFromQuery((cache as { query: QueryFn<Sel> }).query, a.data, b, newParams.label);
+        const selection = StructureQueryHelper.updateStructure(entry, a.data);
+        StructureQueryHelper.updateStructureObject(b, selection, newParams.label);
         return StateTransformer.UpdateResult.Updated;
     }
 });
-
-function updateStructureFromQuery(query: QueryFn<Sel>, src: Structure, obj: SO.Molecule.Structure, label?: string) {
-    const result = query(new QueryContext(src));
-    const s = Sel.unionStructure(result);
-    if (s.elementCount === 0) {
-        return false;
-    }
-
-    obj.label = `${label || 'Selection'}`;
-    obj.description = structureDesc(s);
-    obj.data = s;
-    return true;
-}
 
 type StructureSelectionFromBundle = typeof StructureSelectionFromBundle
 const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
@@ -501,7 +609,7 @@ const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
         const s = StructureElement.Bundle.toStructure(params.bundle, a.data);
         if (s.elementCount === 0) return StateObject.Null;
 
-        const props = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
+        const props = { label: `${params.label || 'Selection'}`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, props);
     },
     update: ({ a, b, oldParams, newParams, cache }) => {
@@ -523,7 +631,7 @@ const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
         if (s.elementCount === 0) return StateTransformer.UpdateResult.Null;
 
         b.label = `${newParams.label || 'Selection'}`;
-        b.description = structureDesc(s);
+        b.description = Structure.elementDescription(s);
         b.data = s;
         return StateTransformer.UpdateResult.Updated;
     }
@@ -588,7 +696,7 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
         const s = Sel.unionStructure(result);
 
         if (s.elementCount === 0) return StateObject.Null;
-        return new SO.Molecule.Structure(s, { label, description: structureDesc(s) });
+        return new SO.Molecule.Structure(s, { label, description: Structure.elementDescription(s) });
     }
 });
 
@@ -668,69 +776,4 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
             return new SO.Shape.Provider(shape, props);
         });
     }
-});
-
-export { MultiStructureSelection }
-type MultiStructureSelectionCacheEntry = {
-    ref: string,
-    expression: Expression,
-    compiled: QueryFn<Sel>,
-    source: Structure
-}
-type MultiStructureSelection = typeof MultiStructureSelection
-const MultiStructureSelection = PluginStateTransform.BuiltIn({
-    name: 'structure-multi-selection-from-expression',
-    display: { name: 'Multi-structure Measurement Selection', description: 'Create selection object from multiple structures.' },
-    from: SO.Root,
-    to: SO.Molecule.Structure.Selections,
-    params: {
-        selections: PD.ObjectList({
-            ref: PD.Text(),
-            expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.empty)
-        }, e => e.ref, { isHidden: true }),
-        label: PD.Optional(PD.Text('', { isHidden: true }))
-    }
-})({
-    apply({ params, cache, dependencies }) {
-        const queries: MultiStructureSelectionCacheEntry[] = [];
-        const loci: StructureElement.Loci[] = [];
-        let size = 0;
-
-        for (const sel of params.selections) {
-            const e: MultiStructureSelectionCacheEntry = {
-                ref: sel.ref,
-                expression: sel.expression,
-                compiled: compile<Sel>(sel.expression),
-                source: dependencies![sel.ref].data as Structure
-            };
-            queries.push(e);
-
-            const s = e.compiled(new QueryContext(e.source));
-            const l = Sel.toLociWithSourceUnits(s);
-            loci.push(l);
-            size += StructureElement.Loci.size(l);
-        }
-
-        (cache as object as any).queries = queries;
-
-        console.log(loci);
-
-        const props = { label: `${params.label || 'Multi-selection'}`, description: `${params.selections.length} source(s), ${size} element(s) total` };
-        return new SO.Molecule.Structure.Selections(loci, props);
-    },
-    // TODO: implement this
-    // TODO: check if the "next structures" are structurally equivalent and then the loci could be simply re-mapped!!!
-    // update: ({ a, b, oldParams, newParams, cache }) => {
-    //     if (oldParams.expression !== newParams.expression) return StateTransformer.UpdateResult.Recreate;
-
-    //     if ((cache as { source: Structure }).source === a.data) {
-    //         return StateTransformer.UpdateResult.Unchanged;
-    //     }
-    //     (cache as { source: Structure }).source = a.data;
-
-    //     if (updateStructureFromQuery((cache as { compiled: QueryFn<Sel> }).compiled, a.data, b, newParams.label)) {
-    //         return StateTransformer.UpdateResult.Updated;
-    //     }
-    //     return StateTransformer.UpdateResult.Null;
-    // }
 });

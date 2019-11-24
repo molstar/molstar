@@ -762,6 +762,7 @@ namespace Structure {
         return hashString(s.units.map(u => Unit.conformationId(u)).join('|'))
     }
 
+    // TODO: there should be a version that property supports partitioned units
     export function areUnitAndIndicesEqual(a: Structure, b: Structure) {
         if (a.elementCount !== b.elementCount) return false;
         const len = a.units.length;
@@ -879,6 +880,10 @@ namespace Structure {
             }
         }
         return minD;
+    }
+
+    export function elementDescription(s: Structure) {
+        return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`
     }
 }
 
