@@ -14,7 +14,7 @@ import { SequenceWrapper } from './sequence/wrapper';
 import { PolymerSequenceWrapper } from './sequence/polymer';
 import { StructureElementSelectionManager } from '../util/structure-element-selection';
 import { MarkerAction } from '../../mol-util/marker-action';
-import { ParameterControls } from './controls/parameters';
+import { PureSelectControl } from './controls/parameters';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { HeteroSequenceWrapper } from './sequence/hetero';
 import { State, StateSelection } from '../../mol-state';
@@ -295,9 +295,24 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
 
         const sequenceWrapper = this.getSequenceWrapper()
 
+        const params = this.params;
+        const values = this.values;
+
         return <div className='msp-sequence'>
             <div className='msp-sequence-select'>
-                <ParameterControls params={this.params} values={this.values} onChange={this.setParamProps} />
+                <span className={`msp-icon msp-icon-help-circle`} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
+                    title='This shows a single sequence. Use the controls to the right to show a different sequence.' />
+
+                <span>Sequence of</span>
+                <PureSelectControl param={params.structure} name='structure' value={values.structure} onChange={this.setParamProps} />
+                <span>Entity</span>
+                <PureSelectControl param={params.entity} name='entity' value={values.entity} onChange={this.setParamProps} />
+                <span>Chain</span>
+                <PureSelectControl param={params.chain} name='chain' value={values.chain} onChange={this.setParamProps} />
+                {params.operator.options.length > 1 && <>
+                    <span>Instance</span>
+                    <PureSelectControl param={params.operator} name='operator' value={values.operator} onChange={this.setParamProps} />
+                </>}
             </div>
 
             {typeof sequenceWrapper === 'string'
