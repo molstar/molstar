@@ -301,7 +301,7 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
         return <div className='msp-sequence'>
             <div className='msp-sequence-select'>
                 <span className={`msp-icon msp-icon-help-circle`} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
-                    title='This shows a single sequence. Use the controls to the right to show a different sequence.' />
+                    title='This shows a single sequence. Use the controls to show a different sequence.' />
 
                 <span>Sequence of</span>
                 <PureSelectControl param={params.structure} name='structure' value={values.structure} onChange={this.setParamProps} />
