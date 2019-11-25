@@ -305,13 +305,13 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
 
                 <span>Sequence of</span>
                 <PureSelectControl param={params.structure} name='structure' value={values.structure} onChange={this.setParamProps} />
-                <span>Entity</span>
-                <PureSelectControl param={params.entity} name='entity' value={values.entity} onChange={this.setParamProps} />
-                <span>Chain</span>
-                <PureSelectControl param={params.chain} name='chain' value={values.chain} onChange={this.setParamProps} />
+                {/* <span>Entity</span> */}
+                <PureSelectControl title='Entity' param={params.entity} name='entity' value={values.entity} onChange={this.setParamProps} />
+                {/* <span>Chain</span> */}
+                <PureSelectControl title='Chain' param={params.chain} name='chain' value={values.chain} onChange={this.setParamProps} />
                 {params.operator.options.length > 1 && <>
-                    <span>Instance</span>
-                    <PureSelectControl param={params.operator} name='operator' value={values.operator} onChange={this.setParamProps} />
+                    {/* <span>Instance</span> */}
+                    <PureSelectControl title='Instance' param={params.operator} name='operator' value={values.operator} onChange={this.setParamProps} />
                 </>}
             </div>
 

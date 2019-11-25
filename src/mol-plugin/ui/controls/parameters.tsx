@@ -264,7 +264,7 @@ export class TextControl extends SimpleParam<PD.Text> {
     }
 }
 
-export class PureSelectControl extends  React.PureComponent<ParamProps<PD.Select<string | number>>> {
+export class PureSelectControl extends  React.PureComponent<ParamProps<PD.Select<string | number>> & { title?: string }> {
     protected update(value: string | number) {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
     }
@@ -279,7 +279,7 @@ export class PureSelectControl extends  React.PureComponent<ParamProps<PD.Select
 
     render() {
         const isInvalid = this.props.value !== void 0 && !this.props.param.options.some(e => e[0] === this.props.value);
-        return <select className='msp-form-control' value={this.props.value !== void 0 ? this.props.value : this.props.param.defaultValue} onChange={this.onChange} disabled={this.props.isDisabled}>
+        return <select className='msp-form-control' title={this.props.title} value={this.props.value !== void 0 ? this.props.value : this.props.param.defaultValue} onChange={this.onChange} disabled={this.props.isDisabled}>
             {isInvalid && <option key={this.props.value} value={this.props.value}>{`[Invalid] ${this.props.value}`}</option>}
             {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>;
