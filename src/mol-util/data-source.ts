@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -67,8 +67,8 @@ function decompress(buffer: Uint8Array): Uint8Array {
     // return gzip.decompress();
 }
 
-async function processFile(ctx: RuntimeContext, asUint8Array: boolean, compressed: boolean, e: any) {
-    const data = (e.target as FileReader).result;
+async function processFile(ctx: RuntimeContext, asUint8Array: boolean, compressed: boolean, fileReader: FileReader) {
+    const data = fileReader.result;
 
     if (compressed) {
         await ctx.update('Decompressing...');
@@ -84,11 +84,31 @@ async function processFile(ctx: RuntimeContext, asUint8Array: boolean, compresse
     }
 }
 
-function readData(ctx: RuntimeContext, action: string, data: XMLHttpRequest | FileReader, asUint8Array: boolean): Promise<any> {
-    return new Promise<any>((resolve, reject) => {
-        data.onerror = (e: any) => {
+function isDone(data: XMLHttpRequest | FileReader) {
+    if (data instanceof FileReader) {
+        return data.readyState === FileReader.DONE
+    } else if (data instanceof XMLHttpRequest) {
+        return data.readyState === XMLHttpRequest.DONE
+    }
+    throw new Error('unknown data type')
+}
+
+function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, action: string, data: T, asUint8Array: boolean): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        // first check if data reading is already done
+        if (isDone(data)) {
+            const error = (<FileReader>data).error;
+            if (error) {
+                reject((<FileReader>data).error || 'Failed.');
+            } else {
+                resolve(data);
+            }
+            return
+        }
+
+        data.onerror = (e: ProgressEvent) => {
             const error = (<FileReader>e.target).error;
-            reject(error ? error : 'Failed.');
+            reject(error || 'Failed.');
         };
 
         let hasError = false;
@@ -106,7 +126,10 @@ function readData(ctx: RuntimeContext, action: string, data: XMLHttpRequest | Fi
                 reject(e);
             }
         }
-        data.onload = (e: any) => resolve(e);
+
+        data.onload = (e: ProgressEvent) => {
+            resolve(data);
+        }
     });
 }
 
@@ -121,8 +144,8 @@ function readFromFileInternal(file: File, asUint8Array: boolean): Task<string | 
             else reader.readAsBinaryString(file);
 
             ctx.update({ message: 'Opening file...', canAbort: true });
-            const e = await readData(ctx, 'Reading...', reader, asUint8Array);
-            const result = processFile(ctx, asUint8Array, isCompressed, e);
+            const fileReader = await readData(ctx, 'Reading...', reader, asUint8Array);
+            const result = processFile(ctx, asUint8Array, isCompressed, fileReader);
             return result;
         } finally {
             reader = void 0;
@@ -156,27 +179,25 @@ class RequestPool {
     }
 }
 
-async function processAjax(ctx: RuntimeContext, asUint8Array: boolean, decompressGzip: boolean, e: any) {
-    const req = (e.target as XMLHttpRequest);
+async function processAjax(ctx: RuntimeContext, asUint8Array: boolean, decompressGzip: boolean, req: XMLHttpRequest) {
     if (req.status >= 200 && req.status < 400) {
-        if (asUint8Array) {
-            const buff = new Uint8Array(e.target.response);
-            RequestPool.deposit(e.target);
+        if (asUint8Array === true) {
+            const buff = new Uint8Array(req.response);
+            RequestPool.deposit(req);
 
             if (decompressGzip) {
                 return decompress(buff);
             } else {
                 return buff;
             }
-        }
-        else {
-            const text = e.target.responseText;
-            RequestPool.deposit(e.target);
+        } else {
+            const text = req.responseText;
+            RequestPool.deposit(req);
             return text;
         }
     } else {
         const status = req.statusText;
-        RequestPool.deposit(e.target);
+        RequestPool.deposit(req);
         throw status;
     }
 }
@@ -196,23 +217,23 @@ function ajaxGetInternal(title: string | undefined, url: string, type: 'json' | 
         xhttp.send(body);
 
         await ctx.update({ message: 'Waiting for server...', canAbort: true });
-        const e = await readData(ctx, 'Downloading...', xhttp, asUint8Array);
-        xhttp = void 0;
-        const result = await processAjax(ctx, asUint8Array, decompressGzip, e)
+        const req = await readData(ctx, 'Downloading...', xhttp, asUint8Array);
+        xhttp = void 0; // guard against reuse, help garbage collector
+        const result = await processAjax(ctx, asUint8Array, decompressGzip, req)
 
         if (type === 'json') {
             await ctx.update({ message: 'Parsing JSON...', canAbort: false });
-            return JSON.parse(result);
+            return JSON.parse(result as string);
         } else if (type === 'xml') {
             await ctx.update({ message: 'Parsing XML...', canAbort: false });
-            return parseXml(result);
+            return parseXml(result as string);
         }
 
         return result;
     }, () => {
         if (xhttp) {
             xhttp.abort();
-            xhttp = void 0;
+            xhttp = void 0; // guard against reuse, help garbage collector
         }
     });
 }
