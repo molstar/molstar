@@ -9,12 +9,13 @@ import * as React from 'react'
 import { PluginUIComponent } from '../base';
 import { Interactivity } from '../../util/interactivity';
 import { MarkerAction } from '../../../mol-util/marker-action';
-import { ButtonsType, ModifiersKeys, getButtons, getModifiers } from '../../../mol-util/input/input-observer';
+import { ButtonsType, ModifiersKeys, getButtons, getModifiers, getButton } from '../../../mol-util/input/input-observer';
 import { SequenceWrapper } from './wrapper';
 import { StructureElement, StructureProperties, Unit } from '../../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { Color } from '../../../mol-util/color';
+import { OrderedSet } from '../../../mol-data/int';
 
 type SequenceProps = {
     sequenceWrapper: SequenceWrapper.Any,
@@ -55,8 +56,9 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.plugin.interactivity.lociHighlights.addProvider(this.lociHighlightProvider)
         this.plugin.interactivity.lociSelects.addProvider(this.lociSelectionProvider)
 
-        this.subscribe(debounceTime<{ seqIdx: number, buttons: number, modifiers: ModifiersKeys }>(15)(this.highlightQueue), (e) => {
-            this.hover(e.seqIdx < 0 ? void 0 : e.seqIdx, e.buttons, e.modifiers);
+        this.subscribe(debounceTime<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>(15)(this.highlightQueue), (e) => {
+            const loci = this.getLoci(e.seqIdx < 0 ? void 0 : e.seqIdx)
+            this.hover(loci, e.buttons, e.button, e.modifiers);
         });
 
         // this.updateMarker()
@@ -67,20 +69,34 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.plugin.interactivity.lociSelects.removeProvider(this.lociSelectionProvider)
     }
 
-    hover(seqId: number | undefined, buttons: ButtonsType, modifiers: ModifiersKeys) {
-        const ev = { current: Interactivity.Loci.Empty, buttons, modifiers }
-        if (seqId !== undefined) {
-            const loci = this.props.sequenceWrapper.getLoci(seqId);
-            if (!StructureElement.Loci.isEmpty(loci)) ev.current = { loci };
+    getLoci(seqIdx: number | undefined) {
+        if (seqIdx !== undefined) {
+            const loci = this.props.sequenceWrapper.getLoci(seqIdx);
+            if (!StructureElement.Loci.isEmpty(loci)) return loci
+        }
+    }
+
+    getSeqIdx(e: React.MouseEvent) {
+        let seqIdx: number | undefined = undefined;
+        const el = e.target as HTMLElement;
+        if (el && el.getAttribute) {
+            seqIdx = el.hasAttribute('data-seqid') ? +el.getAttribute('data-seqid')! : undefined;
+        }
+        return seqIdx
+    }
+
+    hover(loci: StructureElement.Loci | undefined, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
+        const ev = { current: Interactivity.Loci.Empty, buttons, button, modifiers }
+        if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
+            ev.current = { loci };
         }
         this.plugin.behaviors.interaction.hover.next(ev)
     }
 
-    click(seqId: number | undefined, buttons: ButtonsType, modifiers: ModifiersKeys) {
-        const ev = { current: Interactivity.Loci.Empty, buttons, modifiers }
-        if (seqId !== undefined) {
-            const loci = this.props.sequenceWrapper.getLoci(seqId);
-            if (!StructureElement.Loci.isEmpty(loci)) ev.current = { loci };
+    click(loci: StructureElement.Loci | undefined, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
+        const ev = { current: Interactivity.Loci.Empty, buttons, button, modifiers }
+        if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
+            ev.current = { loci };
         }
         this.plugin.behaviors.interaction.click.next(ev)
     }
@@ -89,18 +105,48 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         e.preventDefault()
     }
 
+    private mouseDownLoci: StructureElement.Loci | undefined = undefined
+
     mouseDown = (e: React.MouseEvent) => {
         e.stopPropagation();
 
+        const seqIdx = this.getSeqIdx(e)
+        const loci = this.getLoci(seqIdx)
         const buttons = getButtons(e.nativeEvent)
+        const button = getButton(e.nativeEvent)
         const modifiers = getModifiers(e.nativeEvent)
 
-        let seqIdx: number | undefined = undefined;
-        const el = e.target as HTMLElement;
-        if (el && el.getAttribute) {
-            seqIdx = el.hasAttribute('data-seqid') ? +el.getAttribute('data-seqid')! : undefined;
+        this.click(loci, buttons, button, modifiers);
+        this.mouseDownLoci = loci;
+    }
+
+    mouseUp = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        // ignore mouse-up events without a bound loci
+        if (this.mouseDownLoci === undefined) return
+
+        const seqIdx = this.getSeqIdx(e)
+        const loci = this.getLoci(seqIdx)
+
+        if (loci && !StructureElement.Loci.areEqual(this.mouseDownLoci, loci)) {
+            const buttons = getButtons(e.nativeEvent)
+            const button = getButton(e.nativeEvent)
+            const modifiers = getModifiers(e.nativeEvent)
+
+            const ref = this.mouseDownLoci.elements[0]
+            const ext = loci.elements[0]
+            const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices))
+            const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices))
+
+            const range = StructureElement.Loci(loci.structure, [{
+                unit: ref.unit,
+                indices: OrderedSet.ofRange(min as StructureElement.UnitIndex, max as StructureElement.UnitIndex)
+            }]);
+
+            this.click(StructureElement.Loci.subtract(range, this.mouseDownLoci), buttons, button, modifiers);
         }
-        this.click(seqIdx, buttons, modifiers);
+        this.mouseDownLoci = undefined;
     }
 
     private getBackgroundColor(marker: number) {
@@ -188,33 +234,41 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     mouseMove = (e: React.MouseEvent) => {
         e.stopPropagation();
 
+        const buttons = getButtons(e.nativeEvent)
+        const button = getButton(e.nativeEvent)
+        const modifiers = getModifiers(e.nativeEvent)
+
         const el = e.target as HTMLElement;
         if (!el || !el.getAttribute) {
             if (this.lastMouseOverSeqIdx === -1) return;
-
             this.lastMouseOverSeqIdx = -1;
-            const buttons = getButtons(e.nativeEvent)
-            const modifiers = getModifiers(e.nativeEvent)
-            this.highlightQueue.next({ seqIdx: -1, buttons, modifiers })
+            this.highlightQueue.next({ seqIdx: -1, buttons, button, modifiers })
             return;
         }
         const seqIdx = el.hasAttribute('data-seqid') ? +el.getAttribute('data-seqid')! : -1;
         if (this.lastMouseOverSeqIdx === seqIdx) {
             return;
         } else {
-            const buttons = getButtons(e.nativeEvent)
-            const modifiers = getModifiers(e.nativeEvent)
             this.lastMouseOverSeqIdx = seqIdx;
-            this.highlightQueue.next({ seqIdx, buttons, modifiers })
+            if (this.mouseDownLoci !== undefined) {
+                const loci = this.getLoci(seqIdx)
+                this.hover(loci, ButtonsType.Flag.None, ButtonsType.Flag.None, { ...modifiers, shift: true })
+            } else {
+                this.highlightQueue.next({ seqIdx, buttons, button, modifiers })
+            }
         }
     }
 
     mouseLeave = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        this.mouseDownLoci = undefined;
+
         if (this.lastMouseOverSeqIdx === -1) return;
         this.lastMouseOverSeqIdx = -1;
         const buttons = getButtons(e.nativeEvent)
+        const button = getButton(e.nativeEvent)
         const modifiers = getModifiers(e.nativeEvent)
-        this.highlightQueue.next({ seqIdx: -1, buttons, modifiers })
+        this.highlightQueue.next({ seqIdx: -1, buttons, button, modifiers })
     }
 
     render() {
@@ -240,6 +294,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             className='msp-sequence-wrapper msp-sequence-wrapper-non-empty'
             onContextMenu={this.contextMenu}
             onMouseDown={this.mouseDown}
+            onMouseUp={this.mouseUp}
             onMouseMove={this.mouseMove}
             onMouseLeave={this.mouseLeave}
             ref={this.parentDiv}

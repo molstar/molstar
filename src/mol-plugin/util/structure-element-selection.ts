@@ -25,6 +25,7 @@ export { StructureElementSelectionManager };
 class StructureElementSelectionManager {
     private entries = new Map<string, SelectionEntry>();
     private _latestLoci: LatestEntry[] = [];
+    private referenceLoci: Loci | undefined
 
     private getEntry(s: Structure) {
         const cell = this.plugin.helpers.substructureParent.get(s);
@@ -121,6 +122,7 @@ class StructureElementSelectionManager {
             if (entry) {
                 entry.selection = StructureElement.Loci.union(entry.selection, loci);
                 this.addLatest(loci);
+                this.referenceLoci = loci
                 this.plugin.events.interactivity.selectionUpdated.next();
                 return entry.selection;
             }
@@ -134,6 +136,7 @@ class StructureElementSelectionManager {
             if (entry) {
                 entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
                 this.removeLatest(loci);
+                this.referenceLoci = loci
                 this.plugin.events.interactivity.selectionUpdated.next();
                 return StructureElement.Loci.isEmpty(entry.selection) ? EmptyLoci : entry.selection;
             }
@@ -146,6 +149,7 @@ class StructureElementSelectionManager {
             const entry = this.getEntry(loci.structure);
             if (entry) {
                 entry.selection = loci;
+                this.referenceLoci = undefined
                 this.plugin.events.interactivity.selectionUpdated.next()
                 return StructureElement.Loci.isEmpty(entry.selection) ? EmptyLoci : entry.selection;
             }
@@ -164,6 +168,7 @@ class StructureElementSelectionManager {
             if (!StructureElement.Loci.isEmpty(s.selection)) selections.push(s.selection);
             s.selection = StructureElement.Loci(s.selection.structure, []);
         }
+        this.referenceLoci = undefined
         this.plugin.events.interactivity.selectionUpdated.next()
         return selections;
     }
@@ -190,10 +195,14 @@ class StructureElementSelectionManager {
         const entry = this.getEntry(loci.structure);
         if (!entry) return;
 
-        let xs = loci.elements[0];
+        const xs = loci.elements[0];
         if (!xs) return;
+
+        const ref = this.referenceLoci
+        if (!ref || !StructureElement.Loci.is(ref) || ref.structure.root !== loci.structure.root) return;
+
         let e: StructureElement.Loci['elements'][0] | undefined;
-        for (const _e of entry.selection.elements) {
+        for (const _e of ref.elements) {
             if (xs.unit === _e.unit) {
                 e = _e;
                 break;
@@ -201,7 +210,9 @@ class StructureElementSelectionManager {
         }
         if (!e) return;
 
-        return tryGetElementRange(entry.selection.structure, e, xs)
+        if (xs.unit !== e.unit) return;
+
+        return getElementRange(loci.structure.root, e, xs)
     }
 
     private prevHighlight: StructureElement.Loci | undefined = void 0;
@@ -228,6 +239,7 @@ class StructureElementSelectionManager {
             this.entries.delete(ref);
             // TODO: property update the latest loci
             this._latestLoci = [];
+            this.referenceLoci = undefined
         }
     }
 
@@ -237,8 +249,9 @@ class StructureElementSelectionManager {
         if (this.entries.has(ref)) {
             if (!PluginStateObject.Molecule.Structure.is(oldObj) || oldObj === obj || oldObj.data === obj.data) return;
 
-            // TODO: property update the latest loci
+            // TODO: property update the latest loci & reference loci
             this._latestLoci = [];
+            this.referenceLoci = undefined
 
             // remap the old selection to be related to the new object if possible.
             if (Structure.areUnitAndIndicesEqual(oldObj.data, obj.data)) {
@@ -326,26 +339,9 @@ function remapSelectionEntry(e: SelectionEntry, s: Structure): SelectionEntry {
 /**
  * Assumes `ref` and `ext` belong to the same unit in the same structure
  */
-function tryGetElementRange(structure: Structure, ref: StructureElement.Loci['elements'][0], ext: StructureElement.Loci['elements'][0]) {
-
-    const refMin = OrderedSet.min(ref.indices)
-    const refMax = OrderedSet.max(ref.indices)
-    const extMin = OrderedSet.min(ext.indices)
-    const extMax = OrderedSet.max(ext.indices)
-
-    let min: number
-    let max: number
-
-    if (refMax < extMin) {
-        min = refMax + 1
-        max = extMax
-    } else if (extMax < refMin) {
-        min = extMin
-        max = refMin - 1
-    } else {
-        // TODO handle range overlap cases
-        return
-    }
+function getElementRange(structure: Structure, ref: StructureElement.Loci['elements'][0], ext: StructureElement.Loci['elements'][0]) {
+    const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices))
+    const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices))
 
     return StructureElement.Loci(structure, [{
         unit: ref.unit,
