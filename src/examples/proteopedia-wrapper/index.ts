@@ -230,11 +230,13 @@ class MolStarProteopediaWrapper {
     }
 
     setBackground(color: number) {
+        if (!this.plugin.canvas3d) return;
         const renderer = this.plugin.canvas3d.props.renderer;
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer,  backgroundColor: Color(color) } } });
     }
 
     toggleSpin() {
+        if (!this.plugin.canvas3d) return;
         const trackball = this.plugin.canvas3d.props.trackball;
         const spinning = trackball.spin;
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
@@ -383,7 +385,7 @@ class MolStarProteopediaWrapper {
             // const position = Vec3.sub(Vec3.zero(), sphere.center, asmCenter);
             // Vec3.normalize(position, position);
             // Vec3.scaleAndAdd(position, sphere.center, position, sphere.radius);
-            const snapshot = this.plugin.canvas3d.camera.getFocus(sphere.center, Math.max(sphere.radius, 5));
+            const snapshot = this.plugin.canvas3d!.camera.getFocus(sphere.center, Math.max(sphere.radius, 5));
             PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, { snapshot, durationMs: 250 });
         }
     }

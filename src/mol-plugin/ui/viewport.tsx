@@ -94,9 +94,9 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 <ControlGroup header='Interactivity' initialExpanded={true}>
                     <ParameterControls params={Interactivity.Params} values={this.plugin.interactivity.props} onChange={this.setInteractivityProps} />
                 </ControlGroup>
-                <ControlGroup header='Viewport' initialExpanded={true}>
+                {this.plugin.canvas3d && <ControlGroup header='Viewport' initialExpanded={true}>
                     <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
-                </ControlGroup>
+                </ControlGroup>}
             </div>}
         </div>
     }
@@ -127,7 +127,7 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
     };
 
     private handleLogo = () => {
-        this.setState({ showLogo: this.plugin.canvas3d.reprCount.value === 0 })
+        this.setState({ showLogo: !this.plugin.canvas3d?.reprCount.value })
     }
 
     private handleResize = () => {
@@ -135,18 +135,19 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
         const canvas = this.canvas.current;
         if (container && canvas) {
             resizeCanvas(canvas, container);
-            this.plugin.canvas3d.handleResize();
+            this.plugin.canvas3d!.handleResize();
         }
     }
 
     componentDidMount() {
         if (!this.canvas.current || !this.container.current || !this.plugin.initViewer(this.canvas.current!, this.container.current!)) {
             this.setState({ noWebGl: true });
+            return;
         }
         this.handleLogo();
         this.handleResize();
 
-        const canvas3d = this.plugin.canvas3d;
+        const canvas3d = this.plugin.canvas3d!;
         this.subscribe(canvas3d.reprCount, this.handleLogo);
         this.subscribe(canvas3d.input.resize, this.handleResize);
 
@@ -163,7 +164,7 @@ export class Viewport extends PluginUIComponent<{ }, ViewportState> {
     }
 
     renderMissing() {
-        return <div>
+        return <div className='msp-no-webgl'>
             <div>
                 <p><b>WebGL does not seem to be available.</b></p>
                 <p>This can be caused by an outdated browser, graphics card driver issue, or bad weather. Sometimes, just restarting the browser helps.</p>

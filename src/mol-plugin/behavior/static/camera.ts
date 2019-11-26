@@ -16,13 +16,13 @@ export function registerDefault(ctx: PluginContext) {
 
 export function Reset(ctx: PluginContext) {
     PluginCommands.Camera.Reset.subscribe(ctx, () => {
-        ctx.canvas3d.resetCamera();
+        ctx.canvas3d?.resetCamera();
     })
 }
 
 export function SetSnapshot(ctx: PluginContext) {
     PluginCommands.Camera.SetSnapshot.subscribe(ctx, ({ snapshot, durationMs }) => {
-        ctx.canvas3d.camera.transition.apply(snapshot, durationMs);
+        ctx.canvas3d?.camera.transition.apply(snapshot, durationMs);
     })
 }
 
@@ -36,7 +36,7 @@ export function Snapshots(ctx: PluginContext) {
     });
 
     PluginCommands.Camera.Snapshots.Add.subscribe(ctx, ({ name, description }) => {
-        const entry = CameraSnapshotManager.Entry(ctx.canvas3d.camera.getSnapshot(), name, description);
+        const entry = CameraSnapshotManager.Entry(ctx.canvas3d!.camera.getSnapshot(), name, description);
         ctx.state.cameraSnapshots.add(entry);
     });
 

@@ -204,7 +204,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Representation', async ctx => {
             const provider = plugin.structureRepresentation.registry.get(params.type.name)
             const props = params.type.params || {}
-            const repr = provider.factory({ webgl: plugin.canvas3d.webgl, ...plugin.structureRepresentation.themeCtx }, provider.getParams)
+            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, provider.getParams)
             repr.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
@@ -620,7 +620,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Volume Representation', async ctx => {
             const provider = plugin.volumeRepresentation.registry.get(params.type.name)
             const props = params.type.params || {}
-            const repr = provider.factory({ webgl: plugin.canvas3d.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
+            const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
             repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);

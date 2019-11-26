@@ -108,11 +108,13 @@ class BasicWrapper {
     }
 
     setBackground(color: number) {
-        const renderer = this.plugin.canvas3d.props.renderer;
+        const renderer = this.plugin.canvas3d!.props.renderer;
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer,  backgroundColor: Color(color) } } });
     }
 
     toggleSpin() {
+        if (!this.plugin.canvas3d) return;
+
         const trackball = this.plugin.canvas3d.props.trackball;
         const spinning = trackball.spin;
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
