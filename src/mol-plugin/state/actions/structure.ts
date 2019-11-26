@@ -103,23 +103,23 @@ const DownloadStructure = StateAction.build({
     params: {
         source: PD.MappedStatic('bcif-static', {
             'pdbe-updated': PD.Group({
-                id: PD.Text('1cbs', { label: 'Id' }),
+                id: PD.Text('1cbs', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'rcsb': PD.Group({
-                id: PD.Text('1tqn', { label: 'Id' }),
+                id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'pdb-dev': PD.Group({
-                id: PD.Text('PDBDEV_00000001', { label: 'Id' }),
+                id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma separated ids.' }),
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'bcif-static': PD.Group({
-                id: PD.Text('1tqn', { label: 'Id' }),
+                id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'swissmodel': PD.Group({
-                id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC' }),
+                id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma separated ACs.' }),
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true, description: 'Loads the best homology model or experimental structure' }),
             'url': PD.Group({
