@@ -27,7 +27,7 @@ const Trigger = Binding.Trigger
 //
 
 const DefaultHighlightLociBindings = {
-    hoverHighlightOnly: Binding([Trigger(B.Flag.None)], 'Highlight hovered element using ${triggers}'),
+    hoverHighlightOnly: Binding([Trigger(B.Flag.None, M.create())], 'Highlight hovered element using ${triggers}'),
     hoverHighlightOnlyExtend: Binding([Trigger(B.Flag.None, M.create({ shift: true }))], 'Extend highlight from selected to hovered element along polymer using ${triggers}'),
 }
 const HighlightLociParams = {
@@ -111,13 +111,16 @@ export const SelectLoci = PluginBehavior.create({
             }
         }
         register() {
+            const lociIsEmpty = (current: Interactivity.Loci) => Loci.isEmpty(current.loci)
+            const lociIsNotEmpty = (current: Interactivity.Loci) => !Loci.isEmpty(current.loci)
+
             const actions: [keyof typeof DefaultSelectLociBindings, (current: Interactivity.Loci) => void, ((current: Interactivity.Loci) => boolean) | undefined][] = [
-                ['clickSelect', current => this.ctx.interactivity.lociSelects.select(current), void 0],
-                ['clickToggle', current => this.ctx.interactivity.lociSelects.toggle(current), void 0],
-                ['clickToggleExtend', current => this.ctx.interactivity.lociSelects.toggleExtend(current), void 0],
-                ['clickSelectOnly', current => this.ctx.interactivity.lociSelects.selectOnly(current), void 0],
-                ['clickDeselect', current => this.ctx.interactivity.lociSelects.deselect(current), void 0],
-                ['clickDeselectAllOnEmpty', () => this.ctx.interactivity.lociSelects.deselectAll(), current => Loci.isEmpty(current.loci)],
+                ['clickSelect', current => this.ctx.interactivity.lociSelects.select(current), lociIsNotEmpty],
+                ['clickToggle', current => this.ctx.interactivity.lociSelects.toggle(current), lociIsNotEmpty],
+                ['clickToggleExtend', current => this.ctx.interactivity.lociSelects.toggleExtend(current), lociIsNotEmpty],
+                ['clickSelectOnly', current => this.ctx.interactivity.lociSelects.selectOnly(current), lociIsNotEmpty],
+                ['clickDeselect', current => this.ctx.interactivity.lociSelects.deselect(current), lociIsNotEmpty],
+                ['clickDeselectAllOnEmpty', () => this.ctx.interactivity.lociSelects.deselectAll(), lociIsEmpty],
             ];
 
             // sort the action so that the ones with more modifiers trigger sooner.
@@ -128,12 +131,12 @@ export const SelectLoci = PluginBehavior.create({
                 return l - k;
             })
 
-            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
+            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d) return
 
                 // only trigger the 1st action that matches
                 for (const [binding, action, condition] of actions) {
-                    if (Binding.match(this.params.bindings[binding], buttons, modifiers) && (!condition || condition(current))) {
+                    if (Binding.match(this.params.bindings[binding], button, modifiers) && (!condition || condition(current))) {
                         action(current);
                         break;
                     }

@@ -246,8 +246,8 @@ export namespace VolumeStreaming {
                 }
             });
 
-            this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
-                if (!Binding.match((this.params.bindings && this.params.bindings.clickVolumeAroundOnly) || DefaultBindings.clickVolumeAroundOnly, buttons, modifiers)) return;
+            this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, button, modifiers }) => {
+                if (!Binding.match((this.params.bindings && this.params.bindings.clickVolumeAroundOnly) || DefaultBindings.clickVolumeAroundOnly, button, modifiers)) return;
                 if (this.params.entry.params.view.name !== 'selection-box') {
                     this.lastLoci = this.getNormalizedLoci(current.loci);
                 } else {

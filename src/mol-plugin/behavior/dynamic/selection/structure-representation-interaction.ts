@@ -133,10 +133,10 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
             }
         });
 
-        this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
+        this.subscribeObservable(this.plugin.behaviors.interaction.click, ({ current, button, modifiers }) => {
             const { clickInteractionAroundOnly } = this.params.bindings
 
-            if (Binding.match(clickInteractionAroundOnly, buttons, modifiers)) {
+            if (Binding.match(clickInteractionAroundOnly, button, modifiers)) {
                 if (isEmptyLoci(current.loci)) {
                     this.clear(StateTransform.RootRef);
                     lastLoci = current.loci;
