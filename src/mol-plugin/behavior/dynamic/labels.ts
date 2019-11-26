@@ -193,7 +193,7 @@ export const SceneLabels = PluginBehavior.create<SceneLabelsProps>({
             }
             if (updated) {
                 Object.assign(this.params, p)
-                this.ctx.canvas3d.add(this.repr)
+                this.ctx.canvas3d?.add(this.repr)
             }
             return updated;
         }

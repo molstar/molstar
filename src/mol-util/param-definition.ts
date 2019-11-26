@@ -67,7 +67,7 @@ export namespace ParamDefinition {
         options: [T, string][]
     }
     export function Select<T extends string | number>(defaultValue: T, options: [T, string][], info?: Info): Select<T> {
-        return setInfo<Select<T>>({ type: 'select', defaultValue, options }, info)
+        return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options }, info)
     }
 
     export interface ColorList<T extends string> extends Base<T> {
@@ -85,6 +85,7 @@ export namespace ParamDefinition {
         options: [E, string][]
     }
     export function MultiSelect<E extends string, T = E[]>(defaultValue: T, options: [E, string][], info?: Info): MultiSelect<E, T> {
+        // TODO: check if default value is a subset of options?
         return setInfo<MultiSelect<E, T>>({ type: 'multi-select', defaultValue, options }, info)
     }
 
@@ -187,10 +188,11 @@ export namespace ParamDefinition {
         map(name: string): Any
     }
     export function Mapped<T>(defaultKey: string, names: [string, string][], map: (name: string) => Any, info?: Info): Mapped<NamedParams<T>> {
+        const name = checkDefaultKey(defaultKey, names);
         return setInfo<Mapped<NamedParams<T>>>({
             type: 'mapped',
-            defaultValue: { name: defaultKey, params: map(defaultKey).defaultValue as any },
-            select: Select<string>(defaultKey, names, info),
+            defaultValue: { name, params: map(name).defaultValue as any },
+            select: Select<string>(name, names, info),
             map
         }, info);
     }
@@ -353,5 +355,12 @@ export namespace ParamDefinition {
 
         // a === b was checked at the top.
         return false;
+    }
+
+    function checkDefaultKey<T>(k: T, options: [T, string][]) {
+        for (const o of options) {
+            if (o[0] === k) return k;
+        }
+        return options.length > 0 ? options[0][0] : void 0 as any as T;
     }
 }

@@ -83,7 +83,7 @@ export class ParamHelp<L extends LegendData> extends React.PureComponent<{ legen
         return <div className='msp-control-row msp-help-text'>
             <div>
                 <div className='msp-help-description'><span className={`msp-icon msp-icon-help-circle`} />{description}</div>
-                <div className='msp-help-legend'>{Legend && <Legend legend={legend} />}</div>
+                {Legend && <div className='msp-help-legend'><Legend legend={legend} /></div>}
             </div>
         </div>
     }
@@ -123,15 +123,17 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
         const help = this.props.param.help
             ? this.props.param.help(this.props.value)
             : { description: this.props.param.description, legend: this.props.param.legend }
+        const desc = this.props.param.description;
         const hasHelp = help.description || help.legend
         return <>
             <div className={this.className}>
-                <span title={this.props.param.description}>
+                <span title={desc}>
                     {label}
                     {hasHelp &&
-                        <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Hide' : 'Show'} help`}
-                                style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                                <span className={`msp-icon msp-icon-help-circle-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
+                        <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded}
+                            title={desc || `${this.state.isExpanded ? 'Hide' : 'Show'} help`}
+                            style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
+                            <span className={`msp-icon msp-icon-help-circle-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
                         </button>
                     }
                 </span>
@@ -261,6 +263,28 @@ export class TextControl extends SimpleParam<PD.Text> {
             onKeyPress={this.props.onEnter ? this.onKeyPress : void 0}
             disabled={this.props.isDisabled}
         />;
+    }
+}
+
+export class PureSelectControl extends  React.PureComponent<ParamProps<PD.Select<string | number>> & { title?: string }> {
+    protected update(value: string | number) {
+        this.props.onChange({ param: this.props.param, name: this.props.name, value });
+    }
+
+    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        if (typeof this.props.param.defaultValue === 'number') {
+            this.update(parseInt(e.target.value, 10));
+        } else {
+            this.update(e.target.value);
+        }
+    }
+
+    render() {
+        const isInvalid = this.props.value !== void 0 && !this.props.param.options.some(e => e[0] === this.props.value);
+        return <select className='msp-form-control' title={this.props.title} value={this.props.value !== void 0 ? this.props.value : this.props.param.defaultValue} onChange={this.onChange} disabled={this.props.isDisabled}>
+            {isInvalid && <option key={this.props.value} value={this.props.value}>{`[Invalid] ${this.props.value}`}</option>}
+            {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>;
     }
 }
 

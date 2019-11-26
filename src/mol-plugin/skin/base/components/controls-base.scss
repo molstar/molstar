@@ -125,8 +125,8 @@
         color: $hover-font-color;
         background-color: color-increase-contrast($msp-form-control-background, 5%);
         border: none;
-        outline-offset: -1px;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%);
+        outline-offset: -1px !important;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
     }
 
     &:active, &:focus {
@@ -167,7 +167,7 @@ select.msp-form-control {
     background-size: 8px 12px;
     background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAUCAMAAACzvE1FAAAADFBMVEUzMzMzMzMzMzMzMzMKAG/3AAAAA3RSTlMAf4C/aSLHAAAAPElEQVR42q3NMQ4AIAgEQTn//2cLdRKppSGzBYwzVXvznNWs8C58CiussPJj8h6NwgorrKRdTvuV9v16Afn0AYFOB7aYAAAAAElFTkSuQmCC);
     background-repeat: no-repeat;
-    background-position: right $control-spacing top (($row-height - 12px) / 2);
+    background-position: right $control-spacing center;
     padding-right: ($row-height - 8px);
 }
 

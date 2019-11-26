@@ -52,12 +52,12 @@ class PluginState {
             animation: p.animation ? this.animation.getSnapshot() : void 0,
             startAnimation: p.startAnimation ? !!p.startAnimation : void 0,
             camera: p.camera ? {
-                current: this.plugin.canvas3d.camera.getSnapshot(),
+                current: this.plugin.canvas3d!.camera.getSnapshot(),
                 transitionStyle: p.cameraTranstion.name,
                 transitionDurationInMs: (params && params.cameraTranstion && params.cameraTranstion.name === 'animate') ? params.cameraTranstion.params.durationInMs : undefined
             } : void 0,
             cameraSnapshots: p.cameraSnapshots ? this.cameraSnapshots.getStateSnapshot() : void 0,
-            canvas3d: p.canvas3d ? { props: this.plugin.canvas3d.props } : void 0,
+            canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.interactivity.props } : void 0,
             durationInMs: params && params.durationInMs
         };

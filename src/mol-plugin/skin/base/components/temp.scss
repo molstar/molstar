@@ -14,10 +14,15 @@
     // border-right: $control-spacing solid $entity-color-Group; // TODO separate color
     border-bottom: 1px solid $entity-color-Group; // TODO separate color
     // border-bottom: 1px solid $entity-color-Group; // TODO separate color
+    cursor: default;
 
     > .msp-icon {
         display: block;
         float: left;
+    }
+
+    > small {
+        font-weight: normal;
     }
 }
 

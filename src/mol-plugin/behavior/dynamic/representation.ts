@@ -18,6 +18,7 @@ import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Structure } from '../../../mol-model/structure';
+import { arrayMax } from '../../../mol-util/array';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -110,31 +111,32 @@ export const SelectLoci = PluginBehavior.create({
             }
         }
         register() {
-            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
+            const actions: [keyof typeof DefaultSelectLociBindings, (current: Interactivity.Loci) => void, ((current: Interactivity.Loci) => boolean) | undefined][] = [
+                ['clickSelect', current => this.ctx.interactivity.lociSelects.select(current), void 0],
+                ['clickToggle', current => this.ctx.interactivity.lociSelects.toggle(current), void 0],
+                ['clickToggleExtend', current => this.ctx.interactivity.lociSelects.toggleExtend(current), void 0],
+                ['clickSelectOnly', current => this.ctx.interactivity.lociSelects.selectOnly(current), void 0],
+                ['clickDeselect', current => this.ctx.interactivity.lociSelects.deselect(current), void 0],
+                ['clickDeselectAllOnEmpty', () => this.ctx.interactivity.lociSelects.deselectAll(), current => Loci.isEmpty(current.loci)],
+            ];
+
+            // sort the action so that the ones with more modifiers trigger sooner.
+            actions.sort((a, b) => {
+                const x = this.params.bindings[a[0]], y = this.params.bindings[b[0]];
+                const k = x.triggers.length === 0 ? 0 : arrayMax(x.triggers.map(t => M.size(t.modifiers)));
+                const l = y.triggers.length === 0 ? 0 : arrayMax(y.triggers.map(t => M.size(t.modifiers)));
+                return l - k;
+            })
+
+            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d) return
 
-                if (Binding.match(this.params.bindings.clickSelect, button, modifiers)) {
-                    this.ctx.interactivity.lociSelects.select(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickToggleExtend, button, modifiers)) {
-                    this.ctx.interactivity.lociSelects.toggleExtend(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickSelectOnly, button, modifiers)) {
-                    this.ctx.interactivity.lociSelects.selectOnly(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickToggle, button, modifiers)) {
-                    this.ctx.interactivity.lociSelects.toggle(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickDeselect, button, modifiers)) {
-                    this.ctx.interactivity.lociSelects.deselect(current)
-                }
-
-                if (Binding.match(this.params.bindings.clickDeselectAllOnEmpty, button, modifiers)) {
-                    if (Loci.isEmpty(current.loci)) this.ctx.interactivity.lociSelects.deselectAll()
+                // only trigger the 1st action that matches
+                for (const [binding, action, condition] of actions) {
+                    if (Binding.match(this.params.bindings[binding], buttons, modifiers) && (!condition || condition(current))) {
+                        action(current);
+                        break;
+                    }
                 }
             });
             this.ctx.interactivity.lociSelects.addProvider(this.lociMarkProvider)

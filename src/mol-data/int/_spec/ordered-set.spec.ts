@@ -6,6 +6,7 @@
 
 import OrderedSet from '../ordered-set'
 import Interval from '../interval'
+import SortedArray from '../sorted-array';
 
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {
@@ -162,6 +163,15 @@ describe('ordered set', () => {
     testEq('intersect RA', OrderedSet.intersect(range1_4, arr136), [1, 3]);
     testEq('intersect AA', OrderedSet.intersect(arr136, OrderedSet.ofSortedArray([2, 3, 4, 6, 7])), [3, 6]);
     it('intersect AA1', () => expect(OrderedSet.union(arr136, OrderedSet.ofSortedArray([1, 3, 6]))).toBe(arr136));
+
+    testEq('idxIntersect 1', OrderedSet.indexedIntersect(
+        OrderedSet.ofSortedArray([1, 2, 4]),
+        SortedArray.ofSortedArray([1, 2, 3, 4, 5, 6]),
+        SortedArray.ofSortedArray([2, 4, 5, 8])), [0, 2]);
+    testEq('idxIntersect 2', OrderedSet.indexedIntersect(
+        OrderedSet.ofSortedArray([0, 1]),
+        SortedArray.ofSortedArray([1, 2]),
+        SortedArray.ofSortedArray([1, 2])), [0, 1]);
 
     testEq('subtract ES', OrderedSet.subtract(empty, singleton10), []);
     testEq('subtract ER', OrderedSet.subtract(empty, range1_4), []);

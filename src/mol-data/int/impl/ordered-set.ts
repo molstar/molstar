@@ -287,3 +287,44 @@ export function forEach(set: OrderedSetImpl, f: (value: number, i: number, ctx: 
     }
     return ctx;
 }
+
+
+export function indexedIntersect(idxA: OrderedSetImpl, a: S, b: S): OrderedSetImpl {
+    if (a === b) return idxA;
+    const lenI = size(idxA), lenA = a.length, lenB = b.length;
+    if (lenI === 0 || lenA === 0 || lenB === 0) return Empty;
+
+    const startJ = S.findPredecessorIndex(b, a[min(idxA)]);
+    const endJ = S.findPredecessorIndex(b, a[max(idxA)] + 1);
+
+    let commonCount = 0;
+
+    let offset = 0;
+    let O = 0;
+    let j = startJ;
+    while (O < lenI && j < endJ) {
+        const x = a[getAt(idxA, O)], y = b[j];
+        if (x < y) { O++; }
+        else if (x > y) { j++; }
+        else { commonCount++; O++; j++; }
+    }
+
+    // no common elements
+    if (commonCount === 0) return Empty;
+    // A === B
+    if (commonCount === lenA && commonCount === lenB) return idxA;
+
+    const indices = new Int32Array(commonCount);
+
+    offset = 0;
+    O = 0;
+    j = startJ;
+    while (O < lenI && j < endJ) {
+        const x = a[getAt(idxA, O)], y = b[j];
+        if (x < y) { O++; }
+        else if (x > y) { j++; }
+        else { indices[offset++] = j; O++; j++; }
+    }
+
+    return ofSortedArray(indices);
+}

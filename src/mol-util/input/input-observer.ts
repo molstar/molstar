@@ -74,6 +74,16 @@ export namespace ModifiersKeys {
         return a.shift === b.shift && a.alt === b.alt && a.control === b.control && a.meta === b.meta;
     }
 
+    export function size(a?: ModifiersKeys) {
+        if (!a) return 0;
+        let ret = 0;
+        if (!!a.shift) ret++;
+        if (!!a.alt) ret++;
+        if (!!a.control) ret++;
+        if (!!a.meta) ret++;
+        return ret;
+    }
+
     export function create(modifierKeys: Partial<ModifiersKeys> = {}): ModifiersKeys {
         return {
             shift: !!modifierKeys.shift,

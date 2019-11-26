@@ -97,15 +97,15 @@ class LightingDemo {
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
             ...props,
             multiSample: {
-                ...this.plugin.canvas3d.props.multiSample,
+                ...this.plugin.canvas3d!.props.multiSample,
                 ...props.multiSample
             },
             renderer: {
-                ...this.plugin.canvas3d.props.renderer,
+                ...this.plugin.canvas3d!.props.renderer,
                 ...props.renderer
             },
             postprocessing: {
-                ...this.plugin.canvas3d.props.postprocessing,
+                ...this.plugin.canvas3d!.props.postprocessing,
                 ...props.postprocessing
             },
         }});

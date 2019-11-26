@@ -248,7 +248,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
 
         const provider = BuiltInVolumeRepresentations.isosurface;
         const props = params.type.params || {}
-        const repr = provider.factory({ webgl: plugin.canvas3d.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
+        const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
         repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
         await repr.createOrUpdate(props, channel.data).runInContext(ctx);
         return new SO.Volume.Representation3D({ repr, source: a }, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });

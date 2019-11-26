@@ -214,7 +214,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         for (let i = 0, il = markerArray.length; i < il; i++) {
             if (hasNumbers && i % period === 0 && i < il) o++;
             // o + 1 to account for help icon
-            const span = xs[o + 1] as HTMLSpanElement;
+            const span = xs[o] as HTMLSpanElement;
             if (!span) return;
             o++;
 
@@ -290,6 +290,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         // residue spans are updated as react won't update them
         this.updateMarker()
 
+        // <span className={`msp-icon msp-icon-help`} style={{ cursor: 'help' }} title='This shows a single sequence. Use the menu on the left to show a different sequence.' />
+
         return <div
             className='msp-sequence-wrapper msp-sequence-wrapper-non-empty'
             onContextMenu={this.contextMenu}
@@ -299,7 +301,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             onMouseLeave={this.mouseLeave}
             ref={this.parentDiv}
         >
-            <span className={`msp-icon msp-icon-help`} style={{ cursor: 'help' }} title='This shows a single sequence. Use the menu on the left to show a different sequence.' />
             {elems}
         </div>;
     }

@@ -7,9 +7,35 @@
     background: $sequence-background;
 }
 
+$sequence-select-height: 22px;
 .msp-sequence-select {
-    float: left;
-    width: $sequence-select-width;
+    position: relative;
+    height: $sequence-select-height;
+    width: 100%;
+    margin-bottom: 1px;
+    background: $control-background;
+    text-align: left;
+
+    > span {
+        display: inline-block;
+        line-height: $sequence-select-height;
+        padding: 0 $control-spacing;
+        font-size: 85%;
+        font-weight: bold;
+        cursor: default;
+    }
+
+    > select {
+        display: inline-block;
+        max-width: 120px;
+        width: auto;
+        text-overflow: ellipsis;
+        font-size: 85%;
+        height: $sequence-select-height;
+        line-height: $sequence-select-height;
+        background-size: 6px 8px;
+        background-color: $control-background;
+    }
 }
 
 .msp-sequence-wrapper {
@@ -17,15 +43,22 @@
     // use $control-spacing for top to have space for sequence numebrs
     padding: $control-spacing $control-spacing $info-vertical-padding $control-spacing;
     user-select: none;
-    height: 100%;
+    width: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    font-size: 90%;
-    line-height: 180%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
 }
 
-.msp-sequence-wrapper-non-empty {
+.msp-sequence-wrapper-non-empty {    
+    font-size: 85%;
+    line-height: 180%;
     font-family: "Courier New", monospace;
+    background: $msp-form-control-background;
+    top: $sequence-select-height + 1px;
 }
 
 .msp-sequence-wrapper {

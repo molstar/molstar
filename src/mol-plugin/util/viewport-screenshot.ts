@@ -16,8 +16,8 @@ import { download } from '../../mol-util/download';
 export class ViewportScreenshotWrapper {
     private getCanvasSize() {
         return {
-            width: this.plugin.canvas3d.webgl.gl.drawingBufferWidth,
-            height: this.plugin.canvas3d.webgl.gl.drawingBufferHeight
+            width: this.plugin.canvas3d?.webgl.gl.drawingBufferWidth || 0,
+            height: this.plugin.canvas3d?.webgl.gl.drawingBufferHeight || 0
         };
     }
 
@@ -28,10 +28,10 @@ export class ViewportScreenshotWrapper {
     get imagePass() {
         if (this._imagePass) return this._imagePass;
 
-        this._imagePass = this.plugin.canvas3d.getImagePass()
+        this._imagePass = this.plugin.canvas3d!.getImagePass()
         this._imagePass.setProps({
             multiSample: { mode: 'on', sampleLevel: 2 },
-            postprocessing: this.plugin.canvas3d.props.postprocessing
+            postprocessing: this.plugin.canvas3d!.props.postprocessing
         });
         return this._imagePass;
     }

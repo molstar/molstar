@@ -42,7 +42,7 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
     }
 
     private getSize() {
-        return this.state.size === 'canvas' ? {
+        return this.state.size === 'canvas' && this.plugin.canvas3d ? {
             width: this.plugin.canvas3d.webgl.gl.drawingBufferWidth,
             height: this.plugin.canvas3d.webgl.gl.drawingBufferHeight
         } : {
@@ -66,7 +66,7 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
             h = Math.round(height * (w / width))
         }
         setCanvasSize(this.canvas, w, h)
-        const { pixelRatio } = this.plugin.canvas3d.webgl
+        const pixelRatio = this.plugin.canvas3d?.webgl.pixelRatio || 1
         const pw = Math.round(w * pixelRatio)
         const ph = Math.round(h * pixelRatio)
         const imageData = this.imagePass.getImageData(pw, ph)
@@ -100,12 +100,14 @@ export class ImageControls<P, S extends ImageControlsState> extends CollapsableC
     }
 
     componentDidMount() {
+        if (!this.plugin.canvas3d) return;
+
         this.handlePreview()
 
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => {
             this.imagePass.setProps({
                 multiSample: { mode: 'on', sampleLevel: 2 },
-                postprocessing: this.plugin.canvas3d.props.postprocessing
+                postprocessing: this.plugin.canvas3d?.props.postprocessing
             })
             this.handlePreview()
         })

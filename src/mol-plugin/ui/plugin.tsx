@@ -14,7 +14,7 @@ import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
 import { LociLabels, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls, StructureToolsWrapper } from './controls';
 import { StateSnapshots } from './state';
-import { StateObjectActions } from './state/actions';
+import { StateObjectActionSelect } from './state/actions';
 import { StateTree } from './state/tree';
 import { BackgroundTaskProgress } from './task';
 import { Viewport, ViewportControls } from './viewport';
@@ -23,6 +23,7 @@ import { UpdateTransformControl } from './state/update-transform';
 import { SequenceView } from './sequence';
 import { Toasts } from './toast';
 import { ImageControls } from './image';
+import { Icon } from './controls/common';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -246,8 +247,18 @@ export class CurrentObject extends PluginUIComponent {
         if (!showActions) return null;
 
         return <>
-            {(cell.status === 'ok' || cell.status === 'error') && <UpdateTransformControl state={current.state} transform={transform} /> }
-            {cell.status === 'ok' && <StateObjectActions state={current.state} nodeRef={ref} initiallyCollapsed />}
+            {(cell.status === 'ok' || cell.status === 'error') && <>
+                <div className='msp-section-header' style={{ margin: '0 0 -1px 0' }}>
+                    <Icon name='flow-cascade' />
+                    {`${cell.obj?.label || transform.transformer.definition.display.name}`} <small>{transform.transformer.definition.display.name}</small>
+                </div>
+                <UpdateTransformControl state={current.state} transform={transform} customHeader='none' />
+            </> }
+            {cell.status === 'ok' &&
+                <StateObjectActionSelect state={current.state} nodeRef={ref} plugin={this.plugin} />
+            }
+
+            {/* <StateObjectActions state={current.state} nodeRef={ref} initiallyCollapsed />} */}
         </>;
     }
 }
