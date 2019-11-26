@@ -19,7 +19,7 @@ namespace UpdateTransformControl {
         state: State,
         toggleCollapsed?: Observable<any>,
         initiallyCollapsed?: boolean,
-        customHeader?: StateTransformer.Definition['display']
+        customHeader?: StateTransformer.Definition['display'] | 'none'
     }
 
     export interface ComponentState extends TransformControlBase.ComponentState {

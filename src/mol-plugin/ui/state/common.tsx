@@ -102,7 +102,7 @@ namespace TransformControlBase {
 abstract class TransformControlBase<P, S extends TransformControlBase.ComponentState> extends PurePluginUIComponent<P, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
-    abstract getHeader(): StateTransformer.Definition['display'];
+    abstract getHeader(): StateTransformer.Definition['display'] | 'none';
     abstract canApply(): boolean;
     abstract getTransformerId(): string;
     abstract canAutoApply(newParams: any): boolean;
@@ -187,12 +187,12 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
         const { a, b } = this.getSourceAndTarget();
         return <div className={wrapClass}>
-            <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block msp-btn-collapse' onClick={this.toggleExpanded} title={display.description}>
-                    <span className={`msp-icon msp-icon-${this.state.isCollapsed ? 'expand' : 'collapse'}`} />
+            {display !== 'none' && <div className='msp-transform-header'>
+                <button className={`msp-btn msp-btn-block${isEmpty ? '' : ' msp-btn-collapse'}`} onClick={this.toggleExpanded} title={display.description}>
+                    {!isEmpty && <span className={`msp-icon msp-icon-${this.state.isCollapsed ? 'expand' : 'collapse'}`} />}
                     {display.name}
                 </button>
-            </div>
+            </div>}
             {!isEmpty && !this.state.isCollapsed && <>
                 <ParamEditor info={info} a={a} b={b} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
 
