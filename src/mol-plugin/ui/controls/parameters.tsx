@@ -83,7 +83,7 @@ export class ParamHelp<L extends LegendData> extends React.PureComponent<{ legen
         return <div className='msp-control-row msp-help-text'>
             <div>
                 <div className='msp-help-description'><span className={`msp-icon msp-icon-help-circle`} />{description}</div>
-                <div className='msp-help-legend'>{Legend && <Legend legend={legend} />}</div>
+                {Legend && <div className='msp-help-legend'><Legend legend={legend} /></div>}
             </div>
         </div>
     }
@@ -123,15 +123,17 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
         const help = this.props.param.help
             ? this.props.param.help(this.props.value)
             : { description: this.props.param.description, legend: this.props.param.legend }
+        const desc = this.props.param.description;
         const hasHelp = help.description || help.legend
         return <>
             <div className={this.className}>
-                <span title={this.props.param.description}>
+                <span title={desc}>
                     {label}
                     {hasHelp &&
-                        <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} title={`${this.state.isExpanded ? 'Hide' : 'Show'} help`}
-                                style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                                <span className={`msp-icon msp-icon-help-circle-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
+                        <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded} 
+                            title={desc || `${this.state.isExpanded ? 'Hide' : 'Show'} help`}
+                            style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
+                            <span className={`msp-icon msp-icon-help-circle-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
                         </button>
                     }
                 </span>
