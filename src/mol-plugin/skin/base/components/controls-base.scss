@@ -125,8 +125,8 @@
         color: $hover-font-color;
         background-color: color-increase-contrast($msp-form-control-background, 5%);
         border: none;
-        outline-offset: -1px;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%);
+        outline-offset: -1px !important;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
     }
 
     &:active, &:focus {
