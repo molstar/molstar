@@ -14,7 +14,7 @@ import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
 import { LociLabels, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls, StructureToolsWrapper } from './controls';
 import { StateSnapshots } from './state';
-import { StateObjectActions } from './state/actions';
+import { StateObjectActionSelect } from './state/actions';
 import { StateTree } from './state/tree';
 import { BackgroundTaskProgress } from './task';
 import { Viewport, ViewportControls } from './viewport';
@@ -254,7 +254,11 @@ export class CurrentObject extends PluginUIComponent {
                 </div>
                 <UpdateTransformControl state={current.state} transform={transform} customHeader='none' />
             </> }
-            {cell.status === 'ok' && <StateObjectActions state={current.state} nodeRef={ref} initiallyCollapsed />}
+            {cell.status === 'ok' &&
+                <StateObjectActionSelect state={current.state} nodeRef={ref} plugin={this.plugin} />
+            }
+
+            {/* <StateObjectActions state={current.state} nodeRef={ref} initiallyCollapsed />} */}
         </>;
     }
 }

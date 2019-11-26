@@ -19,6 +19,7 @@ namespace ApplyActionControl {
         nodeRef: StateTransform.Ref,
         state: State,
         action: StateAction,
+        hideHeader?: boolean,
         initiallyCollapsed?: boolean
     }
 
@@ -42,7 +43,7 @@ class ApplyActionControl extends TransformControlBase<ApplyActionControl.Props, 
     }
     getInfo() { return this._getInfo(this.props.nodeRef, this.props.state.transforms.get(this.props.nodeRef).version); }
     getTransformerId() { return this.props.state.transforms.get(this.props.nodeRef).transformer.id; }
-    getHeader() { return this.props.action.definition.display; }
+    getHeader() { return this.props.hideHeader ? 'none' : this.props.action.definition.display; }
     canApply() { return !this.state.error && !this.state.busy; }
     canAutoApply() { return false; }
     applyText() { return 'Apply'; }

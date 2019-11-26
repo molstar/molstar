@@ -101,3 +101,23 @@
         }
     }
 }
+
+.msp-action-select {
+    position: relative;
+
+    select {
+        padding-left: $control-spacing + $row-height;
+    }
+
+    option:first-child {
+        color: color-lower-contrast($font-color, 15%);
+    }
+
+    > .msp-icon {
+        display: block;
+        top: 0;
+        left: $control-spacing;
+        position: absolute;
+        line-height: $row-height;
+    }
+}
