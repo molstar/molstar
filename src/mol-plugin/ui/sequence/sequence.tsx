@@ -29,7 +29,7 @@ const MaxSequenceNumberSize = 5
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     private parentDiv = React.createRef<HTMLDivElement>();
     private lastMouseOverSeqIdx = -1;
-    private highlightQueue = new Subject<{ seqIdx: number, buttons: number, modifiers: ModifiersKeys }>();
+    private highlightQueue = new Subject<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>();
 
     private lociHighlightProvider = (loci: Interactivity.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action)

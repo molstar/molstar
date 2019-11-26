@@ -110,30 +110,30 @@ export const SelectLoci = PluginBehavior.create({
             }
         }
         register() {
-            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
+            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d) return
 
-                if (Binding.match(this.params.bindings.clickSelect, buttons, modifiers)) {
+                if (Binding.match(this.params.bindings.clickSelect, button, modifiers)) {
                     this.ctx.interactivity.lociSelects.select(current)
                 }
 
-                if (Binding.match(this.params.bindings.clickSelectExtend, buttons, modifiers)) {
-                    this.ctx.interactivity.lociSelects.selectExtend(current)
+                if (Binding.match(this.params.bindings.clickToggleExtend, button, modifiers)) {
+                    this.ctx.interactivity.lociSelects.toggleExtend(current)
                 }
 
-                if (Binding.match(this.params.bindings.clickSelectOnly, buttons, modifiers)) {
+                if (Binding.match(this.params.bindings.clickSelectOnly, button, modifiers)) {
                     this.ctx.interactivity.lociSelects.selectOnly(current)
                 }
 
-                if (Binding.match(this.params.bindings.clickSelectToggle, buttons, modifiers)) {
-                    this.ctx.interactivity.lociSelects.selectToggle(current)
+                if (Binding.match(this.params.bindings.clickToggle, button, modifiers)) {
+                    this.ctx.interactivity.lociSelects.toggle(current)
                 }
 
-                if (Binding.match(this.params.bindings.clickDeselect, buttons, modifiers)) {
+                if (Binding.match(this.params.bindings.clickDeselect, button, modifiers)) {
                     this.ctx.interactivity.lociSelects.deselect(current)
                 }
 
-                if (Binding.match(this.params.bindings.clickDeselectAllOnEmpty, buttons, modifiers)) {
+                if (Binding.match(this.params.bindings.clickDeselectAllOnEmpty, button, modifiers)) {
                     if (Loci.isEmpty(current.loci)) this.ctx.interactivity.lociSelects.deselectAll()
                 }
             });

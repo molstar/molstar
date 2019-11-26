@@ -23,8 +23,15 @@ export function getButtons(event: MouseEvent | Touch) {
             } else if (b > 0) {
                 return 1 << (b - 1)
             }
-        } else if ('button' in event) {
-            const b = (event as any).button  // 'any' to support older browsers
+        }
+    }
+    return 0
+}
+
+export function getButton(event: MouseEvent | Touch) {
+    if (typeof event === 'object') {
+        if ('button' in event) {
+            const b = event.button
             if (b === 1) {
                 return 4
             } else if (b === 2) {
@@ -101,6 +108,7 @@ export namespace ButtonsType {
 
 type BaseInput = {
     buttons: ButtonsType
+    button: ButtonsType.Flag
     modifiers: ModifiersKeys
 }
 
@@ -228,7 +236,8 @@ namespace InputObserver {
 
         let dragging: DraggingState = DraggingState.Stopped
         let disposed = false
-        let buttons = 0 as ButtonsType
+        let buttons = ButtonsType.create(ButtonsType.Flag.None)
+        let button = ButtonsType.Flag.None
         let isInside = false
 
         const events = createEvents()
@@ -358,10 +367,11 @@ namespace InputObserver {
 
         function onTouchStart(ev: TouchEvent) {
             if (ev.touches.length === 1) {
-                buttons = ButtonsType.Flag.Primary
+                buttons = button = ButtonsType.Flag.Primary
                 onPointerDown(ev.touches[0])
             } else if (ev.touches.length === 2) {
                 buttons = ButtonsType.Flag.Secondary & ButtonsType.Flag.Auxilary
+                button = ButtonsType.Flag.Secondary
                 onPointerDown(getCenterTouch(ev))
 
                 const touchDistance = getTouchDistance(ev)
@@ -372,10 +382,11 @@ namespace InputObserver {
                     delta: 0,
                     isStart: true,
                     buttons,
+                    button,
                     modifiers: getModifierKeys()
                 })
             } else if (ev.touches.length === 3) {
-                buttons = ButtonsType.Flag.Forth
+                buttons = button = ButtonsType.Flag.Forth
                 onPointerDown(getCenterTouch(ev))
             }
         }
@@ -385,6 +396,8 @@ namespace InputObserver {
         }
 
         function onTouchMove(ev: TouchEvent) {
+            button = ButtonsType.Flag.None
+
             if (noPinchZoom) {
                 ev.preventDefault();
                 ev.stopPropagation();
@@ -412,6 +425,7 @@ namespace InputObserver {
                         distance: touchDistance,
                         isStart: false,
                         buttons,
+                        button,
                         modifiers: getModifierKeys()
                     })
                 }
@@ -425,6 +439,7 @@ namespace InputObserver {
         function onMouseDown(ev: MouseEvent) {
             updateModifierKeys(ev)
             buttons = getButtons(ev)
+            button = getButton(ev)
             if (noMiddleClickScroll && buttons === ButtonsType.Flag.Auxilary) {
                 ev.preventDefault
             }
@@ -434,11 +449,14 @@ namespace InputObserver {
         function onMouseMove(ev: MouseEvent) {
             updateModifierKeys(ev)
             buttons = getButtons(ev)
+            button = ButtonsType.Flag.None
             onPointerMove(ev)
         }
 
         function onMouseUp(ev: MouseEvent) {
             updateModifierKeys(ev)
+            buttons = getButtons(ev)
+            button = getButton(ev)
             onPointerUp(ev)
             endDrag()
         }
@@ -464,7 +482,7 @@ namespace InputObserver {
                 const { pageX, pageY } = ev
                 const [ x, y ] = pointerEnd
 
-                click.next({ x, y, pageX, pageY, buttons, modifiers: getModifierKeys() })
+                click.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys() })
             }
         }
 
@@ -473,7 +491,7 @@ namespace InputObserver {
             const { pageX, pageY } = ev
             const [ x, y ] = pointerEnd
             const inside = insideBounds(pointerEnd)
-            move.next({ x, y, pageX, pageY, buttons, modifiers: getModifierKeys(), inside })
+            move.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys(), inside })
 
             if (dragging === DraggingState.Stopped) return
 
@@ -482,7 +500,7 @@ namespace InputObserver {
 
             const isStart = dragging === DraggingState.Started
             const [ dx, dy ] = pointerDelta
-            drag.next({ x, y, dx, dy, pageX, pageY, buttons, modifiers: getModifierKeys(), isStart })
+            drag.next({ x, y, dx, dy, pageX, pageY, buttons, button, modifiers: getModifierKeys(), isStart })
 
             Vec2.copy(pointerStart, pointerEnd)
             dragging = DraggingState.Moving
@@ -504,10 +522,10 @@ namespace InputObserver {
             const dy = (ev.deltaY || 0) * scale
             const dz = (ev.deltaZ || 0) * scale
 
-            buttons = ButtonsType.Flag.Auxilary
+            buttons = button = ButtonsType.Flag.Auxilary
 
             if (dx || dy || dz) {
-                wheel.next({ dx, dy, dz, buttons, modifiers: getModifierKeys() })
+                wheel.next({ dx, dy, dz, buttons, button, modifiers: getModifierKeys() })
             }
         }
 

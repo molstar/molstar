@@ -94,8 +94,8 @@ export class PluginContext {
             isUpdating: this.ev.behavior<boolean>(false)
         },
         interaction: {
-            hover: this.ev.behavior<Interactivity.HoverEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 }),
-            click: this.ev.behavior<Interactivity.ClickEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0 })
+            hover: this.ev.behavior<Interactivity.HoverEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
+            click: this.ev.behavior<Interactivity.ClickEvent>({ current: Interactivity.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 })
         },
         labels: {
             highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })

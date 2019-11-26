@@ -38,6 +38,7 @@ export class Canvas3dInteractionHelper {
     private inside = false;
 
     private buttons: ButtonsType = ButtonsType.create(0);
+    private button: ButtonsType.Flag = ButtonsType.create(0);
     private modifiers: ModifiersKeys = ModifiersKeys.None;
 
     private identify(isClick: boolean, t: number) {
@@ -50,7 +51,7 @@ export class Canvas3dInteractionHelper {
         if (!this.id) return;
 
         if (isClick) {
-            this.events.click.next({ current: this.getLoci(this.id), buttons: this.buttons, modifiers: this.modifiers });
+            this.events.click.next({ current: this.getLoci(this.id), buttons: this.buttons, button: this.button, modifiers: this.modifiers });
             return;
         }
 
@@ -61,7 +62,7 @@ export class Canvas3dInteractionHelper {
         const loci = this.getLoci(this.id);
         // only broadcast the latest hover
         if (!Representation.Loci.areEqual(this.prevLoci, loci)) {
-            this.events.hover.next({ current: loci, buttons: this.buttons, modifiers: this.modifiers });
+            this.events.hover.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers });
             this.prevLoci = loci;
         }
     }
@@ -78,22 +79,24 @@ export class Canvas3dInteractionHelper {
         this.inside = false;
         if (this.prevLoci.loci !== EmptyLoci) {
             this.prevLoci = Representation.Loci.Empty;
-            this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, modifiers: this.modifiers });
+            this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, button: this.button, modifiers: this.modifiers });
         }
     }
 
-    move(x: number, y: number, buttons: ButtonsType, modifiers: ModifiersKeys) {
+    move(x: number, y: number, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
         this.inside = true;
         this.buttons = buttons;
+        this.button = button;
         this.modifiers = modifiers;
         this.cX = x;
         this.cY = y;
     }
 
-    select(x: number, y: number, buttons: ButtonsType, modifiers: ModifiersKeys) {
+    select(x: number, y: number, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys) {
         this.cX = x;
         this.cY = y;
         this.buttons = buttons;
+        this.button = button;
         this.modifiers = modifiers;
         this.identify(true, 0);
     }
@@ -101,7 +104,7 @@ export class Canvas3dInteractionHelper {
     modify(modifiers: ModifiersKeys) {
         if (this.prevLoci.loci === EmptyLoci || ModifiersKeys.areEqual(modifiers, this.modifiers)) return;
         this.modifiers = modifiers;
-        this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, modifiers: this.modifiers });
+        this.events.hover.next({ current: this.prevLoci, buttons: this.buttons, button: this.button, modifiers: this.modifiers });
     }
 
     dispose() {
@@ -109,17 +112,17 @@ export class Canvas3dInteractionHelper {
     }
 
     constructor(private canvasIdentify: Canvas3D['identify'], private getLoci: Canvas3D['getLoci'], input: InputObserver, private maxFps: number = 15) {
-        input.move.subscribe(({x, y, inside, buttons, modifiers }) => {
+        input.move.subscribe(({x, y, inside, buttons, button, modifiers }) => {
             if (!inside) return;
-            this.move(x, y, buttons, modifiers);
+            this.move(x, y, buttons, button, modifiers);
         });
 
         input.leave.subscribe(() => {
             this.leave();
         });
 
-        input.click.subscribe(({x, y, buttons, modifiers }) => {
-            this.select(x, y, buttons, modifiers);
+        input.click.subscribe(({x, y, buttons, button, modifiers }) => {
+            this.select(x, y, buttons, button, modifiers);
         });
 
         input.modifiers.subscribe(modifiers => this.modify(modifiers));

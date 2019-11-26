@@ -57,8 +57,8 @@ namespace Interactivity {
     export type Params = typeof Params
     export type Props = PD.Values<Params>
 
-    export interface HoverEvent { current: Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
-    export interface ClickEvent { current: Loci, buttons: ButtonsType, modifiers: ModifiersKeys }
+    export interface HoverEvent { current: Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
+    export interface ClickEvent { current: Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys }
 
     export type LociMarkProvider = (loci: Loci, action: MarkerAction) => void
 

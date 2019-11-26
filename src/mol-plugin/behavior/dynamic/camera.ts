@@ -36,10 +36,10 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<FocusLociProps> {
         register(): void {
-            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, buttons, modifiers }) => {
+            this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
                 const p = this.params;
-                if (Binding.match(this.params.bindings.clickCenterFocus, buttons, modifiers)) {
+                if (Binding.match(this.params.bindings.clickCenterFocus, button, modifiers)) {
                     const loci = Loci.normalize(current.loci, this.ctx.interactivity.props.granularity)
                     if (Loci.isEmpty(loci)) {
                         PluginCommands.Camera.Reset.dispatch(this.ctx, { })
