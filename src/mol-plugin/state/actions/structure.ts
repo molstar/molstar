@@ -18,6 +18,7 @@ import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
 import { StructureElement } from '../../../mol-model/structure';
 import { createDefaultStructureComplex } from '../../util/structure-complex-helper';
+import { ModelStructureRepresentation } from '../representation/model';
 
 export const MmcifProvider: DataFormatProvider<any> = {
     label: 'mmCIF',
@@ -90,16 +91,20 @@ type StructureFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
 //
 
+const DownloadModelRepresentationOptions = ModelStructureRepresentation.getParams(void 0, 'assembly').kind;
+
 const DownloadStructurePdbIdSourceOptions = PD.Group({
+    structure: DownloadModelRepresentationOptions,
     supportProps: PD.Optional(PD.Boolean(false)),
     asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
 });
+
 
 export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure
 const DownloadStructure = StateAction.build({
     from: PluginStateObject.Root,
-    display: { name: 'Download Structure', description: 'Load a structure from the provided source and create its default Assembly and visual.' },
+    display: { name: 'Download Structure', description: 'Load a structure from the provided source and create its representation.' },
     params: {
         source: PD.MappedStatic('bcif-static', {
             'pdbe-updated': PD.Group({
@@ -127,6 +132,7 @@ const DownloadStructure = StateAction.build({
                 format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']] as ['cif' | 'pdb', string][]),
                 isBinary: PD.Boolean(false),
                 options: PD.Group({
+                    structure: DownloadModelRepresentationOptions,
                     supportProps: PD.Optional(PD.Boolean(false))
                 })
             }, { isFlat: true })
@@ -191,12 +197,12 @@ const DownloadStructure = StateAction.build({
 
     if (downloadParams.length > 0 && asTrajectory) {
         const traj = createSingleTrajectoryModel(downloadParams, b);
-        createStructureTree(ctx, traj, supportProps);
+        createStructureTree(ctx, traj, supportProps, src.params.options.structure);
     } else {
         for (const download of downloadParams) {
             const data = b.toRoot().apply(StateTransforms.Data.Download, download, { state: { isGhost: true } });
             const traj = createModelTree(data, format);
-            createStructureTree(ctx, traj, supportProps)
+            createStructureTree(ctx, traj, supportProps, src.params.options.structure)
         }
     }
     return state.updateTree(b, { revertIfAborted: true });
@@ -246,12 +252,12 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
     return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }
 
-function createStructureTree(ctx: PluginContext, b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean) {
+function createStructureTree(ctx: PluginContext, b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: ModelStructureRepresentation.Params) {
     let root = b;
     if (supportProps) {
         root = root.apply(StateTransforms.Model.CustomModelProperties);
     }
-    const structure = root.apply(StateTransforms.Model.StructureAssemblyFromModel);
+    const structure = root.apply(StateTransforms.Model.StructureFromModel, { kind: params || { name: 'assembly', params: { } } });
     createDefaultStructureComplex(ctx, structure);
 
     return root;

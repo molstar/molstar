@@ -9,8 +9,7 @@ import { parsePDB } from '../../../mol-io/reader/pdb/parser';
 import { Vec3, Mat4, Quat } from '../../../mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../mol-model-formats/structure/pdb';
-import { Model, ModelSymmetry, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureSymmetry, StructureElement } from '../../../mol-model/structure';
-import { Assembly } from '../../../mol-model/structure/model/properties/symmetry';
+import { Model, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureElement } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 import Expression from '../../../mol-script/language/expression';
@@ -209,7 +208,7 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Structure', async ctx => {
-            return ModelStructureRepresentation.create(plugin, ctx, a.data, params);
+            return ModelStructureRepresentation.create(plugin, ctx, a.data, params && params.kind);
         })
     }
 });
@@ -235,7 +234,7 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Assembly', async ctx => {
-            return ModelStructureRepresentation.create(plugin, ctx, a.data, { kind: { name: 'assembly', params } });
+            return ModelStructureRepresentation.create(plugin, ctx, a.data, { name: 'assembly', params });
         })
     }
 });

@@ -54,7 +54,7 @@ export namespace ModelStructureRepresentation {
         };
     }
 
-    export type Params = PD.Values<ReturnType<typeof getParams>>
+    export type Params = PD.Values<ReturnType<typeof getParams>>['kind']
 
     async function buildAssembly(plugin: PluginContext, ctx: RuntimeContext, model: Model, id?: string) {
         let asm: Assembly | undefined = void 0;
@@ -106,21 +106,21 @@ export namespace ModelStructureRepresentation {
     }
 
     export async function create(plugin: PluginContext, ctx: RuntimeContext, model: Model, params?: Params): Promise<SO.Molecule.Structure> {
-        if (!params || !params.kind || params.kind.name === 'deposited') {
+        if (!params || params.name === 'deposited') {
             const s = Structure.ofModel(model);
             await ensureSecondaryStructure(s);
             return new SO.Molecule.Structure(s, { label: 'Deposited', description: Structure.elementDescription(s) });
         }
-        if (params.kind.name === 'assembly') {
-            return buildAssembly(plugin, ctx, model, params.kind.params.id)
+        if (params.name === 'assembly') {
+            return buildAssembly(plugin, ctx, model, params.params.id)
         }
-        if (params.kind.name === 'symmetry') {
-            return buildSymmetry(ctx, model, params.kind.params.ijkMin, params.kind.params.ijkMax)
+        if (params.name === 'symmetry') {
+            return buildSymmetry(ctx, model, params.params.ijkMin, params.params.ijkMax)
         }
-        if (params.kind.name === 'symmetry-mates') {
-            return buildSymmetryMates(ctx, model, params.kind.params.radius)
+        if (params.name === 'symmetry-mates') {
+            return buildSymmetryMates(ctx, model, params.params.radius)
         }
 
-        throw new Error(`Unknown represetation type: ${(params.kind as any).name}`);
+        throw new Error(`Unknown represetation type: ${(params as any).name}`);
     }
 }
