@@ -72,7 +72,7 @@ function buildMomentsAxes(state: MeshBuilder.State, data: OrientationData, props
     Vec3.toArray(Vec3.add(tmpAxesVec, origin, dirC), vertices, 12)
     Vec3.toArray(Vec3.sub(tmpAxesVec, origin, dirC), vertices, 15)
 
-    const matrix = Mat4.fromTranslation(Mat4(), Vec3.inverse(Vec3(), origin))
+    const matrix = Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), origin))
 
     const cage = createCage(vertices, edges)
     const volume = Axes3D.volume(data.principalAxes.boxAxes)
@@ -115,7 +115,7 @@ function buildOrientedBox(state: MeshBuilder.State, data: OrientationData, props
     addCornerHelper(negDirA, dirB, dirC)
     addCornerHelper(negDirA, dirB, negDirC)
 
-    const matrix = Mat4.fromTranslation(Mat4(), Vec3.inverse(Vec3(), origin))
+    const matrix = Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), origin))
 
     const cage = createCage(vertices, edges)
     const volume = Axes3D.volume(data.principalAxes.boxAxes)
