@@ -75,6 +75,7 @@ namespace StateBuilder {
     export class Root implements StateBuilder {
         private state: BuildState;
         get editInfo() { return this.state.editInfo; }
+        get currentTree() { return this.state.tree; }
 
         to<A extends StateObject>(ref: StateTransform.Ref): To<A>
         to<C extends StateObjectCell>(cell: C): To<StateObjectCell.Obj<C>, StateTransform.Transformer<StateObjectCell.Transform<C>>>
@@ -125,6 +126,32 @@ namespace StateBuilder {
             } else {
                 return this.apply(tr, params, { ...options, ref });
             }
+        }
+
+        /**
+         * Apply the transformed to the parent node
+         * If no params are specified (params <- undefined), default params are lazily resolved.
+         */
+        applyOrUpdateTagged<T extends StateTransformer<A, any, any>>(tags: string | string[], tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>> {
+            const children = this.state.tree.children.get(this.ref).values();
+            while (true) {
+                const child = children.next();
+                if (child.done) break;
+                const tr = this.state.tree.transforms.get(child.value);
+                if (tr && StateTransform.hasTags(tr, tags)) {
+                    this.to(child.value).updateTagged(params, tagsUnion(tr.tags, tags, options && options.tags));
+                    return this.to(child.value) as To<StateTransformer.To<T>>;
+                }
+            }
+
+            const t = tr.apply(this.ref, params, { ...options, tags: tagsUnion(tags, options && options.tags) });
+            this.state.tree.add(t);
+            this.editInfo.count++;
+            this.editInfo.lastUpdate = t.ref;
+
+            this.state.actions.push({ kind: 'add', transform: t });
+
+            return new To(this.state, t.ref, this.root);
         }
 
         /**
@@ -180,6 +207,14 @@ namespace StateBuilder {
         //     return this.root;
         // }
 
+        private updateTagged<T extends StateTransformer<any, A, any>>(params: any, tags: string | string[] | undefined) {
+            if (this.state.tree.setParams(this.ref, params) || this.state.tree.setTags(this.ref, tags)) {
+                this.editInfo.count++;
+                this.editInfo.lastUpdate = this.ref;
+                this.state.actions.push({ kind: 'update', ref: this.ref, params });
+            }
+        }
+
         update<T extends StateTransformer<any, A, any>>(transformer: T, params: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>): Root
         update(params: StateTransformer.Params<T> | ((old: StateTransformer.Params<T>) => StateTransformer.Params<T>)): Root
         update<T extends StateTransformer<any, A, any>>(paramsOrTransformer: T | any, provider?: (old: StateTransformer.Params<T>) => StateTransformer.Params<T>) {
@@ -196,10 +231,8 @@ namespace StateBuilder {
             if (this.state.tree.setParams(this.ref, params)) {
                 this.editInfo.count++;
                 this.editInfo.lastUpdate = this.ref;
+                this.state.actions.push({ kind: 'update', ref: this.ref, params });
             }
-
-            this.state.actions.push({ kind: 'update', ref: this.ref, params });
-
             return this.root;
         }
 
@@ -216,4 +249,24 @@ namespace StateBuilder {
             }
         }
     }
+}
+
+function tagsUnion<T>(...arrays: (string[] | string | undefined)[]): string[] | undefined {
+    const set = new Set();
+    const ret = [];
+    for (const xs of arrays) {
+        if (!xs) continue;
+        if (typeof xs === 'string') {
+            if (set.has(xs)) continue;
+            set.add(xs);
+            ret.push(xs);
+        } else {
+            for (const x of xs) {
+                if (set.has(x)) continue;
+                set.add(x);
+                ret.push(x);
+            }
+        }
+    }
+    return ret;
 }

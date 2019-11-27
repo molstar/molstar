@@ -17,7 +17,14 @@ export interface StructureRepresentationProvider<P = any> {
     isApplicable?(structure: Structure, plugin: PluginContext): boolean,
     params?(structure: Structure | undefined, plugin: PluginContext): PD.Def<P>,
     // TODO: have create return a "representation structure object" that allows modifications
-    apply(state: State, structure: StateObjectCell<PluginStateObject.Molecule.Structure>, params: P, plugin: PluginContext): Task<any> | Promise<void> | void
+    apply(state: State, structure: StateObjectCell<PluginStateObject.Molecule.Structure>, params: P, plugin: PluginContext): Task<any> | Promise<void> | void,
+    // TODO: Custom remove function for more complicated things
+    // remove?(state: State, ref: string, plugin: PluginContext): void
+}
+
+export const enum RepresentationProviderTags {
+    Representation = 'preset-structure-representation',
+    Selection = 'preset-structure-selection'
 }
 
 export function StructureRepresentationProvider<P>(repr: StructureRepresentationProvider<P>) { return repr; }

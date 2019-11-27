@@ -99,6 +99,8 @@ namespace Transform {
         let tags: string[] | undefined = void 0;
         if (options && options.tags) {
             tags = typeof options.tags === 'string' ? [options.tags] : options.tags;
+            if (tags.length === 0) tags = void 0;
+            else tags.sort();
         }
         return {
             parent,
@@ -121,6 +123,16 @@ namespace Transform {
         return { ...t, state: { ...t.state, ...state } };
     }
 
+    export function withTags(t: Transform, newTags?: string | string[]): Transform {
+        let tags: string[] | undefined = void 0;
+        if (newTags) {
+            tags = typeof newTags === 'string' ? [newTags] : newTags;
+            if (tags.length === 0) tags = void 0;
+            else tags.sort();
+        }
+        return { ...t, tags, version: UUID.create22() };
+    }
+
     export function withParent(t: Transform, parent: Ref): Transform {
         return { ...t, parent, version: UUID.create22() };
     }
@@ -132,6 +144,15 @@ namespace Transform {
     export function hasTag(t: Transform, tag: string) {
         if (!t.tags) return false;
         return t.tags.indexOf(tag) >= 0;
+    }
+
+    export function hasTags(t: Transform, tags: string | string[]) {
+        if (!t.tags) return typeof tags !== 'string' && tags.length === 0;
+        if (typeof tags === 'string') return hasTag(t, tags);
+        for (const tag of tags) {
+            if (t.tags.indexOf(tag) < 0) return false;
+        }
+        return true;
     }
 
     export interface Serialized {

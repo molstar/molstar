@@ -7,9 +7,11 @@
 import { StateTransforms } from '../../transforms';
 import { StructureComplexElementTypes } from '../../transforms/model';
 import { StructureRepresentation3DHelpers } from '../../transforms/representation';
-import { applyBuiltInSelection } from '../../../util/structure-selection-helper';
+import { StructureSelectionQueries as Q } from '../../../util/structure-selection-helper';
 import { BuiltInStructureRepresentations } from '../../../../mol-repr/structure/registry';
-import { StructureRepresentationProvider } from './providers';
+import { StructureRepresentationProvider, RepresentationProviderTags } from './provider';
+import { StateBuilder } from '../../../../mol-state';
+import { PluginStateObject } from '../../objects';
 
 export const PresetStructureReprentations = {
     default: StructureRepresentationProvider({
@@ -19,34 +21,34 @@ export const PresetStructureReprentations = {
             const root = state.build().to(structureCell.transform.ref);
             const structure = structureCell.obj!.data;
 
-            const tags = this.id;
+            const reprTags = [this.id, RepresentationProviderTags.Representation];
 
-            root.apply(StateTransforms.Model.StructureComplexElement, { type: 'protein-or-nucleic' }, { tags: [this.id, StructureComplexElementTypes['protein-or-nucleic']] })
-                .apply(StateTransforms.Representation.StructureRepresentation3D,
-                    StructureRepresentation3DHelpers.getDefaultParams(plugin, 'cartoon', structure), { tags });
+            applyComplex(root, 'protein-or-nucleic')
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
+                    StructureRepresentation3DHelpers.getDefaultParams(plugin, 'cartoon', structure));
 
-            root.apply(StateTransforms.Model.StructureComplexElement, { type: 'ligand' }, { tags: [this.id, StructureComplexElementTypes.ligand] })
-                .apply(StateTransforms.Representation.StructureRepresentation3D,
-                    StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure), { tags });
+            applyComplex(root, 'ligand')
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
+                    StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure));
 
-            root.apply(StateTransforms.Model.StructureComplexElement, { type: 'modified' }, { tags: [this.id, StructureComplexElementTypes.modified] })
-                .apply(StateTransforms.Representation.StructureRepresentation3D,
-                    StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'ball-and-stick', 'polymer-id', structure, void 0), { tags });
+            applyComplex(root, 'modified')
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
+                    StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'ball-and-stick', 'polymer-id', structure, void 0));
 
-            const branched = root.apply(StateTransforms.Model.StructureComplexElement, { type: 'branched' }, { tags: [this.id, StructureComplexElementTypes.branched] })
+            const branched = applyComplex(root, 'branched');
 
-            branched.apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure, { alpha: 0.15 }), { tags });
-            branched.apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParams(plugin, 'carbohydrate', structure), { tags });
+            branched.applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure, { alpha: 0.15 }));
+            branched.applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
+                StructureRepresentation3DHelpers.getDefaultParams(plugin, 'carbohydrate', structure));
 
-            root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' }, { tags: [this.id, StructureComplexElementTypes.water] })
-                .apply(StateTransforms.Representation.StructureRepresentation3D,
-                    StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure, { alpha: 0.51 }), { tags });
+            applyComplex(root, 'water')
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
+                    StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure, { alpha: 0.51 }));
 
-            root.apply(StateTransforms.Model.StructureComplexElement, { type: 'coarse' }, { tags: [this.id, StructureComplexElementTypes.coarse] })
-                .apply(StateTransforms.Representation.StructureRepresentation3D,
-                    StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'spacefill', 'polymer-id', structure, {}), { tags });
+            applyComplex(root, 'coarse')
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
+                    StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'spacefill', 'polymer-id', structure, {}));
 
             return state.updateTree(root, { revertIfAborted: true });
         }
@@ -62,10 +64,41 @@ export const PresetStructureReprentations = {
                 repr: [BuiltInStructureRepresentations['gaussian-surface'], () => ({ smoothness: 1 })]
             });
 
-            applyBuiltInSelection(root, 'polymer', this.id)
-                .apply(StateTransforms.Representation.StructureRepresentation3D, params, { tags: this.id });
+            const reprTags = [this.id, RepresentationProviderTags.Representation];
+
+            applySelection(root, 'polymer')
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
+
+            return state.updateTree(root, { revertIfAborted: true });
+        }
+    }),
+    cartoon: StructureRepresentationProvider({
+        id: 'preset-structure-representation-cartoon',
+        display: { name: 'Cartoon', group: 'Preset' },
+        apply(state, structureCell, _, plugin) {
+            const root = plugin.state.dataState.build().to(structureCell.transform.ref);
+            const structure = structureCell.obj!.data;
+
+            const params = StructureRepresentation3DHelpers.createParams(plugin, structure, {
+                repr: BuiltInStructureRepresentations['cartoon']
+            });
+
+            const reprTags = [this.id, RepresentationProviderTags.Representation];
+
+            applySelection(root, 'polymer')
+                .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
             return state.updateTree(root, { revertIfAborted: true });
         }
     })
 };
+
+function applyComplex(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, type: keyof typeof StructureComplexElementTypes) {
+    return to.applyOrUpdateTagged(type, StateTransforms.Model.StructureComplexElement, { type }, { tags: RepresentationProviderTags.Selection });
+}
+
+function applySelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof Q) {
+    return to.applyOrUpdateTagged(query, StateTransforms.Model.StructureSelectionFromExpression,
+        { expression: Q[query].expression, label: Q[query].label },
+        { tags: RepresentationProviderTags.Selection });
+}

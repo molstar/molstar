@@ -8,6 +8,7 @@ import { Map as ImmutableMap, OrderedSet } from 'immutable';
 import { StateTransform } from '../transform';
 import { StateTree } from './immutable';
 import { shallowEqual } from '../../mol-util/object';
+import { arrayEqual } from '../../mol-util/array';
 
 export { TransientTree }
 
@@ -178,6 +179,27 @@ class TransientTree implements StateTree {
         }
 
         this.transforms.set(transform.ref, StateTransform.withParams(transform, params));
+        return true;
+    }
+
+     /** Calls Transform.definition.params.areEqual if available, otherwise uses shallowEqual to check if the params changed */
+     setTags(ref: StateTransform.Ref, tags: string | string[] | undefined) {
+        ensurePresent(this.transforms, ref);
+
+        const transform = this.transforms.get(ref)!;
+
+        const withTags = StateTransform.withParams(transform, tags)
+        // TODO: should this be here?
+        if (arrayEqual(transform.tags, withTags.tags)) {
+            return false;
+        }
+
+        if (!this.changedNodes) {
+            this.changedNodes = true;
+            this.transforms = this.transforms.asMutable();
+        }
+
+        this.transforms.set(transform.ref, withTags);
         return true;
     }
 

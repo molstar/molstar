@@ -293,6 +293,28 @@ namespace StateSelection {
         }
         return true;
     }
+
+    export function findWithAllTags<K extends string = string>(tree: StateTree, root: StateTransform.Ref, tags: Set<K>): StateTransform[] {
+        return StateTree.doPreOrder(tree, tree.transforms.get(root), { refs: [], tags }, _findWithAllTags).refs;
+    }
+
+    function _findWithAllTags(n: StateTransform, _: any, s: { refs: StateTransform[], tags: Set<string> }) {
+        if (n.tags) {
+            const len = s.tags.size;
+            let found = 0;
+            for (const t of n.tags) {
+                if (!s.tags.has(t)) continue;
+                found++;
+
+                if (found === len) {
+                    s.refs.push(n);
+                    break;
+                }
+            }
+        } else if (s.tags.size === 0) {
+            s.refs.push(n);
+        }
+    }
 }
 
 export { StateSelection }

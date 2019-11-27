@@ -104,3 +104,15 @@ export function arraySetRemove<T>(xs: T[], x: T) {
     xs.pop();
     return true;
 }
+
+export function arrayEqual<T>(xs?: T[], ys?: T[]) {
+    if (!xs || xs.length === 0) return !ys || ys.length === 0;
+    if (!ys) return false;
+
+    const lenX = xs.length;
+    if (lenX !== ys.length) return false;
+    for (let i = 0; i < lenX; i++) {
+        if (xs[i] !== ys[i]) return false;
+    }
+    return true;
+}

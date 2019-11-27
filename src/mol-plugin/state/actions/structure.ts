@@ -295,6 +295,20 @@ export const Create3DRepresentationPreset = StateAction.build({
     plugin.structureRepresentation.manager.apply(ref, params.type.name, params.type.params);
 });
 
+export const Remove3DRepresentationPreset = StateAction.build({
+    display: { name: 'Remove 3D Representation Preset', description: 'Remove 3D representations.' },
+    from: PluginStateObject.Molecule.Structure,
+    isApplicable(_, t, plugin: PluginContext) { return plugin.structureRepresentation.manager.hasManagedRepresentation(t.ref); },
+    params(a, plugin: PluginContext) {
+        return {
+            type: plugin.structureRepresentation.manager.getOptions(a.data).select
+        };
+    }
+})(({ ref, params }, plugin: PluginContext) => {
+    // TODO: this will be completely handled by the managed and is just for testing purposes
+    plugin.structureRepresentation.manager.remove(params.type, ref);
+});
+
 export const UpdateTrajectory = StateAction.build({
     display: { name: 'Update Trajectory' },
     params: {
