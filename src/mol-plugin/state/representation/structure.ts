@@ -16,11 +16,14 @@ import { PresetStructureReprentations } from './structure/preset';
 import { StructureRepresentationProvider, RepresentationProviderTags } from './structure/provider';
 import { UniqueArray } from '../../../mol-data/generic';
 
+// TODO: support quality
+// TODO: support ignore hydrogens
+
 export class StructureRepresentationManager {
     private providers: StructureRepresentationProvider[] = [];
     private providerMap: Map<string, StructureRepresentationProvider> = new Map();
 
-    readonly defaultProvider = PresetStructureReprentations.default;
+    readonly defaultProvider = PresetStructureReprentations.auto;
 
     hasProvider(s: Structure) {
         for (const p of this.providers) {
