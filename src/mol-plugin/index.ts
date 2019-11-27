@@ -24,7 +24,7 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Action(StateActions.Structure.DownloadStructure),
         PluginSpec.Action(StateActions.Volume.DownloadDensity),
         PluginSpec.Action(StateActions.DataFormat.OpenFile),
-        PluginSpec.Action(StateActions.Structure.CreateComplexRepresentation),
+        PluginSpec.Action(StateActions.Structure.Create3DRepresentationPreset),
         PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
         PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 

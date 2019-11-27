@@ -6,7 +6,7 @@
 
 import { StateTree, StateBuilder, StateAction, State } from '../../../mol-state';
 import { StateTransforms } from '../../../mol-plugin/state/transforms';
-import { createModelTree, complexRepresentation } from '../../../mol-plugin/state/actions/structure';
+import { createModelTree } from '../../../mol-plugin/state/actions/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { PluginStateObject } from '../../../mol-plugin/state/objects';
 import { ParamDefinition } from '../../../mol-util/param-definition';
@@ -19,6 +19,7 @@ import { UUID } from '../../../mol-util';
 import { ColorNames } from '../../../mol-util/color/names';
 import { Camera } from '../../../mol-canvas3d/camera';
 import { StructureRepresentation3DHelpers } from '../../../mol-plugin/state/transforms/representation';
+import { createDefaultStructureComplex } from '../../../mol-plugin/util/structure-complex-helper';
 
 export const CreateJoleculeState = StateAction.build({
     display: { name: 'Jolecule State Import' },
@@ -60,7 +61,7 @@ function createTemplate(plugin: PluginContext, state: State, id: string) {
     const data = b.toRoot().apply(StateTransforms.Data.Download, { url: `https://www.ebi.ac.uk/pdbe/static/entry/${id}_updated.cif` }, { state: { isGhost: true }});
     const model = createModelTree(data, 'cif');
     const structure = model.apply(StateTransforms.Model.StructureFromModel);
-    complexRepresentation(plugin, structure, { hideWater: true });
+    createDefaultStructureComplex(plugin, structure);
     return { tree: b.getTree(), structure: structure.ref };
 }
 

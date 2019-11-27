@@ -11,7 +11,6 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
-import { StructureRepresentation3DHelpers } from '../transforms/representation';
 import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../../mol-util/file-info';
@@ -91,7 +90,7 @@ type StructureFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
 //
 
-const DownloadModelRepresentationOptions = ModelStructureRepresentation.getParams(void 0, 'assembly').kind;
+const DownloadModelRepresentationOptions = ModelStructureRepresentation.getParams(void 0, 'assembly').type;
 
 const DownloadStructurePdbIdSourceOptions = PD.Group({
     structure: DownloadModelRepresentationOptions,
@@ -257,45 +256,23 @@ function createStructureTree(ctx: PluginContext, b: StateBuilder.To<PluginStateO
     if (supportProps) {
         root = root.apply(StateTransforms.Model.CustomModelProperties);
     }
-    const structure = root.apply(StateTransforms.Model.StructureFromModel, { kind: params || { name: 'assembly', params: { } } });
+    const structure = root.apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } });
     createDefaultStructureComplex(ctx, structure);
 
     return root;
 }
 
-export function complexRepresentation(
-    ctx: PluginContext, root: StateBuilder.To<PluginStateObject.Molecule.Structure>,
-    params?: { hideSequence?: boolean, hideHET?: boolean, hideWater?: boolean, hideCoarse?: boolean; }
-) {
-    if (!params || !params.hideSequence) {
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'cartoon'));
+export const Create3DRepresentationPreset = StateAction.build({
+    display: { name: '3D Representation Preset', description: 'Create one of preset 3D representations.' },
+    from: PluginStateObject.Molecule.Structure,
+    isApplicable(a, _, plugin: PluginContext) { return plugin.structureRepresentation.manager.hasProvider(a.data); },
+    params(a, plugin: PluginContext) {
+        return {
+            type: plugin.structureRepresentation.manager.getOptions(a.data)
+        };
     }
-    if (!params || !params.hideHET) {
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick'));
-    }
-    if (!params || !params.hideWater) {
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', { alpha: 0.51 }));
-    }
-    if (!params || !params.hideCoarse) {
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'spacefill', {}, 'polymer-id'));
-    }
-}
-
-export const CreateComplexRepresentation = StateAction.build({
-    display: { name: 'Create Complex', description: 'Split the structure into Sequence/Water/Ligands/... ' },
-    from: PluginStateObject.Molecule.Structure
-})(({ ref, state }, ctx: PluginContext) => {
-    const root = state.build().to(ref);
-    createDefaultStructureComplex(ctx, root);
-    return state.updateTree(root);
+})(({ ref, params }, plugin: PluginContext) => {
+    plugin.structureRepresentation.manager.apply(ref, params.type.name, params.type.params);
 });
 
 export const UpdateTrajectory = StateAction.build({

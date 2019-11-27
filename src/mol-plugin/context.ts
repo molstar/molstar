@@ -43,6 +43,7 @@ import { StructureOverpaintHelper } from './util/structure-overpaint-helper';
 import { PluginToastManager } from './state/toast';
 import { StructureMeasurementManager } from './util/structure-measurement';
 import { ViewportScreenshotWrapper } from './util/viewport-screenshot';
+import { StructureRepresentationManager } from './state/representation/structure';
 
 interface Log {
     entries: List<LogEntry>
@@ -111,7 +112,8 @@ export class PluginContext {
 
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
-        themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext
+        themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext,
+        manager: void 0 as any as StructureRepresentationManager
     } as const
 
     readonly volumeRepresentation = {
@@ -128,12 +130,12 @@ export class PluginContext {
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     readonly helpers = {
+        measurement: new StructureMeasurementManager(this),
         structureSelectionManager: new StructureElementSelectionManager(this),
         structureSelection: new StructureSelectionHelper(this),
         structureRepresentation: new StructureRepresentationHelper(this),
         structureOverpaint: new StructureOverpaintHelper(this),
         substructureParent: new SubstructureParentHelper(this),
-        measurement: new StructureMeasurementManager(this),
         viewportScreenshot: void 0 as ViewportScreenshotWrapper | undefined
     } as const;
 
@@ -271,8 +273,11 @@ export class PluginContext {
         this.interactivity = new Interactivity(this);
         this.lociLabels = new LociLabelManager(this);
 
+        (this.structureRepresentation.manager as StructureRepresentationManager)= new StructureRepresentationManager(this);
+
         this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
         if (!isProductionMode) this.log.message(`Development mode enabled`);
         if (isDebugMode) this.log.message(`Debug mode enabled`);
+
     }
 }

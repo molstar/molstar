@@ -208,7 +208,7 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Structure', async ctx => {
-            return ModelStructureRepresentation.create(plugin, ctx, a.data, params && params.kind);
+            return ModelStructureRepresentation.create(plugin, ctx, a.data, params && params.type);
         })
     }
 });

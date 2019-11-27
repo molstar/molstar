@@ -54,6 +54,11 @@ namespace Task {
         }
     }
 
+    export function is<T = any>(t: any): t is Task<T> {
+        const _t = t as Task<any>;
+        return !!t && typeof _t.id === 'number' && typeof _t.name === 'string' && !!_t.run;
+    }
+
     export interface Aborted { isAborted: true, reason: string, toString(): string }
     export function isAbort(e: any): e is Aborted { return !!e && !!e.isAborted; }
     export function Aborted(reason: string): Aborted { return { isAborted: true, reason, toString() { return `Aborted${reason ? ': ' + reason : ''}`; } }; }

@@ -6,7 +6,7 @@
  */
 
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
-import { StateSelection } from '../../mol-state';
+import { StateSelection, StateBuilder } from '../../mol-state';
 import { PluginStateObject } from '../state/objects';
 import { QueryContext, StructureSelection, StructureQuery, StructureElement } from '../../mol-model/structure';
 import { compile } from '../../mol-script/runtime/query/compiler';
@@ -14,6 +14,7 @@ import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
 import Expression from '../../mol-script/language/expression';
 import { LinkType } from '../../mol-model/structure/model/types';
+import { StateTransforms } from '../state/transforms';
 
 export interface StructureSelectionQuery {
     label: string
@@ -275,6 +276,12 @@ export const StructureSelectionQueries = {
     surroundings,
     complement,
     bonded,
+}
+
+export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof StructureSelectionQueries, customTag?: string) {
+    return to.apply(StateTransforms.Model.StructureSelectionFromExpression,
+        { expression: StructureSelectionQueries[query].expression, label: StructureSelectionQueries[query].label },
+        { tags: customTag ? [query, customTag] : [query] });
 }
 
 //

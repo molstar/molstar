@@ -50,11 +50,11 @@ export namespace ModelStructureRepresentation {
         }
 
         return {
-            kind: PD.MappedStatic(defaultValue || 'deposited', modes, { options })
+            type: PD.MappedStatic(defaultValue || 'deposited', modes, { options })
         };
     }
 
-    export type Params = PD.Values<ReturnType<typeof getParams>>['kind']
+    export type Params = PD.Values<ReturnType<typeof getParams>>['type']
 
     async function buildAssembly(plugin: PluginContext, ctx: RuntimeContext, model: Model, id?: string) {
         let asm: Assembly | undefined = void 0;
