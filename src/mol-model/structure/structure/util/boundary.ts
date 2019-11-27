@@ -28,7 +28,7 @@ export function computeStructureBoundary(s: Structure): Boundary {
     return computeStructureBoundaryFromUnits(s);
 }
 
-function computeStructureBoundaryFromElements(s: Structure): Boundary {
+export function computeStructureBoundaryFromElements(s: Structure): Boundary {
     centroidHelper.reset();
 
     const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
@@ -62,7 +62,7 @@ function computeStructureBoundaryFromElements(s: Structure): Boundary {
     return { box: { min, max }, sphere: centroidHelper.getSphere() };
 }
 
-function computeStructureBoundaryFromUnits(s: Structure): Boundary {
+export function computeStructureBoundaryFromUnits(s: Structure): Boundary {
     const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
     const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
 

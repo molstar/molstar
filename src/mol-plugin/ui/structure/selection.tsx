@@ -14,8 +14,6 @@ import { Interactivity } from '../../util/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../../mol-util/string';
 import { StructureElement } from '../../../mol-model/structure';
-import { Vec3 } from '../../../mol-math/linear-algebra';
-import { Sphere3D } from '../../../mol-math/geometry';
 
 const SSQ = StructureSelectionQueries
 const DefaultQueries: (keyof typeof SSQ)[] = [
@@ -62,7 +60,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
         const principalAxes = this.plugin.helpers.structureSelectionManager.getPrincipalAxes();
         const { origin, dirA, dirC } = principalAxes.boxAxes
-        const radius = Math.max(Vec3.magnitude(dirA) + extraRadius, minRadius);
+        const { sphere } = this.plugin.helpers.structureSelectionManager.getBoundary()
+        const radius = Math.max(sphere.radius + extraRadius, minRadius);
         this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);
     }
 
@@ -70,7 +69,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         return () => {
             const { extraRadius, minRadius, durationMs } = this.state
             if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
-            const sphere = Sphere3D.fromAxes3D(Sphere3D(), StructureElement.Loci.getPrincipalAxes(loci).boxAxes)
+            const { sphere } = StructureElement.Loci.getBoundary(loci)
             const radius = Math.max(sphere.radius + extraRadius, minRadius);
             this.plugin.canvas3d?.camera.focus(sphere.center, radius, durationMs);
         }
