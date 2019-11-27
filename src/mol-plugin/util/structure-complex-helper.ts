@@ -14,7 +14,7 @@ import { StructureComplexElementTypes } from '../state/transforms/model';
 export function createDefaultStructureComplex(
     ctx: PluginContext, root: StateBuilder.To<PluginStateObject.Molecule.Structure>
 ) {
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'protein-and-nucleic' }, { tags: StructureComplexElementTypes['protein-and-nucleic'] })
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'protein-or-nucleic' }, { tags: StructureComplexElementTypes['protein-or-nucleic'] })
         .apply(StateTransforms.Representation.StructureRepresentation3D,
             StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'cartoon'));
 

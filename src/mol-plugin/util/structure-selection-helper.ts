@@ -78,7 +78,7 @@ const nucleic = StructureSelectionQuery('Nucleic', MS.struct.modifier.union([
     })
 ]))
 
-const proteinAndNucleic = StructureSelectionQuery('Protein | Nucleic', MS.struct.modifier.union([
+const proteinOrNucleic = StructureSelectionQuery('Protein or Nucleic', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.and([
             MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
@@ -186,7 +186,7 @@ const ligandConnectedOnly = StructureSelectionQuery('Connected to Ligand', MS.st
 ]))
 
 // residues connected to ligands or branched entities
-const connectedOnly = StructureSelectionQuery('Connected to Ligand | Carbohydrate', MS.struct.modifier.union([
+const connectedOnly = StructureSelectionQuery('Connected to Ligand or Carbohydrate', MS.struct.modifier.union([
     MS.struct.combinator.merge([
         branchedConnectedOnly.expression,
         ligandConnectedOnly.expression
@@ -259,7 +259,7 @@ export const StructureSelectionQueries = {
     trace,
     protein,
     nucleic,
-    proteinAndNucleic,
+    proteinOrNucleic,
     water,
     branched,
     branchedPlusConnected,
