@@ -29,7 +29,7 @@ export namespace StateHelper {
     }
 
     export function structure(b: StateBuilder.To<PSO.Molecule.Model>) {
-        return b.apply(StateTransforms.Model.StructureFromModel, { tags: 'structure' })
+        return b.apply(StateTransforms.Model.StructureFromModel, void 0, { tags: 'structure' })
     };
 
     export function selectChain(b: StateBuilder.To<PSO.Molecule.Structure>, auth_asym_id: string) {

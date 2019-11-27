@@ -179,6 +179,9 @@ export namespace ParamDefinition {
         if (info && info.isFlat) ret.isFlat = info.isFlat;
         return ret;
     }
+    export function EmptyGroup(info?: Info) {
+        return Group({}, info);
+    }
 
     export interface NamedParams<T = any, K = string> { name: K, params: T }
     export type NamedParamUnion<P extends Params, K extends keyof P = keyof P> = K extends any ? NamedParams<P[K]['defaultValue'], K> : never
@@ -200,10 +203,11 @@ export namespace ParamDefinition {
         const options: [string, string][] = info && info.options
             ? info.options as [string, string][]
             : Object.keys(map).map(k => [k, k]) as [string, string][];
+        const name = checkDefaultKey(defaultKey, options);
         return setInfo<Mapped<NamedParamUnion<C>>>({
             type: 'mapped',
-            defaultValue: { name: defaultKey, params: map[defaultKey].defaultValue } as any,
-            select: Select<string>(defaultKey as string, options, info),
+            defaultValue: { name, params: map[name].defaultValue } as any,
+            select: Select<string>(name as string, options, info),
             map: key => map[key]
         }, info);
     }

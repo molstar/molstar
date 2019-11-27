@@ -23,12 +23,12 @@ import { trajectoryFromGRO } from '../../../mol-model-formats/structure/gro';
 import { parseGRO } from '../../../mol-io/reader/gro/parser';
 import { shapeFromPly } from '../../../mol-model-formats/shape/ply';
 import { SymmetryOperator } from '../../../mol-math/geometry';
-import { ensureSecondaryStructure } from './helpers';
 import { Script } from '../../../mol-script/script';
 import { parse3DG } from '../../../mol-io/reader/3dg/parser';
 import { trajectoryFrom3DG } from '../../../mol-model-formats/structure/3dg';
 import { StructureSelectionQueries } from '../../util/structure-selection-helper';
 import { StructureQueryHelper } from '../../util/structure-query';
+import { ModelStructureRepresentation } from '../representation/model';
 
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -39,8 +39,6 @@ export { ModelFromTrajectory };
 export { StructureFromTrajectory };
 export { StructureFromModel };
 export { StructureAssemblyFromModel };
-export { StructureSymmetryFromModel };
-export { StructureSymmetryMatesFromModel };
 export { TransformStructureConformation };
 export { TransformStructureConformationByMatrix };
 export { StructureSelectionFromExpression };
@@ -204,20 +202,19 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
 type StructureFromModel = typeof StructureFromModel
 const StructureFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-from-model',
-    display: { name: 'Structure from Model', description: 'Create a molecular structure from the specified model.' },
+    display: { name: 'Structure', description: 'Create a molecular structure (deposited, assembly, or symmetry) from the specified model.' },
     from: SO.Molecule.Model,
-    to: SO.Molecule.Structure
+    to: SO.Molecule.Structure,
+    params(a) { return ModelStructureRepresentation.getParams(a && a.data); }
 })({
-    apply({ a }) {
+    apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Structure', async ctx => {
-            const s = Structure.ofModel(a.data);
-            await ensureSecondaryStructure(s)
-            const props = { label: 'Deposited', description: Structure.elementDescription(s) };
-            return new SO.Molecule.Structure(s, props);
+            return ModelStructureRepresentation.create(plugin, ctx, a.data, params);
         })
     }
 });
 
+// TODO: deprecate this in favor of StructureFromModel
 type StructureAssemblyFromModel = typeof StructureAssemblyFromModel
 const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-assembly-from-model',
@@ -232,94 +229,13 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
         const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
         ids.push(['deposited', 'Deposited']);
         return {
-            id: PD.Optional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' })) };
+            id: PD.Optional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' }))
+        };
     }
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Assembly', async ctx => {
-            const model = a.data;
-            let id = params.id;
-            let asm: Assembly | undefined = void 0;
-
-            // if no id is specified, use the 1st assembly.
-            if (!id && model.symmetry.assemblies.length !== 0) {
-                id = model.symmetry.assemblies[0].id;
-            }
-
-            if (model.symmetry.assemblies.length === 0) {
-                if (id !== 'deposited') {
-                    plugin.log.warn(`Model '${a.data.entryId}' has no assembly, returning deposited structure.`);
-                }
-            } else {
-                asm = ModelSymmetry.findAssembly(model, id || '');
-                if (!asm) {
-                    plugin.log.warn(`Model '${a.data.entryId}' has no assembly called '${id}', returning deposited structure.`);
-                }
-            }
-
-            const base = Structure.ofModel(model);
-            if (!asm) {
-                await ensureSecondaryStructure(base)
-                const label = { label: 'Deposited', description: Structure.elementDescription(base) };
-                return new SO.Molecule.Structure(base, label);
-            }
-
-            id = asm.id;
-            const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
-            await ensureSecondaryStructure(s)
-            const props = { label: `Assembly ${id}`, description: Structure.elementDescription(s) };
-            return new SO.Molecule.Structure(s, props);
-        })
-    }
-});
-
-type StructureSymmetryFromModel = typeof StructureSymmetryFromModel
-const StructureSymmetryFromModel = PluginStateTransform.BuiltIn({
-    name: 'structure-symmetry-from-model',
-    display: { name: 'Structure Symmetry', description: 'Create a molecular structure symmetry.' },
-    from: SO.Molecule.Model,
-    to: SO.Molecule.Structure,
-    params(a) {
-        return {
-            ijkMin: PD.Vec3(Vec3.create(-1, -1, -1), { label: 'Min IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } }),
-            ijkMax: PD.Vec3(Vec3.create(1, 1, 1), { label: 'Max IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
-        }
-    }
-})({
-    apply({ a, params }, plugin: PluginContext) {
-        return Task.create('Build Symmetry', async ctx => {
-            const { ijkMin, ijkMax } = params
-            const model = a.data;
-            const base = Structure.ofModel(model);
-            const s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
-            await ensureSecondaryStructure(s)
-            const props = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: Structure.elementDescription(s) };
-            return new SO.Molecule.Structure(s, props);
-        })
-    }
-});
-
-type StructureSymmetryMatesFromModel = typeof StructureSymmetryMatesFromModel
-const StructureSymmetryMatesFromModel = PluginStateTransform.BuiltIn({
-    name: 'structure-symmetry-mates-from-model',
-    display: { name: 'Structure Symmetry Mates', description: 'Create molecular structure symmetry mates.' },
-    from: SO.Molecule.Model,
-    to: SO.Molecule.Structure,
-    params(a) {
-        return {
-            radius: PD.Numeric(5),
-        }
-    }
-})({
-    apply({ a, params }, plugin: PluginContext) {
-        return Task.create('Build Symmetry Mates', async ctx => {
-            const { radius } = params
-            const model = a.data;
-            const base = Structure.ofModel(model);
-            const s = await StructureSymmetry.builderSymmetryMates(base, radius).runInContext(ctx);
-            await ensureSecondaryStructure(s)
-            const props = { label: `Symmetry Mates`, description: Structure.elementDescription(s) };
-            return new SO.Molecule.Structure(s, props);
+            return ModelStructureRepresentation.create(plugin, ctx, a.data, { kind: { name: 'assembly', params } });
         })
     }
 });
@@ -703,7 +619,7 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
 type CustomModelProperties = typeof CustomModelProperties
 const CustomModelProperties = PluginStateTransform.BuiltIn({
     name: 'custom-model-properties',
-    display: { name: 'Custom Model Properties' },
+    display: { name: 'Custom Properties' },
     from: SO.Molecule.Model,
     to: SO.Molecule.Model,
     params: (a, ctx: PluginContext) => {

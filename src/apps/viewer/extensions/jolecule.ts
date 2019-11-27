@@ -59,7 +59,7 @@ function createTemplate(plugin: PluginContext, state: State, id: string) {
     const b = new StateBuilder.Root(state.tree);
     const data = b.toRoot().apply(StateTransforms.Data.Download, { url: `https://www.ebi.ac.uk/pdbe/static/entry/${id}_updated.cif` }, { state: { isGhost: true }});
     const model = createModelTree(data, 'cif');
-    const structure = model.apply(StateTransforms.Model.StructureFromModel, {});
+    const structure = model.apply(StateTransforms.Model.StructureFromModel);
     complexRepresentation(plugin, structure, { hideWater: true });
     return { tree: b.getTree(), structure: structure.ref };
 }
