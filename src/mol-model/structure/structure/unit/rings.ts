@@ -68,7 +68,7 @@ namespace UnitRing {
     }
 
     export function elementFingerprint(elements: ArrayLike<ElementSymbol>) {
-        return getFingerprint(elements as ArrayLike<String> as string[]) as Fingerprint;
+        return getFingerprint(elements as ArrayLike<string> as string[]) as Fingerprint;
     }
 }
 

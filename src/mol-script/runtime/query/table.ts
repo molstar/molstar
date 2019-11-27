@@ -7,7 +7,7 @@
 
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
 import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './compiler';
-import { Queries, StructureProperties, StructureElement, QueryContext } from '../../../mol-model/structure';
+import { Queries, StructureProperties, StructureElement, QueryContext, UnitRing } from '../../../mol-model/structure';
 import { ElementSymbol, LinkType } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
 import toUpperCase from '../../../mol-util/upper-case';
@@ -78,7 +78,7 @@ const symbols = [
             for (let i = 1, _i = xs.length; i < _i; i++) ret -= xs[i](ctx);
         } else {
             const keys = Object.keys(xs);
-            if (keys.length === 1)
+            if (keys.length === 1) return -xs[keys[0]](ctx);
             ret = xs[keys[0]](ctx) || 0;
             for (let i = 1, _i = keys.length; i < _i; i++) ret -= xs[keys[i]](ctx);
         }
@@ -184,11 +184,11 @@ const symbols = [
         }
         return ret;
     }),
+    C(MolScript.structureQuery.type.ringFingerprint, (ctx, xs) => UnitRing.elementFingerprint(getArray(ctx, xs))),
 
     // TODO:
     // C(MolScript.structureQuery.type.secondaryStructureFlags, (ctx, v) => StructureRuntime.AtomProperties.createSecondaryStructureFlags(env, v)),
     // C(MolScript.structureQuery.type.entityType, (ctx, v) => StructureRuntime.Common.entityType(v[0](ctx))),
-    // C(MolScript.structureQuery.type.ringFingerprint, (ctx, v) => StructureRuntime.Common.ringFingerprint(env, v as any)),
     // C(MolScript.structureQuery.type.authResidueId, (ctx, v) => ResidueIdentifier.auth(v[0](ctx), v[1](ctx), v[2] && v[2](ctx))),
     // C(MolScript.structureQuery.type.labelResidueId, (ctx, v) => ResidueIdentifier.label(v[0](ctx), v[1](ctx), v[2](ctx), v[3] && v[3](ctx))),
 
@@ -230,6 +230,7 @@ const symbols = [
     D(MolScript.structureQuery.generator.all, function structureQuery_generator_all(ctx) { return Queries.generators.all(ctx) }),
     D(MolScript.structureQuery.generator.empty, function structureQuery_generator_empty(ctx) { return Queries.generators.none(ctx) }),
     D(MolScript.structureQuery.generator.linkedAtomicPairs, function structureQuery_generator_linkedAtomicPairs(ctx, xs) { return Queries.generators.linkedAtomicPairs(xs && xs[0])(ctx) }),
+    D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) { return Queries.generators.rings(getArray(ctx, xs))(ctx) }),
 
     // ============= MODIFIERS ================
 
@@ -353,6 +354,18 @@ function linkFlag(current: LinkType, f: string): LinkType {
         case 'computed': return current | LinkType.Flag.Computed;
         default: return current;
     }
+}
+
+function getArray<T = any>(ctx: QueryContext, xs: any): T[] {
+    const ret: T[] = [];
+    if (!xs) return ret;
+    if (typeof xs.length === 'number') {
+        for (let i = 0, _i = xs.length; i < _i; i++) ret.push(xs[i](ctx));
+    } else {
+        const keys = Object.keys(xs);
+        for (let i = 1, _i = keys.length; i < _i; i++) ret.push(xs[keys[i]](ctx));
+    }
+    return ret;
 }
 
 (function () {
