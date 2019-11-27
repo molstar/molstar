@@ -308,7 +308,7 @@ const TransformStructureConformationByMatrix = PluginStateTransform.BuiltIn({
 type StructureSelectionFromExpression = typeof StructureSelectionFromExpression
 const StructureSelectionFromExpression = PluginStateTransform.BuiltIn({
     name: 'structure-selection-from-expression',
-    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified expression.' },
+    display: { name: 'Selection', description: 'Create a molecular structure from the specified expression.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
@@ -469,7 +469,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
 type StructureSelectionFromScript = typeof StructureSelectionFromScript
 const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
     name: 'structure-selection-from-script',
-    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified script.' },
+    display: { name: 'Selection', description: 'Create a molecular structure from the specified script.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
@@ -505,7 +505,7 @@ const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
 type StructureSelectionFromBundle = typeof StructureSelectionFromBundle
 const StructureSelectionFromBundle = PluginStateTransform.BuiltIn({
     name: 'structure-selection-from-bundle',
-    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified structure-element bundle.' },
+    display: { name: 'Selection', description: 'Create a molecular structure from the specified structure-element bundle.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {

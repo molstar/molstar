@@ -18,6 +18,8 @@ import { StructureRepresentationProvider } from './structure/providers';
 export class StructureRepresentationManager {
     private providers: StructureRepresentationProvider[] = [];
 
+    readonly defaultProvider = PresetStructureReprentations.default;
+
     hasProvider(s: Structure) {
         for (const p of this.providers) {
             if (!p.isApplicable || p.isApplicable(s, this.plugin)) return true;

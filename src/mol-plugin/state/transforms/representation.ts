@@ -705,7 +705,7 @@ export { StructureOrientation3D }
 type StructureOrientation3D = typeof StructureOrientation3D
 const StructureOrientation3D = PluginStateTransform.BuiltIn({
     name: 'structure-orientation-3d',
-    display: 'Structure Orientation',
+    display: '3D Orientation Box',
     from: SO.Molecule.Structure,
     to: SO.Shape.Representation3D,
     params: {

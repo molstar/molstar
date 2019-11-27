@@ -33,7 +33,7 @@ export const MmcifProvider: DataFormatProvider<any> = {
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('mmCIF default builder', async taskCtx => {
             const traj = createModelTree(data, 'cif');
-            await state.updateTree(options.visuals ? createStructureTree(ctx, traj, false) : traj).runInContext(taskCtx)
+            await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
         })
     }
 }
@@ -49,7 +49,7 @@ export const PdbProvider: DataFormatProvider<any> = {
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('PDB default builder', async taskCtx => {
             const traj = createModelTree(data, 'pdb');
-            await state.updateTree(options.visuals ? createStructureTree(ctx, traj, false) : traj).runInContext(taskCtx)
+            await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
         })
     }
 }
@@ -65,7 +65,7 @@ export const GroProvider: DataFormatProvider<any> = {
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('GRO default builder', async taskCtx => {
             const traj = createModelTree(data, 'gro');
-            await state.updateTree(options.visuals ? createStructureTree(ctx, traj, false) : traj).runInContext(taskCtx)
+            await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
         })
     }
 }
@@ -81,7 +81,7 @@ export const Provider3dg: DataFormatProvider<any> = {
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('3DG default builder', async taskCtx => {
             const traj = createModelTree(data, '3dg');
-            await state.updateTree(options.visuals ? createStructureTree(ctx, traj, false) : traj).runInContext(taskCtx)
+            await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
         })
     }
 }
@@ -90,14 +90,15 @@ type StructureFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
 //
 
-const DownloadModelRepresentationOptions = ModelStructureRepresentation.getParams(void 0, 'assembly').type;
+const DownloadModelRepresentationOptions = PD.Group({
+    type: ModelStructureRepresentation.getParams(void 0, 'assembly').type,
+    noRepresentation: PD.Optional(PD.Boolean(false, { description: 'Omit creating default representation.' }))
+}, { isExpanded: false });
 
 const DownloadStructurePdbIdSourceOptions = PD.Group({
-    structure: DownloadModelRepresentationOptions,
     supportProps: PD.Optional(PD.Boolean(false)),
     asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
 });
-
 
 export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure
@@ -108,31 +109,37 @@ const DownloadStructure = StateAction.build({
         source: PD.MappedStatic('bcif-static', {
             'pdbe-updated': PD.Group({
                 id: PD.Text('1cbs', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+                structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'rcsb': PD.Group({
                 id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+                structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'pdb-dev': PD.Group({
                 id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma separated ids.' }),
+                structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'bcif-static': PD.Group({
                 id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma separated PDB ids.' }),
+                structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true }),
             'swissmodel': PD.Group({
                 id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma separated ACs.' }),
+                structure: DownloadModelRepresentationOptions,
                 options: DownloadStructurePdbIdSourceOptions
             }, { isFlat: true, description: 'Loads the best homology model or experimental structure' }),
             'url': PD.Group({
                 url: PD.Text(''),
                 format: PD.Select('cif', [['cif', 'CIF'], ['pdb', 'PDB']] as ['cif' | 'pdb', string][]),
                 isBinary: PD.Boolean(false),
+                structure: DownloadModelRepresentationOptions,
                 options: PD.Group({
-                    structure: DownloadModelRepresentationOptions,
-                    supportProps: PD.Optional(PD.Boolean(false))
+                    supportProps: PD.Optional(PD.Boolean(false)),
+                    createRepresentation: PD.Optional(PD.Boolean(true))
                 })
             }, { isFlat: true })
         }, {
@@ -146,7 +153,7 @@ const DownloadStructure = StateAction.build({
                 ]
             })
     }
-})(({ params, state }, ctx: PluginContext) => {
+})(({ params, state }, plugin: PluginContext) => Task.create('Download Structure', async ctx => {
     const b = state.build();
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
@@ -194,18 +201,28 @@ const DownloadStructure = StateAction.build({
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
+    const createRepr = !params.source.params.structure.noRepresentation;
+
     if (downloadParams.length > 0 && asTrajectory) {
         const traj = createSingleTrajectoryModel(downloadParams, b);
-        createStructureTree(ctx, traj, supportProps, src.params.options.structure);
+        const struct = createStructure(traj, supportProps, src.params.structure.type);
+        await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
+        if (createRepr) {
+            await plugin.structureRepresentation.manager.apply(struct.ref, plugin.structureRepresentation.manager.defaultProvider);
+        }
     } else {
         for (const download of downloadParams) {
             const data = b.toRoot().apply(StateTransforms.Data.Download, download, { state: { isGhost: true } });
             const traj = createModelTree(data, format);
-            createStructureTree(ctx, traj, supportProps, src.params.options.structure)
+
+            const struct = createStructure(traj, supportProps, src.params.structure.type);
+            await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
+            if (createRepr) {
+                await plugin.structureRepresentation.manager.apply(struct.ref, plugin.structureRepresentation.manager.defaultProvider);
+            }
         }
     }
-    return state.updateTree(b, { revertIfAborted: true });
-});
+}));
 
 function getDownloadParams(src: string, url: (id: string) => string, label: (id: string) => string, isBinary: boolean): StateTransformer.Params<Download>[] {
     const ids = src.split(',').map(id => id.trim()).filter(id => !!id && (id.length >= 4 || /^[1-9][0-9]*$/.test(id)));
@@ -251,15 +268,18 @@ export function createModelTree(b: StateBuilder.To<PluginStateObject.Data.Binary
     return parsed.apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 }
 
-function createStructureTree(ctx: PluginContext, b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: ModelStructureRepresentation.Params) {
+function createStructure(b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: ModelStructureRepresentation.Params) {
     let root = b;
     if (supportProps) {
         root = root.apply(StateTransforms.Model.CustomModelProperties);
     }
-    const structure = root.apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } });
-    createDefaultStructureComplex(ctx, structure);
+    return root.apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } });
+}
 
-    return root;
+function createStructureAndVisuals(ctx: PluginContext, b: StateBuilder.To<PluginStateObject.Molecule.Model>, supportProps: boolean, params?: ModelStructureRepresentation.Params) {
+    const structure = createStructure(b, supportProps, params);
+    createDefaultStructureComplex(ctx, structure);
+    return b;
 }
 
 export const Create3DRepresentationPreset = StateAction.build({
@@ -346,7 +366,7 @@ export const TransformStructureConformation = StateAction.build({
 });
 
 export const StructureFromSelection = StateAction.build({
-    display: { name: 'Selection Structure', description: 'Create a new Structure from the current selection.' },
+    display: { name: 'Structure from Current Selection', description: 'Create a new Structure from the current selection.' },
     from: PluginStateObject.Molecule.Structure,
     params: {
         label: PD.Text()
