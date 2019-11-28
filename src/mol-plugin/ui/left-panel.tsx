@@ -14,7 +14,7 @@ import { PluginCommands } from '../command';
 import { ParameterControls } from './controls/parameters';
 import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StateSnapshots } from './state/snapshots';
+import { StateSnapshots, RemoteStateSnapshots } from './state/snapshots';
 import { HelpContent } from './viewport/help';
 
 type TabName = 'none' | 'root' | 'data' | 'states' | 'settings' | 'help'
@@ -49,6 +49,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
         'root': <>
             <SectionHeader icon='home' title='Home' />
             <StateObjectActions state={this.plugin.state.dataState} nodeRef={StateTransform.RootRef} hideHeader={true} initiallyCollapsed={true} alwaysExpandFirst={true} />
+            <RemoteStateSnapshots listOnly />
         </>,
         'data': <>
         <SectionHeader icon='flow-tree' title='State Tree' />

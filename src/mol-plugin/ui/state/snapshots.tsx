@@ -158,9 +158,9 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
     }
 }
 
-type RemoteEntry = { url: string, removeUrl: string, timestamp: number, id: string, name: string, description: string, isSticky?: boolean }
-class RemoteStateSnapshots extends PluginUIComponent<
-    { },
+export type RemoteEntry = { url: string, removeUrl: string, timestamp: number, id: string, name: string, description: string, isSticky?: boolean }
+export class RemoteStateSnapshots extends PluginUIComponent<
+    { listOnly?: boolean },
     { params: PD.Values<typeof RemoteStateSnapshots.Params>, entries: OrderedMap<string, RemoteEntry>, isBusy: boolean }> {
 
     state = { params: PD.getDefaultValues(RemoteStateSnapshots.Params), entries: OrderedMap<string, RemoteEntry>(), isBusy: false };
@@ -172,6 +172,12 @@ class RemoteStateSnapshots extends PluginUIComponent<
             playOnLoad: PD.Boolean(false),
             serverUrl: PD.Text('https://webchem.ncbr.muni.cz/molstar-state')
         })
+    };
+
+    static ListOnlyParams = {
+        options: PD.Group({
+            serverUrl: PD.Text('https://webchem.ncbr.muni.cz/molstar-state')
+        }, { isFlat: true })
     };
 
     componentDidMount() {
@@ -258,26 +264,36 @@ class RemoteStateSnapshots extends PluginUIComponent<
     }
 
     render() {
-        return <div>
-            <SectionHeader icon='floppy' title='Remote States' />
+        return <>
+            <SectionHeader title='Remote States' />
 
-            <ParameterControls params={RemoteStateSnapshots.Params} values={this.state.params} onEnter={this.upload} onChange={p => {
-                this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
-            }} isDisabled={this.state.isBusy}/>
-
-            <div className='msp-btn-row-group'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.upload} disabled={this.state.isBusy}><Icon name='upload' /> Upload</button>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.refresh} disabled={this.state.isBusy}>Refresh</button>
-            </div>
+            {!this.props.listOnly && <>
+                <ParameterControls params={RemoteStateSnapshots.Params} values={this.state.params} onEnter={this.upload} onChange={p => {
+                    this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
+                }} isDisabled={this.state.isBusy}/>
+                <div className='msp-btn-row-group'>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.upload} disabled={this.state.isBusy}><Icon name='upload' /> Upload</button>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.refresh} disabled={this.state.isBusy}>Refresh</button>
+                </div>
+            </>}
 
             <RemoteStateSnapshotList entries={this.state.entries} isBusy={this.state.isBusy} serverUrl={this.state.params.options.serverUrl}
-                fetch={this.fetch} remove={this.remove} />
-        </div>;
+                fetch={this.fetch} remove={this.props.listOnly ? void 0 : this.remove} />
+
+            {this.props.listOnly && <>
+                <ParameterControls params={RemoteStateSnapshots.ListOnlyParams} values={this.state.params} onEnter={this.upload} onChange={p => {
+                    this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
+                }} isDisabled={this.state.isBusy}/>
+                <div className='msp-btn-row-group'>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.refresh} disabled={this.state.isBusy}>Refresh</button>
+                </div>
+            </>}
+        </>;
     }
 }
 
 class RemoteStateSnapshotList extends PurePluginUIComponent<
-    { entries: OrderedMap<string, RemoteEntry>, serverUrl: string, isBusy: boolean, fetch: (e: React.MouseEvent<HTMLElement>) => void, remove: (e: React.MouseEvent<HTMLElement>) => void },
+    { entries: OrderedMap<string, RemoteEntry>, serverUrl: string, isBusy: boolean, fetch: (e: React.MouseEvent<HTMLElement>) => void, remove?: (e: React.MouseEvent<HTMLElement>) => void },
     { }> {
 
     open = async (e: React.MouseEvent<HTMLElement>) => {
@@ -300,7 +316,7 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
                     disabled={this.props.isBusy} onContextMenu={this.open} title='Click to download, right-click to open in a new tab.'>
                     {e!.name || new Date(e!.timestamp).toLocaleString()} <small>{e!.description}</small>
                 </button>
-                {!e!.isSticky && <div>
+                {!e!.isSticky && this.props.remove && <div>
                     <IconButton data-id={e!.id} icon='remove' title='Remove' onClick={this.props.remove} disabled={this.props.isBusy} />
                 </div>}
             </li>)}

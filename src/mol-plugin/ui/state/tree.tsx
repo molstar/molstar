@@ -10,6 +10,7 @@ import { State, StateObject, StateTransform, StateObjectCell } from '../../../mo
 import { PluginCommands } from '../../../mol-plugin/command';
 import { PluginUIComponent, _Props, _State } from '../base';
 import { StateObjectActions } from './actions';
+import { RemoteStateSnapshots } from './snapshots';
 
 export class StateTree extends PluginUIComponent<{ state: State }, { showActions: boolean }> {
     state = { showActions: true };
@@ -35,7 +36,10 @@ export class StateTree extends PluginUIComponent<{ state: State }, { showActions
     render() {
         const ref = this.props.state.tree.root.ref;
         if (this.state.showActions) {
-            return <StateObjectActions state={this.props.state} nodeRef={ref} hideHeader={true} initiallyCollapsed={true} alwaysExpandFirst={true} />
+            return <>
+                <StateObjectActions state={this.props.state} nodeRef={ref} hideHeader={true} initiallyCollapsed={true} alwaysExpandFirst={true} />
+                <RemoteStateSnapshots listOnly />
+            </>
         }
         return <StateTreeNode cell={this.props.state.cells.get(ref)!} depth={0} />;
     }
