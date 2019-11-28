@@ -21,6 +21,8 @@
 }
 
 .msp-log {
+    font-size: 90%;
+
     ul {
         padding: 0;
         margin: 0;
@@ -47,18 +49,18 @@
     }
     
     .msp-log-timestamp {
-        padding: ($info-vertical-padding + 1) $control-spacing ($info-vertical-padding - 1) $control-spacing;
+        padding: $info-vertical-padding $control-spacing $info-vertical-padding $control-spacing;
         float: left;
         text-align: right;
         width: $control-label-width;
         color: $log-timestamp-font-color;
         //vertical-align: baseline;
         //line-height: $row-height;
-        font-size: 90%;
+        font-size: 100%;
     }    
     
     .msp-log-timestamp small {
-        font-size: 90%;
+        font-size: 100%;
     }
 }
 

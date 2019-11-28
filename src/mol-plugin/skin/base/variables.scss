@@ -6,12 +6,12 @@ $control-label-short-width:   70px;
 $row-height:            32px;
 $control-spacing:       10px;
 $entity-subtree-offset: 8px;
-$info-vertical-padding: 6px;
+$info-vertical-padding: 3px;
 $slider-border-radius-base: 6px;
 
 // layout
 $expanded-top-height:    100px;
-$expanded-bottom-height: 3 * $row-height + 2;
+$expanded-bottom-height: 70px; // 3 * $row-height + 2;
 $expanded-right-width:   300px;
 $expanded-left-width:    330px;
 
