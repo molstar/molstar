@@ -63,8 +63,8 @@ interface StateObjectActionSelectState {
 
 function createStateObjectActionSelectState(props: StateObjectActionSelectProps): StateObjectActionSelectState {
     const cell = props.state.cells.get(props.nodeRef)!;
-    const actions = props.state.actions.fromCell(cell, props.plugin);
-    (actions as StateAction[]).sort((a, b) => a.definition.display.name < b.definition.display.name ? -1 : a.definition.display.name === b.definition.display.name ? 0 : 1);
+    const actions = [...props.state.actions.fromCell(cell, props.plugin)];
+    actions.sort((a, b) => a.definition.display.name < b.definition.display.name ? -1 : a.definition.display.name === b.definition.display.name ? 0 : 1);
     return {
         state: props.state,
         nodeRef: props.nodeRef,
