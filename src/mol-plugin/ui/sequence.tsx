@@ -289,9 +289,16 @@ export class SequenceView extends PluginUIComponent<{ }, SequenceViewState> {
     }
 
     render() {
-        if (this.getStructure(this.state.structureRef) === Structure.Empty) return <div className='msp-sequence'>
-            <div className='msp-sequence-wrapper'>No structure available</div>
-        </div>;
+        if (this.getStructure(this.state.structureRef) === Structure.Empty) {
+            return <div className='msp-sequence'>
+                <div className='msp-sequence-select'>
+                    <span className={`msp-icon msp-icon-help-circle`} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
+                        title='This shows a single sequence. Use the controls to show a different sequence.' />
+
+                    <span>Sequence</span><span style={{ fontWeight: 'normal' }}>No structure available</span>
+                </div>
+            </div>;
+        }
 
         const sequenceWrapper = this.getSequenceWrapper()
 
