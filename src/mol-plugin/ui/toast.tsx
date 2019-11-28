@@ -2,7 +2,7 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from LiteMol (c) David Sehnal
- * 
+ *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 

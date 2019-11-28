@@ -12,7 +12,6 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginUIComponent } from './base';
 import { ControlGroup, IconButton } from './controls/common';
 import { SimpleSettingsControl } from './viewport/simple-settings';
-import { HelpContent } from './viewport/help';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
@@ -98,16 +97,16 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
                     {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
                 </div>
-                <div>
+                {/* <div>
                     <div className='msp-semi-transparent-background' />
                     {this.icon('help-circle', this.toggleHelpExpanded, 'Help', this.state.isHelpExpanded)}
-                </div>
+                </div> */}
             </div>
-            {this.state.isHelpExpanded && <div className='msp-viewport-controls-panel'>
+            {/* {this.state.isHelpExpanded && <div className='msp-viewport-controls-panel'>
                 <ControlGroup header='Help' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleHelpExpanded} topRightIcon='off'>
                     <HelpContent />
                 </ControlGroup>
-            </div>}
+            </div>} */}
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-panel'>
                 <ControlGroup header='Basic Settings' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded} topRightIcon='off'>
                     <SimpleSettingsControl />

@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { PluginUIComponent } from './base';
 import { StateTree } from './state/tree';
-import { IconButton, SectionHeader, ControlGroup } from './controls/common';
+import { IconButton, SectionHeader } from './controls/common';
 import { StateObjectActions } from './state/actions';
 import { StateTransform } from '../../mol-state';
 import { PluginCommands } from '../command';
@@ -15,8 +15,9 @@ import { ParameterControls } from './controls/parameters';
 import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StateSnapshots } from './state/snapshots';
+import { HelpContent } from './viewport/help';
 
-type TabName = 'none' | 'root' | 'data' | 'behavior' | 'states' | 'viewport-settings'
+type TabName = 'none' | 'root' | 'data' | 'states' | 'settings' | 'help'
 
 export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
     state = { tab: 'data' as TabName };
@@ -32,10 +33,9 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
             return;
         }
 
-
         switch (tab) {
             case 'data': this.plugin.state.setKind('data'); break;
-            case 'behavior': this.plugin.state.setKind('behavior'); break;
+            case 'settings': this.plugin.state.setKind('behavior'); break;
         }
 
         this.setState({ tab });
@@ -55,13 +55,13 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
             <StateTree state={this.plugin.state.dataState} />
         </>,
         'states': <StateSnapshots />,
-        'behavior': <>
-            <SectionHeader icon='address' title='Plugin Behavior' />
-            <StateTree state={this.plugin.state.behaviorState} />
-        </>,
-        'viewport-settings': <>
+        'settings': <>
             <SectionHeader icon='settings' title='Plugin Settings' />
             <FullSettings />
+        </>,
+        'help': <>
+            <SectionHeader icon='help-circle' title='Help' />
+            <HelpContent />
         </>
     }
 
@@ -73,9 +73,9 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
                 <IconButton icon='home' toggleState={tab === 'root'} onClick={() => this.set('root')} title='Home' />
                 <IconButton icon='flow-tree' toggleState={tab === 'data'} onClick={() => this.set('data')} title='State Tree' />
                 <IconButton icon='floppy' toggleState={tab === 'states'} onClick={() => this.set('states')} title='Plugin State' />
+                <IconButton icon='help-circle' toggleState={tab === 'help'} onClick={() => this.set('help')} title='Help' />
                 <div className='msp-left-panel-controls-buttons-bottom'>
-                    <IconButton icon='address' toggleState={tab === 'behavior'} onClick={() => this.set('behavior')} title='Plugin Behavior' />
-                    <IconButton icon='settings' toggleState={tab === 'viewport-settings'} onClick={() => this.set('viewport-settings')} title='Viewport Settings' />
+                    <IconButton icon='settings' toggleState={tab === 'settings'} onClick={() => this.set('settings')} title='Settings' />
                 </div>
             </div>
             <div className='msp-scrollable-container'>
@@ -90,18 +90,6 @@ class FullSettings extends PluginUIComponent {
         PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { [p.name]: p.value } });
     }
 
-    setLayout = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        PluginCommands.Layout.Update.dispatch(this.plugin, { state: { [p.name]: p.value } });
-    }
-
-    setInteractivityProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { [p.name]: p.value } });
-    }
-
-    screenshot = () => {
-        this.plugin.helpers.viewportScreenshot?.download();
-    }
-
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
@@ -114,15 +102,12 @@ class FullSettings extends PluginUIComponent {
 
     render() {
         return <>
-            {/* <ControlGroup header='Layout' initialExpanded={true}>
-                <ParameterControls params={PluginLayoutStateParams} values={this.plugin.layout.state} onChange={this.setLayout} />
-            </ControlGroup>
-            <ControlGroup header='Interactivity' initialExpanded={true}>
-                <ParameterControls params={Interactivity.Params} values={this.plugin.interactivity.props} onChange={this.setInteractivityProps} />
-            </ControlGroup> */}
-            {this.plugin.canvas3d && <ControlGroup header='Viewport' initialExpanded={true}>
+            {this.plugin.canvas3d && <>
+                <SectionHeader title='Viewport' />
                 <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
-            </ControlGroup>}
+            </>}
+            <SectionHeader title='Behavior' />
+            <StateTree state={this.plugin.state.behaviorState} />
         </>
     }
 }

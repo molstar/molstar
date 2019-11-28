@@ -11,7 +11,6 @@ import './favicon.ico'
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommands } from '../../mol-plugin/command';
 import { PluginSpec } from '../../mol-plugin/spec';
-import { CreateJoleculeState } from './extensions/jolecule';
 import { LoadCellPackModel } from './extensions/cellpack/model';
 import { StructureFromCellpack } from './extensions/cellpack/state';
 require('mol-plugin/skin/light.scss')
@@ -27,7 +26,7 @@ function init() {
     const spec: PluginSpec = {
         actions: [
             ...DefaultPluginSpec.actions,
-            PluginSpec.Action(CreateJoleculeState),
+            // PluginSpec.Action(CreateJoleculeState),
             PluginSpec.Action(LoadCellPackModel),
             PluginSpec.Action(StructureFromCellpack),
         ],
