@@ -6,15 +6,12 @@
  */
 
 import * as React from 'react';
-import { PluginUIComponent } from './base';
+import { resizeCanvas } from '../../mol-canvas3d/util';
 import { PluginCommands } from '../../mol-plugin/command';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { ParameterControls } from './controls/parameters';
-import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
-import { PluginLayoutStateParams } from '../../mol-plugin/layout';
+import { PluginUIComponent } from './base';
 import { ControlGroup, IconButton } from './controls/common';
-import { resizeCanvas } from '../../mol-canvas3d/util';
-import { Interactivity } from '../util/interactivity';
+import { SimpleSettingsControl } from './viewport/simple-settings';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean
@@ -88,7 +85,10 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 {!this.props.hideSettingsIcon && this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
             </div>
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-scene-options'>
-                <ControlGroup header='Layout' initialExpanded={true}>
+                <ControlGroup header='Basic Settings' initialExpanded={true} hideExpander={true} hideOffset={true}>
+                    <SimpleSettingsControl />
+                </ControlGroup>
+                {/* <ControlGroup header='Layout' initialExpanded={true}>
                     <ParameterControls params={PluginLayoutStateParams} values={this.plugin.layout.state} onChange={this.setLayout} />
                 </ControlGroup>
                 <ControlGroup header='Interactivity' initialExpanded={true}>
@@ -96,7 +96,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </ControlGroup>
                 {this.plugin.canvas3d && <ControlGroup header='Viewport' initialExpanded={true}>
                     <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
-                </ControlGroup>}
+                </ControlGroup>} */}
             </div>}
         </div>
     }

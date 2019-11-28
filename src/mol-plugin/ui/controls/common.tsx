@@ -8,20 +8,21 @@ import * as React from 'react';
 import { Color } from '../../../mol-util/color';
 import { PurePluginUIComponent } from '../base';
 
-export class ControlGroup extends React.Component<{ header: string, initialExpanded?: boolean }, { isExpanded: boolean }> {
+export class ControlGroup extends React.Component<{ header: string, initialExpanded?: boolean, hideExpander?: boolean, hideOffset?: boolean }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
 
     render() {
+        // TODO: customize header style (bg color, togle button etc)
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
-                    <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
+                    {!this.props.hideExpander && <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />}
                     {this.props.header}
                 </button>
             </div>
-            {this.state.isExpanded && <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+            {this.state.isExpanded && <div className={this.props.hideOffset ? '' : 'msp-control-offset'} style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 {this.props.children}
             </div>
             }

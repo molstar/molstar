@@ -69,12 +69,12 @@ export type _State<C extends React.Component> = C extends React.Component<any, i
 export type CollapsableProps = { initiallyCollapsed?: boolean, header?: string }
 export type CollapsableState = { isCollapsed: boolean, header: string }
 
-export abstract class CollapsableControls<P extends CollapsableProps = CollapsableProps, S extends CollapsableState = CollapsableState, SS = {}> extends PluginUIComponent<P, S, SS> {
+export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends PluginUIComponent<P & CollapsableProps, S & CollapsableState, SS> {
     toggleCollapsed = () => {
-        this.setState({ isCollapsed: !this.state.isCollapsed })
+        this.setState({ isCollapsed: !this.state.isCollapsed } as (S & CollapsableState))
     }
 
-    protected abstract defaultState(): S
+    protected abstract defaultState(): (S & CollapsableState)
     protected abstract renderControls(): JSX.Element | null
 
     render() {
@@ -93,7 +93,7 @@ export abstract class CollapsableControls<P extends CollapsableProps = Collapsab
         </div>
     }
 
-    constructor(props: P, context?: any) {
+    constructor(props: P & CollapsableProps, context?: any) {
         super(props, context)
 
         const state = this.defaultState()

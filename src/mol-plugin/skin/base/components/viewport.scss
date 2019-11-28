@@ -66,7 +66,7 @@
 
 .msp-semi-transparent-background {    
     background: $default-background;
-    opacity: 0.2;
+    opacity: 0.5;
     position: absolute;
     top: 0;
     left: 0;
@@ -78,10 +78,10 @@
     overflow-y: auto;
     max-height: 400px;
     width: 290px;
-    right: 0px;
+    top: 0;
+    right: $row-height + $control-spacing;
     position: absolute;
     background: $control-background;
-    margin-top: $control-spacing;
 
     .msp-control-group-wrapper:first-child {
         padding-top: 0;

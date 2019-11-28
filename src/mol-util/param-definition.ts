@@ -11,6 +11,7 @@ import { Vec2 as Vec2Data, Vec3 as Vec3Data } from '../mol-math/linear-algebra';
 import { deepClone } from './object';
 import { Script as ScriptData } from '../mol-script/script';
 import { Legend } from './legend';
+import { camelCaseToWords } from './string';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -202,7 +203,7 @@ export namespace ParamDefinition {
     export function MappedStatic<C extends Params>(defaultKey: keyof C, map: C, info?: Info & { options?: [keyof C, string][] }): Mapped<NamedParamUnion<C>> {
         const options: [string, string][] = info && info.options
             ? info.options as [string, string][]
-            : Object.keys(map).map(k => [k, k]) as [string, string][];
+            : Object.keys(map).map(k => [k, camelCaseToWords(k)]) as [string, string][];
         const name = checkDefaultKey(defaultKey, options);
         return setInfo<Mapped<NamedParamUnion<C>>>({
             type: 'mapped',
