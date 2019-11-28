@@ -104,6 +104,7 @@ class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void 
     componentDidMount() {
         this.subscribe(this.plugin.behaviors.layout.leftPanelTabName, tab => {
             if (this.tab === 'data') this.setState({ changed: false });
+            else this.forceUpdate();
         });
 
         this.subscribe(this.plugin.state.dataState.events.changed, state => {
@@ -112,11 +113,9 @@ class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void 
     }
 
     render() {
-        return <div className='msp-left-panel-controls-button-data'>
-            <IconButton icon='flow-tree' toggleState={this.tab === 'data'} onClick={() => this.props.set('data')} title='State Tree' />
-            {this.state.changed && <div />}
-        </div>;
-
+        return <IconButton
+            icon='flow-tree' toggleState={this.tab === 'data'} onClick={() => this.props.set('data')} title='State Tree' 
+            style={{ position: 'relative' }} extraContent={this.state.changed ? <div className='msp-left-panel-controls-button-data-dirty' /> : void 0} />;
     }
 }
 

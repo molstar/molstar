@@ -152,19 +152,14 @@
     bottom: 0;
 }
 
-.msp-left-panel-controls-button-data {
-    position: relative;
-    height: $row-height;
-
-    > div {
-        position: absolute;
-        width: 6px;
-        height: 6px;
-        background: $entity-color-Group;
-        border-radius: 3px;
-        right: 6px;
-        bottom: 6px;
-    }
+.msp-left-panel-controls-button-data-dirty {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: $entity-color-Group;
+    border-radius: 3px;
+    right: 6px;
+    bottom: 6px;
 }
 
 .msp-left-panel-controls {
