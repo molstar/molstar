@@ -84,21 +84,32 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     render() {
         return <div className={'msp-viewport-controls'} onMouseMove={this.onMouseMove}>
             <div className='msp-viewport-controls-buttons'>
-                <div className='msp-semi-transparent-background' />
-                {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
-                {this.icon('screenshot', this.screenshot, 'Download Screenshot')}
-                {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
-                {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
-                {this.icon('help-circle', this.toggleHelpExpanded, 'Help', this.state.isHelpExpanded)}
-                {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
+                <div>
+                    <div className='msp-semi-transparent-background' />
+                    {this.icon('reset-scene', this.resetCamera, 'Reset Camera')}
+                </div>
+                <div>
+                    <div className='msp-semi-transparent-background' />
+                    {this.icon('screenshot', this.screenshot, 'Download Screenshot')}
+                </div>
+                <div>
+                    <div className='msp-semi-transparent-background' />
+                    {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
+                    {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
+                    {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
+                </div>
+                <div>
+                    <div className='msp-semi-transparent-background' />
+                    {this.icon('help-circle', this.toggleHelpExpanded, 'Help', this.state.isHelpExpanded)}
+                </div>
             </div>
             {this.state.isHelpExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Help' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleHelpExpanded}>
+                <ControlGroup header='Help' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleHelpExpanded} topRightIcon='off'>
                     <HelpContent />
                 </ControlGroup>
             </div>}
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Basic Settings' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded}>
+                <ControlGroup header='Basic Settings' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded} topRightIcon='off'>
                     <SimpleSettingsControl />
                 </ControlGroup>
                 {/* <ControlGroup header='Layout' initialExpanded={true}>

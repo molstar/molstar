@@ -13,6 +13,7 @@ export class ControlGroup extends React.Component<{
     initialExpanded?: boolean,
     hideExpander?: boolean,
     hideOffset?: boolean,
+    topRightIcon?: string,
     onHeaderClick?: () => void
 }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded }
@@ -30,7 +31,8 @@ export class ControlGroup extends React.Component<{
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.headerClicked}>
-                    {!this.props.hideExpander && <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />}
+                    {!this.props.hideExpander && <Icon name={this.state.isExpanded ? 'collapse' : 'expand'} />}
+                    {this.props.topRightIcon && <Icon name={this.props.topRightIcon} style={{ position: 'absolute', right: '2px', top: 0 }} />}
                     {this.props.header}
                 </button>
             </div>
@@ -221,9 +223,10 @@ export class NumericInput extends React.PureComponent<{
 }
 
 export function Icon(props: {
-    name: string
+    name: string,
+    style?: React.CSSProperties
 }) {
-    return <span className={`msp-icon msp-icon-${props.name}`} />;
+    return <span className={`msp-icon msp-icon-${props.name}`} style={props.style} />;
 }
 
 export function IconButton(props: {

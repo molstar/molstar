@@ -47,8 +47,15 @@
 .msp-viewport-controls-buttons {
     text-align: right;
     position: relative;
+    opacity: 0.5;
+    &:hover { opacity: 1.0; }
 
-    > button {
+    > div {
+        position: relative;
+        margin-bottom: 4px;
+    }
+
+    button {
         padding: 0;
         text-align: center;
         width: $row-height;
@@ -79,7 +86,7 @@
     max-height: 400px;
     width: 290px;
     top: 0;
-    right: $row-height + 1px;
+    right: $row-height + 4px;
     position: absolute;
     background: $control-background;
 
