@@ -6,16 +6,13 @@
  */
 
 import { List } from 'immutable';
-import { PluginState } from '../../mol-plugin/state';
 import { formatTime } from '../../mol-util';
 import { LogEntry } from '../../mol-util/log-entry';
 import * as React from 'react';
 import { PluginContext } from '../context';
 import { PluginReactContext, PluginUIComponent } from './base';
 import { LociLabels, TrajectoryViewportControls, StateSnapshotViewportControls, AnimationViewportControls, StructureToolsWrapper } from './controls';
-import { StateSnapshots } from './state';
 import { StateObjectActionSelect } from './state/actions';
-import { StateTree } from './state/tree';
 import { BackgroundTaskProgress } from './task';
 import { Viewport, ViewportControls } from './viewport';
 import { StateTransform } from '../../mol-state';
@@ -23,7 +20,8 @@ import { UpdateTransformControl } from './state/update-transform';
 import { SequenceView } from './sequence';
 import { Toasts } from './toast';
 import { ImageControls } from './image';
-import { Icon } from './controls/common';
+import { SectionHeader } from './controls/common';
+import { LeftPanelControls } from './left-panel';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -110,7 +108,7 @@ class Layout extends PluginUIComponent {
                 <div className={this.layoutVisibilityClassName}>
                     {this.region('main', viewport)}
                     {layout.showControls && controls.top !== 'none' && this.region('top', controls.top || SequenceView)}
-                    {layout.showControls && controls.left !== 'none' && this.region('left', controls.left || State)}
+                    {layout.showControls && controls.left !== 'none' && this.region('left', controls.left || LeftPanelControls)}
                     {layout.showControls && controls.right !== 'none' && this.region('right', controls.right || ControlsWrapper)}
                     {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
                 </div>
@@ -121,13 +119,12 @@ class Layout extends PluginUIComponent {
 
 export class ControlsWrapper extends PluginUIComponent {
     render() {
-        return <div className='msp-scrollable-container msp-right-controls'>
+        return <div className='msp-scrollable-container'>
             <CurrentObject />
             {/* <AnimationControlsWrapper /> */}
             {/* <CameraSnapshots /> */}
             <StructureToolsWrapper />
             <ImageControls />
-            <StateSnapshots />
         </div>;
     }
 }
@@ -148,32 +145,6 @@ export class ViewportWrapper extends PluginUIComponent {
                 <Toasts />
             </div>
         </>;
-    }
-}
-
-export class State extends PluginUIComponent {
-    componentDidMount() {
-        this.subscribe(this.plugin.state.behavior.kind, () => this.forceUpdate());
-    }
-
-    set(kind: PluginState.Kind) {
-        // TODO: do command for this?
-        this.plugin.state.setKind(kind);
-    }
-
-    render() {
-        const kind = this.plugin.state.behavior.kind.value;
-        return <div className='msp-scrollable-container'>
-            <div className='msp-btn-row-group msp-data-beh'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal' }}>
-                    <span className='msp-icon msp-icon-database' /> Data
-                </button>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal' }}>
-                    <span className='msp-icon msp-icon-tools' /> Behavior
-                </button>
-            </div>
-            <StateTree state={kind === 'data' ? this.plugin.state.dataState : this.plugin.state.behaviorState} />
-        </div>
     }
 }
 
@@ -248,10 +219,7 @@ export class CurrentObject extends PluginUIComponent {
 
         return <>
             {(cell.status === 'ok' || cell.status === 'error') && <>
-                <div className='msp-section-header' style={{ margin: '0 0 -1px 0' }}>
-                    <Icon name='flow-cascade' />
-                    {`${cell.obj?.label || transform.transformer.definition.display.name}`} <small>{transform.transformer.definition.display.name}</small>
-                </div>
+                <SectionHeader icon='flow-cascade' title={`${cell.obj?.label || transform.transformer.definition.display.name}`} desc={transform.transformer.definition.display.name} />
                 <UpdateTransformControl state={current.state} transform={transform} customHeader='none' />
             </> }
             {cell.status === 'ok' &&

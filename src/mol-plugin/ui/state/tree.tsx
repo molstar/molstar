@@ -89,7 +89,7 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
         }
 
         const cellState = cell.state;
-        const showLabel = cell.status !== 'ok' || !cell.state.isGhost;
+        const showLabel = (cell.transform.ref !== StateTransform.RootRef) && (cell.status !== 'ok' || !cell.state.isGhost);
         const children = cell.parent.tree.children.get(this.ref);
         const newDepth = showLabel ? this.props.depth + 1 : this.props.depth;
 

@@ -298,6 +298,13 @@ export function Options(options: [string, string][]) {
     return options.map(([value, label]) => <option key={value} value={value}>{label}</option>)
 }
 
+export function SectionHeader(props: { icon?: string, title: string, desc?: string}) {
+    return <div className='msp-section-header'>
+        {props.icon && <Icon name={props.icon} />}
+        {props.title} <small>{props.desc}</small>
+    </div>
+}
+
 // export const ToggleButton = (props: {
 //     onChange: (v: boolean) => void,
 //     value: boolean,

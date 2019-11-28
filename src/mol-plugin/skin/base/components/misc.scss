@@ -132,3 +132,29 @@
     background: $default-background; 
     color: $font-color;
 }
+
+.msp-left-panel-controls-buttons {    
+    position: absolute;
+    width: $row-height;
+    top: 0;
+    bottom: 0;
+    padding-top: $control-spacing;
+
+    background: $default-background;
+
+    // .msp-btn-link-toggle-on {
+    //     border-left: 1px solid $font-color;
+    // }
+}
+
+.msp-left-panel-controls-buttons-bottom {
+    position: absolute;
+    bottom: 0;
+
+}
+
+.msp-left-panel-controls {
+    .msp-scrollable-container {
+        left: $row-height + 1px;
+    }
+}

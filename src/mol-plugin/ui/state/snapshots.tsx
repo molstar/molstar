@@ -4,17 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginCommands } from '../../mol-plugin/command';
+import { PluginCommands } from '../../command';
 import * as React from 'react';
-import { PluginUIComponent, PurePluginUIComponent } from './base';
-import { shallowEqual } from '../../mol-util';
+import { PluginUIComponent, PurePluginUIComponent } from '../base';
+import { shallowEqual } from '../../../mol-util';
 import { OrderedMap } from 'immutable';
-import { ParameterControls } from './controls/parameters';
-import { ParamDefinition as PD} from '../../mol-util/param-definition';
-import { PluginState } from '../../mol-plugin/state';
-import { urlCombine } from '../../mol-util/url';
-import { IconButton, Icon } from './controls/common';
-import { formatTimespan } from '../../mol-util/now';
+import { ParameterControls } from '../controls/parameters';
+import { ParamDefinition as PD} from '../../../mol-util/param-definition';
+import { PluginState } from '../../state';
+import { urlCombine } from '../../../mol-util/url';
+import { IconButton, Icon, SectionHeader } from '../controls/common';
+import { formatTimespan } from '../../../mol-util/now';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
     downloadToFile = () => {
@@ -29,7 +29,7 @@ export class StateSnapshots extends PluginUIComponent<{ }> {
 
     render() {
         return <div>
-            <div className='msp-section-header'><Icon name='code' /> State</div>
+            <SectionHeader icon='floppy' title='Plugin State' />
             <LocalStateSnapshots />
             <LocalStateSnapshotList />
             <RemoteStateSnapshots />
@@ -93,7 +93,8 @@ class LocalStateSnapshots extends PluginUIComponent<
             }}/>
 
             <div className='msp-btn-row-group'>
-                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}><Icon name='floppy' /> Save</button>
+                {/* <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}><Icon name='floppy' /> Save</button> */}
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}>Save</button>
                 {/* <button className='msp-btn msp-btn-block msp-form-control' onClick={this.upload} disabled={this.state.isUploading}>Upload</button> */}
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.clear}>Clear</button>
             </div>
@@ -258,7 +259,7 @@ class RemoteStateSnapshots extends PluginUIComponent<
 
     render() {
         return <div>
-            <div className='msp-section-header'><Icon name='code' /> Remote State</div>
+            <SectionHeader icon='floppy' title='Remote States' />
 
             <ParameterControls params={RemoteStateSnapshots.Params} values={this.state.params} onEnter={this.upload} onChange={p => {
                 this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
