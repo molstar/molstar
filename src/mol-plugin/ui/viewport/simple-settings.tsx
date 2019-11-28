@@ -17,11 +17,9 @@ import { Color } from '../../../mol-util/color';
 const SimpleSettingsParams = {
     spin: Canvas3DParams.trackball.params.spin,
     camera: Canvas3DParams.cameraMode,
-    background: PD.MappedStatic('white', {
-        'white': PD.EmptyGroup(),
-        'black': PD.EmptyGroup(),
+    background: PD.MappedStatic('opaque', {
         'transparent': PD.EmptyGroup(),
-        'custom': PD.Group({ color: PD.Color(Color(0xFCFBF9), { description: 'Custom background color' }) }, { isFlat: true })
+        'opaque': PD.Group({ color: PD.Color(Color(0xFCFBF9), { description: 'Custom background color' }) }, { isFlat: true })
     }, { description: 'Background of the 3D canvas' }),
     renderStyle: PD.Select('glossy', [['toon', 'Toon'], ['matte', 'Matte'], ['glossy', 'Glossy'], ['metallic', 'Metallic']], { description: 'Style in which the 3D scene is rendered' }),
     occlusion: PD.Boolean(false, { description: 'Darken occluded crevices with the ambient occlusion effect' }),
@@ -41,11 +39,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
             if (!this.plugin.canvas3d) return;
             const renderer = this.plugin.canvas3d.props.renderer;
             const color: typeof SimpleSettingsParams['background']['defaultValue'] = p.value;
-            if (color.name === 'white') {
-                PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer, backgroundColor: ColorNames.white, transparentBackground: false } } });
-            } else if (color.name === 'black') {
-                PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer, backgroundColor: ColorNames.black, transparentBackground: false } } });
-            } else if (color.name === 'transparent') {
+            if (color.name === 'transparent') {
                 PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer, backgroundColor: ColorNames.white, transparentBackground: true } } });
             } else {
                 PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer, backgroundColor: color.params.color, transparentBackground: false } } });
@@ -94,7 +88,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
         const renderer = this.plugin.canvas3d?.props.renderer;
 
         let renderStyle = 'custom'
-        let background: typeof SimpleSettingsParams['background']['defaultValue'] = { name: 'white', params: { } }
+        let background: typeof SimpleSettingsParams['background']['defaultValue'] = { name: 'transparent', params: { } }
 
         if (renderer) {
             if (renderer.lightIntensity === 0 && renderer.ambientIntensity === 1 && renderer.roughness === 0.4 && renderer.metalness === 0) {
@@ -109,14 +103,10 @@ export class SimpleSettingsControl extends PluginUIComponent {
                 }
             }
 
-            if (renderer.backgroundColor === ColorNames.white && !renderer.transparentBackground) {
-                background = { name: 'white', params: { } }
-            } else if (renderer.backgroundColor === ColorNames.black && !renderer.transparentBackground) {
-                background = { name: 'black', params: { } }
-            } else if (renderer.backgroundColor === ColorNames.white && renderer.transparentBackground) {
+            if (renderer.backgroundColor === ColorNames.white && renderer.transparentBackground) {
                 background = { name: 'transparent', params: { } }
             } else {
-                background = { name: 'custom', params: { color: renderer.backgroundColor } }
+                background = { name: 'opaque', params: { color: renderer.backgroundColor } }
             }
         }
 

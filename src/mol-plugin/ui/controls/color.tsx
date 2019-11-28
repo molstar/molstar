@@ -69,7 +69,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
             <div className='msp-control-row'>
-                <span>{label}</span>
+                <span title={this.props.param.description}>{label}</span>
                 <div>
                     <button onClick={this.toggleExpanded} className='msp-combined-color-button' style={{ background: Color.toStyle(this.props.value) }}></button>
                 </div>
