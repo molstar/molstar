@@ -30,6 +30,8 @@ export const PluginLayoutStateParams = {
 }
 export type PluginLayoutStateProps = PD.Values<typeof PluginLayoutStateParams>
 
+export type LeftPanelTabName = 'none' | 'root' | 'data' | 'states' | 'settings' | 'help'
+
 interface RootState {
     top: string | null,
     bottom: string | null,

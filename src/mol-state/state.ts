@@ -46,7 +46,7 @@ class State {
             removed: this.ev<State.ObjectEvent & { obj?: StateObject }>()
         },
         log: this.ev<LogEntry>(),
-        changed: this.ev<void>(),
+        changed: this.ev<State>(),
         isUpdating: this.ev<boolean>()
     };
 
@@ -177,7 +177,7 @@ class State {
         } finally {
             this.spine.current = undefined;
 
-            if (updated) this.events.changed.next();
+            if (updated) this.events.changed.next(this);
             this.events.isUpdating.next(false);
         }
     }

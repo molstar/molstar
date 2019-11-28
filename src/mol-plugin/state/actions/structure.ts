@@ -154,10 +154,13 @@ const DownloadStructure = StateAction.build({
             })
     }
 })(({ params, state }, plugin: PluginContext) => Task.create('Download Structure', async ctx => {
+    plugin.behaviors.layout.leftPanelTabName.next('data');
+
     const b = state.build();
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
     let supportProps = false, asTrajectory = false, format: StructureFormat = 'cif';
+
 
     switch (src.name) {
         case 'url':

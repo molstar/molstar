@@ -23,7 +23,7 @@ import { merge } from 'rxjs';
 import { BuiltInPluginBehaviors } from './behavior';
 import { PluginBehavior } from './behavior/behavior';
 import { PluginCommand, PluginCommands } from './command';
-import { PluginLayout } from './layout';
+import { PluginLayout, LeftPanelTabName } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
 import { DataFormatRegistry } from './state/actions/data-format';
@@ -100,6 +100,9 @@ export class PluginContext {
         },
         labels: {
             highlight: this.ev.behavior<{ entries: ReadonlyArray<LociLabelEntry> }>({ entries: [] })
+        },
+        layout: {
+            leftPanelTabName: this.ev.behavior<LeftPanelTabName>('root')
         }
     } as const
 

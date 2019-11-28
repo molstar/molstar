@@ -16,19 +16,25 @@ import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StateSnapshots, RemoteStateSnapshots } from './state/snapshots';
 import { HelpContent } from './viewport/help';
+import { LeftPanelTabName } from '../layout';
 
-type TabName = 'none' | 'root' | 'data' | 'states' | 'settings' | 'help'
-
-export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
-    state = { tab: 'data' as TabName };
+export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTabName }> {
+    state = { tab: this.plugin.behaviors.layout.leftPanelTabName.value };
 
     componentDidMount() {
-        // this.subscribe(this.plugin.state.behavior.kind, () => this.forceUpdate());
+        this.subscribe(this.plugin.behaviors.layout.leftPanelTabName, tab => {
+            if (this.state.tab !== tab) this.setState({ tab });
+        });
+
+        this.subscribe(this.plugin.state.dataState.events.changed, state => {
+            if (this.state.tab !== 'data') return;
+            if (state.cells.size === 1) this.set('root');
+        });
     }
 
-    set(tab: TabName) {
+    set = (tab: LeftPanelTabName) => {
         if (this.state.tab === tab) {
-            this.setState({ tab: 'none' });
+            this.setState({ tab: 'none' }, () => this.plugin.behaviors.layout.leftPanelTabName.next('none'));
             PluginCommands.Layout.Update.dispatch(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'collapsed' } } });
             return;
         }
@@ -38,13 +44,13 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
             case 'settings': this.plugin.state.setKind('behavior'); break;
         }
 
-        this.setState({ tab });
+        this.setState({ tab }, () => this.plugin.behaviors.layout.leftPanelTabName.next(tab));
         if (this.plugin.layout.state.regionState.left !== 'full') {
             PluginCommands.Layout.Update.dispatch(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'full' } } });
         }
     }
 
-    tabs: { [K in TabName]: JSX.Element } = {
+    tabs: { [K in LeftPanelTabName]: JSX.Element } = {
         'none': <></>,
         'root': <>
             <SectionHeader icon='home' title='Home' />
@@ -69,10 +75,12 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
     render() {
         const tab = this.state.tab;
 
+        // TODO: show "changed dot" next to the 'data' tab icon indicating the state has changed.
         return <div className='msp-left-panel-controls'>
             <div className='msp-left-panel-controls-buttons'>
                 <IconButton icon='home' toggleState={tab === 'root'} onClick={() => this.set('root')} title='Home' />
-                <IconButton icon='flow-tree' toggleState={tab === 'data'} onClick={() => this.set('data')} title='State Tree' />
+                {/* <IconButton icon='flow-tree' toggleState={tab === 'data'} onClick={() => this.set('data')} title='State Tree' /> */}
+                <DataIcon set={this.set} />
                 <IconButton icon='floppy' toggleState={tab === 'states'} onClick={() => this.set('states')} title='Plugin State' />
                 <IconButton icon='help-circle' toggleState={tab === 'help'} onClick={() => this.set('help')} title='Help' />
                 <div className='msp-left-panel-controls-buttons-bottom'>
@@ -83,6 +91,32 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
                 {this.tabs[tab]}
             </div>
         </div>;
+    }
+}
+
+class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void }, { changed: boolean }> {
+    state = { changed: false };
+
+    get tab() {
+        return this.plugin.behaviors.layout.leftPanelTabName.value
+    }
+
+    componentDidMount() {
+        this.subscribe(this.plugin.behaviors.layout.leftPanelTabName, tab => {
+            if (this.tab === 'data') this.setState({ changed: false });
+        });
+
+        this.subscribe(this.plugin.state.dataState.events.changed, state => {
+            if (this.tab !== 'data') this.setState({ changed: true });
+        });
+    }
+
+    render() {
+        return <div className='msp-left-panel-controls-button-data'>
+            <IconButton icon='flow-tree' toggleState={this.tab === 'data'} onClick={() => this.props.set('data')} title='State Tree' />
+            {this.state.changed && <div />}
+        </div>;
+
     }
 }
 
