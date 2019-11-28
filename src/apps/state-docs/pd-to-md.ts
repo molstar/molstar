@@ -38,7 +38,7 @@ function paramInfo(param: PD.Any, offset: number): string {
     }
 }
 
-function oToS(options: [string, string][]) {
+function oToS(options: (readonly [string, string])[]) {
     return options.map(o => `'${o[0]}'`).join(', ');
 }
 

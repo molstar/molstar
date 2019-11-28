@@ -72,9 +72,15 @@ class Layout extends PluginUIComponent {
         if (controls.top === 'none' || !layout.showControls) {
             classList.push('msp-layout-hide-top')
         }
-        if (controls.left === 'none' || !layout.showControls) {
+
+        if (controls.left === 'none' || !layout.showControls || layout.regionState.left === 'hidden') {
             classList.push('msp-layout-hide-left')
         }
+
+        if (layout.regionState.left === 'collapsed') {
+            classList.push('msp-layout-collapse-left')
+        }
+
         if (controls.right === 'none' || !layout.showControls) {
             classList.push('msp-layout-hide-right')
         }

@@ -16,24 +16,36 @@ import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StateSnapshots } from './state/snapshots';
 
-type TabName = 'root' | 'data' | 'behavior' | 'states' | 'viewport-settings'
+type TabName = 'none' | 'root' | 'data' | 'behavior' | 'states' | 'viewport-settings'
 
-export class LeftPanelControls extends PluginUIComponent<{}, { currentTab: TabName }> {
-    state = { currentTab: 'data' as TabName };
+export class LeftPanelControls extends PluginUIComponent<{}, { tab: TabName }> {
+    state = { tab: 'data' as TabName };
 
     componentDidMount() {
         // this.subscribe(this.plugin.state.behavior.kind, () => this.forceUpdate());
     }
 
-    set(kind: TabName) {
-        switch (kind) {
+    set(tab: TabName) {
+        if (this.state.tab === tab) {
+            this.setState({ tab: 'none' });
+            PluginCommands.Layout.Update.dispatch(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'collapsed' } } });
+            return;
+        }
+
+
+        switch (tab) {
             case 'data': this.plugin.state.setKind('data'); break;
             case 'behavior': this.plugin.state.setKind('behavior'); break;
         }
-        this.setState({ currentTab: kind });
+
+        this.setState({ tab });
+        if (this.plugin.layout.state.regionState.left !== 'full') {
+            PluginCommands.Layout.Update.dispatch(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'full' } } });
+        }
     }
 
     tabs: { [K in TabName]: JSX.Element } = {
+        'none': <></>,
         'root': <>
             <SectionHeader icon='home' title='Home' />
             <StateObjectActions state={this.plugin.state.dataState} nodeRef={StateTransform.RootRef} hideHeader={true} initiallyCollapsed={true} alwaysExpandFirst={true} />
@@ -54,7 +66,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { currentTab: TabNa
     }
 
     render() {
-        const tab = this.state.currentTab;
+        const tab = this.state.tab;
 
         return <div className='msp-left-panel-controls'>
             <div className='msp-left-panel-controls-buttons'>

@@ -65,9 +65,9 @@ export namespace ParamDefinition {
     export interface Select<T extends string | number> extends Base<T> {
         type: 'select'
         /** array of (value, label) tuples */
-        options: [T, string][]
+        options: (readonly [T, string])[]
     }
-    export function Select<T extends string | number>(defaultValue: T, options: [T, string][], info?: Info): Select<T> {
+    export function Select<T extends string | number>(defaultValue: T, options: (readonly [T, string])[], info?: Info): Select<T> {
         return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options }, info)
     }
 
@@ -363,7 +363,7 @@ export namespace ParamDefinition {
         return false;
     }
 
-    function checkDefaultKey<T>(k: T, options: [T, string][]) {
+    function checkDefaultKey<T>(k: T, options: (readonly [T, string])[]) {
         for (const o of options) {
             if (o[0] === k) return k;
         }

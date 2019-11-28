@@ -67,6 +67,16 @@
     }    
 }
 
+.msp-layout-collapse-left {
+    .msp-layout-left {
+        width: $collapsed-left-width; 
+    }
+    .msp-layout-right {
+        left: $collapsed-left-width;
+        width: auto;
+    }    
+}
+
 ///////////////////////////////////
 .msp-layout-hide-top {
     .msp-layout-top {

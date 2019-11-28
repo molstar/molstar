@@ -62,6 +62,15 @@
     }    
 }
 
+.msp-layout-collapse-left {
+    .msp-layout-left {
+        width: $collapsed-left-width; 
+    }
+    .msp-layout-main, .msp-layout-top, .msp-layout-bottom {
+        left: $collapsed-left-width;
+    }    
+}
+
 .msp-layout-hide-bottom {
     .msp-layout-bottom {
         display: none;
