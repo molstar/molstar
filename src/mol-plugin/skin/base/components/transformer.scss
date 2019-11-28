@@ -108,6 +108,7 @@
     position: relative;
     margin-top: 1px;
     width: 100%;
+    height: $row-height;
 }
 
 .msp-transform-refresh {
@@ -123,6 +124,10 @@
     left: $control-label-width + $control-spacing;
     right: 0;
     top: 0;
+}
+
+.msp-transform-apply-wider {
+    left: $row-height + 1px;
 }
 
 .msp-data-beh {

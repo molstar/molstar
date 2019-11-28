@@ -186,6 +186,9 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
             : 'msp-transform-wrapper';
 
         const { a, b } = this.getSourceAndTarget();
+
+        const showBack = this.isUpdate() && !(this.state.busy || this.state.isInitial);
+
         return <div className={wrapClass}>
             {display !== 'none' && <div className='msp-transform-header'>
                 <button className={`msp-btn msp-btn-block${isEmpty ? '' : ' msp-btn-collapse'}`} onClick={this.toggleExpanded} title={display.description}>
@@ -198,10 +201,10 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
                 <div className='msp-transform-apply-wrap'>
                     <button className='msp-btn msp-btn-block msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} title='Set default params'><Icon name='cw' /></button>
-                    <button className='msp-btn msp-btn-block msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
+                    {showBack && <button className='msp-btn msp-btn-block msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
                         <Icon name='back' /> Back
-                    </button>
-                    <div className='msp-transform-apply'>
+                    </button>}
+                    <div className={`msp-transform-apply${!showBack ? ' msp-transform-apply-wider' : ''}`}>
                         <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-${this.canApply() ? 'on' : 'off'}`} onClick={this.apply} disabled={!this.canApply()}>
                             {this.canApply() && <Icon name='ok' />}
                             {this.applyText()}
