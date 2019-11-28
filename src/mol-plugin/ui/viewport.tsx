@@ -12,27 +12,34 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginUIComponent } from './base';
 import { ControlGroup, IconButton } from './controls/common';
 import { SimpleSettingsControl } from './viewport/simple-settings';
+import { HelpContent } from './viewport/help';
 
 interface ViewportControlsState {
-    isSettingsExpanded: boolean
+    isSettingsExpanded: boolean,
+    isHelpExpanded: boolean
 }
 
 interface ViewportControlsProps {
-    hideSettingsIcon?: boolean
 }
 
 export class ViewportControls extends PluginUIComponent<ViewportControlsProps, ViewportControlsState> {
     state = {
         isSettingsExpanded: false,
-    }
+        isHelpExpanded: false
+    };
 
     resetCamera = () => {
         PluginCommands.Camera.Reset.dispatch(this.plugin, {});
     }
 
-    toggleSettingsExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
-        this.setState({ isSettingsExpanded: !this.state.isSettingsExpanded });
-        e.currentTarget.blur();
+    toggleSettingsExpanded = (e?: React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ isSettingsExpanded: !this.state.isSettingsExpanded, isHelpExpanded: false });
+        e?.currentTarget.blur();
+    }
+
+    toggleHelpExpanded = (e?: React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ isSettingsExpanded: false, isHelpExpanded: !this.state.isHelpExpanded });
+        e?.currentTarget.blur();
     }
 
     toggleControls = () => {
@@ -82,10 +89,16 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 {this.icon('screenshot', this.screenshot, 'Download Screenshot')}
                 {this.icon('tools', this.toggleControls, 'Toggle Controls', this.plugin.layout.state.showControls)}
                 {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
-                {!this.props.hideSettingsIcon && this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
+                {this.icon('help-circle', this.toggleHelpExpanded, 'Help', this.state.isHelpExpanded)}
+                {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
             </div>
-            {this.state.isSettingsExpanded && <div className='msp-viewport-controls-scene-options'>
-                <ControlGroup header='Basic Settings' initialExpanded={true} hideExpander={true} hideOffset={true}>
+            {this.state.isHelpExpanded && <div className='msp-viewport-controls-panel'>
+                <ControlGroup header='Help' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleHelpExpanded}>
+                    <HelpContent />
+                </ControlGroup>
+            </div>}
+            {this.state.isSettingsExpanded && <div className='msp-viewport-controls-panel'>
+                <ControlGroup header='Basic Settings' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded}>
                     <SimpleSettingsControl />
                 </ControlGroup>
                 {/* <ControlGroup header='Layout' initialExpanded={true}>

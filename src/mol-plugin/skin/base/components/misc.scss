@@ -121,3 +121,14 @@
         line-height: $row-height;
     }
 }
+
+.msp-simple-help-section {
+    height: 28px;
+    line-height: 28px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 0 10px;
+    font-weight: 500;
+    background: $default-background; 
+    color: $font-color;
+}

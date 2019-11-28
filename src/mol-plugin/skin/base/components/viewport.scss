@@ -74,12 +74,12 @@
     height: 100%;
 }
 
-.msp-viewport-controls-scene-options {
+.msp-viewport-controls-panel {
     overflow-y: auto;
     max-height: 400px;
     width: 290px;
     top: 0;
-    right: $row-height + $control-spacing;
+    right: $row-height + 1px;
     position: absolute;
     background: $control-background;
 
