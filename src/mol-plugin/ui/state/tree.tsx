@@ -35,7 +35,7 @@ export class StateTree extends PluginUIComponent<{ state: State }, { showActions
     render() {
         const ref = this.props.state.tree.root.ref;
         if (this.state.showActions) {
-            return <StateObjectActions state={this.props.state} nodeRef={ref} hideHeader={true} />
+            return <StateObjectActions state={this.props.state} nodeRef={ref} hideHeader={true} initiallyCollapsed={true} alwaysExpandFirst={true} />
         }
         return <StateTreeNode cell={this.props.state.cells.get(ref)!} depth={0} />;
     }
