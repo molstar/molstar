@@ -22,6 +22,9 @@ interface PluginSpec {
         initial?: Partial<PluginLayoutStateProps>,
         controls?: PluginSpec.LayoutControls
         viewport?: React.ComponentClass
+    },
+    components?: {
+        remoteState?: 'none' | 'default' // TODO: props for server etc
     }
 }
 

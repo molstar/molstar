@@ -32,7 +32,7 @@ export class StateSnapshots extends PluginUIComponent<{ }> {
             <SectionHeader icon='floppy' title='Plugin State' />
             <LocalStateSnapshots />
             <LocalStateSnapshotList />
-            <RemoteStateSnapshots />
+            {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots />}
 
             <div className='msp-btn-row-group' style={{ marginTop: '10px' }}>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.downloadToFile}>Download JSON</button>

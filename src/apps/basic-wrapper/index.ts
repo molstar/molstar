@@ -41,6 +41,9 @@ class BasicWrapper {
                     // left: 'none',
                     // right: BasicWrapperControls
                 }
+            },
+            components: {
+                remoteState: 'none'
             }
         });
 
