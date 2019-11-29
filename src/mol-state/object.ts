@@ -55,7 +55,7 @@ namespace StateObject {
     };
 }
 
-interface StateObjectCell<T extends StateObject = StateObject, F extends StateTransform<StateTransformer<any, T, any>> = StateTransform<StateTransformer<any, T, any>>> {
+interface StateObjectCell<T extends StateObject = StateObject, F extends StateTransform = StateTransform> {
     parent: State,
 
     transform: F,
@@ -88,6 +88,11 @@ namespace StateObjectCell {
     export type Obj<C extends StateObjectCell> = C extends StateObjectCell<infer T> ? T : never
     export type Transform<C extends StateObjectCell> = C extends StateObjectCell<any, infer T> ? T : never
     export type Transformer<C extends StateObjectCell> = C extends StateObjectCell<any, StateTransform<infer T>> ? T : never
+
+    export function is(o: any): o is StateObjectCell {
+        const c: StateObjectCell = o;
+        return !!c && !!c.transform && !!c.parent && !!c.status;
+    }
 }
 
 // TODO: improve the API?
@@ -115,12 +120,35 @@ export class StateObjectTracker<T extends StateObject> {
 }
 
 export class StateObjectSelector<S extends StateObject = StateObject, T extends StateTransformer = StateTransformer> {
-    getObj(): S | undefined {
+    get cell(): StateObjectCell<S, StateTransform<T>> | undefined {
+        return this.state?.cells.get(this.ref) as StateObjectCell<S, StateTransform<T>> | undefined;
+    }
+
+    get obj(): S | undefined {
         return this.state?.cells.get(this.ref)?.obj as S | undefined;
     }
 
-    getData(): S['data'] | undefined {
-        return this.getObj()?.data;
+    get data(): S['data'] | undefined {
+        return this.obj?.data;
+    }
+
+    /** Checks if the object exists. If not throw an error. */
+    checkValid() {
+        if (!this.state) {
+            throw new Error('Unassigned State.');
+        }
+        const cell = this.cell;
+        if (!cell) {
+            throw new Error(`Not created at all. Did you await/then the corresponding state update?`);
+        }
+        if (cell.status === 'ok') return true;
+        if (cell.status === 'error') throw new Error(cell.errorText);
+        throw new Error(`Unresolved. Did you await/then the corresponding state update?`);
+    }
+
+    get isOk() {
+        const cell = this.cell;
+        return cell && cell.status === 'ok';
     }
 
     constructor(public ref: StateTransform.Ref, public state?: State) {
@@ -128,11 +156,6 @@ export class StateObjectSelector<S extends StateObject = StateObject, T extends 
 }
 
 export namespace StateObjectSelector {
-    export function is(s: any): s is StateObjectSelector {
-        const _s: StateObjectSelector = s;
-        return !!s && !!_s.getData && !!_s.getObj && !!_s.ref;
-    }
-
     export type Obj<S extends StateObjectSelector> = S extends StateObjectSelector<infer A> ? A : never
     export type Transformer<S extends StateObjectSelector> = S extends StateObjectSelector<any, infer T> ? T : never
 }

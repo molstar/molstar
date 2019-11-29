@@ -79,15 +79,15 @@ namespace StateBuilder {
         get editInfo() { return this.state.editInfo; }
         get currentTree() { return this.state.tree; }
 
-        to<A extends StateObject>(ref: StateTransform.Ref): To<A>
+        to<A extends StateObject, T extends StateTransformer>(ref: StateTransform.Ref): To<A, T>
         to<C extends StateObjectCell>(cell: C): To<StateObjectCell.Obj<C>, StateObjectCell.Transformer<C>>
         to<S extends StateObjectSelector>(selector: S): To<StateObjectSelector.Obj<S>, StateObjectSelector.Transformer<S>>
         to(refOrCellOrSelector: StateTransform.Ref | StateObjectCell | StateObjectSelector) {
             const ref = typeof refOrCellOrSelector === 'string'
                 ? refOrCellOrSelector
-                : StateObjectSelector.is(refOrCellOrSelector)
-                ? refOrCellOrSelector.ref
-                : refOrCellOrSelector.transform.ref;
+                : StateObjectCell.is(refOrCellOrSelector)
+                ? refOrCellOrSelector.transform.ref
+                : refOrCellOrSelector.ref;
             return new To<StateObject, StateTransformer>(this.state, ref, this);
         }
         toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.root.ref, this); }
@@ -128,8 +128,9 @@ namespace StateBuilder {
          */
         applyOrUpdate<T extends StateTransformer<A, any, any>>(ref: StateTransform.Ref, tr: T, params?: StateTransformer.Params<T>, options?: Partial<StateTransform.Options>): To<StateTransformer.To<T>, T> {
             if (this.state.tree.transforms.has(ref)) {
-                this.root.to(ref).update(params);
-                return this.root.to(ref);
+                const to = this.to<StateTransformer.To<T>, T>(ref);
+                if (params) to.update(params);
+                return to;
             } else {
                 return this.apply(tr, params, { ...options, ref });
             }
@@ -146,8 +147,9 @@ namespace StateBuilder {
                 if (child.done) break;
                 const tr = this.state.tree.transforms.get(child.value);
                 if (tr && StateTransform.hasTags(tr, tags)) {
-                    this.root.to(child.value).updateTagged(params, tagsUnion(tr.tags, tags, options && options.tags));
-                    return this.root.to(child.value);
+                    const to = this.to<StateTransformer.To<T>, T>(child.value);
+                    to.updateTagged(params, tagsUnion(tr.tags, tags, options && options.tags));
+                    return to;
                 }
             }
 
@@ -214,7 +216,7 @@ namespace StateBuilder {
         //     return this.root;
         // }
 
-        private updateTagged<T extends StateTransformer<any, A, any>>(params: any, tags: string | string[] | undefined) {
+        private updateTagged(params: any, tags: string | string[] | undefined) {
             if (this.state.tree.setParams(this.ref, params) || this.state.tree.setTags(this.ref, tags)) {
                 this.editInfo.count++;
                 this.editInfo.lastUpdate = this.ref;
@@ -243,7 +245,7 @@ namespace StateBuilder {
             return this.root;
         }
 
-        to<A extends StateObject>(ref: StateTransform.Ref): To<A>
+        to<A extends StateObject, T extends StateTransformer>(ref: StateTransform.Ref): To<A, T>
         to<C extends StateObjectCell>(cell: C): To<StateObjectCell.Obj<C>, StateObjectCell.Transformer<C>>
         to<S extends StateObjectSelector>(selector: S): To<StateObjectSelector.Obj<S>, StateObjectSelector.Transformer<S>>
         to(ref: StateTransform.Ref | StateObjectCell | StateObjectSelector) { return  this.root.to(ref as any); }
@@ -261,7 +263,7 @@ namespace StateBuilder {
     }
 }
 
-function tagsUnion<T>(...arrays: (string[] | string | undefined)[]): string[] | undefined {
+function tagsUnion(...arrays: (string[] | string | undefined)[]): string[] | undefined {
     let set: Set<string> | undefined = void 0;
     const ret = [];
     for (const xs of arrays) {
