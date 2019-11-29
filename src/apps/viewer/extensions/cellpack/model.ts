@@ -393,7 +393,7 @@ export const LoadCellPackModel = StateAction.build({
                     MS.core.rel.eq([MS.ammp('label_atom_id'), 'P'])
                 ])
             })
-            cellpackTree = cellpackTree.apply(StateTransforms.Model.StructureSelectionFromExpression, { expression }, { state: { isGhost: true } })
+            cellpackTree = cellpackTree.apply(StateTransforms.Model.StructureSelectionFromExpression, { expression }, { state: { isGhost: true } }) as any
         }
         cellpackTree
             .apply(StateTransforms.Representation.StructureRepresentation3D,

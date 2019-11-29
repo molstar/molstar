@@ -23,7 +23,7 @@ export class StructureRepresentationManager {
     private providers: StructureRepresentationProvider[] = [];
     private providerMap: Map<string, StructureRepresentationProvider> = new Map();
 
-    readonly defaultProvider = PresetStructureReprentations.auto;
+    readonly defaultProvider = PresetStructureReprentations.default;
 
     hasProvider(s: Structure) {
         for (const p of this.providers) {
@@ -102,7 +102,7 @@ export class StructureRepresentationManager {
         return this.plugin.runTask(state.updateTree(builder));
     }
 
-    apply<P>(ref: StateTransform.Ref, providerOrId: StructureRepresentationProvider<P> | string, params?: P) {
+    apply<P = any, S = {}>(ref: StateTransform.Ref, providerOrId: StructureRepresentationProvider<P, S> | string, params?: P) {
         const provider = typeof providerOrId === 'string'
             ? arrayFind(this.providers, p => p.id === providerOrId)
             : providerOrId;
@@ -119,10 +119,9 @@ export class StructureRepresentationManager {
             ? PD.getDefaultValues(provider.params(cell.obj.data, this.plugin))
             : {})
 
-        const apply = provider.apply(state, cell, prms, this.plugin);
 
-        if (Task.is(apply)) return this.plugin.runTask(apply);
-        return apply;
+        const task = Task.create<S>(`${provider.display.name}`, ctx => provider.apply(ctx, state, cell, prms, this.plugin) as Promise<S>);
+        return this.plugin.runTask(task);
     }
 
     // init() {

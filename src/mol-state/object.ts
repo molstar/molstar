@@ -87,6 +87,7 @@ namespace StateObjectCell {
 
     export type Obj<C extends StateObjectCell> = C extends StateObjectCell<infer T> ? T : never
     export type Transform<C extends StateObjectCell> = C extends StateObjectCell<any, infer T> ? T : never
+    export type Transformer<C extends StateObjectCell> = C extends StateObjectCell<any, StateTransform<infer T>> ? T : never
 }
 
 // TODO: improve the API?
@@ -111,4 +112,27 @@ export class StateObjectTracker<T extends StateObject> {
     }
 
     constructor(private state: State) { }
+}
+
+export class StateObjectSelector<S extends StateObject = StateObject, T extends StateTransformer = StateTransformer> {
+    getObj(): S | undefined {
+        return this.state?.cells.get(this.ref)?.obj as S | undefined;
+    }
+
+    getData(): S['data'] | undefined {
+        return this.getObj()?.data;
+    }
+
+    constructor(public ref: StateTransform.Ref, public state?: State) {
+    }
+}
+
+export namespace StateObjectSelector {
+    export function is(s: any): s is StateObjectSelector {
+        const _s: StateObjectSelector = s;
+        return !!s && !!_s.getData && !!_s.getObj && !!_s.ref;
+    }
+
+    export type Obj<S extends StateObjectSelector> = S extends StateObjectSelector<infer A> ? A : never
+    export type Transformer<S extends StateObjectSelector> = S extends StateObjectSelector<any, infer T> ? T : never
 }

@@ -16,20 +16,20 @@ import { PluginStateObject } from '../../objects';
 const auto = StructureRepresentationProvider({
     id: 'preset-structure-representation-auto',
     display: { name: 'Automaic', group: 'Preset' },
-    apply(state, structureCell, _, plugin) {
+    apply(ctx, state, structureCell, _, plugin) {
         const s = structureCell.obj!.data;
 
         // TODO: a way to improve this?
 
         if (s.elementCount < 50000) {
-            return defaultPreset.apply(state, structureCell, void 0, plugin);
+            return defaultPreset.apply(ctx, state, structureCell, void 0, plugin);
         } else if (s.elementCount < 200000) {
-            return proteinAndNucleic.apply(state, structureCell, void 0, plugin);
+            return proteinAndNucleic.apply(ctx, state, structureCell, void 0, plugin);
         } else {
             if (s.unitSymmetryGroups[0].units.length > 10) {
-                return capsid.apply(state, structureCell, void 0, plugin);
+                return capsid.apply(ctx, state, structureCell, void 0, plugin);
             } else {
-                return coarseCapsid.apply(state, structureCell, void 0, plugin);
+                return coarseCapsid.apply(ctx, state, structureCell, void 0, plugin);
             }
         }
     }
@@ -38,7 +38,7 @@ const auto = StructureRepresentationProvider({
 const defaultPreset = StructureRepresentationProvider({
     id: 'preset-structure-representation-default',
     display: { name: 'Default', group: 'Preset' },
-    apply(state, structureCell, _, plugin) {
+    async apply(ctx, state, structureCell, _, plugin) {
         const root = state.build().to(structureCell.transform.ref);
         const structure = structureCell.obj!.data;
 
@@ -48,9 +48,9 @@ const defaultPreset = StructureRepresentationProvider({
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParams(plugin, 'cartoon', structure));
 
-        applyComplex(root, 'ligand')
-            .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
-                StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure));
+        const ligand = applyComplex(root, 'ligand');
+        const ligandRepr = ligand.applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
+            StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure));
 
         applyComplex(root, 'modified')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
@@ -71,14 +71,21 @@ const defaultPreset = StructureRepresentationProvider({
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'spacefill', 'polymer-id', structure, {}));
 
-        return state.updateTree(root, { revertIfAborted: true });
+        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+
+        return {
+            ligand: {
+                selection: ligand.selector,
+                repr: ligandRepr.selector
+            }
+        };
     }
 });
 
 const proteinAndNucleic = StructureRepresentationProvider({
     id: 'preset-structure-representation-protein-and-nucleic',
     display: { name: 'Protein & Nucleic', group: 'Preset' },
-    apply(state, structureCell, _, plugin) {
+    async apply(ctx, state, structureCell, _, plugin) {
         const root = plugin.state.dataState.build().to(structureCell.transform.ref);
         const structure = structureCell.obj!.data;
         const reprTags = [this.id, RepresentationProviderTags.Representation];
@@ -91,14 +98,15 @@ const proteinAndNucleic = StructureRepresentationProvider({
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParams(plugin, 'gaussian-surface', structure));
 
-        return state.updateTree(root, { revertIfAborted: true });
+        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        return {};
     }
 });
 
 const capsid = StructureRepresentationProvider({
     id: 'preset-structure-representation-capsid',
     display: { name: 'Capsid', group: 'Preset' },
-    apply(state, structureCell, _, plugin) {
+    async apply(ctx, state, structureCell, _, plugin) {
         const root = plugin.state.dataState.build().to(structureCell.transform.ref);
         const structure = structureCell.obj!.data;
 
@@ -111,14 +119,15 @@ const capsid = StructureRepresentationProvider({
         applySelection(root, 'polymer')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
-        return state.updateTree(root, { revertIfAborted: true });
+        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        return {};
     }
 });
 
 const coarseCapsid = StructureRepresentationProvider({
     id: 'preset-structure-representation-coarse-capsid',
     display: { name: 'Coarse Capsid', group: 'Preset' },
-    apply(state, structureCell, _, plugin) {
+    async apply(ctx, state, structureCell, _, plugin) {
         const root = plugin.state.dataState.build().to(structureCell.transform.ref);
         const structure = structureCell.obj!.data;
 
@@ -134,14 +143,15 @@ const coarseCapsid = StructureRepresentationProvider({
         applySelection(root, 'trace')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
-        return state.updateTree(root, { revertIfAborted: true });
+        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        return {};
     }
 });
 
 const cartoon = StructureRepresentationProvider({
     id: 'preset-structure-representation-cartoon',
     display: { name: 'Cartoon', group: 'Preset' },
-    apply(state, structureCell, _, plugin) {
+    async apply(ctx, state, structureCell, _, plugin) {
         const root = plugin.state.dataState.build().to(structureCell.transform.ref);
         const structure = structureCell.obj!.data;
 
@@ -154,7 +164,8 @@ const cartoon = StructureRepresentationProvider({
         applySelection(root, 'polymer')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D, params);
 
-        return state.updateTree(root, { revertIfAborted: true });
+        await state.updateTree(root, { revertIfAborted: true }).runInContext(ctx);
+        return {};
     }
 });
 

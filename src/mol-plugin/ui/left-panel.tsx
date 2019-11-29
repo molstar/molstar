@@ -114,7 +114,7 @@ class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void 
 
     render() {
         return <IconButton
-            icon='flow-tree' toggleState={this.tab === 'data'} onClick={() => this.props.set('data')} title='State Tree' 
+            icon='flow-tree' toggleState={this.tab === 'data'} onClick={() => this.props.set('data')} title='State Tree'
             style={{ position: 'relative' }} extraContent={this.state.changed ? <div className='msp-left-panel-controls-button-data-dirty' /> : void 0} />;
     }
 }

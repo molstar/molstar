@@ -72,7 +72,7 @@ export const DscifProvider: DataFormatProvider<any> = {
             const cifStateObject = await state.updateTree(cifBuilder).runInContext(taskCtx)
             const b = state.build().to(cifBuilder.ref);
             const blocks = cifStateObject.data.blocks.slice(1); // zero block contains query meta-data
-            let tree: StateBuilder.To<any>
+            let tree: StateBuilder.To<any, any>
             if (blocks.length === 1) {
                 tree = b
                     .apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: blocks[0].header })
