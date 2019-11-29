@@ -58,7 +58,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
             <RemoteStateSnapshots listOnly />
         </>,
         'data': <>
-        <SectionHeader icon='flow-tree' title='State Tree' />
+            <SectionHeader icon='flow-tree' title={<><RemoveAllButton /> State Tree</>} />
             <StateTree state={this.plugin.state.dataState} />
         </>,
         'states': <StateSnapshots />,
@@ -143,5 +143,28 @@ class FullSettings extends PluginUIComponent {
             <SectionHeader title='Behavior' />
             <StateTree state={this.plugin.state.behaviorState} />
         </>
+    }
+}
+
+export class RemoveAllButton extends PluginUIComponent<{ }> {
+    componentDidMount() {
+        this.subscribe(this.plugin.events.state.cell.created, e => {
+            if (e.cell.transform.parent === StateTransform.RootRef) this.forceUpdate();
+        });
+
+        this.subscribe(this.plugin.events.state.cell.removed, e => {
+            if (e.parent === StateTransform.RootRef) this.forceUpdate();
+        });
+    }
+
+    remove = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.plugin.state.dataState, ref: StateTransform.RootRef });
+    }
+
+    render() {
+        const count = this.plugin.state.dataState.tree.children.get(StateTransform.RootRef).size;
+        if (count < 2) return null;
+        return <IconButton icon='remove' onClick={this.remove} title={'Remove All'} style={{ display: 'inline-block' }} />;
     }
 }

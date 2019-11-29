@@ -156,11 +156,9 @@ const DownloadStructure = StateAction.build({
 })(({ params, state }, plugin: PluginContext) => Task.create('Download Structure', async ctx => {
     plugin.behaviors.layout.leftPanelTabName.next('data');
 
-    const b = state.build();
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
     let supportProps = false, asTrajectory = false, format: StructureFormat = 'cif';
-
 
     switch (src.name) {
         case 'url':
@@ -207,7 +205,7 @@ const DownloadStructure = StateAction.build({
     const createRepr = !params.source.params.structure.noRepresentation;
 
     if (downloadParams.length > 0 && asTrajectory) {
-        const traj = createSingleTrajectoryModel(downloadParams, b);
+        const traj = createSingleTrajectoryModel(downloadParams, state.build());
         const struct = createStructure(traj, supportProps, src.params.structure.type);
         await state.updateTree(struct, { revertIfAborted: true }).runInContext(ctx);
         if (createRepr) {
@@ -215,7 +213,7 @@ const DownloadStructure = StateAction.build({
         }
     } else {
         for (const download of downloadParams) {
-            const data = b.toRoot().apply(StateTransforms.Data.Download, download, { state: { isGhost: true } });
+            const data = state.build().toRoot().apply(StateTransforms.Data.Download, download, { state: { isGhost: true } });
             const traj = createModelTree(data, format);
 
             const struct = createStructure(traj, supportProps, src.params.structure.type);

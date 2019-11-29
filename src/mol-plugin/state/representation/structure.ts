@@ -23,7 +23,7 @@ export class StructureRepresentationManager {
     private providers: StructureRepresentationProvider[] = [];
     private providerMap: Map<string, StructureRepresentationProvider> = new Map();
 
-    readonly defaultProvider = PresetStructureReprentations.default;
+    readonly defaultProvider = PresetStructureReprentations.auto;
 
     hasProvider(s: Structure) {
         for (const p of this.providers) {

@@ -301,7 +301,7 @@ export function Options(options: [string, string][]) {
     return options.map(([value, label]) => <option key={value} value={value}>{label}</option>)
 }
 
-export function SectionHeader(props: { icon?: string, title: string, desc?: string}) {
+export function SectionHeader(props: { icon?: string, title: string | JSX.Element, desc?: string}) {
     return <div className='msp-section-header'>
         {props.icon && <Icon name={props.icon} />}
         {props.title} <small>{props.desc}</small>
