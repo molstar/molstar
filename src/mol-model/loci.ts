@@ -13,6 +13,7 @@ import { Vec3 } from '../mol-math/linear-algebra';
 import { OrderedSet } from '../mol-data/int';
 import { Structure } from './structure/structure';
 import { capitalize } from '../mol-util/string';
+import { PrincipalAxes } from '../mol-math/linear-algebra/matrix/principal-axes';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -152,6 +153,28 @@ namespace Loci {
     export function getCenter(loci: Loci, center?: Vec3): Vec3 | undefined {
         const boundingSphere = getBoundingSphere(loci, tmpSphere3D)
         return boundingSphere ? Vec3.copy(center || Vec3.zero(), boundingSphere.center) : undefined
+    }
+
+    export function getPrincipalAxes(loci: Loci): PrincipalAxes | undefined {
+        if (loci.kind === 'every-loci' || loci.kind === 'empty-loci') return void 0;
+
+        if (loci.kind === 'structure-loci') {
+            return StructureElement.Loci.getPrincipalAxes(Structure.toStructureElementLoci(loci.structure))
+        } else if (loci.kind === 'element-loci') {
+            return StructureElement.Loci.getPrincipalAxes(loci)
+        } else if (loci.kind === 'link-loci') {
+            // TODO
+            return void 0;
+        } else if (loci.kind === 'shape-loci') {
+            // TODO
+            return void 0;
+        } else if (loci.kind === 'group-loci') {
+            // TODO
+            return void 0;
+        } else if (loci.kind === 'data-loci') {
+            // TODO maybe add loci.getPrincipalAxes()???
+            return void 0;
+        }
     }
 
     //
