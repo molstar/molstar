@@ -100,6 +100,27 @@ export namespace MeshBuilder {
         }
     }
 
+    /** Flips triangle normals and winding order */
+    export function addPrimitiveFlipped(state: State, t: Mat4, primitive: Primitive) {
+        const { vertices: va, normals: na, indices: ia } = primitive
+        const { vertices, normals, indices, groups, currentGroup } = state
+        const offset = vertices.elementCount
+        const n = Mat3.directionTransform(tmpMat3, t)
+        for (let i = 0, il = va.length; i < il; i += 3) {
+            // position
+            Vec3.transformMat4(tmpV, Vec3.fromArray(tmpV, va, i), t)
+            ChunkedArray.add3(vertices, tmpV[0], tmpV[1], tmpV[2]);
+            // normal
+            Vec3.transformMat3(tmpV, Vec3.fromArray(tmpV, na, i), n)
+            ChunkedArray.add3(normals, -tmpV[0], -tmpV[1], -tmpV[2]);
+            // group
+            ChunkedArray.add(groups, currentGroup);
+        }
+        for (let i = 0, il = ia.length; i < il; i += 3) {
+            ChunkedArray.add3(indices, ia[i + 2] + offset, ia[i + 1] + offset, ia[i] + offset);
+        }
+    }
+
     export function addCage(state: State, t: Mat4, cage: Cage, radius: number, detail: number, radialSegments: number) {
         const { vertices: va, edges: ea } = cage
         const cylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments }
