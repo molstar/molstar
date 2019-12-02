@@ -35,14 +35,44 @@ class StructureMeasurementManager {
         arraySetAdd(dependsOn, cellB.transform.ref);
 
         const update = this.getGroup();
-        update.apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
-            selections: [
-                { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
-                { key: 'b', ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) }
-            ],
-            isTransitive: true,
-            label: 'Distance'
-        }, { dependsOn });
+        update
+            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+                selections: [
+                    { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
+                    { key: 'b', ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) }
+                ],
+                isTransitive: true,
+                label: 'Distance'
+            }, { dependsOn })
+            .apply(StateTransforms.Representation.StructureSelectionsDistance3D)
+
+        const state = this.context.state.dataState;
+        await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });
+    }
+
+    async addAngle(a: StructureElement.Loci, b: StructureElement.Loci, c: StructureElement.Loci) {
+        const cellA = this.context.helpers.substructureParent.get(a.structure);
+        const cellB = this.context.helpers.substructureParent.get(b.structure);
+        const cellC = this.context.helpers.substructureParent.get(c.structure);
+
+        if (!cellA || !cellB || !cellC) return;
+
+        const dependsOn = [cellA.transform.ref];
+        arraySetAdd(dependsOn, cellB.transform.ref);
+        arraySetAdd(dependsOn, cellC.transform.ref);
+
+        const update = this.getGroup();
+        update
+            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+                selections: [
+                    { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
+                    { key: 'b', ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) },
+                    { key: 'c', ref: cellC.transform.ref, expression: StructureElement.Loci.toExpression(c) }
+                ],
+                isTransitive: true,
+                label: 'Angle'
+            }, { dependsOn })
+            .apply(StateTransforms.Representation.StructureSelectionsAngle3D)
 
         const state = this.context.state.dataState;
         await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });

@@ -32,7 +32,12 @@ import { Transparency } from '../../../mol-theme/transparency';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Script } from '../../../mol-script/script';
 import { getUnitcellRepresentation, UnitcellParams } from '../../util/model-unitcell';
-import { getStructureOrientationRepresentation, OrientationParams } from '../../util/structure-orientation';
+import { getStructureOrientationRepresentation, OrientationParams as _OrientationParams } from '../../util/structure-orientation';
+import { DistanceParams, DistanceRepresentation } from '../../../mol-repr/shape/loci/distance';
+import { getDistanceDataFromStructureSelections, getLabelDataFromStructureSelections, getOrientationDataFromStructureSelections, getAngleDataFromStructureSelections } from './helpers';
+import { LabelParams, LabelRepresentation } from '../../../mol-repr/shape/loci/label';
+import { OrientationRepresentation, OrientationParams } from '../../../mol-repr/shape/loci/orientation';
+import { AngleParams, AngleRepresentation } from '../../../mol-repr/shape/loci/angle';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -709,7 +714,7 @@ const StructureOrientation3D = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Shape.Representation3D,
     params: {
-        ...OrientationParams,
+        ..._OrientationParams,
     }
 })({
     canAutoUpdate({ oldParams, newParams }) {
@@ -727,4 +732,136 @@ const StructureOrientation3D = PluginStateTransform.BuiltIn({
             return StateTransformer.UpdateResult.Updated;
         });
     }
+});
+
+export { StructureSelectionsDistance3D }
+type StructureSelectionsDistance3D = typeof StructureSelectionsDistance3D
+const StructureSelectionsDistance3D = PluginStateTransform.BuiltIn({
+    name: 'structure-selections-distance-3d',
+    display: '3D Distance',
+    from: SO.Molecule.Structure.Selections,
+    to: SO.Shape.Representation3D,
+    params: {
+        ...DistanceParams,
+    }
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Structure Distance', async ctx => {
+            const data = getDistanceDataFromStructureSelections(a.data)
+            const repr = DistanceRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => DistanceParams)
+            await repr.createOrUpdate(params, data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Distance` });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Structure Distance', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams }
+            const data = getDistanceDataFromStructureSelections(a.data)
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.source = a
+            return StateTransformer.UpdateResult.Updated;
+        });
+    },
+});
+
+export { StructureSelectionsAngle3D }
+type StructureSelectionsAngle3D = typeof StructureSelectionsAngle3D
+const StructureSelectionsAngle3D = PluginStateTransform.BuiltIn({
+    name: 'structure-selections-angle-3d',
+    display: '3D Angle',
+    from: SO.Molecule.Structure.Selections,
+    to: SO.Shape.Representation3D,
+    params: {
+        ...AngleParams,
+    }
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Structure Angle', async ctx => {
+            const data = getAngleDataFromStructureSelections(a.data)
+            const repr = AngleRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => AngleParams)
+            await repr.createOrUpdate(params, data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Angle` });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Structure Angle', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams }
+            const data = getAngleDataFromStructureSelections(a.data)
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.source = a
+            return StateTransformer.UpdateResult.Updated;
+        });
+    },
+});
+
+export { StructureSelectionsLabel3D }
+type StructureSelectionsLabel3D = typeof StructureSelectionsLabel3D
+const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
+    name: 'structure-selections-label-3d',
+    display: '3D Label',
+    from: SO.Molecule.Structure.Selections,
+    to: SO.Shape.Representation3D,
+    params: {
+        ...LabelParams,
+    }
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Structure Label', async ctx => {
+            const data = getLabelDataFromStructureSelections(a.data)
+            const repr = LabelRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => LabelParams)
+            await repr.createOrUpdate(params, data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Label` });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Structure Label', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams }
+            const data = getLabelDataFromStructureSelections(a.data)
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.source = a
+            return StateTransformer.UpdateResult.Updated;
+        });
+    },
+});
+
+export { StructureSelectionsOrientation3D }
+type StructureSelectionsOrientation3D = typeof StructureSelectionsOrientation3D
+const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
+    name: 'structure-selections-orientation-3d',
+    display: '3D Orientation',
+    from: SO.Molecule.Structure.Selections,
+    to: SO.Shape.Representation3D,
+    params: {
+        ...OrientationParams,
+    }
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Structure Orientation', async ctx => {
+            const data = getOrientationDataFromStructureSelections(a.data)
+            const repr = OrientationRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => OrientationParams)
+            await repr.createOrUpdate(params, data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Orientation` });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Structure Orientation', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams }
+            const data = getOrientationDataFromStructureSelections(a.data)
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.source = a
+            return StateTransformer.UpdateResult.Updated;
+        });
+    },
 });

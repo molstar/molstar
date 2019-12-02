@@ -6,6 +6,11 @@
 
 import { Structure } from '../../../mol-model/structure';
 import { ComputedSecondaryStructure } from '../../../mol-model-props/computed/secondary-structure';
+import { PluginStateObject } from '../objects';
+import { DistanceData } from '../../../mol-repr/shape/loci/distance';
+import { LabelData } from '../../../mol-repr/shape/loci/label';
+import { OrientationData } from '../../../mol-repr/shape/loci/orientation';
+import { AngleData } from '../../../mol-repr/shape/loci/angle';
 
 /**
  * Attaches ComputedSecondaryStructure property when unavailable in sourceData and
@@ -19,4 +24,27 @@ export async function ensureSecondaryStructure(s: Structure) {
             await ComputedSecondaryStructure.attachFromCifOrCompute(s)
         }
     }
+}
+
+export function getDistanceDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): DistanceData {
+    const lociA = s[0].loci
+    const lociB = s[1].loci
+    return { pairs: [{ lociA, lociB }] }
+}
+
+export function getAngleDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): AngleData {
+    const lociA = s[0].loci
+    const lociB = s[1].loci
+    const lociC = s[2].loci
+    return { triplets: [{ lociA, lociB, lociC }] }
+}
+
+export function getLabelDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): LabelData {
+    const loci = s[0].loci
+    return { infos: [{ loci }] }
+}
+
+export function getOrientationDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): OrientationData {
+    const loci = s[0].loci
+    return { loci }
 }

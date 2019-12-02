@@ -80,6 +80,11 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         this.plugin.helpers.measurement.addDistance(loci[0].loci, loci[1].loci);
     }
 
+    measureAngle = () => {
+        const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
+        this.plugin.helpers.measurement.addAngle(loci[0].loci, loci[1].loci, loci[2].loci);
+    }
+
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         if (p.name === 'granularity') {
             PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { granularity: p.value } });
@@ -178,8 +183,13 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                     <button className='msp-btn msp-btn-block' onClick={this.measureDistance} title='Measure distance between latest 2 selections'>
                         Measure Distance
                     </button>
-                </div>
-                }
+                </div>}
+                {latest.length >= 3 &&
+                    <div className='msp-control-row msp-row-text'>
+                    <button className='msp-btn msp-btn-block' onClick={this.measureAngle} title='Measure angle between latest 3 selections'>
+                        Measure Angle
+                    </button>
+                </div>}
             </>}
         </div>
     }
