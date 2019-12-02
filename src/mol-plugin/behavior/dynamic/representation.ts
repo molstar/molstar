@@ -171,7 +171,7 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
     name: 'default-loci-label-provider',
     category: 'interaction',
     ctor: class implements PluginBehavior<undefined> {
-        private f = lociLabel;
+        private f = (loci: Loci) => lociLabel(loci);
         register() { this.ctx.lociLabels.addProvider(this.f); }
         unregister() { this.ctx.lociLabels.removeProvider(this.f); }
         constructor(protected ctx: PluginContext) { }

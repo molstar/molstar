@@ -136,7 +136,7 @@ function getOrientationMesh(data: OrientationData, props: OrientationProps, mesh
 function getLabel(structure: Structure) {
     const loci = Structure.toStructureElementLoci(structure)
     const remappedLoci = StructureElement.Loci.remap(loci, structure.root)
-    return structureElementStatsLabel(StructureElement.Stats.ofLoci(remappedLoci), true)
+    return structureElementStatsLabel(StructureElement.Stats.ofLoci(remappedLoci), { countsOnly: true })
 }
 
 export async function getStructureOrientationRepresentation(ctx: RuntimeContext, structure: Structure, params: OrientationProps, prev?: ShapeRepresentation<OrientationData, Mesh, Mesh.Params>) {

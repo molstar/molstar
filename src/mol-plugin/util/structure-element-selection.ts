@@ -111,7 +111,7 @@ class StructureElementSelectionManager {
             }
         })
 
-        const label = structureElementStatsLabel(stats, true)
+        const label = structureElementStatsLabel(stats, { countsOnly: true })
 
         return { structureCount, elementCount, label }
     }
