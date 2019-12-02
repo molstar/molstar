@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 const reLine = /^/mg
@@ -21,6 +22,12 @@ export function camelCaseToWords(str: string) {
 
 export const lowerCase = (str: string) => str.toLowerCase()
 export const upperCase = (str: string) => str.toUpperCase()
+
+/** Return upper case if string, otherwise return empty string */
+export function upperCaseAny(value: any): string {
+    if (!value) return '';
+    return typeof value === 'string' ? value.toUpperCase() : `${value}`.toUpperCase();
+}
 
 /** Uppercase the first character of each word. */
 export function capitalize(str: string) {

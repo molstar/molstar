@@ -10,7 +10,7 @@ import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } f
 import { Queries, StructureProperties, StructureElement, QueryContext, UnitRing } from '../../../mol-model/structure';
 import { ElementSymbol, LinkType } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
-import toUpperCase from '../../../mol-util/upper-case';
+import { upperCaseAny } from '../../../mol-util/string';
 import { VdwRadius, AtomWeight, AtomNumber } from '../../../mol-model/structure/model/properties/atomic';
 import { cantorPairing } from '../../../mol-data/util';
 import C = QuerySymbolRuntime.Const
@@ -174,7 +174,7 @@ const symbols = [
 
     // ============= TYPES ================
     C(MolScript.structureQuery.type.elementSymbol, (ctx, v) => ElementSymbol(v[0](ctx))),
-    C(MolScript.structureQuery.type.atomName, (ctx, v) => toUpperCase(v[0](ctx))),
+    C(MolScript.structureQuery.type.atomName, (ctx, v) => upperCaseAny(v[0](ctx))),
     C(MolScript.structureQuery.type.linkFlags, (ctx, xs) => {
         let ret: LinkType = LinkType.Flag.None;
         if (typeof xs.length === 'number') {
