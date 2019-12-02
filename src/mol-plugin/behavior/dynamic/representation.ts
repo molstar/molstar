@@ -27,7 +27,7 @@ const Trigger = Binding.Trigger
 //
 
 const DefaultHighlightLociBindings = {
-    hoverHighlightOnly: Binding([Trigger(B.Flag.None, M.create())], 'Highlight hovered element using ${triggers}'),
+    hoverHighlightOnly: Binding([Trigger(B.Flag.None)], 'Highlight hovered element using ${triggers}'),
     hoverHighlightOnlyExtend: Binding([Trigger(B.Flag.None, M.create({ shift: true }))], 'Extend highlight from selected to hovered element along polymer using ${triggers}'),
 }
 const HighlightLociParams = {
