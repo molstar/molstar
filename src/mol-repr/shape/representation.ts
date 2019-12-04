@@ -32,7 +32,14 @@ export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.P
 
 export type ShapeGetter<D, G extends Geometry, P extends Geometry.Params<G>> = (ctx: RuntimeContext, data: D, props: PD.Values<P>, shape?: Shape<G>) => Shape<G> | Promise<Shape<G>>
 
-export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>(getShape: ShapeGetter<D, G, P>, geometryUtils: GeometryUtils<G>): ShapeRepresentation<D, G, P> {
+export interface ShapeBuilder<G extends Geometry, P extends Geometry.Params<G>> {
+    /** Hook to modify represetantion props */
+    modifyProps?: (props: Partial<PD.Values<P>>) => Partial<PD.Values<P>>
+    /** Hook to modify representation state */
+    modifyState?: (state: Partial<Representation.State>) => Partial<Representation.State>
+}
+
+export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>(getShape: ShapeGetter<D, G, P>, geometryUtils: GeometryUtils<G>, builder: ShapeBuilder<G, P> = {}): ShapeRepresentation<D, G, P> {
     let version = 0
     const updated = new Subject<number>()
     const _state = Representation.createState()
@@ -44,6 +51,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P) // TODO avoid casting
     let currentParams: P
     let locationIt: LocationIterator
+
+    if (builder.modifyState) Representation.updateState(_state, builder.modifyState(_state))
 
     const updateState = VisualUpdateState.create()
 
@@ -82,6 +91,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     }
 
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, data?: D) {
+        if (builder.modifyProps) props = builder.modifyProps(props)
+
         return Task.create('ShapeRepresentation.create', async runtime => {
             const newProps = Object.assign(currentProps, props)
             const shape = data ? await getShape(runtime, data, newProps, _shape) : undefined
@@ -100,6 +111,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                 const transform = createShapeTransform(_shape.transforms)
                 const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps)
                 const state = geometryUtils.createRenderableState(newProps)
+                if (builder.modifyState) Object.assign(state, builder.modifyState(state))
+                Representation.updateState(_state, state)
 
                 _renderObject = createRenderObject(_shape.geometry.kind, values, state, materialId)
                 if (_renderObject) renderObjects.push(_renderObject) // add new renderObject to list
@@ -178,6 +191,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             return Visual.mark(_renderObject, loci, action, lociApply)
         },
         setState(state: Partial<Representation.State>) {
+            if (builder.modifyState) state = builder.modifyState(state)
+
             if (_renderObject) {
                 if (state.visible !== undefined) Visual.setVisibility(_renderObject, state.visible)
                 if (state.alphaFactor !== undefined) Visual.setAlphaFactor(_renderObject, state.alphaFactor)
