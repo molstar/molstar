@@ -513,8 +513,8 @@ namespace Vec3 {
         return v[0] === 0 && v[1] === 0 && v[2] === 0;
     }
 
+    /** Project `point` onto `vector` starting from `origin` */
     export function projectPointOnVector(out: Vec3, point: Vec3, vector: Vec3, origin: Vec3) {
-        // point.sub(origin).projectOnVector(vector).add(origin)
         sub(out, copy(out, point), origin)
         const scalar = dot(vector, out) / squaredMagnitude(vector);
         return add(out, scale(out, copy(out, vector), scalar), origin);

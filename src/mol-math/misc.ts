@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+export const halfPI = Math.PI / 2
+
 export function degToRad (deg: number) {
     return deg * 0.01745  // deg * Math.PI / 180
 }
@@ -29,4 +31,9 @@ export function absMax(...values: number[]) {
         }
     }
     return max
+}
+
+/** Length of an arc with angle in radians */
+export function arcLength(angle: number, radius: number) {
+    return angle * radius
 }
