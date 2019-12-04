@@ -34,10 +34,11 @@ import { Script } from '../../../mol-script/script';
 import { getUnitcellRepresentation, UnitcellParams } from '../../util/model-unitcell';
 import { getStructureOrientationRepresentation, OrientationParams as _OrientationParams } from '../../util/structure-orientation';
 import { DistanceParams, DistanceRepresentation } from '../../../mol-repr/shape/loci/distance';
-import { getDistanceDataFromStructureSelections, getLabelDataFromStructureSelections, getOrientationDataFromStructureSelections, getAngleDataFromStructureSelections } from './helpers';
+import { getDistanceDataFromStructureSelections, getLabelDataFromStructureSelections, getOrientationDataFromStructureSelections, getAngleDataFromStructureSelections, getDihedralDataFromStructureSelections } from './helpers';
 import { LabelParams, LabelRepresentation } from '../../../mol-repr/shape/loci/label';
 import { OrientationRepresentation, OrientationParams } from '../../../mol-repr/shape/loci/orientation';
 import { AngleParams, AngleRepresentation } from '../../../mol-repr/shape/loci/angle';
+import { DihedralParams, DihedralRepresentation } from '../../../mol-repr/shape/loci/dihedral';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -793,6 +794,39 @@ const StructureSelectionsAngle3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Angle', async ctx => {
             const props = { ...b.data.repr.props, ...newParams }
             const data = getAngleDataFromStructureSelections(a.data)
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.source = a
+            return StateTransformer.UpdateResult.Updated;
+        });
+    },
+});
+
+export { StructureSelectionsDihedral3D }
+type StructureSelectionsDihedral3D = typeof StructureSelectionsDihedral3D
+const StructureSelectionsDihedral3D = PluginStateTransform.BuiltIn({
+    name: 'structure-selections-dihedral-3d',
+    display: '3D Dihedral',
+    from: SO.Molecule.Structure.Selections,
+    to: SO.Shape.Representation3D,
+    params: {
+        ...DihedralParams,
+    }
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Structure Dihedral', async ctx => {
+            const data = getDihedralDataFromStructureSelections(a.data)
+            const repr = DihedralRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => DihedralParams)
+            await repr.createOrUpdate(params, data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Dihedral` });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Structure Dihedral', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams }
+            const data = getDihedralDataFromStructureSelections(a.data)
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
             b.data.source = a
             return StateTransformer.UpdateResult.Updated;
