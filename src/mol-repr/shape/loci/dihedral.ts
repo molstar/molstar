@@ -24,7 +24,7 @@ import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 
 export interface DihedralData {
-    quads: Loci.Quad[]
+    quads: Loci.Bundle<4>[]
 }
 
 const SharedParams = {
@@ -124,11 +124,11 @@ const tmpVec = Vec3()
 const tmpMat = Mat4()
 
 // TODO improper dihedrals are not handled correctly
-function setDihedralState(quad: Loci.Quad, state: DihedralState, arcScale: number) {
+function setDihedralState(quad: Loci.Bundle<4>, state: DihedralState, arcScale: number) {
     const { pointA, pointB, pointC, pointD, dirBA, dirCD, projA, projD } = state
     const { arcPointA, arcPointD, arcDirA, arcDirD, arcCenter, arcNormal } = state
 
-    const { lociA, lociB, lociC, lociD } = quad
+    const [lociA, lociB, lociC, lociD] = quad.loci
     Loci.getCenter(lociA, pointA)
     Loci.getCenter(lociB, pointB)
     Loci.getCenter(lociC, pointC)
@@ -184,7 +184,7 @@ function getCircle(state: DihedralState, segmentLength?: number) {
 }
 
 const tmpState = getDihedralState()
-function dihedralLabel(quad: Loci.Quad, arcScale: number) {
+function dihedralLabel(quad: Loci.Bundle<4>, arcScale: number) {
     setDihedralState(quad, tmpState, arcScale)
     const angle = radToDeg(tmpState.angle).toFixed(2)
     return `Dihedral ${angle}\u00B0`

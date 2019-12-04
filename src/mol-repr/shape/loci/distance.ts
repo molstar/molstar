@@ -19,7 +19,7 @@ import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 
 export interface DistanceData {
-    pairs: Loci.Pair[]
+    pairs: Loci.Bundle<2>[]
 }
 
 const SharedParams = {
@@ -73,10 +73,10 @@ function getDistanceState() {
 }
 type DistanceState = ReturnType<typeof getDistanceState>
 
-function setDistanceState(pair: Loci.Pair, state: DistanceState) {
+function setDistanceState(pair: Loci.Bundle<2>, state: DistanceState) {
     const { pointA, pointB, center } = state
 
-    const { lociA, lociB } = pair
+    const [lociA, lociB] = pair.loci
     Loci.getCenter(lociA, pointA)
     Loci.getCenter(lociB, pointB)
 
@@ -89,7 +89,7 @@ function setDistanceState(pair: Loci.Pair, state: DistanceState) {
 
 const tmpState = getDistanceState()
 
-function distanceLabel(pair: Loci.Pair, unitLabel: string) {
+function distanceLabel(pair: Loci.Bundle<2>, unitLabel: string) {
     setDistanceState(pair, tmpState)
     return `Distance ${tmpState.distance.toFixed(2)} ${unitLabel}`
 }

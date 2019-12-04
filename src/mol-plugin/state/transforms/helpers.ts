@@ -30,14 +30,14 @@ export async function ensureSecondaryStructure(s: Structure) {
 export function getDistanceDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): DistanceData {
     const lociA = s[0].loci
     const lociB = s[1].loci
-    return { pairs: [{ lociA, lociB }] }
+    return { pairs: [ { loci: [lociA, lociB] as const }] }
 }
 
 export function getAngleDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): AngleData {
     const lociA = s[0].loci
     const lociB = s[1].loci
     const lociC = s[2].loci
-    return { triples: [{ lociA, lociB, lociC }] }
+    return { triples: [{ loci: [lociA, lociB, lociC] as const }] }
 }
 
 export function getDihedralDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): DihedralData {
@@ -45,7 +45,7 @@ export function getDihedralDataFromStructureSelections(s: ReadonlyArray<PluginSt
     const lociB = s[1].loci
     const lociC = s[2].loci
     const lociD = s[3].loci
-    return { quads: [{ lociA, lociB, lociC, lociD }] }
+    return { quads: [{ loci: [lociA, lociB, lociC, lociD] as const }] }
 }
 
 export function getLabelDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): LabelData {

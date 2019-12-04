@@ -24,7 +24,7 @@ import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
 
 export interface AngleData {
-    triples: Loci.Triple[]
+    triples: Loci.Bundle<3>[]
 }
 
 const SharedParams = {
@@ -106,11 +106,11 @@ type AngleState = ReturnType<typeof getAngleState>
 const tmpVec = Vec3()
 const tmpMat = Mat4()
 
-function setAngleState(triple: Loci.Triple, state: AngleState, arcScale: number) {
+function setAngleState(triple: Loci.Bundle<3>, state: AngleState, arcScale: number) {
     const { pointA, pointB, pointC } = state
     const { arcDirA, arcDirC, arcNormal } = state
 
-    const { lociA, lociB, lociC } = triple
+    const [lociA, lociB, lociC] = triple.loci
     Loci.getCenter(lociA, pointA)
     Loci.getCenter(lociB, pointB)
     Loci.getCenter(lociC, pointC)
@@ -142,7 +142,7 @@ function getCircle(state: AngleState, segmentLength?: number) {
 
 const tmpState = getAngleState()
 
-function angleLabel(triple: Loci.Triple, arcScale: number) {
+function angleLabel(triple: Loci.Bundle<3>, arcScale: number) {
     setAngleState(triple, tmpState, arcScale)
     const angle = radToDeg(tmpState.angle).toFixed(2)
     return `Angle ${angle}\u00B0`

@@ -54,9 +54,8 @@ export { Loci }
 type Loci = StructureElement.Loci | Structure.Loci | Link.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
 
 namespace Loci {
-    export type Pair = { lociA: Loci, lociB: Loci }
-    export type Triple = { lociA: Loci, lociB: Loci, lociC: Loci }
-    export type Quad = { lociA: Loci, lociB: Loci, lociC: Loci, lociD: Loci }
+    interface FiniteArray<T, L extends number = number> extends ReadonlyArray<T> { length: L };
+    export interface Bundle<L extends number> { loci: FiniteArray<Loci, L> }
 
     export function areEqual(lociA: Loci, lociB: Loci) {
         if (isEveryLoci(lociA) && isEveryLoci(lociB)) return true
