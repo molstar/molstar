@@ -50,6 +50,11 @@ void main(){
     vec4 start = modelView * vec4(aStart, 1.0);
     vec4 end = modelView * vec4(aEnd, 1.0);
 
+    // assign position
+    vec3 position = (aMapping.y < 0.5) ? aStart : aEnd;
+    vec4 mvPosition = modelView * vec4(position, 1.0);
+    vViewPosition = mvPosition.xyz;
+
     // special case for perspective projection, and segments that terminate either in, or behind, the camera plane
     // clearly the gpu firmware has a way of addressing this issue when projecting into ndc space
     // but we need to perform ndc-space calculations in the shader, so we must address this issue directly
