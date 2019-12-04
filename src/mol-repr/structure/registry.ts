@@ -17,6 +17,7 @@ import { StructureRepresentationState } from './representation';
 import { PuttyRepresentationProvider } from './representation/putty';
 import { MolecularSurfaceRepresentationProvider } from './representation/molecular-surface';
 import { EllipsoidRepresentationProvider } from './representation/ellipsoid';
+import { OrientationRepresentationProvider } from './representation/orientation';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
@@ -37,6 +38,7 @@ export const BuiltInStructureRepresentations = {
     'gaussian-surface': GaussianSurfaceRepresentationProvider,
     // 'gaussian-volume': GaussianVolumeRepresentationProvider, // TODO disabled for now, needs more work
     'molecular-surface': MolecularSurfaceRepresentationProvider,
+    'orientation': OrientationRepresentationProvider,
     'point': PointRepresentationProvider,
     'putty': PuttyRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,
