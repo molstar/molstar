@@ -19,6 +19,7 @@ export const MeshSchema = {
     dFlatShaded: DefineSpec('boolean'),
     dDoubleSided: DefineSpec('boolean'),
     dFlipSided: DefineSpec('boolean'),
+    dIgnoreLight: DefineSpec('boolean'),
 }
 export type MeshSchema = typeof MeshSchema
 export type MeshValues = Values<MeshSchema>

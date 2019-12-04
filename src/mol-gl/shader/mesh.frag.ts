@@ -24,8 +24,12 @@ void main() {
     #elif defined(dColorType_depth)
         gl_FragColor = material;
     #else
-        #include assign_normal
-        #include apply_light_color
+        #ifdef dIgnoreLight
+            gl_FragColor = material;
+        #else
+            #include assign_normal
+            #include apply_light_color
+        #endif
         #include apply_marker_color
         #include apply_fog
     #endif

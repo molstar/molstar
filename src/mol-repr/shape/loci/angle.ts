@@ -53,6 +53,7 @@ type ArcParams = typeof ArcParams
 const SectorParams = {
     ...Mesh.Params,
     ...SharedParams,
+    ignoreLight: PD.Boolean(true),
     sectorOpacity: PD.Numeric(0.75, { min: 0, max: 1, step: 0.01 }),
 }
 type SectorParams = typeof SectorParams

@@ -361,6 +361,7 @@ export namespace Mesh {
         doubleSided: PD.Boolean(false),
         flipSided: PD.Boolean(false),
         flatShaded: PD.Boolean(false),
+        ignoreLight: PD.Boolean(false),
     }
     export type Params = typeof Params
 
@@ -410,6 +411,7 @@ export namespace Mesh {
             dDoubleSided: ValueCell.create(props.doubleSided),
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
+            dIgnoreLight: ValueCell.create(props.ignoreLight),
         }
     }
 
@@ -424,6 +426,7 @@ export namespace Mesh {
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
+        ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight)
     }
 
     function updateBoundingSphere(values: MeshValues, mesh: Mesh) {
