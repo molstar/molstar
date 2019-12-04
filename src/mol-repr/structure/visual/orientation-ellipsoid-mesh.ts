@@ -107,7 +107,7 @@ function eachUnit(loci: Loci, structureGroup: StructureGroup, apply: (interval: 
         const unitIdx = group.unitIndexMap.get(e.unit.id)
         if (unitIdx !== undefined) {
             if (OrderedSet.size(e.indices) === elementCount) {
-                if (apply(Interval.ofSingleton(0))) changed = true
+                if (apply(Interval.ofSingleton(unitIdx))) changed = true
             }
         }
     }
