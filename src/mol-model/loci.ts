@@ -54,6 +54,10 @@ export { Loci }
 type Loci = StructureElement.Loci | Structure.Loci | Link.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
 
 namespace Loci {
+    export type Pair = { lociA: Loci, lociB: Loci }
+    export type Triple = { lociA: Loci, lociB: Loci, lociC: Loci }
+    export type Quad = { lociA: Loci, lociB: Loci, lociC: Loci, lociD: Loci }
+
     export function areEqual(lociA: Loci, lociB: Loci) {
         if (isEveryLoci(lociA) && isEveryLoci(lociB)) return true
         if (isEmptyLoci(lociA) && isEmptyLoci(lociB)) return true
