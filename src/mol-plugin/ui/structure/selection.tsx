@@ -90,6 +90,16 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         this.plugin.helpers.measurement.addDihedral(loci[0].loci, loci[1].loci, loci[2].loci, loci[3].loci);
     }
 
+    addLabel = () => {
+        const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
+        this.plugin.helpers.measurement.addLabel(loci[0].loci);
+    }
+
+    addOrientation = () => {
+        const loci = this.plugin.helpers.structureSelectionManager.latestLoci;
+        this.plugin.helpers.measurement.addOrientation(loci[0].loci);
+    }
+
     setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
         if (p.name === 'granularity') {
             PluginCommands.Interactivity.SetProps.dispatch(this.plugin, { props: { granularity: p.value } });
@@ -183,20 +193,27 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
                 <ul style={{ listStyle: 'none', marginTop: '1px', marginBottom: '0' }} className='msp-state-list'>
                     {latest}
                 </ul>
-                {latest.length >= 2 &&
-                    <div className='msp-control-row msp-row-text'>
+                {latest.length >= 1 && <div className='msp-control-row msp-row-text'>
+                    <button className='msp-btn msp-btn-block' onClick={this.addLabel} title='Add label for latest selection'>
+                        Add Label
+                    </button>
+                </div>}
+                {latest.length >= 1 && <div className='msp-control-row msp-row-text'>
+                    <button className='msp-btn msp-btn-block' onClick={this.addOrientation} title='Add orientation box/axes for latest selection'>
+                        Add Orientation
+                    </button>
+                </div>}
+                {latest.length >= 2 && <div className='msp-control-row msp-row-text'>
                     <button className='msp-btn msp-btn-block' onClick={this.measureDistance} title='Measure distance between latest 2 selections'>
                         Measure Distance
                     </button>
                 </div>}
-                {latest.length >= 3 &&
-                    <div className='msp-control-row msp-row-text'>
+                {latest.length >= 3 && <div className='msp-control-row msp-row-text'>
                     <button className='msp-btn msp-btn-block' onClick={this.measureAngle} title='Measure angle between latest 3 selections'>
                         Measure Angle
                     </button>
                 </div>}
-                {latest.length >= 4 &&
-                    <div className='msp-control-row msp-row-text'>
+                {latest.length >= 4 && <div className='msp-control-row msp-row-text'>
                     <button className='msp-btn msp-btn-block' onClick={this.measureDihedral} title='Measure dihedral between latest 4 selections'>
                         Measure Dihedral
                     </button>

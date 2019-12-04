@@ -109,6 +109,50 @@ class StructureMeasurementManager {
         await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
+    async addLabel(a: StructureElement.Loci) {
+        const cellA = this.context.helpers.substructureParent.get(a.structure);
+
+        if (!cellA) return;
+
+        const dependsOn = [cellA.transform.ref];
+
+        const update = this.getGroup();
+        update
+            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+                selections: [
+                    { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
+                ],
+                isTransitive: true,
+                label: 'Label'
+            }, { dependsOn })
+            .apply(StateTransforms.Representation.StructureSelectionsLabel3D)
+
+        const state = this.context.state.dataState;
+        await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });
+    }
+
+    async addOrientation(a: StructureElement.Loci) {
+        const cellA = this.context.helpers.substructureParent.get(a.structure);
+
+        if (!cellA) return;
+
+        const dependsOn = [cellA.transform.ref];
+
+        const update = this.getGroup();
+        update
+            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+                selections: [
+                    { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
+                ],
+                isTransitive: true,
+                label: 'Orientation'
+            }, { dependsOn })
+            .apply(StateTransforms.Representation.StructureSelectionsOrientation3D)
+
+        const state = this.context.state.dataState;
+        await PluginCommands.State.Update.dispatch(this.context, { state, tree: update, options: { doNotLogTiming: true } });
+    }
+
     constructor(private context: PluginContext) {
 
     }

@@ -25,7 +25,8 @@ const TextParams = {
     ...Text.Params,
     borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 }),
     textColor: PD.Color(ColorNames.black),
-    textSize: PD.Numeric(0.4, { min: 0.1, max: 5, step: 0.1 }),
+    textSize: PD.Numeric(0.8, { min: 0.1, max: 5, step: 0.1 }),
+    offsetZ: PD.Numeric(2, { min: 0, max: 10, step: 0.1 }),
 }
 type TextParams = typeof TextParams
 
