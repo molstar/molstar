@@ -296,7 +296,7 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
 
         const angle = radToDeg(tmpState.angle).toFixed(2)
         const label = `${angle}\u00B0`
-        builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, i)
+        builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, 1, i)
     }
     return builder.getText()
 }

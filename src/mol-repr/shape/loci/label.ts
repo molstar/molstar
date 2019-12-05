@@ -55,7 +55,7 @@ function buildText(data: LabelData, props: LabelProps, text?: Text): Text {
         if (!sphere) continue
         const { center, radius } = sphere
         const label = d.label || lociLabel(d.loci, { hidePrefix: true, htmlStyling: false })
-        builder.add(label, center[0], center[1], center[2], radius, i)
+        builder.add(label, center[0], center[1], center[2], radius, 1, i)
     }
     return builder.getText()
 }

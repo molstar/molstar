@@ -29,7 +29,7 @@ function getLabelsText(data: LabelsData, props: PD.Values<Text.Params>, text?: T
     const textBuilder = TextBuilder.create(props, texts.length * 10, texts.length * 10 / 2, text)
     for (let i = 0, il = texts.length; i < il; ++i) {
         const p = positions[i]
-        textBuilder.add(texts[i], p[0], p[1], p[2], depths[i], i)
+        textBuilder.add(texts[i], p[0], p[1], p[2], depths[i], 1, i)
     }
     return textBuilder.getText()
 }

@@ -121,7 +121,7 @@ function buildText(data: DistanceData, props: DistanceProps, text?: Text): Text 
         setDistanceState(data.pairs[i], tmpState)
         const { center, distance } = tmpState
         const label = `${distance.toFixed(2)} ${props.unitLabel}`
-        builder.add(label, center[0], center[1], center[2], 1, i)
+        builder.add(label, center[0], center[1], center[2], 1, 1, i)
     }
     return builder.getText()
 }
