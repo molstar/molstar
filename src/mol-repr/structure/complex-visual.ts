@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StructureParams, StructureMeshParams, StructureDirectVolumeParams } from './representation';
+import { StructureParams, StructureMeshParams, StructureDirectVolumeParams, StructureTextParams } from './representation';
 import { Visual, VisualContext } from '../visual';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
@@ -18,7 +18,6 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
 import { VisualUpdateState } from '../util';
-import { UnitsParams } from './units-representation';
 import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell, deepEqual } from '../../mol-util';
 import { createSizes } from '../../mol-geo/geometry/size-data';
@@ -28,6 +27,7 @@ import { Mat4 } from '../../mol-math/linear-algebra';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 
@@ -56,7 +56,7 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
-interface ComplexVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
+interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
     geometryUtils: GeometryUtils<G>
 }
 
@@ -235,13 +235,40 @@ export type ComplexMeshParams = typeof ComplexMeshParams
 export interface ComplexMeshVisualBuilder<P extends ComplexMeshParams> extends ComplexVisualBuilder<P, Mesh> { }
 
 export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexMeshVisualBuilder<P>, materialId: number): ComplexVisual<P> {
-    return ComplexVisual<Mesh, StructureMeshParams & UnitsParams>({
+    return ComplexVisual<Mesh, StructureMeshParams & ComplexParams>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
-            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         geometryUtils: Mesh.Utils
+    }, materialId)
+}
+
+// text
+
+export const ComplexTextParams = {
+    ...StructureTextParams,
+    unitKinds: PD.MultiSelect<UnitKind>([ 'atomic', 'spheres' ], UnitKindOptions),
+}
+export type ComplexTextParams = typeof ComplexTextParams
+
+export interface ComplexTextVisualBuilder<P extends ComplexTextParams> extends ComplexVisualBuilder<P, Text> { }
+
+export function ComplexTextVisual<P extends ComplexTextParams>(builder: ComplexTextVisualBuilder<P>, materialId: number): ComplexVisual<P> {
+    return ComplexVisual<Text, StructureTextParams & ComplexParams>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
+            if (newProps.background !== currentProps.background) state.createGeometry = true
+            if (newProps.backgroundMargin !== currentProps.backgroundMargin) state.createGeometry = true
+            if (newProps.tether !== currentProps.tether) state.createGeometry = true
+            if (newProps.tetherLength !== currentProps.tetherLength) state.createGeometry = true
+            if (newProps.tetherBaseWidth !== currentProps.tetherBaseWidth) state.createGeometry = true
+            if (newProps.attachment !== currentProps.attachment) state.createGeometry = true
+        },
+        geometryUtils: Text.Utils
     }, materialId)
 }
 
@@ -256,7 +283,7 @@ export type ComplexDirectVolumeParams = typeof ComplexDirectVolumeParams
 export interface ComplexDirectVolumeVisualBuilder<P extends ComplexDirectVolumeParams> extends ComplexVisualBuilder<P, DirectVolume> { }
 
 export function ComplexDirectVolumeVisual<P extends ComplexDirectVolumeParams>(builder: ComplexDirectVolumeVisualBuilder<P>, materialId: number): ComplexVisual<P> {
-    return ComplexVisual<DirectVolume, StructureDirectVolumeParams & UnitsParams>({
+    return ComplexVisual<DirectVolume, StructureDirectVolumeParams & ComplexParams>({
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)

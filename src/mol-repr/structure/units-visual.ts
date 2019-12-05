@@ -27,12 +27,13 @@ import { createColors } from '../../mol-geo/geometry/color-data';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
-import { StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureTextureMeshParams } from './representation';
+import { StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureTextureMeshParams, StructureTextParams } from './representation';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { SizeTheme } from '../../mol-theme/size';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Points } from '../../mol-geo/geometry/points/points';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
+import { Text } from '../../mol-geo/geometry/text/text';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 
@@ -339,6 +340,29 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLines
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         geometryUtils: Lines.Utils
+    }, materialId)
+}
+
+// text
+
+export const UnitsTextParams = { ...StructureTextParams, ...UnitsParams }
+export type UnitsTextParams = typeof UnitsTextParams
+export interface UnitsTextVisualBuilder<P extends UnitsTextParams> extends UnitsVisualBuilder<P, Text> { }
+
+export function UnitsTextVisual<P extends UnitsTextParams>(builder: UnitsTextVisualBuilder<P>, materialId: number): UnitsVisual<P> {
+    return UnitsVisual<Text, StructureTextParams & UnitsParams>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup)
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
+            if (newProps.background !== currentProps.background) state.createGeometry = true
+            if (newProps.backgroundMargin !== currentProps.backgroundMargin) state.createGeometry = true
+            if (newProps.tether !== currentProps.tether) state.createGeometry = true
+            if (newProps.tetherLength !== currentProps.tetherLength) state.createGeometry = true
+            if (newProps.tetherBaseWidth !== currentProps.tetherBaseWidth) state.createGeometry = true
+            if (newProps.attachment !== currentProps.attachment) state.createGeometry = true
+        },
+        geometryUtils: Text.Utils
     }, materialId)
 }
 
