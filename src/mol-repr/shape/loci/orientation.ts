@@ -18,6 +18,9 @@ import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal
 import { lociLabel } from '../../../mol-theme/label';
 import { addAxes } from '../../../mol-geo/geometry/mesh/builder/axes';
 import { addOrientedBox } from '../../../mol-geo/geometry/mesh/builder/box';
+import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
+import { Axes3D } from '../../../mol-math/geometry';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 export interface OrientationData {
     loci: Loci
@@ -25,7 +28,7 @@ export interface OrientationData {
 
 const SharedParams = {
     color: PD.Color(ColorNames.orange),
-    scale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 })
+    scale: PD.Numeric(2, { min: 0.1, max: 10, step: 0.1 })
 }
 
 const AxesParams = {
@@ -40,9 +43,16 @@ const BoxParams = {
 }
 type BoxParams = typeof BoxParams
 
+const EllipsoidParams = {
+    ...Mesh.Params,
+    ...SharedParams
+}
+type EllipsoidParams = typeof EllipsoidParams
+
 const OrientationVisuals = {
     'axes': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<OrientationData, AxesParams>) => ShapeRepresentation(getAxesShape, Mesh.Utils),
     'box': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<OrientationData, BoxParams>) => ShapeRepresentation(getBoxShape, Mesh.Utils),
+    'ellipsoid': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<OrientationData, EllipsoidParams>) => ShapeRepresentation(getEllipsoidShape, Mesh.Utils),
 }
 type OrientationVisualName = keyof typeof OrientationVisuals
 const OrientationVisualOptions = Object.keys(OrientationVisuals).map(name => [name, stringToWords(name)] as [OrientationVisualName, string])
@@ -93,6 +103,32 @@ function getBoxShape(ctx: RuntimeContext, data: OrientationData, props: Orientat
         return `Oriented Box of ${label}`
     }
     return Shape.create('Oriented Box', data, mesh, () => props.color, () => 1, getLabel)
+}
+
+//
+
+function buildEllipsoidMesh(principalAxes: PrincipalAxes, props: OrientationProps, mesh?: Mesh): Mesh {
+    const state = MeshBuilder.createState(256, 128, mesh)
+
+    const axes = principalAxes.boxAxes
+    const { origin, dirA, dirB } = axes
+    const size = Axes3D.size(Vec3(), axes)
+    Vec3.scale(size, size, 0.5)
+    const radiusScale = Vec3.create(size[2], size[1], size[0])
+
+    state.currentGroup = 1
+    addEllipsoid(state, origin, dirA, dirB, radiusScale, 2)
+    return MeshBuilder.getMesh(state)
+}
+
+function getEllipsoidShape(ctx: RuntimeContext, data: OrientationData, props: OrientationProps, shape?: Shape<Mesh>) {
+    const label = lociLabel(data.loci, { countsOnly: true })
+    const principalAxes = Loci.getPrincipalAxes(data.loci)
+    const mesh = principalAxes ? buildEllipsoidMesh(principalAxes, props, shape && shape.geometry) : Mesh.createEmpty(shape && shape.geometry);
+    const getLabel = function (groupId: number ) {
+        return `Ellipsoid of ${label}`
+    }
+    return Shape.create('Ellipsoid', data, mesh, () => props.color, () => 1, getLabel)
 }
 
 //
