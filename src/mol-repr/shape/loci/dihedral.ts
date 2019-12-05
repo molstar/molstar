@@ -76,7 +76,7 @@ const DihedralVisuals = {
     'extenders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getExtendersShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }) }),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
 type DihedralVisualName = keyof typeof DihedralVisuals
 const DihedralVisualOptions = Object.keys(DihedralVisuals).map(name => [name, stringToWords(name)] as [DihedralVisualName, string])

@@ -47,7 +47,7 @@ type TextParams = typeof TextParams
 
 const DistanceVisuals = {
     'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, LineParams>) => ShapeRepresentation(getLinesShape, Lines.Utils),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
 type DistanceVisualName = keyof typeof DistanceVisuals
 const DistanceVisualOptions = Object.keys(DistanceVisuals).map(name => [name, stringToWords(name)] as [DistanceVisualName, string])

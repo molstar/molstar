@@ -215,6 +215,7 @@ export namespace Text {
 
     function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
         BaseGeometry.updateRenderableState(state, props)
+        state.pickable = false
         state.opaque = false
     }
 }
