@@ -211,8 +211,10 @@ namespace Renderer {
                 state.enable(gl.BLEND)
                 for (let i = 0, il = renderables.length; i < il; ++i) {
                     const r = renderables[i]
-                    state.depthMask(r.values.uAlpha.ref.value === 1.0)
-                    if (!r.state.opaque) renderObject(r, variant)
+                    if (!r.state.opaque) {
+                        state.depthMask(false)
+                        renderObject(r, variant)
+                    }
                 }
             } else { // picking & depth
                 for (let i = 0, il = renderables.length; i < il; ++i) {
