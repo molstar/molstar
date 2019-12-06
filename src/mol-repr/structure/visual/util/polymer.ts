@@ -138,7 +138,6 @@ export function eachAtomicUnitTracedElement(intervalOffset: number, groupSize: n
     if (Interval.is(e.indices)) {
         if (Interval.start(e.indices) === 0 && Interval.end(e.indices) === e.unit.elements.length) {
             // full unit here
-            console.log('full unit');
             changed = apply(Interval.ofBounds(intervalOffset, intervalOffset + groupSize)) || changed;
         } else {
             let r1 = resIndex[elements[Interval.min(e.indices)]];
@@ -148,11 +147,10 @@ export function eachAtomicUnitTracedElement(intervalOffset: number, groupSize: n
     } else {
         const { indices } = e;
 
-        
         for (let i = 0, _i = indices.length; i < _i; i++) {
             const r1 = resIndex[elements[indices[i]]];
             let r2 = r1;
-            
+
             let endI = i + 1;
             while (endI < _i) {
                 const _r = resIndex[elements[indices[endI]]];
@@ -160,7 +158,6 @@ export function eachAtomicUnitTracedElement(intervalOffset: number, groupSize: n
                 r2 = _r;
                 endI++;
             }
-            console.log('indices', i === _i);
             i = endI - 1;
             changed = tryApplyResidueInterval(tracedElements, traceElementIndex, apply, r1, r2) || changed;
         }
