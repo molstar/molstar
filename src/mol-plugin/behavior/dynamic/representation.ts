@@ -41,7 +41,7 @@ export const HighlightLoci = PluginBehavior.create({
     ctor: class extends PluginBehavior.Handler<HighlightLociProps> {
         private lociMarkProvider = (interactionLoci: Interactivity.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
-            this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
+            this.ctx.canvas3d.mark({ loci: interactionLoci.loci, repr: interactionLoci.passRepresentation ? interactionLoci.repr : void 0 }, action)
         }
         register() {
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, buttons, modifiers }) => {
@@ -94,7 +94,7 @@ export const SelectLoci = PluginBehavior.create({
         private spine: StateTreeSpine.Impl
         private lociMarkProvider = (interactionLoci: Interactivity.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d) return;
-            this.ctx.canvas3d.mark({ loci: interactionLoci.loci }, action)
+            this.ctx.canvas3d.mark({ loci: interactionLoci.loci, repr: interactionLoci.passRepresentation ? interactionLoci.repr : void 0 }, action)
         }
         private applySelectMark(ref: string, clear?: boolean) {
             const cell = this.ctx.state.dataState.cells.get(ref)

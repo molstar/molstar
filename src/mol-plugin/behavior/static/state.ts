@@ -102,14 +102,14 @@ function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: 
 }
 
 export function Highlight(ctx: PluginContext) {
-    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
+    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref, passRepresentation }) => {
         const cell = state.select(ref)[0];
         if (!cell) return;
         if (SO.Molecule.Structure.is(cell.obj)) {
             ctx.interactivity.lociHighlights.highlightOnly({ loci: Structure.Loci(cell.obj.data) }, false);
         } else if (cell && SO.isRepresentation3D(cell.obj)) {
             const loci = SO.Molecule.Structure.is(cell.obj.data.source) ? Structure.Loci(cell.obj.data.source.data) : EveryLoci
-            ctx.interactivity.lociHighlights.highlightOnly({ loci, repr: cell.obj.data.repr }, false);
+            ctx.interactivity.lociHighlights.highlightOnly({ loci, repr: cell.obj.data.repr, passRepresentation }, false);
         }
 
         // TODO: highlight volumes and shapes?

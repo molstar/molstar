@@ -42,7 +42,7 @@ class Interactivity {
 }
 
 namespace Interactivity {
-    export interface Loci<T extends ModelLoci = ModelLoci> { loci: T, repr?: Representation.Any }
+    export interface Loci<T extends ModelLoci = ModelLoci> { loci: T, repr?: Representation.Any, passRepresentation?: boolean /** = false */ }
 
     export namespace Loci {
         export function areEqual(a: Loci, b: Loci) {
@@ -82,9 +82,9 @@ namespace Interactivity {
         }
 
         protected normalizedLoci(interactivityLoci: Loci, applyGranularity = true) {
-            const { loci, repr } = interactivityLoci
+            const { loci, repr, passRepresentation } = interactivityLoci
             const granularity =  applyGranularity ? this.props.granularity : undefined
-            return { loci: ModelLoci.normalize(loci, granularity), repr }
+            return { loci: ModelLoci.normalize(loci, granularity), repr, passRepresentation }
         }
 
         protected mark(current: Loci<ModelLoci>, action: MarkerAction) {
@@ -124,7 +124,7 @@ namespace Interactivity {
             if (StructureElement.Loci.is(normalized.loci)) {
                 const loci = this.sel.tryGetRange(normalized.loci) || normalized.loci;
                 this.mark(this.prev, MarkerAction.RemoveHighlight);
-                const toHighlight = { loci, repr: normalized.repr };
+                const toHighlight = { loci, repr: normalized.repr, passRepresentation: normalized.passRepresentation };
                 this.mark(toHighlight, MarkerAction.Highlight);
                 this.prev = toHighlight;
             }

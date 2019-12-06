@@ -193,7 +193,7 @@ class StateTreeNodeLabel extends PluginUIComponent<
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        PluginCommands.State.Highlight.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
+        PluginCommands.State.Highlight.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref, passRepresentation: true });
         e.currentTarget.blur();
     }
 
