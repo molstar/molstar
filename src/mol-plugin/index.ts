@@ -6,7 +6,7 @@
  */
 
 import { PluginContext } from './context';
-import { Plugin } from './ui/plugin'
+import { Plugin } from '../mol-plugin-ui/plugin'
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginSpec } from './spec';
@@ -17,7 +17,7 @@ import { StateActions } from './state/actions';
 import { InitVolumeStreaming, BoxifyVolumeStreaming, CreateVolumeStreamingBehavior } from './behavior/dynamic/volume-streaming/transformers';
 import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
 import { TransformStructureConformation } from './state/actions/structure';
-import { VolumeStreamingCustomControls } from './ui/custom/volume';
+import { VolumeStreamingCustomControls } from '../mol-plugin-ui/custom/volume';
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [

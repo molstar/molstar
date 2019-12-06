@@ -27,7 +27,7 @@ import { PluginLayout, LeftPanelTabName } from './layout';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
 import { DataFormatRegistry } from './state/actions/data-format';
-import { StateTransformParameters } from './ui/state/common';
+import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 import { TaskManager } from './util/task-manager';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';

@@ -31,6 +31,7 @@ The core of Mol* currently consists of these modules (see under `src/`):
 - `mol-state` State representation tree with state saving and automatic updates.
 - `mol-app` Components for builduing UIs.
 - `mol-plugin` Allow to define modular Mol* plugin instances utilizing `mol-state` and `mol-canvas3d`.
+- `mol-plugin-ui` React based user interface for the Mol* plugin. Some components of the UI are usable outside the main plugin and can be integrated to 3rd party solutions.
 - `mol-util` Useful things that do not fit elsewhere.
 
 Moreover, the project contains the imlementation of `servers`, including

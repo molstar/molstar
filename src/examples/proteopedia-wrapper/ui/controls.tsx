@@ -6,12 +6,12 @@
 
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { PluginUIComponent } from '../../../mol-plugin/ui/base';
-import { CurrentObject, PluginContextContainer } from '../../../mol-plugin/ui/plugin';
-import { AnimationControls } from '../../../mol-plugin/ui/state/animation';
-import { CameraSnapshots } from '../../../mol-plugin/ui/camera';
+import { PluginUIComponent } from '../../../mol-plugin-ui/base';
+import { CurrentObject, PluginContextContainer } from '../../../mol-plugin-ui/plugin';
+import { AnimationControls } from '../../../mol-plugin-ui/state/animation';
+import { CameraSnapshots } from '../../../mol-plugin-ui/camera';
 import { PluginContext } from '../../../mol-plugin/context';
-import { TransformUpdaterControl } from '../../../mol-plugin/ui/state/update-transform';
+import { TransformUpdaterControl } from '../../../mol-plugin-ui/state/update-transform';
 import { StateElements } from '../helpers';
 
 export class ControlsWrapper extends PluginUIComponent {

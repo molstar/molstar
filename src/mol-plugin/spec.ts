@@ -6,7 +6,7 @@
  */
 
 import { StateTransformer, StateAction } from '../mol-state';
-import { StateTransformParameters } from './ui/state/common';
+import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { PluginLayoutStateProps } from './layout';
 import { PluginStateAnimation } from './state/animation/model';
 import { ParamDefinition as PD } from '../mol-util/param-definition';

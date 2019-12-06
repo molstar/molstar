@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginUIComponent } from '../../mol-plugin/ui/base';
+import { PluginUIComponent } from '../../mol-plugin-ui/base';
 import * as React from 'react';
-import { TransformUpdaterControl } from '../../mol-plugin/ui/state/update-transform';
+import { TransformUpdaterControl } from '../../mol-plugin-ui/state/update-transform';
 
 export class BasicWrapperControls extends PluginUIComponent {
 
