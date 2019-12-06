@@ -7,6 +7,7 @@
     padding: 0 $control-spacing;
     font-weight: bold;
     background: $default-background;
+    overflow: hidden;
     // border-right: $control-spacing solid $entity-color-Group; // TODO separate color
     border-bottom: 1px solid $entity-color-Group; // TODO separate color
     // border-bottom: 1px solid $entity-color-Group; // TODO separate color
@@ -118,7 +119,9 @@
         // background: $control-background;
 
         .msp-btn-tree-label {
-            cursor: default;
+            > span {
+                font-weight: bold;
+            }
         }
 
         .msp-btn-tree-label:hover {

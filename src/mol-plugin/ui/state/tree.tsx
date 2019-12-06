@@ -168,6 +168,12 @@ class StateTreeNodeLabel extends PluginUIComponent<
         PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref });
     }
 
+    setCurrentRoot = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        e.currentTarget.blur();
+        PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.cell.parent, ref: StateTransform.RootRef });
+    }
+
     remove = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.props.cell.parent, ref: this.ref, removeParentGhosts: true });
@@ -218,15 +224,11 @@ class StateTreeNodeLabel extends PluginUIComponent<
         } else if (cell.status !== 'ok' || !cell.obj) {
             const name = n.transformer.definition.display.name;
             const title = `${cell.errorText}`;
-            label = <><button className='msp-btn-link msp-btn-tree-label' title={title} onClick={this.setCurrent}><b>[{cell.status}]</b> {name}: <i>{cell.errorText}</i> </button></>;
+            label = <><button className='msp-btn-link msp-btn-tree-label' title={title} onClick={this.state.isCurrent ? this.setCurrentRoot : this.setCurrent}><b>[{cell.status}]</b> {name}: <i><span>{cell.errorText}</span></i> </button></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
-            const title = `${obj.label} ${obj.description ? obj.description : ''}`
-            if (this.state.isCurrent) {
-                label = <><button className='msp-btn-link msp-btn-tree-label' title={title}><b>{obj.label}</b> {obj.description ? <small>{obj.description}</small> : void 0}</button></>;
-            } else {
-                label = <><button className='msp-btn-link msp-btn-tree-label' title={title} onClick={this.setCurrent}>{obj.label} {obj.description ? <small>{obj.description}</small> : void 0}</button></>;
-            }
+            const title = `${obj.label} ${obj.description ? obj.description : ''}`;
+            label = <><button className='msp-btn-link msp-btn-tree-label' title={title} onClick={this.state.isCurrent ? this.setCurrentRoot : this.setCurrent}><span>{obj.label}</span> {obj.description ? <small>{obj.description}</small> : void 0}</button></>;
         }
 
         const children = cell.parent.tree.children.get(this.ref);

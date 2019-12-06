@@ -200,6 +200,10 @@ export class CurrentObject extends PluginUIComponent {
             this.forceUpdate();
         });
 
+        this.subscribe(this.plugin.behaviors.layout.leftPanelTabName, o => {
+            this.forceUpdate();
+        });
+
         this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
             const current = this.current;
             if (current.ref !== ref || current.state !== state) return;
@@ -208,8 +212,13 @@ export class CurrentObject extends PluginUIComponent {
     }
 
     render() {
+        const tabName = this.plugin.behaviors.layout.leftPanelTabName.value;
+        if (tabName !== 'data' && tabName !== 'settings') return null;
+
         const current = this.current;
         const ref = current.ref;
+        if (ref === StateTransform.RootRef) return null;
+
         const cell = current.state.cells.get(ref)!;
         const transform = cell.transform;
 
