@@ -20,6 +20,7 @@ import { OrderedSet, Interval } from '../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { UnitIndex } from '../../../mol-model/structure/structure/element/element';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { MoleculeType } from '../../../mol-model/structure/model/types';
 
 export const OrientationEllipsoidMeshParams = {
     ...UnitsMeshParams,
@@ -51,8 +52,21 @@ export interface OrientationEllipsoidMeshProps {
     sizeFactor: number,
 }
 
+function isUnitApplicable(unit: Unit) {
+    if (Unit.Traits.is(unit.traits, Unit.Trait.MultiChain)) return false
+    if (Unit.Traits.is(unit.traits, Unit.Trait.Patitioned)) return false
+    if (Unit.isCoarse(unit)) return true
+    if (unit.elements.length === 0) return false
+    unit.model.atomicHierarchy.derived.residue.moleculeType
+    const rI = unit.residueIndex[unit.elements[0]]
+    const mt = unit.model.atomicHierarchy.derived.residue.moleculeType[rI]
+    if (mt === MoleculeType.Ion) return false
+    if (mt === MoleculeType.Water) return false
+    return true
+}
+
 export function createOrientationEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: OrientationEllipsoidMeshProps, mesh?: Mesh): Mesh {
-    if (unit.polymerElements.length === 0) return Mesh.createEmpty(mesh)
+    if (!isUnitApplicable(unit)) return Mesh.createEmpty(mesh)
 
     const { detail, sizeFactor } = props
 
