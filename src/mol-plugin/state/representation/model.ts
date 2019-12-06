@@ -24,7 +24,7 @@ export namespace ModelStructureRepresentation {
             deposited: PD.EmptyGroup(),
             assembly: PD.Group({
                 id: PD.Optional(model
-                    ? PD.Select(assemblyIds[0][0], assemblyIds, { label: 'Asm Id', description: 'Assembly Id' })
+                    ? PD.Select(assemblyIds.length ? assemblyIds[0][0] : '', assemblyIds, { label: 'Asm Id', description: 'Assembly Id' })
                     : PD.Text('', { label: 'Asm Id', description: 'Assembly Id (use empty for the 1st assembly)' }))
             }, { isFlat: true }),
             'symmetry-mates': PD.Group({

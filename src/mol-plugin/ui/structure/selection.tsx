@@ -17,7 +17,7 @@ import { StructureElement } from '../../../mol-model/structure';
 
 const SSQ = StructureSelectionQueries
 const DefaultQueries: (keyof typeof SSQ)[] = [
-    'all', 'polymer', 'trace', 'protein', 'nucleic', 'water', 'branched', 'ligand', 'nonStandardPolymer',
+    'all', 'polymer', 'trace', 'backbone', 'protein', 'nucleic', 'water', 'branched', 'ligand', 'nonStandardPolymer',
     'surroundings', 'complement', 'bonded'
 ]
 

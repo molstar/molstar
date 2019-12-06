@@ -194,6 +194,16 @@ namespace Loci {
                 ? StructureElement.Loci.extendToWholeChains(loci)
                 : loci
         },
+        'entity': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToWholeEntities(loci)
+                : loci
+        },
+        'model': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToWholeModels(loci)
+                : loci
+        },
         'structure': (loci: Loci) => {
             return StructureElement.Loci.is(loci)
                 ? Structure.toStructureElementLoci(loci.structure)

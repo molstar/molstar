@@ -76,7 +76,7 @@ const DihedralVisuals = {
     'extenders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getExtendersShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }) }),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
 type DihedralVisualName = keyof typeof DihedralVisuals
 const DihedralVisualOptions = Object.keys(DihedralVisuals).map(name => [name, stringToWords(name)] as [DihedralVisualName, string])
@@ -296,7 +296,7 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
 
         const angle = radToDeg(tmpState.angle).toFixed(2)
         const label = `${angle}\u00B0`
-        builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, i)
+        builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, 1, i)
     }
     return builder.getText()
 }

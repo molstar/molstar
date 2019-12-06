@@ -16,7 +16,7 @@ const quadIndices = new Uint16Array([
 ])
 
 export interface TextBuilder {
-    add(str: string, x: number, y: number, z: number, depth: number, group: number): void
+    add(str: string, x: number, y: number, z: number, depth: number, scale: number, group: number): void
     getText(): Text
 }
 
@@ -45,7 +45,7 @@ export namespace TextBuilder {
         }
 
         return {
-            add: (str: string, x: number, y: number, z: number, depth: number, group: number) => {
+            add: (str: string, x: number, y: number, z: number, depth: number, scale: number, group: number) => {
                 let bWidth = 0
                 const nChar = str.length
 
@@ -111,10 +111,10 @@ export namespace TextBuilder {
                     }
                 }
 
-                const xLeft = -xShift - margin - 0.1
-                const xRight = bWidth - xShift + margin + 0.1
-                const yTop = bHeight - yShift + margin
-                const yBottom = -yShift - margin
+                const xLeft = (-xShift - margin - 0.1) * scale
+                const xRight = (bWidth - xShift + margin + 0.1) * scale
+                const yTop = (bHeight - yShift + margin) * scale
+                const yBottom = (-yShift - margin) * scale
 
                 // background
                 if (background) {
@@ -137,45 +137,49 @@ export namespace TextBuilder {
                     let xBaseA: number, yBaseA: number
                     let xBaseB: number, yBaseB: number
                     let xBaseCenter: number, yBaseCenter: number
+
+                    const scaledTetherLength = tetherLength * scale
+                    const scaledTetherBaseWidth = tetherBaseWidth * scale
+
                     switch (attachment) {
                         case 'bottom-left':
-                            xTip = xLeft - tetherLength / 2
-                            xBaseA = xLeft + tetherBaseWidth / 2
+                            xTip = xLeft - scaledTetherLength / 2
+                            xBaseA = xLeft + scaledTetherBaseWidth / 2
                             xBaseB = xLeft
                             xBaseCenter = xLeft
-                            yTip = yBottom - tetherLength / 2
+                            yTip = yBottom - scaledTetherLength / 2
                             yBaseA = yBottom
-                            yBaseB = yBottom + tetherBaseWidth / 2
+                            yBaseB = yBottom + scaledTetherBaseWidth / 2
                             yBaseCenter = yBottom
                             break
                         case 'bottom-center':
                             xTip = 0
-                            xBaseA = tetherBaseWidth / 2
-                            xBaseB = -tetherBaseWidth / 2
+                            xBaseA = scaledTetherBaseWidth / 2
+                            xBaseB = -scaledTetherBaseWidth / 2
                             xBaseCenter = 0
-                            yTip = yBottom - tetherLength
+                            yTip = yBottom - scaledTetherLength
                             yBaseA = yBottom
                             yBaseB = yBottom
                             yBaseCenter = yBottom
                             break
                         case 'bottom-right':
-                            xTip = xRight + tetherLength / 2
+                            xTip = xRight + scaledTetherLength / 2
                             xBaseA = xRight
-                            xBaseB = xRight - tetherBaseWidth / 2
+                            xBaseB = xRight - scaledTetherBaseWidth / 2
                             xBaseCenter = xRight
-                            yTip = yBottom - tetherLength / 2
-                            yBaseA = yBottom + tetherBaseWidth / 2
+                            yTip = yBottom - scaledTetherLength / 2
+                            yBaseA = yBottom + scaledTetherBaseWidth / 2
                             yBaseB = yBottom
                             yBaseCenter = yBottom
                             break
                         case 'middle-left':
-                            xTip = xLeft - tetherLength
+                            xTip = xLeft - scaledTetherLength
                             xBaseA = xLeft
                             xBaseB = xLeft
                             xBaseCenter = xLeft
                             yTip = 0
-                            yBaseA = -tetherBaseWidth / 2
-                            yBaseB = tetherBaseWidth / 2
+                            yBaseA = -scaledTetherBaseWidth / 2
+                            yBaseB = scaledTetherBaseWidth / 2
                             yBaseCenter = 0
                             break
                         case 'middle-center':
@@ -189,42 +193,42 @@ export namespace TextBuilder {
                             yBaseCenter = 0
                             break
                         case 'middle-right':
-                            xTip = xRight + tetherLength
+                            xTip = xRight + scaledTetherLength
                             xBaseA = xRight
                             xBaseB = xRight
                             xBaseCenter = xRight
                             yTip = 0
-                            yBaseA = tetherBaseWidth / 2
-                            yBaseB = -tetherBaseWidth / 2
+                            yBaseA = scaledTetherBaseWidth / 2
+                            yBaseB = -scaledTetherBaseWidth / 2
                             yBaseCenter = 0
                             break
                         case 'top-left':
-                            xTip = xLeft - tetherLength / 2
-                            xBaseA = xLeft + tetherBaseWidth / 2
+                            xTip = xLeft - scaledTetherLength / 2
+                            xBaseA = xLeft + scaledTetherBaseWidth / 2
                             xBaseB = xLeft
                             xBaseCenter = xLeft
-                            yTip = yTop + tetherLength / 2
+                            yTip = yTop + scaledTetherLength / 2
                             yBaseA = yTop
-                            yBaseB = yTop - tetherBaseWidth / 2
+                            yBaseB = yTop - scaledTetherBaseWidth / 2
                             yBaseCenter = yTop
                             break
                         case 'top-center':
                             xTip = 0
-                            xBaseA = tetherBaseWidth / 2
-                            xBaseB = -tetherBaseWidth / 2
+                            xBaseA = scaledTetherBaseWidth / 2
+                            xBaseB = -scaledTetherBaseWidth / 2
                             xBaseCenter = 0
-                            yTip = yTop + tetherLength
+                            yTip = yTop + scaledTetherLength
                             yBaseA = yTop
                             yBaseB = yTop
                             yBaseCenter = yTop
                             break
                         case 'top-right':
-                            xTip = xRight + tetherLength / 2
+                            xTip = xRight + scaledTetherLength / 2
                             xBaseA = xRight
-                            xBaseB = xRight - tetherBaseWidth / 2
+                            xBaseB = xRight - scaledTetherBaseWidth / 2
                             xBaseCenter = xRight
-                            yTip = yTop + tetherLength / 2
-                            yBaseA = yTop - tetherBaseWidth / 2
+                            yTip = yTop + scaledTetherLength / 2
+                            yBaseA = yTop - scaledTetherBaseWidth / 2
                             yBaseB = yTop
                             yBaseCenter = yTop
                             break
@@ -252,10 +256,15 @@ export namespace TextBuilder {
                 for (let iChar = 0; iChar < nChar; ++iChar) {
                     const c = fontAtlas.get(str[iChar])
 
-                    ChunkedArray.add2(mappings, xadvance - xShift, c.nh - yShift) // top left
-                    ChunkedArray.add2(mappings, xadvance - xShift, -yShift) // bottom left
-                    ChunkedArray.add2(mappings, xadvance + c.nw - xShift, c.nh - yShift) // top right
-                    ChunkedArray.add2(mappings, xadvance + c.nw - xShift, -yShift) // bottom right
+                    const left = (xadvance - xShift) * scale
+                    const right = (xadvance + c.nw - xShift) * scale
+                    const top = (c.nh - yShift) * scale
+                    const bottom = (-yShift) * scale
+
+                    ChunkedArray.add2(mappings, left, top)
+                    ChunkedArray.add2(mappings, left, bottom)
+                    ChunkedArray.add2(mappings, right, top)
+                    ChunkedArray.add2(mappings, right, bottom)
 
                     const texWidth = fontAtlas.texture.width
                     const texHeight = fontAtlas.texture.height

@@ -18,6 +18,8 @@ import { IntMap, SortedArray, Segmentation } from '../../../mol-data/int';
 import { hash2, hashFnv32a } from '../../../mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements, getNucleotideElements, getProteinElements } from './util/polymer';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
+import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
+import { getPrincipalAxes } from './util/principal-axes';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -183,6 +185,12 @@ namespace Unit {
             return this.props.lookup3d.ref;
         }
 
+        get principalAxes() {
+            if (this.props.principalAxes.ref) return this.props.principalAxes.ref;
+            this.props.principalAxes.ref = getPrincipalAxes(this);
+            return this.props.principalAxes.ref;
+        }
+
         get links() {
             if (this.props.links.ref) return this.props.links.ref;
             this.props.links.ref = computeIntraUnitBonds(this);
@@ -254,6 +262,7 @@ namespace Unit {
 
     interface AtomicProperties {
         lookup3d: ValueRef<Lookup3D | undefined>,
+        principalAxes: ValueRef<PrincipalAxes | undefined>,
         links: ValueRef<IntraUnitLinks | undefined>,
         rings: ValueRef<UnitRings | undefined>
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
@@ -266,6 +275,7 @@ namespace Unit {
     function AtomicProperties(): AtomicProperties {
         return {
             lookup3d: ValueRef.create(void 0),
+            principalAxes: ValueRef.create(void 0),
             links: ValueRef.create(void 0),
             rings: ValueRef.create(void 0),
             polymerElements: ValueRef.create(void 0),
@@ -313,6 +323,12 @@ namespace Unit {
             return this.props.lookup3d.ref;
         }
 
+        get principalAxes() {
+            if (this.props.principalAxes.ref) return this.props.principalAxes.ref;
+            this.props.principalAxes.ref = getPrincipalAxes(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
+            return this.props.principalAxes.ref;
+        }
+
         get polymerElements() {
             if (this.props.polymerElements.ref) return this.props.polymerElements.ref;
             this.props.polymerElements.ref = getCoarsePolymerElements(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
@@ -347,6 +363,7 @@ namespace Unit {
 
     interface CoarseProperties {
         lookup3d: ValueRef<Lookup3D | undefined>,
+        principalAxes: ValueRef<PrincipalAxes | undefined>,
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
     }
@@ -354,6 +371,7 @@ namespace Unit {
     function CoarseProperties(): CoarseProperties {
         return {
             lookup3d: ValueRef.create(void 0),
+            principalAxes: ValueRef.create(void 0),
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),
         };

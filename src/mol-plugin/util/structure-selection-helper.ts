@@ -13,7 +13,7 @@ import { compile } from '../../mol-script/runtime/query/compiler';
 import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
 import Expression from '../../mol-script/language/expression';
-import { LinkType } from '../../mol-model/structure/model/types';
+import { LinkType, ProteinBackboneAtoms, NucleicBackboneAtoms } from '../../mol-model/structure/model/types';
 import { StateTransforms } from '../state/transforms';
 
 export interface StructureSelectionQuery {
@@ -50,6 +50,38 @@ const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
                 'atom-test': MS.core.set.has([MS.set('CA', 'P'), MS.ammp('label_atom_id')])
+            })
+        ])
+    ])
+]))
+
+// TODO maybe pre-calculate atom properties like backbone/sidechain
+const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
+    MS.struct.combinator.merge([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': MS.core.logic.and([
+                    MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                    MS.core.str.match([
+                        MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
+                        MS.ammp('entitySubtype')
+                    ])
+                ]),
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': MS.core.set.has([MS.set(...Array.from(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
+            })
+        ]),
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'entity-test': MS.core.logic.and([
+                    MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                    MS.core.str.match([
+                        MS.re('(nucleotide|peptide nucleic acid)', 'i'),
+                        MS.ammp('entitySubtype')
+                    ])
+                ]),
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': MS.core.set.has([MS.set(...Array.from(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
             })
         ])
     ])
@@ -258,6 +290,7 @@ export const StructureSelectionQueries = {
     all,
     polymer,
     trace,
+    backbone,
     protein,
     nucleic,
     proteinOrNucleic,

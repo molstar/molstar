@@ -47,7 +47,7 @@ type TextParams = typeof TextParams
 
 const DistanceVisuals = {
     'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, LineParams>) => ShapeRepresentation(getLinesShape, Lines.Utils),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
 type DistanceVisualName = keyof typeof DistanceVisuals
 const DistanceVisualOptions = Object.keys(DistanceVisuals).map(name => [name, stringToWords(name)] as [DistanceVisualName, string])
@@ -121,7 +121,7 @@ function buildText(data: DistanceData, props: DistanceProps, text?: Text): Text 
         setDistanceState(data.pairs[i], tmpState)
         const { center, distance } = tmpState
         const label = `${distance.toFixed(2)} ${props.unitLabel}`
-        builder.add(label, center[0], center[1], center[2], 1, i)
+        builder.add(label, center[0], center[1], center[2], 1, 1, i)
     }
     return builder.getText()
 }

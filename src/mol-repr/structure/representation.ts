@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -16,6 +16,7 @@ import { Points } from '../../mol-geo/geometry/points/points';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { Text } from '../../mol-geo/geometry/text/text';
 
 export interface StructureRepresentationState extends Representation.State {
     unitTransforms: StructureUnitTransforms | null
@@ -53,6 +54,9 @@ export type StructurePointsParams = typeof StructurePointsParams
 
 export const StructureLinesParams = { ...Lines.Params, ...StructureParams }
 export type StructureLinesParams = typeof StructureLinesParams
+
+export const StructureTextParams = { ...Text.Params, ...StructureParams }
+export type StructureTextParams = typeof StructureTextParams
 
 export const StructureDirectVolumeParams = { ...DirectVolume.Params, ...StructureParams }
 export type StructureDirectVolumeParams = typeof StructureDirectVolumeParams
