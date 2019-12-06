@@ -764,6 +764,8 @@ namespace Structure {
 
     // TODO: there should be a version that property supports partitioned units
     export function areUnitAndIndicesEqual(a: Structure, b: Structure) {
+        if (a === b) return true;
+
         if (a.elementCount !== b.elementCount) return false;
         const len = a.units.length;
         if (len !== b.units.length) return false;

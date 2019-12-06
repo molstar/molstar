@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Vec3 } from '../../../../mol-math/linear-algebra';
@@ -91,8 +92,12 @@ export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (
                 if (apply(Interval.ofBounds(start, end))) changed = true
             } else {
                 for (let i = 0, _i = e.indices.length; i < _i; i++) {
-                    const idx = unitIdx * elementCount + e.indices[i]
-                    if (apply(Interval.ofSingleton(idx))) changed = true
+                    const start = e.indices[i];
+                    let endI = i + 1;
+                    while (endI < _i && e.indices[i] === start) endI++;
+                    i = endI - 1;
+                    const end = e.indices[i];
+                    changed = apply(Interval.ofRange(start, end)) || changed;
                 }
             }
         }

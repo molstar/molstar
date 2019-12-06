@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { OrderedSet } from '../mol-data/int';
+import { OrderedSet, Interval } from '../mol-data/int';
 
 export enum MarkerAction {
     Highlight,
@@ -15,46 +15,51 @@ export enum MarkerAction {
     Clear
 }
 
+function applyAction(array: Uint8Array, i: number, action: MarkerAction) {
+    let v = array[i];
+    switch (action) {
+        case MarkerAction.Highlight:
+            if (v % 2 === 0) {
+                array[i] = v + 1;
+                return true;
+            }
+            return false;
+        case MarkerAction.RemoveHighlight:
+            if (v % 2 !== 0) {
+                array[i] = v - 1;
+                return true;
+            }
+            return false;
+        case MarkerAction.Select:
+            if (v < 2) {
+                array[i] = v + 2;
+                return true;
+            }
+            return false;
+        case MarkerAction.Deselect:
+            array[i] = v % 2;
+            return array[i] !== v;
+        case MarkerAction.Toggle:
+            if (v >= 2) array[i] = v - 2;
+            else array[i] = v + 2;
+            return true;
+        case MarkerAction.Clear:
+            array[i] = 0;
+            return v !== 0;
+    }
+    return false;
+}
+
 export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: MarkerAction) {
     let changed = false;
-    OrderedSet.forEach(set, i => {
-        let v = array[i];
-        switch (action) {
-            case MarkerAction.Highlight:
-                if (v % 2 === 0) {
-                    v += 1;
-                }
-                break;
-            case MarkerAction.RemoveHighlight:
-                if (v % 2 !== 0) {
-                    v -= 1;
-                }
-                break;
-            case MarkerAction.Select:
-                if (v < 2)
-                    v += 2;
-                // v += 2
-                break;
-            case MarkerAction.Deselect:
-                // if (v >= 2) {
-                //     v -= 2
-                // }
-                v = v % 2;
-                break;
-            case MarkerAction.Toggle:
-                if (v >= 2) {
-                    v -= 2;
-                }
-                else {
-                    v += 2;
-                }
-                break;
-            case MarkerAction.Clear:
-                v = 0;
-                break;
+    if (Interval.is(set)) {
+        for (let i = Interval.start(set), _i = Interval.end(set); i < _i; i++) {
+            changed = applyAction(array, i, action) || changed;
         }
-        changed = array[i] !== v || changed;
-        array[i] = v;
-    })
+    } else {
+        for (let i = 0, _i = set.length; i < _i; i++) {
+            changed = applyAction(array, set[i], action) || changed;
+        }
+    }
     return changed;
 }

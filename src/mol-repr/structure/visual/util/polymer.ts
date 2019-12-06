@@ -2,11 +2,12 @@
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Unit, ElementIndex, StructureElement, Link, Structure } from '../../../../mol-model/structure';
+import { Unit, ElementIndex, StructureElement, Link, Structure, ResidueIndex } from '../../../../mol-model/structure';
 import SortedRanges from '../../../../mol-data/int/sorted-ranges';
-import { OrderedSet, Interval } from '../../../../mol-data/int';
+import { OrderedSet, Interval, SortedArray } from '../../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
 import { PickingId } from '../../../../mol-geo/geometry/picking';
@@ -93,6 +94,80 @@ export function getPolymerElementLoci(pickingId: PickingId, structureGroup: Stru
     return EmptyLoci
 }
 
+
+function tryApplyResidueInterval(elements: SortedArray<ElementIndex>, traceElementIndex: ArrayLike<ElementIndex | -1>, apply: (interval: Interval) => boolean, r1: ResidueIndex, r2: ResidueIndex) {
+    let start = -1, startIdx = -1;
+
+    for (let rI = r1; rI <= r2; rI++) {
+        const eI = traceElementIndex[rI];
+        if (eI < 0) continue;
+        start = OrderedSet.indexOf(elements, eI);
+        if (start >= 0) {
+            startIdx = rI;
+            break;
+        }
+    }
+
+    if (start < 0) {
+        return false;
+    }
+
+    let end = start;
+
+    for (let rI = r2; rI > startIdx; rI--) {
+        const eI = traceElementIndex[rI];
+        if (eI < 0) continue;
+        const e = OrderedSet.indexOf(elements, eI);
+        if (e >= 0) {
+            end = e;
+            break;
+        }
+    }
+
+    return apply(Interval.ofRange(start, end));
+}
+
+export function eachAtomicUnitTracedElement(intervalOffset: number, groupSize: number, elementsSelector: (u: Unit.Atomic) => SortedArray<ElementIndex>, apply: (interval: Interval) => boolean, e: StructureElement.Loci['elements'][0]) {
+    let changed = false;
+
+    const { elements } = e.unit;
+    const { traceElementIndex } = e.unit.model.atomicHierarchy.derived.residue;
+    const { index: resIndex } = e.unit.model.atomicHierarchy.residueAtomSegments;
+    const tracedElements = elementsSelector(e.unit as Unit.Atomic);
+
+    if (Interval.is(e.indices)) {
+        if (Interval.start(e.indices) === 0 && Interval.end(e.indices) === e.unit.elements.length) {
+            // full unit here
+            changed = apply(Interval.ofBounds(intervalOffset, intervalOffset + groupSize)) || changed;
+        } else {
+            let r1 = resIndex[elements[Interval.min(e.indices)]];
+            let r2 = resIndex[elements[Interval.max(e.indices)]];
+            changed = tryApplyResidueInterval(tracedElements, traceElementIndex, apply, r1, r2) || changed;
+        }
+    } else {
+        const { indices } = e;
+
+        for (let i = 0, _i = indices.length; i < _i; i++) {
+            const r1 = resIndex[elements[indices[i]]];
+            let r2 = r1;
+
+            let endI = i + 1;
+            while (endI < _i) {
+                const _r = resIndex[elements[indices[endI]]];
+                if (_r - r2 > 1) break;
+                r2 = _r;
+                endI++;
+            }
+            i = endI - 1;
+            changed = tryApplyResidueInterval(tracedElements, traceElementIndex, apply, r1, r2) || changed;
+        }
+    }
+
+    return changed;
+}
+
+function selectPolymerElements(u: Unit) { return u.polymerElements; }
+
 /**
  * Mark a polymer element (e.g. part of a cartoon trace)
  * - for atomic units mark only when all its residue's elements are in a loci
@@ -102,43 +177,27 @@ export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, a
     if (!StructureElement.Loci.is(loci)) return false
     const { structure, group } = structureGroup
     if (!Structure.areEquivalent(loci.structure, structure)) return false
-    const { polymerElements, model, elements } = group.units[0]
-    const { index, offsets } = model.atomicHierarchy.residueAtomSegments
-    const { traceElementIndex } = model.atomicHierarchy.derived.residue
-    const groupCount = polymerElements.length
+    const groupCount = group.units[0].polymerElements.length
     for (const e of loci.elements) {
-        const unitIdx = group.unitIndexMap.get(e.unit.id)
-        if (unitIdx !== undefined) {
-            if (Unit.isAtomic(e.unit)) {
-                // TODO optimized implementation for intervals covering only part of the unit
-                if (Interval.is(e.indices) && Interval.start(e.indices) === 0 && Interval.end(e.indices) === e.unit.elements.length) {
-                    const start = unitIdx * groupCount;
-                    const end = unitIdx * groupCount + groupCount;
-                    if (apply(Interval.ofBounds(start, end))) changed = true
-                } else {
-                    OrderedSet.forEach(e.indices, v => {
-                        const rI = index[elements[v]]
-                        const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
-                        const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
-                        const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
-                        if (!OrderedSet.areIntersecting(e.indices, unitIndexInterval)) return
-                        const eI = traceElementIndex[rI]
-                        const idx = OrderedSet.indexOf(e.unit.polymerElements, eI)
-                        if (idx !== -1) {
-                            if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
-                        }
-                    })
-                }
+        if (!group.unitIndexMap.has(e.unit.id)) continue;
+
+        const intervalOffset = group.unitIndexMap.get(e.unit.id) * groupCount;
+
+        if (Unit.isAtomic(e.unit)) {
+            changed = eachAtomicUnitTracedElement(intervalOffset, groupCount, selectPolymerElements, apply, e) || changed;
+        } else {
+            if (Interval.is(e.indices)) {
+                const start = intervalOffset + Interval.start(e.indices);
+                const end = intervalOffset + Interval.end(e.indices);
+                changed = apply(Interval.ofBounds(start, end)) || changed;
             } else {
-                if (Interval.is(e.indices)) {
-                    const start = unitIdx * groupCount + Interval.start(e.indices);
-                    const end = unitIdx * groupCount + Interval.end(e.indices);
-                    if (apply(Interval.ofBounds(start, end))) changed = true
-                } else {
-                    for (let i = 0, _i = e.indices.length; i < _i; i++) {
-                        const idx = unitIdx * groupCount + e.indices[i];
-                        if (apply(Interval.ofSingleton(idx))) changed = true
-                    }
+                for (let i = 0, _i = e.indices.length; i < _i; i++) {
+                    const start = e.indices[i];
+                    let endI = i + 1;
+                    while (endI < _i && e.indices[i] === start) endI++;
+                    i = endI - 1;
+                    const end = e.indices[i];
+                    changed = apply(Interval.ofRange(start, end)) || changed;
                 }
             }
         }
