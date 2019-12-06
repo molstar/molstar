@@ -38,8 +38,8 @@ class StructureMeasurementManager {
         update
             .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
                 selections: [
-                    { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
-                    { key: 'b', ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) }
+                    { key: 'a', groupId: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
+                    { key: 'b', groupId: 'b', ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) }
                 ],
                 isTransitive: true,
                 label: 'Distance'

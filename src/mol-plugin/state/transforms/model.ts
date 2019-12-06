@@ -352,6 +352,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
         selections: PD.ObjectList({
             key: PD.Text(void 0, { description: 'A unique key.' }),
             ref: PD.Text(),
+            groupId: PD.Optional(PD.Text()),
             expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.empty)
         }, e => e.ref, { isHidden: true }),
         isTransitive: PD.Optional(PD.Boolean(false, { isHidden: true, description: 'Remap the selections from the original structure if structurally equivalent.' })),
@@ -368,7 +369,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
             const { selection, entry } = StructureQueryHelper.createAndRun(dependencies![sel.ref].data as Structure, sel.expression);
             entries.set(sel.key, entry);
             const loci = Sel.toLociWithSourceUnits(selection);
-            selections.push({ key: sel.key, loci });
+            selections.push({ key: sel.key, loci, groupId: sel.groupId });
             totalSize += StructureElement.Loci.size(loci);
         }
 
@@ -401,6 +402,10 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                 const entry = cacheEntries.get(sel.key)!;
                 if (StructureQueryHelper.isUnchanged(entry, sel.expression, structure) && current.has(sel.key)) {
                     const loci = current.get(sel.key)!;
+                    if (loci.groupId !== sel.groupId) {
+                        loci.groupId = sel.groupId;
+                        changed = true;
+                    }
                     entries.set(sel.key, entry);
                     selections.push(loci);
                     totalSize += StructureElement.Loci.size(loci.loci);
@@ -418,7 +423,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                             entry.currentStructure = structure;
                             entries.set(sel.key, entry);
                             const loci = StructureElement.Loci.remap(Sel.toLociWithSourceUnits(selection), structure);
-                            selections.push({ key: sel.key, loci });
+                            selections.push({ key: sel.key, loci, groupId: sel.groupId });
                             totalSize += StructureElement.Loci.size(loci);
                             changed = true;
                         } else {
@@ -433,7 +438,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                         const selection = StructureQueryHelper.updateStructure(entry, structure);
                         entries.set(sel.key, entry);
                         const loci = Sel.toLociWithSourceUnits(selection);
-                        selections.push({ key: sel.key, loci });
+                        selections.push({ key: sel.key, loci, groupId: sel.groupId });
                         totalSize += StructureElement.Loci.size(loci);
                     }
                 }
