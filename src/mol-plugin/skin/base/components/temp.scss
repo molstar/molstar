@@ -117,27 +117,26 @@
     &-current {
         // background: $control-background;
 
-        a {
+        .msp-btn-tree-label {
+            cursor: default;
+        }
+
+        .msp-btn-tree-label:hover {
             color: $font-color;
         }
-
-        a:hover, a:hover > small {
-            color: color-lower-contrast($font-color, 24%);
-        }
     }
 
-    a {
+    .msp-btn-tree-label {
         display: block;
         overflow: hidden;
+        border: none;
+        padding: 0;
+        width: 100%;
+        text-align: left;
     }
 
-    a > small {
+    .msp-btn-tree-label > small {
         color: $font-color;
-    }
-
-    a:hover {
-        font-weight: bold;
-        text-decoration: none;
     }
 }
 

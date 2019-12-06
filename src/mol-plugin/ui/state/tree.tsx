@@ -218,14 +218,14 @@ class StateTreeNodeLabel extends PluginUIComponent<
         } else if (cell.status !== 'ok' || !cell.obj) {
             const name = n.transformer.definition.display.name;
             const title = `${cell.errorText}`;
-            label = <><a title={title} href='#' onClick={this.setCurrent}><b>[{cell.status}]</b> {name}: <i>{cell.errorText}</i> </a></>;
+            label = <><button className='msp-btn-link msp-btn-tree-label' title={title} onClick={this.setCurrent}><b>[{cell.status}]</b> {name}: <i>{cell.errorText}</i> </button></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
             const title = `${obj.label} ${obj.description ? obj.description : ''}`
             if (this.state.isCurrent) {
-                label = <><a title={title} href='#'><b>{obj.label}</b> {obj.description ? <small>{obj.description}</small> : void 0}</a></>;
+                label = <><button className='msp-btn-link msp-btn-tree-label' title={title}><b>{obj.label}</b> {obj.description ? <small>{obj.description}</small> : void 0}</button></>;
             } else {
-                label = <><a title={title} href='#' onClick={this.setCurrent}>{obj.label} {obj.description ? <small>{obj.description}</small> : void 0}</a></>;
+                label = <><button className='msp-btn-link msp-btn-tree-label' title={title} onClick={this.setCurrent}>{obj.label} {obj.description ? <small>{obj.description}</small> : void 0}</button></>;
             }
         }
 
@@ -237,7 +237,7 @@ class StateTreeNodeLabel extends PluginUIComponent<
         </button>;
 
         const style: React.HTMLAttributes<HTMLDivElement>['style'] = {
-            marginLeft: /* this.state.isCurrent ? void 0 :*/ `${this.props.depth * 10}px`,
+            marginLeft: /* this.state.isCurrent ? void 0 :*/ `${this.props.depth * 8}px`,
             // paddingLeft: !this.state.isCurrent ? void 0 : `${this.props.depth * 10}px`,
             borderLeft: /* isCurrent || */ this.props.depth === 0 ? 'none' : void 0
         }
