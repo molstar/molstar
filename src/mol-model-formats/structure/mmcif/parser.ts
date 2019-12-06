@@ -156,11 +156,13 @@ function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap
 
     if (format.data.pdbx_chem_comp_identifier._rowCount > 0) {
         // note that `pdbx_chem_comp_identifier` does not contain
-        // a 'SNFG CARB SYMBOL' entry for 'Unknown' saccharide components
+        // a 'SNFG CARBOHYDRATE SYMBOL' entry for 'Unknown' saccharide components
         // so we always need to check `chem_comp` for those
         const { comp_id, type, identifier } = format.data.pdbx_chem_comp_identifier
         for (let i = 0, il = comp_id.rowCount; i < il; ++i) {
-            if (type.value(i) === 'SNFG CARB SYMBOL') {
+            if (type.value(i) === 'SNFG CARBOHYDRATE SYMBOL' ||
+                type.value(i) === 'SNFG CARB SYMBOL' // legacy, to be removed from mmCIF dictionary
+            ) {
                 const snfgName = identifier.value(i)
                 const saccharideComp = SaccharidesSnfgMap.get(snfgName)
                 if (saccharideComp) {
