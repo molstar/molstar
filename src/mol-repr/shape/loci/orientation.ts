@@ -14,7 +14,6 @@ import { Representation, RepresentationParamsGetter, RepresentationContext } fro
 import { Shape } from '../../../mol-model/shape';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
-import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { lociLabel } from '../../../mol-theme/label';
 import { addAxes } from '../../../mol-geo/geometry/mesh/builder/axes';
 import { addOrientedBox } from '../../../mol-geo/geometry/mesh/builder/box';
@@ -23,7 +22,7 @@ import { Axes3D } from '../../../mol-math/geometry';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 
 export interface OrientationData {
-    loci: Loci
+    locis: Loci[]
 }
 
 const SharedParams = {
@@ -69,66 +68,88 @@ export type OrientationProps = PD.Values<OrientationParams>
 
 //
 
-function buildAxesMesh(principalAxes: PrincipalAxes, props: OrientationProps, mesh?: Mesh): Mesh {
+function orientationLabel(loci: Loci) {
+    const label = lociLabel(loci, { countsOnly: true })
+    return `Principal Axes of ${label}`
+}
+
+function getOrientationName(data: OrientationData) {
+    return data.locis.length === 1 ? orientationLabel(data.locis[0]) : `${data.locis.length} Orientations`
+}
+
+//
+
+function buildAxesMesh(data: OrientationData, props: OrientationProps, mesh?: Mesh): Mesh {
     const state = MeshBuilder.createState(256, 128, mesh)
-    state.currentGroup = 1
-    addAxes(state, principalAxes.momentsAxes, props.scale, 2, 20)
+    for (let i = 0, il = data.locis.length; i < il; ++i) {
+        const principalAxes = Loci.getPrincipalAxes(data.locis[i])
+        if (principalAxes) {
+            state.currentGroup = i
+            addAxes(state, principalAxes.momentsAxes, props.scale, 2, 20)
+        }
+    }
     return MeshBuilder.getMesh(state)
 }
 
 function getAxesShape(ctx: RuntimeContext, data: OrientationData, props: OrientationProps, shape?: Shape<Mesh>) {
-    const label = lociLabel(data.loci, { countsOnly: true })
-    const principalAxes = Loci.getPrincipalAxes(data.loci)
-    const mesh = principalAxes ? buildAxesMesh(principalAxes, props, shape && shape.geometry) : Mesh.createEmpty(shape && shape.geometry);
+    const mesh = buildAxesMesh(data, props, shape && shape.geometry);
+    const name = getOrientationName(data)
     const getLabel = function (groupId: number ) {
-        return `Principal Axes of ${label}`
+        return orientationLabel(data.locis[groupId])
     }
-    return Shape.create('Principal Axes', data, mesh, () => props.color, () => 1, getLabel)
+    return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel)
 }
 
 //
 
-function buildBoxMesh(principalAxes: PrincipalAxes, props: OrientationProps, mesh?: Mesh): Mesh {
+function buildBoxMesh(data: OrientationData, props: OrientationProps, mesh?: Mesh): Mesh {
     const state = MeshBuilder.createState(256, 128, mesh)
-    state.currentGroup = 1
-    addOrientedBox(state, principalAxes.boxAxes, props.scale, 2, 20)
+    for (let i = 0, il = data.locis.length; i < il; ++i) {
+        const principalAxes = Loci.getPrincipalAxes(data.locis[i])
+        if (principalAxes) {
+            state.currentGroup = i
+            addOrientedBox(state, principalAxes.boxAxes, props.scale, 2, 20)
+        }
+    }
     return MeshBuilder.getMesh(state)
 }
 
 function getBoxShape(ctx: RuntimeContext, data: OrientationData, props: OrientationProps, shape?: Shape<Mesh>) {
-    const label = lociLabel(data.loci, { countsOnly: true })
-    const principalAxes = Loci.getPrincipalAxes(data.loci)
-    const mesh = principalAxes ? buildBoxMesh(principalAxes, props, shape && shape.geometry) : Mesh.createEmpty(shape && shape.geometry);
+    const mesh = buildBoxMesh(data, props, shape && shape.geometry);
+    const name = getOrientationName(data)
     const getLabel = function (groupId: number ) {
-        return `Oriented Box of ${label}`
+        return orientationLabel(data.locis[groupId])
     }
-    return Shape.create('Oriented Box', data, mesh, () => props.color, () => 1, getLabel)
+    return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel)
 }
 
 //
 
-function buildEllipsoidMesh(principalAxes: PrincipalAxes, props: OrientationProps, mesh?: Mesh): Mesh {
+function buildEllipsoidMesh(data: OrientationData, props: OrientationProps, mesh?: Mesh): Mesh {
     const state = MeshBuilder.createState(256, 128, mesh)
+    for (let i = 0, il = data.locis.length; i < il; ++i) {
+        const principalAxes = Loci.getPrincipalAxes(data.locis[i])
+        if (principalAxes) {
+            const axes = principalAxes.boxAxes
+            const { origin, dirA, dirB } = axes
+            const size = Axes3D.size(Vec3(), axes)
+            Vec3.scale(size, size, 0.5)
+            const radiusScale = Vec3.create(size[2], size[1], size[0])
 
-    const axes = principalAxes.boxAxes
-    const { origin, dirA, dirB } = axes
-    const size = Axes3D.size(Vec3(), axes)
-    Vec3.scale(size, size, 0.5)
-    const radiusScale = Vec3.create(size[2], size[1], size[0])
-
-    state.currentGroup = 1
-    addEllipsoid(state, origin, dirA, dirB, radiusScale, 2)
+            state.currentGroup = i
+            addEllipsoid(state, origin, dirA, dirB, radiusScale, 2)
+        }
+    }
     return MeshBuilder.getMesh(state)
 }
 
 function getEllipsoidShape(ctx: RuntimeContext, data: OrientationData, props: OrientationProps, shape?: Shape<Mesh>) {
-    const label = lociLabel(data.loci, { countsOnly: true })
-    const principalAxes = Loci.getPrincipalAxes(data.loci)
-    const mesh = principalAxes ? buildEllipsoidMesh(principalAxes, props, shape && shape.geometry) : Mesh.createEmpty(shape && shape.geometry);
+    const mesh = buildEllipsoidMesh(data, props, shape && shape.geometry);
+    const name = getOrientationName(data)
     const getLabel = function (groupId: number ) {
-        return `Ellipsoid of ${label}`
+        return orientationLabel(data.locis[groupId])
     }
-    return Shape.create('Ellipsoid', data, mesh, () => props.color, () => 1, getLabel)
+    return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel)
 }
 
 //

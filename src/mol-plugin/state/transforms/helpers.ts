@@ -55,5 +55,5 @@ export function getLabelDataFromStructureSelections(s: ReadonlyArray<PluginState
 
 export function getOrientationDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): OrientationData {
     const loci = s[0].loci
-    return { loci }
+    return { locis: [loci] }
 }

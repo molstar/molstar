@@ -184,10 +184,14 @@ function getCircle(state: DihedralState, segmentLength?: number) {
 }
 
 const tmpState = getDihedralState()
-function dihedralLabel(quad: Loci.Bundle<4>, arcScale: number) {
-    setDihedralState(quad, tmpState, arcScale)
+function dihedralLabel(quad: Loci.Bundle<4>) {
+    setDihedralState(quad, tmpState, 1)
     const angle = radToDeg(tmpState.angle).toFixed(2)
     return `Dihedral ${angle}\u00B0`
+}
+
+function getDihedralName(data: DihedralData) {
+    return data.quads.length === 1 ? dihedralLabel(data.quads[0]) : `${data.quads.length} Dihedrals`
 }
 
 //
@@ -204,10 +208,11 @@ function buildVectorsLines(data: DihedralData, props: DihedralProps, lines?: Lin
 
 function getVectorsShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
     const lines = buildVectorsLines(data, props, shape && shape.geometry);
+    const name = getDihedralName(data)
     const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId], props.arcScale)
+        return dihedralLabel(data.quads[groupId])
     }
-    return Shape.create('Dihedral Vectors', data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
 }
 
 //
@@ -224,10 +229,11 @@ function buildExtendersLines(data: DihedralData, props: DihedralProps, lines?: L
 
 function getExtendersShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
     const lines = buildExtendersLines(data, props, shape && shape.geometry);
+    const name = getDihedralName(data)
     const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId], props.arcScale)
+        return dihedralLabel(data.quads[groupId])
     }
-    return Shape.create('Dihedral Extenders', data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
 }
 
 //
@@ -256,10 +262,11 @@ function buildArcLines(data: DihedralData, props: DihedralProps, lines?: Lines):
 
 function getArcShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
     const lines = buildArcLines(data, props, shape && shape.geometry);
+    const name = getDihedralName(data)
     const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId], props.arcScale)
+        return dihedralLabel(data.quads[groupId])
     }
-    return Shape.create('Dihedral Arc', data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
 }
 
 //
@@ -269,6 +276,7 @@ function buildSectorMesh(data: DihedralData, props: DihedralProps, mesh?: Mesh):
     for (let i = 0, il = data.quads.length; i < il; ++i) {
         setDihedralState(data.quads[i], tmpState, props.arcScale)
         const circle = getCircle(tmpState)
+        state.currentGroup = i
         MeshBuilder.addPrimitive(state, Mat4.id, circle)
         MeshBuilder.addPrimitiveFlipped(state, Mat4.id, circle)
     }
@@ -277,10 +285,11 @@ function buildSectorMesh(data: DihedralData, props: DihedralProps, mesh?: Mesh):
 
 function getSectorShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Mesh>) {
     const mesh = buildSectorMesh(data, props, shape && shape.geometry);
+    const name = getDihedralName(data)
     const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId], props.arcScale)
+        return dihedralLabel(data.quads[groupId])
     }
-    return Shape.create('Dihedral Sector', data, mesh, () => props.color, () => 1, getLabel)
+    return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel)
 }
 
 //
@@ -303,10 +312,11 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
 
 function getTextShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
+    const name = getDihedralName(data)
     const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId], props.arcScale)
+        return dihedralLabel(data.quads[groupId])
     }
-    return Shape.create('Dihedral Text', data, text, () => props.textColor, () => props.textSize, getLabel)
+    return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel)
 }
 
 //

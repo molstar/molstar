@@ -47,25 +47,36 @@ export type LabelProps = PD.Values<LabelParams>
 
 const tmpSphere = Sphere3D()
 
+function label(info: { loci: Loci, label?: string }) {
+    return info.label || lociLabel(info.loci, { hidePrefix: true, htmlStyling: false })
+}
+
+function getLabelName(data: LabelData) {
+    return data.infos.length === 1 ? label(data.infos[0]) : `${data.infos.length} Labels`
+}
+
+//
+
 function buildText(data: LabelData, props: LabelProps, text?: Text): Text {
     const builder = TextBuilder.create(props, 128, 64, text)
     for (let i = 0, il = data.infos.length; i < il; ++i) {
-        const d = data.infos[i]
-        const sphere = Loci.getBoundingSphere(d.loci, tmpSphere)
+        const info = data.infos[i]
+        const sphere = Loci.getBoundingSphere(info.loci, tmpSphere)
         if (!sphere) continue
         const { center, radius } = sphere
-        const label = d.label || lociLabel(d.loci, { hidePrefix: true, htmlStyling: false })
-        builder.add(label, center[0], center[1], center[2], radius, 1, i)
+        const text = label(info)
+        builder.add(text, center[0], center[1], center[2], radius, 1, i)
     }
     return builder.getText()
 }
 
 function getTextShape(ctx: RuntimeContext, data: LabelData, props: LabelProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
+    const name = getLabelName(data)
     const getLabel = function (groupId: number) {
-        return 'Label Text'
+        return label(data.infos[groupId])
     }
-    return Shape.create('Label Text', data, text, () => props.textColor, () => props.textSize, getLabel)
+    return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel)
 }
 
 //

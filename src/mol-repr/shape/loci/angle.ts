@@ -142,10 +142,14 @@ function getCircle(state: AngleState, segmentLength?: number) {
 
 const tmpState = getAngleState()
 
-function angleLabel(triple: Loci.Bundle<3>, arcScale: number) {
-    setAngleState(triple, tmpState, arcScale)
+function angleLabel(triple: Loci.Bundle<3>) {
+    setAngleState(triple, tmpState, 1)
     const angle = radToDeg(tmpState.angle).toFixed(2)
     return `Angle ${angle}\u00B0`
+}
+
+function getAngleName(data: AngleData) {
+    return data.triples.length === 1 ? angleLabel(data.triples[0]) : `${data.triples.length} Angles`
 }
 
 //
@@ -162,10 +166,11 @@ function buildVectorsLines(data: AngleData, props: AngleProps, lines?: Lines): L
 
 function getVectorsShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Lines>) {
     const lines = buildVectorsLines(data, props, shape && shape.geometry);
+    const name = getAngleName(data)
     const getLabel = function (groupId: number ) {
-        return angleLabel(data.triples[groupId], props.arcScale)
+        return angleLabel(data.triples[groupId])
     }
-    return Shape.create('Angle Vectors', data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
 }
 
 //
@@ -194,10 +199,11 @@ function buildArcLines(data: AngleData, props: AngleProps, lines?: Lines): Lines
 
 function getArcShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Lines>) {
     const lines = buildArcLines(data, props, shape && shape.geometry);
+    const name = getAngleName(data)
     const getLabel = function (groupId: number ) {
-        return angleLabel(data.triples[groupId], props.arcScale)
+        return angleLabel(data.triples[groupId])
     }
-    return Shape.create('Angle Arc', data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
 }
 
 //
@@ -207,6 +213,7 @@ function buildSectorMesh(data: AngleData, props: AngleProps, mesh?: Mesh): Mesh 
     for (let i = 0, il = data.triples.length; i < il; ++i) {
         setAngleState(data.triples[i], tmpState, props.arcScale)
         const circle = getCircle(tmpState)
+        state.currentGroup = i
         MeshBuilder.addPrimitive(state, Mat4.id, circle)
         MeshBuilder.addPrimitiveFlipped(state, Mat4.id, circle)
     }
@@ -215,10 +222,11 @@ function buildSectorMesh(data: AngleData, props: AngleProps, mesh?: Mesh): Mesh 
 
 function getSectorShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Mesh>) {
     const mesh = buildSectorMesh(data, props, shape && shape.geometry);
+    const name = getAngleName(data)
     const getLabel = function (groupId: number ) {
-        return angleLabel(data.triples[groupId], props.arcScale)
+        return angleLabel(data.triples[groupId])
     }
-    return Shape.create('Angle Sector', data, mesh, () => props.color, () => 1, getLabel)
+    return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel)
 }
 
 //
@@ -241,10 +249,11 @@ function buildText(data: AngleData, props: AngleProps, text?: Text): Text {
 
 function getTextShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
+    const name = getAngleName(data)
     const getLabel = function (groupId: number ) {
-        return angleLabel(data.triples[groupId], props.arcScale)
+        return angleLabel(data.triples[groupId])
     }
-    return Shape.create('Angle Text', data, text, () => props.textColor, () => props.textSize, getLabel)
+    return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel)
 }
 
 //
