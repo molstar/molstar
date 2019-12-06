@@ -15,7 +15,7 @@ export enum MarkerAction {
     Clear
 }
 
-function applyAction(array: Uint8Array, i: number, action: MarkerAction) {
+export function applyMarkerActionAtPosition(array: Uint8Array, i: number, action: MarkerAction) {
     let v = array[i];
     switch (action) {
         case MarkerAction.Highlight:
@@ -54,11 +54,11 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
     let changed = false;
     if (Interval.is(set)) {
         for (let i = Interval.start(set), _i = Interval.end(set); i < _i; i++) {
-            changed = applyAction(array, i, action) || changed;
+            changed = applyMarkerActionAtPosition(array, i, action) || changed;
         }
     } else {
         for (let i = 0, _i = set.length; i < _i; i++) {
-            changed = applyAction(array, set[i], action) || changed;
+            changed = applyMarkerActionAtPosition(array, set[i], action) || changed;
         }
     }
     return changed;

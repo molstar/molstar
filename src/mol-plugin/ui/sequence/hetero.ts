@@ -9,6 +9,7 @@ import { SequenceWrapper, StructureUnit } from './wrapper';
 import { OrderedSet, Segmentation, Interval, SortedArray } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { ColorNames } from '../../../mol-util/color/names';
+import { MarkerAction, applyMarkerAction } from '../../../mol-util/marker-action';
 
 export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly unitMap: Map<number, Unit>
@@ -24,7 +25,7 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return ColorNames.black
     }
 
-    eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
+    mark(loci: Loci, action: MarkerAction) {
         let changed = false
         const { structure } = this.data
         if (StructureElement.Loci.is(loci)) {
@@ -37,14 +38,14 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
                     const { index: residueIndex } = e.unit.model.atomicHierarchy.residueAtomSegments
                     OrderedSet.forEach(e.indices, v => {
                         const seqIdx = this.sequenceIndices.get(residueIndex[unit.elements[v]])
-                        if (seqIdx !== undefined && apply(Interval.ofSingleton(seqIdx))) changed = true
+                        if (seqIdx !== undefined && applyMarkerAction(this.markerArray, Interval.ofSingleton(seqIdx), action)) changed = true
                     })
                 }
             }
         } else if (Structure.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
 
-            if (apply(Interval.ofBounds(0, this.length))) changed = true
+            if (applyMarkerAction(this.markerArray, Interval.ofBounds(0, this.length), action)) changed = true
         }
         return changed
     }

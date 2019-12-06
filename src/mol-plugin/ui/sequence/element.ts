@@ -9,6 +9,7 @@ import { SequenceWrapper, StructureUnit } from './wrapper';
 import { OrderedSet, Interval } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { ColorNames } from '../../../mol-util/color/names';
+import { MarkerAction, applyMarkerAction } from '../../../mol-util/marker-action';
 
 export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private unitIndices: Map<number, Interval<StructureElement.UnitIndex>>
@@ -20,7 +21,7 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return ColorNames.black
     }
 
-    eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
+    mark(loci: Loci, action: MarkerAction) {
         let changed = false
         const { structure, units } = this.data
         if (StructureElement.Loci.is(loci)) {
@@ -31,7 +32,7 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
                 const indices = this.unitIndices.get(e.unit.id)
                 if (indices) {
                     if (OrderedSet.isSubset(indices, e.indices)) {
-                        if (apply(e.indices)) changed = true
+                        if (applyMarkerAction(this.markerArray, e.indices, action)) changed = true
                     }
                 }
             }
@@ -40,7 +41,7 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
             for (let i = 0, il = units.length; i < il; ++i) {
                 const indices = this.unitIndices.get(units[i].id)!
-                if (apply(indices)) changed = true
+                if (applyMarkerAction(this.markerArray, indices, action)) changed = true
             }
         }
         return changed

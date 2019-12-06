@@ -43,6 +43,8 @@ export function Loci(structure: Structure, elements: ArrayLike<{ unit: Unit, ind
 }
 
 export namespace Loci {
+    export type Element = Loci['elements'][0]
+
     export function is(x: any): x is Loci {
         return !!x && x.kind === 'element-loci';
     }

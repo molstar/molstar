@@ -9,6 +9,7 @@ import { SequenceWrapper, StructureUnit } from './wrapper';
 import { OrderedSet, Interval } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { ColorNames } from '../../../mol-util/color/names';
+import { MarkerAction, applyMarkerAction } from '../../../mol-util/marker-action';
 
 export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private label: string
@@ -22,7 +23,7 @@ export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return ColorNames.black
     }
 
-    eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
+    mark(loci: Loci, action: MarkerAction) {
         let changed = false
         const { structure } = this.data
         if (StructureElement.Loci.is(loci)) {
@@ -33,14 +34,14 @@ export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
                 const indices = this.unitIndices.get(e.unit.id)
                 if (indices) {
                     if (OrderedSet.isSubset(indices, e.indices)) {
-                        if (apply(Interval.ofSingleton(0))) changed = true
+                        if (applyMarkerAction(this.markerArray, Interval.ofSingleton(0), action)) changed = true
                     }
                 }
             }
         } else if (Structure.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
 
-            if (apply(Interval.ofSingleton(0))) changed = true
+            if (applyMarkerAction(this.markerArray, Interval.ofSingleton(0), action)) changed = true
         }
         return changed
     }

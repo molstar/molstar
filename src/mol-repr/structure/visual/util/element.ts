@@ -94,7 +94,7 @@ export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (
                 for (let i = 0, _i = e.indices.length; i < _i; i++) {
                     const start = e.indices[i];
                     let endI = i + 1;
-                    while (endI < _i && e.indices[i] === start) endI++;
+                    while (endI < _i && e.indices[endI] === start) endI++;
                     i = endI - 1;
                     const end = e.indices[i];
                     changed = apply(Interval.ofRange(start, end)) || changed;

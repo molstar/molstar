@@ -288,6 +288,30 @@ export function forEach(set: OrderedSetImpl, f: (value: number, i: number, ctx: 
     return ctx;
 }
 
+export function forEachSegment(set: OrderedSetImpl, segment: (v: number) => number, f: (value: number, segIndex: number, ctx: any) => void, ctx: any) {
+    if (I.is(set)) {
+        let sI = 0;
+        for (let i = I.min(set), _i = I.max(set); i <= _i; i++) {
+            const s = segment(i);
+            let endI = i + 1;
+            while (endI < _i && segment(endI) === s) endI++;
+            i = endI - 1;
+            f(s, sI, ctx);
+            sI++;
+        }
+    } else {
+        let sI = 0;
+        for (let i = 0, _i = set.length; i < _i; i++) {
+            const s = segment(set[i]);
+            let endI = i + 1;
+            while (endI < _i && segment(set[endI]) === s) endI++;
+            i = endI - 1;
+            f(s, sI, ctx);
+            sI++;
+        }
+    }
+    return ctx;
+}
 
 export function indexedIntersect(idxA: OrderedSetImpl, a: S, b: S): OrderedSetImpl {
     if (a === b) return idxA;

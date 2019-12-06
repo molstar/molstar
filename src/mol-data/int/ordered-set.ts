@@ -57,6 +57,10 @@ namespace OrderedSet {
         return Base.forEach(set as any, f as any, ctx);
     }
 
+    export function forEachSegment<T extends number, S extends number, Ctx>(set: OrderedSet<T>, segment: (v: T) => S, f: (v: S, sI: number, ctx: Ctx) => void, ctx?: Ctx): Ctx {
+        return Base.forEachSegment(set as any, segment as any, f as any, ctx);
+    }
+
     export function isInterval<T extends number = number>(set: OrderedSet<T>): set is Interval<T> {
         return Interval.is(set);
     }

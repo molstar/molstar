@@ -4,13 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureSelection, StructureQuery, Structure, Queries, StructureProperties as SP, StructureElement, Unit, ElementIndex } from '../../../mol-model/structure';
+import { StructureSelection, StructureQuery, Structure, Queries, StructureProperties as SP, StructureElement, Unit } from '../../../mol-model/structure';
 import { SequenceWrapper, StructureUnit } from './wrapper';
 import { OrderedSet, Interval, SortedArray } from '../../../mol-data/int';
 import { Loci } from '../../../mol-model/loci';
 import { Sequence } from '../../../mol-model/sequence';
 import { MissingResidues } from '../../../mol-model/structure/model/properties/common';
 import { ColorNames } from '../../../mol-util/color/names';
+import { MarkerAction, applyMarkerAction, applyMarkerActionAtPosition } from '../../../mol-util/marker-action';
 
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly unitMap: Map<number, Unit>
@@ -28,13 +29,14 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     residueLabel(seqIdx: number) {
         return this.sequence.label.value(seqIdx)
     }
+
     residueColor(seqIdx: number) {
         return this.missing.has(this.modelNum, this.asymId, this.seqId(seqIdx))
             ? ColorNames.grey
             : ColorNames.black
     }
 
-    eachResidue(loci: Loci, apply: (set: OrderedSet) => boolean) {
+    mark(loci: Loci, action: MarkerAction): boolean {
         let changed = false
         const { structure } = this.data
         if (StructureElement.Loci.is(loci)) {
@@ -43,16 +45,17 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
 
             const { offset } = this.sequence
             for (const e of loci.elements) {
-                if (this.unitMap.has(e.unit.id)) {
-                    OrderedSet.forEach(e.indices, v => {
-                        if (apply(getSeqIndices(e.unit, e.unit.elements[v], offset))) changed = true
-                    })
+                if (!this.unitMap.has(e.unit.id)) continue;
+
+                if (Unit.isAtomic(e.unit)) {
+                    changed = applyMarkerAtomic(e, action, this.markerArray, offset) || changed;
+                } else {
+                    changed = applyMarkerCoarse(e, action, this.markerArray, offset) || changed;
                 }
             }
         } else if (Structure.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
-
-            if (apply(this.observed)) changed = true
+            if (applyMarkerAction(this.markerArray, this.observed, action)) changed = true
         }
         return changed
     }
@@ -109,22 +112,29 @@ function createResidueQuery(chainGroupId: number, operatorName: string, label_se
     });
 }
 
-function getSeqIndices(unit: Unit, element: ElementIndex, offset: number): Interval {
-    const { model } = unit
-    switch (unit.kind) {
-        case Unit.Kind.Atomic:
-            const residueIndex = model.atomicHierarchy.residueAtomSegments.index[element]
-            const seqId = model.atomicHierarchy.residues.label_seq_id.value(residueIndex)
-            return Interval.ofSingleton(seqId - 1 - offset)
-        case Unit.Kind.Spheres:
-            return Interval.ofRange(
-                model.coarseHierarchy.spheres.seq_id_begin.value(element) - 1 - offset,
-                model.coarseHierarchy.spheres.seq_id_end.value(element) - 1 - offset
-            )
-        case Unit.Kind.Gaussians:
-            return Interval.ofRange(
-                model.coarseHierarchy.gaussians.seq_id_begin.value(element) - 1 - offset,
-                model.coarseHierarchy.gaussians.seq_id_end.value(element) - 1 - offset
-            )
-    }
+function applyMarkerAtomic(e: StructureElement.Loci.Element, action: MarkerAction, markerArray: Uint8Array, offset: number) {
+    const { model, elements } = e.unit;
+    const { index } = model.atomicHierarchy.residueAtomSegments;
+    const { label_seq_id } = model.atomicHierarchy.residues;
+
+    let changed = false;
+    OrderedSet.forEachSegment(e.indices, i => index[elements[i]], rI => {
+        const seqId = label_seq_id.value(rI)
+        changed = applyMarkerActionAtPosition(markerArray, seqId - 1 - offset, action) || changed;
+    });
+    return changed;
+}
+
+function applyMarkerCoarse(e: StructureElement.Loci.Element, action: MarkerAction, markerArray: Uint8Array, offset: number) {
+    const { model, elements } = e.unit;
+    const begin = Unit.isSpheres(e.unit) ? model.coarseHierarchy.spheres.seq_id_begin : model.coarseHierarchy.gaussians.seq_id_begin;
+    const end = Unit.isSpheres(e.unit) ? model.coarseHierarchy.spheres.seq_id_end : model.coarseHierarchy.gaussians.seq_id_end;
+
+    let changed = false;
+    OrderedSet.forEach(e.indices, i => {
+        for (let s = begin.value(elements[i]) - 1 - offset, e = end.value(elements[i]) - 1 - offset; s <= e; s++) {
+            changed = applyMarkerActionAtPosition(markerArray, s, action) || changed;
+        }
+    });
+    return changed;
 }
