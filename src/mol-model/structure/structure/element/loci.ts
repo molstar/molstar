@@ -21,6 +21,7 @@ import { Location } from './location';
 import { ChainIndex } from '../../model/indexing';
 import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/principal-axes';
 import { NumberArray } from '../../../../mol-util/type-helpers';
+import StructureProperties from '../properties';
 
 /** Represents multiple structure element index locations */
 export interface Loci {
@@ -355,6 +356,59 @@ export namespace Loci {
 
         return Loci(loci.structure, elements);
     }
+
+    function entityModelKey(location: Location) {
+        return `${location.unit.model.id}|${StructureProperties.entity.id(location)}`
+    }
+
+    export function extendToWholeEntities(loci: Loci): Loci {
+        const elements: Loci['elements'][0][] = []
+        const l = Location.create()
+        const entities = new Set<string>()
+        const { units } = loci.structure
+
+        for (let i = 0, len = loci.elements.length; i < len; i++) {
+            const e = loci.elements[i]
+            l.unit = e.unit
+            l.element = e.unit.elements[0]
+            entities.add(entityModelKey(l))
+        }
+
+        for (let i = 0, il = units.length; i < il; ++i) {
+            const unit = units[i]
+            l.unit = unit
+            l.element = unit.elements[0]
+            if (entities.has(entityModelKey(l))) {
+                const indices = OrderedSet.ofBounds(0, unit.elements.length) as OrderedSet<UnitIndex>
+                elements[elements.length] = { unit, indices }
+            }
+        }
+
+        return Loci(loci.structure, elements)
+    }
+
+    export function extendToWholeModels(loci: Loci): Loci {
+        const elements: Loci['elements'][0][] = []
+        const models = new Set<string>()
+        const { units } = loci.structure
+
+        for (let i = 0, len = loci.elements.length; i < len; i++) {
+            const e = loci.elements[i]
+            models.add(e.unit.model.id)
+        }
+
+        for (let i = 0, il = units.length; i < il; ++i) {
+            const unit = units[i]
+            if (models.has(unit.model.id)) {
+                const indices = OrderedSet.ofBounds(0, unit.elements.length) as OrderedSet<UnitIndex>
+                elements[elements.length] = { unit, indices }
+            }
+        }
+
+        return Loci(loci.structure, elements)
+    }
+
+    //
 
     const boundaryHelper = new BoundaryHelper();
     const tempPosBoundary = Vec3.zero();
