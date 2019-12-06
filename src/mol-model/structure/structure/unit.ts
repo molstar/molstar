@@ -86,6 +86,14 @@ namespace Unit {
             if (a.hashCode !== b.hashCode) return false;
             return SortedArray.areEqual(a.elements, b.elements);
         }
+
+        export function getUnitSymmetryGroupsIndexMap(symmetryGroups: ReadonlyArray<Unit.SymmetryGroup>): IntMap<number> {
+            const unitSymmetryGroupsIndexMap = IntMap.Mutable<number>();
+            for (let i = 0, _i = symmetryGroups.length; i < _i; i++) {
+                unitSymmetryGroupsIndexMap.set(symmetryGroups[i].units[0].invariantId, i);
+            }
+            return unitSymmetryGroupsIndexMap
+        }
     }
 
     export function conformationId (unit: Unit) {

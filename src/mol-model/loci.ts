@@ -12,7 +12,7 @@ import { CentroidHelper } from '../mol-math/geometry/centroid-helper';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { OrderedSet } from '../mol-data/int';
 import { Structure } from './structure/structure';
-import { capitalize } from '../mol-util/string';
+import { stringToWords } from '../mol-util/string';
 import { PrincipalAxes } from '../mol-math/linear-algebra/matrix/principal-axes';
 
 /** A Loci that includes every loci */
@@ -194,6 +194,21 @@ namespace Loci {
                 ? StructureElement.Loci.extendToWholeChains(loci)
                 : loci
         },
+        'elementInstances': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToAllInstances(loci)
+                : loci
+        },
+        'residueInstances': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToAllInstances(StructureElement.Loci.extendToWholeResidues(loci, true))
+                : loci
+        },
+        'chainInstances': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToAllInstances(StructureElement.Loci.extendToWholeChains(loci))
+                : loci
+        },
         'entity': (loci: Loci) => {
             return StructureElement.Loci.is(loci)
                 ? StructureElement.Loci.extendToWholeEntities(loci)
@@ -211,7 +226,7 @@ namespace Loci {
         }
     }
     export type Granularity = keyof typeof Granularity
-    export const GranularityOptions = Object.keys(Granularity).map(n => [n, capitalize(n)]) as [Granularity, string][]
+    export const GranularityOptions = Object.keys(Granularity).map(n => [n, stringToWords(n)]) as [Granularity, string][]
 
     export function applyGranularity(loci: Loci, granularity: Granularity) {
         return Granularity[granularity](loci)
