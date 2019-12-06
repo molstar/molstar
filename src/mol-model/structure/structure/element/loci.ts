@@ -410,6 +410,31 @@ export namespace Loci {
         return Loci(loci.structure, elements)
     }
 
+    export function extendToAllInstances(loci: Loci): Loci {
+        const elements: Loci['elements'][0][] = [];
+        const byInvariantId = new Map<number, OrderedSet<UnitIndex>>()
+        const { unitSymmetryGroups, unitSymmetryGroupsIndexMap } = loci.structure
+
+        for (let i = 0, len = loci.elements.length; i < len; i++) {
+            const e = loci.elements[i]
+            const { invariantId } = e.unit
+            if (byInvariantId.has(invariantId)) {
+                byInvariantId.set(invariantId, OrderedSet.union(e.indices, byInvariantId.get(invariantId)!))
+            } else {
+                byInvariantId.set(invariantId, e.indices)
+            }
+        }
+
+        byInvariantId.forEach((indices, invariantId) => {
+            const { units } = unitSymmetryGroups[unitSymmetryGroupsIndexMap.get(invariantId)]
+            for (let i = 0, il = units.length; i < il; ++i) {
+                elements[elements.length] = { unit: units[i], indices }
+            }
+        })
+
+        return Loci(loci.structure, elements);
+    }
+
     //
 
     const boundaryHelper = new BoundaryHelper();

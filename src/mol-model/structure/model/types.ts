@@ -200,9 +200,12 @@ export const RNAComponentTypeNames = new Set([
 
 /** Chemical component type names for saccharide */
 export const SaccharideComponentTypeNames = new Set([
+    'D-SACCHARIDE, BETA LINKING', 'L-SACCHARIDE, BETA LINKING',
+    'D-SACCHARIDE, ALPHA LINKING', 'L-SACCHARIDE, ALPHA LINKING',
+    'L-SACCHARIDE', 'D-SACCHARIDE', 'SACCHARIDE',
+    // the following four are marked to be deprecated in the mmCIF dictionary
     'D-SACCHARIDE 1,4 AND 1,4 LINKING', 'L-SACCHARIDE 1,4 AND 1,4 LINKING',
-    'D-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE',
-    'D-SACCHARIDE', 'SACCHARIDE',
+    'D-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE 1,4 AND 1,6 LINKING',
 ])
 
 /** Chemical component type names for other */

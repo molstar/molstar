@@ -43,6 +43,7 @@ class Structure {
         links?: InterUnitBonds,
         crossLinkRestraints?: PairRestraints<CrossLinkRestraint>,
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
+        unitSymmetryGroupsIndexMap?: IntMap<number>,
         carbohydrates?: Carbohydrates,
         models?: ReadonlyArray<Model>,
         model?: Model,
@@ -215,6 +216,13 @@ class Structure {
         if (this._props.unitSymmetryGroups) return this._props.unitSymmetryGroups;
         this._props.unitSymmetryGroups = StructureSymmetry.computeTransformGroups(this);
         return this._props.unitSymmetryGroups;
+    }
+
+    /** Maps unit.invariantId to index of SymmetryGroup in unitSymmetryGroups array */
+    get unitSymmetryGroupsIndexMap(): IntMap<number> {
+        if (this._props.unitSymmetryGroupsIndexMap) return this._props.unitSymmetryGroupsIndexMap;
+        this._props.unitSymmetryGroupsIndexMap = Unit.SymmetryGroup.getUnitSymmetryGroupsIndexMap(this.unitSymmetryGroups);
+        return this._props.unitSymmetryGroupsIndexMap;
     }
 
     get carbohydrates(): Carbohydrates {
