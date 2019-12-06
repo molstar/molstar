@@ -180,7 +180,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         renderObjects,
         updated,
         createOrUpdate,
-        getLoci(pickingId: PickingId) {
+        getLoci(pickingId?: PickingId) {
+            if (pickingId === undefined) return Shape.Loci(_shape)
             const { objectId, groupId, instanceId } = pickingId
             if (_renderObject && _renderObject.id === objectId) {
                 return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId) }], instanceId)

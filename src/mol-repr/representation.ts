@@ -134,7 +134,8 @@ interface Representation<D, P extends PD.Params = {}, S extends Representation.S
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
     setState: (state: Partial<S>) => void
     setTheme: (theme: Theme) => void
-    getLoci: (pickingId: PickingId) => ModelLoci
+    /** If no pickingId is given, returns a Loci for the whole representation */
+    getLoci: (pickingId?: PickingId) => ModelLoci
     mark: (loci: ModelLoci, action: MarkerAction) => boolean
     destroy: () => void
 }
@@ -262,7 +263,10 @@ namespace Representation {
             },
             get state() { return currentState },
             get theme() { return currentTheme },
-            getLoci: (pickingId: PickingId) => {
+            getLoci: (pickingId?: PickingId) => {
+                if (pickingId === undefined) {
+                    return reprList.length > 0 ? reprList[0].getLoci() : EmptyLoci
+                }
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     const loci = reprList[i].getLoci(pickingId)
                     if (!isEmptyLoci(loci)) return loci

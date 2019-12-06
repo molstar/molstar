@@ -241,7 +241,8 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         });
     }
 
-    function getLoci(pickingId: PickingId) {
+    function getLoci(pickingId?: PickingId) {
+        if (pickingId === undefined) return EmptyLoci // TODO add Volume.Loci when available
         return visual ? visual.getLoci(pickingId) : EmptyLoci
     }
 

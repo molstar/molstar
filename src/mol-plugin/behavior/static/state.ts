@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginCommands } from '../../command';
@@ -13,7 +14,7 @@ import { getFormattedTime } from '../../../mol-util/date';
 import { readFromFile } from '../../../mol-util/data-source';
 import { download } from '../../../mol-util/download';
 import { Structure } from '../../../mol-model/structure';
-import { EmptyLoci, EveryLoci } from '../../../mol-model/loci';
+import { EmptyLoci } from '../../../mol-model/loci';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -102,17 +103,17 @@ function setVisibilityVisitor(t: StateTransform, tree: StateTree, ctx: { state: 
 }
 
 export function Highlight(ctx: PluginContext) {
-    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref, passRepresentation }) => {
+    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
         const cell = state.select(ref)[0];
         if (!cell) return;
         if (SO.Molecule.Structure.is(cell.obj)) {
             ctx.interactivity.lociHighlights.highlightOnly({ loci: Structure.Loci(cell.obj.data) }, false);
         } else if (cell && SO.isRepresentation3D(cell.obj)) {
-            const loci = SO.Molecule.Structure.is(cell.obj.data.source) ? Structure.Loci(cell.obj.data.source.data) : EveryLoci
-            ctx.interactivity.lociHighlights.highlightOnly({ loci, repr: cell.obj.data.repr, passRepresentation }, false);
+            const { repr } = cell.obj.data
+            ctx.interactivity.lociHighlights.highlightOnly({ loci: repr.getLoci(), repr }, false);
         }
 
-        // TODO: highlight volumes and shapes?
+        // TODO: highlight volumes?
         // TODO: select structures of subtree?
     });
 }

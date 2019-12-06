@@ -51,7 +51,8 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         });
     }
 
-    function getLoci(pickingId: PickingId) {
+    function getLoci(pickingId?: PickingId) {
+        if (pickingId === undefined) return Structure.Loci(_structure)
         return visual ? visual.getLoci(pickingId) : EmptyLoci
     }
 

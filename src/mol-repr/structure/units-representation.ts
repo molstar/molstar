@@ -154,7 +154,8 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         });
     }
 
-    function getLoci(pickingId: PickingId) {
+    function getLoci(pickingId?: PickingId) {
+        if (pickingId === undefined) return Structure.Loci(_structure)
         let loci: Loci = EmptyLoci
         visuals.forEach(({ visual }) => {
             const _loci = visual.getLoci(pickingId)
