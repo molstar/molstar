@@ -19,7 +19,6 @@ import { StateTransform } from '../mol-state';
 import { UpdateTransformControl } from './state/update-transform';
 import { SequenceView } from './sequence';
 import { Toasts } from './toast';
-import { ImageControls } from './image';
 import { SectionHeader } from './controls/common';
 import { LeftPanelControls } from './left-panel';
 
@@ -128,7 +127,6 @@ export class ControlsWrapper extends PluginUIComponent {
             {/* <AnimationControlsWrapper /> */}
             {/* <CameraSnapshots /> */}
             <StructureToolsWrapper />
-            <ImageControls />
         </div>;
     }
 }

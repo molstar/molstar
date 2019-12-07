@@ -12,9 +12,11 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginUIComponent } from './base';
 import { ControlGroup, IconButton } from './controls/common';
 import { SimpleSettingsControl } from './viewport/simple-settings';
+import { DownloadScreenshotControls } from './viewport/screenshot';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
+    isScreenshotExpanded: boolean,
     isHelpExpanded: boolean
 }
 
@@ -22,24 +24,28 @@ interface ViewportControlsProps {
 }
 
 export class ViewportControls extends PluginUIComponent<ViewportControlsProps, ViewportControlsState> {
-    state = {
+    private allCollapsedState: ViewportControlsState = {
         isSettingsExpanded: false,
+        isScreenshotExpanded: false,
         isHelpExpanded: false
     };
+
+    state = { ...this.allCollapsedState } as ViewportControlsState;
 
     resetCamera = () => {
         PluginCommands.Camera.Reset.dispatch(this.plugin, {});
     }
 
-    toggleSettingsExpanded = (e?: React.MouseEvent<HTMLButtonElement>) => {
-        this.setState({ isSettingsExpanded: !this.state.isSettingsExpanded, isHelpExpanded: false });
-        e?.currentTarget.blur();
+    private toggle(panel: keyof ViewportControlsState) {
+        return (e?: React.MouseEvent<HTMLButtonElement>) => {
+            this.setState({ ...this.allCollapsedState, [panel]: !this.state[panel] });
+            e?.currentTarget.blur();
+        };
     }
 
-    toggleHelpExpanded = (e?: React.MouseEvent<HTMLButtonElement>) => {
-        this.setState({ isSettingsExpanded: false, isHelpExpanded: !this.state.isHelpExpanded });
-        e?.currentTarget.blur();
-    }
+    toggleSettingsExpanded = this.toggle('isSettingsExpanded');
+    toggleHelpExpanded = this.toggle('isHelpExpanded');
+    toggleScreenshotExpanded = this.toggle('isScreenshotExpanded');
 
     toggleControls = () => {
         PluginCommands.Layout.Update.dispatch(this.plugin, { state: { showControls: !this.plugin.layout.state.showControls } });
@@ -89,7 +95,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon('screenshot', this.screenshot, 'Download Screenshot')}
+                    {this.icon('screenshot', this.toggleScreenshotExpanded, 'Screenshot', this.state.isScreenshotExpanded)}
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
@@ -107,19 +113,15 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     <HelpContent />
                 </ControlGroup>
             </div>} */}
+            {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
+                <ControlGroup header='Screenshot' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded} topRightIcon='off'>
+                    <DownloadScreenshotControls close={this.toggleScreenshotExpanded} />
+                </ControlGroup>
+            </div>}
             {this.state.isSettingsExpanded && <div className='msp-viewport-controls-panel'>
                 <ControlGroup header='Basic Settings' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleSettingsExpanded} topRightIcon='off'>
                     <SimpleSettingsControl />
                 </ControlGroup>
-                {/* <ControlGroup header='Layout' initialExpanded={true}>
-                    <ParameterControls params={PluginLayoutStateParams} values={this.plugin.layout.state} onChange={this.setLayout} />
-                </ControlGroup>
-                <ControlGroup header='Interactivity' initialExpanded={true}>
-                    <ParameterControls params={Interactivity.Params} values={this.plugin.interactivity.props} onChange={this.setInteractivityProps} />
-                </ControlGroup>
-                {this.plugin.canvas3d && <ControlGroup header='Viewport' initialExpanded={true}>
-                    <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
-                </ControlGroup>} */}
             </div>}
         </div>
     }
