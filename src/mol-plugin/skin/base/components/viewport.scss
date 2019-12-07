@@ -111,7 +111,7 @@
     padding: $info-vertical-padding $control-spacing;
     background: $default-background; //$highlight-info-background;
 
-    min-height: $row-height;
+    // min-height: $row-height;
     text-align: right;
 
     @include non-selectable;
