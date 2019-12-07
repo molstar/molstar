@@ -20,9 +20,7 @@ import { BuiltInSizeThemeName, SizeTheme } from '../../../mol-theme/size';
 import { createTheme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
-import { Text } from '../../../mol-geo/geometry/text/text';
 import { ColorNames } from '../../../mol-util/color/names';
-import { getLabelRepresentation } from '../../../mol-plugin/util/structure-labels';
 import { ShapeRepresentation } from '../../../mol-repr/shape/representation';
 import { StructureUnitTransforms } from '../../../mol-model/structure/structure/util/unit-transforms';
 import { unwindStructureAssembly, explodeStructure } from '../animation/helpers';
@@ -41,7 +39,6 @@ import { DihedralParams, DihedralRepresentation } from '../../../mol-repr/shape/
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
-export { StructureLabels3D}
 export { ExplodeStructureRepresentation3D }
 export { UnwindStructureAssemblyRepresentation3D }
 export { OverpaintStructureRepresentation3DFromScript }
@@ -238,52 +235,6 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             colorTheme: { name: 'uniform', params: { value } },
             sizeTheme: t <= 0.5 ? src.sizeTheme : tar.sizeTheme,
         };
-    }
-});
-
-type StructureLabels3D = typeof StructureLabels3D
-const StructureLabels3D = PluginStateTransform.BuiltIn({
-    name: 'structure-labels-3d',
-    display: '3D Labels',
-    from: SO.Molecule.Structure,
-    to: SO.Molecule.Structure.Representation3D,
-    params: {
-        // TODO: other targets
-        target: PD.MappedStatic('residues', {
-            'elements': PD.Group({ }),
-            'residues': PD.Group({ }),
-            'static-text': PD.Group({
-                value: PD.Text(''),
-                size: PD.Optional(PD.Numeric(1, { min: 1, max: 1000, step: 0.1 })),
-                // TODO: this changes the position while rotated etc... fix
-                position: PD.Optional(Text.Params.attachment)
-            }, { isFlat: true })
-        }),
-        options: PD.Group({
-            ...Text.Params,
-
-            background: PD.Boolean(true),
-            backgroundMargin: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
-            backgroundColor: PD.Color(ColorNames.snow),
-            backgroundOpacity: PD.Numeric(0.9, { min: 0, max: 1, step: 0.01 }),
-        })
-    }
-})({
-    canAutoUpdate({ oldParams, newParams }) {
-        return (oldParams.target.name === 'static-text' && newParams.target.name === 'static-text' && oldParams.target.params.value === newParams.target.params.value)
-            || newParams.target.name === oldParams.target.name;
-    },
-    apply({ a, params }) {
-        return Task.create('Structure Labels', async ctx => {
-            const repr = await getLabelRepresentation(ctx, a.data, params);
-            return new SO.Molecule.Structure.Representation3D({ repr, source: a }, { label: `Labels`, description: params.target.name });
-        });
-    },
-    update({ a, b, newParams }) {
-        return Task.create('Structure Labels', async ctx => {
-            await getLabelRepresentation(ctx, a.data, newParams, b.data.repr as ShapeRepresentation<any, any, any>);
-            return StateTransformer.UpdateResult.Updated;
-        });
     }
 });
 
