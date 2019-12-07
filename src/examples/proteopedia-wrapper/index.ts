@@ -32,7 +32,7 @@ import { DefaultCanvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3
 // import { Vec3 } from 'mol-math/linear-algebra';
 // import { ParamDefinition } from 'mol-util/param-definition';
 // import { Text } from 'mol-geo/geometry/text/text';
-require('../../mol-plugin/skin/light.scss')
+require('../../mol-plugin-ui/skin/light.scss')
 
 class MolStarProteopediaWrapper {
     static VERSION_MAJOR = 3;

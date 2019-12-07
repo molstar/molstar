@@ -13,7 +13,7 @@ import { StructureRepresentation3DHelpers } from '../../../mol-plugin/state/tran
 import { PluginStateObject as PSO } from '../../../mol-plugin/state/objects';
 import { StateBuilder } from '../../../mol-state';
 import { Canvas3DProps } from '../../../mol-canvas3d/canvas3d';
-require('mol-plugin/skin/light.scss')
+require('mol-plugin-ui/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
 type LoadParams = { url: string, format?: SupportedFormats, assemblyId?: string }

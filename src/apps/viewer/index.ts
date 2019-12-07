@@ -13,7 +13,7 @@ import { PluginCommands } from '../../mol-plugin/command';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { LoadCellPackModel } from './extensions/cellpack/model';
 import { StructureFromCellpack } from './extensions/cellpack/state';
-require('mol-plugin/skin/light.scss')
+require('mol-plugin-ui/skin/light.scss')
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');

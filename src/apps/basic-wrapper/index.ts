@@ -21,7 +21,7 @@ import { CustomToastMessage } from './controls';
 import { EmptyLoci } from '../../mol-model/loci';
 import { StructureSelection } from '../../mol-model/structure';
 import { Script } from '../../mol-script/script';
-require('mol-plugin/skin/light.scss')
+require('mol-plugin-ui/skin/light.scss')
 
 type SupportedFormats = 'cif' | 'pdb'
 type LoadParams = { url: string, format?: SupportedFormats, assemblyId?: string }
