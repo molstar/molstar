@@ -39,6 +39,7 @@ import assign_material_color from './shader/chunks/assign-material-color.glsl'
 import assign_normal from './shader/chunks/assign-normal.glsl'
 import assign_position from './shader/chunks/assign-position.glsl'
 import assign_size from './shader/chunks/assign-size.glsl'
+import check_picking_alpha from './shader/chunks/check-picking-alpha.glsl'
 import color_frag_params from './shader/chunks/color-frag-params.glsl'
 import color_vert_params from './shader/chunks/color-vert-params.glsl'
 import common_frag_params from './shader/chunks/common-frag-params.glsl'
@@ -63,6 +64,7 @@ const ShaderChunks: { [k: string]: string } = {
     assign_normal,
     assign_position,
     assign_size,
+    check_picking_alpha,
     color_frag_params,
     color_vert_params,
     common_frag_params,

@@ -18,8 +18,7 @@ void main() {
     #include assign_material_color
 
     #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
-        if (uAlpha < uPickingAlphaThreshold)
-            discard; // ignore so the element below can be picked
+        #include check_picking_alpha
         gl_FragColor = material;
     #elif defined(dColorType_depth)
         gl_FragColor = material;
