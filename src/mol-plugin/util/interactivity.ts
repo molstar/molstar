@@ -100,33 +100,53 @@ namespace Interactivity {
     //
 
     export class LociHighlightManager extends LociMarkManager {
-        private prev: Loci = { loci: EmptyLoci, repr: void 0 };
+        private prev: Loci[] = [];
+
+        private isHighlighted(loci: Loci) {
+            for (const p of this.prev) {
+                if (Loci.areEqual(p, loci)) return true
+            }
+            return false
+        }
+
+        private addHighlight(loci: Loci) {
+            this.mark(loci, MarkerAction.Highlight);
+            this.prev.push(loci)
+        }
+
+        clearHighlights() {
+            for (const p of this.prev) {
+                this.mark(p, MarkerAction.RemoveHighlight);
+            }
+            this.prev.length = 0
+        }
+
+        highlight(current: Loci, applyGranularity = true) {
+            const normalized = this.normalizedLoci(current, applyGranularity)
+            if (!this.isHighlighted(normalized)) {
+                this.addHighlight(normalized)
+            }
+        }
 
         highlightOnly(current: Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
-            if (StructureElement.Loci.is(normalized.loci)) {
-                const loci = normalized.loci;
-                this.mark(this.prev, MarkerAction.RemoveHighlight);
-                const toHighlight = { loci, repr: normalized.repr };
-                this.mark(toHighlight, MarkerAction.Highlight);
-                this.prev = toHighlight;
-            } else {
-                if (!Loci.areEqual(this.prev, normalized)) {
-                    this.mark(this.prev, MarkerAction.RemoveHighlight);
-                    this.mark(normalized, MarkerAction.Highlight);
-                    this.prev = normalized;
-                }
+            if (!this.isHighlighted(normalized)) {
+                this.clearHighlights()
+                this.addHighlight(normalized)
             }
         }
 
         highlightOnlyExtend(current: Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity)
             if (StructureElement.Loci.is(normalized.loci)) {
-                const loci = this.sel.tryGetRange(normalized.loci) || normalized.loci;
-                this.mark(this.prev, MarkerAction.RemoveHighlight);
-                const toHighlight = { loci, repr: normalized.repr };
-                this.mark(toHighlight, MarkerAction.Highlight);
-                this.prev = toHighlight;
+                const loci = {
+                    loci: this.sel.tryGetRange(normalized.loci) || normalized.loci,
+                    repr: normalized.repr
+                }
+                if (!this.isHighlighted(loci)) {
+                    this.clearHighlights()
+                    this.addHighlight(loci)
+                }
             }
         }
     }

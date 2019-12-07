@@ -14,7 +14,6 @@ import { getFormattedTime } from '../../../mol-util/date';
 import { readFromFile } from '../../../mol-util/data-source';
 import { download } from '../../../mol-util/download';
 import { Structure } from '../../../mol-model/structure';
-import { EmptyLoci } from '../../../mol-model/loci';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -111,6 +110,11 @@ export function Highlight(ctx: PluginContext) {
         } else if (cell && SO.isRepresentation3D(cell.obj)) {
             const { repr } = cell.obj.data
             ctx.interactivity.lociHighlights.highlightOnly({ loci: repr.getLoci(), repr }, false);
+        } else if (SO.Molecule.Structure.Selections.is(cell.obj)) {
+            ctx.interactivity.lociHighlights.clearHighlights();
+            for (const entry of cell.obj.data) {
+                ctx.interactivity.lociHighlights.highlight({ loci: entry.loci }, false);
+            }
         }
 
         // TODO: highlight volumes?
@@ -120,7 +124,7 @@ export function Highlight(ctx: PluginContext) {
 
 export function ClearHighlight(ctx: PluginContext) {
     PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
-        ctx.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci }, false);
+        ctx.interactivity.lociHighlights.clearHighlights();
     });
 }
 
