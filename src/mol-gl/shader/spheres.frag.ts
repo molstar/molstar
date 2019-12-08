@@ -123,13 +123,13 @@ void main(void){
     #elif defined(dColorType_depth)
         gl_FragColor = material;
     #else
+        #ifdef dIgnoreLight
+            gl_FragColor = material;
+        #else
         vec3 normal = -cameraNormal;
         vec3 vViewPosition = cameraPos;
         #include apply_light_color
-
-        if (interior) {
-            gl_FragColor.rgb = material.rgb * (1.0 - uInteriorDarkening);
-        }
+        #endif
 
         #include apply_marker_color
         #include apply_fog

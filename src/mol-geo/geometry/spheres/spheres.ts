@@ -58,6 +58,7 @@ export namespace Spheres {
         ...BaseGeometry.Params,
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
         doubleSided: PD.Boolean(false),
+        ignoreLight: PD.Boolean(false),
     }
     export type Params = typeof Params
 
@@ -111,6 +112,7 @@ export namespace Spheres {
             ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor),
             dDoubleSided: ValueCell.create(props.doubleSided),
+            dIgnoreLight: ValueCell.create(props.ignoreLight),
         }
     }
 
@@ -124,6 +126,7 @@ export namespace Spheres {
         BaseGeometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor)
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
+        ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight)
     }
 
     function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {

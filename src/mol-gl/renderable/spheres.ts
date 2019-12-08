@@ -20,6 +20,7 @@ export const SpheresSchema = {
 
     padding: ValueSpec('number'),
     dDoubleSided: DefineSpec('boolean'),
+    dIgnoreLight: DefineSpec('boolean'),
 }
 export type SpheresSchema = typeof SpheresSchema
 export type SpheresValues = Values<SpheresSchema>
