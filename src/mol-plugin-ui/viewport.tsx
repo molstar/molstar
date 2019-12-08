@@ -16,8 +16,7 @@ import { DownloadScreenshotControls } from './viewport/screenshot';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
-    isScreenshotExpanded: boolean,
-    isHelpExpanded: boolean
+    isScreenshotExpanded: boolean
 }
 
 interface ViewportControlsProps {
@@ -26,8 +25,7 @@ interface ViewportControlsProps {
 export class ViewportControls extends PluginUIComponent<ViewportControlsProps, ViewportControlsState> {
     private allCollapsedState: ViewportControlsState = {
         isSettingsExpanded: false,
-        isScreenshotExpanded: false,
-        isHelpExpanded: false
+        isScreenshotExpanded: false
     };
 
     state = { ...this.allCollapsedState } as ViewportControlsState;
@@ -44,7 +42,6 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     }
 
     toggleSettingsExpanded = this.toggle('isSettingsExpanded');
-    toggleHelpExpanded = this.toggle('isHelpExpanded');
     toggleScreenshotExpanded = this.toggle('isScreenshotExpanded');
 
     toggleControls = () => {
@@ -103,16 +100,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     {this.icon('expand-layout', this.toggleExpanded, 'Toggle Expanded', this.plugin.layout.state.isExpanded)}
                     {this.icon('settings', this.toggleSettingsExpanded, 'Settings', this.state.isSettingsExpanded)}
                 </div>
-                {/* <div>
-                    <div className='msp-semi-transparent-background' />
-                    {this.icon('help-circle', this.toggleHelpExpanded, 'Help', this.state.isHelpExpanded)}
-                </div> */}
             </div>
-            {/* {this.state.isHelpExpanded && <div className='msp-viewport-controls-panel'>
-                <ControlGroup header='Help' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleHelpExpanded} topRightIcon='off'>
-                    <HelpContent />
-                </ControlGroup>
-            </div>} */}
             {this.state.isScreenshotExpanded && <div className='msp-viewport-controls-panel'>
                 <ControlGroup header='Screenshot' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleScreenshotExpanded} topRightIcon='off'>
                     <DownloadScreenshotControls close={this.toggleScreenshotExpanded} />
