@@ -50,6 +50,7 @@ export interface QualityProps {
     radialSegments: number
     linearSegments: number
     resolution: number
+    doubleSided: boolean
 }
 
 export function getStructureQuality(structure: Structure): VisualQuality {
@@ -76,6 +77,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let radialSegments = defaults(props.radialSegments, 12)
     let linearSegments = defaults(props.linearSegments, 8)
     let resolution = defaults(props.resolution, 2)
+    let doubleSided = defaults(props.doubleSided, true)
 
     if (quality === 'auto' && data instanceof Structure) {
         quality = getStructureQuality(data.root)
@@ -87,42 +89,49 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             radialSegments = 36
             linearSegments = 18
             resolution = 0.1
+            doubleSided = true
             break
         case 'higher':
             detail = 3
             radialSegments = 28
             linearSegments = 14
             resolution = 0.3
+            doubleSided = true
             break
         case 'high':
             detail = 2
             radialSegments = 20
             linearSegments = 10
             resolution = 0.5
+            doubleSided = true
             break
         case 'medium':
             detail = 1
             radialSegments = 12
             linearSegments = 8
             resolution = 1
+            doubleSided = true
             break
         case 'low':
             detail = 0
             radialSegments = 8
             linearSegments = 3
             resolution = 2
+            doubleSided = false
             break
         case 'lower':
             detail = 0
             radialSegments = 4
             linearSegments = 2
             resolution = 4
+            doubleSided = false
             break
         case 'lowest':
             detail = 0
             radialSegments = 2
             linearSegments = 1
             resolution = 8
+            doubleSided = false
             break
         case 'custom':
             // use defaults or given props as set above
@@ -133,6 +142,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
         detail,
         radialSegments,
         linearSegments,
-        resolution
+        resolution,
+        doubleSided
     }
 }
