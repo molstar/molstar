@@ -25,4 +25,7 @@ uniform int uPickable;
 uniform int uTransparentBackground;
 
 uniform float uInteriorDarkening;
+uniform int uInteriorColorFlag;
+uniform vec3 uInteriorColor;
+bool interior;
 `

@@ -23,8 +23,6 @@ varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
-bool flag2 = false;
-bool interior = false;
 vec3 cameraPos;
 vec3 cameraNormal;
 
@@ -60,21 +58,13 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
 
     cameraPos = rayDirection * negT + rayOrigin;
 
-    #ifdef NEAR_CLIP
-        if (calcDepth(cameraPos) <= 0.0){
-            cameraPos = rayDirection * posT + rayOrigin;
-            interior = true;
-        } else if(calcClip(cameraPos) > 0.0) {
-            cameraPos = rayDirection * posT + rayOrigin;
-            interior = true;
-            flag2 = true;
-        }
-    #else
-        if (calcDepth(cameraPos) <= 0.0) {
-            cameraPos = rayDirection * posT + rayOrigin;
-            interior = true;
-        }
-    #endif
+    
+    if (calcDepth(cameraPos) <= 0.0) {
+        cameraPos = rayDirection * posT + rayOrigin;
+        interior = true;
+    } else {
+        interior = false;
+    }
 
     cameraNormal = normalize(cameraPos - cameraSpherePos);
     cameraNormal *= float(!interior) * 2.0 - 1.0;
@@ -84,29 +74,16 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
 
 void main(void){
     bool flag = Impostor(cameraPos, cameraNormal);
-
-    #ifdef NEAR_CLIP
-        if (calcClip(cameraPos) > 0.0)
+    #ifndef dDoubleSided
+        if (interior)
             discard;
     #endif
 
     // FIXME not compatible with custom clipping plane
     // Set the depth based on the new cameraPos.
     gl_FragDepthEXT = calcDepth(cameraPos);
-    if (!flag) {
-        // clamp to near clipping plane and add a tiny value to
-        // make spheres with a greater radius occlude smaller ones
-        #ifdef NEAR_CLIP
-            if (flag2) {
-                gl_FragDepthEXT = max(0.0, calcDepth(vec3(-(uClipNear - 0.5))) + (0.0000001 / vRadius));
-            } else if (gl_FragDepthEXT >= 0.0) {
-                gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
-            }
-        #else
-            if (gl_FragDepthEXT >= 0.0) {
-                gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
-            }
-        #endif
+    if (!flag && gl_FragDepthEXT >= 0.0) {
+        gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
     }
 
     // bugfix (mac only?)
@@ -126,11 +103,12 @@ void main(void){
         #ifdef dIgnoreLight
             gl_FragColor = material;
         #else
-        vec3 normal = -cameraNormal;
-        vec3 vViewPosition = cameraPos;
-        #include apply_light_color
+            vec3 normal = -cameraNormal;
+            vec3 vViewPosition = cameraPos;
+            #include apply_light_color
         #endif
 
+        #include apply_interior_color
         #include apply_marker_color
         #include apply_fog
     #endif

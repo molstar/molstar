@@ -49,6 +49,8 @@ export const RendererParams = {
     transparentBackground: PD.Boolean(false, { description: 'Background opacity of the 3D canvas' }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
     interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
+    interiorColorFlag: PD.Boolean(true),
+    interiorColor: PD.Color(Color.fromNormalizedRgb(0.3, 0.3, 0.3)),
 
     lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
     ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -66,6 +68,7 @@ namespace Renderer {
 
         const viewport = Viewport()
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor)
+        const interiorColor = Color.toVec3Normalized(Vec3(), p.interiorColor)
 
         const view = Mat4()
         const invView = Mat4()
@@ -112,6 +115,8 @@ namespace Renderer {
             uTransparentBackground: ValueCell.create(p.transparentBackground ? 1 : 0),
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
             uInteriorDarkening: ValueCell.create(p.interiorDarkening),
+            uInteriorColorFlag: ValueCell.create(p.interiorColorFlag ? 1 : 0),
+            uInteriorColor: ValueCell.create(interiorColor),
         }
         const globalUniformList = Object.entries(globalUniforms)
 
@@ -242,6 +247,15 @@ namespace Renderer {
                 if (props.interiorDarkening !== undefined && props.interiorDarkening !== p.interiorDarkening) {
                     p.interiorDarkening = props.interiorDarkening
                     ValueCell.update(globalUniforms.uInteriorDarkening, p.interiorDarkening)
+                }
+                if (props.interiorColorFlag !== undefined && props.interiorColorFlag !== p.interiorColorFlag) {
+                    p.interiorColorFlag = props.interiorColorFlag
+                    ValueCell.update(globalUniforms.uInteriorColorFlag, p.interiorColorFlag ? 1 : 0)
+                }
+                if (props.interiorColor !== undefined && props.interiorColor !== p.interiorColor) {
+                    p.interiorColor = props.interiorColor
+                    Color.toVec3Normalized(interiorColor, p.interiorColor)
+                    ValueCell.update(globalUniforms.uInteriorColor, Vec3.copy(globalUniforms.uInteriorColor.ref.value, interiorColor))
                 }
                 if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {
                     p.backgroundColor = props.backgroundColor

@@ -15,6 +15,7 @@ precision highp int;
 #include normal_frag_params
 
 void main() {
+    interior = !gl_FrontFacing; // TODO take dFlipSided into account
     #include assign_material_color
 
     #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
@@ -29,6 +30,8 @@ void main() {
             #include assign_normal
             #include apply_light_color
         #endif
+
+        #include apply_interior_color
         #include apply_marker_color
         #include apply_fog
     #endif

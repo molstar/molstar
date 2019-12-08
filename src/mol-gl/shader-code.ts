@@ -30,6 +30,7 @@ export interface ShaderCode {
 }
 
 import apply_fog from './shader/chunks/apply-fog.glsl'
+import apply_interior_color from './shader/chunks/apply-interior-color.glsl'
 import apply_light_color from './shader/chunks/apply-light-color.glsl'
 import apply_marker_color from './shader/chunks/apply-marker-color.glsl'
 import assign_color_varying from './shader/chunks/assign-color-varying.glsl'
@@ -55,6 +56,7 @@ import texture3d_from_2d_nearest from './shader/chunks/texture3d-from-2d-nearest
 
 const ShaderChunks: { [k: string]: string } = {
     apply_fog,
+    apply_interior_color,
     apply_light_color,
     apply_marker_color,
     assign_color_varying,
