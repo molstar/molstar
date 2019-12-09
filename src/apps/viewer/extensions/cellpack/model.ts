@@ -279,6 +279,15 @@ export function createStructureFromCellPack(packing: CellPacking, baseUrl: strin
     })
 }
 
+const Representations = {
+    'spacefill': 'Spacefill',
+    'gaussian-surface': 'Gaussian Surface',
+    'point': 'Point',
+    'ellipsoid': 'Ellipsoid'
+}
+type RepresentationName = keyof typeof Representations
+const RepresentationOptions = Object.keys(Representations).map(r => [r, Representations[r as RepresentationName]]) as [RepresentationName, string][]
+
 export const LoadCellPackModel = StateAction.build({
     display: { name: 'Load CellPack Model' },
     params: {
@@ -293,11 +302,7 @@ export const LoadCellPackModel = StateAction.build({
         baseUrl: PD.Text(DefaultCellPackBaseUrl),
         preset: PD.Group({
             traceOnly: PD.Boolean(false),
-            representation: PD.Select('spacefill', [
-                ['spacefill', 'Spacefill'],
-                ['gaussian-surface', 'Gaussian Surface'],
-                ['point', 'Point'],
-            ] as ['spacefill' | 'gaussian-surface' | 'point', string][])
+            representation: PD.Select('spacefill', RepresentationOptions)
         }, { isExpanded: true })
     },
     from: PSO.Root
@@ -425,7 +430,7 @@ export const LoadCellPackModel = StateAction.build({
     console.timeEnd('cellpack')
 }));
 
-function getReprParams(ctx: PluginContext, params: { representation: 'spacefill' | 'gaussian-surface' | 'point', traceOnly: boolean }) {
+function getReprParams(ctx: PluginContext, params: { representation: RepresentationName, traceOnly: boolean }) {
     const { representation, traceOnly } = params
     switch (representation) {
         case 'spacefill':
@@ -451,6 +456,11 @@ function getReprParams(ctx: PluginContext, params: { representation: 'spacefill'
             return [
                 ctx.structureRepresentation.registry.get('point'),
                 () => ({ ignoreHydrogens: true })
+            ] as [any, any]
+        case 'ellipsoid':
+            return [
+                ctx.structureRepresentation.registry.get('orientation'),
+                () => ({})
             ] as [any, any]
     }
 }
