@@ -9,8 +9,6 @@ import { ValueCell } from '../../mol-util';
 import { BaseValues } from '../../mol-gl/renderable/schema';
 import { LocationIterator } from '../util/location-iterator';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
-import { Color } from '../../mol-util/color';
-import { Vec3 } from '../../mol-math/linear-algebra';
 import { TransformData, createIdentityTransform } from './transform-data';
 import { Theme } from '../../mol-theme/theme';
 import { ColorNames } from '../../mol-util/color/names';
@@ -38,10 +36,6 @@ export const VisualQualityOptions = VisualQualityNames.map(n => [n, n] as [Visua
 export namespace BaseGeometry {
     export const Params = {
         alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
-        useFog: PD.Boolean(true),
-        highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
-        selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
-
         quality: PD.Select<VisualQuality>('auto', VisualQualityOptions),
     }
     export type Params = typeof Params
@@ -62,24 +56,13 @@ export namespace BaseGeometry {
         return {
             alpha: ValueCell.create(props.alpha),
             uAlpha: ValueCell.create(props.alpha),
-            uHighlightColor: ValueCell.create(Color.toArrayNormalized(props.highlightColor, Vec3.zero(), 0)),
-            uSelectColor: ValueCell.create(Color.toArrayNormalized(props.selectColor, Vec3.zero(), 0)),
-            dUseFog: ValueCell.create(props.useFog),
-
             uGroupCount: ValueCell.create(counts.groupCount),
             drawCount: ValueCell.create(counts.drawCount),
         }
     }
 
     export function updateValues(values: BaseValues, props: PD.Values<Params>) {
-        if (Color.fromNormalizedArray(values.uHighlightColor.ref.value, 0) !== props.highlightColor) {
-            ValueCell.update(values.uHighlightColor, Color.toArrayNormalized(props.highlightColor, values.uHighlightColor.ref.value, 0))
-        }
-        if (Color.fromNormalizedArray(values.uSelectColor.ref.value, 0) !== props.selectColor) {
-            ValueCell.update(values.uSelectColor, Color.toArrayNormalized(props.selectColor, values.uSelectColor.ref.value, 0))
-        }
         ValueCell.updateIfChanged(values.alpha, props.alpha) // `uAlpha` is set in renderable.render
-        ValueCell.updateIfChanged(values.dUseFog, props.useFog)
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {

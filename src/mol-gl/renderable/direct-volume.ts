@@ -51,9 +51,6 @@ export const DirectVolumeSchema = {
     elements: ElementsSpec('uint32'),
 
     uAlpha: UniformSpec('f'),
-    uHighlightColor: UniformSpec('v3'),
-    uSelectColor: UniformSpec('v3'),
-    dUseFog: DefineSpec('boolean'),
 
     uIsoValue: UniformSpec('f'),
     uBboxMin: UniformSpec('v3'),

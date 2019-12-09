@@ -153,7 +153,6 @@ export namespace DirectVolume {
     function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
         ValueCell.updateIfChanged(values.uIsoValue, props.isoValueNorm)
         ValueCell.updateIfChanged(values.uAlpha, props.alpha)
-        ValueCell.updateIfChanged(values.dUseFog, props.useFog)
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)
 
         const controlPoints = getControlPointsFromVec2Array(props.controlPoints)

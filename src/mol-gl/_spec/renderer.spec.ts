@@ -65,8 +65,6 @@ function createPoints() {
         ...transparency,
 
         uAlpha: ValueCell.create(1.0),
-        uHighlightColor: ValueCell.create(Vec3.create(1.0, 0.4, 0.6)),
-        uSelectColor: ValueCell.create(Vec3.create(0.2, 1.0, 0.1)),
         uInstanceCount: ValueCell.create(1),
         uGroupCount: ValueCell.create(3),
 
@@ -83,7 +81,6 @@ function createPoints() {
         dPointSizeAttenuation: ValueCell.create(true),
         dPointFilledCircle: ValueCell.create(false),
         uPointEdgeBleach: ValueCell.create(0.5),
-        dUseFog: ValueCell.create(true),
     }
     const state: RenderableState = {
         visible: true,

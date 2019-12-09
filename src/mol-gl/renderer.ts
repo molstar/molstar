@@ -46,9 +46,12 @@ interface Renderer {
 
 export const RendererParams = {
     backgroundColor: PD.Color(Color(0x000000), { description: 'Background color of the 3D canvas' }),
+
+    // the following are general 'material' parameters
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
+
     interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
-    interiorColorFlag: PD.Boolean(true),
+    interiorColorFlag: PD.Boolean(true, { label: 'Use Interior Color' }),
     interiorColor: PD.Color(Color.fromNormalizedRgb(0.3, 0.3, 0.3)),
 
     lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -57,6 +60,11 @@ export const RendererParams = {
     metalness: PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }),
     roughness: PD.Numeric(1.0, { min: 0.0, max: 1.0, step: 0.01 }),
     reflectivity: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
+
+    highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
+    selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
+
+    fogFlag: PD.Boolean(true, { label: 'Use Fog' }),
 }
 export type RendererProps = PD.Values<typeof RendererParams>
 
@@ -67,7 +75,6 @@ namespace Renderer {
 
         const viewport = Viewport()
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor)
-        const interiorColor = Color.toVec3Normalized(Vec3(), p.interiorColor)
 
         const view = Mat4()
         const invView = Mat4()
@@ -97,13 +104,6 @@ namespace Renderer {
             uViewportHeight: ValueCell.create(viewport.height),
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
 
-            uLightIntensity: ValueCell.create(p.lightIntensity),
-            uAmbientIntensity: ValueCell.create(p.ambientIntensity),
-
-            uMetalness: ValueCell.create(p.metalness),
-            uRoughness: ValueCell.create(p.roughness),
-            uReflectivity: ValueCell.create(p.reflectivity),
-
             uCameraPosition: ValueCell.create(Vec3()),
             uNear: ValueCell.create(1),
             uFar: ValueCell.create(10000),
@@ -112,10 +112,24 @@ namespace Renderer {
             uFogColor: ValueCell.create(bgColor),
             uTransparentBackground: ValueCell.create(0),
 
+            // the following are general 'material' uniforms
+            uLightIntensity: ValueCell.create(p.lightIntensity),
+            uAmbientIntensity: ValueCell.create(p.ambientIntensity),
+
+            uMetalness: ValueCell.create(p.metalness),
+            uRoughness: ValueCell.create(p.roughness),
+            uReflectivity: ValueCell.create(p.reflectivity),
+
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
+
             uInteriorDarkening: ValueCell.create(p.interiorDarkening),
             uInteriorColorFlag: ValueCell.create(p.interiorColorFlag ? 1 : 0),
-            uInteriorColor: ValueCell.create(interiorColor),
+            uInteriorColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.interiorColor)),
+
+            uHighlightColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.highlightColor)),
+            uSelectColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.selectColor)),
+
+            uFogFlag: ValueCell.create(p.fogFlag ? 1 : 0),
         }
         const globalUniformList = Object.entries(globalUniforms)
 
@@ -241,10 +255,17 @@ namespace Renderer {
             render,
 
             setProps: (props: Partial<RendererProps>) => {
+                if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {
+                    p.backgroundColor = props.backgroundColor
+                    Color.toVec3Normalized(bgColor, p.backgroundColor)
+                    ValueCell.update(globalUniforms.uFogColor, Vec3.copy(globalUniforms.uFogColor.ref.value, bgColor))
+                }
+
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== p.pickingAlphaThreshold) {
                     p.pickingAlphaThreshold = props.pickingAlphaThreshold
                     ValueCell.update(globalUniforms.uPickingAlphaThreshold, p.pickingAlphaThreshold)
                 }
+
                 if (props.interiorDarkening !== undefined && props.interiorDarkening !== p.interiorDarkening) {
                     p.interiorDarkening = props.interiorDarkening
                     ValueCell.update(globalUniforms.uInteriorDarkening, p.interiorDarkening)
@@ -255,14 +276,9 @@ namespace Renderer {
                 }
                 if (props.interiorColor !== undefined && props.interiorColor !== p.interiorColor) {
                     p.interiorColor = props.interiorColor
-                    Color.toVec3Normalized(interiorColor, p.interiorColor)
-                    ValueCell.update(globalUniforms.uInteriorColor, Vec3.copy(globalUniforms.uInteriorColor.ref.value, interiorColor))
+                    ValueCell.update(globalUniforms.uInteriorColor, Color.toVec3Normalized(globalUniforms.uInteriorColor.ref.value, p.interiorColor))
                 }
-                if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {
-                    p.backgroundColor = props.backgroundColor
-                    Color.toVec3Normalized(bgColor, p.backgroundColor)
-                    ValueCell.update(globalUniforms.uFogColor, Vec3.copy(globalUniforms.uFogColor.ref.value, bgColor))
-                }
+
                 if (props.lightIntensity !== undefined && props.lightIntensity !== p.lightIntensity) {
                     p.lightIntensity = props.lightIntensity
                     ValueCell.update(globalUniforms.uLightIntensity, p.lightIntensity)
@@ -283,6 +299,20 @@ namespace Renderer {
                 if (props.reflectivity !== undefined && props.reflectivity !== p.reflectivity) {
                     p.reflectivity = props.reflectivity
                     ValueCell.update(globalUniforms.uReflectivity, p.reflectivity)
+                }
+
+                if (props.highlightColor !== undefined && props.highlightColor !== p.highlightColor) {
+                    p.highlightColor = props.highlightColor
+                    ValueCell.update(globalUniforms.uHighlightColor, Color.toVec3Normalized(globalUniforms.uHighlightColor.ref.value, p.highlightColor))
+                }
+                if (props.selectColor !== undefined && props.selectColor !== p.selectColor) {
+                    p.selectColor = props.selectColor
+                    ValueCell.update(globalUniforms.uSelectColor, Color.toVec3Normalized(globalUniforms.uSelectColor.ref.value, p.selectColor))
+                }
+
+                if (props.fogFlag !== undefined && props.fogFlag !== p.fogFlag) {
+                    p.fogFlag = props.fogFlag
+                    ValueCell.update(globalUniforms.uFogFlag, p.fogFlag ? 1 : 0)
                 }
             },
             setViewport: (x: number, y: number, width: number, height: number) => {

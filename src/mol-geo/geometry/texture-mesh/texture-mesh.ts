@@ -128,14 +128,7 @@ export namespace TextureMesh {
     }
 
     function updateValues(values: TextureMeshValues, props: PD.Values<Params>) {
-        if (Color.fromNormalizedArray(values.uHighlightColor.ref.value, 0) !== props.highlightColor) {
-            ValueCell.update(values.uHighlightColor, Color.toArrayNormalized(props.highlightColor, values.uHighlightColor.ref.value, 0))
-        }
-        if (Color.fromNormalizedArray(values.uSelectColor.ref.value, 0) !== props.selectColor) {
-            ValueCell.update(values.uSelectColor, Color.toArrayNormalized(props.selectColor, values.uSelectColor.ref.value, 0))
-        }
         ValueCell.updateIfChanged(values.alpha, props.alpha) // `uAlpha` is set in renderable.render
-        ValueCell.updateIfChanged(values.dUseFog, props.useFog)
 
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)

@@ -148,13 +148,6 @@ export const GlobalUniformSchema = {
     uModelViewProjection: UniformSpec('m4'),
     uInvModelViewProjection: UniformSpec('m4'),
 
-    uLightIntensity: UniformSpec('f'),
-    uAmbientIntensity: UniformSpec('f'),
-
-    uMetalness: UniformSpec('f'),
-    uRoughness: UniformSpec('f'),
-    uReflectivity: UniformSpec('f'),
-
     uIsOrtho: UniformSpec('f'),
     uPixelRatio: UniformSpec('f'),
     uViewportHeight: UniformSpec('f'),
@@ -169,10 +162,27 @@ export const GlobalUniformSchema = {
     uFogColor: UniformSpec('v3'),
 
     uTransparentBackground: UniformSpec('i'),
+
+    // all the following could in principle be per object
+    // as a kind of 'material' parameter set
+    // would need to test performance implications
+    uLightIntensity: UniformSpec('f'),
+    uAmbientIntensity: UniformSpec('f'),
+
+    uMetalness: UniformSpec('f'),
+    uRoughness: UniformSpec('f'),
+    uReflectivity: UniformSpec('f'),
+
     uPickingAlphaThreshold: UniformSpec('f'),
+
     uInteriorDarkening: UniformSpec('f'),
     uInteriorColorFlag: UniformSpec('i'),
     uInteriorColor: UniformSpec('v3'),
+
+    uHighlightColor: UniformSpec('v3'),
+    uSelectColor: UniformSpec('v3'),
+
+    uFogFlag: UniformSpec('i'),
 }
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema> // { [k in keyof GlobalUniformSchema]: ValueCell<any> }
@@ -252,9 +262,6 @@ export const BaseSchema = {
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
 
-    uHighlightColor: UniformSpec('v3', true),
-    uSelectColor: UniformSpec('v3', true),
-
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
 
@@ -272,8 +279,6 @@ export const BaseSchema = {
     boundingSphere: ValueSpec('sphere'),
     /** bounding sphere NOT taking aTransform into account */
     invariantBoundingSphere: ValueSpec('sphere'),
-
-    dUseFog: DefineSpec('boolean'),
 }
 export type BaseSchema = typeof BaseSchema
 export type BaseValues = Values<BaseSchema>
