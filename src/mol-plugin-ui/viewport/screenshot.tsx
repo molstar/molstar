@@ -12,30 +12,24 @@ import { PluginUIComponent } from '../base';
 import { Icon } from '../controls/common';
 import { debounceTime } from 'rxjs/operators';
 import { Subject } from 'rxjs';
+import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';
 
 interface ImageControlsState {
     showPreview: boolean
 
-    size: 'canvas' | 'custom'
-    width: number
-    height: number
-
+    resolution?: ViewportScreenshotHelper.ResolutionSettings,
     isDisabled: boolean
 }
 
 export class DownloadScreenshotControls extends PluginUIComponent<{ close: () => void }, ImageControlsState> {
     state: ImageControlsState = {
         showPreview: true,
-        ...this.plugin.helpers.viewportScreenshot?.size,
+        resolution: this.plugin.helpers.viewportScreenshot?.currentResolution,
         isDisabled: false
     } as ImageControlsState
 
     private imgRef = React.createRef<HTMLImageElement>()
     private updateQueue = new Subject();
-
-    get imagePass() {
-        return this.plugin.helpers.viewportScreenshot!.imagePass;
-    }
 
     private preview = async () => {
         if (!this.imgRef.current) return;
@@ -44,6 +38,28 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
 
     private download = () => {
         this.plugin.helpers.viewportScreenshot?.download();
+        this.props.close();
+    }
+
+    private openTab = () => {
+        // modified from https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript/16245768#16245768
+
+        const base64 = this.imgRef.current!.src;
+        const byteCharacters = atob(base64.substr(`data:image/png;base64,`.length));
+        const byteArrays = [];
+
+        const sliceSize = Math.min(byteCharacters.length, 1024 * 1024);
+        for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+            const byteNumbers = new Uint8Array(Math.min(sliceSize, byteCharacters.length - offset));
+            for (let i = 0, _i = byteNumbers.length; i < _i; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(offset + i);
+            }
+            byteArrays.push(byteNumbers);
+        }
+        const blob = new Blob(byteArrays, { type: 'image/png' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        window.open(blobUrl, '_blank');
         this.props.close();
     }
 
@@ -63,7 +79,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
         this.subscribe(debounceTime(250)(this.updateQueue), () => this.handlePreview());
 
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => {
-            this.imagePass.setProps({
+            this.plugin.helpers.viewportScreenshot!.imagePass.setProps({
                 multiSample: { mode: 'on', sampleLevel: 2 },
                 postprocessing: this.plugin.canvas3d?.props.postprocessing
             })
@@ -84,16 +100,16 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
     }
 
     private setProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
-        if (p.name === 'size') {
-            if (p.value.name === 'custom') {
-                this.plugin.helpers.viewportScreenshot!.size.type = 'custom';
-                this.plugin.helpers.viewportScreenshot!.size.width = p.value.params.width;
-                this.plugin.helpers.viewportScreenshot!.size.height = p.value.params.height;
-                this.setState({ size: p.value.name, width: p.value.params.width, height: p.value.params.height })
+        if (p.name === 'resolution') {
+            const resolution = p.value as ViewportScreenshotHelper.ResolutionSettings
+            if (resolution.name === 'custom') {
+                this.plugin.helpers.viewportScreenshot!.currentResolution.type = 'custom';
+                this.plugin.helpers.viewportScreenshot!.currentResolution.width = resolution.params.width;
+                this.plugin.helpers.viewportScreenshot!.currentResolution.height = resolution.params.height;
             } else {
-                this.plugin.helpers.viewportScreenshot!.size.type = 'canvas';
-                this.setState({ size: p.value.name })
+                this.plugin.helpers.viewportScreenshot!.currentResolution.type = resolution.name;
             }
+            this.setState({ resolution });
         }
     }
 
@@ -103,8 +119,9 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <img ref={this.imgRef} /><br />
                 <span>Right-click the image to Copy.</span>
             </div>
-            <div className='msp-control-row'>
-                <button className='msp-btn msp-btn-block' onClick={this.download} disabled={this.state.isDisabled}><Icon name='download' /> Download</button>
+            <div className='msp-btn-row-group'>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.download} disabled={this.state.isDisabled}><Icon name='download' /> Download</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.openTab} disabled={this.state.isDisabled}><Icon name='export' /> Open in new Tab</button>
             </div>
             <ParameterControls params={this.plugin.helpers.viewportScreenshot!.params} values={this.plugin.helpers.viewportScreenshot!.values} onChange={this.setProps} isDisabled={this.state.isDisabled} />
         </div>

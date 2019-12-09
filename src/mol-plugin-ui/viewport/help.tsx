@@ -158,8 +158,8 @@ export class HelpContent extends PluginUIComponent {
             </HelpGroup> */}
             <HelpGroup header='Create an Image'>
                 <HelpText>
-                    <p>Use the <Icon name='screenshot' /> icon in the viewport or go to the <i>Create Image</i> panel and click <i>download</i> to get the same image you see on the 3D canvas.</p>
-                    <p>To adjust the size of the image, select <i>Custom</i> from the <i>Size</i> dropdown in the <i>Create Image</i> panel. Adjust the <i>Width</i> and <i>Height</i> using the sliders. To see an image preview with the correct aspect ratio, activate the preview by expanding the <i>Preview</i> panel.</p>
+                    <p>Use the <Icon name='screenshot' /> icon in the viewport to bring up the screenshot controls.</p>
+                    <p>To adjust the size of the image, use the <i>Resolution</i> dropdown.</p>
                 </HelpText>
             </HelpGroup>
 
