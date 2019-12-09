@@ -99,7 +99,7 @@ export class PostprocessingPass {
     props: PostprocessingProps
     renderable: PostprocessingRenderable
 
-    constructor(private webgl: WebGLContext, private camera: Camera, private drawPass: DrawPass, props: Partial<PostprocessingProps>) {
+    constructor(private webgl: WebGLContext, private camera: Camera, drawPass: DrawPass, props: Partial<PostprocessingProps>) {
         const { gl } = webgl
         this.target = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.props = { ...PD.getDefaultValues(PostprocessingParams), ...props }
