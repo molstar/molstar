@@ -42,7 +42,7 @@ export class DrawPass {
         }
     }
 
-    render(toDrawingBuffer: boolean) {
+    render(toDrawingBuffer: boolean, transparentBackground: boolean) {
         const { webgl, renderer, scene, camera, debugHelper, colorTarget, depthTarget } = this
         if (toDrawingBuffer) {
             webgl.unbindFramebuffer()
@@ -51,20 +51,20 @@ export class DrawPass {
         }
 
         renderer.setViewport(0, 0, colorTarget.width, colorTarget.height)
-        renderer.render(scene, camera, 'color', true)
+        renderer.render(scene, camera, 'color', true, transparentBackground)
         if (debugHelper.isEnabled) {
             debugHelper.syncVisibility()
-            renderer.render(debugHelper.scene, camera, 'color', false)
+            renderer.render(debugHelper.scene, camera, 'color', false, transparentBackground)
         }
 
         // do a depth pass if not rendering to drawing buffer and
         // extensions.depthTexture is unsupported (i.e. depthTarget is set)
         if (!toDrawingBuffer && depthTarget) {
             depthTarget.bind()
-            renderer.render(scene, camera, 'depth', true)
+            renderer.render(scene, camera, 'depth', true, transparentBackground)
             if (debugHelper.isEnabled) {
                 debugHelper.syncVisibility()
-                renderer.render(debugHelper.scene, camera, 'depth', false)
+                renderer.render(debugHelper.scene, camera, 'depth', false, transparentBackground)
             }
         }
     }

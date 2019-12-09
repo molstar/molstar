@@ -40,9 +40,9 @@ export class SimpleSettingsControl extends PluginUIComponent {
             const renderer = this.plugin.canvas3d.props.renderer;
             const color: typeof SimpleSettingsParams['background']['defaultValue'] = p.value;
             if (color.name === 'transparent') {
-                PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer, backgroundColor: ColorNames.white, transparentBackground: true } } });
+                PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer, backgroundColor: ColorNames.white }, transparentBackground: true } });
             } else {
-                PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer, backgroundColor: color.params.color, transparentBackground: false } } });
+                PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: { renderer: { ...renderer, backgroundColor: color.params.color }, transparentBackground: false } });
             }
         } else if (p.name === 'renderStyle') {
             if (!this.plugin.canvas3d) return;
@@ -103,7 +103,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
                 }
             }
 
-            if (renderer.backgroundColor === ColorNames.white && renderer.transparentBackground) {
+            if (renderer.backgroundColor === ColorNames.white && this.plugin.canvas3d?.props.transparentBackground) {
                 background = { name: 'transparent', params: { } }
             } else {
                 background = { name: 'opaque', params: { color: renderer.backgroundColor } }

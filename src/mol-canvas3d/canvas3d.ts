@@ -38,6 +38,7 @@ export const Canvas3DParams = {
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     cameraFog: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
+    transparentBackground: PD.Boolean(false),
 
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
@@ -191,9 +192,9 @@ namespace Canvas3D {
                     case 'draw':
                         renderer.setViewport(0, 0, width, height)
                         if (multiSample.enabled) {
-                            multiSample.render(true)
+                            multiSample.render(true, p.transparentBackground)
                         } else {
-                            drawPass.render(!postprocessing.enabled)
+                            drawPass.render(!postprocessing.enabled, p.transparentBackground)
                             if (postprocessing.enabled) postprocessing.render(true)
                         }
                         pickPass.pickDirty = true
@@ -346,6 +347,7 @@ namespace Canvas3D {
                     camera.setState({ fog: props.cameraFog })
                 }
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs
+                if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground
 
                 if (props.postprocessing) postprocessing.setProps(props.postprocessing)
                 if (props.multiSample) multiSample.setProps(props.multiSample)
@@ -363,6 +365,7 @@ namespace Canvas3D {
                     cameraMode: camera.state.mode,
                     cameraFog: camera.state.fog,
                     cameraResetDurationMs: p.cameraResetDurationMs,
+                    transparentBackground: p.transparentBackground,
 
                     postprocessing: { ...postprocessing.props },
                     multiSample: { ...multiSample.props },

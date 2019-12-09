@@ -17,6 +17,7 @@ import { Camera } from '../camera';
 import { Viewport } from '../camera/util';
 
 export const ImageParams = {
+    transparentBackground: PD.Boolean(false),
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
 }
@@ -26,6 +27,7 @@ export class ImagePass {
     private _width = 1024
     private _height = 768
     private _camera = new Camera()
+    private _transparentBackground = false
 
     private _colorTarget: RenderTarget
     get colorTarget() { return this._colorTarget }
@@ -40,6 +42,8 @@ export class ImagePass {
     constructor(webgl: WebGLContext, private renderer: Renderer, scene: Scene, private camera: Camera, debugHelper: BoundingSphereHelper, props: Partial<ImageProps>) {
         const p = { ...PD.getDefaultValues(ImageParams), ...props }
 
+        this._transparentBackground = p.transparentBackground
+
         this.drawPass = new DrawPass(webgl, renderer, scene, this._camera, debugHelper)
         this.postprocessing = new PostprocessingPass(webgl, this._camera, this.drawPass, p.postprocessing)
         this.multiSample = new MultiSamplePass(webgl, this._camera, this.drawPass, this.postprocessing, p.multiSample)
@@ -48,6 +52,8 @@ export class ImagePass {
     }
 
     setSize(width: number, height: number) {
+        if (width === this._width && height === this._height) return
+
         this._width = width
         this._height = height
 
@@ -57,6 +63,7 @@ export class ImagePass {
     }
 
     setProps(props: Partial<ImageProps> = {}) {
+        if (props.transparentBackground !== undefined) this._transparentBackground = props.transparentBackground
         if (props.postprocessing) this.postprocessing.setProps(props.postprocessing)
         if (props.multiSample) this.multiSample.setProps(props.multiSample)
     }
@@ -69,10 +76,10 @@ export class ImagePass {
         this.renderer.setViewport(0, 0, this._width, this._height);
 
         if (this.multiSample.enabled) {
-            this.multiSample.render(false)
+            this.multiSample.render(false, this._transparentBackground)
             this._colorTarget = this.multiSample.colorTarget
         } else {
-            this.drawPass.render(false)
+            this.drawPass.render(false, this._transparentBackground)
             if (this.postprocessing.enabled) {
                 this.postprocessing.render(false)
                 this._colorTarget = this.postprocessing.target

@@ -105,15 +105,15 @@ export class MultiSamplePass {
         if (props.sampleLevel !== undefined) this.props.sampleLevel = props.sampleLevel
     }
 
-    render(toDrawingBuffer: boolean) {
+    render(toDrawingBuffer: boolean, transparentBackground: boolean) {
         if (this.props.mode === 'temporal') {
-            this.renderTemporalMultiSample(toDrawingBuffer)
+            this.renderTemporalMultiSample(toDrawingBuffer, transparentBackground)
         } else {
-            this.renderMultiSample(toDrawingBuffer)
+            this.renderMultiSample(toDrawingBuffer, transparentBackground)
         }
     }
 
-    private renderMultiSample(toDrawingBuffer: boolean) {
+    private renderMultiSample(toDrawingBuffer: boolean, transparentBackground: boolean) {
         const { camera, compose, composeTarget, drawPass, postprocessing, webgl } = this
         const { gl, state } = webgl
 
@@ -148,7 +148,7 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, sampleWeight)
 
             // render scene and optionally postprocess
-            drawPass.render(false)
+            drawPass.render(false, transparentBackground)
             if (postprocessing.enabled) postprocessing.render(false)
 
             // compose rendered scene with compose target
@@ -184,7 +184,7 @@ export class MultiSamplePass {
         camera.update()
     }
 
-    private renderTemporalMultiSample(toDrawingBuffer: boolean) {
+    private renderTemporalMultiSample(toDrawingBuffer: boolean, transparentBackground: boolean) {
         const { camera, compose, composeTarget, holdTarget, postprocessing, drawPass, webgl } = this
         const { gl, state } = webgl
 
@@ -204,7 +204,7 @@ export class MultiSamplePass {
         const i = this.sampleIndex
 
         if (i === 0) {
-            drawPass.render(false)
+            drawPass.render(false, transparentBackground)
             if (postprocessing.enabled) postprocessing.render(false)
             ValueCell.update(compose.values.uWeight, 1.0)
             ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawPass.colorTarget.texture)
@@ -233,7 +233,7 @@ export class MultiSamplePass {
             camera.update()
 
             // render scene and optionally postprocess
-            drawPass.render(false)
+            drawPass.render(false, transparentBackground)
             if (postprocessing.enabled) postprocessing.render(false)
 
             // compose rendered scene with compose target

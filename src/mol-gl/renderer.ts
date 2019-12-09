@@ -37,8 +37,8 @@ interface Renderer {
     readonly stats: RendererStats
     readonly props: Readonly<RendererProps>
 
-    clear: () => void
-    render: (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean) => void
+    clear: (transparentBackground: boolean) => void
+    render: (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean) => void
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     dispose: () => void
@@ -46,7 +46,6 @@ interface Renderer {
 
 export const RendererParams = {
     backgroundColor: PD.Color(Color(0x000000), { description: 'Background color of the 3D canvas' }),
-    transparentBackground: PD.Boolean(false, { description: 'Background opacity of the 3D canvas' }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
     interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
     interiorColorFlag: PD.Boolean(true),
@@ -111,8 +110,8 @@ namespace Renderer {
             uFogNear: ValueCell.create(1),
             uFogFar: ValueCell.create(10000),
             uFogColor: ValueCell.create(bgColor),
+            uTransparentBackground: ValueCell.create(0),
 
-            uTransparentBackground: ValueCell.create(p.transparentBackground ? 1 : 0),
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
             uInteriorDarkening: ValueCell.create(p.interiorDarkening),
             uInteriorColorFlag: ValueCell.create(p.interiorColorFlag ? 1 : 0),
@@ -166,7 +165,7 @@ namespace Renderer {
             }
         }
 
-        const render = (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean) => {
+        const render = (scene: Scene, camera: Camera, variant: GraphicsRenderVariant, clear: boolean, transparentBackground: boolean) => {
             ValueCell.update(globalUniforms.uModel, scene.view)
             ValueCell.update(globalUniforms.uView, camera.view)
             ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view))
@@ -186,6 +185,8 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uFogFar, camera.fogFar)
             ValueCell.update(globalUniforms.uFogNear, camera.fogNear)
 
+            ValueCell.update(globalUniforms.uTransparentBackground, transparentBackground ? 1 : 0)
+
             globalUniformsNeedUpdate = true
             state.currentRenderItemId = -1
 
@@ -199,7 +200,7 @@ namespace Renderer {
 
             if (clear) {
                 if (variant === 'color') {
-                    state.clearColor(bgColor[0], bgColor[1], bgColor[2], p.transparentBackground ? 0 : 1)
+                    state.clearColor(bgColor[0], bgColor[1], bgColor[2], transparentBackground ? 0 : 1)
                 } else {
                     state.clearColor(1, 1, 1, 1)
                 }
@@ -231,10 +232,10 @@ namespace Renderer {
         }
 
         return {
-            clear: () => {
+            clear: (transparentBackground: boolean) => {
                 state.depthMask(true)
                 state.colorMask(true, true, true, true)
-                state.clearColor(bgColor[0], bgColor[1], bgColor[2], p.transparentBackground ? 0 : 1)
+                state.clearColor(bgColor[0], bgColor[1], bgColor[2], transparentBackground ? 0 : 1)
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
             },
             render,
@@ -261,10 +262,6 @@ namespace Renderer {
                     p.backgroundColor = props.backgroundColor
                     Color.toVec3Normalized(bgColor, p.backgroundColor)
                     ValueCell.update(globalUniforms.uFogColor, Vec3.copy(globalUniforms.uFogColor.ref.value, bgColor))
-                }
-                if (props.transparentBackground !== undefined && props.transparentBackground !== p.transparentBackground) {
-                    p.transparentBackground = props.transparentBackground
-                    ValueCell.update(globalUniforms.uTransparentBackground, p.transparentBackground ? 1 : 0)
                 }
                 if (props.lightIntensity !== undefined && props.lightIntensity !== p.lightIntensity) {
                     p.lightIntensity = props.lightIntensity

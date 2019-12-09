@@ -68,11 +68,11 @@ export class PickPass {
         const { renderer, scene, camera } = this
         renderer.setViewport(0, 0, this.pickWidth, this.pickHeight);
         this.objectPickTarget.bind();
-        renderer.render(scene, camera, 'pickObject', true);
+        renderer.render(scene, camera, 'pickObject', true, false);
         this.instancePickTarget.bind();
-        renderer.render(scene, camera, 'pickInstance', true);
+        renderer.render(scene, camera, 'pickInstance', true, false);
         this.groupPickTarget.bind();
-        renderer.render(scene, camera, 'pickGroup', true);
+        renderer.render(scene, camera, 'pickGroup', true, false);
 
         this.pickDirty = false
     }

@@ -18,6 +18,7 @@ interface ImageControlsState {
     showPreview: boolean
 
     resolution?: ViewportScreenshotHelper.ResolutionSettings,
+    transparent?: boolean,
     isDisabled: boolean
 }
 
@@ -25,6 +26,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
     state: ImageControlsState = {
         showPreview: true,
         resolution: this.plugin.helpers.viewportScreenshot?.currentResolution,
+        transparent: this.plugin.helpers.viewportScreenshot?.transparent,
         isDisabled: false
     } as ImageControlsState
 
@@ -110,6 +112,9 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 this.plugin.helpers.viewportScreenshot!.currentResolution.type = resolution.name;
             }
             this.setState({ resolution });
+        } else if (p.name === 'transparent') {
+            this.plugin.helpers.viewportScreenshot!.transparent = p.value;
+            this.setState({ transparent: p.value });
         }
     }
 

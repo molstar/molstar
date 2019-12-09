@@ -26,6 +26,7 @@ class ViewportScreenshotHelper {
     private createParams() {
         const max = Math.min(this.plugin.canvas3d ? this.plugin.canvas3d.webgl.maxRenderbufferSize : 4096, 4096)
         return {
+            transparent: PD.Boolean(false),
             resolution: PD.MappedStatic('full-hd', {
                 viewport: PD.Group({}),
                 hd: PD.Group({}),
@@ -54,8 +55,8 @@ class ViewportScreenshotHelper {
 
     get values() {
         return this.currentResolution.type === 'custom'
-            ? { resolution: { name: 'custom', params: { width: this.currentResolution.width, height: this.currentResolution.height } } }
-            : { resolution: { name: this.currentResolution.type, params: { } } };
+            ? { transparent: this.transparent, resolution: { name: 'custom', params: { width: this.currentResolution.width, height: this.currentResolution.height } } }
+            : { transparent: this.transparent, resolution: { name: this.currentResolution.type, params: { } } };
     }
 
     private getCanvasSize() {
@@ -64,6 +65,8 @@ class ViewportScreenshotHelper {
             height: this.plugin.canvas3d?.webgl.gl.drawingBufferHeight || 0
         };
     }
+
+    transparent = false
 
     currentResolution = {
         type: 'full-hd' as ViewportScreenshotHelper.ResolutionTypes,
@@ -88,6 +91,7 @@ class ViewportScreenshotHelper {
 
         this._imagePass = this.plugin.canvas3d!.getImagePass()
         this._imagePass.setProps({
+            transparentBackground: this.transparent,
             multiSample: { mode: 'on', sampleLevel: 2 },
             postprocessing: this.plugin.canvas3d!.props.postprocessing
         });
@@ -134,6 +138,10 @@ class ViewportScreenshotHelper {
         if (width <= 0 || height <= 0) return;
 
         await ctx.update('Rendering image...')
+        this.imagePass.setProps({
+            transparentBackground: this.transparent,
+            postprocessing: this.plugin.canvas3d!.props.postprocessing // TODO this line should not be required, updating should work by listening to this.plugin.events.canvas3d.settingsUpdated
+        });
         const imageData = this.imagePass.getImageData(width, height);
 
         await ctx.update('Encoding image...')
