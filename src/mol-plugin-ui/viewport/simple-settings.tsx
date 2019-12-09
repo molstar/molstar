@@ -77,11 +77,9 @@ export class SimpleSettingsControl extends PluginUIComponent {
             PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
                 postprocessing: { ...postprocessing, outlineEnable: p.value },
             } });
-        } else if (p.name === 'fog') {
-            if (!this.plugin.canvas3d) return;
-            const renderer = this.plugin.canvas3d.props.renderer;
+        } else if (p.name === 'fog') {;
             PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
-                renderer: { ...renderer, fogFlag: p.value },
+                cameraFog: p.value ? 50 : 1,
             } });
         }
     }
@@ -119,7 +117,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
             renderStyle,
             occlusion: this.plugin.canvas3d?.props.postprocessing.occlusionEnable,
             outline: this.plugin.canvas3d?.props.postprocessing.outlineEnable,
-            fog: this.plugin.canvas3d?.props.renderer.fogFlag
+            fog: this.plugin.canvas3d ? this.plugin.canvas3d.props.cameraFog > 1 : false
         }
     }
 

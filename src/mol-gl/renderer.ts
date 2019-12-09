@@ -63,8 +63,6 @@ export const RendererParams = {
 
     highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
-
-    fogFlag: PD.Boolean(true, { label: 'Use Fog' }),
 }
 export type RendererProps = PD.Values<typeof RendererParams>
 
@@ -128,8 +126,6 @@ namespace Renderer {
 
             uHighlightColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.highlightColor)),
             uSelectColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.selectColor)),
-
-            uFogFlag: ValueCell.create(p.fogFlag ? 1 : 0),
         }
         const globalUniformList = Object.entries(globalUniforms)
 
@@ -308,11 +304,6 @@ namespace Renderer {
                 if (props.selectColor !== undefined && props.selectColor !== p.selectColor) {
                     p.selectColor = props.selectColor
                     ValueCell.update(globalUniforms.uSelectColor, Color.toVec3Normalized(globalUniforms.uSelectColor.ref.value, p.selectColor))
-                }
-
-                if (props.fogFlag !== undefined && props.fogFlag !== p.fogFlag) {
-                    p.fogFlag = props.fogFlag
-                    ValueCell.update(globalUniforms.uFogFlag, p.fogFlag ? 1 : 0)
                 }
             },
             setViewport: (x: number, y: number, width: number, height: number) => {

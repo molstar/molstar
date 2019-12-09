@@ -105,11 +105,10 @@ void main(void) {
 		vec2 edgeDepth = calcEdgeDepth(coords);
 		float edgeFlag = step(edgeDepth.x, uOutlineThreshold);
     	color.rgb *= edgeFlag;
-		#ifdef dFogEnable
-			float viewDist = abs(getViewZ(edgeDepth.y));
-			float fogFactor = smoothstep(uFogNear, uFogFar, viewDist) * (1.0 - edgeFlag);
-			color.rgb = mix(color.rgb, uFogColor, fogFactor);
-		#endif
+
+		float viewDist = abs(getViewZ(edgeDepth.y));
+		float fogFactor = smoothstep(uFogNear, uFogFar, viewDist) * (1.0 - edgeFlag);
+		color.rgb = mix(color.rgb, uFogColor, fogFactor);
 	#endif
 
 	// occlusion needs to be handled after outline to darken them properly

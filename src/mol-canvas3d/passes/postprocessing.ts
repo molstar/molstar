@@ -30,7 +30,6 @@ const PostprocessingSchema = {
     dOrthographic: DefineSpec('number'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
-    dFogEnable: DefineSpec('boolean'),
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
@@ -56,8 +55,6 @@ export const PostprocessingParams = {
     outlineEnable: PD.Boolean(false),
     outlineScale: PD.Numeric(1, { min: 0, max: 10, step: 1 }),
     outlineThreshold: PD.Numeric(0.8, { min: 0, max: 1, step: 0.01 }),
-
-    fogEnable: PD.Boolean(true),
 }
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
@@ -74,7 +71,6 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),
         uFar: ValueCell.create(10000),
-        dFogEnable: ValueCell.create(p.fogEnable),
         uFogNear: ValueCell.create(10000),
         uFogFar: ValueCell.create(10000),
         uFogColor: ValueCell.create(Vec3.create(1, 1, 1)),
@@ -103,7 +99,7 @@ export class PostprocessingPass {
     props: PostprocessingProps
     renderable: PostprocessingRenderable
 
-    constructor(private webgl: WebGLContext, private camera: Camera, drawPass: DrawPass, props: Partial<PostprocessingProps>) {
+    constructor(private webgl: WebGLContext, private camera: Camera, private drawPass: DrawPass, props: Partial<PostprocessingProps>) {
         const { gl } = webgl
         this.target = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.props = { ...PD.getDefaultValues(PostprocessingParams), ...props }
@@ -149,11 +145,6 @@ export class PostprocessingPass {
         if (props.outlineThreshold !== undefined) {
             this.props.outlineThreshold = props.outlineThreshold
             ValueCell.update(this.renderable.values.uOutlineThreshold, props.outlineThreshold)
-        }
-
-        if (props.fogEnable !== undefined) {
-            this.props.fogEnable = props.fogEnable
-            ValueCell.update(this.renderable.values.dFogEnable, props.fogEnable)
         }
 
         this.renderable.update()
