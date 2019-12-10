@@ -17,7 +17,7 @@ import { StateTransformer } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { BuiltInColorThemeName, ColorTheme, BuiltInColorThemes } from '../../../mol-theme/color';
 import { BuiltInSizeThemeName, SizeTheme } from '../../../mol-theme/size';
-import { createTheme, ThemeRegistryContext } from '../../../mol-theme/theme';
+import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { ColorNames } from '../../../mol-util/color/names';
@@ -577,7 +577,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const provider = plugin.volumeRepresentation.registry.get(params.type.name)
             const props = params.type.params || {}
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
-            repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
+            repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Volume.Representation3D({ repr, source: a }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
@@ -587,7 +587,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Volume Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
             const props = { ...b.data.repr.props, ...newParams.type.params }
-            b.data.repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
+            b.data.repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: a.data }, newParams))
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.description = VolumeRepresentation3DHelpers.getDescription(props)
             return StateTransformer.UpdateResult.Updated;
