@@ -434,25 +434,10 @@ namespace Vec3 {
         return out;
     }
 
-    const angleTempA = zero(), angleTempB = zero();
     /** Computes the angle between 2 vectors, reports in rad. */
     export function angle(a: Vec3, b: Vec3) {
-        copy(angleTempA, a);
-        copy(angleTempB, b);
-
-        normalize(angleTempA, angleTempA);
-        normalize(angleTempB, angleTempB);
-
-        const cosine = dot(angleTempA, angleTempB);
-
-        if (cosine > 1.0) {
-            return 0;
-        }
-        else if (cosine < -1.0) {
-            return Math.PI;
-        } else {
-            return Math.acos(cosine);
-        }
+        const theta = dot(a, b) / Math.sqrt(squaredMagnitude(a) * squaredMagnitude(b));
+        return Math.acos(clamp(theta, -1, 1)); // clamp to avoid numerical problems
     }
 
     const tmp_dh_ab = zero();
