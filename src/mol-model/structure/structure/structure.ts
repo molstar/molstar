@@ -15,7 +15,7 @@ import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
-import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
+import { InterUnitBonds, computeInterUnitBonds, Link } from './unit/links';
 import { PairRestraints, CrossLinkRestraint, extractCrossLinkRestraints } from './unit/pair-restraints';
 import StructureSymmetry from './symmetry';
 import StructureProperties from './properties';
@@ -57,6 +57,7 @@ class Structure {
         /** Hash based on all unit.id values in the structure, reflecting the units transformation */
         transformHash: number,
         elementCount: number,
+        bondCount: number,
         uniqueElementCount: number,
         polymerResidueCount: number,
         polymerUnitCount: number,
@@ -68,6 +69,7 @@ class Structure {
         hashCode: -1,
         transformHash: -1,
         elementCount: -1,
+        bondCount: -1,
         uniqueElementCount: -1,
         polymerResidueCount: -1,
         polymerUnitCount: -1,
@@ -82,6 +84,14 @@ class Structure {
     /** Count of all elements in the structure, i.e. the sum of the elements in the units */
     get elementCount() {
         return this._props.elementCount;
+    }
+
+    /** Count of all bonds (intra- and inter-unit) in the structure */
+    get bondCount() {
+        if (!this._props.bondCount) {
+            this._props.bondCount = this.interUnitBonds.bondCount + Link.getIntraUnitBondCount(this)
+        }
+        return this._props.bondCount;
     }
 
     get hasCustomProperties() {

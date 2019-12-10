@@ -8,7 +8,7 @@
 import { Unit, StructureElement } from '../../structure'
 import Structure from '../structure';
 import { LinkType } from '../../model/types';
-import { SortedArray } from '../../../../mol-data/int';
+import { SortedArray, Iterator } from '../../../../mol-data/int';
 
 export * from './links/data'
 export * from './links/intra-compute'
@@ -140,6 +140,15 @@ namespace Link {
             if (bond) return bond.order;
             return 0;
         }
+    }
+
+    export function getIntraUnitBondCount(structure: Structure) {
+        let count = 0
+        for (let i = 0, il = structure.units.length; i < il; ++i) {
+            const u = structure.units[i]
+            if (Unit.isAtomic(u)) count += u.links.edgeCount / 2 // only count one direction
+        }
+        return count
     }
 
     export interface ElementLinkData {
