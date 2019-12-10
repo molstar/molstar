@@ -19,13 +19,11 @@ const GaussianSurfaceVisuals = {
     'gaussian-surface-texture-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceMeshParams>) => UnitsRepresentation('Gaussian surface texture-mesh', ctx, getParams, GaussianSurfaceTextureMeshVisual),
     'gaussian-surface-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianWireframeParams>) => UnitsRepresentation('Gaussian surface wireframe', ctx, getParams, GaussianWireframeVisual),
 }
-type GaussianSurfaceVisualName = keyof typeof GaussianSurfaceVisuals
-const GaussianSurfaceVisualOptions = Object.keys(GaussianSurfaceVisuals).map(name => [name, name] as [GaussianSurfaceVisualName, string])
 
 export const GaussianSurfaceParams = {
     ...GaussianSurfaceMeshParams,
     ...GaussianWireframeParams,
-    visuals: PD.MultiSelect<GaussianSurfaceVisualName>(['gaussian-surface-mesh'], GaussianSurfaceVisualOptions),
+    visuals: PD.MultiSelect(['gaussian-surface-mesh'], PD.objectToOptions(GaussianSurfaceVisuals)),
 }
 export type GaussianSurfaceParams = typeof GaussianSurfaceParams
 export function getGaussianSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {

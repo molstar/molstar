@@ -6,7 +6,6 @@
 
 import { Loci } from '../../../mol-model/loci';
 import { RuntimeContext } from '../../../mol-task';
-import { stringToWords } from '../../../mol-util/string';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -49,13 +48,11 @@ const DistanceVisuals = {
     'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, LineParams>) => ShapeRepresentation(getLinesShape, Lines.Utils),
     'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
-type DistanceVisualName = keyof typeof DistanceVisuals
-const DistanceVisualOptions = Object.keys(DistanceVisuals).map(name => [name, stringToWords(name)] as [DistanceVisualName, string])
 
 export const DistanceParams = {
     ...LineParams,
     ...TextParams,
-    visuals: PD.MultiSelect<DistanceVisualName>(['lines', 'text'], DistanceVisualOptions),
+    visuals: PD.MultiSelect(['lines', 'text'], PD.objectToOptions(DistanceVisuals)),
 }
 export type DistanceParams = typeof DistanceParams
 export type DistanceProps = PD.Values<DistanceParams>

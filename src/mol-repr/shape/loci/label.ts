@@ -6,7 +6,6 @@
 
 import { Loci } from '../../../mol-model/loci';
 import { RuntimeContext } from '../../../mol-task';
-import { stringToWords } from '../../../mol-util/string';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ColorNames } from '../../../mol-util/color/names';
@@ -33,13 +32,12 @@ type TextParams = typeof TextParams
 const LabelVisuals = {
     'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<LabelData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
-type LabelVisualName = keyof typeof LabelVisuals
-const LabelVisualOptions = Object.keys(LabelVisuals).map(name => [name, stringToWords(name)] as [LabelVisualName, string])
 
 export const LabelParams = {
     ...TextParams,
-    visuals: PD.MultiSelect<LabelVisualName>(['text'], LabelVisualOptions),
+    visuals: PD.MultiSelect(['text'], PD.objectToOptions(LabelVisuals)),
 }
+
 export type LabelParams = typeof LabelParams
 export type LabelProps = PD.Values<LabelParams>
 

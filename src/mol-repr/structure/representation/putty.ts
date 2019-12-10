@@ -17,14 +17,12 @@ const PuttyVisuals = {
     'polymer-tube': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTubeParams>) => UnitsRepresentation('Polymer tube mesh', ctx, getParams, PolymerTubeVisual),
     'polymer-gap': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerGapParams>) => UnitsRepresentation('Polymer gap cylinder', ctx, getParams, PolymerGapVisual),
 }
-type PuttyVisualName = keyof typeof PuttyVisuals
-const PuttyVisualOptions = Object.keys(PuttyVisuals).map(name => [name, name] as [PuttyVisualName, string])
 
 export const PuttyParams = {
     ...PolymerTubeParams,
     ...PolymerGapParams,
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    visuals: PD.MultiSelect<PuttyVisualName>(['polymer-tube', 'polymer-gap'], PuttyVisualOptions),
+    visuals: PD.MultiSelect(['polymer-tube', 'polymer-gap'], PD.objectToOptions(PuttyVisuals)),
 }
 export type PuttyParams = typeof PuttyParams
 export function getPuttyParams(ctx: ThemeRegistryContext, structure: Structure) {

@@ -12,8 +12,8 @@ import { CentroidHelper } from '../mol-math/geometry/centroid-helper';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { OrderedSet } from '../mol-data/int';
 import { Structure } from './structure/structure';
-import { stringToWords } from '../mol-util/string';
 import { PrincipalAxes } from '../mol-math/linear-algebra/matrix/principal-axes';
+import { ParamDefinition } from '../mol-util/param-definition';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -226,7 +226,7 @@ namespace Loci {
         }
     }
     export type Granularity = keyof typeof Granularity
-    export const GranularityOptions = Object.keys(Granularity).map(n => [n, stringToWords(n)]) as [Granularity, string][]
+    export const GranularityOptions = ParamDefinition.objectToOptions(Granularity);
 
     export function applyGranularity(loci: Loci, granularity: Granularity) {
         return Granularity[granularity](loci)

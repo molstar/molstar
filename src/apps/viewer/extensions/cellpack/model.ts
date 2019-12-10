@@ -279,14 +279,8 @@ export function createStructureFromCellPack(packing: CellPacking, baseUrl: strin
     })
 }
 
-const Representations = {
-    'spacefill': 'Spacefill',
-    'gaussian-surface': 'Gaussian Surface',
-    'point': 'Point',
-    'ellipsoid': 'Ellipsoid'
-}
-type RepresentationName = keyof typeof Representations
-const RepresentationOptions = Object.keys(Representations).map(r => [r, Representations[r as RepresentationName]]) as [RepresentationName, string][]
+const RepresentationOptions = PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'ellipsoid'] as const)
+type RepresentationName = (typeof RepresentationOptions)[0][0]
 
 export const LoadCellPackModel = StateAction.build({
     display: { name: 'Load CellPack Model' },
@@ -298,7 +292,7 @@ export const LoadCellPackModel = StateAction.build({
             ['influenza_model1.json', 'influenza_model1'],
             ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma1.5_mixed_pdb_fixed'],
             ['curveTest', 'Curve Test'],
-        ]),
+        ] as const),
         baseUrl: PD.Text(DefaultCellPackBaseUrl),
         preset: PD.Group({
             traceOnly: PD.Boolean(false),

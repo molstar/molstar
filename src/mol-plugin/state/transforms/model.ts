@@ -577,7 +577,7 @@ export const StructureComplexElementTypes = {
 } as const
 export type StructureComplexElementTypes = keyof typeof StructureComplexElementTypes
 
-const StructureComplexElementTypeTuples = Object.keys(StructureComplexElementTypes).map(t => [t, t] as any);
+const StructureComplexElementTypeTuples = PD.objectToOptions(StructureComplexElementTypes);
 
 type StructureComplexElement = typeof StructureComplexElement
 const StructureComplexElement = PluginStateTransform.BuiltIn({

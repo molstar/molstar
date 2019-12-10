@@ -17,13 +17,11 @@ const MolecularSurfaceVisuals = {
     'molecular-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceMeshParams>) => UnitsRepresentation('Molecular surface mesh', ctx, getParams, MolecularSurfaceMeshVisual),
     'molecular-surface-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceWireframeParams>) => UnitsRepresentation('Molecular surface wireframe', ctx, getParams, MolecularSurfaceWireframeVisual),
 }
-type MolecularSurfaceVisualName = keyof typeof MolecularSurfaceVisuals
-const MolecularSurfaceVisualOptions = Object.keys(MolecularSurfaceVisuals).map(name => [name, name] as [MolecularSurfaceVisualName, string])
 
 export const MolecularSurfaceParams = {
     ...MolecularSurfaceMeshParams,
     ...MolecularSurfaceWireframeParams,
-    visuals: PD.MultiSelect<MolecularSurfaceVisualName>(['molecular-surface-mesh'], MolecularSurfaceVisualOptions),
+    visuals: PD.MultiSelect(['molecular-surface-mesh'], PD.objectToOptions(MolecularSurfaceVisuals)),
 }
 export type MolecularSurfaceParams = typeof MolecularSurfaceParams
 export function getMolecularSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {
