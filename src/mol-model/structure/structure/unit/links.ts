@@ -141,6 +141,74 @@ namespace Link {
             return 0;
         }
     }
+
+    export interface ElementLinkData {
+        otherUnit: Unit.Atomic
+        otherIndex: StructureElement.UnitIndex
+        type: LinkType
+        order: number
+    }
+
+    export class ElementLinkIterator implements Iterator<ElementLinkData> {
+        private current: ElementLinkData = {} as any
+
+        private structure: Structure
+        private unit: Unit.Atomic
+        private index: StructureElement.UnitIndex
+
+        private interBondIndices: ReadonlyArray<number>
+        private interBondCount: number
+        private interBondIndex: number
+
+        private intraBondEnd: number
+        private intraBondIndex: number
+
+        hasNext: boolean;
+        move(): ElementLinkData {
+            this.advance()
+            return this.current
+        }
+
+        setElement(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+            this.structure = structure
+            this.unit = unit
+            this.index = index
+
+            this.interBondIndices = structure.interUnitBonds.getBondIndices(index, unit)
+            this.interBondCount = this.interBondIndices.length
+            this.interBondIndex = 0
+
+            this.intraBondEnd = unit.links.offset[index + 1]
+            this.intraBondIndex = unit.links.offset[index]
+
+            this.hasNext = this.interBondIndex < this.interBondCount || this.intraBondIndex < this.intraBondEnd
+        }
+
+        private advance() {
+            if (this.intraBondIndex < this.intraBondEnd) {
+                this.current.otherUnit = this.unit
+                this.current.otherIndex = this.unit.links.b[this.intraBondIndex] as StructureElement.UnitIndex
+                this.current.type = this.unit.links.edgeProps.flags[this.intraBondIndex]
+                this.current.order = this.unit.links.edgeProps.order[this.intraBondIndex]
+                this.intraBondIndex += 1
+            } else if (this.interBondIndex < this.interBondCount) {
+                const b = this.structure.interUnitBonds.bonds[this.interBondIndex]
+                this.current.otherUnit = b.unitA !== this.unit ? b.unitA : b.unitB
+                this.current.otherIndex = b.indexA !== this.index ? b.indexA : b.indexB
+                this.current.type = b.flag
+                this.current.order = b.order
+                this.interBondIndex += 1
+            } else {
+                this.hasNext = false
+                return
+            }
+            this.hasNext = this.interBondIndex < this.interBondCount || this.intraBondIndex < this.intraBondEnd
+        }
+
+        constructor() {
+            this.hasNext = false
+        }
+    }
 }
 
 export { Link }
