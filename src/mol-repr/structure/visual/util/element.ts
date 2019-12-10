@@ -157,7 +157,8 @@ export function getSerialElementLoci(pickingId: PickingId, structure: Structure,
 //
 
 export namespace ElementIterator {
-    export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
+    export function fromGroup(structureGroup: StructureGroup): LocationIterator {
+        const { group } = structureGroup
         const groupCount = group.elements.length
         const instanceCount = group.units.length
         const location = StructureElement.Location.create()

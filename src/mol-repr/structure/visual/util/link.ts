@@ -14,6 +14,7 @@ import { CylinderProps } from '../../../../mol-geo/primitive/cylinder';
 import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../mol-geo/geometry/mesh/builder/cylinder';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
 import { VisualContext } from '../../../../mol-repr/visual';
+import { StructureGroup } from '../../units-visual';
 
 export const LinkCylinderParams = {
     linkScale: PD.Numeric(0.4, { min: 0, max: 1, step: 0.1 }),
@@ -127,7 +128,8 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
 }
 
 export namespace LinkIterator {
-    export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
+    export function fromGroup(structureGroup: StructureGroup): LocationIterator {
+        const { group } = structureGroup
         const unit = group.units[0]
         const groupCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
         const instanceCount = group.units.length

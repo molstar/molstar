@@ -14,7 +14,8 @@ import { getResidueLoci } from './common';
 import { eachAtomicUnitTracedElement } from './polymer';
 
 export namespace NucleotideLocationIterator {
-    export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
+    export function fromGroup(structureGroup: StructureGroup): LocationIterator {
+        const { group } = structureGroup
         const u = group.units[0]
         const nucleotideElementIndices = Unit.isAtomic(u) ? u.nucleotideElements : []
         const groupCount = nucleotideElementIndices.length

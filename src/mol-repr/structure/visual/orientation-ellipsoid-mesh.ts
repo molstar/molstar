@@ -87,7 +87,8 @@ export function createOrientationEllipsoidMesh(ctx: VisualContext, unit: Unit, s
 
 //
 
-function UnitIterator(group: Unit.SymmetryGroup): LocationIterator {
+function UnitIterator(structureGroup: StructureGroup): LocationIterator {
+    const { group } = structureGroup
     const groupCount = 1
     const instanceCount = group.units.length
     const location = StructureElement.Location.create()

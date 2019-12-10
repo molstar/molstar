@@ -52,7 +52,7 @@ function createUnitsRenderObject<G extends Geometry>(group: Unit.SymmetryGroup, 
 interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
     defaultProps: PD.Values<P>
     createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
-    createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
+    createLocationIterator(structureGroup: StructureGroup): LocationIterator
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
     eachLocation(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup): void
@@ -149,7 +149,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
 
     function update(newGeometry?: G) {
         if (updateState.createNew) {
-            locationIt = createLocationIterator(newStructureGroup.group)
+            locationIt = createLocationIterator(newStructureGroup)
             if (newGeometry) {
                 renderObject = createUnitsRenderObject(newStructureGroup.group, newGeometry, locationIt, newTheme, newProps, materialId)
             } else {
@@ -162,7 +162,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
 
             if (updateState.updateTransform) {
                 // console.log('update transform')
-                locationIt = createLocationIterator(newStructureGroup.group)
+                locationIt = createLocationIterator(newStructureGroup)
                 const { instanceCount, groupCount } = locationIt
                 createMarkers(instanceCount * groupCount, renderObject.values)
             }
