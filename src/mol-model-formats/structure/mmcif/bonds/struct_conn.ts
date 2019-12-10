@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,10 +11,11 @@ import { LinkType } from '../../../../mol-model/structure/model/types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'
 import { Column } from '../../../../mol-data/db'
 import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
-import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
+import { mmCIF_Database } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from '../../../../mol-data/int';
 import { CifWriter } from '../../../../mol-io/writer/cif'
 import { ElementIndex, ResidueIndex } from '../../../../mol-model/structure/model/indexing';
+import { getInterBondOrderFromTable } from '../../../../mol-model/structure/model/properties/atomic/bonds';
 
 export interface StructConn {
     getResidueEntries(residueAIndex: ResidueIndex, residueBIndex: ResidueIndex): ReadonlyArray<StructConn.Entry>,
@@ -211,7 +212,7 @@ export namespace StructConn {
             const partners = _ps(i);
             if (partners.length < 2) continue;
 
-            const type = conn_type_id.value(i) as typeof mmCIF_Schema.struct_conn_type.id.T; // TODO workaround for dictionary inconsistency
+            const type = conn_type_id.value(i)
             const orderType = (pdbx_value_order.value(i) || '').toLowerCase();
             let flags = LinkType.Flag.None;
             let order = 1;
@@ -221,23 +222,24 @@ export namespace StructConn {
                 case 'doub': order = 2; break;
                 case 'trip': order = 3; break;
                 case 'quad': order = 4; break;
+                default:
+                    order = getInterBondOrderFromTable(
+                        struct_conn.ptnr1_label_comp_id.value(i),
+                        struct_conn.ptnr1_label_atom_id.value(i),
+                        struct_conn.ptnr2_label_comp_id.value(i),
+                        struct_conn.ptnr2_label_atom_id.value(i)
+                    )
             }
 
             switch (type) {
                 case 'covale':
-                case 'covale_base':
-                case 'covale_phosphate':
-                case 'covale_sugar':
-                case 'modres':
                     flags = LinkType.Flag.Covalent;
                     break;
                 case 'disulf': flags = LinkType.Flag.Covalent | LinkType.Flag.Sulfide; break;
                 case 'hydrog':
-                case 'mismat':
                     flags = LinkType.Flag.Hydrogen;
                     break;
                 case 'metalc': flags = LinkType.Flag.MetallicCoordination; break;
-                case 'saltbr': flags = LinkType.Flag.Ionic; break;
             }
 
             entries.push({ rowIndex: i, flags, order, distance: pdbx_dist_value.value(i), partners });
