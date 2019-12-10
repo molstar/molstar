@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
-import { Structure, StructureElement, Link } from '../../../mol-model/structure';
+import { Structure, StructureElement, Link, Unit } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
@@ -19,18 +19,44 @@ import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { isHydrogen } from './util/common';
 
+const tmpRefPosLinkIt = new Link.ElementLinkIterator()
+function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+    tmpRefPosLinkIt.setElement(structure, unit, index)
+    while (tmpRefPosLinkIt.hasNext) {
+        const bA = tmpRefPosLinkIt.move()
+        bA.otherUnit.conformation.position(bA.otherUnit.elements[bA.otherIndex], pos)
+        return pos
+    }
+    return null
+}
+
+const tmpRef = Vec3()
+const tmpLoc = StructureElement.Location.create()
+
 function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitLinkParams>, mesh?: Mesh) {
-    const links = structure.links
+    const links = structure.interUnitBonds
     const { bondCount, bonds } = links
     const { sizeFactor, sizeAspectRatio, ignoreHydrogens } = props
 
     if (!bondCount) return Mesh.createEmpty(mesh)
 
-    const location = StructureElement.Location.create()
-
     const builderProps = {
         linkCount: bondCount,
-        referencePosition: (edgeIndex: number) => null, // TODO
+        referencePosition: (edgeIndex: number) => {
+            const b = bonds[edgeIndex]
+            let unitA: Unit, unitB: Unit
+            let indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex
+            if (b.unitA.id < b.unitB.id) {
+                unitA = b.unitA, unitB = b.unitB
+                indexA = b.indexA, indexB = b.indexB
+            } else if (b.unitA.id > b.unitB.id) {
+                unitA = b.unitB, unitB = b.unitA
+                indexA = b.indexB, indexB = b.indexA
+            } else {
+                throw new Error('same units in createInterUnitLinkCylinderMesh')
+            }
+            return setRefPosition(tmpRef, structure, unitA, indexA) || setRefPosition(tmpRef, structure, unitB, indexB)
+        },
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const b = bonds[edgeIndex]
             const uA = b.unitA, uB = b.unitB
@@ -41,12 +67,12 @@ function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structur
         flags: (edgeIndex: number) => BitFlags.create(bonds[edgeIndex].flag),
         radius: (edgeIndex: number) => {
             const b = bonds[edgeIndex]
-            location.unit = b.unitA
-            location.element = b.unitA.elements[b.indexA]
-            const sizeA = theme.size.size(location)
-            location.unit = b.unitB
-            location.element = b.unitB.elements[b.indexB]
-            const sizeB = theme.size.size(location)
+            tmpLoc.unit = b.unitA
+            tmpLoc.element = b.unitA.elements[b.indexA]
+            const sizeA = theme.size.size(tmpLoc)
+            tmpLoc.unit = b.unitB
+            tmpLoc.element = b.unitB.elements[b.indexB]
+            const sizeB = theme.size.size(tmpLoc)
             return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio
         },
         ignore: ignoreHydrogens ? (edgeIndex: number) => {
@@ -92,7 +118,7 @@ export function InterUnitLinkVisual(materialId: number): ComplexVisual<InterUnit
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId
     if (id === objectId) {
-        const bond = structure.links.bonds[groupId]
+        const bond = structure.interUnitBonds.bonds[groupId]
         return Link.Loci(structure, [
             Link.Location(
                 bond.unitA, bond.indexA as StructureElement.UnitIndex,
@@ -112,19 +138,31 @@ function eachLink(loci: Loci, structure: Structure, apply: (interval: Interval) 
     if (Link.isLoci(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false
         for (const b of loci.links) {
-            const idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
+            const idx = structure.interUnitBonds.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
             if (idx !== -1) {
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }
         }
     } else if (StructureElement.Loci.is(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false
-        // TODO mark link only when both of the link elements are in a StructureElement.Loci
+        if (loci.elements.length === 1) return false // only a single unit
+
+        const map = new Map<number, OrderedSet<StructureElement.UnitIndex>>()
+        for (const e of loci.elements) map.set(e.unit.id, e.indices)
+
         for (const e of loci.elements) {
-            OrderedSet.forEach(e.indices, v => {
-                const indices = structure.links.getBondIndices(v, e.unit)
-                for (let i = 0, il = indices.length; i < il; ++i) {
-                    if (apply(Interval.ofSingleton(indices[i]))) changed = true
+            structure.interUnitBonds.getLinkedUnits(e.unit).forEach(b => {
+                const otherLociIndices = map.get(b.unitB.id)
+                if (otherLociIndices) {
+                    OrderedSet.forEach(e.indices, v => {
+                        if (!b.linkedElementIndices.includes(v)) return
+                        b.getBonds(v).forEach(bi => {
+                            if (OrderedSet.has(otherLociIndices, bi.indexB)) {
+                                const idx = structure.interUnitBonds.getBondIndex(v, e.unit, bi.indexB, b.unitB)
+                                if (apply(Interval.ofSingleton(idx))) changed = true
+                            }
+                        })
+                    })
                 }
             })
         }
