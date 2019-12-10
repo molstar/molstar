@@ -5,20 +5,21 @@
  */
 
 import './index.html'
-import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Canvas3D } from '../../mol-canvas3d/canvas3d';
-import { CIF, CifFrame } from '../../mol-io/reader/cif';
-import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
+import { CifFrame, CIF } from '../../mol-io/reader/cif'
 import { Model, Structure, StructureElement, Unit } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../mol-theme/color';
 import { SizeTheme } from '../../mol-theme/size';
 import { CartoonRepresentationProvider } from '../../mol-repr/structure/representation/cartoon';
-import { AccessibleSurfaceArea } from '../../mol-model/structure/structure/accessible-surface-area';
+import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 import { Color, ColorScale } from '../../mol-util/color';
-import { ColorListName, ColorListOptions } from '../../mol-util/color/lists';
+import { Location } from '../../mol-model/location';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Location } from '../../mol-model/location';
+import { AccessibleSurfaceArea } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley';
+import { VdWLookup } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley/common';
+import { resizeCanvas } from '../../mol-canvas3d/util';
+import { ColorListName, ColorListOptions } from '../../mol-util/color/lists';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -73,14 +74,16 @@ async function init(props = {}) {
         // '1aon'
         // '1acj'
         // '1pga'
-        '1brr'
-        // '1hrc'
+        // '1brr'
+        '1hrc'
     )
     const models = await getModels(cif)
     const structure = await getStructure(models[0])
 
     // async compute ASA
+    console.time('computeASA')
     accessibleSurfaceArea = await AccessibleSurfaceArea.compute(structure)
+    console.timeEnd('computeASA')
 
     const cartoonRepr = getCartoonRepr()
 
@@ -116,11 +119,12 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
         maxLabel: '1.0 (exposed)',
         domain: [0.0, 1.0]
     })
+
     color = (location: Location): Color => {
         if (StructureElement.Location.is(location)) {
             if (Unit.isAtomic(location.unit)) {
-                const value = accessibleSurfaceArea.relativeAccessibleSurfaceArea![location.unit.residueIndex[location.element]];
-                return value !== AccessibleSurfaceArea.VdWLookup[0] /* signals missing value */ ? scale.color(value) : DefaultColor;
+                const value = accessibleSurfaceArea.relativeAccessibleSurfaceArea[location.unit.residueIndex[location.element]];
+                return value !== VdWLookup[0] /* signals missing value */ ? scale.color(value) : DefaultColor;
             }
         }
 
