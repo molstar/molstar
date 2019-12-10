@@ -68,6 +68,7 @@ namespace Task {
     }
 
     export function constant<T>(name: string, value: T): Task<T> { return create(name, async ctx => value); }
+    export function empty(): Task<void> { return create('', async ctx => {}); }
     export function fail(name: string, reason: string): Task<any> { return create(name, async ctx => { throw new Error(reason); }); }
 
     export interface Progress {
