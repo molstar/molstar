@@ -16,7 +16,7 @@ import { Table } from '../../mol-data/db';
 import { StringBuilder } from '../../mol-util';
 import { Task } from '../../mol-task';
 import { createVolumeIsosurfaceMesh } from '../../mol-repr/volume/isosurface';
-import { createEmptyTheme } from '../../mol-theme/theme';
+import { Theme } from '../../mol-theme/theme';
 import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
 
 require('util.promisify').shim();
@@ -40,7 +40,7 @@ function print(data: Volume) {
 }
 
 async function doMesh(data: Volume, filename: string) {
-    const mesh = await Task.create('', runtime => createVolumeIsosurfaceMesh({ runtime }, data.volume, createEmptyTheme(), { isoValue: VolumeIsoValue.absolute(1.5) } )).run();
+    const mesh = await Task.create('', runtime => createVolumeIsosurfaceMesh({ runtime }, data.volume, Theme.createEmpty(), { isoValue: VolumeIsoValue.absolute(1.5) } )).run();
     console.log({ vc: mesh.vertexCount, tc: mesh.triangleCount });
 
     // Export the mesh in OBJ format.

@@ -9,7 +9,7 @@ import { Visual, VisualContext } from '../visual';
 import { VolumeData } from '../../mol-model/volume';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
-import { Theme, createEmptyTheme } from '../../mol-theme/theme';
+import { Theme } from '../../mol-theme/theme';
 import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
 import { createRenderObject, RenderObjectKindType, RenderObjectValuesType, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
@@ -64,7 +64,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
     let newVolume: VolumeData
 
     let currentProps: PD.Values<P> = Object.assign({}, defaultProps)
-    let currentTheme: Theme = createEmptyTheme()
+    let currentTheme: Theme = Theme.createEmpty()
     let currentVolume: VolumeData
 
     let geometry: G
@@ -219,7 +219,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
     let _volume: VolumeData
     let _params: P
     let _props: PD.Values<P>
-    let _theme = createEmptyTheme()
+    let _theme = Theme.createEmpty()
 
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
         if (volume && volume !== _volume) {

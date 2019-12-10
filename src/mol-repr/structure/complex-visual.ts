@@ -10,7 +10,7 @@ import { Visual, VisualContext } from '../visual';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
-import { Theme, createEmptyTheme } from '../../mol-theme/theme';
+import { Theme } from '../../mol-theme/theme';
 import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
 import { createRenderObject, RenderObjectKindType, RenderObjectValuesType } from '../../mol-gl/render-object';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
@@ -72,7 +72,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
     let newStructure: Structure
 
     let currentProps: PD.Values<P> = Object.assign({}, defaultProps)
-    let currentTheme: Theme = createEmptyTheme()
+    let currentTheme: Theme = Theme.createEmpty()
     let currentStructure: Structure
 
     let geometry: G

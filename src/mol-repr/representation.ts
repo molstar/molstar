@@ -8,7 +8,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { WebGLContext } from '../mol-gl/webgl/context';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
-import { ThemeRegistryContext, Theme, createEmptyTheme } from '../mol-theme/theme';
+import { ThemeRegistryContext, Theme } from '../mol-theme/theme';
 import { Subject } from 'rxjs';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
 import { Task } from '../mol-task';
@@ -47,6 +47,7 @@ export interface RepresentationProvider<D, P extends PD.Params, S extends Repres
     readonly defaultColorTheme: string
     readonly defaultSizeTheme: string
     readonly isApplicable: (data: D) => boolean
+    readonly ensureDependencies?: (data: D) => Promise<void>
 }
 
 export namespace RepresentationProvider {
@@ -186,7 +187,7 @@ namespace Representation {
 
     export type Any = Representation<any, any, any>
     export const Empty: Any = {
-        label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(), state: createState(), theme: createEmptyTheme(),
+        label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(), state: createState(), theme: Theme.createEmpty(),
         createOrUpdate: () => Task.constant('', undefined),
         setState: () => {},
         setTheme: () => {},
@@ -201,7 +202,7 @@ namespace Representation {
         let version = 0
         const updated = new Subject<number>()
         const currentState = stateBuilder.create()
-        let currentTheme = createEmptyTheme()
+        let currentTheme = Theme.createEmpty()
 
         let currentParams: P
         let currentProps: PD.Values<P>
@@ -303,7 +304,7 @@ namespace Representation {
         let version = 0
         const updated = new Subject<number>()
         const currentState = Representation.createState()
-        const currentTheme = createEmptyTheme()
+        const currentTheme = Theme.createEmpty()
 
         const currentParams = PD.clone(BaseGeometry.Params)
         const currentProps = PD.getDefaultValues(BaseGeometry.Params)

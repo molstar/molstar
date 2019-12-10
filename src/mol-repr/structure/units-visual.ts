@@ -10,7 +10,7 @@ import { RepresentationProps } from '../representation';
 import { Visual, VisualContext } from '../visual';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
-import { Theme, createEmptyTheme } from '../../mol-theme/theme';
+import { Theme } from '../../mol-theme/theme';
 import { createUnitsTransform, includesUnitKind } from './visual/util/common';
 import { createRenderObject, RenderObjectKindType, RenderObjectValuesType } from '../../mol-gl/render-object';
 import { UnitsParams } from './units-representation';
@@ -70,7 +70,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
     let renderObject: RenderObjectKindType[G['kind']] | undefined
 
     let newProps: PD.Values<P> = Object.assign({}, defaultProps)
-    let newTheme: Theme = createEmptyTheme()
+    let newTheme: Theme = Theme.createEmpty()
     let newStructureGroup: StructureGroup
 
     let currentProps: PD.Values<P>

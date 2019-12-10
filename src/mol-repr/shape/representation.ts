@@ -9,7 +9,7 @@ import { Representation } from '../representation';
 import { Shape, ShapeGroup } from '../../mol-model/shape';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, RenderObjectKindType, createRenderObject, RenderObjectValuesType } from '../../mol-gl/render-object';
-import { createEmptyTheme, Theme } from '../../mol-theme/theme';
+import { Theme } from '../../mol-theme/theme';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
 import { ShapeGroupColorTheme } from '../../mol-theme/color/shape-group';
@@ -47,7 +47,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     const renderObjects: RenderObjectKindType[G['kind']][] = []
     let _renderObject: RenderObjectKindType[G['kind']] | undefined
     let _shape: Shape<G>
-    let _theme = createEmptyTheme()
+    let _theme = Theme.createEmpty()
     let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P) // TODO avoid casting
     let currentParams: P
     let locationIt: LocationIterator

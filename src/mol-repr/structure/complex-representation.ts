@@ -11,7 +11,7 @@ import { RepresentationContext, RepresentationParamsGetter } from '../representa
 import { Structure, StructureElement, Link } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
-import { createEmptyTheme, Theme } from '../../mol-theme/theme';
+import { Theme } from '../../mol-theme/theme';
 import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci, isEveryLoci } from '../../mol-model/loci';
@@ -29,7 +29,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
     let _structure: Structure
     let _params: P
     let _props: PD.Values<P>
-    let _theme = createEmptyTheme()
+    let _theme = Theme.createEmpty()
 
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, structure?: Structure) {
         if (structure && structure !== _structure) {

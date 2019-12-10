@@ -207,7 +207,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             const provider = plugin.structureRepresentation.registry.get(params.type.name)
             const props = params.type.params || {}
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, provider.getParams)
-            repr.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, params))
+            repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
             return new SO.Molecule.Structure.Representation3D({ repr, source: a } , { label: provider.label });
@@ -217,7 +217,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
             const props = { ...b.data.repr.props, ...newParams.type.params }
-            b.data.repr.setTheme(createTheme(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
+            b.data.repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.source = a
             return StateTransformer.UpdateResult.Updated;

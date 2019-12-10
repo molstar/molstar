@@ -18,7 +18,7 @@ import { getStreamingMethod, getIds, getContourLevel, getEmdbIds } from './util'
 import { VolumeStreaming } from './behavior';
 import { VolumeRepresentation3DHelpers } from '../../../../mol-plugin/state/transforms/representation';
 import { BuiltInVolumeRepresentations } from '../../../../mol-repr/volume/registry';
-import { createTheme } from '../../../../mol-theme/theme';
+import { Theme } from '../../../../mol-theme/theme';
 import { Box3D } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 
@@ -249,7 +249,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         const provider = BuiltInVolumeRepresentations.isosurface;
         const props = params.type.params || {}
         const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
-        repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
+        repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
         await repr.createOrUpdate(props, channel.data).runInContext(ctx);
         return new SO.Volume.Representation3D({ repr, source: a }, { label: `${Math.round(channel.isoValue.relativeValue * 100) / 100} σ [${srcParams.channel}]` });
     }),
@@ -262,7 +262,7 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
 
         const params = createVolumeProps(a.data, newParams.channel);
         const props = { ...b.data.repr.props, ...params.type.params };
-        b.data.repr.setTheme(createTheme(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
+        b.data.repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: channel.data }, params))
         await b.data.repr.createOrUpdate(props, channel.data).runInContext(ctx);
         return StateTransformer.UpdateResult.Updated;
     })

@@ -23,16 +23,19 @@ export interface ThemeDataContext {
     shape?: Shape
 }
 
-export interface Theme {
+export { Theme }
+
+interface Theme {
     color: ColorTheme<any>
     size: SizeTheme<any>
     // label: LabelTheme // TODO
 }
 
+namespace Theme {
 type Props = { [k: string]: any }
 
-export function createTheme(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props, theme?: Theme) {
-    theme = theme || createEmptyTheme()
+    export function create(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props, theme?: Theme) {
+        theme = theme || createEmpty()
 
     const colorProps = props.colorTheme as PD.NamedParams
     const sizeProps = props.sizeTheme as PD.NamedParams
@@ -43,8 +46,14 @@ export function createTheme(ctx: ThemeRegistryContext, data: ThemeDataContext, p
     return theme
 }
 
-export function createEmptyTheme(): Theme {
+    export function createEmpty(): Theme {
     return { color: ColorTheme.Empty, size: SizeTheme.Empty }
+}
+
+    export async function ensureDependencies(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
+        await ctx.colorThemeRegistry.get(props.colorTheme.name).ensureDependencies?.(data)
+        await ctx.sizeThemeRegistry.get(props.sizeTheme.name).ensureDependencies?.(data)
+    }
 }
 
 //
