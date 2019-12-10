@@ -23,8 +23,6 @@ const CartoonVisuals = {
     'nucleotide-ring': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideRingParams>) => UnitsRepresentation('Nucleotide ring mesh', ctx, getParams, NucleotideRingVisual),
     'direction-wedge': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerDirectionParams>) => UnitsRepresentation('Polymer direction wedge', ctx, getParams, PolymerDirectionVisual)
 }
-type CartoonVisualName = keyof typeof CartoonVisuals
-const CartoonVisualOptions = Object.keys(CartoonVisuals).map(name => [name, name] as [CartoonVisualName, string])
 
 export const CartoonParams = {
     ...PolymerTraceParams,
@@ -33,7 +31,7 @@ export const CartoonParams = {
     ...NucleotideRingParams,
     ...PolymerDirectionParams,
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    visuals: PD.MultiSelect<CartoonVisualName>(['polymer-trace', 'polymer-gap', 'nucleotide-block'], CartoonVisualOptions),
+    visuals: PD.MultiSelect(['polymer-trace', 'polymer-gap', 'nucleotide-block'], PD.objectToOptions(CartoonVisuals)),
 }
 export type CartoonParams = typeof CartoonParams
 export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure) {

@@ -6,7 +6,6 @@
 
 import { Loci } from '../../../mol-model/loci';
 import { RuntimeContext } from '../../../mol-task';
-import { stringToWords } from '../../../mol-util/string';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -78,8 +77,6 @@ const DihedralVisuals = {
     'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }) }),
     'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
-type DihedralVisualName = keyof typeof DihedralVisuals
-const DihedralVisualOptions = Object.keys(DihedralVisuals).map(name => [name, stringToWords(name)] as [DihedralVisualName, string])
 
 export const DihedralParams = {
     ...VectorsParams,
@@ -87,7 +84,7 @@ export const DihedralParams = {
     ...ArcParams,
     ...SectorParams,
     ...TextParams,
-    visuals: PD.MultiSelect<DihedralVisualName>(['extenders', 'sector', 'text'], DihedralVisualOptions),
+    visuals: PD.MultiSelect(['extenders', 'sector', 'text'], PD.objectToOptions(DihedralVisuals)),
 }
 export type DihedralParams = typeof DihedralParams
 export type DihedralProps = PD.Values<DihedralParams>

@@ -15,12 +15,10 @@ import { OrientationEllipsoidMeshParams, OrientationEllipsoidMeshVisual } from '
 const OrientationVisuals = {
     'orientation-ellipsoid-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, OrientationEllipsoidMeshParams>) => UnitsRepresentation('Orientation ellipsoid mesh', ctx, getParams, OrientationEllipsoidMeshVisual),
 }
-type OrientationVisualName = keyof typeof OrientationVisuals
-const OrientationVisualOptions = Object.keys(OrientationVisuals).map(name => [name, name] as [OrientationVisualName, string])
 
 export const OrientationParams = {
     ...OrientationEllipsoidMeshParams,
-    visuals: PD.MultiSelect<OrientationVisualName>(['orientation-ellipsoid-mesh'], OrientationVisualOptions),
+    visuals: PD.MultiSelect(['orientation-ellipsoid-mesh'], PD.objectToOptions(OrientationVisuals)),
 }
 export type OrientationParams = typeof OrientationParams
 export function getOrientationParams(ctx: ThemeRegistryContext, structure: Structure) {

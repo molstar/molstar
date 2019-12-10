@@ -6,7 +6,6 @@
 
 import { Loci } from '../../../mol-model/loci';
 import { RuntimeContext } from '../../../mol-task';
-import { stringToWords } from '../../../mol-util/string';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ShapeRepresentation } from '../representation';
@@ -53,13 +52,11 @@ const OrientationVisuals = {
     'box': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<OrientationData, BoxParams>) => ShapeRepresentation(getBoxShape, Mesh.Utils),
     'ellipsoid': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<OrientationData, EllipsoidParams>) => ShapeRepresentation(getEllipsoidShape, Mesh.Utils),
 }
-type OrientationVisualName = keyof typeof OrientationVisuals
-const OrientationVisualOptions = Object.keys(OrientationVisuals).map(name => [name, stringToWords(name)] as [OrientationVisualName, string])
 
 export const OrientationParams = {
     ...AxesParams,
     ...BoxParams,
-    visuals: PD.MultiSelect<OrientationVisualName>(['box'], OrientationVisualOptions),
+    visuals: PD.MultiSelect(['box'], PD.objectToOptions(OrientationVisuals)),
     color: PD.Color(ColorNames.orange),
     scale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 })
 }

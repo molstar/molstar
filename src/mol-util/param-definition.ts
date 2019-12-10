@@ -11,7 +11,7 @@ import { Vec2 as Vec2Data, Vec3 as Vec3Data } from '../mol-math/linear-algebra';
 import { deepClone } from './object';
 import { Script as ScriptData } from '../mol-script/script';
 import { Legend } from './legend';
-import { camelCaseToWords } from './string';
+import { stringToWords } from './string';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -65,9 +65,9 @@ export namespace ParamDefinition {
     export interface Select<T extends string | number> extends Base<T> {
         type: 'select'
         /** array of (value, label) tuples */
-        options: (readonly [T, string])[]
+        options: readonly (readonly [T, string])[]
     }
-    export function Select<T extends string | number>(defaultValue: T, options: (readonly [T, string])[], info?: Info): Select<T> {
+    export function Select<T extends string | number>(defaultValue: T, options: readonly (readonly [T, string])[], info?: Info): Select<T> {
         return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options }, info)
     }
 
@@ -83,9 +83,9 @@ export namespace ParamDefinition {
     export interface MultiSelect<E extends string, T = E[]> extends Base<T> {
         type: 'multi-select'
         /** array of (value, label) tuples */
-        options: [E, string][]
+        options: readonly (readonly [E, string])[]
     }
-    export function MultiSelect<E extends string, T = E[]>(defaultValue: T, options: [E, string][], info?: Info): MultiSelect<E, T> {
+    export function MultiSelect<E extends string, T = E[]>(defaultValue: T, options: readonly (readonly [E, string])[], info?: Info): MultiSelect<E, T> {
         // TODO: check if default value is a subset of options?
         return setInfo<MultiSelect<E, T>>({ type: 'multi-select', defaultValue, options }, info)
     }
@@ -203,7 +203,7 @@ export namespace ParamDefinition {
     export function MappedStatic<C extends Params>(defaultKey: keyof C, map: C, info?: Info & { options?: [keyof C, string][] }): Mapped<NamedParamUnion<C>> {
         const options: [string, string][] = info && info.options
             ? info.options as [string, string][]
-            : Object.keys(map).map(k => [k, camelCaseToWords(k)]) as [string, string][];
+            : Object.keys(map).map(k => [k, stringToWords(k)]) as [string, string][];
         const name = checkDefaultKey(defaultKey, options);
         return setInfo<Mapped<NamedParamUnion<C>>>({
             type: 'mapped',
@@ -363,7 +363,40 @@ export namespace ParamDefinition {
         return false;
     }
 
-    function checkDefaultKey<T>(k: T, options: (readonly [T, string])[]) {
+    /**
+     * Map an object to a list of [K, string][] to be used as options, stringToWords for key used by default (or identity of null).
+     *
+     * if options is { [string]: string } and mapping is not provided, use the Value.
+     */
+    export function objectToOptions<K extends string, V>(options: { [k in K]: V }, f?: null | ((k: K, v: V) => string)): [K, string][] {
+        const ret: [K, string][] = [];
+        for (const k of Object.keys(options) as K[]) {
+            if (!f) {
+                if (typeof options[k as K] === 'string') ret.push([k as K, options[k as K] as any]);
+                else ret.push([k as K, f === null ? k : stringToWords(k)]);
+            } else {
+                ret.push([k, f(k as K, options[k as K])])
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Map array of options using stringToWords by default (or identity of null).
+     */
+    export function arrayToOptions<V extends string>(xs: readonly V[], f?: null | ((v: V) => string)): [V, string][] {
+        const ret: [V, string][] = [];
+        for (const x of xs) {
+            if (!f) {
+                ret.push([x, f === null ? x : stringToWords(x)]);
+            } else {
+                ret.push([x, f(x)])
+            }
+        }
+        return ret;
+    }
+
+    function checkDefaultKey<T>(k: T, options: readonly (readonly [T, string])[]) {
         for (const o of options) {
             if (o[0] === k) return k;
         }

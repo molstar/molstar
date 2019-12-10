@@ -19,14 +19,12 @@ const CarbohydrateVisuals = {
     'carbohydrate-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateLinkParams>) => ComplexRepresentation('Carbohydrate link cylinder', ctx, getParams, CarbohydrateLinkVisual),
     'carbohydrate-terminal-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateTerminalLinkParams>) => ComplexRepresentation('Carbohydrate terminal link cylinder', ctx, getParams, CarbohydrateTerminalLinkVisual),
 }
-type CarbohydrateVisualName = keyof typeof CarbohydrateVisuals
-const CarbohydrateVisualOptions = Object.keys(CarbohydrateVisuals).map(name => [name, name] as [CarbohydrateVisualName, string])
 
 export const CarbohydrateParams = {
     ...CarbohydrateSymbolParams,
     ...CarbohydrateLinkParams,
     ...CarbohydrateTerminalLinkParams,
-    visuals: PD.MultiSelect<CarbohydrateVisualName>(['carbohydrate-symbol', 'carbohydrate-link', 'carbohydrate-terminal-link'], CarbohydrateVisualOptions),
+    visuals: PD.MultiSelect(['carbohydrate-symbol', 'carbohydrate-link', 'carbohydrate-terminal-link'], PD.objectToOptions(CarbohydrateVisuals)),
 }
 export type CarbohydrateParams = typeof CarbohydrateParams
 export function getCarbohydrateParams(ctx: ThemeRegistryContext, structure: Structure) {

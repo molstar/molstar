@@ -6,7 +6,6 @@
 
 import { Loci } from '../../../mol-model/loci';
 import { RuntimeContext } from '../../../mol-task';
-import { stringToWords } from '../../../mol-util/string';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -72,15 +71,13 @@ const AngleVisuals = {
     'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }) }),
     'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
-type AngleVisualName = keyof typeof AngleVisuals
-const AngleVisualOptions = Object.keys(AngleVisuals).map(name => [name, stringToWords(name)] as [AngleVisualName, string])
 
 export const AngleParams = {
     ...VectorsParams,
     ...ArcParams,
     ...SectorParams,
     ...TextParams,
-    visuals: PD.MultiSelect<AngleVisualName>(['vectors', 'sector', 'text'], AngleVisualOptions),
+    visuals: PD.MultiSelect(['vectors', 'sector', 'text'], PD.objectToOptions(AngleVisuals)),
 }
 export type AngleParams = typeof AngleParams
 export type AngleProps = PD.Values<AngleParams>

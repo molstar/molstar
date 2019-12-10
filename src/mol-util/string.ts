@@ -38,12 +38,17 @@ export function splitSnakeCase(str: string) {
     return str.replace(/_/g, ' ')
 }
 
+
 export function snakeCaseToWords(str: string) {
     return capitalize(splitSnakeCase(str))
 }
 
+function splitSnakeplitCase(str: string) {
+    return str.replace(/[_-]/g, ' ')
+}
+
 export function stringToWords(str: string) {
-    return capitalize(splitCamelCase(splitSnakeCase(str)))
+    return capitalize(splitCamelCase(splitSnakeplitCase(str)))
 }
 
 export function substringStartsWith(str: string, start: number, end: number, target: string) {

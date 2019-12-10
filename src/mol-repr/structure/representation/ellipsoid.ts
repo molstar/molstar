@@ -20,8 +20,6 @@ const EllipsoidVisuals = {
     'intra-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitLinkParams>) => UnitsRepresentation('Intra-unit link cylinder', ctx, getParams, IntraUnitLinkVisual),
     'inter-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitLinkParams>) => ComplexRepresentation('Inter-unit link cylinder', ctx, getParams, InterUnitLinkVisual),
 }
-type EllipsoidVisualName = keyof typeof EllipsoidVisuals
-const EllipsoidVisualOptions = Object.keys(EllipsoidVisuals).map(name => [name, name] as [EllipsoidVisualName, string])
 
 export const EllipsoidParams = {
     ...EllipsoidMeshParams,
@@ -31,7 +29,7 @@ export const EllipsoidParams = {
     sizeFactor: PD.Numeric(1, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(0.1, { min: 0.01, max: 3, step: 0.01 }),
     linkCap: PD.Boolean(true),
-    visuals: PD.MultiSelect<EllipsoidVisualName>(['ellipsoid-mesh', 'intra-link', 'inter-link'], EllipsoidVisualOptions),
+    visuals: PD.MultiSelect(['ellipsoid-mesh', 'intra-link', 'inter-link'], PD.objectToOptions(EllipsoidVisuals)),
 }
 export type EllipsoidParams = typeof EllipsoidParams
 export function getEllipsoidParams(ctx: ThemeRegistryContext, structure: Structure) {

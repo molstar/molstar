@@ -178,10 +178,7 @@ export class StructureRepresentationControls extends CollapsableControls<Collaps
     }
 
     renderControls() {
-        const presets = Object.keys(P).map(name => {
-            return [name, camelCaseToWords(name)] as [string, string]
-        })
-
+        const presets = PD.objectToOptions(P, camelCaseToWords);
         return <div>
             <div className='msp-control-row'>
                 <div className='msp-select-row'>

@@ -14,12 +14,10 @@ import { LabelTextVisual, LabelTextParams } from '../visual/label-text';
 const LabelVisuals = {
     'label-text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, LabelTextParams>) => ComplexRepresentation('Label text', ctx, getParams, LabelTextVisual),
 }
-type LabelVisualName = keyof typeof LabelVisuals
-const LabelVisualOptions = Object.keys(LabelVisuals).map(name => [name, name] as [LabelVisualName, string])
 
 export const LabelParams = {
     ...LabelTextParams,
-    visuals: PD.MultiSelect<LabelVisualName>(['label-text'], LabelVisualOptions),
+    visuals: PD.MultiSelect(['label-text'], PD.objectToOptions(LabelVisuals)),
 }
 export type LabelParams = typeof LabelParams
 export function getLabelParams(ctx: ThemeRegistryContext, structure: Structure) {

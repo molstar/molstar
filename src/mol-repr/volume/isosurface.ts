@@ -146,13 +146,11 @@ const IsosurfaceVisuals = {
     'solid': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, IsosurfaceMeshParams>) => VolumeRepresentation('Isosurface mesh', ctx, getParams, IsosurfaceMeshVisual),
     'wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, IsosurfaceWireframeParams>) => VolumeRepresentation('Isosurface wireframe', ctx, getParams, IsosurfaceWireframeVisual),
 }
-type IsosurfaceVisualName = keyof typeof IsosurfaceVisuals
-const IsosurfaceVisualOptions = Object.keys(IsosurfaceVisuals).map(name => [name, name] as [IsosurfaceVisualName, string])
 
 export const IsosurfaceParams = {
     ...IsosurfaceMeshParams,
     ...IsosurfaceWireframeParams,
-    visuals: PD.MultiSelect<IsosurfaceVisualName>(['solid'], IsosurfaceVisualOptions),
+    visuals: PD.MultiSelect(['solid'], PD.objectToOptions(IsosurfaceVisuals)),
 }
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {

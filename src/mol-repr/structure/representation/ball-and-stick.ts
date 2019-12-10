@@ -21,8 +21,6 @@ const BallAndStickVisuals = {
     'intra-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitLinkParams>) => UnitsRepresentation('Intra-unit link cylinder', ctx, getParams, IntraUnitLinkVisual),
     'inter-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitLinkParams>) => ComplexRepresentation('Inter-unit link cylinder', ctx, getParams, InterUnitLinkVisual),
 }
-type BallAndStickVisualName = keyof typeof BallAndStickVisuals
-const BallAndStickVisualOptions = Object.keys(BallAndStickVisuals).map(name => [name, name] as [BallAndStickVisualName, string])
 
 export const BallAndStickParams = {
     ...ElementSphereParams,
@@ -31,7 +29,7 @@ export const BallAndStickParams = {
     unitKinds: PD.MultiSelect<UnitKind>(['atomic'], UnitKindOptions),
     sizeFactor: PD.Numeric(0.15, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2/3, { min: 0.01, max: 3, step: 0.01 }),
-    visuals: PD.MultiSelect<BallAndStickVisualName>(['element-sphere', 'intra-link', 'inter-link'], BallAndStickVisualOptions),
+    visuals: PD.MultiSelect(['element-sphere', 'intra-link', 'inter-link'], PD.objectToOptions(BallAndStickVisuals))
 }
 export type BallAndStickParams = typeof BallAndStickParams
 export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Structure) {
