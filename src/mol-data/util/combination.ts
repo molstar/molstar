@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -27,7 +27,7 @@ function nextIndex(n: number) {
     return ripple | ones
 };
 
-export class CombinationIterator<T> implements Iterator<T[]> {
+export class CombinationIterator<T> implements Iterator<ReadonlyArray<T>> {
     private value: T[]
     private index: number
     private maxIndex: number
