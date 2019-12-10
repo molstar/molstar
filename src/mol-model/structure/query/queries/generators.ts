@@ -280,7 +280,7 @@ export function linkedAtomicPairs(linkTest?: QueryPredicate): StructureQuery {
     return function query_linkedAtomicPairs(ctx) {
         const structure = ctx.inputStructure;
 
-        const interLinks = structure.links;
+        const interLinks = structure.interUnitBonds;
         // Note: each link is called twice, that's why we need the unique builder.
         const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
 

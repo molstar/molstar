@@ -375,7 +375,7 @@ export namespace PropertyAccess {
     export async function runLinks() {
         const { structures } = await readCIF('e:/test/quick/3j3q_full.bcif');
         console.time('links');
-        structures[0].links
+        structures[0].interUnitBonds
         console.timeEnd('links');
     }
 

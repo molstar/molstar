@@ -87,7 +87,7 @@ export function printLinks(structure: Structure, showIntra: boolean, showInter: 
 
     if (showInter) {
         console.log('\nInter Unit Links\n=============');
-        const links = structure.links;
+        const links = structure.interUnitBonds;
         for (const unit of structure.units) {
             if (!Unit.isAtomic(unit)) continue;
 

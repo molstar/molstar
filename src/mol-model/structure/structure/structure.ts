@@ -40,7 +40,7 @@ class Structure {
     private _props: {
         parent?: Structure,
         lookup3d?: StructureLookup3D,
-        links?: InterUnitBonds,
+        interUnitBonds?: InterUnitBonds,
         crossLinkRestraints?: PairRestraints<CrossLinkRestraint>,
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
         unitSymmetryGroupsIndexMap?: IntMap<number>,
@@ -200,10 +200,10 @@ class Structure {
         return this._props.lookup3d;
     }
 
-    get links() {
-        if (this._props.links) return this._props.links;
-        this._props.links = computeInterUnitBonds(this);
-        return this._props.links;
+    get interUnitBonds() {
+        if (this._props.interUnitBonds) return this._props.interUnitBonds;
+        this._props.interUnitBonds = computeInterUnitBonds(this);
+        return this._props.interUnitBonds;
     }
 
     get crossLinkRestraints() {

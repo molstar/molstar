@@ -238,7 +238,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
     const { queryCtx, input, target, disjunct } = ctx;
     const atomicLink = queryCtx.atomicLink;
 
-    const interLinks = input.links;
+    const interLinks = input.interUnitBonds;
     for (const unit of structure.units) {
         if (!Unit.isAtomic(unit)) continue;
 

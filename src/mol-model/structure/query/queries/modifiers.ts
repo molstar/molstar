@@ -332,7 +332,7 @@ function includeConnectedStep(ctx: QueryContext, wholeResidues: boolean, structu
 
 function expandConnected(ctx: QueryContext, structure: Structure) {
     const inputStructure = ctx.inputStructure;
-    const interLinks = inputStructure.links;
+    const interLinks = inputStructure.interUnitBonds;
     const builder = new StructureUniqueSubsetBuilder(inputStructure);
 
     // Note: each link is visited twice so that link.atom-a and link.atom-b both get the "swapped values"
