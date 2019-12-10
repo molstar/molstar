@@ -122,17 +122,17 @@ export function eachSerialElement(loci: Loci, structure: Structure, apply: (inte
     let changed = false
     if (!StructureElement.Loci.is(loci)) return false
     if (!Structure.areEquivalent(loci.structure, structure)) return false
-    const { unitElementCount } = structure.serialMapping
+    const { cumulativeUnitElementCount } = structure.serialMapping
     for (const e of loci.elements) {
         const unitIdx = structure.unitIndexMap.get(e.unit.id)
         if (unitIdx !== undefined) {
             if (Interval.is(e.indices)) {
-                const start = unitElementCount[unitIdx] + Interval.start(e.indices)
-                const end = unitElementCount[unitIdx] + Interval.end(e.indices)
+                const start = cumulativeUnitElementCount[unitIdx] + Interval.start(e.indices)
+                const end = cumulativeUnitElementCount[unitIdx] + Interval.end(e.indices)
                 if (apply(Interval.ofBounds(start, end))) changed = true
             } else {
                 for (let i = 0, _i = e.indices.length; i < _i; i++) {
-                    const idx = unitElementCount[unitIdx] + e.indices[i]
+                    const idx = cumulativeUnitElementCount[unitIdx] + e.indices[i]
                     if (apply(Interval.ofSingleton(idx))) changed = true
                 }
             }
@@ -144,10 +144,10 @@ export function eachSerialElement(loci: Loci, structure: Structure, apply: (inte
 export function getSerialElementLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId
     if (id === objectId) {
-        const { unitIndices, unitElementCount } = structure.serialMapping
+        const { unitIndices, cumulativeUnitElementCount } = structure.serialMapping
         const unitIdx = unitIndices[groupId]
         const unit = structure.units[unitIdx]
-        const idx = groupId - unitElementCount[unitIdx]
+        const idx = groupId - cumulativeUnitElementCount[unitIdx]
         const indices = OrderedSet.ofSingleton(idx as StructureElement.UnitIndex)
         return StructureElement.Loci(structure, [{ unit, indices }])
     }

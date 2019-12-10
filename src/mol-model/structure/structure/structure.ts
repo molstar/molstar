@@ -471,8 +471,8 @@ function getPolymerUnitCount(structure: Structure): number {
 }
 
 interface SerialMapping {
-    /** Cummulative count of elements for each unit */
-    unitElementCount: ArrayLike<number>
+    /** Cumulative count of elements for each unit */
+    cumulativeUnitElementCount: ArrayLike<number>
     /** Unit index for each serial element in the structure */
     unitIndices: ArrayLike<number>
     /** Element index for each serial element in the structure */
@@ -480,11 +480,11 @@ interface SerialMapping {
 }
 function getSerialMapping(structure: Structure): SerialMapping {
     const { units, elementCount } = structure
-    const unitElementCount = new Uint32Array(units.length)
+    const cumulativeUnitElementCount = new Uint32Array(units.length)
     const unitIndices = new Uint32Array(elementCount)
-    const elementIndices = new Uint32Array(elementCount)
+    const elementIndices = new Uint32Array(elementCount) as unknown as ElementIndex[]
     for (let i = 0, m = 0, il = units.length; i < il; ++i) {
-        unitElementCount[i] = m
+        cumulativeUnitElementCount[i] = m
         const { elements } = units[i]
         for (let j = 0, jl = elements.length; j < jl; ++j) {
             const mj = m + j
@@ -493,11 +493,7 @@ function getSerialMapping(structure: Structure): SerialMapping {
         }
         m += elements.length
     }
-    return {
-        unitElementCount,
-        unitIndices,
-        elementIndices: elementIndices as unknown as ElementIndex[]
-    }
+    return { cumulativeUnitElementCount, unitIndices, elementIndices }
 }
 
 namespace Structure {

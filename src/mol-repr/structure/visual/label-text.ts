@@ -71,7 +71,7 @@ function createChainText(ctx: VisualContext, structure: Structure, theme: Theme,
     const l = StructureElement.Location.create();
     const { units, serialMapping } = structure;
     const { auth_asym_id, label_asym_id } = StructureProperties.chain;
-    const { unitElementCount } = serialMapping
+    const { cumulativeUnitElementCount } = serialMapping
 
     const count = units.length
     const { chainScale } = props
@@ -86,7 +86,7 @@ function createChainText(ctx: VisualContext, structure: Structure, theme: Theme,
         const authId = auth_asym_id(l)
         const labelId = label_asym_id(l)
         const text = authId === labelId ? labelId : `${labelId} [${authId}]`
-        builder.add(text, tmpVec[0], tmpVec[1], tmpVec[2], radius, chainScale, unitElementCount[i])
+        builder.add(text, tmpVec[0], tmpVec[1], tmpVec[2], radius, chainScale, cumulativeUnitElementCount[i])
     }
 
     return builder.getText()
@@ -97,7 +97,7 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
     const l = StructureElement.Location.create();
     const { units, serialMapping } = structure;
     const { auth_seq_id, label_comp_id } = StructureProperties.residue;
-    const { unitElementCount } = serialMapping
+    const { cumulativeUnitElementCount } = serialMapping
 
     const count = structure.polymerResidueCount * 2
     const { residueScale } = props
@@ -136,7 +136,7 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
             const compId = label_comp_id(l)
 
             const text = `${compId} ${authSeqId}`
-            builder.add(text, center[0], center[1], center[2], radius, residueScale, unitElementCount[i])
+            builder.add(text, center[0], center[1], center[2], radius, residueScale, cumulativeUnitElementCount[i])
         }
     }
 
@@ -148,7 +148,7 @@ function createElementText(ctx: VisualContext, structure: Structure, theme: Them
     const l = StructureElement.Location.create();
     const { units, serialMapping } = structure;
     const { label_atom_id, label_alt_id } = StructureProperties.atom;
-    const { unitElementCount } = serialMapping
+    const { cumulativeUnitElementCount } = serialMapping
 
     const sizeTheme = PhysicalSizeTheme({}, {})
 
@@ -168,7 +168,7 @@ function createElementText(ctx: VisualContext, structure: Structure, theme: Them
             const atomId = label_atom_id(l)
             const altId = label_alt_id(l)
             const text = altId ? `${atomId}%${altId}` : atomId
-            builder.add(text, tmpVec[0], tmpVec[1], tmpVec[2], sizeTheme.size(l), elementScale, unitElementCount[i])
+            builder.add(text, tmpVec[0], tmpVec[1], tmpVec[2], sizeTheme.size(l), elementScale, cumulativeUnitElementCount[i])
         }
     }
 
