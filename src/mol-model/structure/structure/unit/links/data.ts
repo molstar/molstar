@@ -38,6 +38,11 @@ class InterUnitBonds {
         return index !== undefined ? index : -1
     }
 
+    /** Check if bond exists */
+    hasBond(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): boolean {
+        return this.getBondIndex(indexA, unitA, indexB, unitB) !== -1
+    }
+
     /** Get inter-unit bond given a pair of indices and units */
     getBond(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): InterUnitBonds.Bond | undefined {
         const index = this.getBondIndex(indexA, unitA, indexB, unitB)
