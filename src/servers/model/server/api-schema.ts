@@ -50,6 +50,13 @@ function getPaths() {
 }
 
 function getQueryInfo(def: QueryDefinition) {
+
+    const jsonExample: any = {};
+    def.jsonParams.forEach(p => {
+        if (!p.exampleValues || !p.exampleValues.length) return;
+        jsonExample[p.name] = p.exampleValues[0];
+    });
+
     return {
         get: {
             tags: ['General'],
@@ -60,6 +67,32 @@ function getQueryInfo(def: QueryDefinition) {
                 ...def.restParams.map(getParamInfo),
                 ...CommonQueryParamsInfo.map(getParamInfo)
             ],
+            responses: {
+                200: {
+                    description: def.description,
+                    content: {
+                        'text/plain': {},
+                        'application/octet-stream': {},
+                    }
+                }
+            }
+        },
+        post: {
+            tags: ['General'],
+            summary: def.description,
+            operationId: def.name + '-post',
+            parameters: [
+                { $ref: '#/components/parameters/id' },
+                ...CommonQueryParamsInfo.map(getParamInfo)
+            ],
+            requestBody: {
+                content: {
+                    'application/json': {
+                        schema: { type: 'object' },
+                        example: jsonExample
+                    }
+                }
+            },
             responses: {
                 200: {
                     description: def.description,
