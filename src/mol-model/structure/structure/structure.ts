@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { IntMap, SortedArray, Iterator, Segmentation, Interval } from '../../../mol-data/int'
+import { IntMap, SortedArray, Iterator, Segmentation, Interval, OrderedSet } from '../../../mol-data/int'
 import { UniqueArray } from '../../../mol-data/generic'
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
 import { Model, ElementIndex } from '../model'
@@ -59,6 +59,7 @@ class Structure {
         elementCount: number,
         bondCount: number,
         uniqueElementCount: number,
+        atomicResidueCount: number,
         polymerResidueCount: number,
         polymerUnitCount: number,
         coordinateSystem: SymmetryOperator,
@@ -71,6 +72,7 @@ class Structure {
         elementCount: -1,
         bondCount: -1,
         uniqueElementCount: -1,
+        atomicResidueCount: -1,
         polymerResidueCount: -1,
         polymerUnitCount: -1,
         coordinateSystem: SymmetryOperator.Default,
@@ -138,6 +140,13 @@ class Structure {
             this._props.uniqueElementCount = getUniqueElementCount(this)
         }
         return this._props.uniqueElementCount;
+    }
+
+    get atomicResidueCount() {
+        if (this._props.atomicResidueCount === -1) {
+            this._props.atomicResidueCount = getAtomicResidueCount(this)
+        }
+        return this._props.atomicResidueCount;
     }
 
     /** Coarse structure, defined as Containing less than twice as many elements as polymer residues */
@@ -253,7 +262,8 @@ class Structure {
     }
 
     get entityIndices() {
-        return this._props.entityIndices || (this._props.entityIndices = getEntityIndices(this));
+        return this._props.entityIndices
+            || (this._props.entityIndices = getEntityIndices(this));
     }
 
     get uniqueAtomicResidueIndices() {
@@ -470,16 +480,38 @@ function getPolymerUnitCount(structure: Structure): number {
     return polymerUnitCount
 }
 
+function getAtomicResidueCount(structure: Structure): number {
+    const { units } = structure
+    let atomicResidueCount = 0
+    for (let i = 0, _i = units.length; i < _i; i++) {
+        const unit = units[i]
+        if (!Unit.isAtomic(unit)) continue
+        const { elements, residueIndex } = unit
+        let idx = -1
+        let prevIdx = -1
+        for (let j = 0, jl = elements.length; j < jl; ++j) {
+            idx = residueIndex[elements[j]]
+            if (idx !== prevIdx) {
+                atomicResidueCount += 1
+                prevIdx = idx
+            }
+        }
+    }
+    return atomicResidueCount
+}
+
 interface SerialMapping {
-    /** Cumulative count of elements for each unit */
+    /** Cumulative count of preceding elements for each unit */
     cumulativeUnitElementCount: ArrayLike<number>
     /** Unit index for each serial element in the structure */
     unitIndices: ArrayLike<number>
     /** Element index for each serial element in the structure */
     elementIndices: ArrayLike<ElementIndex>
+    /** Get serial index of element in the structure */
+    getSerialIndex: (unit: Unit, element: ElementIndex) => Structure.SerialIndex
 }
 function getSerialMapping(structure: Structure): SerialMapping {
-    const { units, elementCount } = structure
+    const { units, elementCount, unitIndexMap } = structure
     const cumulativeUnitElementCount = new Uint32Array(units.length)
     const unitIndices = new Uint32Array(elementCount)
     const elementIndices = new Uint32Array(elementCount) as unknown as ElementIndex[]
@@ -493,7 +525,13 @@ function getSerialMapping(structure: Structure): SerialMapping {
         }
         m += elements.length
     }
-    return { cumulativeUnitElementCount, unitIndices, elementIndices }
+    return {
+        cumulativeUnitElementCount,
+        unitIndices,
+        elementIndices,
+
+        getSerialIndex: (unit, element) => cumulativeUnitElementCount[unitIndexMap.get(unit.id)] + OrderedSet.indexOf(unit.elements, element) as Structure.SerialIndex
+    }
 }
 
 namespace Structure {
@@ -776,7 +814,7 @@ namespace Structure {
         return hashString(s.units.map(u => Unit.conformationId(u)).join('|'))
     }
 
-    // TODO: there should be a version that property supports partitioned units
+    // TODO: there should be a version that properly supports partitioned units
     export function areUnitAndIndicesEqual(a: Structure, b: Structure) {
         if (a === b) return true;
 
