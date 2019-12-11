@@ -58,25 +58,25 @@ const DefaultModelServerConfig = {
             // 'wwpdb'
         ],
         params: {
-            PDBe: {
-                UseFileSource: false,
-                API: {
-                    residuewise_outlier_summary: 'https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry',
-                    preferred_assembly: 'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary',
-                    struct_ref_domain: 'https://www.ebi.ac.uk/pdbe/api/mappings/sequence_domains'
-                },
-                File: {
-                    residuewise_outlier_summary: 'e:/test/mol-star/model/props/'
-                }
-            },
-            RCSB: {
-                API: {
-                    assembly_symmetry: 'https://rest-staging.rcsb.org/graphql'
-                }
-            },
-            wwPDB: {
-                chemCompBondTablePath: ''
-            }
+            // PDBe: {
+            //     UseFileSource: false,
+            //     API: {
+            //         residuewise_outlier_summary: 'https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry',
+            //         preferred_assembly: 'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary',
+            //         struct_ref_domain: 'https://www.ebi.ac.uk/pdbe/api/mappings/sequence_domains'
+            //     },
+            //     File: {
+            //         residuewise_outlier_summary: 'e:/test/mol-star/model/props/'
+            //     }
+            // },
+            // RCSB: {
+            //     API: {
+            //         assembly_symmetry: 'https://rest-staging.rcsb.org/graphql'
+            //     }
+            // },
+            // wwPDB: {
+            //     chemCompBondTablePath: ''
+            // }
         }
     },
 

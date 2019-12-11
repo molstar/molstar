@@ -8,7 +8,7 @@ import * as express from 'express'
 import * as compression from 'compression'
 import * as fs from 'fs'
 import * as argparse from 'argparse'
-import { ModelServerConfig as ServerConfig, setupConfig } from './config'
+import { ModelServerConfig as ServerConfig, setupConfig, ModelServerConfig } from './config'
 import { ConsoleLogger } from '../../mol-util/console-logger';
 import { PerformanceMonitor } from '../../mol-util/performance-monitor';
 import { initWebApi } from './server/api-web';
@@ -46,19 +46,21 @@ const cmdParser = new argparse.ArgumentParser({
 });
 
 cmdParser.addArgument(['--cfg'], { help: 'Config file path.', required: false });
+cmdParser.addArgument(['--printcfg'], { help: 'Prints out current config and exits.', required: false, nargs: 0 });
 
 interface CmdArgs {
-    cfg?: string
+    cfg?: string,
+    printcfg?: boolean
 }
 
 const cmdArgs = cmdParser.parseArgs() as CmdArgs;
 
+const cfg = cmdArgs.cfg ? JSON.parse(fs.readFileSync(cmdArgs.cfg, 'utf8')) : void 0;
+setupConfig(cfg);
+
 function startServer() {
     let app = express();
     app.use(compression(<any>{ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: () => true }));
-
-    const cfg = cmdArgs.cfg ? JSON.parse(fs.readFileSync(cmdArgs.cfg, 'utf8')) : void 0;
-    setupConfig(cfg);
 
     initWebApi(app);
 
@@ -71,8 +73,12 @@ function startServer() {
     console.log(``);
 }
 
-startServer();
+if (cmdArgs.printcfg !== null) {
+    console.log(JSON.stringify(ModelServerConfig, null, 2));
+} else {
+    startServer();
 
-if (ServerConfig.shutdownParams && ServerConfig.shutdownParams.timeoutMinutes > 0) {
-    setupShutdown();
+    if (ServerConfig.shutdownParams && ServerConfig.shutdownParams.timeoutMinutes > 0) {
+        setupShutdown();
+    }
 }
