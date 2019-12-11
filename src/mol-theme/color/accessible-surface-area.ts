@@ -15,7 +15,7 @@ import { ComputedAccessibleSurfaceArea } from '../../mol-model-props/computed/ac
 import { ColorListName, ColorListOptionsScale } from '../../mol-util/color/lists';
 import { VdWLookup } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley/common';
 
-const DefaultColor = Color(0xFFFFFF)
+const DefaultColor = Color(0xFAFAFA)
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.'
 
 export const AccessibleSurfaceAreaColorThemeParams = {
@@ -35,17 +35,20 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
         domain: [0.0, 1.0]
     })
 
-    const accessibleSurfaceArea = ctx.structure ? ComputedAccessibleSurfaceArea.get(ctx.structure)!.asa : undefined
+    const accessibleSurfaceArea = ctx.structure ? ComputedAccessibleSurfaceArea.get(ctx.structure.root)?.asa : undefined
 
-    if (accessibleSurfaceArea) {
+    if (accessibleSurfaceArea && ctx.structure) {
+        const { structure } = ctx
+        const { getSerialIndex } = structure.root.serialMapping
+        const { relativeAccessibleSurfaceArea, serialResidueIndex } = accessibleSurfaceArea
+
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
                 if (Unit.isAtomic(location.unit)) {
-                    const value = accessibleSurfaceArea.relativeAccessibleSurfaceArea[location.unit.residueIndex[location.element]];
-                    return value !== VdWLookup[0] /* signals missing value */ ? scale.color(value) : DefaultColor;
+                    const rSI = serialResidueIndex[getSerialIndex(location.unit, location.element)]
+                    return rSI === -1 ? DefaultColor : scale.color(relativeAccessibleSurfaceArea[rSI])
                 }
             }
-
             return DefaultColor
         }
     } else {
@@ -67,5 +70,5 @@ export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<Access
     factory: AccessibleSurfaceAreaColorTheme,
     getParams: getAccessibleSurfaceAreaColorThemeParams,
     defaultValues: PD.getDefaultValues(AccessibleSurfaceAreaColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
 }

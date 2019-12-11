@@ -2,61 +2,75 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ShrakeRupleyContext, VdWLookup } from './common';
 import { getElementIdx, isHydrogen } from '../../../../mol-model/structure/structure/unit/links/common';
 import { isPolymer, isNucleic, MoleculeType, ElementSymbol } from '../../../../mol-model/structure/model/types';
 import { VdwRadius } from '../../../../mol-model/structure/model/properties/atomic';
+import { StructureElement, StructureProperties } from '../../../../mol-model/structure/structure';
+import { getElementMoleculeType } from '../../../../mol-model/structure/util';
 
-export async function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
-    const { updateChunk, atomRadius } = ctx;
-    for (let i = 0; i < atomRadius.length; i += updateChunk) {
-        computeRange(ctx, i, Math.min(i + updateChunk, atomRadius.length));
-    }
-}
+const l = StructureElement.Location.create()
 
-function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
-    const { structure } = ctx;
-    const { model } = structure;
-    const { atoms: atomInfo, derived, residues, residueAtomSegments } = model.atomicHierarchy;
-    const { label_comp_id } = residues;
-    const { moleculeType } = derived.residue;
-    const { type_symbol, label_atom_id } = atomInfo;
+export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
+    const { label_comp_id, key } = StructureProperties.residue
+    const { type_symbol, label_atom_id } = StructureProperties.atom
+    const { structure, atomRadiusType, serialResidueIndex } = ctx;
 
-    for (let aI = begin; aI < end; ++aI) {
-        const rI = residueAtomSegments.index[aI];
-        const element = type_symbol.value(aI);
-        const elementIdx = getElementIdx(element);
-        // skip hydrogen atoms
-        if (isHydrogen(elementIdx)) {
-            ctx.atomRadius[aI] = VdWLookup[0];
-            continue;
-        }
+    let prevResidueIdx = 0
+    let residueIdx = 0
+    let serialResidueIdx = -1
 
-        const residueType = moleculeType[rI];
-        // skip non-polymer groups
-        if (!ctx.nonPolymer) {
-            if (!isPolymer(residueType)) {
-                ctx.atomRadius[aI] = VdWLookup[0];
+    for (let i = 0, m = 0, il = structure.units.length; i < il; ++i) {
+        const unit = structure.units[i]
+        const { elements } = unit
+        l.unit = unit
+
+        prevResidueIdx = -1
+
+        for (let j = 0, jl = elements.length; j < jl; ++j) {
+            const eI = elements[j]
+            const mj = m + j
+
+            l.element = eI
+            residueIdx = key(l)
+
+            if (prevResidueIdx !== residueIdx) ++serialResidueIdx
+            prevResidueIdx = residueIdx
+
+            const element = type_symbol(l);
+            const elementIdx = getElementIdx(element);
+
+            // skip hydrogen atoms
+            if (isHydrogen(elementIdx)) {
+                atomRadiusType[mj] = VdWLookup[0];
+                serialResidueIndex[mj] = -1
                 continue;
             }
+
+            const residueType = getElementMoleculeType(unit, eI)
+            // skip non-polymer groups
+            if (!ctx.nonPolymer && !isPolymer(residueType)) {
+                atomRadiusType[mj] = VdWLookup[0];
+                serialResidueIndex[mj] = -1
+                continue;
+            }
+
+            const atomId = label_atom_id(l);
+            const compId = label_comp_id(l);
+
+            if (isNucleic(residueType)) {
+                atomRadiusType[mj] = determineRadiusNucl(atomId, element, compId);
+            } else if (residueType === MoleculeType.Protein) {
+                atomRadiusType[mj] = determineRadiusAmino(atomId, element, compId);
+            } else {
+                atomRadiusType[mj] = handleNonStandardCase(element);
+            }
+            serialResidueIndex[mj] = serialResidueIdx
         }
-
-        const atomId = label_atom_id.value(aI);
-        let compId = label_comp_id.value(rI);
-
-        // handle modified residues
-        const parentId = model.properties.modifiedResidues.parentId.get(compId);
-        if (parentId !== void 0) compId = parentId;
-
-        if (isNucleic(residueType)) {
-             ctx.atomRadius[aI] = determineRadiusNucl(atomId, element, compId);
-        } else if (residueType === MoleculeType.Protein) {
-            ctx.atomRadius[aI] = determineRadiusAmino(atomId, element, compId);
-        } else {
-            ctx.atomRadius[aI] = handleNonStandardCase(element);
-        }
+        m += elements.length
     }
 }
 
@@ -68,41 +82,37 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
 function determineRadiusAmino(atomId: string, element: ElementSymbol, compId: string): number {
     switch (element) {
         case 'O':
-        return 5;
+            return 5;
         case 'S':
-        return 6;
+            return 6;
         case 'N':
-        return atomId === 'NZ' ? 4 : 3;
+            return atomId === 'NZ' ? 4 : 3;
         case 'C':
-        switch (atomId) {
-            case 'C': case 'CE1': case'CE2': case 'CE3': case 'CH2': case 'CZ': case 'CZ2': case 'CZ3':
-            return 1;
-            case 'CA': case 'CB': case 'CE': case 'CG1': case 'CG2':
-            return 2;
-            default:
-            switch (compId) {
-                case 'PHE': case 'TRP': case 'TYR': case 'HIS': case 'ASP': case 'ASN':
-                return 1;
-                case 'PRO': case 'LYS': case 'ARG': case 'MET': case 'ILE': case 'LEU':
-                return 2;
-                case 'GLU': case 'GLN':
-                return atomId === 'CD' ? 1 : 2;
+            switch (atomId) {
+                case 'C': case 'CE1': case'CE2': case 'CE3': case 'CH2': case 'CZ': case 'CZ2': case 'CZ3':
+                    return 1;
+                case 'CA': case 'CB': case 'CE': case 'CG1': case 'CG2':
+                    return 2;
+                default:
+                    switch (compId) {
+                        case 'PHE': case 'TRP': case 'TYR': case 'HIS': case 'ASP': case 'ASN':
+                            return 1;
+                        case 'PRO': case 'LYS': case 'ARG': case 'MET': case 'ILE': case 'LEU':
+                            return 2;
+                        case 'GLU': case 'GLN':
+                            return atomId === 'CD' ? 1 : 2;
+                    }
             }
-        }
     }
     return handleNonStandardCase(element);
 }
 
 function determineRadiusNucl(atomId: string, element: ElementSymbol, compId: string): number {
     switch (element) {
-        case 'C':
-        return 7;
-        case 'N':
-        return 8;
-        case 'P':
-        return 9;
-        case 'O':
-        return 5;
+        case 'C': return 7;
+        case 'N': return 8;
+        case 'P': return 9;
+        case 'O': return 5;
     }
     return handleNonStandardCase(element);
 }

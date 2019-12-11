@@ -2,68 +2,69 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Task, RuntimeContext } from '../../../mol-task';
-import { BitFlags } from '../../../mol-util';
+// import { BitFlags } from '../../../mol-util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition'
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Structure } from '../../../mol-model/structure';
 import { assignRadiusForHeavyAtoms } from './shrake-rupley/radii';
-import { ShrakeRupleyContext, VdWLookup } from './shrake-rupley/common';
-import { computePerResidue } from './shrake-rupley/per-residue';
-import { normalizeAccessibleSurfaceArea } from './shrake-rupley/normalize';
+import { ShrakeRupleyContext, VdWLookup, MaxAsa, DefaultMaxAsa } from './shrake-rupley/common';
+import { computeArea } from './shrake-rupley/area';
 
 export const ShrakeRupleyComputationParams = {
-    numberOfSpherePoints: PD.Numeric(92, {}, { description: 'number of sphere points to sample per atom: 92 (original paper), 960 (BioJava), 3000 (EPPIC) - see Shrake A, Rupley JA: Environment and exposure to solvent of protein atoms. Lysozyme and insulin. J Mol Biol 1973.' }),
-    probeSize: PD.Numeric(1.4, {}, { description: 'corresponds to the size of a water molecule: 1.4 (original paper), 1.5 (occassionally used)' }),
-    buriedRasaThreshold: PD.Numeric(0.16, { min: 0.0, max: 1.0 }, { description: 'below this cutoff of relative accessible surface area a residue will be considered buried - see: Rost B, Sander C: Conservation and prediction of solvent accessibility in protein families. Proteins 1994.' }),
-    nonPolymer: PD.Boolean(false, { description: 'Include non-polymer atoms in computation.' })
+    numberOfSpherePoints: PD.Numeric(92, { min: 12, max: 120, step: 1 }, { description: 'number of sphere points to sample per atom: 92 (original paper), 960 (BioJava), 3000 (EPPIC) - see Shrake A, Rupley JA: Environment and exposure to solvent of protein atoms. Lysozyme and insulin. J Mol Biol 1973.' }),
+    probeSize: PD.Numeric(1.4, { min: 0.1, max: 4, step: 0.01 }, { description: 'corresponds to the size of a water molecule: 1.4 (original paper), 1.5 (occassionally used)' }),
+    // buriedRasaThreshold: PD.Numeric(0.16, { min: 0.0, max: 1.0 }, { description: 'below this cutoff of relative accessible surface area a residue will be considered buried - see: Rost B, Sander C: Conservation and prediction of solvent accessibility in protein families. Proteins 1994.' }),
+    nonPolymer: PD.Boolean(false, { description: 'Include non-polymer atoms as occluders.' })
 }
 export type ShrakeRupleyComputationParams = typeof ShrakeRupleyComputationParams
+export type ShrakeRupleyComputationProps = PD.Values<ShrakeRupleyComputationParams>
+
+// TODO
+// - add back buried and relative asa
 
 namespace AccessibleSurfaceArea {
     /**
      * Adapts the BioJava implementation by Jose Duarte. That implementation is based on the publication by Shrake, A., and
      * J. A. Rupley. "Environment and Exposure to Solvent of Protein Atoms. Lysozyme and Insulin." JMB (1973).
      */
-    export function compute(structure: Structure,
-        params: Partial<PD.Values<ShrakeRupleyComputationParams>> = {}) {
-        params = { ...PD.getDefaultValues(ShrakeRupleyComputationParams), ...params };
-        return Task.create('Compute Accessible Surface Area', async rtctx => {
-            return await _compute(rtctx, structure, params);
-        }).run();
+    export function compute(structure: Structure, props: Partial<ShrakeRupleyComputationProps> = {}) {
+        const p = { ...PD.getDefaultValues(ShrakeRupleyComputationParams), ...props };
+        return Task.create('Compute Accessible Surface Area', async runtime => {
+            return await calculate(runtime, structure, p);
+        });
     }
 
-    async function _compute(rtctx: RuntimeContext, structure: Structure, params: Partial<PD.Values<ShrakeRupleyComputationParams>> = {}): Promise<AccessibleSurfaceArea> {
-        const ctx = initialize(rtctx, structure, params);
+    async function calculate(runtime: RuntimeContext, structure: Structure, props: ShrakeRupleyComputationProps): Promise<AccessibleSurfaceArea> {
+        const ctx = initialize(structure, props);
 
         assignRadiusForHeavyAtoms(ctx);
-        computePerResidue(ctx);
-        normalizeAccessibleSurfaceArea(ctx);
+        await computeArea(runtime, ctx);
 
+        const { accessibleSurfaceArea, serialResidueIndex } = ctx
         return {
-            accessibleSurfaceArea: ctx.accessibleSurfaceArea,
-            relativeAccessibleSurfaceArea: ctx.relativeAccessibleSurfaceArea,
-            buried: (index: number) => ctx.relativeAccessibleSurfaceArea[index] < 0.16
+            serialResidueIndex,
+            accessibleSurfaceArea
         };
     }
 
-    function initialize(rtctx: RuntimeContext, structure: Structure, params: Partial<PD.Values<ShrakeRupleyComputationParams>>): ShrakeRupleyContext {
-        const { elementCount, polymerResidueCount } = structure;
+    function initialize(structure: Structure, props: ShrakeRupleyComputationProps): ShrakeRupleyContext {
+        const { elementCount, atomicResidueCount } = structure;
+        const { probeSize, nonPolymer, numberOfSpherePoints } = props
 
         return {
-            rtctx: rtctx,
-            structure: structure,
-            probeSize: params.probeSize!,
-            nonPolymer: params.nonPolymer!,
-            spherePoints: generateSpherePoints(params.numberOfSpherePoints!),
-            cons: 4.0 * Math.PI / params.numberOfSpherePoints!,
-            maxLookupRadius: 2 * params.probeSize! + 2 * VdWLookup[2], // 2x probe size + 2x largest VdW
-            atomRadius: new Int8Array(elementCount),
-            accessibleSurfaceArea: new Float32Array(polymerResidueCount),
-            relativeAccessibleSurfaceArea: new Float32Array(polymerResidueCount),
-            updateChunk: 25000
+            structure,
+            probeSize,
+            nonPolymer,
+            spherePoints: generateSpherePoints(numberOfSpherePoints!),
+            scalingConstant: 4.0 * Math.PI / numberOfSpherePoints!,
+            maxLookupRadius: 2 * props.probeSize + 2 * VdWLookup[2], // 2x probe size + 2x largest VdW
+            atomRadiusType: new Int8Array(elementCount),
+            serialResidueIndex: new Int32Array(elementCount),
+            accessibleSurfaceArea: new Float32Array(atomicResidueCount)
         }
     }
 
@@ -76,26 +77,31 @@ namespace AccessibleSurfaceArea {
             const y = k * offset - 1.0 + (offset / 2.0);
             const r = Math.sqrt(1.0 - y * y);
             const phi = k * inc;
-            points[points.length] = [Math.cos(phi) * r, y, Math.sin(phi) * r] as Vec3;
+            points[points.length] = Vec3.create(Math.cos(phi) * r, y, Math.sin(phi) * r);
         }
         return points;
     }
 
-    export namespace SolventAccessibility {
-        export const is: (t: number, f: Flag) => boolean = BitFlags.has
-        export const create: (f: Flag) => number = BitFlags.create
-        export const enum Flag {
-            _ = 0x0,
-            BURIED = 0x1,
-            ACCESSIBLE = 0x2
-        }
+    // export namespace SolventAccessibility {
+    //     export const is: (t: number, f: Flag) => boolean = BitFlags.has
+    //     export const create: (f: Flag) => number = BitFlags.create
+    //     export const enum Flag {
+    //         _ = 0x0,
+    //         BURIED = 0x1,
+    //         ACCESSIBLE = 0x2
+    //     }
+    // }
+
+    /** Get relative area for a given component id */
+    export function normalize(compId: string, asa: number) {
+        const maxAsa = MaxAsa[compId] || DefaultMaxAsa;
+        return asa / maxAsa
     }
 }
 
 interface AccessibleSurfaceArea {
+    readonly serialResidueIndex: ArrayLike<number>
     readonly accessibleSurfaceArea: ArrayLike<number>
-    readonly relativeAccessibleSurfaceArea: ArrayLike<number>
-    buried(index: number): boolean
 }
 
 export { AccessibleSurfaceArea }

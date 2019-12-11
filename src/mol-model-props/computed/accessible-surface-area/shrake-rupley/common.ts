@@ -4,25 +4,22 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { RuntimeContext } from '../../../../mol-task';
 import { Structure } from '../../../../mol-model/structure';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 
 export interface ShrakeRupleyContext {
-    rtctx: RuntimeContext,
     structure: Structure,
     spherePoints: Vec3[],
     probeSize: number,
     nonPolymer: boolean,
-    cons: number,
+    scalingConstant: number,
     maxLookupRadius: number,
-    atomRadius: Int8Array,
-    accessibleSurfaceArea: Float32Array,
-    relativeAccessibleSurfaceArea: Float32Array,
-    updateChunk: number
+    atomRadiusType: Int8Array,
+    serialResidueIndex: Int32Array,
+    accessibleSurfaceArea: Float32Array
 }
 
-// Chothia's amino acid and nucleotide atom vdw radii
+/** Chothia's amino acid and nucleotide atom vdw radii */
 export const VdWLookup = [
     -1.0, // 0: missing
     1.76, // 1: trigonal C
@@ -36,9 +33,8 @@ export const VdWLookup = [
     1.40  // 9: P (nucleic)
 ] // can still be appended on-the-fly for rare elements like selenium
 
-
 /** Maximum accessible surface area observed for amino acids. Taken from: http://dx.doi.org/10.1371/journal.pone.0080635 */
-export const MaxAsa = {
+export const MaxAsa: { [k: string]: number } = {
     'ALA': 121.0,
     'ARG': 265.0,
     'ASN': 187.0,
