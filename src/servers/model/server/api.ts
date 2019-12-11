@@ -24,14 +24,15 @@ export interface QueryParamInfo<T extends string | number = string | number> {
     defaultValue?: any,
     exampleValues?: any[],
     validation?: (v: T) => void,
-    supportedValues?: string[]
+    supportedValues?: string[],
+    groupName?: string
 }
 
 export interface QueryDefinition<Params = any> {
     name: string,
     niceName: string,
     exampleId: string, // default is 1cbs
-    query: (params: any, structure: Structure) => StructureQuery,
+    query: (params: Params, structure: Structure) => StructureQuery,
     description: string,
     jsonParams: QueryParamInfo[],
     restParams: QueryParamInfo[],
@@ -53,20 +54,20 @@ export interface CommonQueryParamsInfo {
 }
 
 export const AtomSiteSchemaElement = {
-    label_entity_id: { type: QueryParamType.String },
+    label_entity_id: { type: QueryParamType.String, groupName: 'atom_site' },
 
-    label_asym_id: { type: QueryParamType.String },
-    auth_asym_id: { type: QueryParamType.String },
+    label_asym_id: { type: QueryParamType.String, groupName: 'atom_site' },
+    auth_asym_id: { type: QueryParamType.String, groupName: 'atom_site'},
 
-    label_comp_id: { type: QueryParamType.String },
-    auth_comp_id: { type: QueryParamType.String },
-    label_seq_id: { type: QueryParamType.Integer },
-    auth_seq_id: { type: QueryParamType.Integer },
-    pdbx_PDB_ins_code: { type: QueryParamType.String },
+    label_comp_id: { type: QueryParamType.String, groupName: 'atom_site' },
+    auth_comp_id: { type: QueryParamType.String, groupName: 'atom_site' },
+    label_seq_id: { type: QueryParamType.Integer, groupName: 'atom_site' },
+    auth_seq_id: { type: QueryParamType.Integer, groupName: 'atom_site' },
+    pdbx_PDB_ins_code: { type: QueryParamType.String, groupName: 'atom_site' },
 
-    label_atom_id: { type: QueryParamType.String },
-    auth_atom_id: { type: QueryParamType.String },
-    type_symbol: { type: QueryParamType.String }
+    label_atom_id: { type: QueryParamType.String, groupName: 'atom_site' },
+    auth_atom_id: { type: QueryParamType.String, groupName: 'atom_site' },
+    type_symbol: { type: QueryParamType.String, groupName: 'atom_site' }
 }
 
 export interface AtomSiteSchemaElement {
@@ -92,7 +93,7 @@ const AtomSiteTestJsonParam: QueryParamInfo = {
     name: 'atom_site',
     type: QueryParamType.JSON,
     description: 'Object or array of objects describing atom properties. Names are same as in wwPDB mmCIF dictionary of the atom_site category.',
-    exampleValues: [{ label_comp_id: 'ALA' }, { label_seq_id: 123, label_asym_id: 'A' }]
+    exampleValues: [[{ label_seq_id: 30, label_asym_id: 'A' }, { label_seq_id: 31, label_asym_id: 'A' }], { label_comp_id: 'ALA' }]
 };
 
 export const AtomSiteTestRestParams = (function() {
@@ -127,7 +128,9 @@ const QueryMap = {
     'atoms': Q<{ atom_site: AtomSiteSchema }>({
         niceName: 'Atoms',
         description: 'Atoms satisfying the given criteria.',
-        query: p => Queries.combinators.merge(getAtomsTests(p).map(test => Queries.generators.atoms(test))),
+        query: p => {
+            return Queries.combinators.merge(getAtomsTests(p.atom_site).map(test => Queries.generators.atoms(test)));
+        },
         jsonParams: [ AtomSiteTestJsonParam ],
         restParams: AtomSiteTestRestParams
     }),
@@ -157,11 +160,11 @@ const QueryMap = {
         }],
         filter: QuerySchemas.assembly
     }),
-    'residueInteraction': Q<AtomSiteSchema & { radius: number }>({
+    'residueInteraction': Q<{ atom_site: AtomSiteSchema, radius: number }>({
         niceName: 'Residue Interaction',
         description: 'Identifies all residues within the given radius from the source residue. Takes crystal symmetry into account.',
         query(p) {
-            const tests = getAtomsTests(p);
+            const tests = getAtomsTests(p.atom_site);
             const center = Queries.combinators.merge(tests.map(test => Queries.generators.atoms({
                 ...test,
                 entityTest: test.entityTest
@@ -177,12 +180,11 @@ const QueryMap = {
         restParams: [ ...AtomSiteTestRestParams, RadiusParam ],
         filter: QuerySchemas.interaction
     }),
-    'residueSurroundings': Q<AtomSiteSchema & { radius: number }>({
+    'residueSurroundings': Q<{ atom_site: AtomSiteSchema, radius: number }>({
         niceName: 'Residue Surroundings',
         description: 'Identifies all residues within the given radius from the source residue.',
         query(p) {
-            const tests = getAtomsTests(p);
-            const center = Queries.combinators.merge(tests.map(test => Queries.generators.atoms(test)));
+            const center = Queries.combinators.merge(getAtomsTests(p.atom_site).map(test => Queries.generators.atoms(test)));
             return Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true });
         },
         jsonParams: [ AtomSiteTestJsonParam, RadiusParam ],
@@ -220,20 +222,29 @@ function _normalizeQueryParams(params: { [p: string]: string }, paramList: Query
     for (const p of paramList) {
         const key = p.name;
         const value = params[key];
+        let el: any;
         if (typeof value === 'undefined' || (typeof value !== 'undefined' && value !== null && value['length'] === 0)) {
             if (p.required) {
                 throw `The parameter '${key}' is required.`;
             }
-            if (typeof p.defaultValue !== 'undefined') ret[key] = p.defaultValue;
+            if (typeof p.defaultValue !== 'undefined') el = p.defaultValue;
         } else {
             switch (p.type) {
-                case QueryParamType.JSON: ret[key] = JSON.parse(value); break;
-                case QueryParamType.String: ret[key] = value; break;
-                case QueryParamType.Integer: ret[key] = parseInt(value); break;
-                case QueryParamType.Float: ret[key] = parseFloat(value); break;
+                case QueryParamType.JSON: el = JSON.parse(value); break;
+                case QueryParamType.String: el = value; break;
+                case QueryParamType.Integer: el = parseInt(value); break;
+                case QueryParamType.Float: el = parseFloat(value); break;
             }
 
-            if (p.validation) p.validation(ret[key]);
+            if (p.validation) p.validation(el);
+        }
+        if (typeof el === 'undefined') continue;
+
+        if (p.groupName) {
+            if (typeof ret[p.groupName] === 'undefined') ret[p.groupName] = {};
+            ret[p.groupName][key] = el;
+        } else {
+            ret[key] = el;
         }
     }
 

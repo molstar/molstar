@@ -20,7 +20,8 @@ const InteractionCategories = new Set([
     'struct_conn_type',
     'pdbx_struct_mod_residue',
     'chem_comp_bond',
-    'atom_sites'
+    'atom_sites',
+    'atom_site'
 ]);
 
 const AssemblyCategories = new Set([
@@ -39,7 +40,8 @@ const AssemblyCategories = new Set([
     'struct_conn_type',
     'pdbx_struct_mod_residue',
     'chem_comp_bond',
-    'atom_sites'
+    'atom_sites',
+    'atom_site'
 ]);
 
 export const QuerySchemas = {

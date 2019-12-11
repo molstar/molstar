@@ -102,6 +102,7 @@
     "@types/react-dom": "^16.9.4",
     "@types/swagger-ui-dist": "3.0.4",
     "argparse": "^1.0.10",
+    "body-parser": "^1.19.0",
     "compression": "^1.7.4",
     "express": "^4.17.1",
     "graphql": "^14.5.8",

@@ -7,6 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as express from 'express';
+import * as bodyParser from 'body-parser'
 import { ModelServerConfig as Config, ModelServerConfig, mapSourceAndIdToFilename } from '../config';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
@@ -101,9 +102,26 @@ function mapQuery(app: express.Express, queryName: string, queryDefinition: Quer
         responseMap.set(jobId, res);
         if (JobManager.size === 1) processNextJob();
     });
+
+    app.post(makePath('v1/:id/' + queryName), (req, res) => {
+        const entryId = req.params.id;
+        const queryParams = req.body;
+        const commonParams = normalizeRestCommonParams(req.query);
+        const jobId = JobManager.add({
+            sourceId: commonParams.data_source || ModelServerConfig.defaultSource,
+            entryId,
+            queryName: queryName as any,
+            queryParams,
+            options: { modelNums: commonParams.model_nums, binary: commonParams.encoding === 'bcif' }
+        });
+        responseMap.set(jobId, res);
+        if (JobManager.size === 1) processNextJob();
+    });
 }
 
 export function initWebApi(app: express.Express) {
+    app.use(bodyParser.json({ limit: '1mb' }));
+
     app.get(makePath('static/:format/:id'), async (req, res) => {
         const binary = req.params.format === 'bcif';
         const id = req.params.id;
@@ -148,6 +166,8 @@ export function initWebApi(app: express.Express) {
     //     responseMap.set(jobId, res);
     //     if (JobManager.size === 1) processNextJob();
     // });
+
+    app.use(bodyParser.json({ limit: '20mb' }));
 
     for (const q of QueryList) {
         mapQuery(app, q.name, q.definition);
