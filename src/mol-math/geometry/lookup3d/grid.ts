@@ -104,7 +104,7 @@ function _build(state: BuildState): Grid3D {
     let bucketCount = 0;
     const grid = new Uint32Array(n);
     const bucketIndex = new Int32Array(elementCount);
-    for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
+    for (let t = 0; t < elementCount; t++) {
         const i = OrderedSet.getAt(indices, t);
         const x = Math.floor((px[i] - minX) / delta[0]);
         const y = Math.floor((py[i] - minY) / delta[1]);
@@ -118,7 +118,7 @@ function _build(state: BuildState): Grid3D {
     }
 
     if (radius) {
-        for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
+        for (let t = 0; t < elementCount; t++) {
             const i = OrderedSet.getAt(indices, t);
             if (radius[i] > maxRadius) maxRadius = radius[i];
         }
@@ -169,7 +169,7 @@ function _build(state: BuildState): Grid3D {
 const boundaryHelper = new BoundaryHelper();
 function getBoundary(data: PositionData) {
     const { x, y, z, radius, indices } = data;
-    const p = Vec3.zero();
+    const p = Vec3();
     boundaryHelper.reset(0);
     for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
         const i = OrderedSet.getAt(indices, t);
@@ -229,7 +229,7 @@ function build(data: PositionData, cellSizeOrCount?: Vec3 | number) {
         expandedBox,
         boundingBox,
         boundingSphere,
-        elementCount: elementCount,
+        elementCount,
         delta
     }
 
