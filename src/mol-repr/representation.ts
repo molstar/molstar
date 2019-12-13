@@ -47,7 +47,7 @@ export interface RepresentationProvider<D, P extends PD.Params, S extends Repres
     readonly defaultColorTheme: string
     readonly defaultSizeTheme: string
     readonly isApplicable: (data: D) => boolean
-    readonly ensureDependencies?: (data: D) => Promise<void>
+    readonly ensureDependencies?: (data: D) => Task<void>
 }
 
 export namespace RepresentationProvider {

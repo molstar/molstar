@@ -16,7 +16,7 @@ import { addSheet } from '../../../mol-geo/geometry/mesh/builder/sheet';
 import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
-import { ComputedSecondaryStructure } from '../../../mol-model-props/computed/secondary-structure';
+import { SecondaryStructureProvider } from '../../../mol-model-props/computed/secondary-structure';
 import { addRibbon } from '../../../mol-geo/geometry/mesh/builder/ribbon';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { Vec3 } from '../../../mol-math/linear-algebra';
@@ -172,10 +172,10 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
                 newProps.arrowFactor !== currentProps.arrowFactor
             )
 
-            const computedSecondaryStructure = ComputedSecondaryStructure.get(newStructureGroup.structure)
-            if ((state.info.computedSecondaryStructure as ComputedSecondaryStructure.Property) !== computedSecondaryStructure) {
+            const secondaryStructureHash = SecondaryStructureProvider.getValue(newStructureGroup.structure).version
+            if ((state.info.secondaryStructureHash as number) !== secondaryStructureHash) {
                 state.createGeometry = true;
-                state.info.computedSecondaryStructure = computedSecondaryStructure
+                state.info.secondaryStructureHash = secondaryStructureHash
             }
         }
     }, materialId)

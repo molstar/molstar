@@ -205,8 +205,10 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             const provider = plugin.structureRepresentation.registry.get(params.type.name)
+            if (provider.ensureDependencies) await provider.ensureDependencies(a.data).runInContext(ctx)
             const props = params.type.params || {}
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, provider.getParams)
+            await Theme.ensureDependencies(plugin.structureRepresentation.themeCtx, { structure: a.data }, params).runInContext(ctx)
             repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
@@ -216,7 +218,10 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
+            const provider = plugin.structureRepresentation.registry.get(newParams.type.name)
+            if (provider.ensureDependencies) await provider.ensureDependencies(a.data).runInContext(ctx)
             const props = { ...b.data.repr.props, ...newParams.type.params }
+            await Theme.ensureDependencies(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams).runInContext(ctx)
             b.data.repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.source = a
@@ -575,6 +580,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
             const provider = plugin.volumeRepresentation.registry.get(params.type.name)
+            if (provider.ensureDependencies) await provider.ensureDependencies(a.data)
             const props = params.type.params || {}
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
             repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))

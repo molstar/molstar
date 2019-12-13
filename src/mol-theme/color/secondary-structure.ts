@@ -13,8 +13,9 @@ import { getElementMoleculeType } from '../../mol-model/structure/util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
-import { ComputedSecondaryStructure } from '../../mol-model-props/computed/secondary-structure';
+import { SecondaryStructureProvider, SecondaryStructureValue } from '../../mol-model-props/computed/secondary-structure';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
+import { Task } from '../../mol-task';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -46,14 +47,11 @@ export function getSecondaryStructureColorThemeParams(ctx: ThemeDataContext) {
     return SecondaryStructureColorThemeParams // TODO return copy
 }
 
-export function secondaryStructureColor(colorMap: SecondaryStructureColors, unit: Unit, element: ElementIndex, computedSecondaryStructure: ComputedSecondaryStructure.Property | undefined): Color {
+export function secondaryStructureColor(colorMap: SecondaryStructureColors, unit: Unit, element: ElementIndex, computedSecondaryStructure?: SecondaryStructureValue): Color {
     let secStrucType = SecondaryStructureType.create(SecondaryStructureType.Flag.None)
-    if (Unit.isAtomic(unit)) {
-        secStrucType = unit.model.properties.secondaryStructure.type[unit.residueIndex[element]]
-        if (computedSecondaryStructure) {
-            const secondaryStructure = computedSecondaryStructure.map.get(unit.invariantId)
-            if (secondaryStructure) secStrucType = secondaryStructure.type[secondaryStructure.getIndex(unit.residueIndex[element])]
-        }
+    if (computedSecondaryStructure && Unit.isAtomic(unit)) {
+        const secondaryStructure = computedSecondaryStructure.get(unit.invariantId)
+        if (secondaryStructure) secStrucType = secondaryStructure.type[secondaryStructure.getIndex(unit.residueIndex[element])]
     }
 
     if (SecondaryStructureType.is(secStrucType, SecondaryStructureType.Flag.Helix)) {
@@ -85,17 +83,17 @@ export function secondaryStructureColor(colorMap: SecondaryStructureColors, unit
 }
 
 export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Values<SecondaryStructureColorThemeParams>): ColorTheme<SecondaryStructureColorThemeParams> {
-    const computedSecondaryStructure = ctx.structure && ComputedSecondaryStructure.get(ctx.structure)
-    // use `computedSecondaryStructure.id` as context hash, when available
-    const contextHash = computedSecondaryStructure && computedSecondaryStructure.id
+
+    const computedSecondaryStructure = ctx.structure && SecondaryStructureProvider.getValue(ctx.structure)
+    const contextHash = computedSecondaryStructure && computedSecondaryStructure.version
 
     const colorMap = getAdjustedColorMap(SecondaryStructureColors, props.saturation, props.lightness)
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
-            return secondaryStructureColor(colorMap, location.unit, location.element, computedSecondaryStructure)
+            return secondaryStructureColor(colorMap, location.unit, location.element, computedSecondaryStructure?.value)
         } else if (Link.isLocation(location)) {
-            return secondaryStructureColor(colorMap, location.aUnit, location.aUnit.elements[location.aIndex], computedSecondaryStructure)
+            return secondaryStructureColor(colorMap, location.aUnit, location.aUnit.elements[location.aIndex], computedSecondaryStructure?.value)
         }
         return DefaultSecondaryStructureColor
     }
@@ -118,5 +116,8 @@ export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<Secondary
     factory: SecondaryStructureColorTheme,
     getParams: getSecondaryStructureColorThemeParams,
     defaultValues: PD.getDefaultValues(SecondaryStructureColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
+    ensureDependencies: (ctx: ThemeDataContext) => {
+        return ctx.structure ? SecondaryStructureProvider.attach(ctx.structure.root) : Task.empty()
+    }
 }

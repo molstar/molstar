@@ -13,7 +13,7 @@ import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
 import { CoarseSphereConformation, CoarseGaussianConformation } from '../../../../../mol-model/structure/model/properties/coarse';
 import { getPolymerRanges } from '../polymer';
 import { AtomicConformation } from '../../../../../mol-model/structure/model/properties/atomic';
-import { ComputedSecondaryStructure } from '../../../../../mol-model-props/computed/secondary-structure';
+import { SecondaryStructureProvider } from '../../../../../mol-model-props/computed/secondary-structure';
 import { SecondaryStructure } from '../../../../../mol-model/structure/model/properties/seconday-structure';
 
 /**
@@ -305,16 +305,10 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.value = createPolymerTraceElement(unit)
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
 
-        this.secondaryStructureType = unit.model.properties.secondaryStructure.type
-        this.secondaryStructureGetIndex = unit.model.properties.secondaryStructure.getIndex
-        const computedSecondaryStructure = ComputedSecondaryStructure.get(structure)
-        if (computedSecondaryStructure) {
-            const secondaryStructure = computedSecondaryStructure.map.get(unit.invariantId)
-            if (secondaryStructure) {
-                this.secondaryStructureType = secondaryStructure.type
-                this.secondaryStructureGetIndex = secondaryStructure.getIndex
-            }
-        }
+        const secondaryStructure = SecondaryStructureProvider.getValue(structure).value?.get(unit.invariantId)
+        if (!secondaryStructure) throw new Error('missing secondary structure')
+        this.secondaryStructureType = secondaryStructure.type
+        this.secondaryStructureGetIndex = secondaryStructure.getIndex
     }
 }
 

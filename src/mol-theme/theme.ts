@@ -10,6 +10,7 @@ import { Structure } from '../mol-model/structure';
 import { VolumeData } from '../mol-model/volume';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { Shape } from '../mol-model/shape';
+import { Task } from '../mol-task';
 
 export interface ThemeRegistryContext {
     colorThemeRegistry: ColorTheme.Registry
@@ -32,27 +33,29 @@ interface Theme {
 }
 
 namespace Theme {
-type Props = { [k: string]: any }
+    type Props = { [k: string]: any }
 
     export function create(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props, theme?: Theme) {
         theme = theme || createEmpty()
 
-    const colorProps = props.colorTheme as PD.NamedParams
-    const sizeProps = props.sizeTheme as PD.NamedParams
+        const colorProps = props.colorTheme as PD.NamedParams
+        const sizeProps = props.sizeTheme as PD.NamedParams
 
-    theme.color = ctx.colorThemeRegistry.create(colorProps.name, data, colorProps.params)
-    theme.size = ctx.sizeThemeRegistry.create(sizeProps.name, data, sizeProps.params)
+        theme.color = ctx.colorThemeRegistry.create(colorProps.name, data, colorProps.params)
+        theme.size = ctx.sizeThemeRegistry.create(sizeProps.name, data, sizeProps.params)
 
-    return theme
-}
+        return theme
+    }
 
     export function createEmpty(): Theme {
-    return { color: ColorTheme.Empty, size: SizeTheme.Empty }
-}
+        return { color: ColorTheme.Empty, size: SizeTheme.Empty }
+    }
 
-    export async function ensureDependencies(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
-        await ctx.colorThemeRegistry.get(props.colorTheme.name).ensureDependencies?.(data)
-        await ctx.sizeThemeRegistry.get(props.sizeTheme.name).ensureDependencies?.(data)
+    export function ensureDependencies(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
+        return Task.create(`Theme dependencies`, async runtime => {
+            await ctx.colorThemeRegistry.get(props.colorTheme.name).ensureDependencies?.(data).runInContext(runtime)
+            await ctx.sizeThemeRegistry.get(props.sizeTheme.name).ensureDependencies?.(data).runInContext(runtime)
+        })
     }
 }
 
@@ -64,6 +67,7 @@ export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends
     readonly getParams: (ctx: ThemeDataContext) => P
     readonly defaultValues: PD.Values<P>
     readonly isApplicable: (ctx: ThemeDataContext) => boolean
+    readonly ensureDependencies?: (ctx: ThemeDataContext) => Task<void>
 }
 
 function getTypes(list: { name: string, provider: ThemeProvider<any, any> }[]) {

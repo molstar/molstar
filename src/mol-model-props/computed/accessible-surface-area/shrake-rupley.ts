@@ -15,8 +15,8 @@ import { ShrakeRupleyContext, VdWLookup, MaxAsa, DefaultMaxAsa } from './shrake-
 import { computeArea } from './shrake-rupley/area';
 
 export const ShrakeRupleyComputationParams = {
-    numberOfSpherePoints: PD.Numeric(92, { min: 12, max: 120, step: 1 }, { description: 'number of sphere points to sample per atom: 92 (original paper), 960 (BioJava), 3000 (EPPIC) - see Shrake A, Rupley JA: Environment and exposure to solvent of protein atoms. Lysozyme and insulin. J Mol Biol 1973.' }),
-    probeSize: PD.Numeric(1.4, { min: 0.1, max: 4, step: 0.01 }, { description: 'corresponds to the size of a water molecule: 1.4 (original paper), 1.5 (occassionally used)' }),
+    numberOfSpherePoints: PD.Numeric(92, { min: 12, max: 360, step: 1 }, { description: 'Number of sphere points to sample per atom: 92 (original paper), 960 (BioJava), 3000 (EPPIC) - see Shrake A, Rupley JA: Environment and exposure to solvent of protein atoms. Lysozyme and insulin. J Mol Biol 1973.' }),
+    probeSize: PD.Numeric(1.4, { min: 0.1, max: 4, step: 0.01 }, { description: 'Corresponds to the size of a water molecule: 1.4 (original paper), 1.5 (occassionally used)' }),
     // buriedRasaThreshold: PD.Numeric(0.16, { min: 0.0, max: 1.0 }, { description: 'below this cutoff of relative accessible surface area a residue will be considered buried - see: Rost B, Sander C: Conservation and prediction of solvent accessibility in protein families. Proteins 1994.' }),
     nonPolymer: PD.Boolean(false, { description: 'Include non-polymer atoms as occluders.' })
 }
@@ -25,6 +25,13 @@ export type ShrakeRupleyComputationProps = PD.Values<ShrakeRupleyComputationPara
 
 // TODO
 // - add back buried and relative asa
+
+export { AccessibleSurfaceArea }
+
+interface AccessibleSurfaceArea {
+    readonly serialResidueIndex: ArrayLike<number>
+    readonly area: ArrayLike<number>
+}
 
 namespace AccessibleSurfaceArea {
     /**
@@ -44,11 +51,8 @@ namespace AccessibleSurfaceArea {
         assignRadiusForHeavyAtoms(ctx);
         await computeArea(runtime, ctx);
 
-        const { accessibleSurfaceArea, serialResidueIndex } = ctx
-        return {
-            serialResidueIndex,
-            accessibleSurfaceArea
-        };
+        const { area, serialResidueIndex } = ctx
+        return { area, serialResidueIndex };
     }
 
     function initialize(structure: Structure, props: ShrakeRupleyComputationProps): ShrakeRupleyContext {
@@ -59,12 +63,12 @@ namespace AccessibleSurfaceArea {
             structure,
             probeSize,
             nonPolymer,
-            spherePoints: generateSpherePoints(numberOfSpherePoints!),
-            scalingConstant: 4.0 * Math.PI / numberOfSpherePoints!,
+            spherePoints: generateSpherePoints(numberOfSpherePoints),
+            scalingConstant: 4.0 * Math.PI / numberOfSpherePoints,
             maxLookupRadius: 2 * props.probeSize + 2 * VdWLookup[2], // 2x probe size + 2x largest VdW
             atomRadiusType: new Int8Array(elementCount),
             serialResidueIndex: new Int32Array(elementCount),
-            accessibleSurfaceArea: new Float32Array(atomicResidueCount)
+            area: new Float32Array(atomicResidueCount)
         }
     }
 
@@ -98,10 +102,3 @@ namespace AccessibleSurfaceArea {
         return asa / maxAsa
     }
 }
-
-interface AccessibleSurfaceArea {
-    readonly serialResidueIndex: ArrayLike<number>
-    readonly accessibleSurfaceArea: ArrayLike<number>
-}
-
-export { AccessibleSurfaceArea }

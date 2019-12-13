@@ -656,25 +656,20 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: (a, ctx: PluginContext) => {
-        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of property descriptor ids.' }) };
-        return { properties: ctx.customStructureProperties.getSelect(a.data) };
+        return ctx.customStructureProperties.getParams(a?.data || Structure.Empty)
     }
 })({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
-            await attachStructureProps(a.data, ctx, taskCtx, params.properties);
-            return new SO.Molecule.Structure(a.data, { label: 'Structure Props', description: `${params.properties.length} Selected` });
+            await attachStructureProps(a.data, ctx, taskCtx, params);
+            return new SO.Molecule.Structure(a.data, { label: 'Structure Props' });
         });
     }
 });
-async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, names: string[]) {
-    for (const name of names) {
-        try {
-            const p = ctx.customStructureProperties.get(name);
-            await p.attach(structure).runInContext(taskCtx);
-        } catch (e) {
-            ctx.log.warn(`Error attaching structure prop '${name}': ${e}`);
-        }
+async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: {}) {
+    for (const name of Object.keys(params)) {
+        const property = ctx.customStructureProperties.get(name)
+        property.setProps(structure, params[name as keyof typeof params])
     }
 }
 

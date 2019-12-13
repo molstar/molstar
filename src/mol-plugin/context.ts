@@ -7,7 +7,7 @@
 
 import { List } from 'immutable';
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
-import { CustomPropertyRegistry } from '../mol-model-props/common/custom-property-registry';
+import { CustomPropertyRegistry, CustomStructureProperty } from '../mol-model-props/common/custom-property-registry';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { State, StateTransform, StateTransformer } from '../mol-state';
@@ -35,7 +35,7 @@ import { StructureElementSelectionManager } from './util/structure-element-selec
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { isProductionMode, isDebugMode } from '../mol-util/debug';
-import { Model, Structure } from '../mol-model/structure';
+import { Model } from '../mol-model/structure';
 import { Interactivity } from './util/interactivity';
 import { StructureRepresentationHelper } from './util/structure-representation-helper';
 import { StructureSelectionHelper } from './util/structure-selection-helper';
@@ -129,7 +129,7 @@ export class PluginContext {
     } as const
 
     readonly customModelProperties = new CustomPropertyRegistry<Model>();
-    readonly customStructureProperties = new CustomPropertyRegistry<Structure>();
+    readonly customStructureProperties = new CustomStructureProperty.Registry();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     readonly helpers = {

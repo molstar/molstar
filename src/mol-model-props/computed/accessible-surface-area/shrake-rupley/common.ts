@@ -16,7 +16,8 @@ export interface ShrakeRupleyContext {
     maxLookupRadius: number,
     atomRadiusType: Int8Array,
     serialResidueIndex: Int32Array,
-    accessibleSurfaceArea: Float32Array
+    /** Accessible surface area values */
+    area: Float32Array
 }
 
 /** Chothia's amino acid and nucleotide atom vdw radii */

@@ -9,7 +9,6 @@ import { stringToWords } from '../../../mol-util/string';
 import { SpacegroupCell } from '../../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { ensureSecondaryStructure } from '../transforms/helpers';
 import { RuntimeContext } from '../../../mol-task';
 import { PluginContext } from '../../context';
 import { Assembly, ModelSymmetry } from '../../../mol-model/structure/model/properties/symmetry';
@@ -77,14 +76,12 @@ export namespace ModelStructureRepresentation {
 
         const base = Structure.ofModel(model);
         if (!asm) {
-            await ensureSecondaryStructure(base)
             const label = { label: 'Deposited', description: Structure.elementDescription(base) };
             return new SO.Molecule.Structure(base, label);
         }
 
         id = asm.id;
         const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
-        await ensureSecondaryStructure(s)
         const props = { label: `Assembly ${id}`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, props);
     }
@@ -92,7 +89,6 @@ export namespace ModelStructureRepresentation {
     async function buildSymmetry(ctx: RuntimeContext, model: Model, ijkMin: Vec3, ijkMax: Vec3) {
         const base = Structure.ofModel(model);
         const s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
-        await ensureSecondaryStructure(s)
         const props = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, props);
     }
@@ -100,7 +96,6 @@ export namespace ModelStructureRepresentation {
     async function buildSymmetryMates(ctx: RuntimeContext, model: Model, radius: number) {
         const base = Structure.ofModel(model);
         const s = await StructureSymmetry.builderSymmetryMates(base, radius).runInContext(ctx);
-        await ensureSecondaryStructure(s)
         const props = { label: `Symmetry Mates`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, props);
     }
@@ -108,7 +103,6 @@ export namespace ModelStructureRepresentation {
     export async function create(plugin: PluginContext, ctx: RuntimeContext, model: Model, params?: Params): Promise<SO.Molecule.Structure> {
         if (!params || params.name === 'deposited') {
             const s = Structure.ofModel(model);
-            await ensureSecondaryStructure(s);
             return new SO.Molecule.Structure(s, { label: 'Deposited', description: Structure.elementDescription(s) });
         }
         if (params.name === 'assembly') {

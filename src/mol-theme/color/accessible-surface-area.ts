@@ -9,11 +9,12 @@ import { ThemeDataContext } from '../theme';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ColorScale, Color } from '../../mol-util/color';
-import { Unit, StructureElement } from '../../mol-model/structure';
+import { Unit, StructureElement, StructureProperties } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ComputedAccessibleSurfaceArea } from '../../mol-model-props/computed/accessible-surface-area';
+import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 import { ColorListName, ColorListOptionsScale } from '../../mol-util/color/lists';
-import { VdWLookup } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley/common';
+import { Task } from '../../mol-task';
+import { AccessibleSurfaceArea } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley';
 
 const DefaultColor = Color(0xFAFAFA)
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.'
@@ -35,19 +36,19 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
         domain: [0.0, 1.0]
     })
 
-    const accessibleSurfaceArea = ctx.structure ? ComputedAccessibleSurfaceArea.get(ctx.structure.root)?.asa : undefined
+    const { label_comp_id } = StructureProperties.residue
+    const accessibleSurfaceArea = ctx.structure && AccessibleSurfaceAreaProvider.getValue(ctx.structure)
+    // use `accessibleSurfaceArea.id` as context hash, when available
+    const contextHash = accessibleSurfaceArea?.version
 
-    if (accessibleSurfaceArea && ctx.structure) {
-        const { structure } = ctx
-        const { getSerialIndex } = structure.root.serialMapping
-        const { relativeAccessibleSurfaceArea, serialResidueIndex } = accessibleSurfaceArea
+    if (accessibleSurfaceArea && accessibleSurfaceArea.value && ctx.structure) {
+        const { getSerialIndex } = ctx.structure.root.serialMapping
+        const { area, serialResidueIndex } = accessibleSurfaceArea.value
 
         color = (location: Location): Color => {
-            if (StructureElement.Location.is(location)) {
-                if (Unit.isAtomic(location.unit)) {
-                    const rSI = serialResidueIndex[getSerialIndex(location.unit, location.element)]
-                    return rSI === -1 ? DefaultColor : scale.color(relativeAccessibleSurfaceArea[rSI])
-                }
+            if (StructureElement.Location.is(location) && Unit.isAtomic(location.unit)) {
+                const rSI = serialResidueIndex[getSerialIndex(location.unit, location.element)]
+                return rSI === -1 ? DefaultColor : scale.color(AccessibleSurfaceArea.normalize(label_comp_id(location), area[rSI]))
             }
             return DefaultColor
         }
@@ -60,6 +61,7 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
         granularity: 'group',
         color,
         props,
+        contextHash,
         description: Description,
         legend: scale ? scale.legend : undefined
     }
@@ -71,4 +73,7 @@ export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<Access
     getParams: getAccessibleSurfaceAreaColorThemeParams,
     defaultValues: PD.getDefaultValues(AccessibleSurfaceAreaColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
+    ensureDependencies: (ctx: ThemeDataContext) => {
+        return ctx.structure ? AccessibleSurfaceAreaProvider.attach(ctx.structure.root) : Task.empty()
+    }
 }

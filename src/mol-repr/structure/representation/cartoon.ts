@@ -15,6 +15,7 @@ import { NucleotideRingParams, NucleotideRingVisual } from '../visual/nucleotide
 import { PolymerDirectionParams, PolymerDirectionVisual } from '../visual/polymer-direction-wedge';
 import { PolymerGapParams, PolymerGapVisual } from '../visual/polymer-gap-cylinder';
 import { PolymerTraceParams, PolymerTraceVisual } from '../visual/polymer-trace-mesh';
+import { SecondaryStructureProvider } from '../../../mol-model-props/computed/secondary-structure';
 
 const CartoonVisuals = {
     'polymer-trace': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTraceParams>) => UnitsRepresentation('Polymer trace mesh', ctx, getParams, PolymerTraceVisual),
@@ -61,5 +62,8 @@ export const CartoonRepresentationProvider: StructureRepresentationProvider<Cart
     defaultValues: PD.getDefaultValues(CartoonParams),
     defaultColorTheme: 'polymer-id',
     defaultSizeTheme: 'uniform',
-    isApplicable: (structure: Structure) => structure.polymerResidueCount > 0
+    isApplicable: (structure: Structure) => structure.polymerResidueCount > 0,
+    ensureDependencies: (structure: Structure) => {
+        return SecondaryStructureProvider.attach(structure.root)
+    }
 }

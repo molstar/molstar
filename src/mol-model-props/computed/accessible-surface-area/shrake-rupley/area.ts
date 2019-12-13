@@ -41,7 +41,7 @@ function setLocation(l: StructureElement.Location, structure: Structure, serialI
 }
 
 function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
-    const { structure, atomRadiusType, serialResidueIndex, accessibleSurfaceArea, spherePoints, scalingConstant, maxLookupRadius, probeSize } = ctx;
+    const { structure, atomRadiusType, serialResidueIndex, area, spherePoints, scalingConstant, maxLookupRadius, probeSize } = ctx;
     const { x, y, z } = StructureProperties.atom
     const { lookup3d, serialMapping, unitIndexMap } = structure;
     const { cumulativeUnitElementCount } = serialMapping
@@ -98,6 +98,6 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
             if (accessible) ++accessiblePointCount;
         }
 
-        accessibleSurfaceArea[serialResidueIndex[aI]] += scalingConstant * accessiblePointCount * scale * scale;
+        area[serialResidueIndex[aI]] += scalingConstant * accessiblePointCount * scale * scale;
     }
 }

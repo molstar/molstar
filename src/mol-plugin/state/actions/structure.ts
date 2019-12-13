@@ -15,7 +15,7 @@ import { CustomModelProperties, StructureSelectionFromExpression, CustomStructur
 import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
-import { StructureElement } from '../../../mol-model/structure';
+import { StructureElement, Structure } from '../../../mol-model/structure';
 import { createDefaultStructureComplex } from '../../util/structure-complex-helper';
 import { ModelStructureRepresentation } from '../representation/model';
 
@@ -357,11 +357,10 @@ export const EnableModelCustomProps = StateAction.build({
 });
 
 export const EnableStructureCustomProps = StateAction.build({
-    display: { name: 'Custom Structure Properties', description: 'Enable the addition of custom properties to the structure.' },
+    display: { name: 'Custom Structure Properties', description: 'Enable parameters for custom properties of the structure.' },
     from: PluginStateObject.Molecule.Structure,
     params(a, ctx: PluginContext) {
-        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of structure property descriptor ids.' }) };
-        return { properties: ctx.customStructureProperties.getSelect(a.data) };
+        return ctx.customStructureProperties.getParams(a?.data || Structure.Empty)
     },
     isApplicable(a, t, ctx: PluginContext) {
         return t.transformer !== CustomStructureProperties;
