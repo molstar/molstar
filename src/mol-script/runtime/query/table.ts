@@ -8,7 +8,7 @@
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
 import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './compiler';
 import { Queries, StructureProperties, StructureElement, QueryContext, UnitRing } from '../../../mol-model/structure';
-import { ElementSymbol, LinkType } from '../../../mol-model/structure/model/types';
+import { ElementSymbol, LinkType, SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
 import { upperCaseAny } from '../../../mol-util/string';
 import { VdwRadius, AtomWeight, AtomNumber } from '../../../mol-model/structure/model/properties/atomic';
@@ -185,9 +185,18 @@ const symbols = [
         return ret;
     }),
     C(MolScript.structureQuery.type.ringFingerprint, (ctx, xs) => UnitRing.elementFingerprint(getArray(ctx, xs))),
+    C(MolScript.structureQuery.type.secondaryStructureFlags, (ctx, xs) => {
+        let ret: SecondaryStructureType = SecondaryStructureType.Flag.None;
+        if (typeof xs.length === 'number') {
+            for (let i = 0, _i = xs.length; i < _i; i++) ret = secondaryStructureFlag(ret, xs[i](ctx));
+        } else {
+            for (const k of Object.keys(xs)) ret = secondaryStructureFlag(ret, xs[k](ctx));
+        }
+        return ret;
+    }),
 
     // TODO:
-    // C(MolScript.structureQuery.type.secondaryStructureFlags, (ctx, v) => StructureRuntime.AtomProperties.createSecondaryStructureFlags(env, v)),
+
     // C(MolScript.structureQuery.type.entityType, (ctx, v) => StructureRuntime.Common.entityType(v[0](ctx))),
     // C(MolScript.structureQuery.type.authResidueId, (ctx, v) => ResidueIdentifier.auth(v[0](ctx), v[1](ctx), v[2] && v[2](ctx))),
     // C(MolScript.structureQuery.type.labelResidueId, (ctx, v) => ResidueIdentifier.label(v[0](ctx), v[1](ctx), v[2](ctx), v[3] && v[3](ctx))),
@@ -347,11 +356,27 @@ function linkFlag(current: LinkType, f: string): LinkType {
     switch (f.toLowerCase()) {
         case 'covalent': return current | LinkType.Flag.Covalent;
         case 'metallic': return current | LinkType.Flag.MetallicCoordination;
-        case 'ion': return current | LinkType.Flag.Ionic;
+        case 'ionic': return current | LinkType.Flag.Ionic;
         case 'hydrogen': return current | LinkType.Flag.Hydrogen;
         case 'sulfide': return current | LinkType.Flag.Sulfide;
         case 'aromatic': return current | LinkType.Flag.Aromatic;
         case 'computed': return current | LinkType.Flag.Computed;
+        default: return current;
+    }
+}
+
+function secondaryStructureFlag(current: SecondaryStructureType, f: string): SecondaryStructureType {
+    switch (f.toLowerCase()) {
+        case 'helix': return current | SecondaryStructureType.Flag.Helix;
+        case 'alpha': return current | SecondaryStructureType.Flag.Helix | SecondaryStructureType.Flag.HelixAlpha;
+        case 'pi': return current | SecondaryStructureType.Flag.Helix | SecondaryStructureType.Flag.HelixPi;
+        case '310': return current | SecondaryStructureType.Flag.Helix | SecondaryStructureType.Flag.Helix3Ten;
+        case 'beta': return current | SecondaryStructureType.Flag.Beta;
+        case 'strand': return current | SecondaryStructureType.Flag.Beta | SecondaryStructureType.Flag.BetaStrand;
+        case 'sheet': return current | SecondaryStructureType.Flag.Beta | SecondaryStructureType.Flag.BetaSheet;
+        case 'turn': return current | SecondaryStructureType.Flag.Turn;
+        case 'bend': return current | SecondaryStructureType.Flag.Bend;
+        case 'coil': return current | SecondaryStructureType.Flag.NA;
         default: return current;
     }
 }

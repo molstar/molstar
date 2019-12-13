@@ -13,7 +13,7 @@ import { compile } from '../../mol-script/runtime/query/compiler';
 import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
 import Expression from '../../mol-script/language/expression';
-import { LinkType, ProteinBackboneAtoms, NucleicBackboneAtoms } from '../../mol-model/structure/model/types';
+import { LinkType, ProteinBackboneAtoms, NucleicBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
 import { StateTransforms } from '../state/transforms';
 
 export interface StructureSelectionQuery {
@@ -119,6 +119,38 @@ const proteinOrNucleic = StructureSelectionQuery('Protein or Nucleic', MS.struct
                 MS.re('(polypeptide|cyclic-pseudo-peptide|nucleotide|peptide nucleic acid)', 'i'),
                 MS.ammp('entitySubtype')
             ])
+        ])
+    })
+]))
+
+const helix = StructureSelectionQuery('Helix', MS.struct.modifier.union([
+    MS.struct.generator.atomGroups({
+        'entity-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+            MS.core.str.match([
+                MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
+                MS.ammp('entitySubtype')
+            ])
+        ]),
+        'residue-test': MS.core.flags.hasAny([
+            MS.ammp('secondaryStructureFlags'),
+            MS.core.type.bitflags([SecondaryStructureType.Flag.Helix])
+        ])
+    })
+]))
+
+const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.union([
+    MS.struct.generator.atomGroups({
+        'entity-test': MS.core.logic.and([
+            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+            MS.core.str.match([
+                MS.re('(polypeptide|cyclic-pseudo-peptide)', 'i'),
+                MS.ammp('entitySubtype')
+            ])
+        ]),
+        'residue-test': MS.core.flags.hasAny([
+            MS.ammp('secondaryStructureFlags'),
+            MS.core.type.bitflags([SecondaryStructureType.Flag.Beta])
         ])
     })
 ]))
@@ -294,6 +326,8 @@ export const StructureSelectionQueries = {
     protein,
     nucleic,
     proteinOrNucleic,
+    helix,
+    beta,
     water,
     branched,
     branchedPlusConnected,
