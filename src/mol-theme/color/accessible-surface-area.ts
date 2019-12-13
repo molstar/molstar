@@ -38,7 +38,6 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
 
     const { label_comp_id } = StructureProperties.residue
     const accessibleSurfaceArea = ctx.structure && AccessibleSurfaceAreaProvider.getValue(ctx.structure)
-    // use `accessibleSurfaceArea.id` as context hash, when available
     const contextHash = accessibleSurfaceArea?.version
 
     if (accessibleSurfaceArea && accessibleSurfaceArea.value && ctx.structure) {

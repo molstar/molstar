@@ -666,10 +666,15 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
         });
     }
 });
-async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: {}) {
+async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: PD.Values<PD.Params>) {
     for (const name of Object.keys(params)) {
         const property = ctx.customStructureProperties.get(name)
-        property.setProps(structure, params[name as keyof typeof params])
+        const props = params[name as keyof typeof params]
+        if (props.autoAttach) {
+            await property.attach(structure, props).runInContext(taskCtx)
+        } else {
+            property.setProps(structure, props)
+        }
     }
 }
 
