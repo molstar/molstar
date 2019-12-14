@@ -12,27 +12,34 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Unit } from '../../mol-model/structure/structure';
 import { CustomStructureProperty } from '../common/custom-property-registry';
 
-// TODO get default params based on structure
-// /**
-//  * Attaches ComputedSecondaryStructure property when unavailable in sourceData and
-//  * when not an archival file (i.e. no database_2.database_id field)
-//  */
-// export async function ensureSecondaryStructure(s: Structure) {
-//     if (s.models.length === 1 && s.model && s.model.sourceData.kind === 'mmCIF') {
-//         if (!s.model.sourceData.data.struct_conf.id.isDefined && !s.model.sourceData.data.struct_sheet_range.id.isDefined &&
-//             !s.model.sourceData.data.database_2.database_id.isDefined
-//         ) {
-//             await ComputedSecondaryStructure.attach(s)
-//         }
-//     }
-// }
-
-export const SecondaryStructureParams = {
-    type: PD.MappedStatic('mmcif', {
-        'mmcif': PD.EmptyGroup({ label: 'mmCIF' }),
-        'dssp': PD.Group(DSSPComputationParams, { label: 'DSSP', isFlat: true })
-    }, { options: [['mmcif', 'mmCIF'], ['dssp', 'DSSP']] })
+function getSecondaryStructureParams(data?: Structure) {
+    let defaultType = 'mmcif' as 'mmcif' | 'dssp'
+    if (data) {
+        defaultType = 'dssp'
+        for (let i = 0, il = data.models.length; i < il; ++i) {
+            const m = data.models[i]
+            if (m.sourceData.kind === 'mmCIF') {
+                if (data.model.sourceData.data.struct_conf.id.isDefined ||
+                    data.model.sourceData.data.struct_sheet_range.id.isDefined ||
+                    data.model.sourceData.data.database_2.database_id.isDefined
+                ) {
+                    // if there is any secondary structure definition given or if there is
+                    // an archival model, don't calculate dssp by default
+                    defaultType = 'mmcif'
+                    break
+                }
+            }
+        }
+    }
+    return {
+        type: PD.MappedStatic(defaultType, {
+            'mmcif': PD.EmptyGroup({ label: 'mmCIF' }),
+            'dssp': PD.Group(DSSPComputationParams, { label: 'DSSP', isFlat: true })
+        }, { options: [['mmcif', 'mmCIF'], ['dssp', 'DSSP']] })
+    }
 }
+
+export const SecondaryStructureParams = getSecondaryStructureParams()
 export type SecondaryStructureParams = typeof SecondaryStructureParams
 export type SecondaryStructureProps = PD.Values<SecondaryStructureParams>
 
@@ -46,7 +53,7 @@ export const SecondaryStructureProvider: CustomStructureProperty.Provider<Second
         // TODO `cifExport` and `symbol`
     }),
     defaultParams: SecondaryStructureParams,
-    getParams: (data: Structure) => SecondaryStructureParams,
+    getParams: getSecondaryStructureParams,
     isApplicable: (data: Structure) => true,
     compute: async (ctx: RuntimeContext, data: Structure, props: Partial<SecondaryStructureProps>) => {
         const p = { ...PD.getDefaultValues(SecondaryStructureParams), ...props }
