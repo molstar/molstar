@@ -23,7 +23,7 @@ import { MarkerAction } from '../../mol-util/marker-action';
 import { EveryLoci } from '../../mol-model/loci';
 import { lociLabel } from '../../mol-theme/label';
 import { InteractionsRepresentationProvider } from '../../mol-repr/structure/representation/interactions';
-import { ComputedInteractions } from '../../mol-model-props/computed/interactions';
+import { InteractionsProvider } from '../../mol-model-props/computed/interactions';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -128,9 +128,9 @@ async function init() {
     // console.log(ComputedValenceModel.get(structure))
 
     console.time('computeInteractions')
-    await ComputedInteractions.attachFromCifOrCompute(structure)
+    await InteractionsProvider.attach(structure).run()
     console.timeEnd('computeInteractions');
-    console.log(ComputedInteractions.get(structure))
+    console.log(InteractionsProvider.getValue(structure).value)
 
     const show = {
         cartoon: true,

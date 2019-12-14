@@ -6,6 +6,8 @@
  */
 
 export { AccessibleSurfaceArea } from './custom-props/computed/accessible-surface-area'
+export { Interactions } from './custom-props/computed/interactions'
 export { SecondaryStructure } from './custom-props/computed/secondary-structure'
+
 export { PDBeStructureQualityReport } from './custom-props/pdbe/structure-quality-report'
 export { RCSBAssemblySymmetry } from './custom-props/rcsb/assembly-symmetry'
