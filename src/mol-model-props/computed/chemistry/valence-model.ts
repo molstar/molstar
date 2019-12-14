@@ -68,7 +68,7 @@ export function explicitValence (structure: Structure, unit: Unit.Atomic, index:
     const { offset, edgeProps } = unit.links
     for (let i = offset[index], il = offset[index + 1]; i < il; ++i) v += edgeProps.order[i]
     // inter-unit bonds
-    structure.interUnitBonds.getBondIndices(index, unit).forEach(b => v += structure.interUnitBonds.bonds[b].order)
+    structure.interUnitBonds.getEdgeIndices(index, unit).forEach(b => v += structure.interUnitBonds.edges[b].props.order)
     return v
 }
 

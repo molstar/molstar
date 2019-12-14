@@ -31,7 +31,7 @@ export function compId(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
 //
 
 export function interBondCount(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex): number {
-    return structure.interUnitBonds.getBondIndices(index, unit).length
+    return structure.interUnitBonds.getEdgeIndices(index, unit).length
 }
 
 export function intraBondCount(unit: Unit.Atomic, index: StructureElement.UnitIndex): number {
@@ -65,9 +65,9 @@ export function intraConnectedTo(unit: Unit.Atomic, indexA: StructureElement.Uni
 
 export function eachInterBondedAtom(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex, cb: (unit: Unit.Atomic, index: StructureElement.UnitIndex) => void): void {
     // inter
-    const interIndices = structure.interUnitBonds.getBondIndices(index, unit)
+    const interIndices = structure.interUnitBonds.getEdgeIndices(index, unit)
     for (let i = 0, il = interIndices.length; i < il; ++i) {
-        const b = structure.interUnitBonds.bonds[i]
+        const b = structure.interUnitBonds.edges[i]
         cb(b.unitB, b.indexB)
     }
 }

@@ -35,15 +35,15 @@ const tmpLoc = StructureElement.Location.create()
 
 function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitLinkParams>, mesh?: Mesh) {
     const links = structure.interUnitBonds
-    const { bondCount, bonds } = links
+    const { edgeCount, edges } = links
     const { sizeFactor, sizeAspectRatio, ignoreHydrogens } = props
 
-    if (!bondCount) return Mesh.createEmpty(mesh)
+    if (!edgeCount) return Mesh.createEmpty(mesh)
 
     const builderProps = {
-        linkCount: bondCount,
+        linkCount: edgeCount,
         referencePosition: (edgeIndex: number) => {
-            const b = bonds[edgeIndex]
+            const b = edges[edgeIndex]
             let unitA: Unit, unitB: Unit
             let indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex
             if (b.unitA.id < b.unitB.id) {
@@ -58,15 +58,15 @@ function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structur
             return setRefPosition(tmpRef, structure, unitA, indexA) || setRefPosition(tmpRef, structure, unitB, indexB)
         },
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            const b = bonds[edgeIndex]
+            const b = edges[edgeIndex]
             const uA = b.unitA, uB = b.unitB
             uA.conformation.position(uA.elements[b.indexA], posA)
             uB.conformation.position(uB.elements[b.indexB], posB)
         },
-        order: (edgeIndex: number) => bonds[edgeIndex].order,
-        flags: (edgeIndex: number) => BitFlags.create(bonds[edgeIndex].flag),
+        order: (edgeIndex: number) => edges[edgeIndex].props.order,
+        flags: (edgeIndex: number) => BitFlags.create(edges[edgeIndex].props.flag),
         radius: (edgeIndex: number) => {
-            const b = bonds[edgeIndex]
+            const b = edges[edgeIndex]
             tmpLoc.unit = b.unitA
             tmpLoc.element = b.unitA.elements[b.indexA]
             const sizeA = theme.size.size(tmpLoc)
@@ -76,7 +76,7 @@ function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structur
             return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio
         },
         ignore: ignoreHydrogens ? (edgeIndex: number) => {
-            const b = bonds[edgeIndex]
+            const b = edges[edgeIndex]
             const uA = b.unitA, uB = b.unitB
             return isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB])
         } : () => false
@@ -118,7 +118,7 @@ export function InterUnitLinkVisual(materialId: number): ComplexVisual<InterUnit
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId
     if (id === objectId) {
-        const bond = structure.interUnitBonds.bonds[groupId]
+        const bond = structure.interUnitBonds.edges[groupId]
         return Link.Loci(structure, [
             Link.Location(
                 bond.unitA, bond.indexA as StructureElement.UnitIndex,
@@ -138,7 +138,7 @@ function eachLink(loci: Loci, structure: Structure, apply: (interval: Interval) 
     if (Link.isLoci(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false
         for (const b of loci.links) {
-            const idx = structure.interUnitBonds.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
+            const idx = structure.interUnitBonds.getBondIndexFromLocation(b)
             if (idx !== -1) {
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }
@@ -151,14 +151,16 @@ function eachLink(loci: Loci, structure: Structure, apply: (interval: Interval) 
         for (const e of loci.elements) map.set(e.unit.id, e.indices)
 
         for (const e of loci.elements) {
-            structure.interUnitBonds.getLinkedUnits(e.unit).forEach(b => {
+            const { unit } = e
+            if (!Unit.isAtomic(unit)) continue
+            structure.interUnitBonds.getLinkedUnits(unit).forEach(b => {
                 const otherLociIndices = map.get(b.unitB.id)
                 if (otherLociIndices) {
                     OrderedSet.forEach(e.indices, v => {
-                        if (!b.linkedElementIndices.includes(v)) return
-                        b.getBonds(v).forEach(bi => {
+                        if (!b.connectedIndices.includes(v)) return
+                        b.getEdges(v).forEach(bi => {
                             if (OrderedSet.has(otherLociIndices, bi.indexB)) {
-                                const idx = structure.interUnitBonds.getBondIndex(v, e.unit, bi.indexB, b.unitB)
+                                const idx = structure.interUnitBonds.getEdgeIndex(v, unit, bi.indexB, b.unitB)
                                 if (apply(Interval.ofSingleton(idx))) changed = true
                             }
                         })

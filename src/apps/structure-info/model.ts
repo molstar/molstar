@@ -92,13 +92,13 @@ export function printLinks(structure: Structure, showIntra: boolean, showInter: 
             if (!Unit.isAtomic(unit)) continue;
 
             for (const pairLinks of links.getLinkedUnits(unit)) {
-                if (!pairLinks.areUnitsOrdered || pairLinks.bondCount === 0) continue;
+                if (!pairLinks.areUnitsOrdered || pairLinks.edgeCount === 0) continue;
 
                 const { unitA, unitB } = pairLinks;
-                console.log(`${pairLinks.unitA.id} - ${pairLinks.unitB.id}: ${pairLinks.bondCount} bond(s)`);
+                console.log(`${pairLinks.unitA.id} - ${pairLinks.unitB.id}: ${pairLinks.edgeCount} bond(s)`);
 
-                for (const aI of pairLinks.linkedElementIndices) {
-                    for (const link of pairLinks.getBonds(aI)) {
+                for (const aI of pairLinks.connectedIndices) {
+                    for (const link of pairLinks.getEdges(aI)) {
                         console.log(`${atomLabel(unitA.model, unitA.elements[aI])} -- ${atomLabel(unitB.model, unitB.elements[link.indexB])}`);
                     }
                 }

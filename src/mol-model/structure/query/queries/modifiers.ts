@@ -390,11 +390,11 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
             if (visitedSourceUnits.has(linkedUnit.unitB.id)) continue;
             const currentUnitB = structure.unitMap.get(linkedUnit.unitB.id);
 
-            for (const aI of linkedUnit.linkedElementIndices) {
+            for (const aI of linkedUnit.connectedIndices) {
                 // check if the element is in the expanded structure
                 if (!SortedArray.has(unit.elements, inputUnitA.elements[aI])) continue;
 
-                for (const bond of linkedUnit.getBonds(aI)) {
+                for (const bond of linkedUnit.getEdges(aI)) {
                     const bElement = linkedUnit.unitB.elements[bond.indexB];
 
                     // Check if the element is already present:
@@ -406,8 +406,8 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
                     atomicLink.b.unit = linkedUnit.unitB;
                     atomicLink.bIndex = bond.indexB;
                     atomicLink.b.element = bElement;
-                    atomicLink.type = bond.flag;
-                    atomicLink.order = bond.order;
+                    atomicLink.type = bond.props.flag;
+                    atomicLink.order = bond.props.order;
 
                     if (atomicLink.test(ctx, true)) {
                         builder.addToUnit(linkedUnit.unitB.id, bElement);

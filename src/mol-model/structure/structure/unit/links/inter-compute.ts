@@ -32,9 +32,10 @@ interface PairState {
     bondedB: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
 }
 
-function addLink(indexA: number, indexB: number, order: number, flag: LinkType.Flag, state: PairState) {
-    addMapEntry(state.mapAB, indexA, { indexB, order, flag });
-    addMapEntry(state.mapBA, indexB, { indexB: indexA, order, flag });
+function addLink(indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex, order: number, flag: LinkType.Flag, state: PairState) {
+    addMapEntry(state.mapAB, indexA, { indexB, props: { order, flag } });
+    addMapEntry(state.mapBA, indexB, { indexB: indexA, props: { order, flag } });
+
     UniqueArray.add(state.bondedA, indexA, indexA);
     UniqueArray.add(state.bondedB, indexB, indexB);
 }
@@ -77,7 +78,7 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
     const { center: bCenter, radius: bRadius } = lookup3d.boundary.sphere;
     const testDistanceSq = (bRadius + MAX_RADIUS) * (bRadius + MAX_RADIUS);
 
-    for (let _aI = 0; _aI < atomCount; _aI++) {
+    for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atomsA[_aI];
         Vec3.set(imageA, xA[aI], yA[aI], zA[aI]);
         if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform);
@@ -88,7 +89,7 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
             let added = false;
             for (const se of structConnEntries) {
                 for (const p of se.partners) {
-                    const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex);
+                    const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex) as StructureElement.UnitIndex;
                     if (_bI < 0) continue;
                     // check if the bond is within MAX_RADIUS for this pair of units
                     if (getDistance(unitA, aI, unitB, p.atomIndex) > MAX_RADIUS) continue;
@@ -114,7 +115,7 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
         const compIdA = label_comp_idA.value(residueIndexA[aI]);
 
         for (let ni = 0; ni < count; ni++) {
-            const _bI = indices[ni];
+            const _bI = indices[ni] as StructureElement.UnitIndex;
             const bI = atomsB[_bI];
 
             const altB = label_alt_idB.value(bI);

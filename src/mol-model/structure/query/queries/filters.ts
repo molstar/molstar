@@ -277,7 +277,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
             for (let li = 0; li < luCount; li++) {
                 const lu = linkedUnits[li];
                 const bElements = lu.unitB.elements;
-                const bonds = lu.getBonds(inputIndex);
+                const bonds = lu.getEdges(inputIndex);
                 for (let bi = 0, _bi = bonds.length; bi < _bi; bi++) {
                     const bond = bonds[bi];
                     atomicLink.b.unit = lu.unitB;
@@ -290,8 +290,8 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
                     atomicLink.a.element = srcElements[i];
 
                     atomicLink.bIndex = bond.indexB;
-                    atomicLink.type = bond.flag;
-                    atomicLink.order = bond.order;
+                    atomicLink.type = bond.props.flag;
+                    atomicLink.order = bond.props.order;
                     if (atomicLink.test(queryCtx, true)) return true;
                 }
             }

@@ -319,15 +319,15 @@ export function linkedAtomicPairs(linkTest?: QueryPredicate): StructureQuery {
         }
 
         // Process inter unit links
-        for (const bond of interLinks.bonds) {
+        for (const bond of interLinks.edges) {
             atomicLink.a.unit = bond.unitA;
             atomicLink.a.element = bond.unitA.elements[bond.indexA];
             atomicLink.aIndex = bond.indexA;
             atomicLink.b.unit = bond.unitB;
             atomicLink.b.element = bond.unitB.elements[bond.indexB];
             atomicLink.bIndex = bond.indexB;
-            atomicLink.order = bond.order;
-            atomicLink.type = bond.flag;
+            atomicLink.order = bond.props.order;
+            atomicLink.type = bond.props.flag;
 
             // No need to "swap test" because each bond direction will be visited eventually.
             if (atomicLink.test(ctx, false)) {
