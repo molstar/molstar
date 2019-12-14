@@ -59,6 +59,7 @@ namespace InteractionsBuilder {
                 return {
                     links,
                     features,
+                    elementsIndex,
                     getLinkIndex: (indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex) => {
                         // TODO quadratic runtime... when both indices are part of more than one feature
                         const { indices, offsets } = elementsIndex
@@ -83,6 +84,7 @@ export type InteractionsLinks = IntAdjacencyGraph<{ readonly types: ArrayLike<In
 export interface Interactions {
     links: InteractionsLinks
     features: Features
+    elementsIndex: Features.ElementsIndex
     getLinkIndex: (indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex) => number
 }
 

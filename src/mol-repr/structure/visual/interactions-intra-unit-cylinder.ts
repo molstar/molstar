@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Link, Structure } from '../../../mol-model/structure';
+import { Unit, Link, Structure, StructureElement } from '../../../mol-model/structure';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
-import { Interval, SortedArray } from '../../../mol-data/int';
+import { Interval, SortedArray, OrderedSet } from '../../../mol-data/int';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { PickingId } from '../../../mol-geo/geometry/picking';
@@ -87,13 +87,14 @@ function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
         const { structure, group } = structureGroup
-        const unit = group.units[instanceId]
+        // use corresponding unit from root structure
+        const unit = structure.root.unitMap.get(group.units[instanceId].id)
         if (Unit.isAtomic(unit)) {
             const interactions = InteractionsProvider.getValue(structure).value!
             const { features, links } = interactions.get(unit.id)!
             const { members, offsets } = features
             // TODO this uses the first member elements of the features of an interaction as a representative
-            return Link.Loci(structure, [
+            return Link.Loci(structure.root, [
                 Link.Location(
                     unit, members[offsets[links.a[groupId]]],
                     unit, members[offsets[links.b[groupId]]]
@@ -125,6 +126,31 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
                 if (idx !== -1) {
                     if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                 }
+            }
+        }
+    } else if (StructureElement.Loci.is(loci)) {
+        const { structure, group } = structureGroup
+        if (!Structure.areEquivalent(loci.structure, structure)) return false
+        const unit = group.units[0]
+        if (!Unit.isAtomic(unit)) return false
+        const interactions = InteractionsProvider.getValue(structure).value!
+        const { links, elementsIndex } = interactions.get(unit.id)!
+        const groupCount = links.edgeCount * 2
+        for (const e of loci.elements) {
+            const unitIdx = group.unitIndexMap.get(e.unit.id)
+            if (unitIdx !== undefined) {
+                const { offset } = links
+                const { indices, offsets } = elementsIndex
+                const rootElements = structure.root.unitMap.get(unit.id).elements
+                OrderedSet.forEach(e.indices, _v => {
+                    const v = SortedArray.indexOf(rootElements, e.unit.elements[_v])
+                    for (let i = offsets[v], il = offsets[v + 1]; i < il; ++i) {
+                        const f = indices[i]
+                        for (let t = offset[f], _t = offset[f + 1]; t < _t; t++) {
+                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true
+                        }
+                    }
+                })
             }
         }
     }

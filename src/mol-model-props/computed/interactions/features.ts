@@ -30,9 +30,11 @@ interface Features {
 }
 
 namespace Features {
-    /** maps elements to features, range for element i is offsets[i] to offsets[i + 1] */
+    /** maps unit elements to features, range for unit element i is offsets[i] to offsets[i + 1] */
     export type ElementsIndex = {
+        /** feature indices */
         readonly indices: ArrayLike<number>
+        /** range for unit element i is offsets[i] to offsets[i + 1] */
         readonly offsets: ArrayLike<number>
     }
 
