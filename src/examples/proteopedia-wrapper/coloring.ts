@@ -6,7 +6,7 @@
  */
 
 
-import { Unit, StructureProperties, StructureElement, Link } from '../../mol-model/structure';
+import { Unit, StructureProperties, StructureElement, Bond } from '../../mol-model/structure';
 
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
@@ -71,7 +71,7 @@ export function createProteopediaCustomTheme(colors: number[]) {
                     const asym_id = getAsymId(location.unit);
                     const o = asymIdSerialMap.get(asym_id(location)) || 0;
                     return colors[o % colorCount].color;
-                } else if (Link.isLocation(location)) {
+                } else if (Bond.isLocation(location)) {
                     const asym_id = getAsymId(location.aUnit)
                     l.unit = location.aUnit
                     l.element = location.aUnit.elements[location.aIndex]

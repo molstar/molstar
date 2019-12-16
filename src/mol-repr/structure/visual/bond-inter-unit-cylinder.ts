@@ -6,12 +6,12 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
-import { Structure, StructureElement, Link, Unit } from '../../../mol-model/structure';
+import { Structure, StructureElement, Bond, Unit } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags } from '../../../mol-util';
-import { createLinkCylinderMesh, LinkCylinderParams, LinkIterator } from './util/link';
+import { createBondCylinderMesh, BondCylinderParams, BondIterator } from './util/bond';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
@@ -19,11 +19,11 @@ import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { isHydrogen } from './util/common';
 
-const tmpRefPosLinkIt = new Link.ElementLinkIterator()
+const tmpRefPosBondIt = new Bond.ElementBondIterator()
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    tmpRefPosLinkIt.setElement(structure, unit, index)
-    while (tmpRefPosLinkIt.hasNext) {
-        const bA = tmpRefPosLinkIt.move()
+    tmpRefPosBondIt.setElement(structure, unit, index)
+    while (tmpRefPosBondIt.hasNext) {
+        const bA = tmpRefPosBondIt.move()
         bA.otherUnit.conformation.position(bA.otherUnit.elements[bA.otherIndex], pos)
         return pos
     }
@@ -33,15 +33,15 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
 const tmpRef = Vec3()
 const tmpLoc = StructureElement.Location.create()
 
-function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitLinkParams>, mesh?: Mesh) {
-    const links = structure.interUnitBonds
-    const { edgeCount, edges } = links
+function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondParams>, mesh?: Mesh) {
+    const bonds = structure.interUnitBonds
+    const { edgeCount, edges } = bonds
     const { sizeFactor, sizeAspectRatio, ignoreHydrogens } = props
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
     const builderProps = {
-        linkCount: edgeCount,
+        bondCount: edgeCount,
         referencePosition: (edgeIndex: number) => {
             const b = edges[edgeIndex]
             let unitA: Unit, unitB: Unit
@@ -53,7 +53,7 @@ function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structur
                 unitA = b.unitB, unitB = b.unitA
                 indexA = b.indexB, indexB = b.indexA
             } else {
-                throw new Error('same units in createInterUnitLinkCylinderMesh')
+                throw new Error('same units in createInterUnitBondCylinderMesh')
             }
             return setRefPosition(tmpRef, structure, unitA, indexA) || setRefPosition(tmpRef, structure, unitB, indexB)
         },
@@ -82,49 +82,49 @@ function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structur
         } : () => false
     }
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
+    return createBondCylinderMesh(ctx, builderProps, props, mesh)
 }
 
-export const InterUnitLinkParams = {
+export const InterUnitBondParams = {
     ...ComplexMeshParams,
-    ...LinkCylinderParams,
+    ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2/3, { min: 0, max: 3, step: 0.01 }),
     ignoreHydrogens: PD.Boolean(false),
 }
-export type InterUnitLinkParams = typeof InterUnitLinkParams
+export type InterUnitBondParams = typeof InterUnitBondParams
 
-export function InterUnitLinkVisual(materialId: number): ComplexVisual<InterUnitLinkParams> {
-    return ComplexMeshVisual<InterUnitLinkParams>({
-        defaultProps: PD.getDefaultValues(InterUnitLinkParams),
-        createGeometry: createInterUnitLinkCylinderMesh,
-        createLocationIterator: LinkIterator.fromStructure,
-        getLoci: getLinkLoci,
-        eachLocation: eachLink,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitLinkParams>, currentProps: PD.Values<InterUnitLinkParams>) => {
+export function InterUnitBondVisual(materialId: number): ComplexVisual<InterUnitBondParams> {
+    return ComplexMeshVisual<InterUnitBondParams>({
+        defaultProps: PD.getDefaultValues(InterUnitBondParams),
+        createGeometry: createInterUnitBondCylinderMesh,
+        createLocationIterator: BondIterator.fromStructure,
+        getLoci: getBondLoci,
+        eachLocation: eachBond,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondParams>, currentProps: PD.Values<InterUnitBondParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
                 newProps.radialSegments !== currentProps.radialSegments ||
-                newProps.linkScale !== currentProps.linkScale ||
-                newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.bondScale !== currentProps.bondScale ||
+                newProps.bondSpacing !== currentProps.bondSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.linkCap !== currentProps.linkCap
+                newProps.bondCap !== currentProps.bondCap
             )
         }
     }, materialId)
 }
 
-function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
+function getBondLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId
     if (id === objectId) {
         const bond = structure.interUnitBonds.edges[groupId]
-        return Link.Loci(structure, [
-            Link.Location(
+        return Bond.Loci(structure, [
+            Bond.Location(
                 bond.unitA, bond.indexA as StructureElement.UnitIndex,
                 bond.unitB, bond.indexB as StructureElement.UnitIndex
             ),
-            Link.Location(
+            Bond.Location(
                 bond.unitB, bond.indexB as StructureElement.UnitIndex,
                 bond.unitA, bond.indexA as StructureElement.UnitIndex
             )
@@ -133,11 +133,11 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-function eachLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+function eachBond(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (Link.isLoci(loci)) {
+    if (Bond.isLoci(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false
-        for (const b of loci.links) {
+        for (const b of loci.bonds) {
             const idx = structure.interUnitBonds.getBondIndexFromLocation(b)
             if (idx !== -1) {
                 if (apply(Interval.ofSingleton(idx))) changed = true
@@ -153,7 +153,7 @@ function eachLink(loci: Loci, structure: Structure, apply: (interval: Interval) 
         for (const e of loci.elements) {
             const { unit } = e
             if (!Unit.isAtomic(unit)) continue
-            structure.interUnitBonds.getLinkedUnits(unit).forEach(b => {
+            structure.interUnitBonds.getConnectedUnits(unit).forEach(b => {
                 const otherLociIndices = map.get(b.unitB.id)
                 if (otherLociIndices) {
                     OrderedSet.forEach(e.indices, v => {

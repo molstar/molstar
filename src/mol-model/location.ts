@@ -5,7 +5,7 @@
  */
 
 import { StructureElement } from './structure'
-import { Link } from './structure/structure/unit/links'
+import { Bond } from './structure/structure/unit/bonds'
 import { ShapeGroup } from './shape/shape';
 
 /** A null value Location */
@@ -15,4 +15,4 @@ export function isNullLocation(x: any): x is NullLocation {
     return !!x && x.kind === 'null-location';
 }
 
-export type Location = StructureElement.Location | Link.Location | ShapeGroup.Location | NullLocation
+export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | NullLocation

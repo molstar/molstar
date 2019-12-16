@@ -22,7 +22,7 @@ import { PluginCommands } from '../../../command';
 import { StateSelection } from '../../../../mol-state';
 import { Representation } from '../../../../mol-repr/representation';
 import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-observer';
-import { StructureElement, Link, Structure } from '../../../../mol-model/structure';
+import { StructureElement, Bond, Structure } from '../../../../mol-model/structure';
 import { PluginContext } from '../../../context';
 import { Binding } from '../../../../mol-util/binding';
 import { EmptyLoci, Loci, isEmptyLoci } from '../../../../mol-model/loci';
@@ -259,8 +259,8 @@ export namespace VolumeStreaming {
         private getNormalizedLoci(loci: Loci): StructureElement.Loci | EmptyLoci {
             if (StructureElement.Loci.is(loci)) {
                 return loci;
-            } else if (Link.isLoci(loci)) {
-                return Link.toStructureElementLoci(loci);
+            } else if (Bond.isLoci(loci)) {
+                return Bond.toStructureElementLoci(loci);
             } else if (Structure.isLoci(loci)) {
                 return Structure.toStructureElementLoci(loci.structure);
             } else {

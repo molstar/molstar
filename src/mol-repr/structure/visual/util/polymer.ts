@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Unit, ElementIndex, StructureElement, Link, Structure, ResidueIndex } from '../../../../mol-model/structure';
+import { Unit, ElementIndex, StructureElement, Bond, Structure, ResidueIndex } from '../../../../mol-model/structure';
 import SortedRanges from '../../../../mol-data/int/sorted-ranges';
 import { OrderedSet, Interval, SortedArray } from '../../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
@@ -216,9 +216,9 @@ export function getPolymerGapElementLoci(pickingId: PickingId, structureGroup: S
         const unitIndexA = OrderedSet.indexOf(unit.elements, unit.gapElements[groupId]) as StructureElement.UnitIndex
         const unitIndexB = OrderedSet.indexOf(unit.elements, unit.gapElements[groupId % 2 ? groupId - 1 : groupId + 1]) as StructureElement.UnitIndex
         if (unitIndexA !== -1 && unitIndexB !== -1) {
-            return Link.Loci(structure, [
-                Link.Location(unit, unitIndexA, unit, unitIndexB),
-                Link.Location(unit, unitIndexB, unit, unitIndexA)
+            return Bond.Loci(structure, [
+                Bond.Location(unit, unitIndexA, unit, unitIndexB),
+                Bond.Location(unit, unitIndexB, unit, unitIndexA)
             ])
         }
     }
@@ -227,12 +227,12 @@ export function getPolymerGapElementLoci(pickingId: PickingId, structureGroup: S
 
 export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (Link.isLoci(loci)) {
+    if (Bond.isLoci(loci)) {
         const { structure, group } = structureGroup
         if (!Structure.areRootsEquivalent(loci.structure, structure)) return false
-        loci = Link.remapLoci(loci, structure)
+        loci = Bond.remapLoci(loci, structure)
         const groupCount = group.units[0].gapElements.length
-        for (const b of loci.links) {
+        for (const b of loci.bonds) {
             const unitIdx = group.unitIndexMap.get(b.aUnit.id)
             if (unitIdx !== undefined) {
                 const idxA = OrderedSet.indexOf(b.aUnit.gapElements, b.aUnit.elements[b.aIndex])

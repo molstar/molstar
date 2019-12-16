@@ -5,7 +5,7 @@
  */
 
 import { Color } from '../../mol-util/color';
-import { StructureElement, Link, Structure } from '../../mol-model/structure';
+import { StructureElement, Bond, Structure } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
@@ -63,7 +63,7 @@ export function OperatorNameColorTheme(ctx: ThemeDataContext, props: PD.Values<O
             if (StructureElement.Location.is(location)) {
                 const name = location.unit.conformation.operator.name
                 serial = operatorNameSerialMap.get(name)
-            } else if (Link.isLocation(location)) {
+            } else if (Bond.isLocation(location)) {
                 const name = location.aUnit.conformation.operator.name
                 serial = operatorNameSerialMap.get(name)
             }

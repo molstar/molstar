@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureElement, Link, ElementIndex } from '../../mol-model/structure';
+import { Unit, StructureElement, Bond, ElementIndex } from '../../mol-model/structure';
 
 import { ColorScale, Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
@@ -78,7 +78,7 @@ export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Seq
                 scale.setDomain(0, getSequenceLength(unit, element) - 1)
                 return scale.color(seq_id)
             }
-        } else if (Link.isLocation(location)) {
+        } else if (Bond.isLocation(location)) {
             const { aUnit, aIndex } = location
             const seq_id = getSeqId(aUnit, aUnit.elements[aIndex])
             if (seq_id > 0) {

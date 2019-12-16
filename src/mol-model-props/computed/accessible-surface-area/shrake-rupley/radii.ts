@@ -6,7 +6,7 @@
  */
 
 import { ShrakeRupleyContext, VdWLookup } from './common';
-import { getElementIdx, isHydrogen } from '../../../../mol-model/structure/structure/unit/links/common';
+import { getElementIdx, isHydrogen } from '../../../../mol-model/structure/structure/unit/bonds/common';
 import { isPolymer, isNucleic, MoleculeType, ElementSymbol } from '../../../../mol-model/structure/model/types';
 import { VdwRadius } from '../../../../mol-model/structure/model/properties/atomic';
 import { StructureElement, StructureProperties } from '../../../../mol-model/structure/structure';

@@ -11,12 +11,12 @@ import Structure from '../../structure/structure';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { QueryContext } from '../context';
-import { LinkType } from '../../model/types';
+import { BondType } from '../../model/types';
 import { BundleElement, Bundle } from '../../structure/element/bundle';
 import { UnitIndex } from '../../structure/element/element';
 
-export function defaultLinkTest(ctx: QueryContext) {
-    return LinkType.isCovalent(ctx.atomicLink.type);
+export function defaultBondTest(ctx: QueryContext) {
+    return BondType.isCovalent(ctx.atomicBond.type);
 }
 
 export function atomicSequence(): StructureQuery {

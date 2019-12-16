@@ -5,7 +5,7 @@
  */
 
 import { Color, ColorScale } from '../../mol-util/color';
-import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
@@ -78,7 +78,7 @@ export function HydrophobicityColorTheme(ctx: ThemeDataContext, props: PD.Values
             } else {
                 compId = getCoarseCompId(location.unit, location.element)
             }
-        } else if (Link.isLocation(location)) {
+        } else if (Bond.isLocation(location)) {
             if (Unit.isAtomic(location.aUnit)) {
                 compId = getAtomicCompId(location.aUnit, location.aUnit.elements[location.aIndex])
             } else {

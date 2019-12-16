@@ -14,8 +14,8 @@ export namespace Types {
     export const ElementSymbol = Type.Value('Structure', 'ElementSymbol');
     export const AtomName = Type.Value('Structure', 'AtomName');
 
-    export const LinkFlag = Type.OneOf('Structure', 'LinkFlag', Type.Str, ['covalent', 'metallic', 'ion', 'hydrogen', 'sulfide', 'computed', 'aromatic']);
-    export const LinkFlags = Core.Types.Flags(LinkFlag, 'LinkFlags');
+    export const BondFlag = Type.OneOf('Structure', 'BondFlag', Type.Str, ['covalent', 'metallic', 'ion', 'hydrogen', 'sulfide', 'computed', 'aromatic']);
+    export const BondFlags = Core.Types.Flags(BondFlag, 'BondFlags');
 
     export const SecondaryStructureFlag = Type.OneOf('Structure', 'SecondaryStructureFlag', Type.Str, ['alpha', 'beta', '3-10', 'pi', 'sheet', 'strand', 'helix', 'turn', 'none']);
     export const SecondaryStructureFlags = Core.Types.Flags(SecondaryStructureFlag, 'SecondaryStructureFlag');
@@ -47,10 +47,10 @@ const type = {
         Types.EntityType,
         `Create normalized representation of entity type: ${Type.oneOfValues(Types.EntityType).join(', ')}.`),
 
-    linkFlags: symbol(
-        Arguments.List(Types.LinkFlag),
-        Types.LinkFlags,
-        `Create link flags representation from a list of strings. Allowed flags: ${Type.oneOfValues(Types.LinkFlag).join(', ')}.`),
+    bondFlags: symbol(
+        Arguments.List(Types.BondFlag),
+        Types.BondFlags,
+        `Create bond flags representation from a list of strings. Allowed flags: ${Type.oneOfValues(Types.BondFlag).join(', ')}.`),
 
     ringFingerprint: symbol(
         Arguments.List(Types.ElementSymbol, { nonEmpty: true }),
@@ -93,10 +93,10 @@ const generator = {
         'group-by': Argument(Type.Any, { isOptional: true, defaultValue: `atom-key`, description: 'Group atoms to sets based on this property. Default: each atom has its own set' }),
     }), Types.ElementSelectionQuery, 'Return all atoms for which the tests are satisfied, grouped into sets.'),
 
-    linkedAtomicPairs: symbol(Arguments.Dictionary({
-        0: Argument(Type.Bool, { isOptional: true, defaultValue: 'true for covalent links' as any, description: 'Test each link with this predicate. Each link is visited twice with swapped atom order.' }),
+    bondedAtomicPairs: symbol(Arguments.Dictionary({
+        0: Argument(Type.Bool, { isOptional: true, defaultValue: 'true for covalent bonds' as any, description: 'Test each bond with this predicate. Each bond is visited twice with swapped atom order.' }),
         // TODO: shoud we support this or just use queryEach to get similar behavior
-        // 'group-by': Argument(Type.Any, { isOptional: true, defaultValue: ``, description: 'Group the links using the privided value' }),
+        // 'group-by': Argument(Type.Any, { isOptional: true, defaultValue: ``, description: 'Group the bonds using the privided value' }),
     }), Types.ElementSelectionQuery, 'Return all pairs of atoms for which the test is satisfied.'),
 
     rings: symbol(Arguments.List(Types.RingFingerprint), Types.ElementSelectionQuery, 'Return rings with the specified fingerprint(s). If no fingerprints are given, return all rings.'),
@@ -154,8 +154,8 @@ const modifier = {
 
     includeConnected: symbol(Arguments.Dictionary({
         0: Argument(Types.ElementSelectionQuery),
-        'link-test': Argument(Type.Bool, { isOptional: true, defaultValue: 'true for covalent links' as any }),
-        'layer-count': Argument(Type.Num, { isOptional: true, defaultValue: 1, description: 'Number of linked layers to include.' }),
+        'bond-test': Argument(Type.Bool, { isOptional: true, defaultValue: 'true for covalent bonds' as any }),
+        'layer-count': Argument(Type.Num, { isOptional: true, defaultValue: 1, description: 'Number of bonded layers to include.' }),
         'as-whole-residues': Argument(Type.Bool, { isOptional: true })
     }), Types.ElementSelectionQuery, 'Pick all atom sets that are connected to the target.'),
 
@@ -203,8 +203,8 @@ const filter = {
     isConnectedTo: symbol(Arguments.Dictionary({
         0: Argument(Types.ElementSelectionQuery),
         target: Argument(Types.ElementSelectionQuery),
-        'link-test': Argument(Type.Bool, { isOptional: true, defaultValue: 'true for covalent links' as any }),
-        disjunct: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'If true, there must exist a link to an atom that lies outside the given atom set to pass test.' }),
+        'bond-test': Argument(Type.Bool, { isOptional: true, defaultValue: 'true for covalent bonds' as any }),
+        disjunct: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'If true, there must exist a bond to an atom that lies outside the given atom set to pass test.' }),
         invert: Argument(Type.Bool, { isOptional: true, defaultValue: false, description: 'If true, return atom sets that are not connected.' })
     }), Types.ElementSelectionQuery, 'Pick all atom sets that are connected to the target.'),
 }
@@ -256,10 +256,10 @@ const atomProperty = {
 
         atomKey: atomProp(Type.AnyValue, 'Unique value for each atom. Main use case is grouping of atoms.'),
 
-        linkCount: symbol(Arguments.Dictionary({
+        bondCount: symbol(Arguments.Dictionary({
             0: Argument(Types.ElementReference, { isOptional: true, defaultValue: 'slot.current-atom' }),
-            flags: Argument(Types.LinkFlags, { isOptional: true, defaultValue: 'covalent' as any }),
-        }), Type.Num, 'Number of links (by default only covalent links are counted).'),
+            flags: Argument(Types.BondFlags, { isOptional: true, defaultValue: 'covalent' as any }),
+        }), Type.Num, 'Number of bonds (by default only covalent bonds are counted).'),
 
         sourceIndex: atomProp(Type.Num, 'Index of the atom/element in the input file.'),
         operatorName: atomProp(Type.Str, 'Name of the symmetry operator applied to this element.'),
@@ -316,21 +316,21 @@ const atomProperty = {
     }
 }
 
-const linkProperty = {
-    '@header': 'Link Properties',
+const bondProperty = {
+    '@header': 'Bond Properties',
 
-    flags: linkProp(Types.LinkFlags),
-    order: linkProp(Type.Num),
-    length: linkProp(Type.Num),
-    atomA: linkProp(Types.ElementReference),
-    atomB: linkProp(Types.ElementReference)
+    flags: bondProp(Types.BondFlags),
+    order: bondProp(Type.Num),
+    length: bondProp(Type.Num),
+    atomA: bondProp(Types.ElementReference),
+    atomB: bondProp(Types.ElementReference)
 }
 
 function atomProp(type: Type, description?: string) {
     return symbol(Arguments.Dictionary({ 0: Argument(Types.ElementReference, { isOptional: true, defaultValue: 'slot.current-atom' }) }), type, description);
 }
 
-function linkProp(type: Type, description?: string) {
+function bondProp(type: Type, description?: string) {
     return symbol(Arguments.None, type, description);
 }
 
@@ -344,5 +344,5 @@ export default {
     combinator,
     atomSet,
     atomProperty,
-    linkProperty
+    bondProperty: bondProperty
 }

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Link } from '../../mol-model/structure';
+import { Bond } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { Color, ColorMap } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
@@ -80,7 +80,7 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
     if (interactions && interactions.value) {
         const map = interactions.value
         color = (location: Location) => {
-            if (Link.isLocation(location)) {
+            if (Bond.isLocation(location)) {
                 const unitInteractions = map.get(location.aUnit.id)
                 if (unitInteractions) {
                     const { links, getLinkIndex } = unitInteractions

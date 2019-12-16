@@ -5,7 +5,7 @@
  */
 
 import { Color } from '../../mol-util/color';
-import { StructureElement, Link, Structure } from '../../mol-model/structure';
+import { StructureElement, Bond, Structure } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
@@ -97,7 +97,7 @@ export function OperatorHklColorTheme(ctx: ThemeDataContext, props: PD.Values<Op
             if (StructureElement.Location.is(location)) {
                 const k = hklKey(location.unit.conformation.operator.hkl)
                 serial = map.get(k)
-            } else if (Link.isLocation(location)) {
+            } else if (Bond.isLocation(location)) {
                 const k = hklKey(location.aUnit.conformation.operator.hkl)
                 serial = map.get(k)
             }

@@ -7,16 +7,16 @@
 
 import { Unit, StructureElement } from '../../structure'
 import Structure from '../structure';
-import { LinkType } from '../../model/types';
+import { BondType } from '../../model/types';
 import { SortedArray, Iterator } from '../../../../mol-data/int';
 
-export * from './links/data'
-export * from './links/intra-compute'
-export * from './links/inter-compute'
+export * from './bonds/data'
+export * from './bonds/intra-compute'
+export * from './bonds/inter-compute'
 
-namespace Link {
+namespace Bond {
     export interface Location<U extends Unit = Unit> {
-        readonly kind: 'link-location',
+        readonly kind: 'bond-location',
         aUnit: U,
         /** Index into aUnit.elements */
         aIndex: StructureElement.UnitIndex,
@@ -26,11 +26,11 @@ namespace Link {
     }
 
     export function Location(aUnit?: Unit, aIndex?: StructureElement.UnitIndex, bUnit?: Unit, bIndex?: StructureElement.UnitIndex): Location {
-        return { kind: 'link-location', aUnit: aUnit as any, aIndex: aIndex as any, bUnit: bUnit as any, bIndex: bIndex as any };
+        return { kind: 'bond-location', aUnit: aUnit as any, aIndex: aIndex as any, bUnit: bUnit as any, bIndex: bIndex as any };
     }
 
     export function isLocation(x: any): x is Location {
-        return !!x && x.kind === 'link-location';
+        return !!x && x.kind === 'bond-location';
     }
 
     export function areLocationsEqual(locA: Location, locB: Location) {
@@ -41,36 +41,36 @@ namespace Link {
     }
 
     export interface Loci {
-        readonly kind: 'link-loci',
+        readonly kind: 'bond-loci',
         readonly structure: Structure
-        readonly links: ReadonlyArray<Location>
+        readonly bonds: ReadonlyArray<Location>
     }
 
-    export function Loci(structure: Structure, links: ArrayLike<Location>): Loci {
-        return { kind: 'link-loci', structure, links: links as Loci['links'] };
+    export function Loci(structure: Structure, bonds: ArrayLike<Location>): Loci {
+        return { kind: 'bond-loci', structure, bonds: bonds as Loci['bonds'] };
     }
 
     export function isLoci(x: any): x is Loci {
-        return !!x && x.kind === 'link-loci';
+        return !!x && x.kind === 'bond-loci';
     }
 
     export function areLociEqual(a: Loci, b: Loci) {
-        if (a.links.length !== b.links.length) return false
-        for (let i = 0, il = a.links.length; i < il; ++i) {
-            if (!areLocationsEqual(a.links[i], b.links[i])) return false
+        if (a.bonds.length !== b.bonds.length) return false
+        for (let i = 0, il = a.bonds.length; i < il; ++i) {
+            if (!areLocationsEqual(a.bonds[i], b.bonds[i])) return false
         }
         return true
     }
 
     export function isLociEmpty(loci: Loci) {
-        return loci.links.length === 0 ? true : false
+        return loci.bonds.length === 0 ? true : false
     }
 
     export function remapLoci(loci: Loci, structure: Structure): Loci {
         if (structure === loci.structure) return loci
 
-        const links: Loci['links'][0][] = [];
-        loci.links.forEach(l => {
+        const bonds: Loci['bonds'][0][] = [];
+        loci.bonds.forEach(l => {
             const unitA = structure.unitMap.get(l.aUnit.id)
             if (!unitA) return
             const unitB = structure.unitMap.get(l.bUnit.id)
@@ -83,18 +83,18 @@ namespace Link {
             const indexB = SortedArray.indexOf(unitB.elements, elementB) as StructureElement.UnitIndex | -1
             if (indexB === -1) return
 
-            links.push(Location(unitA, indexA, unitB, indexB))
+            bonds.push(Location(unitA, indexA, unitB, indexB))
         });
 
-        return Loci(structure, links);
+        return Loci(structure, bonds);
     }
 
     export function toStructureElementLoci(loci: Loci): StructureElement.Loci {
         const elements: StructureElement.Loci['elements'][0][] = []
         const map = new Map<number, number[]>()
 
-        for (const lociLink of loci.links) {
-            const { aIndex, aUnit, bIndex, bUnit } = lociLink
+        for (const lociBond of loci.bonds) {
+            const { aIndex, aUnit, bIndex, bUnit } = lociBond
             if (aUnit === bUnit) {
                 if (map.has(aUnit.id)) map.get(aUnit.id)!.push(aIndex, bIndex)
                 else map.set(aUnit.id, [aIndex, bIndex])
@@ -116,27 +116,27 @@ namespace Link {
         return StructureElement.Loci(loci.structure, elements);
     }
 
-    export function getType(structure: Structure, link: Location<Unit.Atomic>): LinkType {
-        if (link.aUnit === link.bUnit) {
-            const links = link.aUnit.links;
-            const idx = links.getEdgeIndex(link.aIndex, link.bIndex);
-            if (idx < 0) return LinkType.create(LinkType.Flag.None);
-            return LinkType.create(links.edgeProps.flags[idx]);
+    export function getType(structure: Structure, location: Location<Unit.Atomic>): BondType {
+        if (location.aUnit === location.bUnit) {
+            const bonds = location.aUnit.bonds;
+            const idx = bonds.getEdgeIndex(location.aIndex, location.bIndex);
+            if (idx < 0) return BondType.create(BondType.Flag.None);
+            return BondType.create(bonds.edgeProps.flags[idx]);
         } else {
-            const bond = structure.interUnitBonds.getBondFromLocation(link);
-            if (bond) return LinkType.create(bond.props.flag);
-            return LinkType.create(LinkType.Flag.None);
+            const bond = structure.interUnitBonds.getBondFromLocation(location);
+            if (bond) return BondType.create(bond.props.flag);
+            return BondType.create(BondType.Flag.None);
         }
     }
 
-    export function getOrder(structure: Structure, link: Location<Unit.Atomic>): number {
-        if (link.aUnit === link.bUnit) {
-            const links = link.aUnit.links;
-            const idx = links.getEdgeIndex(link.aIndex, link.bIndex);
+    export function getOrder(structure: Structure, location: Location<Unit.Atomic>): number {
+        if (location.aUnit === location.bUnit) {
+            const bonds = location.aUnit.bonds;
+            const idx = bonds.getEdgeIndex(location.aIndex, location.bIndex);
             if (idx < 0) return 0;
-            return links.edgeProps.order[idx];
+            return bonds.edgeProps.order[idx];
         } else {
-            const bond = structure.interUnitBonds.getBondFromLocation(link);
+            const bond = structure.interUnitBonds.getBondFromLocation(location);
             if (bond) return bond.props.order;
             return 0;
         }
@@ -146,20 +146,20 @@ namespace Link {
         let count = 0
         for (let i = 0, il = structure.units.length; i < il; ++i) {
             const u = structure.units[i]
-            if (Unit.isAtomic(u)) count += u.links.edgeCount / 2 // only count one direction
+            if (Unit.isAtomic(u)) count += u.bonds.edgeCount / 2 // only count one direction
         }
         return count
     }
 
-    export interface ElementLinkData {
+    export interface ElementBondData {
         otherUnit: Unit.Atomic
         otherIndex: StructureElement.UnitIndex
-        type: LinkType
+        type: BondType
         order: number
     }
 
-    export class ElementLinkIterator implements Iterator<ElementLinkData> {
-        private current: ElementLinkData = {} as any
+    export class ElementBondIterator implements Iterator<ElementBondData> {
+        private current: ElementBondData = {} as any
 
         private structure: Structure
         private unit: Unit.Atomic
@@ -173,7 +173,7 @@ namespace Link {
         private intraBondIndex: number
 
         hasNext: boolean;
-        move(): ElementLinkData {
+        move(): ElementBondData {
             this.advance()
             return this.current
         }
@@ -187,8 +187,8 @@ namespace Link {
             this.interBondCount = this.interBondIndices.length
             this.interBondIndex = 0
 
-            this.intraBondEnd = unit.links.offset[index + 1]
-            this.intraBondIndex = unit.links.offset[index]
+            this.intraBondEnd = unit.bonds.offset[index + 1]
+            this.intraBondIndex = unit.bonds.offset[index]
 
             this.hasNext = this.interBondIndex < this.interBondCount || this.intraBondIndex < this.intraBondEnd
         }
@@ -196,9 +196,9 @@ namespace Link {
         private advance() {
             if (this.intraBondIndex < this.intraBondEnd) {
                 this.current.otherUnit = this.unit
-                this.current.otherIndex = this.unit.links.b[this.intraBondIndex] as StructureElement.UnitIndex
-                this.current.type = this.unit.links.edgeProps.flags[this.intraBondIndex]
-                this.current.order = this.unit.links.edgeProps.order[this.intraBondIndex]
+                this.current.otherIndex = this.unit.bonds.b[this.intraBondIndex] as StructureElement.UnitIndex
+                this.current.type = this.unit.bonds.edgeProps.flags[this.intraBondIndex]
+                this.current.order = this.unit.bonds.edgeProps.order[this.intraBondIndex]
                 this.intraBondIndex += 1
             } else if (this.interBondIndex < this.interBondCount) {
                 const b = this.structure.interUnitBonds.edges[this.interBondIndex]
@@ -220,4 +220,4 @@ namespace Link {
     }
 }
 
-export { Link }
+export { Bond }

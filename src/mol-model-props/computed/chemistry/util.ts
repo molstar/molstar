@@ -35,7 +35,7 @@ export function interBondCount(structure: Structure, unit: Unit.Atomic, index: S
 }
 
 export function intraBondCount(unit: Unit.Atomic, index: StructureElement.UnitIndex): number {
-    const { offset } = unit.links
+    const { offset } = unit.bonds
     return offset[index + 1] - offset[index]
 }
 
@@ -54,7 +54,7 @@ export function bondToElementCount(structure: Structure, unit: Unit.Atomic, inde
 //
 
 export function intraConnectedTo(unit: Unit.Atomic, indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex) {
-    const { offset, b } = unit.links
+    const { offset, b } = unit.bonds
     for (let i = offset[indexA], il = offset[indexA + 1]; i < il; ++i) {
         if (b[i] === indexB) return true
     }
@@ -74,7 +74,7 @@ export function eachInterBondedAtom(structure: Structure, unit: Unit.Atomic, ind
 
 export function eachIntraBondedAtom(unit: Unit.Atomic, index: StructureElement.UnitIndex, cb: (unit: Unit.Atomic, index: StructureElement.UnitIndex) => void): void {
     // intra
-    const { offset, b } = unit.links
+    const { offset, b } = unit.bonds
     for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
         cb(unit, b[i] as StructureElement.UnitIndex)
     }

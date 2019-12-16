@@ -8,9 +8,9 @@ import StructureElement from './structure/element'
 import Structure from './structure/structure'
 import Unit from './structure/unit'
 import StructureSymmetry from './structure/symmetry'
-import { Link } from './structure/unit/links'
+import { Bond } from './structure/unit/bonds'
 import StructureProperties from './structure/properties'
 
-export { StructureElement, Link, Structure, Unit, StructureSymmetry, StructureProperties }
+export { StructureElement, Bond, Structure, Unit, StructureSymmetry, StructureProperties }
 export * from './structure/unit/rings'
 export * from './export/mmcif'

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { SizeTheme } from '../size';
 import { VdwRadius } from '../../mol-model/structure/model/properties/atomic';
@@ -39,7 +39,7 @@ export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PD.Values<Physic
         let size: number
         if (StructureElement.Location.is(location)) {
             size = getPhysicalRadius(location.unit, location.element)
-        } else if (Link.isLocation(location)) {
+        } else if (Bond.isLocation(location)) {
             size = getPhysicalRadius(location.aUnit, location.aUnit.elements[location.aIndex])
         } else {
             size = DefaultSize

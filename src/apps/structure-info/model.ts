@@ -65,14 +65,14 @@ export function printSecStructure(model: Model) {
     }
 }
 
-export function printLinks(structure: Structure, showIntra: boolean, showInter: boolean) {
+export function printBonds(structure: Structure, showIntra: boolean, showInter: boolean) {
     if (showIntra) {
-        console.log('\nIntra Unit Links\n=============');
+        console.log('\nIntra Unit Bonds\n=============');
         for (const unit of structure.units) {
             if (!Unit.isAtomic(unit)) continue;
 
             const elements = unit.elements;
-            const { a, b, edgeCount } = unit.links;
+            const { a, b, edgeCount } = unit.bonds;
             const { model } = unit;
 
             if (!edgeCount) continue;
@@ -86,20 +86,20 @@ export function printLinks(structure: Structure, showIntra: boolean, showInter: 
     }
 
     if (showInter) {
-        console.log('\nInter Unit Links\n=============');
-        const links = structure.interUnitBonds;
+        console.log('\nInter Unit Bonds\n=============');
+        const bonds = structure.interUnitBonds;
         for (const unit of structure.units) {
             if (!Unit.isAtomic(unit)) continue;
 
-            for (const pairLinks of links.getLinkedUnits(unit)) {
-                if (!pairLinks.areUnitsOrdered || pairLinks.edgeCount === 0) continue;
+            for (const pairBonds of bonds.getConnectedUnits(unit)) {
+                if (!pairBonds.areUnitsOrdered || pairBonds.edgeCount === 0) continue;
 
-                const { unitA, unitB } = pairLinks;
-                console.log(`${pairLinks.unitA.id} - ${pairLinks.unitB.id}: ${pairLinks.edgeCount} bond(s)`);
+                const { unitA, unitB } = pairBonds;
+                console.log(`${pairBonds.unitA.id} - ${pairBonds.unitB.id}: ${pairBonds.edgeCount} bond(s)`);
 
-                for (const aI of pairLinks.connectedIndices) {
-                    for (const link of pairLinks.getEdges(aI)) {
-                        console.log(`${atomLabel(unitA.model, unitA.elements[aI])} -- ${atomLabel(unitB.model, unitB.elements[link.indexB])}`);
+                for (const aI of pairBonds.connectedIndices) {
+                    for (const bond of pairBonds.getEdges(aI)) {
+                        console.log(`${atomLabel(unitA.model, unitA.elements[aI])} -- ${atomLabel(unitB.model, unitB.elements[bond.indexB])}`);
                     }
                 }
             }
@@ -214,8 +214,8 @@ async function run(frame: CifFrame, args: Args) {
     if (args.units) printUnits(structure);
     if (args.sym) printSymmetryInfo(models[0]);
     if (args.rings) printRings(structure);
-    if (args.intraLinks) printLinks(structure, true, false);
-    if (args.interLinks) printLinks(structure, false, true);
+    if (args.intraBonds) printBonds(structure, true, false);
+    if (args.interBonds) printBonds(structure, false, true);
     if (args.mod) printModRes(models[0]);
     if (args.sec) printSecStructure(models[0]);
 }
@@ -242,8 +242,8 @@ parser.addArgument(['--seq'], { help: 'print sequence', action: 'storeTrue' });
 parser.addArgument(['--units'], { help: 'print units', action: 'storeTrue' });
 parser.addArgument(['--sym'], { help: 'print symmetry', action: 'storeTrue' });
 parser.addArgument(['--rings'], { help: 'print rings', action: 'storeTrue' });
-parser.addArgument(['--intraLinks'], { help: 'print intra unit links', action: 'storeTrue' });
-parser.addArgument(['--interLinks'], { help: 'print inter unit links', action: 'storeTrue' });
+parser.addArgument(['--intraBonds'], { help: 'print intra unit bonds', action: 'storeTrue' });
+parser.addArgument(['--interBonds'], { help: 'print inter unit bonds', action: 'storeTrue' });
 parser.addArgument(['--mod'], { help: 'print modified residues', action: 'storeTrue' });
 parser.addArgument(['--sec'], { help: 'print secoundary structure', action: 'storeTrue' });
 interface Args {
@@ -256,8 +256,8 @@ interface Args {
     units?: boolean,
     sym?: boolean,
     rings?: boolean,
-    intraLinks?: boolean,
-    interLinks?: boolean,
+    intraBonds?: boolean,
+    interBonds?: boolean,
     mod?: boolean,
     sec?: boolean,
 }

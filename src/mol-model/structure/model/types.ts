@@ -585,9 +585,9 @@ export const MaxAsa = {
 }
 export const DefaultMaxAsa = 121.0
 
-export type LinkType = BitFlags<LinkType.Flag>
-export namespace LinkType {
-    export const is: (b: LinkType, f: Flag) => boolean = BitFlags.has
+export type BondType = BitFlags<BondType.Flag>
+export namespace BondType {
+    export const is: (b: BondType, f: Flag) => boolean = BitFlags.has
     export const enum Flag {
         None                 = 0x0,
         Covalent             = 0x1,
@@ -600,12 +600,12 @@ export namespace LinkType {
         // currently at most 16 flags are supported!!
     }
 
-    export function create(flags: Flag): LinkType {
+    export function create(flags: Flag): BondType {
         return BitFlags.create(flags);
     }
 
-    export function isCovalent(flags: LinkType.Flag) {
-        return (flags & LinkType.Flag.Covalent) !== 0;
+    export function isCovalent(flags: BondType.Flag) {
+        return (flags & BondType.Flag.Covalent) !== 0;
     }
 }
 

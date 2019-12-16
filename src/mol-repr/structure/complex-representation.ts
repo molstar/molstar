@@ -8,7 +8,7 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureParams, ComplexVisual, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
-import { Structure, StructureElement, Link } from '../../mol-model/structure';
+import { Structure, StructureElement, Bond } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Theme } from '../../mol-theme/theme';
@@ -58,7 +58,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
     function mark(loci: Loci, action: MarkerAction) {
         if (!_structure) return false
-        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Link.isLoci(loci)) {
+        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Bond.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
             // Remap `loci` from equivalent structure to the current `_structure`
             loci = Loci.remap(loci, _structure)

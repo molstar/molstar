@@ -6,10 +6,10 @@
 
 import { Segmentation, SortedArray } from '../../../../../mol-data/int';
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
-import { LinkType } from '../../../model/types';
+import { BondType } from '../../../model/types';
 import { StructureElement } from '../../../structure';
 import Unit from '../../unit';
-import { IntraUnitLinks } from '../links/data';
+import { IntraUnitBonds } from '../bonds/data';
 import { sortArray } from '../../../../../mol-data/util';
 
 export function computeRings(unit: Unit.Atomic) {
@@ -44,7 +44,7 @@ interface State {
     currentColor: number,
 
     rings: SortedArray<StructureElement.UnitIndex>[],
-    bonds: IntraUnitLinks,
+    bonds: IntraUnitBonds,
     unit: Unit.Atomic
 }
 
@@ -62,7 +62,7 @@ function State(unit: Unit.Atomic, capacity: number): State {
         currentColor: 0,
         rings: [],
         unit,
-        bonds: unit.links
+        bonds: unit.bonds
     };
 }
 
@@ -153,7 +153,7 @@ function addRing(state: State, a: number, b: number) {
 
 function findRings(state: State, from: number) {
     const { bonds, startVertex, endVertex, visited, queue, pred } = state;
-    const { b: neighbor, edgeProps: { flags: linkFlags }, offset } = bonds;
+    const { b: neighbor, edgeProps: { flags: bondFlags }, offset } = bonds;
     visited[from] = 1;
     queue[0] = from;
     let head = 0, size = 1;
@@ -165,7 +165,7 @@ function findRings(state: State, from: number) {
 
         for (let i = start; i < end; i++) {
             const b = neighbor[i];
-            if (b < startVertex || b >= endVertex || !LinkType.isCovalent(linkFlags[i])) continue;
+            if (b < startVertex || b >= endVertex || !BondType.isCovalent(bondFlags[i])) continue;
 
             const other = b - startVertex;
 

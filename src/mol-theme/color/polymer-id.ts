@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureProperties, StructureElement, Link, Structure } from '../../mol-model/structure';
+import { Unit, StructureProperties, StructureElement, Bond, Structure } from '../../mol-model/structure';
 
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
@@ -104,7 +104,7 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Poly
             if (StructureElement.Location.is(location)) {
                 const asym_id = getAsymId(location.unit)
                 serial = polymerAsymIdSerialMap.get(asym_id(location))
-            } else if (Link.isLocation(location)) {
+            } else if (Bond.isLocation(location)) {
                 const asym_id = getAsymId(location.aUnit)
                 l.unit = location.aUnit
                 l.element = location.aUnit.elements[location.aIndex]

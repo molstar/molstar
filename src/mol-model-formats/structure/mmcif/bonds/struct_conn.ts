@@ -7,7 +7,7 @@
 
 import { Model } from '../../../../mol-model/structure/model/model'
 import { Structure } from '../../../../mol-model/structure'
-import { LinkType } from '../../../../mol-model/structure/model/types'
+import { BondType } from '../../../../mol-model/structure/model/types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'
 import { Column } from '../../../../mol-data/db'
 import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
@@ -214,7 +214,7 @@ export namespace StructConn {
 
             const type = conn_type_id.value(i)
             const orderType = (pdbx_value_order.value(i) || '').toLowerCase();
-            let flags = LinkType.Flag.None;
+            let flags = BondType.Flag.None;
             let order = 1;
 
             switch (orderType) {
@@ -233,13 +233,13 @@ export namespace StructConn {
 
             switch (type) {
                 case 'covale':
-                    flags = LinkType.Flag.Covalent;
+                    flags = BondType.Flag.Covalent;
                     break;
-                case 'disulf': flags = LinkType.Flag.Covalent | LinkType.Flag.Sulfide; break;
+                case 'disulf': flags = BondType.Flag.Covalent | BondType.Flag.Sulfide; break;
                 case 'hydrog':
-                    flags = LinkType.Flag.Hydrogen;
+                    flags = BondType.Flag.Hydrogen;
                     break;
-                case 'metalc': flags = LinkType.Flag.MetallicCoordination; break;
+                case 'metalc': flags = BondType.Flag.MetallicCoordination; break;
             }
 
             entries.push({ rowIndex: i, flags, order, distance: pdbx_dist_value.value(i), partners });

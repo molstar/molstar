@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Link, Structure, StructureElement } from '../../../mol-model/structure';
+import { Unit, Bond, Structure, StructureElement } from '../../../mol-model/structure';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
 import { Interval, SortedArray, OrderedSet } from '../../../mol-data/int';
@@ -13,9 +13,9 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { VisualContext } from '../../visual';
 import { Theme } from '../../../mol-theme/theme';
-import { LinkType } from '../../../mol-model/structure/model/types';
+import { BondType } from '../../../mol-model/structure/model/types';
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
-import { createLinkCylinderMesh, LinkCylinderParams } from './util/link';
+import { createBondCylinderMesh, BondCylinderParams } from './util/bond';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -35,14 +35,14 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
     const builderProps = {
-        linkCount: edgeCount * 2,
+        bondCount: edgeCount * 2,
         referencePosition: () => null,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]])
             Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]])
         },
         order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => LinkType.Flag.MetallicCoordination, // TODO
+        flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO
         radius: (edgeIndex: number) => sizeFactor,
         ignore: elements !== rootElements ? (edgeIndex: number) => {
             for (let i = offsets[a[edgeIndex]], il = offsets[a[edgeIndex] + 1]; i < il; ++i) {
@@ -55,12 +55,12 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         } : () => false
     }
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
+    return createBondCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const InteractionsIntraUnitParams = {
     ...UnitsMeshParams,
-    ...LinkCylinderParams,
+    ...BondCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
 }
 export type InteractionsIntraUnitParams = typeof InteractionsIntraUnitParams
@@ -76,8 +76,8 @@ export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<Int
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments ||
-                newProps.linkScale !== currentProps.linkScale ||
-                newProps.linkSpacing !== currentProps.linkSpacing
+                newProps.bondScale !== currentProps.bondScale ||
+                newProps.bondSpacing !== currentProps.bondSpacing
             )
         }
     }, materialId)
@@ -94,12 +94,12 @@ function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
             const { features, links } = interactions.get(unit.id)!
             const { members, offsets } = features
             // TODO this uses the first member elements of the features of an interaction as a representative
-            return Link.Loci(structure.root, [
-                Link.Location(
+            return Bond.Loci(structure.root, [
+                Bond.Location(
                     unit, members[offsets[links.a[groupId]]],
                     unit, members[offsets[links.b[groupId]]]
                 ),
-                Link.Location(
+                Bond.Location(
                     unit, members[offsets[links.b[groupId]]],
                     unit, members[offsets[links.a[groupId]]]
                 )
@@ -111,7 +111,7 @@ function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
 
 function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (Link.isLoci(loci)) {
+    if (Bond.isLoci(loci)) {
         const { structure, group } = structureGroup
         if (!Structure.areEquivalent(loci.structure, structure)) return false
         const unit = group.units[0]
@@ -119,7 +119,7 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
         const interactions = InteractionsProvider.getValue(structure).value!
         const { links, getLinkIndex } = interactions.get(unit.id)!
         const groupCount = links.edgeCount * 2
-        for (const b of loci.links) {
+        for (const b of loci.bonds) {
             const unitIdx = group.unitIndexMap.get(b.aUnit.id)
             if (unitIdx !== undefined) {
                 const idx = getLinkIndex(b.aIndex, b.bIndex)
@@ -165,7 +165,7 @@ function createInteractionsIterator(structureGroup: StructureGroup): LocationIte
     const { members, offsets } = features
     const groupCount = links.edgeCount * 2
     const instanceCount = group.units.length
-    const location = Link.Location()
+    const location = Bond.Location()
     const getLocation = (groupIndex: number, instanceIndex: number) => {
         const fA = links.a[groupIndex]
         const fB = links.b[groupIndex]

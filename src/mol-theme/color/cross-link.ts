@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Link } from '../../mol-model/structure';
+import { Bond } from '../../mol-model/structure';
 import { Color, ColorScale } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
@@ -26,7 +26,7 @@ export function getCrossLinkColorThemeParams(ctx: ThemeDataContext) {
 }
 
 const distVecA = Vec3.zero(), distVecB = Vec3.zero()
-function linkDistance(link: Link.Location) {
+function linkDistance(link: Bond.Location) {
     link.aUnit.conformation.position(link.aUnit.elements[link.aIndex], distVecA)
     link.bUnit.conformation.position(link.bUnit.elements[link.bIndex], distVecB)
     return Vec3.distance(distVecA, distVecB)
@@ -45,7 +45,7 @@ export function CrossLinkColorTheme(ctx: ThemeDataContext, props: PD.Values<Cros
         const scaleColor = scale.color
 
         color = (location: Location): Color => {
-            if (Link.isLocation(location)) {
+            if (Bond.isLocation(location)) {
                 const pairs = crosslinks.getPairs(location.aIndex, location.aUnit, location.bIndex, location.bUnit)
                 if (pairs) {
                     return scaleColor(linkDistance(location) - pairs[0].distanceThreshold)

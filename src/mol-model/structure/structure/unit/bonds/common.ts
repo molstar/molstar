@@ -6,7 +6,7 @@
 
 import { ElementSymbol } from '../../../model/types';
 
-export interface LinkComputationProps {
+export interface BondComputationProps {
     /**
      * Experimental covalent hydrogen bond lengths
      *
@@ -33,7 +33,7 @@ export interface LinkComputationProps {
     maxCovalentHydrogenBondingLength: number,
     forceCompute: boolean
 }
-export const DefaultLinkComputationProps: LinkComputationProps = {
+export const DefaultBondComputationProps: BondComputationProps = {
     maxCovalentHydrogenBondingLength: 1.45,
     forceCompute: false
 }

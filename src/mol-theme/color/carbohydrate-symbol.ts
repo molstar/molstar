@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureElement, Link, ElementIndex, Unit } from '../../mol-model/structure';
+import { StructureElement, Bond, ElementIndex, Unit } from '../../mol-model/structure';
 import { SaccharideColors, MonosaccharidesColorTable } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
@@ -44,7 +44,7 @@ export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: PD.Va
             } else {
                 if (StructureElement.Location.is(location)) {
                     return getColor(location.unit, location.element)
-                } else if (Link.isLocation(location)) {
+                } else if (Bond.isLocation(location)) {
                     return getColor(location.aUnit, location.aUnit.elements[location.aIndex])
                 }
             }

@@ -236,19 +236,19 @@ interface IsConnectedToCtx {
 
 function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
     const { queryCtx, input, target, disjunct } = ctx;
-    const atomicLink = queryCtx.atomicLink;
+    const atomicBond = queryCtx.atomicBond;
 
-    const interLinks = input.interUnitBonds;
+    const interBonds = input.interUnitBonds;
     for (const unit of structure.units) {
         if (!Unit.isAtomic(unit)) continue;
 
         const inputUnit = input.unitMap.get(unit.id) as Unit.Atomic;
 
-        const { offset, b, edgeProps: { flags, order } } = inputUnit.links;
-        const linkedUnits = interLinks.getLinkedUnits(unit);
-        const luCount = linkedUnits.length;
+        const { offset, b, edgeProps: { flags, order } } = inputUnit.bonds;
+        const bondedUnits = interBonds.getConnectedUnits(unit);
+        const buCount = bondedUnits.length;
 
-        atomicLink.a.unit = inputUnit;
+        atomicBond.a.unit = inputUnit;
 
         const srcElements = unit.elements;
         const inputElements = inputUnit.elements;
@@ -256,43 +256,43 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
         for (let i = 0 as StructureElement.UnitIndex, _i = srcElements.length; i < _i; i++) {
             const inputIndex = SortedArray.indexOf(inputElements, srcElements[i]) as StructureElement.UnitIndex;
 
-            atomicLink.a.unit = inputUnit;
-            atomicLink.b.unit = inputUnit;
+            atomicBond.a.unit = inputUnit;
+            atomicBond.b.unit = inputUnit;
 
             // tElement.unit = unit;
             for (let l = offset[inputIndex], _l = offset[inputIndex + 1]; l < _l; l++) {
                 // tElement.element = inputElements[b[l]];
-                atomicLink.b.element = inputUnit.elements[b[l]];
-                if (disjunct && SortedArray.has(unit.elements, atomicLink.b.element)) continue;
-                if (!target.hasElement(atomicLink.b)) continue;
+                atomicBond.b.element = inputUnit.elements[b[l]];
+                if (disjunct && SortedArray.has(unit.elements, atomicBond.b.element)) continue;
+                if (!target.hasElement(atomicBond.b)) continue;
 
-                atomicLink.aIndex = inputIndex;
-                atomicLink.a.element = srcElements[i];
-                atomicLink.bIndex = b[l] as StructureElement.UnitIndex;
-                atomicLink.type = flags[l];
-                atomicLink.order = order[l];
-                if (atomicLink.test(queryCtx, true)) return true;
+                atomicBond.aIndex = inputIndex;
+                atomicBond.a.element = srcElements[i];
+                atomicBond.bIndex = b[l] as StructureElement.UnitIndex;
+                atomicBond.type = flags[l];
+                atomicBond.order = order[l];
+                if (atomicBond.test(queryCtx, true)) return true;
             }
 
-            for (let li = 0; li < luCount; li++) {
-                const lu = linkedUnits[li];
+            for (let li = 0; li < buCount; li++) {
+                const lu = bondedUnits[li];
                 const bElements = lu.unitB.elements;
                 const bonds = lu.getEdges(inputIndex);
                 for (let bi = 0, _bi = bonds.length; bi < _bi; bi++) {
                     const bond = bonds[bi];
-                    atomicLink.b.unit = lu.unitB;
-                    atomicLink.b.element = bElements[bond.indexB];
-                    if (!target.hasElement(atomicLink.b)) continue;
-                    if (disjunct && structure.hasElement(atomicLink.b)) continue;
+                    atomicBond.b.unit = lu.unitB;
+                    atomicBond.b.element = bElements[bond.indexB];
+                    if (!target.hasElement(atomicBond.b)) continue;
+                    if (disjunct && structure.hasElement(atomicBond.b)) continue;
 
-                    atomicLink.a.unit = inputUnit;
-                    atomicLink.aIndex = inputIndex;
-                    atomicLink.a.element = srcElements[i];
+                    atomicBond.a.unit = inputUnit;
+                    atomicBond.aIndex = inputIndex;
+                    atomicBond.a.element = srcElements[i];
 
-                    atomicLink.bIndex = bond.indexB;
-                    atomicLink.type = bond.props.flag;
-                    atomicLink.order = bond.props.order;
-                    if (atomicLink.test(queryCtx, true)) return true;
+                    atomicBond.bIndex = bond.indexB;
+                    atomicBond.type = bond.props.flag;
+                    atomicBond.order = bond.props.order;
+                    if (atomicBond.test(queryCtx, true)) return true;
                 }
             }
         }
@@ -304,12 +304,12 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
 export interface IsConnectedToParams {
     query: StructureQuery,
     target: StructureQuery,
-    linkTest?: QueryFn<boolean>,
+    bondTest?: QueryFn<boolean>,
     disjunct: boolean,
     invert: boolean
 }
 
-export function isConnectedTo({ query, target, disjunct, invert, linkTest }: IsConnectedToParams): StructureQuery {
+export function isConnectedTo({ query, target, disjunct, invert, bondTest }: IsConnectedToParams): StructureQuery {
     return ctx => {
         const targetSel = target(ctx);
         if (StructureSelection.isEmpty(targetSel)) return targetSel;
@@ -324,8 +324,8 @@ export function isConnectedTo({ query, target, disjunct, invert, linkTest }: IsC
         }
 
         const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
-        ctx.pushCurrentLink();
-        ctx.atomicLink.setTestFn(linkTest);
+        ctx.pushCurrentBond();
+        ctx.atomicBond.setTestFn(bondTest);
 
         StructureSelection.forEach(selection, (s, sI) => {
             if (checkConnected(connCtx, s)) {
@@ -335,7 +335,7 @@ export function isConnectedTo({ query, target, disjunct, invert, linkTest }: IsC
             }
             if (sI % 5 === 0) ctx.throwIfTimedOut();
         })
-        ctx.popCurrentLink();
+        ctx.popCurrentBond();
 
         return ret.getSelection();
     }

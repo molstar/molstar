@@ -5,10 +5,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { LinkType } from '../../../model/types';
+import { BondType } from '../../../model/types';
 import Structure from '../../structure';
 import Unit from '../../unit';
-import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, LinkComputationProps, MetalsSet, DefaultLinkComputationProps } from './common';
+import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, BondComputationProps, MetalsSet, DefaultBondComputationProps } from './common';
 import { InterUnitBonds } from './data';
 import { UniqueArray } from '../../../../../mol-data/generic';
 import { SortedArray } from '../../../../../mol-data/int';
@@ -16,7 +16,7 @@ import { Vec3, Mat4 } from '../../../../../mol-math/linear-algebra';
 import StructureElement from '../../element';
 import { StructConn } from '../../../../../mol-model-formats/structure/mmcif/bonds';
 import { ElementIndex } from '../../../model/indexing';
-import { getInterBondOrderFromTable } from '../../../../../mol-model/structure/model/properties/atomic/bonds';
+import { getInterBondOrderFromTable } from '../../../model/properties/atomic/bonds';
 
 const MAX_RADIUS = 4;
 
@@ -32,7 +32,7 @@ interface PairState {
     bondedB: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
 }
 
-function addLink(indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex, order: number, flag: LinkType.Flag, state: PairState) {
+function addBond(indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex, order: number, flag: BondType.Flag, state: PairState) {
     addMapEntry(state.mapAB, indexA, { indexB, props: { order, flag } });
     addMapEntry(state.mapBA, indexB, { indexB: indexA, props: { order, flag } });
 
@@ -50,7 +50,7 @@ function getDistance(unitA: Unit.Atomic, indexA: ElementIndex, unitB: Unit.Atomi
 
 const _imageTransform = Mat4.zero();
 
-function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComputationProps, map: Map<number, InterUnitBonds.UnitPairBonds[]>) {
+function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComputationProps, map: Map<number, InterUnitBonds.UnitPairBonds[]>) {
     const state: PairState = { mapAB: new Map(), mapBA: new Map(), bondedA: UniqueArray.create(), bondedB: UniqueArray.create() };
     let bondCount = 0;
 
@@ -93,7 +93,7 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
                     if (_bI < 0) continue;
                     // check if the bond is within MAX_RADIUS for this pair of units
                     if (getDistance(unitA, aI, unitB, p.atomIndex) > MAX_RADIUS) continue;
-                    addLink(_aI, _bI, se.order, se.flags, state);
+                    addBond(_aI, _bI, se.order, se.flags, state);
                     bondCount++;
                     added = true;
                 }
@@ -132,10 +132,10 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
 
             if (isHa || isHb) {
                 if (dist < props.maxCovalentHydrogenBondingLength) {
-                    addLink(
+                    addBond(
                         _aI, _bI,
                         1, // covalent bonds involving a hydrogen are always of order 1
-                        LinkType.Flag.Covalent | LinkType.Flag.Computed,
+                        BondType.Flag.Covalent | BondType.Flag.Computed,
                         state
                     );
                     bondCount++;
@@ -151,10 +151,10 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
             if (dist <= pairingThreshold) {
                 const atomIdB = label_atom_idB.value(bI);
                 const compIdB = label_comp_idB.value(residueIndexB[bI]);
-                addLink(
+                addBond(
                     _aI, _bI,
                     getInterBondOrderFromTable(compIdA, compIdB, atomIdA, atomIdB),
-                    (isMetal ? LinkType.Flag.MetallicCoordination : LinkType.Flag.Covalent) | LinkType.Flag.Computed,
+                    (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed,
                     state
                 );
                 bondCount++;
@@ -170,11 +170,11 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, props: LinkComput
     return bondCount;
 }
 
-export interface InterLinkComputationProps extends LinkComputationProps {
+export interface InterBondComputationProps extends BondComputationProps {
     validUnitPair: (unitA: Unit, unitB: Unit) => boolean
 }
 
-function findLinks(structure: Structure, props: InterLinkComputationProps) {
+function findBonds(structure: Structure, props: InterBondComputationProps) {
     const map = new Map<number, InterUnitBonds.UnitPairBonds[]>();
     if (!structure.units.some(u => Unit.isAtomic(u))) return new InterUnitBonds(map);
 
@@ -192,8 +192,8 @@ function findLinks(structure: Structure, props: InterLinkComputationProps) {
             const other = structure.units[closeUnits.indices[i]];
             if (!Unit.isAtomic(other) || unit.id >= other.id || !validUnitPair(unit, other)) continue;
 
-            if (other.elements.length >= unit.elements.length) findPairLinks(unit, other, props, map);
-            else findPairLinks(other, unit, props, map);
+            if (other.elements.length >= unit.elements.length) findPairBonds(unit, other, props, map);
+            else findPairBonds(other, unit, props, map);
         }
     }
 
@@ -209,9 +209,9 @@ function ValidUnitPair(structure: Structure) {
     }
 }
 
-function computeInterUnitBonds(structure: Structure, props?: Partial<InterLinkComputationProps>): InterUnitBonds {
-    return findLinks(structure, {
-        ...DefaultLinkComputationProps,
+function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondComputationProps>): InterUnitBonds {
+    return findBonds(structure, {
+        ...DefaultBondComputationProps,
         validUnitPair: (props && props.validUnitPair) || ValidUnitPair(structure),
     });
 }

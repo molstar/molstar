@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { SizeTheme } from '../size';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
@@ -37,7 +37,7 @@ export function UncertaintySizeTheme(ctx: ThemeDataContext, props: PD.Values<Unc
         let size = props.baseSize
         if (StructureElement.Location.is(location)) {
             size += getUncertainty(location.unit, location.element, props)
-        } else if (Link.isLocation(location)) {
+        } else if (Bond.isLocation(location)) {
             size += getUncertainty(location.aUnit, location.aUnit.elements[location.aIndex], props)
         }
         return size

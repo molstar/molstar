@@ -13,7 +13,7 @@ import { compile } from '../../mol-script/runtime/query/compiler';
 import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
 import Expression from '../../mol-script/language/expression';
-import { LinkType, ProteinBackboneAtoms, NucleicBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
+import { BondType, ProteinBackboneAtoms, NucleicBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
 import { StateTransforms } from '../state/transforms';
 
 export interface StructureSelectionQuery {
@@ -231,10 +231,10 @@ const ligandPlusConnected = StructureSelectionQuery('Ligand with Connected', MS.
                 0: ligand.expression,
                 'layer-count': 1,
                 'as-whole-residues': true,
-                'link-test': MS.core.flags.hasAny([
-                    MS.struct.linkProperty.flags(),
+                'bond-test': MS.core.flags.hasAny([
+                    MS.struct.bondProperty.flags(),
                     MS.core.type.bitflags([
-                        LinkType.Flag.Covalent | LinkType.Flag.MetallicCoordination
+                        BondType.Flag.Covalent | BondType.Flag.MetallicCoordination
                     ])
                 ])
             })
@@ -261,10 +261,10 @@ const connectedOnly = StructureSelectionQuery('Connected to Ligand or Carbohydra
 const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.modifier.union([
     MS.struct.modifier.wholeResidues([
         MS.struct.modifier.union([
-            MS.struct.generator.linkedAtomicPairs({
+            MS.struct.generator.bondedAtomicPairs({
                 0: MS.core.flags.hasAny([
-                    MS.struct.linkProperty.flags(),
-                    MS.core.type.bitflags([LinkType.Flag.Sulfide])
+                    MS.struct.bondProperty.flags(),
+                    MS.core.type.bitflags([BondType.Flag.Sulfide])
                 ])
             })
         ])

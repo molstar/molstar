@@ -5,7 +5,7 @@
  */
 
 import { Color, ColorMap } from '../../mol-util/color';
-import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { SecondaryStructureType, MoleculeType } from '../../mol-model/structure/model/types';
@@ -92,7 +92,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Va
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
             return secondaryStructureColor(colorMap, location.unit, location.element, computedSecondaryStructure?.value)
-        } else if (Link.isLocation(location)) {
+        } else if (Bond.isLocation(location)) {
             return secondaryStructureColor(colorMap, location.aUnit, location.aUnit.elements[location.aIndex], computedSecondaryStructure?.value)
         }
         return DefaultSecondaryStructureColor

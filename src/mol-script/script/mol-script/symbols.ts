@@ -93,7 +93,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.type.authResidueId, 'auth-resid'),
             Alias(MolScript.structureQuery.type.labelResidueId, 'label-resid'),
             Alias(MolScript.structureQuery.type.ringFingerprint, 'ringfp'),
-            Alias(MolScript.structureQuery.type.linkFlags, 'bond-flags'),
+            Alias(MolScript.structureQuery.type.bondFlags, 'bond-flags'),
         ],
         [
             'Slots',
@@ -106,7 +106,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.generator.rings, 'sel.atom.rings'),
             Alias(MolScript.structureQuery.generator.empty, 'sel.atom.empty'),
             Alias(MolScript.structureQuery.generator.all, 'sel.atom.all'),
-            Alias(MolScript.structureQuery.generator.linkedAtomicPairs, 'sel.atom.linked-pairs'),
+            Alias(MolScript.structureQuery.generator.bondedAtomicPairs, 'sel.atom.bonded-pairs'),
 
             Macro(MSymbol('sel.atom.atoms', Arguments.Dictionary({
                 0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to each atom.' })
@@ -207,7 +207,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.atomProperty.core.modelIndex, 'atom.model-index'),
             Alias(MolScript.structureQuery.atomProperty.core.modelLabel, 'atom.model-label'),
             Alias(MolScript.structureQuery.atomProperty.core.atomKey, 'atom.key'),
-            Alias(MolScript.structureQuery.atomProperty.core.linkCount, 'atom.link-count'),
+            Alias(MolScript.structureQuery.atomProperty.core.bondCount, 'atom.bond-count'),
 
             Alias(MolScript.structureQuery.atomProperty.topology.connectedComponentKey, 'atom.key.molecule'),
 
@@ -247,14 +247,14 @@ export const SymbolTable = [
             // args => B.core.flags.hasAny([B.struct.atomProperty.macromolecular.secondaryStructureFlags(), B.struct.type.secondaryStructureFlags(args)])),
         ],
         [
-            'Link Properties',
-            Alias(MolScript.structureQuery.linkProperty.order, 'link.order'),
-            Alias(MolScript.structureQuery.linkProperty.length, 'link.length'),
-            Alias(MolScript.structureQuery.linkProperty.atomA, 'link.atom-a'),
-            Alias(MolScript.structureQuery.linkProperty.atomB, 'link.atom-b'),
-            Macro(MSymbol('link.is', Arguments.List(StructureQueryTypes.LinkFlag), Type.Bool,
-                `Test if the current link has at least one (or all if partial = false) of the specified flags: ${Type.oneOfValues(StructureQueryTypes.LinkFlag).join(', ')}`),
-            args => B.core.flags.hasAny([B.struct.linkProperty.flags(), B.struct.type.linkFlags(getPositionalArgs(args))])),
+            'Bond Properties',
+            Alias(MolScript.structureQuery.bondProperty.order, 'bond.order'),
+            Alias(MolScript.structureQuery.bondProperty.length, 'bond.length'),
+            Alias(MolScript.structureQuery.bondProperty.atomA, 'bond.atom-a'),
+            Alias(MolScript.structureQuery.bondProperty.atomB, 'bond.atom-b'),
+            Macro(MSymbol('bond.is', Arguments.List(StructureQueryTypes.BondFlag), Type.Bool,
+                `Test if the current bond has at least one (or all if partial = false) of the specified flags: ${Type.oneOfValues(StructureQueryTypes.BondFlag).join(', ')}`),
+            args => B.core.flags.hasAny([B.struct.bondProperty.flags(), B.struct.type.bondFlags(getPositionalArgs(args))])),
         ]
     ]
 ];

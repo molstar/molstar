@@ -7,9 +7,9 @@
 import { Structure, StructureElement, Unit } from '../structure';
 import { now } from '../../../mol-util/now';
 import { ElementIndex } from '../model';
-import { LinkType } from '../model/types';
+import { BondType } from '../model/types';
 import { StructureSelection } from './selection';
-import { defaultLinkTest } from './queries/internal';
+import { defaultBondTest } from './queries/internal';
 
 export interface QueryContextView {
     readonly element: StructureElement.Location;
@@ -18,7 +18,7 @@ export interface QueryContextView {
 
 export class QueryContext implements QueryContextView {
     private currentElementStack: StructureElement.Location[] = [];
-    private currentAtomicLinkStack: QueryContextLinkInfo<Unit.Atomic>[] = [];
+    private currentAtomicBondStack: QueryContextBondInfo<Unit.Atomic>[] = [];
     private currentStructureStack: Structure[] = [];
     private inputStructureStack: Structure[] = [];
 
@@ -31,8 +31,8 @@ export class QueryContext implements QueryContextView {
     readonly element = StructureElement.Location.create();
     currentStructure: Structure = void 0 as any;
 
-    /** Current link between atoms */
-    readonly atomicLink = new QueryContextLinkInfo<Unit.Atomic>();
+    /** Current bond between atoms */
+    readonly atomicBond = new QueryContextBondInfo<Unit.Atomic>();
 
     /** Supply this from the outside. Used by the internal.generator.current symbol */
     currentSelection: StructureSelection | undefined = void 0;
@@ -52,17 +52,17 @@ export class QueryContext implements QueryContextView {
         (this.element as StructureElement.Location) = this.currentElementStack.pop()!;
     }
 
-    pushCurrentLink() {
-        if (this.atomicLink) this.currentAtomicLinkStack.push(this.atomicLink);
-        (this.atomicLink as QueryContextLinkInfo<Unit.Atomic>) = new QueryContextLinkInfo();
-        return this.atomicLink;
+    pushCurrentBond() {
+        if (this.atomicBond) this.currentAtomicBondStack.push(this.atomicBond);
+        (this.atomicBond as QueryContextBondInfo<Unit.Atomic>) = new QueryContextBondInfo();
+        return this.atomicBond;
     }
 
-    popCurrentLink() {
-        if (this.currentAtomicLinkStack.length > 0) {
-            (this.atomicLink as QueryContextLinkInfo<Unit.Atomic>) = this.currentAtomicLinkStack.pop()!;
+    popCurrentBond() {
+        if (this.currentAtomicBondStack.length > 0) {
+            (this.atomicBond as QueryContextBondInfo<Unit.Atomic>) = this.currentAtomicBondStack.pop()!;
         } else {
-            (this.atomicLink as any) = void 0;
+            (this.atomicBond as any) = void 0;
         }
     }
 
@@ -112,18 +112,18 @@ export interface QueryContextOptions {
 export interface QueryPredicate { (ctx: QueryContext): boolean }
 export interface QueryFn<T = any> { (ctx: QueryContext): T }
 
-export class QueryContextLinkInfo<U extends Unit = Unit> {
+export class QueryContextBondInfo<U extends Unit = Unit> {
     a: StructureElement.Location<U> = StructureElement.Location.create();
     aIndex: StructureElement.UnitIndex = 0 as StructureElement.UnitIndex;
     b: StructureElement.Location<U> = StructureElement.Location.create();
     bIndex: StructureElement.UnitIndex = 0 as StructureElement.UnitIndex;
-    type: LinkType = LinkType.Flag.None;
+    type: BondType = BondType.Flag.None;
     order: number = 0;
 
-    private testFn: QueryPredicate = defaultLinkTest;
+    private testFn: QueryPredicate = defaultBondTest;
 
     setTestFn(fn?: QueryPredicate) {
-        this.testFn = fn || defaultLinkTest;
+        this.testFn = fn || defaultBondTest;
     }
 
     test(ctx: QueryContext, trySwap: boolean) {

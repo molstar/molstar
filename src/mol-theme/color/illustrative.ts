@@ -6,7 +6,7 @@
 
 import { ElementSymbol, isNucleic, isProtein, MoleculeType } from '../../mol-model/structure/model/types';
 import { Color } from '../../mol-util/color';
-import { StructureElement, Unit, Link } from '../../mol-model/structure';
+import { StructureElement, Unit, Bond } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
@@ -53,7 +53,7 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
                 const typeSymbol = location.unit.model.atomicHierarchy.atoms.type_symbol.value(location.element)
                 return illustrativeColor(colorMap, typeSymbol, moleculeType)
             }
-        } else if (Link.isLocation(location)) {
+        } else if (Bond.isLocation(location)) {
             if (Unit.isAtomic(location.aUnit)) {
                 const elementIndex = location.aUnit.elements[location.aIndex]
                 const moleculeType = location.aUnit.model.atomicHierarchy.derived.residue.moleculeType[location.aUnit.residueIndex[elementIndex]]

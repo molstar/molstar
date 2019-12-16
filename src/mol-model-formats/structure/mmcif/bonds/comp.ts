@@ -6,7 +6,7 @@
  */
 
 import { Model } from '../../../../mol-model/structure/model/model'
-import { LinkType } from '../../../../mol-model/structure/model/types'
+import { BondType } from '../../../../mol-model/structure/model/types'
 import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
 import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { CifWriter } from '../../../../mol-io/writer/cif'
@@ -118,9 +118,9 @@ export namespace ComponentBond {
                 entry = compBond.addEntry(id);
             }
 
-            let flags: number = LinkType.Flag.Covalent;
+            let flags: number = BondType.Flag.Covalent;
             let ord = 1;
-            if (aromatic) flags |= LinkType.Flag.Aromatic;
+            if (aromatic) flags |= BondType.Flag.Aromatic;
             switch (order.toLowerCase()) {
                 case 'doub':
                 case 'delo':

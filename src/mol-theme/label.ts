@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Unit, StructureElement, StructureProperties as Props, Link } from '../mol-model/structure';
+import { Unit, StructureElement, StructureProperties as Props, Bond } from '../mol-model/structure';
 import { Loci } from '../mol-model/loci';
 import { OrderedSet } from '../mol-data/int';
 import { capitalize, stripTags } from '../mol-util/string';
@@ -27,9 +27,9 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
             return loci.structure.models.map(m => m.entry).join(', ')
         case 'element-loci':
             return structureElementStatsLabel(StructureElement.Stats.ofLoci(loci), options)
-        case 'link-loci':
-            const link = loci.links[0]
-            return link ? linkLabel(link) : 'Unknown'
+        case 'bond-loci':
+            const bond = loci.bonds[0]
+            return bond ? bondLabel(bond) : 'Unknown'
         case 'shape-loci':
             return loci.shape.name
         case 'group-loci':
@@ -110,9 +110,9 @@ function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly =
     }
 }
 
-export function linkLabel(link: Link.Location): string {
-    const locA = StructureElement.Location.create(link.aUnit, link.aUnit.elements[link.aIndex])
-    const locB = StructureElement.Location.create(link.bUnit, link.bUnit.elements[link.bIndex])
+export function bondLabel(bond: Bond.Location): string {
+    const locA = StructureElement.Location.create(bond.aUnit, bond.aUnit.elements[bond.aIndex])
+    const locB = StructureElement.Location.create(bond.bUnit, bond.bUnit.elements[bond.bIndex])
     const labelA = _elementLabel(locA)
     const labelB = _elementLabel(locB)
     let offset = 0

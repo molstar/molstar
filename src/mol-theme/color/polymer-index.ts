@@ -6,7 +6,7 @@
 
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { StructureElement, Link, Structure } from '../../mol-model/structure';
+import { StructureElement, Bond, Structure } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
@@ -67,7 +67,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
             let color: Color | undefined
             if (StructureElement.Location.is(location)) {
                 color = unitIdColor.get(location.unit.id)
-            } else if (Link.isLocation(location)) {
+            } else if (Bond.isLocation(location)) {
                 color = unitIdColor.get(location.aUnit.id)
             }
             return color !== undefined ? color : DefaultColor

@@ -298,18 +298,18 @@ export function expandProperty(query: StructureQuery, property: QueryFn): Struct
 
 export interface IncludeConnectedParams {
     query: StructureQuery,
-    linkTest?: QueryFn<boolean>,
+    bondTest?: QueryFn<boolean>,
     layerCount: number,
     wholeResidues: boolean
 }
 
-export function includeConnected({ query, layerCount, wholeResidues, linkTest }: IncludeConnectedParams): StructureQuery {
+export function includeConnected({ query, layerCount, wholeResidues, bondTest }: IncludeConnectedParams): StructureQuery {
     const lc = Math.max(layerCount, 0);
     return function query_includeConnected(ctx) {
         const builder = StructureSelection.UniqueBuilder(ctx.inputStructure);
         const src = query(ctx);
-        ctx.pushCurrentLink();
-        ctx.atomicLink.setTestFn(linkTest);
+        ctx.pushCurrentBond();
+        ctx.atomicBond.setTestFn(bondTest);
         StructureSelection.forEach(src, (s, sI) => {
             let incl = s;
             for (let i = 0; i < lc; i++) {
@@ -318,7 +318,7 @@ export function includeConnected({ query, layerCount, wholeResidues, linkTest }:
             builder.add(incl);
             if (sI % 10 === 0) ctx.throwIfTimedOut();
         });
-        ctx.popCurrentLink();
+        ctx.popCurrentBond();
 
         return builder.getSelection();
     }
@@ -332,15 +332,15 @@ function includeConnectedStep(ctx: QueryContext, wholeResidues: boolean, structu
 
 function expandConnected(ctx: QueryContext, structure: Structure) {
     const inputStructure = ctx.inputStructure;
-    const interLinks = inputStructure.interUnitBonds;
+    const interBonds = inputStructure.interUnitBonds;
     const builder = new StructureUniqueSubsetBuilder(inputStructure);
 
-    // Note: each link is visited twice so that link.atom-a and link.atom-b both get the "swapped values"
+    // Note: each bond is visited twice so that bond.atom-a and bond.atom-b both get the "swapped values"
     const visitedSourceUnits = new Set<number>();
 
-    const atomicLink = ctx.atomicLink;
+    const atomicBond = ctx.atomicBond;
 
-    // Process intra unit links
+    // Process intra unit bonds
     for (const unit of structure.units) {
         if (unit.kind !== Unit.Kind.Atomic) {
             // add the whole unit
@@ -353,64 +353,64 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
         }
 
         const inputUnitA = inputStructure.unitMap.get(unit.id) as Unit.Atomic;
-        const { offset: intraLinkOffset, b: intraLinkB, edgeProps: { flags, order } } = inputUnitA.links;
+        const { offset: intraBondOffset, b: intraBondB, edgeProps: { flags, order } } = inputUnitA.bonds;
 
-        // Process intra unit links
-        atomicLink.a.unit = inputUnitA;
-        atomicLink.b.unit = inputUnitA;
+        // Process intra unit bonds
+        atomicBond.a.unit = inputUnitA;
+        atomicBond.b.unit = inputUnitA;
         for (let i = 0, _i = unit.elements.length; i < _i; i++) {
             // add the current element
             builder.addToUnit(unit.id, unit.elements[i]);
 
             const aIndex = SortedArray.indexOf(inputUnitA.elements, unit.elements[i]) as StructureElement.UnitIndex;
 
-            // check intra unit links
-            for (let lI = intraLinkOffset[aIndex], _lI = intraLinkOffset[aIndex + 1]; lI < _lI; lI++) {
-                const bIndex = intraLinkB[lI] as StructureElement.UnitIndex;
+            // check intra unit bonds
+            for (let lI = intraBondOffset[aIndex], _lI = intraBondOffset[aIndex + 1]; lI < _lI; lI++) {
+                const bIndex = intraBondB[lI] as StructureElement.UnitIndex;
                 const bElement = inputUnitA.elements[bIndex];
 
                 // Check if the element is already present:
                 if (SortedArray.has(unit.elements, bElement) || builder.has(unit.id, bElement)) continue;
 
-                atomicLink.aIndex = aIndex;
-                atomicLink.a.element = unit.elements[i];
-                atomicLink.bIndex = bIndex;
-                atomicLink.b.element = bElement;
-                atomicLink.type = flags[lI];
-                atomicLink.order = order[lI];
+                atomicBond.aIndex = aIndex;
+                atomicBond.a.element = unit.elements[i];
+                atomicBond.bIndex = bIndex;
+                atomicBond.b.element = bElement;
+                atomicBond.type = flags[lI];
+                atomicBond.order = order[lI];
 
-                if (atomicLink.test(ctx, true)) {
+                if (atomicBond.test(ctx, true)) {
                     builder.addToUnit(unit.id, bElement);
                 }
             }
         }
 
-        // Process inter unit links
-        for (const linkedUnit of interLinks.getLinkedUnits(inputUnitA)) {
-            if (visitedSourceUnits.has(linkedUnit.unitB.id)) continue;
-            const currentUnitB = structure.unitMap.get(linkedUnit.unitB.id);
+        // Process inter unit bonds
+        for (const bondedUnit of interBonds.getConnectedUnits(inputUnitA)) {
+            if (visitedSourceUnits.has(bondedUnit.unitB.id)) continue;
+            const currentUnitB = structure.unitMap.get(bondedUnit.unitB.id);
 
-            for (const aI of linkedUnit.connectedIndices) {
+            for (const aI of bondedUnit.connectedIndices) {
                 // check if the element is in the expanded structure
                 if (!SortedArray.has(unit.elements, inputUnitA.elements[aI])) continue;
 
-                for (const bond of linkedUnit.getEdges(aI)) {
-                    const bElement = linkedUnit.unitB.elements[bond.indexB];
+                for (const bond of bondedUnit.getEdges(aI)) {
+                    const bElement = bondedUnit.unitB.elements[bond.indexB];
 
                     // Check if the element is already present:
-                    if ((currentUnitB && SortedArray.has(currentUnitB.elements, bElement)) || builder.has(linkedUnit.unitB.id, bElement)) continue;
+                    if ((currentUnitB && SortedArray.has(currentUnitB.elements, bElement)) || builder.has(bondedUnit.unitB.id, bElement)) continue;
 
-                    atomicLink.a.unit = inputUnitA;
-                    atomicLink.aIndex = aI;
-                    atomicLink.a.element = inputUnitA.elements[aI];
-                    atomicLink.b.unit = linkedUnit.unitB;
-                    atomicLink.bIndex = bond.indexB;
-                    atomicLink.b.element = bElement;
-                    atomicLink.type = bond.props.flag;
-                    atomicLink.order = bond.props.order;
+                    atomicBond.a.unit = inputUnitA;
+                    atomicBond.aIndex = aI;
+                    atomicBond.a.element = inputUnitA.elements[aI];
+                    atomicBond.b.unit = bondedUnit.unitB;
+                    atomicBond.bIndex = bond.indexB;
+                    atomicBond.b.element = bElement;
+                    atomicBond.type = bond.props.flag;
+                    atomicBond.order = bond.props.order;
 
-                    if (atomicLink.test(ctx, true)) {
-                        builder.addToUnit(linkedUnit.unitB.id, bElement);
+                    if (atomicBond.test(ctx, true)) {
+                        builder.addToUnit(bondedUnit.unitB.id, bElement);
                     }
                 }
             }

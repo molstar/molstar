@@ -5,16 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { LinkType } from '../../../model/types'
-import { IntraUnitLinks } from './data'
+import { BondType } from '../../../model/types'
+import { IntraUnitBonds } from './data'
 import Unit from '../../unit'
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
-import { LinkComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold, DefaultLinkComputationProps } from './common';
+import { BondComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold, DefaultBondComputationProps } from './common';
 import { SortedArray } from '../../../../../mol-data/int';
 import { StructConn, ComponentBond } from '../../../../../mol-model-formats/structure/mmcif/bonds';
-import { getIntraBondOrderFromTable } from '../../../../../mol-model/structure/model/properties/atomic/bonds';
+import { getIntraBondOrderFromTable } from '../../../model/properties/atomic/bonds';
 
-function getGraph(atomA: number[], atomB: number[], _order: number[], _flags: number[], atomCount: number): IntraUnitLinks {
+function getGraph(atomA: number[], atomB: number[], _order: number[], _flags: number[], atomCount: number): IntraUnitBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
     const flags = new Uint16Array(builder.slotCount);
     const order = new Int8Array(builder.slotCount);
@@ -27,7 +27,7 @@ function getGraph(atomA: number[], atomB: number[], _order: number[], _flags: nu
     return builder.createGraph({ flags, order });
 }
 
-function _computeBonds(unit: Unit.Atomic, props: LinkComputationProps): IntraUnitLinks {
+function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBonds {
     const MAX_RADIUS = 4;
 
     const { x, y, z } = unit.model.atomicConformation;
@@ -109,8 +109,8 @@ function _computeBonds(unit: Unit.Atomic, props: LinkComputationProps): IntraUni
                     order[order.length] = e.order;
                     let flag = e.flags;
                     if (isMetal) {
-                        if (flag | LinkType.Flag.Covalent) flag ^= LinkType.Flag.Covalent;
-                        flag |= LinkType.Flag.MetallicCoordination;
+                        if (flag | BondType.Flag.Covalent) flag ^= BondType.Flag.Covalent;
+                        flag |= BondType.Flag.MetallicCoordination;
                     }
                     flags[flags.length] = flag;
                 }
@@ -128,7 +128,7 @@ function _computeBonds(unit: Unit.Atomic, props: LinkComputationProps): IntraUni
                     atomA[atomA.length] = _aI;
                     atomB[atomB.length] = _bI;
                     order[order.length] = 1; // covalent bonds involving hydrogen are always of order 1
-                    flags[flags.length] = LinkType.Flag.Covalent | LinkType.Flag.Computed;
+                    flags[flags.length] = BondType.Flag.Covalent | BondType.Flag.Computed;
                 }
                 continue;
             }
@@ -142,7 +142,7 @@ function _computeBonds(unit: Unit.Atomic, props: LinkComputationProps): IntraUni
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
                 order[order.length] = getIntraBondOrderFromTable(compId, atomIdA, label_atom_id.value(bI));
-                flags[flags.length] = (isMetal ? LinkType.Flag.MetallicCoordination : LinkType.Flag.Covalent) | LinkType.Flag.Computed;
+                flags[flags.length] = (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed;
             }
         }
     }
@@ -150,8 +150,8 @@ function _computeBonds(unit: Unit.Atomic, props: LinkComputationProps): IntraUni
     return getGraph(atomA, atomB, order, flags, atomCount);
 }
 
-function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<LinkComputationProps>) {
-    return _computeBonds(unit, { ...DefaultLinkComputationProps, ...props });
+function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputationProps>) {
+    return _computeBonds(unit, { ...DefaultBondComputationProps, ...props });
 }
 
 export { computeIntraUnitBonds }

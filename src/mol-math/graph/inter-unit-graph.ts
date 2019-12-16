@@ -15,8 +15,8 @@ class InterUnitGraph<Unit extends InterUnitGraph.UnitBase, VertexIndex extends n
     private readonly edgeKeyIndex: Map<string, number>
     private readonly vertexKeyIndex: Map<string, number[]>
 
-    /** Get an array of unit-pair-edges that are linked to the given unit */
-    getLinkedUnits(unit: Unit): ReadonlyArray<InterUnitGraph.UnitPairEdges<Unit, VertexIndex, EdgeProps>> {
+    /** Get an array of unit-pair-edges that are connected to the given unit */
+    getConnectedUnits(unit: Unit): ReadonlyArray<InterUnitGraph.UnitPairEdges<Unit, VertexIndex, EdgeProps>> {
         if (!this.map.has(unit.id)) return emptyArray;
         return this.map.get(unit.id)!;
     }

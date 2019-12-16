@@ -8,7 +8,7 @@
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
 import { Model } from '../model'
 import { GridLookup3D, Lookup3D } from '../../../mol-math/geometry'
-import { IntraUnitLinks, computeIntraUnitBonds } from './unit/links'
+import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds'
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { ValueRef, BitFlags } from '../../../mol-util';
 import { UnitRings } from './unit/rings';
@@ -150,7 +150,7 @@ namespace Unit {
     /**
      * A bulding block of a structure that corresponds
      * to a "natural group of atoms" (most often a "chain")
-     * together with a tranformation (rotation and translation)
+     * together with a transformation (rotation and translation)
      * that is dynamically applied to the underlying atom set.
      *
      * An atom set can be referenced by multiple different units which
@@ -199,10 +199,10 @@ namespace Unit {
             return this.props.principalAxes.ref;
         }
 
-        get links() {
-            if (this.props.links.ref) return this.props.links.ref;
-            this.props.links.ref = computeIntraUnitBonds(this);
-            return this.props.links.ref;
+        get bonds() {
+            if (this.props.bonds.ref) return this.props.bonds.ref;
+            this.props.bonds.ref = computeIntraUnitBonds(this);
+            return this.props.bonds.ref;
         }
 
         get rings() {
@@ -271,7 +271,7 @@ namespace Unit {
     interface AtomicProperties {
         lookup3d: ValueRef<Lookup3D | undefined>,
         principalAxes: ValueRef<PrincipalAxes | undefined>,
-        links: ValueRef<IntraUnitLinks | undefined>,
+        bonds: ValueRef<IntraUnitBonds | undefined>,
         rings: ValueRef<UnitRings | undefined>
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
@@ -284,7 +284,7 @@ namespace Unit {
         return {
             lookup3d: ValueRef.create(void 0),
             principalAxes: ValueRef.create(void 0),
-            links: ValueRef.create(void 0),
+            bonds: ValueRef.create(void 0),
             rings: ValueRef.create(void 0),
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),

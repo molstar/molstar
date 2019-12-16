@@ -7,14 +7,14 @@
 import { Structure, Unit } from '../../../mol-model/structure';
 import { StructureElement } from '../../../mol-model/structure/structure';
 import { Elements, isHalogen } from '../../../mol-model/structure/model/properties/atomic/types';
-import { ElementSymbol, LinkType } from '../../../mol-model/structure/model/types';
+import { ElementSymbol, BondType } from '../../../mol-model/structure/model/types';
 import { eachBondedAtom, bondCount, typeSymbol, bondToElementCount } from './util';
 
 function isAromatic(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     // TODO also extend unit.rings with geometry/composition-based aromaticity detection and use it here in addition
-    const { offset, edgeProps } = unit.links
+    const { offset, edgeProps } = unit.bonds
     for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
-        if (LinkType.is(LinkType.Flag.Aromatic, edgeProps.flags[i])) return true
+        if (BondType.is(BondType.Flag.Aromatic, edgeProps.flags[i])) return true
     }
     return false
 }
@@ -137,7 +137,7 @@ export function isHalocarbon (structure: Structure, unit: Unit.Atomic, index: St
 export function isCarbonyl(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let flag = false
     if (typeSymbol(unit, index) === Elements.C) {
-        const { offset, edgeProps, b } = unit.links
+        const { offset, edgeProps, b } = unit.bonds
         for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
             if (edgeProps.order[i] === 2 && typeSymbol(unit, b[i] as StructureElement.UnitIndex) === Elements.O) {
                 flag = true

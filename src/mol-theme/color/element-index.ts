@@ -6,7 +6,7 @@
 
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { StructureElement, Link } from '../../mol-model/structure';
+import { StructureElement, Bond } from '../../mol-model/structure';
 import { OrderedSet } from '../../mol-data/int';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
@@ -50,7 +50,7 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<E
                 const unitIndex = unitIdIndex.get(location.unit.id)!
                 const unitElementIndex = OrderedSet.findPredecessorIndex(units[unitIndex].elements, location.element)
                 return palette.color(cummulativeElementCount.get(unitIndex)! + unitElementIndex)
-            } else if (Link.isLocation(location)) {
+            } else if (Bond.isLocation(location)) {
                 const unitIndex = unitIdIndex.get(location.aUnit.id)!
                 const unitElementIndex = OrderedSet.findPredecessorIndex(units[unitIndex].elements, location.aUnit.elements[location.aIndex])
                 return palette.color(cummulativeElementCount.get(unitIndex)! + unitElementIndex)

@@ -10,7 +10,7 @@
 //   sel.atom.res
 //   :target (sel.atom.res (= atom.label_comp_id HEM))
 //   ;; default bond test allows only covalent bonds
-//   :link-test true
+//   :bond-test true
 //   :disjunct true)`
 // }, {
 //     name: 'All C or N atoms in ALA residues',
@@ -46,8 +46,8 @@
 //   value: `(sel.atom.include-connected
 //   (sel.atom.res (= atom.label_comp_id HEM))
 //   ;; default bond test allows only covalent bonds
-//   ;; another option is to use :link-test true to allow any connection
-//   :link-test (bond.is metallic covalent)
+//   ;; another option is to use :bond-test true to allow any connection
+//   :bond-test (bond.is metallic covalent)
 //   :layer-count 2
 //   :as-whole-residues true)`
 // }, {

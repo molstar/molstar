@@ -15,7 +15,6 @@ import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
 import { PolymerGapIterator, PolymerGapLocationIterator, getPolymerGapElementLoci, eachPolymerGapElement } from './util/polymer';
 import { addFixedCountDashedCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
-import { LinkCylinderParams } from './util/link';
 import { VisualUpdateState } from '../../util';
 // import { TriangularPyramid } from '../../../mol-geo/primitive/pyramid';
 
@@ -79,13 +78,6 @@ function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure:
 
     return MeshBuilder.getMesh(builderState)
 }
-
-export const InterUnitLinkParams = {
-    ...UnitsMeshParams,
-    ...LinkCylinderParams,
-}
-export const DefaultIntraUnitLinkProps = PD.getDefaultValues(InterUnitLinkParams)
-export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
 
 export const PolymerGapParams = {
     ...UnitsMeshParams,

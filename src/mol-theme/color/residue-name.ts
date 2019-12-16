@@ -5,7 +5,7 @@
  */
 
 import { Color, ColorMap } from '../../mol-util/color';
-import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
@@ -110,7 +110,7 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<Re
                 const compId = getCoarseCompId(location.unit, location.element)
                 if (compId) return residueNameColor(colorMap, compId)
             }
-        } else if (Link.isLocation(location)) {
+        } else if (Bond.isLocation(location)) {
             if (Unit.isAtomic(location.aUnit)) {
                 const compId = getAtomicCompId(location.aUnit, location.aUnit.elements[location.aIndex])
                 return residueNameColor(colorMap, compId)

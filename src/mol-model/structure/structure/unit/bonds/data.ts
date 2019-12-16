@@ -5,29 +5,29 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { LinkType } from '../../../model/types'
+import { BondType } from '../../../model/types'
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import Unit from '../../unit';
 import StructureElement from '../../element';
-import { Link } from '../links';
+import { Bond } from '../bonds';
 import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 
-type IntraUnitLinks = IntAdjacencyGraph<{ readonly order: ArrayLike<number>, readonly flags: ArrayLike<LinkType.Flag> }>
+type IntraUnitBonds = IntAdjacencyGraph<{ readonly order: ArrayLike<number>, readonly flags: ArrayLike<BondType.Flag> }>
 
-namespace IntraUnitLinks {
-    export const Empty: IntraUnitLinks = IntAdjacencyGraph.create([], [], [], 0, { flags: [], order: [] });
+namespace IntraUnitBonds {
+    export const Empty: IntraUnitBonds = IntAdjacencyGraph.create([], [], [], 0, { flags: [], order: [] });
 }
 
-type InterUnitEdgeProps = { readonly order: number, readonly flag: LinkType.Flag }
+type InterUnitEdgeProps = { readonly order: number, readonly flag: BondType.Flag }
 
 class InterUnitBonds extends InterUnitGraph<Unit.Atomic, StructureElement.UnitIndex, InterUnitEdgeProps> {
-    /** Get inter-unit bond given a link-location */
-    getBondFromLocation(l: Link.Location) {
+    /** Get inter-unit bond given a bond-location */
+    getBondFromLocation(l: Bond.Location) {
         return Unit.isAtomic(l.aUnit) && Unit.isAtomic(l.bUnit) ? this.getEdge(l.aIndex, l.aUnit, l.bIndex, l.bUnit) : undefined;
     }
 
-    /** Get inter-unit bond index given a link-location */
-    getBondIndexFromLocation(l: Link.Location) {
+    /** Get inter-unit bond index given a bond-location */
+    getBondIndexFromLocation(l: Bond.Location) {
         return Unit.isAtomic(l.aUnit) && Unit.isAtomic(l.bUnit) ? this.getEdgeIndex(l.aIndex, l.aUnit, l.bIndex, l.bUnit) : -1;
     }
 }
@@ -37,4 +37,4 @@ namespace InterUnitBonds {
     export type BondInfo = InterUnitGraph.EdgeInfo<StructureElement.UnitIndex, InterUnitEdgeProps>
 }
 
-export { IntraUnitLinks, InterUnitBonds }
+export { IntraUnitBonds, InterUnitBonds }

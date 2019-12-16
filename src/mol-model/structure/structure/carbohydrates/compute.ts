@@ -33,7 +33,7 @@ function getAnomericCarbon(unit: Unit.Atomic, ringAtoms: ArrayLike<StructureElem
     let indexHasTwoOxygen = -1, indexHasOxygenAndCarbon = -1, indexHasC1Name = -1, indexIsCarbon = -1
     const { elements } = unit
     const { type_symbol, label_atom_id } = unit.model.atomicHierarchy.atoms
-    const { b: neighbor, offset } = unit.links;
+    const { b: neighbor, offset } = unit.bonds;
     for (let i = 0, il = ringAtoms.length; i < il; ++i) {
         const ei = elements[ringAtoms[i]]
         if (type_symbol.value(ei) !== C) continue
@@ -220,7 +220,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const rc = ringCombinations[j];
                     const r0 = rings.all[sugarRings[rc[0]]], r1 = rings.all[sugarRings[rc[1]]];
                     // 1,6 glycosidic links are distance 3 and 1,4 glycosidic links are distance 2
-                    if (IntAdjacencyGraph.areVertexSetsConnected(unit.links, r0, r1, 3)) {
+                    if (IntAdjacencyGraph.areVertexSetsConnected(unit.bonds, r0, r1, 3)) {
                         const re0 = ringElements[rc[0]]
                         const re1 = ringElements[rc[1]]
                         if (elements[re0].ringAltId === elements[re1].ringAltId) {
@@ -246,7 +246,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
     for (let i = 0, il = elements.length; i < il; ++i) {
         const carbohydrate = elements[i]
         const { unit, residueIndex, anomericCarbon } = carbohydrate
-        const { offset, b } = unit.links
+        const { offset, b } = unit.bonds
         const ac = SortedArray.indexOf(unit.elements, anomericCarbon) as StructureElement.UnitIndex
 
         for (let j = offset[ac], jl = offset[ac + 1]; j < jl; ++j) {
@@ -276,7 +276,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         const unit = structure.units[i]
         if (!Unit.isAtomic(unit)) continue
 
-        structure.interUnitBonds.getLinkedUnits(unit).forEach(pairBonds => {
+        structure.interUnitBonds.getConnectedUnits(unit).forEach(pairBonds => {
             pairBonds.connectedIndices.forEach(indexA => {
                 pairBonds.getEdges(indexA).forEach(bondInfo => {
                     const { unitA, unitB } = pairBonds

@@ -6,7 +6,7 @@
 
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { StructureElement, Link } from '../../mol-model/structure';
+import { StructureElement, Bond } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ThemeDataContext } from '../../mol-theme/theme';
@@ -52,7 +52,7 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Unit
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
                 return unitIdColor.get(location.unit.id)!
-            } else if (Link.isLocation(location)) {
+            } else if (Bond.isLocation(location)) {
                 return unitIdColor.get(location.aUnit.id)!
             }
             return DefaultColor

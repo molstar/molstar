@@ -5,7 +5,7 @@
  */
 
 import { Color, ColorMap } from '../../mol-util/color';
-import { StructureElement, Unit, Link, ElementIndex } from '../../mol-model/structure';
+import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { MoleculeType } from '../../mol-model/structure/model/types';
@@ -58,7 +58,7 @@ export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<M
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
             return moleculeTypeColor(colorMap, location.unit, location.element)
-        } else if (Link.isLocation(location)) {
+        } else if (Bond.isLocation(location)) {
             return moleculeTypeColor(colorMap, location.aUnit, location.aUnit.elements[location.aIndex])
         }
         return DefaultMoleculeTypeColor

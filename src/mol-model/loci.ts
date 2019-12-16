@@ -5,7 +5,7 @@
  */
 
 import { StructureElement } from './structure'
-import { Link } from './structure/structure/unit/links'
+import { Bond } from './structure/structure/unit/bonds'
 import { Shape, ShapeGroup } from './shape';
 import { Sphere3D } from '../mol-math/geometry';
 import { CentroidHelper } from '../mol-math/geometry/centroid-helper';
@@ -51,7 +51,7 @@ export function createDataLoci(data: any, tag: string, indices: OrderedSet<numbe
 
 export { Loci }
 
-type Loci = StructureElement.Loci | Structure.Loci | Link.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
+type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
 
 namespace Loci {
     interface FiniteArray<T, L extends number = number> extends ReadonlyArray<T> { length: L };
@@ -69,8 +69,8 @@ namespace Loci {
         if (StructureElement.Loci.is(lociA) && StructureElement.Loci.is(lociB)) {
             return StructureElement.Loci.areEqual(lociA, lociB)
         }
-        if (Link.isLoci(lociA) && Link.isLoci(lociB)) {
-            return Link.areLociEqual(lociA, lociB)
+        if (Bond.isLoci(lociA) && Bond.isLoci(lociB)) {
+            return Bond.areLociEqual(lociA, lociB)
         }
         if (Shape.isLoci(lociA) && Shape.isLoci(lociB)) {
             return Shape.areLociEqual(lociA, lociB)
@@ -91,7 +91,7 @@ namespace Loci {
         if (isDataLoci(loci)) return isDataLociEmpty(loci)
         if (Structure.isLoci(loci)) return Structure.isLociEmpty(loci)
         if (StructureElement.Loci.is(loci)) return StructureElement.Loci.isEmpty(loci)
-        if (Link.isLoci(loci)) return Link.isLociEmpty(loci)
+        if (Bond.isLoci(loci)) return Bond.isLociEmpty(loci)
         if (Shape.isLoci(loci)) return Shape.isLociEmpty(loci)
         if (ShapeGroup.isLoci(loci)) return ShapeGroup.isLociEmpty(loci)
         return false
@@ -103,8 +103,8 @@ namespace Loci {
                 loci = StructureElement.Loci.remap(loci, data)
             } else if (Structure.isLoci(loci)) {
                 loci = Structure.remapLoci(loci, data)
-            } else if (Link.isLoci(loci)) {
-                loci = Link.remapLoci(loci, data)
+            } else if (Bond.isLoci(loci)) {
+                loci = Bond.remapLoci(loci, data)
             }
         }
         return loci
@@ -122,15 +122,15 @@ namespace Loci {
             return Sphere3D.copy(boundingSphere, loci.structure.boundary.sphere)
         } else if (loci.kind === 'element-loci') {
             return StructureElement.Loci.getBoundary(loci).sphere;
-        } else if (loci.kind === 'link-loci') {
-            for (const e of loci.links) {
+        } else if (loci.kind === 'bond-loci') {
+            for (const e of loci.bonds) {
                 e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tempPos);
                 sphereHelper.includeStep(tempPos);
                 e.bUnit.conformation.position(e.bUnit.elements[e.bIndex], tempPos);
                 sphereHelper.includeStep(tempPos);
             }
             sphereHelper.finishedIncludeStep();
-            for (const e of loci.links) {
+            for (const e of loci.bonds) {
                 e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tempPos);
                 sphereHelper.radiusStep(tempPos);
                 e.aUnit.conformation.position(e.bUnit.elements[e.bIndex], tempPos);
@@ -165,7 +165,7 @@ namespace Loci {
             return StructureElement.Loci.getPrincipalAxes(Structure.toStructureElementLoci(loci.structure))
         } else if (loci.kind === 'element-loci') {
             return StructureElement.Loci.getPrincipalAxes(loci)
-        } else if (loci.kind === 'link-loci') {
+        } else if (loci.kind === 'bond-loci') {
             // TODO
             return void 0;
         } else if (loci.kind === 'shape-loci') {
@@ -237,9 +237,9 @@ namespace Loci {
      * granularity if given
     */
     export function normalize(loci: Loci, granularity?: Granularity) {
-        if (granularity !== 'element' && Link.isLoci(loci)) {
-            // convert Link.Loci to a StructureElement.Loci so granularity can be applied
-            loci = Link.toStructureElementLoci(loci)
+        if (granularity !== 'element' && Bond.isLoci(loci)) {
+            // convert Bond.Loci to a StructureElement.Loci so granularity can be applied
+            loci = Bond.toStructureElementLoci(loci)
         }
         if (Structure.isLoci(loci)) {
             // convert to StructureElement.Loci

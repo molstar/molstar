@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, StructureElement, Unit, Link } from '../../../mol-model/structure';
+import { Structure, StructureElement, Unit, Bond } from '../../../mol-model/structure';
 import { Elements, isMetal } from '../../../mol-model/structure/model/properties/atomic/types';
 import { AtomGeometry, assignGeometry } from './geometry';
 import { bondCount, typeSymbol, formalCharge, bondToElementCount } from './util';
@@ -24,8 +24,8 @@ import { isDebugMode } from '../../../mol-util/debug';
  *
  */
 
-const tmpConjLinkItA = new Link.ElementLinkIterator()
-const tmpConjLinkItB = new Link.ElementLinkIterator()
+const tmpConjBondItA = new Bond.ElementBondIterator()
+const tmpConjBondItB = new Bond.ElementBondIterator()
 
 /**
  * Are we involved in some kind of pi system. Either explicitly forming
@@ -40,15 +40,15 @@ function isConjugated (structure: Structure, unit: Unit.Atomic, index: Structure
 
     if (hetero && bondCount(structure, unit, index) === 4) return false
 
-    tmpConjLinkItA.setElement(structure, unit, index)
-    while (tmpConjLinkItA.hasNext) {
-        const bA = tmpConjLinkItA.move()
+    tmpConjBondItA.setElement(structure, unit, index)
+    while (tmpConjBondItA.hasNext) {
+        const bA = tmpConjBondItA.move()
         if (bA.order > 1) return true
         if (hetero) {
             const elementB = typeSymbol(bA.otherUnit, bA.otherIndex)
-            tmpConjLinkItB.setElement(structure, bA.otherUnit, bA.otherIndex)
-            while (tmpConjLinkItB.hasNext) {
-                const bB = tmpConjLinkItB.move()
+            tmpConjBondItB.setElement(structure, bA.otherUnit, bA.otherIndex)
+            while (tmpConjBondItB.hasNext) {
+                const bB = tmpConjBondItB.move()
                 if (bB.order > 1) {
                     if ((elementB === Elements.P || elementB === Elements.S) &&
                             typeSymbol(bB.otherUnit, bB.otherIndex) === Elements.O) {
@@ -66,15 +66,15 @@ function isConjugated (structure: Structure, unit: Unit.Atomic, index: Structure
 export function explicitValence (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let v = 0
     // intra-unit bonds
-    const { offset, edgeProps } = unit.links
+    const { offset, edgeProps } = unit.bonds
     for (let i = offset[index], il = offset[index + 1]; i < il; ++i) v += edgeProps.order[i]
     // inter-unit bonds
     structure.interUnitBonds.getEdgeIndices(index, unit).forEach(b => v += structure.interUnitBonds.edges[b].props.order)
     return v
 }
 
-const tmpChargeLinkItA = new Link.ElementLinkIterator()
-const tmpChargeLinkItB = new Link.ElementLinkIterator()
+const tmpChargeBondItA = new Bond.ElementBondIterator()
+const tmpChargeBondItB = new Bond.ElementBondIterator()
 
 /**
  * Attempts to produce a consistent charge and implicit
@@ -145,9 +145,9 @@ export function calculateHydrogensCharge (structure: Structure, unit: Unit.Atomi
                     // Sulfonamide nitrogen and classed as sp3 in conjugation model but
                     // they won't be charged
                     // Don't assign charge to nitrogens bound to metals
-                    tmpChargeLinkItA.setElement(structure, unit, index)
-                    while (tmpChargeLinkItA.hasNext) {
-                        const b = tmpChargeLinkItA.move()
+                    tmpChargeBondItA.setElement(structure, unit, index)
+                    while (tmpChargeBondItA.hasNext) {
+                        const b = tmpChargeBondItA.move()
                         const elementB = typeSymbol(b.otherUnit, b.otherIndex)
                         if (elementB === Elements.S || isMetal(elementB)) {
                             charge = 0
@@ -183,12 +183,12 @@ export function calculateHydrogensCharge (structure: Structure, unit: Unit.Atomi
                     charge = valence - 2
                 }
                 if (valence === 1) {
-                    tmpChargeLinkItA.setElement(structure, unit, index)
-                    b1: while (tmpChargeLinkItA.hasNext) {
-                        const bA = tmpChargeLinkItA.move()
-                        tmpChargeLinkItB.setElement(structure, bA.otherUnit, bA.otherIndex)
-                        while (tmpChargeLinkItB.hasNext) {
-                            const bB = tmpChargeLinkItB.move()
+                    tmpChargeBondItA.setElement(structure, unit, index)
+                    b1: while (tmpChargeBondItA.hasNext) {
+                        const bA = tmpChargeBondItA.move()
+                        tmpChargeBondItB.setElement(structure, bA.otherUnit, bA.otherIndex)
+                        while (tmpChargeBondItB.hasNext) {
+                            const bB = tmpChargeBondItB.move()
                             if (
                                 !(bB.otherUnit === unit && bB.otherIndex === index) &&
                                 typeSymbol(bB.otherUnit, bB.otherIndex) === Elements.O &&

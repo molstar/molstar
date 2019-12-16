@@ -11,7 +11,7 @@ import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { Visual } from '../visual';
 import { StructureGroup } from './units-visual';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
-import { Structure, Unit, StructureElement, Link } from '../../mol-model/structure';
+import { Structure, Unit, StructureElement, Bond } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Theme } from '../../mol-theme/theme';
@@ -167,7 +167,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     function mark(loci: Loci, action: MarkerAction) {
         let changed = false
         if (!_structure) return false
-        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Link.isLoci(loci)) {
+        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Bond.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
             // Remap `loci` from equivalent structure to the current `_structure`
             loci = Loci.remap(loci, _structure)

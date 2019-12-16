@@ -12,24 +12,24 @@ import { UnitsRepresentation, StructureRepresentation, StructureRepresentationSt
 import { EllipsoidMeshParams, EllipsoidMeshVisual } from '../visual/ellipsoid-mesh';
 import { UnitKind, UnitKindOptions } from '../../../mol-repr/structure/visual/util/common';
 import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/mmcif/anisotropic';
-import { IntraUnitLinkParams, IntraUnitLinkVisual } from '../visual/intra-unit-link-cylinder';
-import { InterUnitLinkParams, InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
+import { IntraUnitBondParams, IntraUnitBondVisual } from '../visual/bond-intra-unit-cylinder';
+import { InterUnitBondParams, InterUnitBondVisual } from '../visual/bond-inter-unit-cylinder';
 
 const EllipsoidVisuals = {
     'ellipsoid-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, EllipsoidMeshParams>) => UnitsRepresentation('Ellipsoid Mesh', ctx, getParams, EllipsoidMeshVisual),
-    'intra-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitLinkParams>) => UnitsRepresentation('Intra-unit link cylinder', ctx, getParams, IntraUnitLinkVisual),
-    'inter-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitLinkParams>) => ComplexRepresentation('Inter-unit link cylinder', ctx, getParams, InterUnitLinkVisual),
+    'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondParams>) => UnitsRepresentation('Intra-unit bond cylinder', ctx, getParams, IntraUnitBondVisual),
+    'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondParams>) => ComplexRepresentation('Inter-unit bond cylinder', ctx, getParams, InterUnitBondVisual),
 }
 
 export const EllipsoidParams = {
     ...EllipsoidMeshParams,
-    ...IntraUnitLinkParams,
-    ...InterUnitLinkParams,
+    ...IntraUnitBondParams,
+    ...InterUnitBondParams,
     unitKinds: PD.MultiSelect<UnitKind>(['atomic'], UnitKindOptions),
     sizeFactor: PD.Numeric(1, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(0.1, { min: 0.01, max: 3, step: 0.01 }),
-    linkCap: PD.Boolean(true),
-    visuals: PD.MultiSelect(['ellipsoid-mesh', 'intra-link', 'inter-link'], PD.objectToOptions(EllipsoidVisuals)),
+    bondCap: PD.Boolean(true),
+    visuals: PD.MultiSelect(['ellipsoid-mesh', 'intra-bond', 'inter-bond'], PD.objectToOptions(EllipsoidVisuals)),
 }
 export type EllipsoidParams = typeof EllipsoidParams
 export function getEllipsoidParams(ctx: ThemeRegistryContext, structure: Structure) {

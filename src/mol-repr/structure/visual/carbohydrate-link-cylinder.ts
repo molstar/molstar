@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, Link, StructureElement } from '../../../mol-model/structure';
+import { Structure, Bond, StructureElement } from '../../../mol-model/structure';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { createLinkCylinderMesh, LinkCylinderParams } from './util/link';
+import { createBondCylinderMesh, BondCylinderParams } from './util/bond';
 import { OrderedSet, Interval } from '../../../mol-data/int';
 import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
-import { LinkType } from '../../../mol-model/structure/model/types';
+import { BondType } from '../../../mol-model/structure/model/types';
 import { BitFlags } from '../../../mol-util';
 import { UnitsMeshParams } from '../units-visual';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -28,7 +28,7 @@ function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Struc
     const location = StructureElement.Location.create()
 
     const builderProps = {
-        linkCount: links.length,
+        bondCount: links.length,
         referencePosition: (edgeIndex: number) => null,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const l = links[edgeIndex]
@@ -36,7 +36,7 @@ function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Struc
             Vec3.copy(posB, elements[l.carbohydrateIndexB].geometry.center)
         },
         order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => BitFlags.create(LinkType.Flag.None),
+        flags: (edgeIndex: number) => BitFlags.create(BondType.Flag.None),
         radius: (edgeIndex: number) => {
             const l = links[edgeIndex]
             location.unit = elements[l.carbohydrateIndexA].unit
@@ -46,12 +46,12 @@ function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Struc
         ignore: (edgeIndex: number) => false
     }
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
+    return createBondCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const CarbohydrateLinkParams = {
     ...UnitsMeshParams,
-    ...LinkCylinderParams,
+    ...BondCylinderParams,
     linkSizeFactor: PD.Numeric(0.3, { min: 0, max: 3, step: 0.01 }),
 }
 export type CarbohydrateLinkParams = typeof CarbohydrateLinkParams
@@ -67,7 +67,7 @@ export function CarbohydrateLinkVisual(materialId: number): ComplexVisual<Carboh
             state.createGeometry = (
                 newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments ||
-                newProps.linkCap !== currentProps.linkCap
+                newProps.bondCap !== currentProps.bondCap
             )
         }
     }, materialId)
@@ -77,7 +77,7 @@ function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
     const { elements, links } = structure.carbohydrates
     const groupCount = links.length
     const instanceCount = 1
-    const location = Link.Location()
+    const location = Bond.Location()
     const getLocation = (groupIndex: number) => {
         const link = links[groupIndex]
         const carbA = elements[link.carbohydrateIndexA]
@@ -103,12 +103,12 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
         const indexA = OrderedSet.indexOf(carbA.unit.elements, carbA.anomericCarbon)
         const indexB = OrderedSet.indexOf(carbB.unit.elements, carbB.anomericCarbon)
         if (indexA !== -1 && indexB !== -1) {
-            return Link.Loci(structure, [
-                Link.Location(
+            return Bond.Loci(structure, [
+                Bond.Location(
                     carbA.unit, indexA as StructureElement.UnitIndex,
                     carbB.unit, indexB as StructureElement.UnitIndex
                 ),
-                Link.Location(
+                Bond.Location(
                     carbB.unit, indexB as StructureElement.UnitIndex,
                     carbA.unit, indexA as StructureElement.UnitIndex
                 )
@@ -120,10 +120,10 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
 
 function eachCarbohydrateLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (Link.isLoci(loci)) {
+    if (Bond.isLoci(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false
         const { getLinkIndex } = structure.carbohydrates
-        for (const l of loci.links) {
+        for (const l of loci.bonds) {
             const idx = getLinkIndex(l.aUnit, l.aUnit.elements[l.aIndex], l.bUnit, l.bUnit.elements[l.bIndex])
             if (idx !== undefined) {
                 if (apply(Interval.ofSingleton(idx))) changed = true

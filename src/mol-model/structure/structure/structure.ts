@@ -15,7 +15,7 @@ import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
-import { InterUnitBonds, computeInterUnitBonds, Link } from './unit/links';
+import { InterUnitBonds, computeInterUnitBonds, Bond } from './unit/bonds';
 import { PairRestraints, CrossLinkRestraint, extractCrossLinkRestraints } from './unit/pair-restraints';
 import StructureSymmetry from './symmetry';
 import StructureProperties from './properties';
@@ -91,7 +91,7 @@ class Structure {
     /** Count of all bonds (intra- and inter-unit) in the structure */
     get bondCount() {
         if (!this._props.bondCount) {
-            this._props.bondCount = this.interUnitBonds.edgeCount + Link.getIntraUnitBondCount(this)
+            this._props.bondCount = this.interUnitBonds.edgeCount + Bond.getIntraUnitBondCount(this)
         }
         return this._props.bondCount;
     }
@@ -305,7 +305,7 @@ class Structure {
         return this._props.model;
     }
 
-    /** The master-model, other models can have links to it  */
+    /** The master-model, other models can have bonds to it  */
     get masterModel(): Model | undefined {
         return this._props.masterModel
     }

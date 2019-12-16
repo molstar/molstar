@@ -276,41 +276,41 @@ export function querySelection(selection: StructureQuery, query: StructureQuery,
     }
 }
 
-export function linkedAtomicPairs(linkTest?: QueryPredicate): StructureQuery {
-    return function query_linkedAtomicPairs(ctx) {
+export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {
+    return function query_bondedAtomicPairs(ctx) {
         const structure = ctx.inputStructure;
 
-        const interLinks = structure.interUnitBonds;
-        // Note: each link is called twice, that's why we need the unique builder.
+        const interBonds = structure.interUnitBonds;
+        // Note: each bond is called twice, that's why we need the unique builder.
         const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
 
-        ctx.pushCurrentLink();
-        const atomicLink = ctx.atomicLink;
-        atomicLink.setTestFn(linkTest);
+        ctx.pushCurrentBond();
+        const atomicBond = ctx.atomicBond;
+        atomicBond.setTestFn(bondTest);
 
-        // Process intra unit links
+        // Process intra unit bonds
         for (const unit of structure.units) {
             if (unit.kind !== Unit.Kind.Atomic) continue;
 
-            const { offset: intraLinkOffset, b: intraLinkB, edgeProps: { flags, order } } = unit.links;
-            atomicLink.a.unit = unit;
-            atomicLink.b.unit = unit;
+            const { offset: intraBondOffset, b: intraBondB, edgeProps: { flags, order } } = unit.bonds;
+            atomicBond.a.unit = unit;
+            atomicBond.b.unit = unit;
             for (let i = 0 as StructureElement.UnitIndex, _i = unit.elements.length; i < _i; i++) {
-                atomicLink.aIndex = i as StructureElement.UnitIndex;
-                atomicLink.a.element = unit.elements[i];
+                atomicBond.aIndex = i as StructureElement.UnitIndex;
+                atomicBond.a.element = unit.elements[i];
 
-                // check intra unit links
-                for (let lI = intraLinkOffset[i], _lI = intraLinkOffset[i + 1]; lI < _lI; lI++) {
-                    atomicLink.bIndex = intraLinkB[lI] as StructureElement.UnitIndex;
-                    atomicLink.b.element = unit.elements[intraLinkB[lI]];
-                    atomicLink.type = flags[lI];
-                    atomicLink.order = order[lI];
+                // check intra unit bonds
+                for (let lI = intraBondOffset[i], _lI = intraBondOffset[i + 1]; lI < _lI; lI++) {
+                    atomicBond.bIndex = intraBondB[lI] as StructureElement.UnitIndex;
+                    atomicBond.b.element = unit.elements[intraBondB[lI]];
+                    atomicBond.type = flags[lI];
+                    atomicBond.order = order[lI];
                     // No need to "swap test" because each bond direction will be visited eventually.
-                    if (atomicLink.test(ctx, false)) {
+                    if (atomicBond.test(ctx, false)) {
                         const b = structure.subsetBuilder(false);
                         b.beginUnit(unit.id);
-                        b.addElement(atomicLink.a.element);
-                        b.addElement(atomicLink.b.element);
+                        b.addElement(atomicBond.a.element);
+                        b.addElement(atomicBond.b.element);
                         b.commitUnit();
                         ret.add(b.getStructure());
                     }
@@ -318,27 +318,27 @@ export function linkedAtomicPairs(linkTest?: QueryPredicate): StructureQuery {
             }
         }
 
-        // Process inter unit links
-        for (const bond of interLinks.edges) {
-            atomicLink.a.unit = bond.unitA;
-            atomicLink.a.element = bond.unitA.elements[bond.indexA];
-            atomicLink.aIndex = bond.indexA;
-            atomicLink.b.unit = bond.unitB;
-            atomicLink.b.element = bond.unitB.elements[bond.indexB];
-            atomicLink.bIndex = bond.indexB;
-            atomicLink.order = bond.props.order;
-            atomicLink.type = bond.props.flag;
+        // Process inter unit bonds
+        for (const bond of interBonds.edges) {
+            atomicBond.a.unit = bond.unitA;
+            atomicBond.a.element = bond.unitA.elements[bond.indexA];
+            atomicBond.aIndex = bond.indexA;
+            atomicBond.b.unit = bond.unitB;
+            atomicBond.b.element = bond.unitB.elements[bond.indexB];
+            atomicBond.bIndex = bond.indexB;
+            atomicBond.order = bond.props.order;
+            atomicBond.type = bond.props.flag;
 
             // No need to "swap test" because each bond direction will be visited eventually.
-            if (atomicLink.test(ctx, false)) {
+            if (atomicBond.test(ctx, false)) {
                 const b = structure.subsetBuilder(false);
-                b.addToUnit(atomicLink.a.unit.id, atomicLink.a.element);
-                b.addToUnit(atomicLink.b.unit.id, atomicLink.b.element);
+                b.addToUnit(atomicBond.a.unit.id, atomicBond.a.element);
+                b.addToUnit(atomicBond.b.unit.id, atomicBond.b.element);
                 ret.add(b.getStructure());
             }
         }
 
-        ctx.popCurrentLink();
+        ctx.popCurrentBond();
         return ret.getSelection();
     };
 }

@@ -5,8 +5,8 @@
  */
 
 import { getElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
-import { IntraUnitLinkVisual, IntraUnitLinkParams } from '../visual/intra-unit-link-cylinder';
-import { InterUnitLinkVisual, InterUnitLinkParams } from '../visual/inter-unit-link-cylinder';
+import { IntraUnitBondVisual, IntraUnitBondParams } from '../visual/bond-intra-unit-cylinder';
+import { InterUnitBondVisual, InterUnitBondParams } from '../visual/bond-inter-unit-cylinder';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { ComplexRepresentation } from '../complex-representation';
@@ -18,18 +18,18 @@ import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const BallAndStickVisuals = {
     'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Element sphere mesh', ctx, getParams, getElementSphereVisual(ctx.webgl)),
-    'intra-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitLinkParams>) => UnitsRepresentation('Intra-unit link cylinder', ctx, getParams, IntraUnitLinkVisual),
-    'inter-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitLinkParams>) => ComplexRepresentation('Inter-unit link cylinder', ctx, getParams, InterUnitLinkVisual),
+    'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondParams>) => UnitsRepresentation('Intra-unit bond cylinder', ctx, getParams, IntraUnitBondVisual),
+    'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondParams>) => ComplexRepresentation('Inter-unit bond cylinder', ctx, getParams, InterUnitBondVisual),
 }
 
 export const BallAndStickParams = {
     ...ElementSphereParams,
-    ...IntraUnitLinkParams,
-    ...InterUnitLinkParams,
+    ...IntraUnitBondParams,
+    ...InterUnitBondParams,
     unitKinds: PD.MultiSelect<UnitKind>(['atomic'], UnitKindOptions),
     sizeFactor: PD.Numeric(0.15, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2/3, { min: 0.01, max: 3, step: 0.01 }),
-    visuals: PD.MultiSelect(['element-sphere', 'intra-link', 'inter-link'], PD.objectToOptions(BallAndStickVisuals))
+    visuals: PD.MultiSelect(['element-sphere', 'intra-bond', 'inter-bond'], PD.objectToOptions(BallAndStickVisuals))
 }
 export type BallAndStickParams = typeof BallAndStickParams
 export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Structure) {

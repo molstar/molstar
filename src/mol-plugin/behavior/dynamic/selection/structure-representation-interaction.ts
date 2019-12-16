@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, StructureElement, Link } from '../../../../mol-model/structure';
+import { Structure, StructureElement, Bond } from '../../../../mol-model/structure';
 import { PluginBehavior } from '../../../../mol-plugin/behavior';
 import { PluginCommands } from '../../../../mol-plugin/command';
 import { PluginStateObject } from '../../../../mol-plugin/state/objects';
@@ -146,8 +146,8 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
                 let loci: StructureElement.Loci;
                 if (StructureElement.Loci.is(current.loci)) {
                     loci = current.loci;
-                } else if (Link.isLoci(current.loci)) {
-                    loci = Link.toStructureElementLoci(current.loci);
+                } else if (Bond.isLoci(current.loci)) {
+                    loci = Bond.toStructureElementLoci(current.loci);
                 } else if (Structure.isLoci(current.loci)) {
                     loci = Structure.toStructureElementLoci(current.loci.structure);
                 } else {

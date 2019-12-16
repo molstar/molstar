@@ -6,7 +6,7 @@
 
 import { ElementSymbol } from '../../mol-model/structure/model/types';
 import { Color, ColorMap } from '../../mol-util/color';
-import { StructureElement, Unit, Link } from '../../mol-model/structure';
+import { StructureElement, Unit, Bond } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
@@ -46,7 +46,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
                 const { type_symbol } = location.unit.model.atomicHierarchy.atoms
                 return elementSymbolColor(colorMap, type_symbol.value(location.element))
             }
-        } else if (Link.isLocation(location)) {
+        } else if (Bond.isLocation(location)) {
             if (Unit.isAtomic(location.aUnit)) {
                 const { type_symbol } = location.aUnit.model.atomicHierarchy.atoms
                 return elementSymbolColor(colorMap, type_symbol.value(location.aUnit.elements[location.aIndex]))

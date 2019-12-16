@@ -6,13 +6,13 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
-import { Structure, StructureElement, Link } from '../../../mol-model/structure';
+import { Structure, StructureElement, Bond } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags } from '../../../mol-util';
-import { LinkType } from '../../../mol-model/structure/model/types';
-import { createLinkCylinderMesh, LinkCylinderParams } from './util/link';
+import { BondType } from '../../../mol-model/structure/model/types';
+import { createBondCylinderMesh, BondCylinderParams } from './util/bond';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -29,7 +29,7 @@ function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Str
     const location = StructureElement.Location.create()
 
     const builderProps = {
-        linkCount: crossLinks.count,
+        bondCount: crossLinks.count,
         referencePosition: () => null,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const b = crossLinks.pairs[edgeIndex]
@@ -38,7 +38,7 @@ function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Str
             uB.conformation.position(uB.elements[b.indexB], posB)
         },
         order: () => 1,
-        flags: () => BitFlags.create(LinkType.Flag.None),
+        flags: () => BitFlags.create(BondType.Flag.None),
         radius: (edgeIndex: number) => {
             const b = crossLinks.pairs[edgeIndex]
             location.unit = b.unitA
@@ -48,12 +48,12 @@ function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Str
         ignore: () => false
     }
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
+    return createBondCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const CrossLinkRestraintParams = {
     ...ComplexMeshParams,
-    ...LinkCylinderParams,
+    ...BondCylinderParams,
     sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
 }
 export type CrossLinkRestraintParams = typeof CrossLinkRestraintParams
@@ -69,7 +69,7 @@ export function CrossLinkRestraintVisual(materialId: number): ComplexVisual<Cros
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments ||
-                newProps.linkCap !== currentProps.linkCap
+                newProps.bondCap !== currentProps.bondCap
             )
         }
     }, materialId)
@@ -79,7 +79,7 @@ function CrossLinkRestraintIterator(structure: Structure): LocationIterator {
     const { pairs } = structure.crossLinkRestraints
     const groupCount = pairs.length
     const instanceCount = 1
-    const location = Link.Location()
+    const location = Bond.Location()
     const getLocation = (groupIndex: number) => {
         const pair = pairs[groupIndex]
         location.aUnit = pair.unitA
@@ -96,9 +96,9 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     if (id === objectId) {
         const pair = structure.crossLinkRestraints.pairs[groupId]
         if (pair) {
-            return Link.Loci(structure, [
-                Link.Location(pair.unitA, pair.indexA, pair.unitB, pair.indexB),
-                Link.Location(pair.unitB, pair.indexB, pair.unitA, pair.indexA)
+            return Bond.Loci(structure, [
+                Bond.Location(pair.unitA, pair.indexA, pair.unitB, pair.indexB),
+                Bond.Location(pair.unitB, pair.indexB, pair.unitA, pair.indexA)
             ])
         }
     }
@@ -108,9 +108,9 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
 function eachCrossLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const crossLinks = structure.crossLinkRestraints
     let changed = false
-    if (Link.isLoci(loci)) {
+    if (Bond.isLoci(loci)) {
         if (!Structure.areEquivalent(loci.structure, structure)) return false
-        for (const b of loci.links) {
+        for (const b of loci.bonds) {
             const indices = crossLinks.getPairIndices(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
             if (indices) {
                 for (let i = 0, il = indices.length; i < il; ++i) {

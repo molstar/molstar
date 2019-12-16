@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureProperties, StructureElement, Link, Model } from '../../mol-model/structure';
+import { StructureProperties, StructureElement, Bond, Model } from '../../mol-model/structure';
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
@@ -151,7 +151,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
                 return getSrcColor(location)
-            } else if (Link.isLocation(location)) {
+            } else if (Bond.isLocation(location)) {
                 l.unit = location.aUnit
                 l.element = location.aUnit.elements[location.aIndex]
                 return getSrcColor(l)
