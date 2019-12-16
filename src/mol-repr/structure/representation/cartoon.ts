@@ -64,6 +64,6 @@ export const CartoonRepresentationProvider: StructureRepresentationProvider<Cart
     defaultSizeTheme: 'uniform',
     isApplicable: (structure: Structure) => structure.polymerResidueCount > 0,
     ensureDependencies: (structure: Structure) => {
-        return SecondaryStructureProvider.attach(structure.root)
+        return SecondaryStructureProvider.attach(structure)
     }
 }

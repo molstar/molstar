@@ -114,6 +114,6 @@ export const InteractionTypeColorThemeProvider: ColorTheme.Provider<InteractionT
     defaultValues: PD.getDefaultValues(InteractionTypeColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
     ensureDependencies: (ctx: ThemeDataContext) => {
-        return ctx.structure ? InteractionsProvider.attach(ctx.structure.root) : Task.empty()
+        return ctx.structure ? InteractionsProvider.attach(ctx.structure) : Task.empty()
     }
 }

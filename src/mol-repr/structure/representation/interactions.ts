@@ -44,6 +44,6 @@ export const InteractionsRepresentationProvider: StructureRepresentationProvider
     defaultSizeTheme: 'uniform',
     isApplicable: (structure: Structure) => structure.elementCount > 0,
     ensureDependencies: (structure: Structure) => {
-        return InteractionsProvider.attach(structure.root)
+        return InteractionsProvider.attach(structure)
     }
 }

@@ -26,6 +26,7 @@ export const AccessibleSurfaceAreaProvider: CustomStructureProperty.Provider<Acc
         name: 'molstar_accessible_surface_area',
         // TODO `cifExport` and `symbol`
     }),
+    type: 'root',
     defaultParams: AccessibleSurfaceAreaParams,
     getParams: (data: Structure) => AccessibleSurfaceAreaParams,
     isApplicable: (data: Structure) => true,

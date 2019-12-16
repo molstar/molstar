@@ -7,7 +7,7 @@
 import { Unit, Bond, Structure, StructureElement } from '../../../mol-model/structure';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
-import { Interval, SortedArray, OrderedSet } from '../../../mol-data/int';
+import { Interval, OrderedSet } from '../../../mol-data/int';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { PickingId } from '../../../mol-geo/geometry/picking';
@@ -26,11 +26,9 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
     const interactions = InteractionsProvider.getValue(structure).value!
     const { features, links } = interactions.get(unit.id)!
 
-    const { x, y, z, offsets, members } = features
+    const { x, y, z } = features
     const { edgeCount, a, b } = links
     const { sizeFactor } = props
-    const { elements } = unit
-    const rootElements = structure.root.unitMap.get(unit.id).elements
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
@@ -44,15 +42,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         order: (edgeIndex: number) => 1,
         flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO
         radius: (edgeIndex: number) => sizeFactor,
-        ignore: elements !== rootElements ? (edgeIndex: number) => {
-            for (let i = offsets[a[edgeIndex]], il = offsets[a[edgeIndex] + 1]; i < il; ++i) {
-                if (!SortedArray.has(elements, rootElements[members[i]])) return true
-            }
-            for (let i = offsets[b[edgeIndex]], il = offsets[b[edgeIndex] + 1]; i < il; ++i) {
-                if (!SortedArray.has(elements, rootElements[members[i]])) return true
-            }
-            return false
-        } : () => false
+        ignore: () => false
     }
 
     return createBondCylinderMesh(ctx, builderProps, props, mesh)
@@ -87,14 +77,13 @@ function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
         const { structure, group } = structureGroup
-        // use corresponding unit from root structure
-        const unit = structure.root.unitMap.get(group.units[instanceId].id)
+        const unit = structure.unitMap.get(group.units[instanceId].id)
         if (Unit.isAtomic(unit)) {
             const interactions = InteractionsProvider.getValue(structure).value!
             const { features, links } = interactions.get(unit.id)!
             const { members, offsets } = features
             // TODO this uses the first member elements of the features of an interaction as a representative
-            return Bond.Loci(structure.root, [
+            return Bond.Loci(structure, [
                 Bond.Location(
                     unit, members[offsets[links.a[groupId]]],
                     unit, members[offsets[links.b[groupId]]]
@@ -141,9 +130,7 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
             if (unitIdx !== undefined) {
                 const { offset } = links
                 const { indices, offsets } = elementsIndex
-                const rootElements = structure.root.unitMap.get(unit.id).elements
-                OrderedSet.forEach(e.indices, _v => {
-                    const v = SortedArray.indexOf(rootElements, e.unit.elements[_v])
+                OrderedSet.forEach(e.indices, v => {
                     for (let i = offsets[v], il = offsets[v + 1]; i < il; ++i) {
                         const f = indices[i]
                         for (let t = offset[f], _t = offset[f + 1]; t < _t; t++) {

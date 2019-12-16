@@ -25,6 +25,7 @@ export const ValenceModelProvider: CustomStructureProperty.Provider<ValenceModel
         name: 'molstar_computed_valence_model',
         // TODO `cifExport` and `symbol`
     }),
+    type: 'local',
     defaultParams: ValenceModelParams,
     getParams: (data: Structure) => ValenceModelParams,
     isApplicable: (data: Structure) => true,

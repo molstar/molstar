@@ -52,6 +52,7 @@ export const SecondaryStructureProvider: CustomStructureProperty.Provider<Second
         name: 'molstar_computed_secondary_structure',
         // TODO `cifExport` and `symbol`
     }),
+    type: 'root',
     defaultParams: SecondaryStructureParams,
     getParams: getSecondaryStructureParams,
     isApplicable: (data: Structure) => true,
@@ -66,7 +67,6 @@ export const SecondaryStructureProvider: CustomStructureProperty.Provider<Second
 
 async function computeDssp(structure: Structure, props: DSSPComputationProps): Promise<SecondaryStructureValue> {
     // TODO take inter-unit hbonds into account for bridge, ladder, sheet assignment
-    // TODO store unit-only secStruc as custom unit property???
     // TODO use Zhang-Skolnik for CA alpha only parts or for coarse parts with per-residue elements
     const map = new Map<number, SecondaryStructure>()
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {

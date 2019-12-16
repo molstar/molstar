@@ -118,6 +118,6 @@ export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<Secondary
     defaultValues: PD.getDefaultValues(SecondaryStructureColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
     ensureDependencies: (ctx: ThemeDataContext) => {
-        return ctx.structure ? SecondaryStructureProvider.attach(ctx.structure.root) : Task.empty()
+        return ctx.structure ? SecondaryStructureProvider.attach(ctx.structure) : Task.empty()
     }
 }

@@ -25,6 +25,7 @@ export const InteractionsProvider: CustomStructureProperty.Provider<Interactions
         name: 'molstar_computed_interactions',
         // TODO `cifExport` and `symbol`
     }),
+    type: 'local',
     defaultParams: InteractionsParams,
     getParams: (data: Structure) => InteractionsParams,
     isApplicable: (data: Structure) => true,

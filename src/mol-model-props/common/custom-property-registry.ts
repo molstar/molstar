@@ -89,22 +89,25 @@ namespace CustomStructureProperty {
         readonly getParams: (data: Structure) => Params
         readonly isApplicable: (data: Structure) => boolean
         readonly compute: (ctx: RuntimeContext, data: Structure, props: PD.Values<Params>) => Promise<Value>
+        readonly type: 'root' | 'local'
     }
 
-    // TODO currently this always uses .inheritedPropertyData
     export function createProvider<Params extends PD.Params, Value>(builder: ProviderBuilder<Params, Value>): CustomStructureProperty.Provider<Params, Value> {
+        const descriptorName = builder.descriptor.name
+        const propertyDataName = builder.type === 'root' ? 'inheritedPropertyData' : 'currentPropertyData'
+
         const get = (data: Structure) => {
-            if (!(builder.descriptor.name in data.inheritedPropertyData)) {
-                (data.inheritedPropertyData[builder.descriptor.name] as CustomStructureProperty.Property<PD.Values<Params>, Value>) = {
+            if (!(descriptorName in data[propertyDataName])) {
+                (data[propertyDataName][descriptorName] as CustomStructureProperty.Property<PD.Values<Params>, Value>) = {
                     props: { ...PD.getDefaultValues(builder.getParams(data)) },
                     data: ValueBox.create(undefined)
                 }
             }
-            return data.inheritedPropertyData[builder.descriptor.name] as CustomStructureProperty.Property<PD.Values<Params>, Value>;
+            return data[propertyDataName][descriptorName] as CustomStructureProperty.Property<PD.Values<Params>, Value>;
         }
         const set = (data: Structure, props: PD.Values<Params>, value: Value | undefined) => {
             const property = get(data);
-            (data.inheritedPropertyData[builder.descriptor.name] as CustomStructureProperty.Property<PD.Values<Params>, Value>) = {
+            (data[propertyDataName][descriptorName] as CustomStructureProperty.Property<PD.Values<Params>, Value>) = {
                 props,
                 data: ValueBox.withValue(property.data, value)
             };
@@ -116,6 +119,7 @@ namespace CustomStructureProperty {
             getParams: builder.getParams,
             isApplicable: builder.isApplicable,
             attach: (data: Structure, props: Partial<PD.Values<Params>> = {}) => Task.create(`Attach ${builder.label}`, async ctx => {
+                if (builder.type === 'root') data = data.root
                 const property = get(data)
                 const p = { ...property.props, ...props }
                 if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return

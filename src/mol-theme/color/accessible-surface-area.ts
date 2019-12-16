@@ -73,6 +73,6 @@ export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<Access
     defaultValues: PD.getDefaultValues(AccessibleSurfaceAreaColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
     ensureDependencies: (ctx: ThemeDataContext) => {
-        return ctx.structure ? AccessibleSurfaceAreaProvider.attach(ctx.structure.root) : Task.empty()
+        return ctx.structure ? AccessibleSurfaceAreaProvider.attach(ctx.structure) : Task.empty()
     }
 }
