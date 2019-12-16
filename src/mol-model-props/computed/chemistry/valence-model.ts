@@ -11,6 +11,7 @@ import { AtomGeometry, assignGeometry } from './geometry';
 import { bondCount, typeSymbol, formalCharge, bondToElementCount } from './util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { RuntimeContext } from '../../../mol-task';
+import { isDebugMode } from '../../../mol-util/debug';
 
 /**
  * TODO:
@@ -270,7 +271,9 @@ export function calculateHydrogensCharge (structure: Structure, unit: Unit.Atomi
             break
 
         default:
-            console.warn('Requested charge, protonation for an unhandled element', element)
+            if (isDebugMode) {
+                console.warn('Requested charge, protonation for an unhandled element', element)
+            }
     }
 
     return [ charge, implicitHCount, implicitHCount + hydrogenCount, geom ]
