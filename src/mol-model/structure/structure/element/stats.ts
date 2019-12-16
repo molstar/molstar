@@ -294,7 +294,7 @@ export namespace Stats {
         } else {
             for (const e of loci.elements) {
                 handleElement(stats, e)
-                if (!Unit.Traits.is(e.unit.traits, Unit.Trait.Patitioned)) {
+                if (!Unit.Traits.is(e.unit.traits, Unit.Trait.Partitioned)) {
                     handleUnitChainsSimple(stats, e);
                 } else {
                     hasPartitions = true;
@@ -305,7 +305,7 @@ export namespace Stats {
         if (hasPartitions) {
             for (let i = 0, len = loci.elements.length; i < len; i++) {
                 const e = loci.elements[i];
-                if (!Unit.Traits.is(e.unit.traits, Unit.Trait.Patitioned)) continue;
+                if (!Unit.Traits.is(e.unit.traits, Unit.Trait.Partitioned)) continue;
 
                 const start = i;
                 while (i < len && Unit.areSameChainOperatorGroup(loci.elements[i].unit, e.unit)) {

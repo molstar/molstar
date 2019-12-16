@@ -339,7 +339,7 @@ export namespace Loci {
 
         for (let i = 0, len = loci.elements.length; i < len; i++) {
             const e = loci.elements[i];
-            if (Unit.Traits.is(e.unit.traits, Unit.Trait.Patitioned)) {
+            if (Unit.Traits.is(e.unit.traits, Unit.Trait.Partitioned)) {
                 const start = i;
                 while (i < len && Unit.areSameChainOperatorGroup(loci.elements[i].unit, e.unit)) {
                     i++;

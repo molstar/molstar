@@ -54,7 +54,7 @@ export interface OrientationEllipsoidMeshProps {
 
 function isUnitApplicable(unit: Unit) {
     if (Unit.Traits.is(unit.traits, Unit.Trait.MultiChain)) return false
-    if (Unit.Traits.is(unit.traits, Unit.Trait.Patitioned)) return false
+    if (Unit.Traits.is(unit.traits, Unit.Trait.Partitioned)) return false
     if (Unit.isCoarse(unit)) return true
     if (unit.elements.length === 0) return false
     unit.model.atomicHierarchy.derived.residue.moleculeType

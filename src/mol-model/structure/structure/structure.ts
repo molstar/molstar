@@ -682,7 +682,7 @@ namespace Structure {
         const lookup = GridLookup3D({ x, y, z, indices }, 8192);
         const { offset, count, array } = lookup.buckets;
 
-        const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Patitioned : Unit.Trait.None);
+        const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Partitioned : Unit.Trait.None);
 
         builder.beginChainGroup();
         for (let i = 0, _i = offset.length; i < _i; i++) {
@@ -717,7 +717,7 @@ namespace Structure {
         const lookup = GridLookup3D({ x, y, z, indices: SortedArray.ofSortedArray(startIndices) }, gridCellCount);
         const { offset, count, array } = lookup.buckets;
 
-        const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Patitioned : Unit.Trait.None);
+        const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Partitioned : Unit.Trait.None);
 
         builder.beginChainGroup();
         for (let i = 0, _i = offset.length; i < _i; i++) {

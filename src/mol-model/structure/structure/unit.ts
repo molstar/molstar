@@ -108,7 +108,7 @@ namespace Unit {
     export const enum Trait {
         None = 0x0,
         MultiChain = 0x1,
-        Patitioned = 0x2
+        Partitioned = 0x2
     }
     export namespace Traits {
         export const is: (t: Traits, f: Trait) => boolean = BitFlags.has
