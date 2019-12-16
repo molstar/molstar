@@ -137,6 +137,23 @@ namespace Unit {
         readonly objectPrimitive: mmCIF_Schema['ihm_model_representation_details']['model_object_primitive']['T']
     }
 
+    interface BaseProperties {
+        lookup3d: ValueRef<Lookup3D | undefined>,
+        principalAxes: ValueRef<PrincipalAxes | undefined>,
+        polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
+        gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
+    }
+
+
+    function BaseProperties(): BaseProperties {
+        return {
+            lookup3d: ValueRef.create(void 0),
+            principalAxes: ValueRef.create(void 0),
+            polymerElements: ValueRef.create(void 0),
+            gapElements: ValueRef.create(void 0),
+        };
+    }
+
     function getSphereRadiusFunc(model: Model) {
         const r = model.coarseConformation.spheres.radius;
         return (i: number) => r[i];
@@ -250,7 +267,7 @@ namespace Unit {
         }
 
         getResidueIndex(elementIndex: StructureElement.UnitIndex) {
-            return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
+            return this.residueIndex[this.elements[elementIndex]];
         }
 
         constructor(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: AtomicProperties) {
@@ -268,13 +285,9 @@ namespace Unit {
         }
     }
 
-    interface AtomicProperties {
-        lookup3d: ValueRef<Lookup3D | undefined>,
-        principalAxes: ValueRef<PrincipalAxes | undefined>,
+    interface AtomicProperties extends BaseProperties {
         bonds: ValueRef<IntraUnitBonds | undefined>,
         rings: ValueRef<UnitRings | undefined>
-        polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
-        gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
         nucleotideElements: ValueRef<SortedArray<ElementIndex> | undefined>
         proteinElements: ValueRef<SortedArray<ElementIndex> | undefined>
         residueCount: ValueRef<number | undefined>
@@ -282,12 +295,9 @@ namespace Unit {
 
     function AtomicProperties(): AtomicProperties {
         return {
-            lookup3d: ValueRef.create(void 0),
-            principalAxes: ValueRef.create(void 0),
+            ...BaseProperties(),
             bonds: ValueRef.create(void 0),
             rings: ValueRef.create(void 0),
-            polymerElements: ValueRef.create(void 0),
-            gapElements: ValueRef.create(void 0),
             nucleotideElements: ValueRef.create(void 0),
             proteinElements: ValueRef.create(void 0),
             residueCount: ValueRef.create(void 0),
@@ -369,20 +379,10 @@ namespace Unit {
         }
     }
 
-    interface CoarseProperties {
-        lookup3d: ValueRef<Lookup3D | undefined>,
-        principalAxes: ValueRef<PrincipalAxes | undefined>,
-        polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
-        gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
-    }
+    interface CoarseProperties extends BaseProperties { }
 
     function CoarseProperties(): CoarseProperties {
-        return {
-            lookup3d: ValueRef.create(void 0),
-            principalAxes: ValueRef.create(void 0),
-            polymerElements: ValueRef.create(void 0),
-            gapElements: ValueRef.create(void 0),
-        };
+        return BaseProperties();
     }
 
     function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties): Unit {
