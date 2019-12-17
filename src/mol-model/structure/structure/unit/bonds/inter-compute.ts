@@ -178,6 +178,13 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
     const map = new Map<number, InterUnitBonds.UnitPairBonds[]>();
     if (!structure.units.some(u => Unit.isAtomic(u))) return new InterUnitBonds(map);
 
+    if (props.noCompute) {
+        // TODO add function that only adds bonds defined in structConn and avoids using
+        //      structure.lookup and unit.lookup (expensive for large structure and not
+        //      needed for archival files or files with an MD topology)
+        return new InterUnitBonds(map);
+    }
+
     const { validUnitPair } = props;
     const lookup = structure.lookup3d;
     const imageCenter = Vec3.zero();

@@ -151,7 +151,13 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
 }
 
 function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputationProps>) {
-    return _computeBonds(unit, { ...DefaultBondComputationProps, ...props });
+    const p = { ...DefaultBondComputationProps, ...props }
+    if (p.noCompute) {
+        // TODO add function that only adds bonds defined in structConn of chemCompBond
+        //      and avoid using unit.lookup
+        return IntraUnitBonds.Empty;
+    }
+    return _computeBonds(unit, p);
 }
 
 export { computeIntraUnitBonds }

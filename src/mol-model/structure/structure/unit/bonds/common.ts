@@ -32,10 +32,12 @@ export interface BondComputationProps {
      */
     maxCovalentHydrogenBondingLength: number,
     forceCompute: boolean
+    noCompute: boolean
 }
 export const DefaultBondComputationProps: BondComputationProps = {
     maxCovalentHydrogenBondingLength: 1.45,
-    forceCompute: false
+    forceCompute: false,
+    noCompute: false
 }
 
 // H,D,T are all mapped to H
