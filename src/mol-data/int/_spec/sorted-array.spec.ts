@@ -63,6 +63,16 @@ describe('sortedArray', () => {
         compareArrays(SortedArray.indicesOf(SortedArray.ofSortedArray([10, 11, 12]), SortedArray.ofSortedArray([10, 12, 14])), [0, 2]);
     })
 
+    it('indicesOf 2', () => {
+        compareArrays(
+            SortedArray.indicesOf(
+                SortedArray.ofSortedArray([0, 1, 2, 3, 4, 8, 9, 10]),
+                SortedArray.ofSortedArray([1, 3, 4, 9, 10])
+            ),
+            [1, 3, 4, 6, 7]
+        );
+    })
+
     test('intersectionSize', SortedArray.intersectionSize(a1234, a2468), 2);
 
     it('union1', () => {

@@ -12,6 +12,7 @@ import { bondCount, typeSymbol, formalCharge, bondToElementCount } from './util'
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { RuntimeContext } from '../../../mol-task';
 import { isDebugMode } from '../../../mol-util/debug';
+import { SortedArray } from '../../../mol-data/int';
 
 /**
  * TODO:
@@ -287,8 +288,22 @@ function calcUnitValenceModel(structure: Structure, unit: Unit.Atomic, props: Va
     const totalH = new Int8Array(n)
     const idealGeometry = new Int8Array(n)
 
-    for (let i = 0 as StructureElement.UnitIndex; i < n; ++i) {
-        const [ chg, implH, totH, geom ] = calculateHydrogensCharge(structure, unit, i, props)
+    // always use root UnitIndex to take the topology of the whole structure in account
+    const hasParent = !!structure.parent
+    let mapping: SortedArray
+    if (hasParent) {
+        const rootUnit = structure.root.unitMap.get(unit.id) as Unit.Atomic
+        mapping = SortedArray.indicesOf(rootUnit.elements, unit.elements)
+        if (mapping.length !== unit.elements.length) {
+            throw new Error('expected to find an index for every element')
+        }
+        unit = rootUnit
+        structure = structure.root
+    }
+
+    for (let i = 0; i < n; ++i) {
+        const j = (hasParent ? mapping![i] : i) as StructureElement.UnitIndex
+        const [ chg, implH, totH, geom ] = calculateHydrogensCharge(structure, unit, j, props)
         charge[i] = chg
         implicitH[i] = implH
         totalH[i] = totH
