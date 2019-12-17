@@ -15,7 +15,7 @@ import StructureProperties from '../properties';
 export type Set = SortedArray<ElementIndex>
 
 /** Index into Unit.elements */
-export type UnitIndex = { readonly '@type': 'structure-element-index' } & number
+export type UnitIndex = { readonly '@type': 'unit-element-index' } & number
 
 export interface Property<T> { (location: Location): T }
 export interface Predicate extends Property<boolean> { }
