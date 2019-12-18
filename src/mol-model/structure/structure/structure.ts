@@ -149,8 +149,11 @@ class Structure {
         return this._props.atomicResidueCount;
     }
 
-    /** Coarse structure, defined as Containing less than twice as many elements as polymer residues */
-    get isCoarse() {
+    /**
+     * Coarse-grained structure, defined as containing less than
+     * twice as many elements as polymer residues
+     */
+    get isCoarseGrained() {
         const ec = this.elementCount
         const prc = this.polymerResidueCount
         return prc && ec ? ec / prc < 2 : false
@@ -271,11 +274,28 @@ class Structure {
             || (this._props.uniqueAtomicResidueIndices = getUniqueAtomicResidueIndices(this));
     }
 
+    /** Contains only atomic units */
     get isAtomic() {
-        for (const u of this.units) {
-            if (u.kind !== Unit.Kind.Atomic) return false;
-        }
+        for (const u of this.units) if (Unit.isAtomic(u)) return false;
         return true;
+        }
+
+    /** Contains some atomic units */
+    get hasAtomic() {
+        for (const u of this.units) if (Unit.isAtomic(u)) return true;
+        return false;
+    }
+
+    /** Contains only coarse units */
+    get isCoarse() {
+        for (const u of this.units) if (Unit.isCoarse(u)) return false;
+        return true;
+    }
+
+    /** Contains some coarse units */
+    get hasCoarse() {
+        for (const u of this.units) if (Unit.isCoarse(u)) return true;
+        return false;
     }
 
     /**

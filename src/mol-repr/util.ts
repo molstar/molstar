@@ -55,7 +55,7 @@ export interface QualityProps {
 
 export function getStructureQuality(structure: Structure): VisualQuality {
     let score = structure.elementCount
-    if (structure.isCoarse) score *= 10
+    if (structure.isCoarseGrained) score *= 10
     if (score > 500_000) {
         return 'lowest'
     } else if (score > 200_000) {
