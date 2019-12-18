@@ -13,11 +13,11 @@ import { FeatureGroup, FeatureType } from './common';
 export { Features }
 
 interface Features {
-    /** center x coordinate */
+    /** center x coordinate, in invariant coordinate space */
     readonly x: ArrayLike<number>
-    /** center y coordinate */
+    /** center y coordinate, in invariant coordinate space */
     readonly y: ArrayLike<number>
-    /** center z coordinate */
+    /** center z coordinate, in invariant coordinate space */
     readonly z: ArrayLike<number>
     /** number of features */
     readonly count: number
@@ -26,7 +26,7 @@ interface Features {
     readonly offsets: ArrayLike<number>
     /** elements of this feature, range for feature i is offsets[i] to offsets[i + 1] */
     readonly members: ArrayLike<StructureElement.UnitIndex>
-    /** lookup3d based on center coordinates */
+    /** lookup3d based on center coordinates, in invariant coordinate space */
     readonly lookup3d: GridLookup3D
 }
 

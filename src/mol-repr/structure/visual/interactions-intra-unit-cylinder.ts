@@ -31,6 +31,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
     const { x, y, z } = features
     const { edgeCount, a, b } = links
     const { sizeFactor } = props
+    const { matrix } = unit.conformation.operator
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
@@ -39,7 +40,9 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         referencePosition: () => null,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]])
+            Vec3.transformMat4(posA, posA, matrix)
             Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]])
+            Vec3.transformMat4(posB, posB, matrix)
         },
         order: (edgeIndex: number) => 1,
         flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO

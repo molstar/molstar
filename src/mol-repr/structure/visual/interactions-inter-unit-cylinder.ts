@@ -40,7 +40,9 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
             const fA = unitsFeatures.get(unitA.id)
             const fB = unitsFeatures.get(unitB.id)
             Vec3.set(posA, fA.x[indexA], fA.y[indexA], fA.z[indexA])
+            Vec3.transformMat4(posA, posA, unitA.conformation.operator.matrix)
             Vec3.set(posB, fB.x[indexB], fB.y[indexB], fB.z[indexB])
+            Vec3.transformMat4(posB, posB, unitB.conformation.operator.matrix)
         },
         order: (edgeIndex: number) => 1,
         flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO

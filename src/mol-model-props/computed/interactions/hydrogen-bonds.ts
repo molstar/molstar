@@ -54,8 +54,8 @@ function getUnitValenceModel(structure: Structure, unit: Unit.Atomic) {
  */
 export function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { totalH } = getUnitValenceModel(structure, unit)
-    const { elements, conformation } = unit
-    const { x, y, z } = conformation
+    const { elements } = unit
+    const { x, y, z } = unit.model.atomicConformation
 
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {
         const element = typeSymbol(unit, i)
@@ -68,7 +68,7 @@ export function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, b
                 (element === Elements.N || element === Elements.O || element === Elements.S)
             )
         ) {
-            builder.addOne(FeatureType.HydrogenDonor, FeatureGroup.None, x(elements[i]), y(elements[i]), z(elements[i]), i)
+            builder.addOne(FeatureType.HydrogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
         }
     }
 }
@@ -78,8 +78,8 @@ export function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, b
  */
 export function addUnitWeakHydrogenDonors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { totalH } = getUnitValenceModel(structure, unit)
-    const { elements, conformation } = unit
-    const { x, y, z } = conformation
+    const { elements } = unit
+    const { x, y, z } = unit.model.atomicConformation
 
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {
         if (
@@ -91,7 +91,7 @@ export function addUnitWeakHydrogenDonors(structure: Structure, unit: Unit.Atomi
                 inAromaticRingWithElectronNegativeElement(structure, unit, i)
             )
         ) {
-            builder.addOne(FeatureType.WeakHydrogenDonor, FeatureGroup.None, x(elements[i]), y(elements[i]), z(elements[i]), i)
+            builder.addOne(FeatureType.WeakHydrogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
         }
     }
 }
@@ -124,11 +124,11 @@ function inAromaticRingWithElectronNegativeElement(structure: Structure, unit: U
  */
 export function addUnitHydrogenAcceptors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { charge, implicitH, idealGeometry } = getUnitValenceModel(structure, unit)
-    const { elements, conformation } = unit
-    const { x, y, z } = conformation
+    const { elements } = unit
+    const { x, y, z } = unit.model.atomicConformation
 
     function add(i: StructureElement.UnitIndex) {
-        builder.addOne(FeatureType.HydrogenAcceptor, FeatureGroup.None, x(elements[i]), y(elements[i]), z(elements[i]), i)
+        builder.addOne(FeatureType.HydrogenAcceptor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
     }
 
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {

@@ -87,7 +87,6 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
                     return typeColor(links.edgeProps.type[idx])
                 } else {
                     const idx = interactions.links.getEdgeIndex(indexA, unitA, indexB, unitB)
-                    console.log({ idx, indexA, unitA, indexB, unitB })
                     return typeColor(interactions.links.edges[idx].props.type)
                 }
             }

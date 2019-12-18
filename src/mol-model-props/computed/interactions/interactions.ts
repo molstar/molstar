@@ -134,11 +134,14 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
     const unitsFeatures = IntMap.Mutable<Features>()
     const unitsLinks = IntMap.Mutable<InteractionsIntraLinks>()
 
-    for (let i = 0, il = structure.units.length; i < il; ++i) {
-        const u = structure.units[i]
-        const d = findIntraUnitLinksAndFeatures(structure, u, p)
-        unitsFeatures.set(u.id, d.features)
-        unitsLinks.set(u.id, d.links)
+    for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
+        const group = structure.unitSymmetryGroups[i]
+        const d = findIntraUnitLinksAndFeatures(structure, group.units[0], p)
+        for (let j = 0, jl = group.units.length; j < jl; ++j) {
+            const u = group.units[j]
+            unitsFeatures.set(u.id, d.features)
+            unitsLinks.set(u.id, d.links)
+        }
     }
 
     const links = findInterUnitLinks(structure, unitsFeatures, p)
