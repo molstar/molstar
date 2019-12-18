@@ -17,6 +17,7 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci, isEveryLoci } from '../../mol-model/loci';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
+import { Interactions } from '../../mol-model-props/computed/interactions/interactions';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0
@@ -58,7 +59,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
     function mark(loci: Loci, action: MarkerAction) {
         if (!_structure) return false
-        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Bond.isLoci(loci)) {
+        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Bond.isLoci(loci) || Interactions.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
             // Remap `loci` from equivalent structure to the current `_structure`
             loci = Loci.remap(loci, _structure)

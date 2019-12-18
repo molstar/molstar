@@ -7,6 +7,7 @@
 import { Structure, Unit } from '../../../mol-model/structure';
 import { StructureElement } from '../../../mol-model/structure/structure';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
+import { BondType } from '../../../mol-model/structure/model/types';
 
 export function typeSymbol(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     return unit.model.atomicHierarchy.atoms.type_symbol.value(unit.elements[index])
@@ -54,11 +55,21 @@ export function bondToElementCount(structure: Structure, unit: Unit.Atomic, inde
 //
 
 export function intraConnectedTo(unit: Unit.Atomic, indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex) {
-    const { offset, b } = unit.bonds
+    const { offset, b, edgeProps: { flags } } = unit.bonds
+    BondType.is
     for (let i = offset[indexA], il = offset[indexA + 1]; i < il; ++i) {
-        if (b[i] === indexB) return true
+        if (b[i] === indexB && BondType.isCovalent(flags[i])) return true
     }
     return false
+}
+
+export function interConnectedTo(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex) {
+    const b = structure.interUnitBonds.getEdge(indexA, unitA, indexB, unitB)
+    return b && BondType.isCovalent(b.props.flag)
+}
+
+export function connectedTo(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex) {
+    return unitA === unitB ? intraConnectedTo(unitA, indexA, indexB) : interConnectedTo(structure, unitA, indexA, unitB, indexB)
 }
 
 //

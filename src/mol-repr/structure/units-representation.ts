@@ -20,6 +20,7 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, EmptyLoci, isEmptyLoci, isEveryLoci } from '../../mol-model/loci';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
+import { Interactions } from '../../mol-model-props/computed/interactions/interactions';
 
 export const UnitsParams = {
     ...StructureParams,
@@ -167,7 +168,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     function mark(loci: Loci, action: MarkerAction) {
         let changed = false
         if (!_structure) return false
-        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Bond.isLoci(loci)) {
+        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Bond.isLoci(loci) || Interactions.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
             // Remap `loci` from equivalent structure to the current `_structure`
             loci = Loci.remap(loci, _structure)

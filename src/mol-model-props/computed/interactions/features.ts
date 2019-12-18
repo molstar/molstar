@@ -8,6 +8,7 @@ import { StructureElement } from '../../../mol-model/structure/structure';
 import { ChunkedArray } from '../../../mol-data/util';
 import { GridLookup3D } from '../../../mol-math/geometry';
 import { OrderedSet } from '../../../mol-data/int';
+import { FeatureGroup, FeatureType } from './common';
 
 export { Features }
 
@@ -30,10 +31,13 @@ interface Features {
 }
 
 namespace Features {
+    /** Index into Features data arrays */
+    export type FeatureIndex = { readonly '@type': 'feature-index' } & number
+
     /** maps unit elements to features, range for unit element i is offsets[i] to offsets[i + 1] */
     export type ElementsIndex = {
         /** feature indices */
-        readonly indices: ArrayLike<number>
+        readonly indices: ArrayLike<FeatureIndex>
         /** range for unit element i is offsets[i] to offsets[i + 1] */
         readonly offsets: ArrayLike<number>
     }
@@ -62,7 +66,7 @@ namespace Features {
             }
         }
 
-        return { indices, offsets }
+        return { indices: indices as unknown as ArrayLike<FeatureIndex>, offsets }
     }
 }
 
@@ -134,35 +138,4 @@ namespace FeaturesBuilder {
             }
         }
     }
-}
-
-export const enum FeatureType {
-    None = 0,
-    PositiveCharge = 1,
-    NegativeCharge = 2,
-    AromaticRing = 3,
-    HydrogenDonor = 4,
-    HydrogenAcceptor = 5,
-    HalogenDonor = 6,
-    HalogenAcceptor = 7,
-    Hydrophobic = 8,
-    WeakHydrogenDonor = 9,
-    IonicTypePartner = 10,
-    DativeBondPartner = 11,
-    TransitionMetal = 12,
-    IonicTypeMetal = 13
-}
-
-export const enum FeatureGroup {
-    None = 0,
-    QuaternaryAmine = 1,
-    TertiaryAmine = 2,
-    Sulfonium = 3,
-    SulfonicAcid = 4,
-    Sulfate = 5,
-    Phosphate = 6,
-    Halocarbon = 7,
-    Guanidine = 8,
-    Acetamidine = 9,
-    Carboxylate = 10
 }

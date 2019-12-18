@@ -15,7 +15,6 @@ import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 import { MolecularSurfaceRepresentationProvider } from '../../mol-repr/structure/representation/molecular-surface';
 import { BallAndStickRepresentationProvider } from '../../mol-repr/structure/representation/ball-and-stick';
 import { GaussianSurfaceRepresentationProvider } from '../../mol-repr/structure/representation/gaussian-surface';
-// import { ComputedSecondaryStructure } from '../../mol-model-props/computed/secondary-structure';
 import { resizeCanvas } from '../../mol-canvas3d/util';
 import { Representation } from '../../mol-repr/representation';
 import { throttleTime } from 'rxjs/operators';
@@ -24,6 +23,7 @@ import { EveryLoci } from '../../mol-model/loci';
 import { lociLabel } from '../../mol-theme/label';
 import { InteractionsRepresentationProvider } from '../../mol-repr/structure/representation/interactions';
 import { InteractionsProvider } from '../../mol-model-props/computed/interactions';
+import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -115,21 +115,16 @@ function getGaussianSurfaceRepr() {
 }
 
 async function init() {
-    const cif = await downloadFromPdb('1crn')
+    const cif = await downloadFromPdb('3pqr')
     const models = await getModels(cif)
     const structure = await getStructure(models[0])
-    // console.time('computeDSSP')
-    // await ComputedSecondaryStructure.attachFromCifOrCompute(structure)
-    // console.timeEnd('computeDSSP');
+    console.time('compute SecondaryStructure')
+    await SecondaryStructureProvider.attach(structure).run()
+    console.timeEnd('compute SecondaryStructure');
 
-    // console.time('computeValenceModel')
-    // await ComputedValenceModel.attachFromCifOrCompute(structure)
-    // console.timeEnd('computeValenceModel');
-    // console.log(ComputedValenceModel.get(structure))
-
-    console.time('computeInteractions')
+    console.time('compute Interactions')
     await InteractionsProvider.attach(structure).run()
-    console.timeEnd('computeInteractions');
+    console.timeEnd('compute Interactions');
     console.log(InteractionsProvider.getValue(structure).value)
 
     const show = {

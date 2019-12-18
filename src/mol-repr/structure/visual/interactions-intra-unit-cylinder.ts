@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Bond, Structure, StructureElement } from '../../../mol-model/structure';
+import { Unit, Structure } from '../../../mol-model/structure';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
-import { Interval, OrderedSet } from '../../../mol-data/int';
+import { Interval } from '../../../mol-data/int';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { PickingId } from '../../../mol-geo/geometry/picking';
@@ -19,12 +19,14 @@ import { createBondCylinderMesh, BondCylinderParams } from './util/bond';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { Interactions } from '../../../mol-model-props/computed/interactions/interactions';
 
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const interactions = InteractionsProvider.getValue(structure).value!
-    const { features, links } = interactions.get(unit.id)!
+    const features = interactions.unitsFeatures.get(unit.id)
+    const links = interactions.unitsLinks.get(unit.id)
 
     const { x, y, z } = features
     const { edgeCount, a, b } = links
@@ -60,84 +62,49 @@ export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<Int
         defaultProps: PD.getDefaultValues(InteractionsIntraUnitParams),
         createGeometry: createIntraUnitInteractionsCylinderMesh,
         createLocationIterator: createInteractionsIterator,
-        getLoci: getLinkLoci,
+        getLoci: getInteractionLoci,
         eachLocation: eachInteraction,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InteractionsIntraUnitParams>, currentProps: PD.Values<InteractionsIntraUnitParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.radialSegments !== currentProps.radialSegments ||
-                newProps.bondScale !== currentProps.bondScale ||
-                newProps.bondSpacing !== currentProps.bondSpacing
+                newProps.radialSegments !== currentProps.radialSegments
             )
         }
     }, materialId)
 }
 
-function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
+function getInteractionLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
         const { structure, group } = structureGroup
         const unit = structure.unitMap.get(group.units[instanceId].id)
-        if (Unit.isAtomic(unit)) {
-            const interactions = InteractionsProvider.getValue(structure).value!
-            const { features, links } = interactions.get(unit.id)!
-            const { members, offsets } = features
-            // TODO this uses the first member elements of the features of an interaction as a representative
-            return Bond.Loci(structure, [
-                Bond.Location(
-                    unit, members[offsets[links.a[groupId]]],
-                    unit, members[offsets[links.b[groupId]]]
-                ),
-                Bond.Location(
-                    unit, members[offsets[links.b[groupId]]],
-                    unit, members[offsets[links.a[groupId]]]
-                )
-            ])
-        }
+        const interactions = InteractionsProvider.getValue(structure).value!
+        const links = interactions.unitsLinks.get(unit.id)
+        return Interactions.Loci(structure, interactions, [
+            { unitA: unit, indexA: links.a[groupId], unitB: unit, indexB: links.b[groupId] },
+            { unitA: unit, indexA: links.b[groupId], unitB: unit, indexB: links.a[groupId] },
+        ])
     }
     return EmptyLoci
 }
 
 function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (Bond.isLoci(loci)) {
+    if (Interactions.isLoci(loci)) {
         const { structure, group } = structureGroup
         if (!Structure.areEquivalent(loci.structure, structure)) return false
-        const unit = group.units[0]
-        if (!Unit.isAtomic(unit)) return false
         const interactions = InteractionsProvider.getValue(structure).value!
-        const { links, getLinkIndex } = interactions.get(unit.id)!
+        if (loci.interactions !== interactions) return false
+        const unit = group.units[0]
+        const links = interactions.unitsLinks.get(unit.id)
         const groupCount = links.edgeCount * 2
-        for (const b of loci.bonds) {
-            const unitIdx = group.unitIndexMap.get(b.aUnit.id)
+        for (const l of loci.links) {
+            const unitIdx = group.unitIndexMap.get(l.unitA.id)
             if (unitIdx !== undefined) {
-                const idx = getLinkIndex(b.aIndex, b.bIndex)
+                const idx = links.getDirectedEdgeIndex(l.indexA, l.indexB)
                 if (idx !== -1) {
                     if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                 }
-            }
-        }
-    } else if (StructureElement.Loci.is(loci)) {
-        const { structure, group } = structureGroup
-        if (!Structure.areEquivalent(loci.structure, structure)) return false
-        const unit = group.units[0]
-        if (!Unit.isAtomic(unit)) return false
-        const interactions = InteractionsProvider.getValue(structure).value!
-        const { links, elementsIndex } = interactions.get(unit.id)!
-        const groupCount = links.edgeCount * 2
-        for (const e of loci.elements) {
-            const unitIdx = group.unitIndexMap.get(e.unit.id)
-            if (unitIdx !== undefined) {
-                const { offset } = links
-                const { indices, offsets } = elementsIndex
-                OrderedSet.forEach(e.indices, v => {
-                    for (let i = offsets[v], il = offsets[v + 1]; i < il; ++i) {
-                        const f = indices[i]
-                        for (let t = offset[f], _t = offset[f + 1]; t < _t; t++) {
-                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true
-                        }
-                    }
-                })
             }
         }
     }
@@ -148,19 +115,16 @@ function createInteractionsIterator(structureGroup: StructureGroup): LocationIte
     const { structure, group } = structureGroup
     const unit = group.units[0]
     const interactions = InteractionsProvider.getValue(structure).value!
-    const { links, features } = interactions.get(unit.id)!
-    const { members, offsets } = features
+    const links = interactions.unitsLinks.get(unit.id)
     const groupCount = links.edgeCount * 2
     const instanceCount = group.units.length
-    const location = Bond.Location()
+    const location = Interactions.Location(interactions)
     const getLocation = (groupIndex: number, instanceIndex: number) => {
-        const fA = links.a[groupIndex]
-        const fB = links.b[groupIndex]
         const instanceUnit = group.units[instanceIndex]
-        location.aUnit = instanceUnit
-        location.aIndex = members[offsets[fA]]
-        location.bUnit = instanceUnit
-        location.bIndex = members[offsets[fB]]
+        location.unitA = instanceUnit
+        location.indexA = links.a[groupIndex]
+        location.unitB = instanceUnit
+        location.indexB = links.b[groupIndex]
         return location
     }
     return LocationIterator(groupCount, instanceCount, getLocation)

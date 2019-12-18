@@ -4,16 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Bond } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
 import { Color, ColorMap } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { InteractionsProvider } from '../../mol-model-props/computed/interactions';
 import { ThemeDataContext } from '../theme';
 import { ColorTheme, LocationColor } from '../color';
-import { InteractionType } from '../../mol-model-props/computed/interactions/interactions';
+import { InteractionType } from '../../mol-model-props/computed/interactions/common';
 import { TableLegend } from '../../mol-util/legend';
 import { Task } from '../../mol-task';
+import { Interactions } from '../../mol-model-props/computed/interactions/interactions';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Assigns colors according the interaction type of a link.'
@@ -78,16 +78,17 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
     const contextHash = interactions?.version
 
     if (interactions && interactions.value) {
-        const map = interactions.value
         color = (location: Location) => {
-            if (Bond.isLocation(location)) {
-                const unitInteractions = map.get(location.aUnit.id)
-                if (unitInteractions) {
-                    const { links, getLinkIndex } = unitInteractions
-                    if (links.edgeCount > 0) {
-                        const idx = getLinkIndex(location.aIndex, location.bIndex)
-                        if (idx !== -1) return typeColor(links.edgeProps.types[idx])
-                    }
+            if (Interactions.isLocation(location)) {
+                const { interactions, unitA, indexA, unitB, indexB } = location
+                if (location.unitA === location.unitB) {
+                    const links = interactions.unitsLinks.get(location.unitA.id)
+                    const idx = links.getDirectedEdgeIndex(location.indexA, location.indexB)
+                    return typeColor(links.edgeProps.type[idx])
+                } else {
+                    const idx = interactions.links.getEdgeIndex(indexA, unitA, indexB, unitB)
+                    console.log({ idx, indexA, unitA, indexB, unitB })
+                    return typeColor(interactions.links.edges[idx].props.type)
                 }
             }
             return DefaultColor

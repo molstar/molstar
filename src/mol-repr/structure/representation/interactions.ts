@@ -8,21 +8,23 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
-import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider } from '../representation';
+import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../representation';
 import { InteractionsIntraUnitParams, InteractionsIntraUnitVisual } from '../visual/interactions-intra-unit-cylinder';
 import { UnitKindOptions, UnitKind } from '../visual/util/common';
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
+import { InteractionsInterUnitParams, InteractionsInterUnitVisual } from '../visual/interactions-inter-unit-cylinder';
 
 const InteractionsVisuals = {
     'intra-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsIntraUnitParams>) => UnitsRepresentation('Intra-unit interactions cylinder', ctx, getParams, InteractionsIntraUnitVisual),
+    'inter-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsInterUnitParams>) => ComplexRepresentation('Inter-unit interactions cylinder', ctx, getParams, InteractionsInterUnitVisual),
 }
 
 export const InteractionsParams = {
     ...InteractionsIntraUnitParams,
+    ...InteractionsInterUnitParams,
     unitKinds: PD.MultiSelect<UnitKind>(['atomic'], UnitKindOptions),
     sizeFactor: PD.Numeric(0.3, { min: 0.01, max: 10, step: 0.01 }),
-    sizeAspectRatio: PD.Numeric(2/3, { min: 0.01, max: 3, step: 0.01 }),
-    visuals: PD.MultiSelect(['intra-unit'], PD.objectToOptions(InteractionsVisuals)),
+    visuals: PD.MultiSelect(['intra-unit', 'inter-unit'], PD.objectToOptions(InteractionsVisuals)),
 }
 export type InteractionsParams = typeof InteractionsParams
 export function getInteractionParams(ctx: ThemeRegistryContext, structure: Structure) {

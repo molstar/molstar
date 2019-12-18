@@ -14,6 +14,7 @@ import { OrderedSet } from '../mol-data/int';
 import { Structure } from './structure/structure';
 import { PrincipalAxes } from '../mol-math/linear-algebra/matrix/principal-axes';
 import { ParamDefinition } from '../mol-util/param-definition';
+import { Interactions } from '../mol-model-props/computed/interactions/interactions';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -51,7 +52,7 @@ export function createDataLoci(data: any, tag: string, indices: OrderedSet<numbe
 
 export { Loci }
 
-type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
+type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | Interactions.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
 
 namespace Loci {
     interface FiniteArray<T, L extends number = number> extends ReadonlyArray<T> { length: L };
@@ -71,6 +72,9 @@ namespace Loci {
         }
         if (Bond.isLoci(lociA) && Bond.isLoci(lociB)) {
             return Bond.areLociEqual(lociA, lociB)
+        }
+        if (Interactions.isLoci(lociA) && Interactions.isLoci(lociB)) {
+            return Interactions.areLociEqual(lociA, lociB)
         }
         if (Shape.isLoci(lociA) && Shape.isLoci(lociB)) {
             return Shape.areLociEqual(lociA, lociB)
@@ -92,6 +96,7 @@ namespace Loci {
         if (Structure.isLoci(loci)) return Structure.isLociEmpty(loci)
         if (StructureElement.Loci.is(loci)) return StructureElement.Loci.isEmpty(loci)
         if (Bond.isLoci(loci)) return Bond.isLociEmpty(loci)
+        if (Interactions.isLoci(loci)) return Interactions.isLociEmpty(loci)
         if (Shape.isLoci(loci)) return Shape.isLociEmpty(loci)
         if (ShapeGroup.isLoci(loci)) return ShapeGroup.isLociEmpty(loci)
         return false
@@ -105,6 +110,9 @@ namespace Loci {
                 loci = Structure.remapLoci(loci, data)
             } else if (Bond.isLoci(loci)) {
                 loci = Bond.remapLoci(loci, data)
+            } else if (Interactions.isLoci(loci)) {
+                // TODO might be too expensive
+                // loci = Interactions.remapLoci(loci, data)
             }
         }
         return loci
@@ -136,6 +144,9 @@ namespace Loci {
                 e.aUnit.conformation.position(e.bUnit.elements[e.bIndex], tempPos);
                 sphereHelper.radiusStep(tempPos);
             }
+        } else if (loci.kind === 'interaction-loci') {
+            // TODO
+            // return Interactions.Loci.getBoundary(loci).sphere;
         } else if (loci.kind === 'shape-loci') {
             // TODO
             return void 0;
@@ -166,6 +177,9 @@ namespace Loci {
         } else if (loci.kind === 'element-loci') {
             return StructureElement.Loci.getPrincipalAxes(loci)
         } else if (loci.kind === 'bond-loci') {
+            // TODO
+            return void 0;
+        } else if (loci.kind === 'interaction-loci') {
             // TODO
             return void 0;
         } else if (loci.kind === 'shape-loci') {

@@ -10,6 +10,7 @@ import { Loci } from '../mol-model/loci';
 import { OrderedSet } from '../mol-data/int';
 import { capitalize, stripTags } from '../mol-util/string';
 import { Column } from '../mol-data/db';
+import { Interactions } from '../mol-model-props/computed/interactions/interactions';
 
 export type LabelGranularity = 'element' | 'conformation' | 'residue' | 'chain' | 'structure'
 
@@ -30,6 +31,9 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
         case 'bond-loci':
             const bond = loci.bonds[0]
             return bond ? bondLabel(bond) : 'Unknown'
+        case 'interaction-loci':
+            const link = loci.links[0]
+            return link ? interactionLabel(Interactions.Location(loci.interactions, link.unitA, link.indexA, link.unitB, link.indexB)) : 'Unknown'
         case 'shape-loci':
             return loci.shape.name
         case 'group-loci':
@@ -121,6 +125,18 @@ export function bondLabel(bond: Bond.Location): string {
         else break
     }
     return `${labelA.join(' | ')} \u2014 ${labelB.slice(offset).join(' | ')}`
+}
+
+export function interactionLabel(location: Interactions.Location): string {
+    const { interactions, unitA, indexA, unitB, indexB } = location
+    if (location.unitA === location.unitB) {
+        const links = interactions.unitsLinks.get(location.unitA.id)
+        const idx = links.getDirectedEdgeIndex(location.indexA, location.indexB)
+        return Interactions.typeLabel(links.edgeProps.type[idx])
+    } else {
+        const idx = interactions.links.getEdgeIndex(indexA, unitA, indexB, unitB)
+        return Interactions.typeLabel(interactions.links.edges[idx].props.type)
+    }
 }
 
 export function elementLabel(location: StructureElement.Location, options: Partial<LabelOptions> = {}): string {
