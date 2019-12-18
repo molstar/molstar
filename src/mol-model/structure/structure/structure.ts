@@ -278,7 +278,7 @@ class Structure {
     get isAtomic() {
         for (const u of this.units) if (Unit.isAtomic(u)) return false;
         return true;
-        }
+    }
 
     /** Contains some atomic units */
     get hasAtomic() {
@@ -958,6 +958,12 @@ namespace Structure {
 
     export function elementDescription(s: Structure) {
         return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`
+    }
+
+    export function validUnitPair(s: Structure, a: Unit, b: Unit) {
+        return s.masterModel
+            ? a.model === b.model || a.model === s.masterModel || b.model === s.masterModel
+            : a.model === b.model
     }
 }
 

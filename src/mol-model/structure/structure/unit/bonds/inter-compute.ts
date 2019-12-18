@@ -171,7 +171,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 }
 
 export interface InterBondComputationProps extends BondComputationProps {
-    validUnitPair: (unitA: Unit, unitB: Unit) => boolean
+    validUnitPair: (structure: Structure, unitA: Unit, unitB: Unit) => boolean
 }
 
 function findBonds(structure: Structure, props: InterBondComputationProps) {
@@ -197,7 +197,7 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
         const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + MAX_RADIUS);
         for (let i = 0; i < closeUnits.count; i++) {
             const other = structure.units[closeUnits.indices[i]];
-            if (!Unit.isAtomic(other) || unit.id >= other.id || !validUnitPair(unit, other)) continue;
+            if (!Unit.isAtomic(other) || unit.id >= other.id || !validUnitPair(structure, unit, other)) continue;
 
             if (other.elements.length >= unit.elements.length) findPairBonds(unit, other, props, map);
             else findPairBonds(other, unit, props, map);
@@ -207,19 +207,10 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
     return new InterUnitBonds(map);
 }
 
-function ValidUnitPair(structure: Structure) {
-    const { masterModel } = structure
-    if (masterModel) {
-        return (a: Unit, b: Unit) => a.model === b.model || a.model === masterModel || b.model === masterModel
-    } else {
-        return (a: Unit, b: Unit) => a.model === b.model
-    }
-}
-
 function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondComputationProps>): InterUnitBonds {
     return findBonds(structure, {
         ...DefaultBondComputationProps,
-        validUnitPair: (props && props.validUnitPair) || ValidUnitPair(structure),
+        validUnitPair: (props && props.validUnitPair) || Structure.validUnitPair,
     });
 }
 

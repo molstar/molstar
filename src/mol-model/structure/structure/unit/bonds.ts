@@ -55,6 +55,7 @@ namespace Bond {
     }
 
     export function areLociEqual(a: Loci, b: Loci) {
+        if (a.structure !== b.structure) return false
         if (a.bonds.length !== b.bonds.length) return false
         for (let i = 0, il = a.bonds.length; i < il; ++i) {
             if (!areLocationsEqual(a.bonds[i], b.bonds[i])) return false
