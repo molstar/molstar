@@ -22,12 +22,12 @@ export interface HydrogenBonds {
 }
 
 export const HydrogenBondsParams = {
-    maxHbondDist: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
-    maxHbondSulfurDist: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
-    maxHbondAccAngleDev: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
-    maxHbondDonAngleDev: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal donor angle' }),
-    maxHbondAccOutOfPlaneAngle: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
-    maxHbondDonOutOfPlaneAngle: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
+    maxDist: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
+    maxSulfurDist: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
+    maxAccAngleDev: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
+    maxDonAngleDev: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal donor angle' }),
+    maxAccOutOfPlaneAngle: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
+    maxDonOutOfPlaneAngle: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
 }
 export type HydrogenBondsParams = typeof HydrogenBondsParams
 export type HydrogenBondsProps = PD.Values<HydrogenBondsParams>
@@ -235,12 +235,12 @@ function Info(structure: Structure, unit: Unit.Atomic, features: Features) {
 
 function getOptions(props: HydrogenBondsProps) {
     return {
-        maxAccAngleDev: degToRad(props.maxHbondAccAngleDev),
-        maxDonAngleDev: degToRad(props.maxHbondDonAngleDev),
-        maxAccOutOfPlaneAngle: degToRad(props.maxHbondAccOutOfPlaneAngle),
-        maxDonOutOfPlaneAngle: degToRad(props.maxHbondDonOutOfPlaneAngle),
-        maxDist: Math.max(props.maxHbondDist, props.maxHbondSulfurDist),
-        maxHbondDistSq: props.maxHbondDist * props.maxHbondDist,
+        maxAccAngleDev: degToRad(props.maxAccAngleDev),
+        maxDonAngleDev: degToRad(props.maxDonAngleDev),
+        maxAccOutOfPlaneAngle: degToRad(props.maxAccOutOfPlaneAngle),
+        maxDonOutOfPlaneAngle: degToRad(props.maxDonOutOfPlaneAngle),
+        maxDist: Math.max(props.maxDist, props.maxSulfurDist),
+        maxHbondDistSq: props.maxDist * props.maxDist,
     }
 }
 type Options = ReturnType<typeof getOptions>

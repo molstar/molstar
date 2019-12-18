@@ -112,7 +112,7 @@ namespace Interactions {
             case InteractionType.CationPi:
                 return 'Cation-Pi Interaction'
             case InteractionType.PiStacking:
-                return 'Pi-Pi Stacking'
+                return 'Pi Stacking'
             case InteractionType.WeakHydrogenBond:
                 return 'Weak Hydrogen Bond'
             case InteractionType.Unknown:
@@ -122,7 +122,7 @@ namespace Interactions {
 }
 
 export const InteractionsParams = {
-    ...HydrogenBondsParams,
+    hydrogenBonds: PD.Group(HydrogenBondsParams),
 }
 export type InteractionsParams = typeof InteractionsParams
 export type InteractionsProps = PD.Values<InteractionsParams>
@@ -158,7 +158,7 @@ function findIntraUnitLinksAndFeatures(structure: Structure, unit: Unit, props: 
 
     const linksBuilder = IntraLinksBuilder.create(features, unit.elements.length)
     if (Unit.isAtomic(unit)) {
-        addUnitHydrogenBonds(structure, unit, features, linksBuilder, props)
+        addUnitHydrogenBonds(structure, unit, features, linksBuilder, props.hydrogenBonds)
     }
 
     return { features, links: linksBuilder.getLinks() }
@@ -188,9 +188,9 @@ function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features
             const featuresB = unitsFeatures.get(unitB.id)
 
             if (unitB.elements.length >= unitA.elements.length) {
-                addStructureHydrogenBonds(structure, unitA, featuresA, unitB, featuresB, builder, props)
+                addStructureHydrogenBonds(structure, unitA, featuresA, unitB, featuresB, builder, props.hydrogenBonds)
             } else {
-                addStructureHydrogenBonds(structure, unitB, featuresB, unitA, featuresA, builder, props)
+                addStructureHydrogenBonds(structure, unitB, featuresB, unitA, featuresA, builder, props.hydrogenBonds)
             }
         }
     }
