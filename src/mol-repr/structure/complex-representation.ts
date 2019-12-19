@@ -74,8 +74,8 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         StructureRepresentationStateBuilder.update(_state, state)
 
         if (state.visible !== undefined && visual) {
-            // hide visual when _unitTransforms is set
-            visual.setVisibility(state.visible && _state.unitTransforms === null)
+            // hide visual when _unitTransforms is set and not the identity
+            visual.setVisibility(state.visible && (_state.unitTransforms === null || _state.unitTransforms.isIdentity))
         }
         if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor)
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
@@ -87,9 +87,10 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency)
         if (state.transform !== undefined && visual) visual.setTransform(state.transform)
         if (state.unitTransforms !== undefined && visual) {
-            // Since ComplexVisuals always renders geometries between units the application of `unitTransforms`
-            // does not make sense. When given it is ignored here and sets the visual's visibility to `false`.
-            visual.setVisibility(_state.visible && state.unitTransforms === null)
+            // Since ComplexVisuals always renders geometries between units, the application
+            // of `unitTransforms` does not make sense. When given here and not the identity,
+            // it is ignored and sets the visual's visibility to `false`.
+            visual.setVisibility(_state.visible && (state.unitTransforms === null || state.unitTransforms.isIdentity))
         }
     }
 

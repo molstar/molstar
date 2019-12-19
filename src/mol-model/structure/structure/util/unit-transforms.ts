@@ -9,6 +9,8 @@ import { Mat4 } from '../../../../mol-math/linear-algebra';
 import { IntMap } from '../../../../mol-data/int';
 import { fillIdentityTransform } from '../../../../mol-geo/geometry/transform-data';
 
+const tmpMat = Mat4()
+
 export class StructureUnitTransforms {
     private unitTransforms: Float32Array
     private groupUnitTransforms: Float32Array[] = []
@@ -17,10 +19,12 @@ export class StructureUnitTransforms {
     private groupIndexMap = IntMap.Mutable<number>();
     private size: number;
 
+    private _isIdentity: boolean | undefined = undefined;
+
     constructor(readonly structure: Structure) {
         this.unitTransforms = new Float32Array(structure.units.length * 16)
         this.size = structure.units.length
-        fillIdentityTransform(this.unitTransforms, structure.units.length)
+        this.reset() // to set to identity
         let groupOffset = 0
         for (let i = 0, il = structure.unitSymmetryGroups.length; i <il; ++i) {
             const g = structure.unitSymmetryGroups[i]
@@ -36,10 +40,26 @@ export class StructureUnitTransforms {
 
     reset() {
         fillIdentityTransform(this.unitTransforms, this.size);
+        this._isIdentity = true
+    }
+
+    get isIdentity() {
+        if (this._isIdentity === undefined) {
+            this._isIdentity = true
+            for (let i = 0, il = this.size * 16; i < il; i += 16) {
+                Mat4.fromArray(tmpMat, this.unitTransforms, i)
+                if (!Mat4.isIdentity(tmpMat)) {
+                    this._isIdentity = false
+                    break
+                }
+            }
+        }
+        return this._isIdentity
     }
 
     setTransform(matrix: Mat4, unit: Unit) {
         Mat4.toArray(matrix, this.unitTransforms, this.unitOffsetMap.get(unit.id))
+        this._isIdentity = undefined
     }
 
     getTransform(out: Mat4, unit: Unit) {
