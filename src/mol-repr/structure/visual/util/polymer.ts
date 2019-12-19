@@ -97,7 +97,7 @@ export function getPolymerElementLoci(pickingId: PickingId, structureGroup: Stru
 }
 
 
-function tryApplyResidueInterval(elements: SortedArray<ElementIndex>, traceElementIndex: ArrayLike<ElementIndex | -1>, apply: (interval: Interval) => boolean, r1: ResidueIndex, r2: ResidueIndex) {
+function tryApplyResidueInterval(offset: number, elements: SortedArray<ElementIndex>, traceElementIndex: ArrayLike<ElementIndex | -1>, apply: (interval: Interval) => boolean, r1: ResidueIndex, r2: ResidueIndex) {
     let start = -1, startIdx = -1;
 
     for (let rI = r1; rI <= r2; rI++) {
@@ -126,10 +126,10 @@ function tryApplyResidueInterval(elements: SortedArray<ElementIndex>, traceEleme
         }
     }
 
-    return apply(Interval.ofRange(start, end));
+    return apply(Interval.ofRange(offset + start, offset + end));
 }
 
-export function eachAtomicUnitTracedElement(intervalOffset: number, groupSize: number, elementsSelector: (u: Unit.Atomic) => SortedArray<ElementIndex>, apply: (interval: Interval) => boolean, e: StructureElement.Loci['elements'][0]) {
+export function eachAtomicUnitTracedElement(offset: number, groupSize: number, elementsSelector: (u: Unit.Atomic) => SortedArray<ElementIndex>, apply: (interval: Interval) => boolean, e: StructureElement.Loci['elements'][0]) {
     let changed = false;
 
     const { elements } = e.unit;
@@ -140,11 +140,11 @@ export function eachAtomicUnitTracedElement(intervalOffset: number, groupSize: n
     if (Interval.is(e.indices)) {
         if (Interval.start(e.indices) === 0 && Interval.end(e.indices) === e.unit.elements.length) {
             // full unit here
-            changed = apply(Interval.ofBounds(intervalOffset, intervalOffset + groupSize)) || changed;
+            changed = apply(Interval.ofBounds(offset, offset + groupSize)) || changed;
         } else {
             let r1 = resIndex[elements[Interval.min(e.indices)]];
             let r2 = resIndex[elements[Interval.max(e.indices)]];
-            changed = tryApplyResidueInterval(tracedElements, traceElementIndex, apply, r1, r2) || changed;
+            changed = tryApplyResidueInterval(offset, tracedElements, traceElementIndex, apply, r1, r2) || changed;
         }
     } else {
         const { indices } = e;
@@ -161,7 +161,7 @@ export function eachAtomicUnitTracedElement(intervalOffset: number, groupSize: n
                 endI++;
             }
             i = endI - 1;
-            changed = tryApplyResidueInterval(tracedElements, traceElementIndex, apply, r1, r2) || changed;
+            changed = tryApplyResidueInterval(offset, tracedElements, traceElementIndex, apply, r1, r2) || changed;
         }
     }
 
@@ -183,14 +183,14 @@ export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, a
     for (const e of loci.elements) {
         if (!group.unitIndexMap.has(e.unit.id)) continue;
 
-        const intervalOffset = group.unitIndexMap.get(e.unit.id) * groupCount;
+        const offset = group.unitIndexMap.get(e.unit.id) * groupCount; // to target unit instance
 
         if (Unit.isAtomic(e.unit)) {
-            changed = eachAtomicUnitTracedElement(intervalOffset, groupCount, selectPolymerElements, apply, e) || changed;
+            changed = eachAtomicUnitTracedElement(offset, groupCount, selectPolymerElements, apply, e) || changed;
         } else {
             if (Interval.is(e.indices)) {
-                const start = intervalOffset + Interval.start(e.indices);
-                const end = intervalOffset + Interval.end(e.indices);
+                const start = offset + Interval.start(e.indices);
+                const end = offset + Interval.end(e.indices);
                 changed = apply(Interval.ofBounds(start, end)) || changed;
             } else {
                 for (let i = 0, _i = e.indices.length; i < _i; i++) {
@@ -199,7 +199,7 @@ export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, a
                     while (endI < _i && e.indices[endI] === start) endI++;
                     i = endI - 1;
                     const end = e.indices[i];
-                    changed = apply(Interval.ofRange(start, end)) || changed;
+                    changed = apply(Interval.ofRange(offset + start, offset + end)) || changed;
                 }
             }
         }

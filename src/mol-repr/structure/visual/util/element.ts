@@ -86,9 +86,10 @@ export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (
     for (const e of loci.elements) {
         const unitIdx = group.unitIndexMap.get(e.unit.id)
         if (unitIdx !== undefined) {
+            const offset = unitIdx * elementCount // to target unit instance
             if (Interval.is(e.indices)) {
-                const start = unitIdx * elementCount + Interval.start(e.indices)
-                const end = unitIdx * elementCount + Interval.end(e.indices)
+                const start = offset + Interval.start(e.indices)
+                const end = offset + Interval.end(e.indices)
                 if (apply(Interval.ofBounds(start, end))) changed = true
             } else {
                 for (let i = 0, _i = e.indices.length; i < _i; i++) {
@@ -97,7 +98,7 @@ export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (
                     while (endI < _i && e.indices[endI] === start) endI++;
                     i = endI - 1;
                     const end = e.indices[i];
-                    changed = apply(Interval.ofRange(start, end)) || changed;
+                    changed = apply(Interval.ofRange(offset + start, offset + end)) || changed;
                 }
             }
         }
