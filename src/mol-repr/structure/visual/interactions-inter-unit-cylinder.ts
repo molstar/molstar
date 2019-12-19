@@ -67,11 +67,17 @@ export function InteractionsInterUnitVisual(materialId: number): ComplexVisual<I
         createLocationIterator: createInteractionsIterator,
         getLoci: getInteractionLoci,
         eachLocation: eachInteraction,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InteractionsInterUnitParams>, currentProps: PD.Values<InteractionsInterUnitParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InteractionsInterUnitParams>, currentProps: PD.Values<InteractionsInterUnitParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments
             )
+
+            const interactionsHash = InteractionsProvider.getValue(newStructure).version
+            if ((state.info.interactionsHash as number) !== interactionsHash) {
+                state.createGeometry = true;
+                state.info.interactionsHash = interactionsHash
+            }
         }
     }, materialId)
 }

@@ -17,17 +17,13 @@ import { FeatureType, FeatureGroup, InteractionType } from './common';
 import { IntraLinksBuilder, InterLinksBuilder } from './builder';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 
-export interface HydrogenBonds {
-
-}
-
 export const HydrogenBondsParams = {
-    maxDist: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
-    maxSulfurDist: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
-    maxAccAngleDev: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
-    maxDonAngleDev: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal donor angle' }),
-    maxAccOutOfPlaneAngle: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
-    maxDonOutOfPlaneAngle: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
+    distanceMax: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
+    sulfurDistanceMax: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
+    accAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
+    donAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal donor angle' }),
+    accOutOfPlaneAngleMax: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
+    donOutOfPlaneAngleMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
 }
 export type HydrogenBondsParams = typeof HydrogenBondsParams
 export type HydrogenBondsProps = PD.Values<HydrogenBondsParams>
@@ -235,25 +231,26 @@ function Info(structure: Structure, unit: Unit.Atomic, features: Features) {
 
 function getOptions(props: HydrogenBondsProps) {
     return {
-        maxAccAngleDev: degToRad(props.maxAccAngleDev),
-        maxDonAngleDev: degToRad(props.maxDonAngleDev),
-        maxAccOutOfPlaneAngle: degToRad(props.maxAccOutOfPlaneAngle),
-        maxDonOutOfPlaneAngle: degToRad(props.maxDonOutOfPlaneAngle),
-        maxDist: Math.max(props.maxDist, props.maxSulfurDist),
-        maxHbondDistSq: props.maxDist * props.maxDist,
+        maxAccAngleDev: degToRad(props.accAngleDevMax),
+        maxDonAngleDev: degToRad(props.donAngleDevMax),
+        maxAccOutOfPlaneAngle: degToRad(props.accOutOfPlaneAngleMax),
+        maxDonOutOfPlaneAngle: degToRad(props.donOutOfPlaneAngleMax),
+        maxDist: Math.max(props.distanceMax, props.sulfurDistanceMax),
+        maxHbondDistSq: props.distanceMax * props.distanceMax,
     }
 }
 type Options = ReturnType<typeof getOptions>
 
-function testHydrogenBond(dSq: number, structure: Structure, infoA: Info, infoB: Info, opts: Options): InteractionType | undefined {
+const deg120InRad = degToRad(120)
 
+function testHydrogenBond(dSq: number, structure: Structure, infoA: Info, infoB: Info, opts: Options): InteractionType | undefined {
     const typeA = infoA.types[infoA.feature]
     const typeB = infoB.types[infoB.feature]
 
     const isWeak = isWeakHydrogenBond(typeA, typeB)
     if (!isWeak && !isHydrogenBond(typeA, typeB)) return
 
-    const [don, acc] = typeA === FeatureType.HydrogenAcceptor ? [infoA, infoB] : [infoB, infoA]
+    const [don, acc] = typeB === FeatureType.HydrogenAcceptor ? [infoA, infoB] : [infoB, infoA]
 
     const donIndex = don.members[don.offsets[don.feature]]
     const accIndex = acc.members[acc.offsets[acc.feature]]
@@ -264,7 +261,7 @@ function testHydrogenBond(dSq: number, structure: Structure, infoA: Info, infoB:
     const altA = altLoc(acc.unit, accIndex)
 
     if (altD && altA && altD !== altA) return // incompatible alternate location id
-    if (don.unit.residueIndex[donIndex] === acc.unit.residueIndex[accIndex]) return // same residue
+    if (don.unit.residueIndex[don.unit.elements[donIndex]] === acc.unit.residueIndex[acc.unit.elements[accIndex]]) return // same residue
 
     // check if distance is ok for non-sulfur-containing hbond
     if (typeSymbol(don.unit, donIndex) !== Elements.S && typeSymbol(acc.unit, accIndex) !== Elements.S && dSq > opts.maxHbondDistSq) return
@@ -273,7 +270,7 @@ function testHydrogenBond(dSq: number, structure: Structure, infoA: Info, infoB:
     if (connectedTo(structure, don.unit, donIndex, acc.unit, accIndex)) return
 
     const donAngles = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex)
-    const idealDonAngle = AtomGeometryAngles.get(don.idealGeometry[donIndex]) || degToRad(120)
+    const idealDonAngle = AtomGeometryAngles.get(don.idealGeometry[donIndex]) || deg120InRad
     if (donAngles.some(donAngle => Math.abs(idealDonAngle - donAngle) > opts.maxDonAngleDev)) return
 
     if (don.idealGeometry[donIndex] === AtomGeometry.Trigonal) {
@@ -282,7 +279,7 @@ function testHydrogenBond(dSq: number, structure: Structure, infoA: Info, infoB:
     }
 
     const accAngles = calcAngles(structure, acc.unit, accIndex, don.unit, donIndex)
-    const idealAccAngle = AtomGeometryAngles.get(acc.idealGeometry[accIndex]) || degToRad(120)
+    const idealAccAngle = AtomGeometryAngles.get(acc.idealGeometry[accIndex]) || deg120InRad
 
     // Do not limit large acceptor angles
     if (accAngles.some(accAngle => idealAccAngle - accAngle > opts.maxAccAngleDev)) return
@@ -361,7 +358,6 @@ export function addStructureHydrogenBonds(structure: Structure, unitA: Unit.Atom
 
         for (let r = 0; r < count; ++r) {
             const j = indices[r]
-            if (j <= i) continue
             infoB.feature = j
             const bondType = testHydrogenBond(squaredDistances[r], structure, infoA, infoB, opts)
             if (bondType) builder.add(i, j, bondType)

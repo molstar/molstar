@@ -53,7 +53,7 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
-    setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
+    setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
 }
 
 interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
@@ -100,7 +100,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
             return
         }
 
-        setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure)
 
         if (Structure.conformationHash(newStructure) !== Structure.conformationHash(currentStructure)) {
             updateState.createGeometry = true
@@ -237,8 +237,8 @@ export interface ComplexMeshVisualBuilder<P extends ComplexMeshParams> extends C
 export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexMeshVisualBuilder<P>, materialId: number): ComplexVisual<P> {
     return ComplexVisual<Mesh, StructureMeshParams & ComplexParams>({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
-            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         geometryUtils: Mesh.Utils
@@ -258,8 +258,8 @@ export interface ComplexTextVisualBuilder<P extends ComplexTextParams> extends C
 export function ComplexTextVisual<P extends ComplexTextParams>(builder: ComplexTextVisualBuilder<P>, materialId: number): ComplexVisual<P> {
     return ComplexVisual<Text, StructureTextParams & ComplexParams>({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
-            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
             if (newProps.background !== currentProps.background) state.createGeometry = true
             if (newProps.backgroundMargin !== currentProps.backgroundMargin) state.createGeometry = true
@@ -285,8 +285,8 @@ export interface ComplexDirectVolumeVisualBuilder<P extends ComplexDirectVolumeP
 export function ComplexDirectVolumeVisual<P extends ComplexDirectVolumeParams>(builder: ComplexDirectVolumeVisualBuilder<P>, materialId: number): ComplexVisual<P> {
     return ComplexVisual<DirectVolume, StructureDirectVolumeParams & ComplexParams>({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
-            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         geometryUtils: DirectVolume.Utils
