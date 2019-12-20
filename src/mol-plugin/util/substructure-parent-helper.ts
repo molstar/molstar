@@ -15,6 +15,7 @@ class SubstructureParentHelper {
     private root = new Map<Structure, { ref: string, count: number }>();
     private tracked = new Map<string, Structure>();
 
+    /** Returns the root node of given structure if existing */
     get(s: Structure): StateObjectCell<PluginStateObject.Molecule.Structure> | undefined {
         const r = this.root.get(s);
         if (!r) return;

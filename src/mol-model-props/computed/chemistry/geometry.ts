@@ -27,6 +27,29 @@ export const enum AtomGeometry {
     Unknown = 8
 }
 
+export function geometryLabel(geometry: AtomGeometry): string {
+    switch (geometry) {
+        case AtomGeometry.Spherical:
+            return 'Spherical'
+        case AtomGeometry.Terminal:
+            return 'Terminal'
+        case AtomGeometry.Linear:
+            return 'Linear'
+        case AtomGeometry.Trigonal:
+            return 'Trigonal'
+        case AtomGeometry.Tetrahedral:
+            return 'Tetrahedral'
+        case AtomGeometry.TrigonalBiPyramidal:
+            return 'Trigonal Bi-Pyramidal'
+        case AtomGeometry.Octahedral:
+            return 'Octahedral'
+        case AtomGeometry.SquarePlanar:
+            return 'Square Planar'
+        case AtomGeometry.Unknown:
+            return 'Unknown'
+    }
+}
+
 export function assignGeometry (totalCoordination: number): AtomGeometry {
     switch (totalCoordination) {
         case 0: return AtomGeometry.Spherical

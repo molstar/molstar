@@ -31,6 +31,31 @@ export const enum InteractionType {
     BackboneHydrogenBond = 10
 }
 
+export function interactionTypeLabel(type: InteractionType): string {
+    switch (type) {
+        case InteractionType.HydrogenBond:
+        case InteractionType.WaterHydrogenBond:
+        case InteractionType.BackboneHydrogenBond:
+            return 'Hydrogen Bond'
+        case InteractionType.Hydrophobic:
+            return 'Hydrophobic Contact'
+        case InteractionType.HalogenBond:
+            return 'Halogen Bond'
+        case InteractionType.IonicInteraction:
+            return 'Ionic Interaction'
+        case InteractionType.MetalCoordination:
+            return 'Metal Coordination'
+        case InteractionType.CationPi:
+            return 'Cation-Pi Interaction'
+        case InteractionType.PiStacking:
+            return 'Pi Stacking'
+        case InteractionType.WeakHydrogenBond:
+            return 'Weak Hydrogen Bond'
+        case InteractionType.Unknown:
+            return 'Unknown Interaction'
+    }
+}
+
 export const enum FeatureType {
     None = 0,
     PositiveCharge = 1,
@@ -48,6 +73,39 @@ export const enum FeatureType {
     IonicTypeMetal = 13
 }
 
+export function featureTypeLabel(type: FeatureType): string {
+    switch (type) {
+        case FeatureType.None:
+            return 'None'
+        case FeatureType.PositiveCharge:
+            return 'Positive Charge'
+        case FeatureType.NegativeCharge:
+            return 'Negative Charge'
+        case FeatureType.AromaticRing:
+            return 'Aromatic Ring'
+        case FeatureType.HydrogenDonor:
+            return 'Hydrogen Donor'
+        case FeatureType.HydrogenAcceptor:
+            return 'Hydrogen Acceptor'
+        case FeatureType.HalogenDonor:
+            return 'Halogen Donor'
+        case FeatureType.HalogenAcceptor:
+            return 'Halogen Acceptor'
+        case FeatureType.Hydrophobic:
+            return 'Hydrophobic'
+        case FeatureType.WeakHydrogenDonor:
+            return 'Weak Hydrogen Donor'
+        case FeatureType.IonicTypePartner:
+            return 'Ionic Type Partner'
+        case FeatureType.DativeBondPartner:
+            return 'Dative Bond Partner'
+        case FeatureType.TransitionMetal:
+            return 'Transition Metal'
+        case FeatureType.IonicTypeMetal:
+            return 'Ionic Type Metal'
+    }
+}
+
 export const enum FeatureGroup {
     None = 0,
     QuaternaryAmine = 1,
@@ -60,4 +118,31 @@ export const enum FeatureGroup {
     Guanidine = 8,
     Acetamidine = 9,
     Carboxylate = 10
+}
+
+export function featureGroupLabel(group: FeatureGroup): string {
+    switch (group) {
+        case FeatureGroup.None:
+            return 'None'
+        case FeatureGroup.QuaternaryAmine:
+            return 'Quaternary Amine'
+        case FeatureGroup.TertiaryAmine:
+            return 'Tertiary Amine'
+        case FeatureGroup.Sulfonium:
+            return 'Sulfonium'
+        case FeatureGroup.SulfonicAcid:
+            return 'Sulfonic Acid'
+        case FeatureGroup.Sulfate:
+            return 'Sulfate'
+        case FeatureGroup.Phosphate:
+            return 'Phosphate'
+        case FeatureGroup.Halocarbon:
+            return 'Halocarbon'
+        case FeatureGroup.Guanidine:
+            return 'Guanidine'
+        case FeatureGroup.Acetamidine:
+            return 'Acetamidine'
+        case FeatureGroup.Carboxylate:
+            return 'Carboxylate'
+    }
 }

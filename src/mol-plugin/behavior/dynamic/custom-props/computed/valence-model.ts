@@ -6,21 +6,20 @@
 
 import { PluginBehavior } from '../../../behavior';
 import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
-import { InteractionsProvider } from '../../../../../mol-model-props/computed/interactions';
-import { Structure } from '../../../../../mol-model/structure';
-import { StateSelection } from '../../../../../mol-state';
-import { PluginStateObject } from '../../../../state/objects';
-import StructureElement from '../../../../../mol-model/structure/structure/element';
-import { OrderedSet } from '../../../../../mol-data/int';
-import { featureGroupLabel, featureTypeLabel } from '../../../../../mol-model-props/computed/interactions/common';
+import { ValenceModelProvider } from '../../../../../mol-model-props/computed/valence-model';
 import { Loci } from '../../../../../mol-model/loci';
+import { PluginStateObject } from '../../../../state/objects';
+import { StateSelection } from '../../../../../mol-state';
+import { Structure, StructureElement } from '../../../../../mol-model/structure';
+import { OrderedSet } from '../../../../../mol-data/int';
+import { geometryLabel } from '../../../../../mol-model-props/computed/chemistry/geometry';
 
-export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
-    name: 'computed-interactions-prop',
+export const ValenceModel = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
+    name: 'computed-valence-model-prop',
     category: 'custom-props',
-    display: { name: 'Interactions' },
+    display: { name: 'Valence Model' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
-        private provider = InteractionsProvider
+        private provider = ValenceModelProvider
 
         private getStructures(structure: Structure) {
             const structures: Structure[] = []
@@ -46,8 +45,8 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
                     const structures = this.getStructures(loci.structure)
 
                     for (const s of structures) {
-                        const interactions = this.provider.getValue(s).value
-                        if (!interactions) continue;
+                        const valenceModel = this.provider.getValue(s).value
+                        if (!valenceModel) continue;
 
                         const l = StructureElement.Loci.remap(loci, s)
                         if (l.elements.length !== 1) continue
@@ -55,26 +54,16 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
                         const e = l.elements[0]
                         if (OrderedSet.size(e.indices) !== 1) continue
 
-                        const features = interactions.unitsFeatures.get(e.unit.id)
-                        if (!features) continue;
-
-                        const typeLabels: string[] = []
-                        const groupLabels: string[] = []
-                        const label: string[] = []
+                        const vm = valenceModel.get(e.unit.id)
+                        if (!vm) continue;
 
                         const idx = OrderedSet.start(e.indices)
-                        const { types, groups, elementsIndex: { indices, offsets } } = features
-                        for (let i = offsets[idx], il = offsets[idx + 1]; i < il; ++i) {
-                            const f = indices[i]
-                            const type = types[f]
-                            const group = groups[f]
-                            if (type) typeLabels.push(featureTypeLabel(type))
-                            if (group) groupLabels.push(featureGroupLabel(group))
-                        }
+                        const charge = vm.charge[idx]
+                        const idealGeometry = vm.idealGeometry[idx]
+                        const implicitH = vm.implicitH[idx]
+                        const totalH = vm.totalH[idx]
 
-                        if (typeLabels.length) label.push(`<small>Types</small> ${typeLabels.join(', ')}`)
-                        if (groupLabels.length) label.push(`<small>Groups</small> ${groupLabels.join(', ')}`)
-                        if (label.length) labels.push(`Interaction Feature: ${label.join(' | ')}`)
+                        labels.push(`Valence Model: <small>Charge</small> ${charge} | <small>Ideal Geometry</small> ${geometryLabel(idealGeometry)} | <small>Implicit H</small> ${implicitH} | <small>Total H</small> ${totalH}`)
                     }
 
                     return labels.length ? labels.join('<br/>') : undefined;

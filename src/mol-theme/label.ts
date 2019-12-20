@@ -11,6 +11,7 @@ import { OrderedSet } from '../mol-data/int';
 import { capitalize, stripTags } from '../mol-util/string';
 import { Column } from '../mol-data/db';
 import { Interactions } from '../mol-model-props/computed/interactions/interactions';
+import { interactionTypeLabel } from '../mol-model-props/computed/interactions/common';
 
 export type LabelGranularity = 'element' | 'conformation' | 'residue' | 'chain' | 'structure'
 
@@ -132,10 +133,10 @@ export function interactionLabel(location: Interactions.Location): string {
     if (location.unitA === location.unitB) {
         const links = interactions.unitsLinks.get(location.unitA.id)
         const idx = links.getDirectedEdgeIndex(location.indexA, location.indexB)
-        return Interactions.typeLabel(links.edgeProps.type[idx])
+        return interactionTypeLabel(links.edgeProps.type[idx])
     } else {
         const idx = interactions.links.getEdgeIndex(indexA, unitA, indexB, unitB)
-        return Interactions.typeLabel(interactions.links.edges[idx].props.type)
+        return interactionTypeLabel(interactions.links.edges[idx].props.type)
     }
 }
 

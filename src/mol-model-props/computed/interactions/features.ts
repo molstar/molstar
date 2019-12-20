@@ -13,21 +13,24 @@ import { FeatureGroup, FeatureType } from './common';
 export { Features }
 
 interface Features {
+    /** number of features */
+    readonly count: number
     /** center x coordinate, in invariant coordinate space */
     readonly x: ArrayLike<number>
     /** center y coordinate, in invariant coordinate space */
     readonly y: ArrayLike<number>
     /** center z coordinate, in invariant coordinate space */
     readonly z: ArrayLike<number>
-    /** number of features */
-    readonly count: number
     readonly types: ArrayLike<FeatureType>
     readonly groups: ArrayLike<FeatureGroup>
     readonly offsets: ArrayLike<number>
     /** elements of this feature, range for feature i is offsets[i] to offsets[i + 1] */
     readonly members: ArrayLike<StructureElement.UnitIndex>
+
     /** lookup3d based on center coordinates, in invariant coordinate space */
     readonly lookup3d: GridLookup3D
+    /** maps unit elements to features, range for unit element i is offsets[i] to offsets[i + 1] */
+    readonly elementsIndex: Features.ElementsIndex
 }
 
 namespace Features {
@@ -42,11 +45,22 @@ namespace Features {
         readonly offsets: ArrayLike<number>
     }
 
-    export function createElementsIndex(features: Features, elementsCount: number): ElementsIndex {
+    export type Data = {
+        count: number
+        x: ArrayLike<number>
+        y: ArrayLike<number>
+        z: ArrayLike<number>
+        types: ArrayLike<FeatureType>
+        groups: ArrayLike<FeatureGroup>
+        offsets: ArrayLike<number>
+        members: ArrayLike<StructureElement.UnitIndex>
+    }
+
+    export function createElementsIndex(data: Data, elementsCount: number): ElementsIndex {
         const offsets = new Int32Array(elementsCount + 1)
         const bucketFill = new Int32Array(elementsCount)
         const bucketSizes = new Int32Array(elementsCount)
-        const { members, count, offsets: featureOffsets } = features
+        const { members, count, offsets: featureOffsets } = data
         for (let i = 0; i < count; ++i) ++bucketSizes[members[i]]
 
         let offset = 0
@@ -68,6 +82,21 @@ namespace Features {
 
         return { indices: indices as unknown as ArrayLike<FeatureIndex>, offsets }
     }
+
+    export function create(elementsCount: number, data: Data): Features {
+        let lookup3d: GridLookup3D
+        let elementsIndex: ElementsIndex
+
+        return {
+            ...data,
+            get lookup3d() {
+                return lookup3d || (lookup3d = GridLookup3D({ x: data.x, y: data.y, z: data.z, indices: OrderedSet.ofBounds(0, data.count) }))
+            },
+            get elementsIndex() {
+                return elementsIndex || (elementsIndex = createElementsIndex(data, elementsCount))
+            },
+        }
+    }
 }
 
 export { FeaturesBuilder }
@@ -77,7 +106,7 @@ interface FeaturesBuilder {
     pushMember: (x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
     addState: (type: FeatureType, group: FeatureGroup) => void
     addOne: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
-    getFeatures: () => Features
+    getFeatures: (elementsCount: number) => Features
 }
 
 namespace FeaturesBuilder {
@@ -121,20 +150,19 @@ namespace FeaturesBuilder {
                 ChunkedArray.add(offsets, members.elementCount)
                 ChunkedArray.add(members, member)
             },
-            getFeatures: () => {
+            getFeatures: (elementsCount: number) => {
                 ChunkedArray.add(offsets, members.elementCount)
                 const x = ChunkedArray.compact(xCenters, true) as ArrayLike<number>
                 const y = ChunkedArray.compact(yCenters, true) as ArrayLike<number>
                 const z = ChunkedArray.compact(zCenters, true) as ArrayLike<number>
                 const count = xCenters.elementCount
-                return {
+                return Features.create(elementsCount, {
                     x, y, z, count,
                     types: ChunkedArray.compact(types, true) as ArrayLike<FeatureType>,
                     groups: ChunkedArray.compact(groups, true) as ArrayLike<FeatureGroup>,
                     offsets: ChunkedArray.compact(offsets, true) as ArrayLike<number>,
                     members: ChunkedArray.compact(members, true) as ArrayLike<StructureElement.UnitIndex>,
-                    lookup3d: GridLookup3D({ x, y, z, indices: OrderedSet.ofBounds(0, count) }),
-                }
+                })
             }
         }
     }

@@ -10,7 +10,7 @@ import { RuntimeContext } from '../../../mol-task';
 import { addUnitHydrogenDonors, addUnitWeakHydrogenDonors, addUnitHydrogenAcceptors, addUnitHydrogenBonds, HydrogenBondsParams, addStructureHydrogenBonds } from './hydrogen-bonds';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
-import { InteractionsIntraLinks, InteractionsInterLinks, InteractionType } from './common';
+import { InteractionsIntraLinks, InteractionsInterLinks } from './common';
 import { IntraLinksBuilder, InterLinksBuilder } from './builder';
 import { IntMap } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
@@ -94,31 +94,6 @@ namespace Interactions {
     export function isLociEmpty(loci: Loci) {
         return loci.links.length === 0 ? true : false
     }
-
-    export function typeLabel(type: InteractionType): string {
-        switch (type) {
-            case InteractionType.HydrogenBond:
-            case InteractionType.WaterHydrogenBond:
-            case InteractionType.BackboneHydrogenBond:
-                return 'Hydrogen Bond'
-            case InteractionType.Hydrophobic:
-                return 'Hydrophobic Contact'
-            case InteractionType.HalogenBond:
-                return 'Halogen Bond'
-            case InteractionType.IonicInteraction:
-                return 'Ionic Interaction'
-            case InteractionType.MetalCoordination:
-                return 'Metal Coordination'
-            case InteractionType.CationPi:
-                return 'Cation-Pi Interaction'
-            case InteractionType.PiStacking:
-                return 'Pi Stacking'
-            case InteractionType.WeakHydrogenBond:
-                return 'Weak Hydrogen Bond'
-            case InteractionType.Unknown:
-                return 'Unknown Interaction'
-        }
-    }
 }
 
 export const InteractionsParams = {
@@ -150,16 +125,16 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
 }
 
 function findIntraUnitLinksAndFeatures(structure: Structure, unit: Unit, props: InteractionsProps) {
-
-    const featuresBuilder = FeaturesBuilder.create()
+    const count = unit.elements.length
+    const featuresBuilder = FeaturesBuilder.create(count, count / 2)
     if (Unit.isAtomic(unit)) {
         addUnitHydrogenDonors(structure, unit, featuresBuilder)
         addUnitWeakHydrogenDonors(structure, unit, featuresBuilder)
         addUnitHydrogenAcceptors(structure, unit, featuresBuilder)
     }
-    const features = featuresBuilder.getFeatures()
+    const features = featuresBuilder.getFeatures(count)
 
-    const linksBuilder = IntraLinksBuilder.create(features, unit.elements.length)
+    const linksBuilder = IntraLinksBuilder.create(features, count)
     if (Unit.isAtomic(unit)) {
         addUnitHydrogenBonds(structure, unit, features, linksBuilder, props.hydrogenBonds)
     }
