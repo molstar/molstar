@@ -16,8 +16,7 @@ import { typeSymbol, altLoc, eachBondedAtom } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
-import { IntraLinksBuilder, InterLinksBuilder } from './builder';
-import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { LinkProvider } from './links';
 
 export const HalogenBondsParams = {
     distanceMax: PD.Numeric(4.0, { min: 1, max: 5, step: 0.1 }),
@@ -136,77 +135,14 @@ function testHalogenBond(structure: Structure, infoA: Info, infoB: Info, opts: O
     return InteractionType.HalogenBond
 }
 
-/**
- * All intra-unit pairs of halogen donor and acceptor atoms
- */
-export function addUnitHalogenBonds(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraLinksBuilder, props: HalogenBondsProps) {
-    const opts = getOptions(props)
-    const { x, y, z, count, lookup3d } = features
-
-    const infoA = Info(structure, unit, features)
-    const infoB = { ...infoA }
-
-    for (let i = 0; i < count; ++i) {
-        const { count, indices } = lookup3d.find(x[i], y[i], z[i], opts.distanceMax)
-        if (count === 0) continue
-
-        infoA.feature = i
-
-        for (let r = 0; r < count; ++r) {
-            const j = indices[r]
-            if (j <= i) continue
-
-            infoB.feature = j
-            const bondType = testHalogenBond(structure, infoA, infoB, opts)
-            if (bondType) builder.add(i, j, bondType)
+export const HalogenBondsProvider: LinkProvider<HalogenBondsParams> = {
+    name: 'halogen-bonds',
+    params: HalogenBondsParams,
+    createTester: (props: HalogenBondsProps) => {
+        const opts = getOptions(props)
+        return {
+            maxDistanceSq: props.distanceMax * props.distanceMax,
+            getType: (structure, infoA, infoB) => testHalogenBond(structure, infoA, infoB, opts)
         }
     }
-}
-
-const _imageTransform = Mat4()
-
-//
-
-/**
- * All inter-unit pairs of halogen donor and acceptor atoms
- */
-export function addStructureHalogenBonds(structure: Structure, unitA: Unit.Atomic, featuresA: Features, unitB: Unit.Atomic, featuresB: Features, builder: InterLinksBuilder, props: HalogenBondsProps) {
-    const opts = getOptions(props)
-
-    const { count, x: xA, y: yA, z: zA } = featuresA;
-    const { lookup3d } = featuresB;
-
-    // the lookup queries need to happen in the "unitB space".
-    // that means imageA = inverseOperB(operA(i))
-    const imageTransform = Mat4.mul(_imageTransform, unitB.conformation.operator.inverse, unitA.conformation.operator.matrix)
-    const isNotIdentity = !Mat4.isIdentity(imageTransform)
-    const imageA = Vec3()
-
-    const { center: bCenter, radius: bRadius } = lookup3d.boundary.sphere;
-    const testDistanceSq = (bRadius + opts.distanceMax) * (bRadius + opts.distanceMax);
-
-    const infoA = Info(structure, unitA, featuresA)
-    const infoB = Info(structure, unitB, featuresB)
-
-    builder.startUnitPair(unitA, unitB)
-
-    for (let i = 0; i < count; ++i) {
-        Vec3.set(imageA, xA[i], yA[i], zA[i])
-        if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform)
-        if (Vec3.squaredDistance(imageA, bCenter) > testDistanceSq) continue
-
-        const { indices, count } = lookup3d.find(imageA[0], imageA[1], imageA[2], opts.distanceMax)
-        if (count === 0) continue
-
-        infoA.feature = i
-
-        for (let r = 0; r < count; ++r) {
-            const j = indices[r]
-            infoB.feature = j
-            const bondType = testHalogenBond(structure, infoA, infoB, opts)
-            if (bondType) builder.add(i, j, bondType)
-        }
-    }
-
-    builder.finishUnitPair()
 }

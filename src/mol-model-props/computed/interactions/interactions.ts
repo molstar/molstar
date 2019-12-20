@@ -7,14 +7,15 @@
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit } from '../../../mol-model/structure';
 import { RuntimeContext } from '../../../mol-task';
-import { addUnitHydrogenDonors, addUnitWeakHydrogenDonors, addUnitHydrogenAcceptors, addUnitHydrogenBonds, HydrogenBondsParams, addStructureHydrogenBonds } from './hydrogen-bonds';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
 import { InteractionsIntraLinks, InteractionsInterLinks } from './common';
 import { IntraLinksBuilder, InterLinksBuilder } from './builder';
 import { IntMap } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { addUnitHalogenBonds, HalogenBondsParams, addUnitHalogenDonors, addUnitHalogenAcceptors, addStructureHalogenBonds } from './halogen-bonds';
+import { addUnitLinks, LinkTester, addStructureLinks } from './links';
+import { addUnitHalogenDonors, addUnitHalogenAcceptors, HalogenBondsProvider } from './halogen-bonds';
+import { addUnitHydrogenDonors, addUnitWeakHydrogenDonors, addUnitHydrogenAcceptors, HydrogenBondsProvider } from './hydrogen-bonds';
 
 export { Interactions }
 
@@ -98,8 +99,8 @@ namespace Interactions {
 }
 
 export const InteractionsParams = {
-    hydrogenBonds: PD.Group(HydrogenBondsParams),
-    halogenBonds: PD.Group(HalogenBondsParams),
+    hydrogenBonds: PD.Group(HydrogenBondsProvider.params),
+    halogenBonds: PD.Group(HalogenBondsProvider.params),
 }
 export type InteractionsParams = typeof InteractionsParams
 export type InteractionsProps = PD.Values<InteractionsParams>
@@ -108,12 +109,17 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props }
     await ValenceModelProvider.attach(structure).runInContext(runtime)
 
+    const linkTesters: LinkTester[] = [
+        HydrogenBondsProvider.createTester(p.hydrogenBonds),
+        HalogenBondsProvider.createTester(p.halogenBonds)
+    ]
+
     const unitsFeatures = IntMap.Mutable<Features>()
     const unitsLinks = IntMap.Mutable<InteractionsIntraLinks>()
 
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
         const group = structure.unitSymmetryGroups[i]
-        const d = findIntraUnitLinksAndFeatures(structure, group.units[0], p)
+        const d = findIntraUnitLinksAndFeatures(structure, group.units[0], linkTesters)
         for (let j = 0, jl = group.units.length; j < jl; ++j) {
             const u = group.units[j]
             unitsFeatures.set(u.id, d.features)
@@ -121,37 +127,42 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
         }
     }
 
-    const links = findInterUnitLinks(structure, unitsFeatures, p)
+    const links = findInterUnitLinks(structure, unitsFeatures, linkTesters)
 
     return { unitsFeatures, unitsLinks, links }
 }
 
-function findIntraUnitLinksAndFeatures(structure: Structure, unit: Unit, props: InteractionsProps) {
+const FeatureProviders: Features.Provider[] = [
+    { name: 'hydrogen-donors', add: addUnitHydrogenDonors },
+    { name: 'weak-hydrogen-donors', add: addUnitWeakHydrogenDonors },
+    { name: 'hydrogen-acceptors', add: addUnitHydrogenAcceptors },
+
+    { name: 'halogen-donors', add: addUnitHalogenDonors },
+    { name: 'halogen-acceptors', add: addUnitHalogenAcceptors },
+]
+
+function findIntraUnitLinksAndFeatures(structure: Structure, unit: Unit, linkTesters: ReadonlyArray<LinkTester>) {
     const count = unit.elements.length
     const featuresBuilder = FeaturesBuilder.create(count, count / 2)
     if (Unit.isAtomic(unit)) {
-        addUnitHydrogenDonors(structure, unit, featuresBuilder)
-        addUnitWeakHydrogenDonors(structure, unit, featuresBuilder)
-        addUnitHydrogenAcceptors(structure, unit, featuresBuilder)
-
-        addUnitHalogenDonors(structure, unit, featuresBuilder)
-        addUnitHalogenAcceptors(structure, unit, featuresBuilder)
+        for (const featureProvider of FeatureProviders) {
+            featureProvider.add(structure, unit, featuresBuilder)
+        }
     }
     const features = featuresBuilder.getFeatures(count)
 
     const linksBuilder = IntraLinksBuilder.create(features, count)
     if (Unit.isAtomic(unit)) {
-        addUnitHydrogenBonds(structure, unit, features, linksBuilder, props.hydrogenBonds)
-        addUnitHalogenBonds(structure, unit, features, linksBuilder, props.halogenBonds)
+        addUnitLinks(structure, unit, features, linksBuilder, linkTesters)
     }
 
     return { features, links: linksBuilder.getLinks() }
 }
 
-const MAX_RADIUS = 5
-
-function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features>, props: InteractionsProps) {
+function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features>, linkTesters: ReadonlyArray<LinkTester>) {
     const builder = InterLinksBuilder.create()
+
+    const maxDistance = Math.sqrt(Math.max(...linkTesters.map(t => t.maxDistanceSq)))
 
     const lookup = structure.lookup3d;
     const imageCenter = Vec3.zero();
@@ -163,7 +174,7 @@ function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features
 
         const bs = unitA.lookup3d.boundary.sphere;
         Vec3.transformMat4(imageCenter, bs.center, unitA.conformation.operator.matrix);
-        const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + MAX_RADIUS);
+        const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxDistance);
 
         for (let i = 0; i < closeUnits.count; i++) {
             const unitB = structure.units[closeUnits.indices[i]];
@@ -172,11 +183,9 @@ function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features
             const featuresB = unitsFeatures.get(unitB.id)
 
             if (unitB.elements.length >= unitA.elements.length) {
-                addStructureHydrogenBonds(structure, unitA, featuresA, unitB, featuresB, builder, props.hydrogenBonds)
-                addStructureHalogenBonds(structure, unitA, featuresA, unitB, featuresB, builder, props.halogenBonds)
+                addStructureLinks(structure, unitA, featuresA, unitB, featuresB, builder, linkTesters)
             } else {
-                addStructureHydrogenBonds(structure, unitB, featuresB, unitA, featuresA, builder, props.hydrogenBonds)
-                addStructureHalogenBonds(structure, unitB, featuresB, unitA, featuresA, builder, props.halogenBonds)
+                addStructureLinks(structure, unitB, featuresB, unitA, featuresA, builder, linkTesters)
             }
         }
     }

@@ -17,8 +17,7 @@ import { Elements } from '../../../mol-model/structure/model/properties/atomic/t
 import { ValenceModelProvider } from '../valence-model';
 import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
-import { IntraLinksBuilder, InterLinksBuilder } from './builder';
-import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { LinkProvider } from './links';
 
 export const HydrogenBondsParams = {
     distanceMax: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
@@ -211,27 +210,6 @@ function getHydrogenBondType(unitA: Unit.Atomic, indexA: StructureElement.UnitIn
     }
 }
 
-interface Info {
-    unit: Unit.Atomic,
-    types: ArrayLike<FeatureType>,
-    feature: number,
-    members: ArrayLike<StructureElement.UnitIndex>,
-    offsets: ArrayLike<number>,
-    idealGeometry: Int8Array
-}
-function Info(structure: Structure, unit: Unit.Atomic, features: Features) {
-    const valenceModel = ValenceModelProvider.getValue(structure).value
-    if (!valenceModel || !valenceModel.has(unit.id)) throw new Error('valence model required')
-
-    return {
-        unit,
-        types: features.types,
-        members: features.members,
-        offsets: features.offsets,
-        idealGeometry: valenceModel.get(unit.id)!.idealGeometry
-    } as Info
-}
-
 function getOptions(props: HydrogenBondsProps) {
     return {
         maxAccAngleDev: degToRad(props.accAngleDevMax),
@@ -246,7 +224,7 @@ type Options = ReturnType<typeof getOptions>
 
 const deg120InRad = degToRad(120)
 
-function testHydrogenBond(dSq: number, structure: Structure, infoA: Info, infoB: Info, opts: Options): InteractionType | undefined {
+function testHydrogenBond(structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, opts: Options): InteractionType | undefined {
     const typeA = infoA.types[infoA.feature]
     const typeB = infoB.types[infoB.feature]
 
@@ -267,7 +245,7 @@ function testHydrogenBond(dSq: number, structure: Structure, infoA: Info, infoB:
     if (don.unit.residueIndex[don.unit.elements[donIndex]] === acc.unit.residueIndex[acc.unit.elements[accIndex]]) return // same residue
 
     // check if distance is ok for non-sulfur-containing hbond
-    if (typeSymbol(don.unit, donIndex) !== Elements.S && typeSymbol(acc.unit, accIndex) !== Elements.S && dSq > opts.maxHbondDistSq) return
+    if (typeSymbol(don.unit, donIndex) !== Elements.S && typeSymbol(acc.unit, accIndex) !== Elements.S && distanceSq > opts.maxHbondDistSq) return
 
     // no hbond if donor and acceptor are bonded
     if (connectedTo(structure, don.unit, donIndex, acc.unit, accIndex)) return
@@ -295,77 +273,15 @@ function testHydrogenBond(dSq: number, structure: Structure, infoA: Info, infoB:
     return isWeak ? InteractionType.WeakHydrogenBond : getHydrogenBondType(don.unit, donIndex, acc.unit, accIndex)
 }
 
-/**
- * All intra-unit pairs of hydrogen donor and acceptor atoms
- */
-export function addUnitHydrogenBonds(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraLinksBuilder, props: HydrogenBondsProps) {
-    const opts = getOptions(props)
-    const { x, y, z, count, lookup3d } = features
-
-    const infoA = Info(structure, unit, features)
-    const infoB = { ...infoA }
-
-    for (let i = 0; i < count; ++i) {
-        const { count, indices, squaredDistances } = lookup3d.find(x[i], y[i], z[i], opts.maxDist)
-        if (count === 0) continue
-
-        infoA.feature = i
-
-        for (let r = 0; r < count; ++r) {
-            const j = indices[r]
-            if (j <= i) continue
-
-            infoB.feature = j
-            const bondType = testHydrogenBond(squaredDistances[r], structure, infoA, infoB, opts)
-            if (bondType) builder.add(i, j, bondType)
+export const HydrogenBondsProvider: LinkProvider<HydrogenBondsParams> = {
+    name: 'hydrogen-bonds',
+    params: HydrogenBondsParams,
+    createTester: (props: HydrogenBondsProps) => {
+        const maxDistance = Math.max(props.distanceMax, props.sulfurDistanceMax)
+        const opts = getOptions(props)
+        return {
+            maxDistanceSq: maxDistance * maxDistance,
+            getType: (structure, infoA, infoB, distanceSq) => testHydrogenBond(structure, infoA, infoB, distanceSq, opts)
         }
     }
-}
-
-//
-
-const _imageTransform = Mat4()
-
-/**
- * All inter-unit pairs of hydrogen donor and acceptor atoms
- */
-export function addStructureHydrogenBonds(structure: Structure, unitA: Unit.Atomic, featuresA: Features, unitB: Unit.Atomic, featuresB: Features, builder: InterLinksBuilder, props: HydrogenBondsProps) {
-    const opts = getOptions(props)
-
-    const { count, x: xA, y: yA, z: zA } = featuresA;
-    const { lookup3d } = featuresB;
-
-    // the lookup queries need to happen in the "unitB space".
-    // that means imageA = inverseOperB(operA(i))
-    const imageTransform = Mat4.mul(_imageTransform, unitB.conformation.operator.inverse, unitA.conformation.operator.matrix)
-    const isNotIdentity = !Mat4.isIdentity(imageTransform)
-    const imageA = Vec3()
-
-    const { center: bCenter, radius: bRadius } = lookup3d.boundary.sphere;
-    const testDistanceSq = (bRadius + opts.maxDist) * (bRadius + opts.maxDist);
-
-    const infoA = Info(structure, unitA, featuresA)
-    const infoB = Info(structure, unitB, featuresB)
-
-    builder.startUnitPair(unitA, unitB)
-
-    for (let i = 0; i < count; ++i) {
-        Vec3.set(imageA, xA[i], yA[i], zA[i])
-        if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform)
-        if (Vec3.squaredDistance(imageA, bCenter) > testDistanceSq) continue
-
-        const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], opts.maxDist)
-        if (count === 0) continue
-
-        infoA.feature = i
-
-        for (let r = 0; r < count; ++r) {
-            const j = indices[r]
-            infoB.feature = j
-            const bondType = testHydrogenBond(squaredDistances[r], structure, infoA, infoB, opts)
-            if (bondType) builder.add(i, j, bondType)
-        }
-    }
-
-    builder.finishUnitPair()
 }

@@ -4,11 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureElement } from '../../../mol-model/structure/structure';
+import { StructureElement, Unit, Structure } from '../../../mol-model/structure/structure';
 import { ChunkedArray } from '../../../mol-data/util';
 import { GridLookup3D } from '../../../mol-math/geometry';
 import { OrderedSet } from '../../../mol-data/int';
 import { FeatureGroup, FeatureType } from './common';
+import { ValenceModelProvider } from '../valence-model';
 
 export { Features }
 
@@ -96,6 +97,32 @@ namespace Features {
                 return elementsIndex || (elementsIndex = createElementsIndex(data, elementsCount))
             },
         }
+    }
+
+    export interface Info {
+        unit: Unit.Atomic,
+        types: ArrayLike<FeatureType>,
+        feature: number,
+        members: ArrayLike<StructureElement.UnitIndex>,
+        offsets: ArrayLike<number>,
+        idealGeometry: Int8Array
+    }
+    export function Info(structure: Structure, unit: Unit.Atomic, features: Features) {
+        const valenceModel = ValenceModelProvider.getValue(structure).value
+        if (!valenceModel || !valenceModel.has(unit.id)) throw new Error('valence model required')
+
+        return {
+            unit,
+            types: features.types,
+            members: features.members,
+            offsets: features.offsets,
+            idealGeometry: valenceModel.get(unit.id)!.idealGeometry
+        } as Info
+    }
+
+    export interface Provider {
+        name: string
+        add: (structure: Structure, unit: Unit.Atomic, featuresBuilder: FeaturesBuilder) => void
     }
 }
 
