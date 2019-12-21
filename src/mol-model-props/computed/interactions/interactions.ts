@@ -16,6 +16,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { addUnitLinks, LinkTester, addStructureLinks } from './links';
 import { addUnitHalogenDonors, addUnitHalogenAcceptors, HalogenBondsProvider } from './halogen-bonds';
 import { addUnitHydrogenDonors, addUnitWeakHydrogenDonors, addUnitHydrogenAcceptors, HydrogenBondsProvider } from './hydrogen-bonds';
+import { addUnitPositiveCharges, addUnitNegativeCharges, addUnitAromaticRings, ChargedProvider } from './charged';
 
 export { Interactions }
 
@@ -101,6 +102,7 @@ namespace Interactions {
 export const InteractionsParams = {
     hydrogenBonds: PD.Group(HydrogenBondsProvider.params),
     halogenBonds: PD.Group(HalogenBondsProvider.params),
+    charged: PD.Group(ChargedProvider.params),
 }
 export type InteractionsParams = typeof InteractionsParams
 export type InteractionsProps = PD.Values<InteractionsParams>
@@ -111,7 +113,8 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
 
     const linkTesters: LinkTester[] = [
         HydrogenBondsProvider.createTester(p.hydrogenBonds),
-        HalogenBondsProvider.createTester(p.halogenBonds)
+        HalogenBondsProvider.createTester(p.halogenBonds),
+        ChargedProvider.createTester(p.charged),
     ]
 
     const unitsFeatures = IntMap.Mutable<Features>()
@@ -139,6 +142,10 @@ const FeatureProviders: Features.Provider[] = [
 
     { name: 'halogen-donors', add: addUnitHalogenDonors },
     { name: 'halogen-acceptors', add: addUnitHalogenAcceptors },
+
+    { name: 'positive-charges', add: addUnitPositiveCharges },
+    { name: 'negative-charges', add: addUnitNegativeCharges },
+    { name: 'aromatic-rings', add: addUnitAromaticRings },
 ]
 
 function findIntraUnitLinksAndFeatures(structure: Structure, unit: Unit, linkTesters: ReadonlyArray<LinkTester>) {

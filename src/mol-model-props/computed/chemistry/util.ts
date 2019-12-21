@@ -8,6 +8,7 @@ import { Structure, Unit } from '../../../mol-model/structure';
 import { StructureElement } from '../../../mol-model/structure/structure';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { BondType } from '../../../mol-model/structure/model/types';
+import { SortedArray } from '../../../mol-data/int';
 
 export function typeSymbol(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     return unit.model.atomicHierarchy.atoms.type_symbol.value(unit.elements[index])
@@ -26,7 +27,7 @@ export function altLoc(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
 }
 
 export function compId(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    return unit.model.atomicHierarchy.residues.label_comp_id.value(unit.elements[index])
+    return unit.model.atomicHierarchy.residues.label_comp_id.value(unit.getResidueIndex(index))
 }
 
 //
@@ -94,4 +95,16 @@ export function eachIntraBondedAtom(unit: Unit.Atomic, index: StructureElement.U
 export function eachBondedAtom(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex, cb: (unit: Unit.Atomic, index: StructureElement.UnitIndex) => void): void {
     eachInterBondedAtom(structure, unit, index, cb)
     eachIntraBondedAtom(unit, index, cb)
+}
+
+//
+
+export function eachResidueAtom(unit: Unit.Atomic, index: StructureElement.UnitIndex, cb: (index: StructureElement.UnitIndex) => void): void {
+    const { offsets } = unit.model.atomicHierarchy.residueAtomSegments
+    const rI = unit.getResidueIndex(index)
+    for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
+        // TODO optimize, avoid search with .indexOf
+        const idx = SortedArray.indexOf(unit.elements, i)
+        if (idx !== -1) cb(idx as StructureElement.UnitIndex)
+    }
 }

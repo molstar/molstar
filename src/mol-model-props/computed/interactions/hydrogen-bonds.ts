@@ -66,7 +66,7 @@ export function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, b
                 (element === Elements.N || element === Elements.O || element === Elements.S)
             )
         ) {
-            builder.addOne(FeatureType.HydrogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
+            builder.add(FeatureType.HydrogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
         }
     }
 }
@@ -89,7 +89,7 @@ export function addUnitWeakHydrogenDonors(structure: Structure, unit: Unit.Atomi
                 inAromaticRingWithElectronNegativeElement(structure, unit, i)
             )
         ) {
-            builder.addOne(FeatureType.WeakHydrogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
+            builder.add(FeatureType.WeakHydrogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
         }
     }
 }
@@ -126,7 +126,7 @@ export function addUnitHydrogenAcceptors(structure: Structure, unit: Unit.Atomic
     const { x, y, z } = unit.model.atomicConformation
 
     function add(i: StructureElement.UnitIndex) {
-        builder.addOne(FeatureType.HydrogenAcceptor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
+        builder.add(FeatureType.HydrogenAcceptor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
     }
 
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {

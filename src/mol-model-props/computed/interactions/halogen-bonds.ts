@@ -37,7 +37,7 @@ export function addUnitHalogenDonors (structure: Structure, unit: Unit.Atomic, b
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {
         const element = typeSymbol(unit, i)
         if (halBondElements.includes(element)) {
-            builder.addOne(FeatureType.HalogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
+            builder.add(FeatureType.HalogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
         }
     }
 }
@@ -62,17 +62,17 @@ export function addUnitHalogenAcceptors (structure: Structure, unit: Unit.Atomic
                 }
             })
             if (flag) {
-                builder.addOne(FeatureType.HalogenAcceptor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
+                builder.add(FeatureType.HalogenAcceptor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
             }
         }
     }
 }
 
 function isHalogenBond (ti: FeatureType, tj: FeatureType) {
-  return (
-    (ti === FeatureType.HalogenAcceptor && tj === FeatureType.HalogenDonor) ||
-    (ti === FeatureType.HalogenDonor && tj === FeatureType.HalogenAcceptor)
-  )
+    return (
+        (ti === FeatureType.HalogenAcceptor && tj === FeatureType.HalogenDonor) ||
+        (ti === FeatureType.HalogenDonor && tj === FeatureType.HalogenAcceptor)
+    )
 }
 
 // http://www.pnas.org/content/101/48/16789.full

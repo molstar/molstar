@@ -505,6 +505,17 @@ namespace Vec3 {
         return add(out, scale(out, copy(out, vector), scalar), origin);
     }
 
+    export function projectOnVector(out: Vec3, p: Vec3, vector: Vec3 ) {
+        const scalar = dot(vector, p) / squaredMagnitude(vector);
+        return scale(out, vector, scalar);
+    }
+
+    const tmpProject = Vec3()
+    export function projectOnPlane(out: Vec3, p: Vec3, normal: Vec3) {
+        projectOnVector(tmpProject, p, normal);
+        return sub(out, p, tmpProject);
+    }
+
     /** Get a vector that is similar to `b` but orthogonal to `a` */
     export function orthogonalize(out: Vec3, a: Vec3, b: Vec3) {
         return normalize(out, cross(out, cross(out, a, b), a));

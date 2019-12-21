@@ -103,21 +103,28 @@ namespace Features {
         unit: Unit.Atomic,
         types: ArrayLike<FeatureType>,
         feature: number,
+        x: ArrayLike<number>
+        y: ArrayLike<number>
+        z: ArrayLike<number>
         members: ArrayLike<StructureElement.UnitIndex>,
         offsets: ArrayLike<number>,
         idealGeometry: Int8Array
     }
-    export function Info(structure: Structure, unit: Unit.Atomic, features: Features) {
+    export function Info(structure: Structure, unit: Unit.Atomic, features: Features): Info {
         const valenceModel = ValenceModelProvider.getValue(structure).value
         if (!valenceModel || !valenceModel.has(unit.id)) throw new Error('valence model required')
 
         return {
             unit,
             types: features.types,
+            feature: -1,
+            x: features.x,
+            y: features.y,
+            z: features.z,
             members: features.members,
             offsets: features.offsets,
             idealGeometry: valenceModel.get(unit.id)!.idealGeometry
-        } as Info
+        }
     }
 
     export interface Provider {
@@ -129,10 +136,10 @@ namespace Features {
 export { FeaturesBuilder }
 
 interface FeaturesBuilder {
-    clearState: () => void
+    startState: () => void
     pushMember: (x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
-    addState: (type: FeatureType, group: FeatureGroup) => void
-    addOne: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
+    finishState: (type: FeatureType, group: FeatureGroup) => void
+    add: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
     getFeatures: (elementsCount: number) => Features
 }
 
@@ -151,14 +158,21 @@ namespace FeaturesBuilder {
         const state: State = { x: 0, y: 0, z: 0, offset: 0, count: 0 }
 
         return {
-            clearState: () => {
-                state.x = 0, state.y = 0, state.z = 0, state.offset = members.elementCount, state.count = 0
+            startState: () => {
+                state.x = 0
+                state.y = 0
+                state.z = 0
+                state.offset = members.elementCount
+                state.count = 0
             },
             pushMember: (x: number, y: number, z: number, member: StructureElement.UnitIndex) => {
                 ChunkedArray.add(members, member)
-                state.x += x, state.y += y, state.z += z
+                state.x += x
+                state.y += y
+                state.z += z
+                state.count += 1
             },
-            addState: (type: FeatureType, group: FeatureGroup) => {
+            finishState: (type: FeatureType, group: FeatureGroup) => {
                 const { count } = state
                 if (count === 0) return
                 ChunkedArray.add(types, type)
@@ -168,7 +182,7 @@ namespace FeaturesBuilder {
                 ChunkedArray.add(zCenters, state.z / count)
                 ChunkedArray.add(offsets, state.offset)
             },
-            addOne: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => {
+            add: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => {
                 ChunkedArray.add(types, type)
                 ChunkedArray.add(groups, group)
                 ChunkedArray.add(xCenters, x)
