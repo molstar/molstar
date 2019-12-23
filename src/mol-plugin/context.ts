@@ -44,6 +44,7 @@ import { PluginToastManager } from './state/toast';
 import { StructureMeasurementManager } from './util/structure-measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { StructureRepresentationManager } from './state/representation/structure';
+import { DataManager } from './state/manager/data';
 
 interface Log {
     entries: List<LogEntry>
@@ -131,6 +132,10 @@ export class PluginContext {
     readonly customModelProperties = new CustomPropertyRegistry<Model>();
     readonly customStructureProperties = new CustomStructureProperty.Registry();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
+
+    readonly managers = {
+        data: new DataManager(this),
+    } as const;
 
     readonly helpers = {
         measurement: new StructureMeasurementManager(this),

@@ -23,6 +23,11 @@ export function ExecuteObservable<T>(task: Task<T>, observer: Progress.Observer,
     return execute(task as ExposedTask<T>, ctx);
 }
 
+export function CreateObservableCtx<T>(task: Task<T>, observer: Progress.Observer, updateRateMs = 250) {
+    const info = ProgressInfo(task, observer, updateRateMs);
+    return new ObservableRuntimeContext(info, info.root);
+}
+
 export function ExecuteInContext<T>(ctx: RuntimeContext, task: Task<T>) {
     return execute(task as ExposedTask<T>, ctx as ObservableRuntimeContext);
 }

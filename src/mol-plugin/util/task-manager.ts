@@ -4,9 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, Progress } from '../../mol-task';
+import { Task, Progress, RuntimeContext } from '../../mol-task';
 import { RxEventHelper } from '../../mol-util/rx-event-helper';
 import { now } from '../../mol-util/now';
+import { CreateObservableCtx, ExecuteInContext } from '../../mol-task/execution/observable';
+import { arrayRemoveInPlace } from '../../mol-util/array';
 
 export { TaskManager }
 
@@ -14,6 +16,7 @@ class TaskManager {
     private ev = RxEventHelper.create();
     private id = 0;
     private abortRequests = new Map<number, string | undefined>();
+    private currentContext: { ctx: RuntimeContext, refCount: number }[] = [];
 
     readonly events = {
         progress: this.ev<TaskManager.ProgressEvent>(),
@@ -34,14 +37,26 @@ class TaskManager {
         };
     }
 
-    async run<T>(task: Task<T>): Promise<T> {
+    async run<T>(task: Task<T>, createNewContext = false): Promise<T> {
         const id = this.id++;
+
+        let ctx: TaskManager['currentContext'][0];
+
+        if (createNewContext || this.currentContext.length === 0) {
+            ctx = { ctx: CreateObservableCtx(task, this.track(id, task.id), 100), refCount: 1 };
+        } else {
+            ctx = this.currentContext[this.currentContext.length - 1];
+            ctx.refCount++;
+        }
+
         try {
-            const ret = await task.run(this.track(id, task.id), 100);
+            const ret = await ExecuteInContext(ctx.ctx, task);
             return ret;
         } finally {
             this.events.finished.next({ id });
             this.abortRequests.delete(task.id);
+            ctx.refCount--;
+            if (ctx.refCount === 0) arrayRemoveInPlace(this.currentContext, ctx);
         }
     }
 

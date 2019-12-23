@@ -93,6 +93,17 @@ namespace StateObjectCell {
         const c: StateObjectCell = o;
         return !!c && !!c.transform && !!c.parent && !!c.status;
     }
+
+    export type Ref = StateTransform.Ref | StateObjectCell | StateObjectSelector
+
+    export function resolve(state: State, refOrCellOrSelector: StateTransform.Ref | StateObjectCell | StateObjectSelector) {
+        const ref = typeof refOrCellOrSelector === 'string'
+            ? refOrCellOrSelector
+            : StateObjectCell.is(refOrCellOrSelector)
+            ? refOrCellOrSelector.transform.ref
+            : refOrCellOrSelector.ref;
+        return state.cells.get(ref);
+    }
 }
 
 // TODO: improve the API?

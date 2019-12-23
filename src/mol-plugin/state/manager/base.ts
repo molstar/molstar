@@ -6,12 +6,16 @@
 
 // TODO: primites
 
-// import { StateObject, State, StateObjectCell, StateBuilder, StateTransformer } from '../../../mol-state';
-// import { RuntimeContext } from '../../../mol-task';
-// import { PluginContext } from '../../context';
+import { StateObject, State, StateObjectCell, StateBuilder, StateTransformer, StateTransform } from '../../../mol-state';
+import { RuntimeContext } from '../../../mol-task';
+import { PluginContext } from '../../context';
 
-// export type StateAction<P = any, O extends StateObject = StateObject, R = {}> =
-//     (ctx: RuntimeContext, state: State, cell: StateObjectCell<O>, params: P, plugin: PluginContext) => Promise<R> | R;
+export { StateAction, BuilderAction }
 
-// export type BuilderAction<P = any, O extends StateObject = StateObject, T extends StateTransformer = StateTransformer, R = {}> =
-//     (builder: StateBuilder.To<O, T>, params: P, plugin: PluginContext) => R;
+type StateAction<P = any, O extends StateObject = StateObject, R = {}> =
+    (cell: StateObjectCell<O>, params: P, ctx: { ctx: RuntimeContext, state: State, plugin: PluginContext }) => Promise<R> | R;
+function StateAction<P = any, O extends StateObject = StateObject, R = {}>(action: StateAction<P, O, R>) { return action; }
+
+type BuilderAction<P = any, O extends StateObject = StateObject, T extends StateTransformer = StateTransformer, R = {}> =
+    (builder: StateBuilder.To<O, T>, params: P, ctx: { options?: Partial<StateTransform.Options>, plugin: PluginContext }) => R;
+function BuilderAction<P = any, O extends StateObject = StateObject, T extends StateTransformer = StateTransformer, R = {}>(action: BuilderAction<P, O, T, R>) { return action; }
