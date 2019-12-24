@@ -13,6 +13,7 @@ import { PluginCommands } from '../../mol-plugin/command';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { LoadCellPackModel } from './extensions/cellpack/model';
 import { StructureFromCellpack } from './extensions/cellpack/state';
+import { DownloadStructure } from '../../mol-plugin/state/actions/structure';
 require('mol-plugin-ui/skin/light.scss')
 
 function getParam(name: string, regex: string): string {
@@ -45,6 +46,7 @@ function init() {
     };
     const plugin = createPlugin(document.getElementById('app')!, spec);
     trySetSnapshot(plugin);
+    tryLoadFromUrl(plugin);
 }
 
 async function trySetSnapshot(ctx: PluginContext) {
@@ -60,6 +62,37 @@ async function trySetSnapshot(ctx: PluginContext) {
     } catch (e) {
         ctx.log.error('Failed to load snapshot.');
         console.warn('Failed to load snapshot', e);
+    }
+}
+
+async function tryLoadFromUrl(ctx: PluginContext) {
+    const url = getParam('loadFromURL', '[^&]+').trim();
+    try {
+        if (!url) return;
+
+        let format = 'cif', isBinary = false;
+        switch (getParam('loadFromURLFormat', '[a-z]+').toLocaleLowerCase().trim()) {
+            case 'pdb': format = 'pdb'; break;
+            case 'mmbcif': isBinary = true; break;
+        }
+
+        const params = DownloadStructure.createDefaultParams(void 0 as any, ctx);
+
+        return ctx.runTask(ctx.state.dataState.applyAction(DownloadStructure, {
+            source: {
+                name: 'url',
+                params: {
+                    url,
+                    format: format as any,
+                    isBinary,
+                    options: params.source.params.options,
+                    structure: params.source.params.structure,
+                }
+            }
+        }));
+    } catch (e) {
+        ctx.log.error(`Failed to load from URL (${url})`);
+        console.warn(`Failed to load from URL (${url})`, e);
     }
 }
 
