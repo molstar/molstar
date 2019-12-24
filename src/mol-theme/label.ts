@@ -149,7 +149,9 @@ export function elementLabel(location: StructureElement.Location, options: Parti
 function _elementLabel(location: StructureElement.Location, granularity: LabelGranularity = 'element', hidePrefix = false): string[] {
     const label: string[] = [];
     if (!hidePrefix) {
-        label.push(`<small>${location.unit.model.entry}</small>`) // entry
+        let entry = location.unit.model.entry;
+        if (entry.length > 30) entry = entry.substr(0, 27) + '...';
+        label.push(`<small>${entry}</small>`) // entry
         if (granularity !== 'structure') {
             label.push(`<small>Model ${location.unit.model.modelNum}</small>`) // model
             label.push(`<small>Instance ${location.unit.conformation.operator.name}</small>`) // instance
