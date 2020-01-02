@@ -19,7 +19,7 @@ const SSQ = StructureSelectionQueries
 const DefaultQueries: (keyof typeof SSQ)[] = [
     'all', 'polymer', 'trace', 'backbone', 'protein', 'nucleic',
     'helix', 'beta',
-    'water', 'branched', 'ligand', 'nonStandardPolymer',
+    'water', 'branched', 'ligand', 'nonStandardPolymer', 'ring',
     'surroundings', 'complement', 'bonded'
 ]
 

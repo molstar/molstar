@@ -294,6 +294,10 @@ const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.uni
     })
 ]))
 
+const ring = StructureSelectionQuery('Rings in Residues', MS.struct.modifier.union([
+    MS.struct.generator.rings()
+]))
+
 const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B) of Selection', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.modifier.includeSurroundings({
@@ -340,6 +344,7 @@ export const StructureSelectionQueries = {
     modified,
     nonStandardPolymer,
     coarse,
+    ring,
     surroundings,
     complement,
     bonded,
