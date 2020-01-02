@@ -192,7 +192,7 @@ function build(data: PositionData, cellSizeOrCount?: Vec3 | number) {
     const expandedBox = Box3D.expand(Box3D.empty(), boundingBox, Vec3.create(0.5, 0.5, 0.5));
     const { indices } = data;
 
-    const S = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min);
+    const S = Box3D.size(Vec3.zero(), expandedBox);
     let delta, size;
 
     const elementCount = OrderedSet.size(indices);
