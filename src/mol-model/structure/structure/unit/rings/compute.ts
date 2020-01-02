@@ -142,7 +142,11 @@ function addRing(state: State, a: number, b: number) {
         if (current < 0) break;
     }
 
-    const ring = new Int32Array(leftOffset + rightOffset);
+    const len = leftOffset + rightOffset
+    // rings must have at least three elements
+    if (len < 3) return
+
+    const ring = new Int32Array(len);
     let ringOffset = 0;
     for (let t = 0; t < leftOffset; t++) ring[ringOffset++] = state.startVertex + left[t];
     for (let t = rightOffset - 1; t >= 0; t--) ring[ringOffset++] = state.startVertex + right[t];
