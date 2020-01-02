@@ -12,7 +12,7 @@ import { Structure, Unit, StructureElement } from '../../../mol-model/structure'
 import { calcAngles } from '../chemistry/geometry';
 import { FeaturesBuilder, Features } from './features';
 import { ElementSymbol } from '../../../mol-model/structure/model/types';
-import { typeSymbol, altLoc, eachBondedAtom } from '../chemistry/util';
+import { typeSymbol, eachBondedAtom } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
@@ -79,22 +79,6 @@ function isHalogenBond (ti: FeatureType, tj: FeatureType) {
 const OptimalHalogenAngle = degToRad(180)  // adjusted from 165 to account for spherical statistics
 const OptimalAcceptorAngle = degToRad(120)
 
-interface Info {
-    unit: Unit.Atomic,
-    types: ArrayLike<FeatureType>,
-    feature: number,
-    members: ArrayLike<StructureElement.UnitIndex>,
-    offsets: ArrayLike<number>,
-}
-function Info(structure: Structure, unit: Unit.Atomic, features: Features) {
-    return {
-        unit,
-        types: features.types,
-        members: features.members,
-        offsets: features.offsets,
-    } as Info
-}
-
 function getOptions(props: HalogenBondsProps) {
     return {
         distanceMax: props.distanceMax,
@@ -103,7 +87,7 @@ function getOptions(props: HalogenBondsProps) {
 }
 type Options = ReturnType<typeof getOptions>
 
-function testHalogenBond(structure: Structure, infoA: Info, infoB: Info, opts: Options): InteractionType | undefined {
+function testHalogenBond(structure: Structure, infoA: Features.Info, infoB: Features.Info, opts: Options): InteractionType | undefined {
     const typeA = infoA.types[infoA.feature]
     const typeB = infoB.types[infoB.feature]
 
@@ -113,14 +97,6 @@ function testHalogenBond(structure: Structure, infoA: Info, infoB: Info, opts: O
 
     const donIndex = don.members[don.offsets[don.feature]]
     const accIndex = acc.members[acc.offsets[acc.feature]]
-
-    if (accIndex === donIndex) return // DA to self
-
-    const altD = altLoc(don.unit, donIndex)
-    const altA = altLoc(acc.unit, accIndex)
-
-    if (altD && altA && altD !== altA) return // incompatible alternate location id
-    if (don.unit.residueIndex[don.unit.elements[donIndex]] === acc.unit.residueIndex[acc.unit.elements[accIndex]]) return // same residue
 
     const halogenAngles = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex)
     // Singly bonded halogen only (not bromide ion for example)

@@ -12,7 +12,7 @@ import { Structure, Unit, StructureElement } from '../../../mol-model/structure'
 import { AtomGeometry, AtomGeometryAngles, calcAngles, calcPlaneAngle } from '../chemistry/geometry';
 import { FeaturesBuilder, Features } from './features';
 import { MoleculeType, ProteinBackboneAtoms } from '../../../mol-model/structure/model/types';
-import { typeSymbol, bondToElementCount, bondCount, formalCharge, atomId, compId, altLoc, connectedTo } from '../chemistry/util';
+import { typeSymbol, bondToElementCount, bondCount, formalCharge, atomId, compId } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { ValenceModelProvider } from '../valence-model';
 import { degToRad } from '../../../mol-math/misc';
@@ -236,19 +236,8 @@ function testHydrogenBond(structure: Structure, infoA: Features.Info, infoB: Fea
     const donIndex = don.members[don.offsets[don.feature]]
     const accIndex = acc.members[acc.offsets[acc.feature]]
 
-    if (accIndex === donIndex) return // DA to self
-
-    const altD = altLoc(don.unit, donIndex)
-    const altA = altLoc(acc.unit, accIndex)
-
-    if (altD && altA && altD !== altA) return // incompatible alternate location id
-    if (don.unit.residueIndex[don.unit.elements[donIndex]] === acc.unit.residueIndex[acc.unit.elements[accIndex]]) return // same residue
-
     // check if distance is ok for non-sulfur-containing hbond
     if (typeSymbol(don.unit, donIndex) !== Elements.S && typeSymbol(acc.unit, accIndex) !== Elements.S && distanceSq > opts.maxHbondDistSq) return
-
-    // no hbond if donor and acceptor are bonded
-    if (connectedTo(structure, don.unit, donIndex, acc.unit, accIndex)) return
 
     const donAngles = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex)
     const idealDonAngle = AtomGeometryAngles.get(don.idealGeometry[donIndex]) || deg120InRad

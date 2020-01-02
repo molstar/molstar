@@ -75,7 +75,8 @@ export function InteractionsInterUnitVisual(materialId: number): ComplexVisual<I
 
             const interactionsHash = InteractionsProvider.getValue(newStructure).version
             if ((state.info.interactionsHash as number) !== interactionsHash) {
-                state.createGeometry = true;
+                state.createGeometry = true
+                state.updateTransform = true
                 state.info.interactionsHash = interactionsHash
             }
         }

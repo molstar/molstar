@@ -10,6 +10,7 @@ import { Features } from './features';
 import { InteractionType } from './common';
 import { IntraLinksBuilder, InterLinksBuilder } from './builder';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { altLoc, connectedTo } from '../chemistry/util';
 
 const MAX_DISTANCE = 5
 
@@ -22,6 +23,20 @@ export interface LinkProvider<P extends PD.Params> {
 export interface LinkTester {
     maxDistanceSq: number
     getType: (structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, ) => InteractionType | undefined
+}
+
+function validPair(structure: Structure, infoA: Features.Info, infoB: Features.Info): boolean {
+    const indexA = infoA.members[infoA.offsets[infoA.feature]]
+    const indexB = infoB.members[infoB.offsets[infoB.feature]]
+    if (indexA === indexB) return false // no self interaction
+    const altA = altLoc(infoA.unit, indexA)
+    const altB = altLoc(infoB.unit, indexB)
+    if (altA && altB && altA !== altB) return false // incompatible alternate location id
+    if (infoA.unit.residueIndex[infoA.unit.elements[indexA]] === infoB.unit.residueIndex[infoB.unit.elements[indexB]]) return false // same residue
+    // no hbond if donor and acceptor are bonded
+    if (connectedTo(structure, infoA.unit, indexA, infoB.unit, indexB)) return false
+
+    return true
 }
 
 /**
@@ -47,6 +62,8 @@ export function addUnitLinks(structure: Structure, unit: Unit.Atomic, features: 
 
             const distanceSq = squaredDistances[r]
             infoB.feature = j
+            if (!validPair(structure, infoA, infoB)) continue
+
             for (const tester of testers) {
                 if (distanceSq < tester.maxDistanceSq) {
                     const type = tester.getType(structure, infoA, infoB, distanceSq)
@@ -95,6 +112,8 @@ export function addStructureLinks(structure: Structure, unitA: Unit.Atomic, feat
             const j = indices[r]
             const distanceSq = squaredDistances[r]
             infoB.feature = j
+            if (!validPair(structure, infoA, infoB)) continue
+
             for (const tester of testers) {
                 if (distanceSq < tester.maxDistanceSq) {
                     const type = tester.getType(structure, infoA, infoB, distanceSq)

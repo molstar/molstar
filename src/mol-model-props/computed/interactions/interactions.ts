@@ -122,6 +122,9 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
 
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
         const group = structure.unitSymmetryGroups[i]
+        if (runtime.shouldUpdate) {
+            await runtime.update({ message: 'computing interactions', current: i, max: il })
+        }
         const d = findIntraUnitLinksAndFeatures(structure, group.units[0], linkTesters)
         for (let j = 0, jl = group.units.length; j < jl; ++j) {
             const u = group.units[j]

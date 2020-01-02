@@ -11,7 +11,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
 import { FeaturesBuilder, Features } from './features';
 import { ProteinBackboneAtoms, PolymerNames, BaseNames, ElementSymbol } from '../../../mol-model/structure/model/types';
-import { typeSymbol, atomId, altLoc, eachBondedAtom } from '../chemistry/util';
+import { typeSymbol, atomId, eachBondedAtom, compId } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { ValenceModelProvider } from '../valence-model';
 import { degToRad } from '../../../mol-math/misc';
@@ -187,6 +187,8 @@ const AromaticRingElements = [
 const AromaticRingPlanarityThreshold = 0.05
 
 function isRingAromatic(unit: Unit.Atomic, ring: SortedArray<StructureElement.UnitIndex>) {
+    // ignore Proline (can be flat because of bad geometry)
+    if (compId(unit, ring[0]) === 'PRO') return
     // TODO also check `chem_comp_bond.pdbx_aromatic_flag`
     let hasAromaticRingElement = false
     for (let i = 0, il = ring.length; i < il; ++i) {
@@ -207,7 +209,6 @@ export function addUnitAromaticRings(structure: Structure, unit: Unit.Atomic, bu
 
     for (const ring of unit.rings.all) {
         if (!isRingAromatic(unit, ring)) continue
-
         builder.startState()
         for (let i = 0, il = ring.length; i < il; ++i) {
             const j = ring[i]
@@ -258,14 +259,17 @@ const tmpVecC = Vec3()
 const tmpVecD = Vec3()
 
 function getNormal(out: Vec3, info: Features.Info) {
-    const { unit, feature, offsets} = info
+    const { unit, feature, offsets, members } = info
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
 
     const i = offsets[feature]
-    Vec3.set(tmpVecA, x[elements[i]], y[elements[i]], z[elements[i]])
-    Vec3.set(tmpVecB, x[elements[i + 1]], y[elements[i + 1]], z[elements[i + 1]])
-    Vec3.set(tmpVecC, x[elements[i + 2]], y[elements[i + 2]], z[elements[i + 2]])
+    const aI = elements[members[i]]
+    const bI = elements[members[i + 1]]
+    const cI = elements[members[i + 2]]
+    Vec3.set(tmpVecA, x[aI], y[aI], z[aI])
+    Vec3.set(tmpVecB, x[bI], y[bI], z[bI])
+    Vec3.set(tmpVecC, x[cI], y[cI], z[cI])
 
     return Vec3.triangleNormal(out, tmpVecA, tmpVecB, tmpVecC)
 }
@@ -302,17 +306,6 @@ const tmpNormalB = Vec3()
 function testCharged(structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, opts: Options): InteractionType | undefined {
     const typeA = infoA.types[infoA.feature]
     const typeB = infoB.types[infoB.feature]
-
-    const indexA = infoA.members[infoA.offsets[infoA.feature]]
-    const indexB = infoB.members[infoB.offsets[infoB.feature]]
-
-    if (indexA === indexB) return // to self
-
-    const altA = altLoc(infoA.unit, indexA)
-    const altB = altLoc(infoB.unit, indexB)
-
-    if (altA && altB && altA !== altB) return // incompatible alternate location id
-    if (infoA.unit.residueIndex[infoA.unit.elements[indexA]] === infoB.unit.residueIndex[infoB.unit.elements[indexB]]) return // same residue
 
     if (isIonicInteraction(typeA, typeB)) {
         if (areFeaturesWithinDistanceSq(infoA, infoB, opts.ionicDistanceMaxSq)) {

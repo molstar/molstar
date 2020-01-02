@@ -62,7 +62,7 @@ namespace Features {
         const bucketFill = new Int32Array(elementsCount)
         const bucketSizes = new Int32Array(elementsCount)
         const { members, count, offsets: featureOffsets } = data
-        for (let i = 0; i < count; ++i) ++bucketSizes[members[i]]
+        for (let i = 0, il = featureOffsets[count]; i < il; ++i) ++bucketSizes[members[i]]
 
         let offset = 0
         for (let i = 0; i < elementsCount; i++) {

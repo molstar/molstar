@@ -75,7 +75,8 @@ export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<Int
 
             const interactionsHash = InteractionsProvider.getValue(newStructureGroup.structure).version
             if ((state.info.interactionsHash as number) !== interactionsHash) {
-                state.createGeometry = true;
+                state.createGeometry = true
+                state.updateTransform = true
                 state.info.interactionsHash = interactionsHash
             }
         }

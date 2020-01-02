@@ -30,6 +30,7 @@ import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
+import { createMarkers } from '../../mol-geo/geometry/marker-data';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -103,6 +104,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure)
 
         if (Structure.conformationHash(newStructure) !== Structure.conformationHash(currentStructure)) {
+            updateState.updateTransform = true;
             updateState.createGeometry = true
         }
 
@@ -132,7 +134,12 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
                 throw new Error('expected renderObject to be available')
             }
 
-            locationIt.reset()
+            if (updateState.updateTransform) {
+                // console.log('update transform')
+                locationIt = createLocationIterator(newStructure)
+                const { instanceCount, groupCount } = locationIt
+                createMarkers(instanceCount * groupCount, renderObject.values)
+            }
 
             if (updateState.createGeometry) {
                 if (newGeometry) {
