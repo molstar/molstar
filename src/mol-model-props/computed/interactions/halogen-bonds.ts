@@ -18,12 +18,12 @@ import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
 import { LinkProvider } from './links';
 
-export const HalogenBondsParams = {
+const HalogenBondsParams = {
     distanceMax: PD.Numeric(4.0, { min: 1, max: 5, step: 0.1 }),
     angleMax: PD.Numeric(30, { min: 0, max: 60, step: 1 }),
 }
-export type HalogenBondsParams = typeof HalogenBondsParams
-export type HalogenBondsProps = PD.Values<HalogenBondsParams>
+type HalogenBondsParams = typeof HalogenBondsParams
+type HalogenBondsProps = PD.Values<HalogenBondsParams>
 
 const halBondElements = [Elements.CL, Elements.BR, Elements.I, Elements.AT] as ElementSymbol[]
 
@@ -81,7 +81,6 @@ const OptimalAcceptorAngle = degToRad(120)
 
 function getOptions(props: HalogenBondsProps) {
     return {
-        distanceMax: props.distanceMax,
         angleMax: degToRad(props.angleMax),
     }
 }
@@ -111,9 +110,15 @@ function testHalogenBond(structure: Structure, infoA: Features.Info, infoB: Feat
     return InteractionType.HalogenBond
 }
 
+//
+
+export const HalogenDonorProvider = { type: FeatureType.HalogenDonor, add: addUnitHalogenDonors }
+export const HalogenAcceptorProvider = { type: FeatureType.HalogenAcceptor, add: addUnitHalogenAcceptors }
+
 export const HalogenBondsProvider: LinkProvider<HalogenBondsParams> = {
     name: 'halogen-bonds',
     params: HalogenBondsParams,
+    requiredFeatures: [FeatureType.HalogenDonor, FeatureType.HalogenAcceptor],
     createTester: (props: HalogenBondsProps) => {
         const opts = getOptions(props)
         return {

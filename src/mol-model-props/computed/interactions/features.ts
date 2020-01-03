@@ -128,7 +128,7 @@ namespace Features {
     }
 
     export interface Provider {
-        name: string
+        type: FeatureType
         add: (structure: Structure, unit: Unit.Atomic, featuresBuilder: FeaturesBuilder) => void
     }
 }

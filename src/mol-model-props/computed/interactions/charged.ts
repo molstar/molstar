@@ -23,16 +23,26 @@ import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal
 import { getPositions } from '../../../mol-model/structure/util';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 
-export const ChargedParams = {
-    piStackingDistanceMax: PD.Numeric(5.5, { min: 1, max: 8, step: 0.1 }),
-    piStackingOffsetMax: PD.Numeric(2.0, { min: 0, max: 4, step: 0.1 }),
-    piStackingAngleDevMax: PD.Numeric(30, { min: 0, max: 180, step: 1 }),
-    cationPiDistanceMax: PD.Numeric(6.0, { min: 1, max: 8, step: 0.1 }),
-    cationPiOffsetMax: PD.Numeric(2.0, { min: 0, max: 4, step: 0.1 }),
-    ionicDistanceMax: PD.Numeric(5.0, { min: 0, max: 8, step: 0.1 }),
+const IonicParams = {
+    distanceMax: PD.Numeric(5.0, { min: 0, max: 8, step: 0.1 }),
 }
-export type ChargedParams = typeof ChargedParams
-export type ChargedProps = PD.Values<ChargedParams>
+type IonicParams = typeof IonicParams
+type IonicProps = PD.Values<IonicParams>
+
+const PiStackingParams = {
+    distanceMax: PD.Numeric(5.5, { min: 1, max: 8, step: 0.1 }),
+    offsetMax: PD.Numeric(2.0, { min: 0, max: 4, step: 0.1 }),
+    angleDevMax: PD.Numeric(30, { min: 0, max: 180, step: 1 }),
+}
+type PiStackingParams = typeof PiStackingParams
+type PiStackingProps = PD.Values<PiStackingParams>
+
+const CationPiParams = {
+    distanceMax: PD.Numeric(6.0, { min: 1, max: 8, step: 0.1 }),
+    offsetMax: PD.Numeric(2.0, { min: 0, max: 4, step: 0.1 }),
+}
+type CationPiParams = typeof CationPiParams
+type CationPiProps = PD.Values<CationPiParams>
 
 //
 
@@ -47,7 +57,7 @@ function getUnitValenceModel(structure: Structure, unit: Unit.Atomic) {
     return unitValenceModel
 }
 
-export function addUnitPositiveCharges(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
+function addUnitPositiveCharges(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { charge } = getUnitValenceModel(structure, unit)
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
@@ -104,7 +114,7 @@ export function addUnitPositiveCharges(structure: Structure, unit: Unit.Atomic, 
     }
 }
 
-export function addUnitNegativeCharges(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
+function addUnitNegativeCharges(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { charge } = getUnitValenceModel(structure, unit)
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
@@ -203,7 +213,7 @@ function isRingAromatic(unit: Unit.Atomic, ring: SortedArray<StructureElement.Un
     return Vec3.magnitude(ma.dirC) < AromaticRingPlanarityThreshold
 }
 
-export function addUnitAromaticRings(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
+function addUnitAromaticRings(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
 
@@ -218,7 +228,7 @@ export function addUnitAromaticRings(structure: Structure, unit: Unit.Atomic, bu
     }
 }
 
-function isIonicInteraction(ti: FeatureType, tj: FeatureType) {
+function isIonic(ti: FeatureType, tj: FeatureType) {
     return (
         (ti === FeatureType.NegativeCharge && tj === FeatureType.PositiveCharge) ||
         (ti === FeatureType.PositiveCharge && tj === FeatureType.NegativeCharge)
@@ -285,17 +295,27 @@ const getOffset = function (infoA: Features.Info, infoB: Features.Info, normal: 
     return Vec3.distance(tmpVecD, tmpVecB)
 }
 
-function getOptions(props: ChargedProps) {
+function getIonicOptions(props: IonicProps) {
     return {
-        piStackingDistanceMaxSq: props.piStackingDistanceMax * props.piStackingDistanceMax,
-        piStackingOffsetMax: props.piStackingOffsetMax,
-        piStackingAngleDevMax: degToRad(props.piStackingAngleDevMax),
-        cationPiDistanceMaxSq: props.cationPiDistanceMax * props.cationPiDistanceMax,
-        cationPiOffsetMax: props.cationPiOffsetMax,
-        ionicDistanceMaxSq: props.ionicDistanceMax * props.ionicDistanceMax,
+        distanceMaxSq: props.distanceMax * props.distanceMax,
     }
 }
-type Options = ReturnType<typeof getOptions>
+type IonicOptions = ReturnType<typeof getIonicOptions>
+
+function getPiStackingOptions(props: PiStackingProps) {
+    return {
+        offsetMax: props.offsetMax,
+        angleDevMax: degToRad(props.angleDevMax),
+    }
+}
+type PiStackingOptions = ReturnType<typeof getPiStackingOptions>
+
+function getCationPiOptions(props: CationPiProps) {
+    return {
+        offsetMax: props.offsetMax
+    }
+}
+type CationPiOptions = ReturnType<typeof getCationPiOptions>
 
 const deg180InRad = degToRad(180)
 const deg90InRad = degToRad(90)
@@ -303,52 +323,93 @@ const deg90InRad = degToRad(90)
 const tmpNormalA = Vec3()
 const tmpNormalB = Vec3()
 
-function testCharged(structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, opts: Options): InteractionType | undefined {
+function testIonic(structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, opts: IonicOptions): InteractionType | undefined {
     const typeA = infoA.types[infoA.feature]
     const typeB = infoB.types[infoB.feature]
 
-    if (isIonicInteraction(typeA, typeB)) {
-        if (areFeaturesWithinDistanceSq(infoA, infoB, opts.ionicDistanceMaxSq)) {
-            return InteractionType.IonicInteraction
+    if (isIonic(typeA, typeB)) {
+        if (areFeaturesWithinDistanceSq(infoA, infoB, opts.distanceMaxSq)) {
+            return InteractionType.Ionic
         }
-    } else if (isPiStacking(typeA, typeB)) {
-        if (distanceSq <= opts.piStackingDistanceMaxSq) {
-            getNormal(tmpNormalA, infoA)
-            getNormal(tmpNormalB, infoB)
+    }
+}
 
-            const angle = Vec3.angle(tmpNormalA, tmpNormalB)
-            const offset = Math.min(getOffset(infoA, infoB, tmpNormalB), getOffset(infoB, infoA, tmpNormalA))
-            if (offset <= opts.piStackingOffsetMax) {
-                if (angle <= opts.piStackingAngleDevMax || angle >= deg180InRad - opts.piStackingAngleDevMax) {
-                    return InteractionType.PiStacking  // parallel
-                } else if (angle <= opts.piStackingAngleDevMax + deg90InRad && angle >= deg90InRad - opts.piStackingAngleDevMax) {
-                    return InteractionType.PiStacking  // t-shaped
-                }
-            }
-        }
-    } else if (isCationPi(typeA, typeB)) {
-        if (distanceSq <= opts.cationPiDistanceMaxSq) {
-            const [infoR, infoC] = typeA === FeatureType.AromaticRing ? [infoA, infoB] : [infoB, infoA]
+function testPiStacking(structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, opts: PiStackingOptions): InteractionType | undefined {
+    const typeA = infoA.types[infoA.feature]
+    const typeB = infoB.types[infoB.feature]
 
-            getNormal(tmpNormalA, infoR)
-            const offset = getOffset(infoC, infoR, tmpNormalA)
-            if (offset <= opts.cationPiOffsetMax) {
-                return InteractionType.CationPi
+    if (isPiStacking(typeA, typeB)) {
+        getNormal(tmpNormalA, infoA)
+        getNormal(tmpNormalB, infoB)
+
+        const angle = Vec3.angle(tmpNormalA, tmpNormalB)
+        const offset = Math.min(getOffset(infoA, infoB, tmpNormalB), getOffset(infoB, infoA, tmpNormalA))
+        if (offset <= opts.offsetMax) {
+            if (angle <= opts.angleDevMax || angle >= deg180InRad - opts.angleDevMax) {
+                return InteractionType.PiStacking  // parallel
+            } else if (angle <= opts.angleDevMax + deg90InRad && angle >= deg90InRad - opts.angleDevMax) {
+                return InteractionType.PiStacking  // t-shaped
             }
         }
     }
-
 }
 
-export const ChargedProvider: LinkProvider<ChargedParams> = {
-    name: 'charged',
-    params: ChargedParams,
-    createTester: (props: ChargedProps) => {
-        const maxDistance = Math.max(props.ionicDistanceMax + 2, props.piStackingDistanceMax, props.cationPiDistanceMax)
-        const opts = getOptions(props)
+function testCationPi(structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, opts: CationPiOptions): InteractionType | undefined {
+    const typeA = infoA.types[infoA.feature]
+    const typeB = infoB.types[infoB.feature]
+
+    if (isCationPi(typeA, typeB)) {
+        const [infoR, infoC] = typeA === FeatureType.AromaticRing ? [infoA, infoB] : [infoB, infoA]
+
+        getNormal(tmpNormalA, infoR)
+        const offset = getOffset(infoC, infoR, tmpNormalA)
+        if (offset <= opts.offsetMax) {
+            return InteractionType.CationPi
+        }
+    }
+}
+
+//
+
+export const NegativChargeProvider = { type: FeatureType.NegativeCharge, add: addUnitNegativeCharges }
+export const PositiveChargeProvider = { type: FeatureType.PositiveCharge, add: addUnitPositiveCharges }
+export const AromaticRingProvider = { type: FeatureType.AromaticRing, add: addUnitAromaticRings }
+
+export const IonicProvider: LinkProvider<IonicParams> = {
+    name: 'ionic',
+    params: IonicParams,
+    requiredFeatures: [FeatureType.NegativeCharge, FeatureType.PositiveCharge],
+    createTester: (props: IonicProps) => {
+        const opts = getIonicOptions(props)
         return {
-            maxDistanceSq: maxDistance * maxDistance,
-            getType: (structure, infoA, infoB, distanceSq) => testCharged(structure, infoA, infoB, distanceSq, opts)
+            maxDistanceSq: opts.distanceMaxSq,
+            getType: (structure, infoA, infoB, distanceSq) => testIonic(structure, infoA, infoB, distanceSq, opts)
+        }
+    }
+}
+
+export const PiStackingProvider: LinkProvider<PiStackingParams> = {
+    name: 'pi-stacking',
+    params: PiStackingParams,
+    requiredFeatures: [FeatureType.AromaticRing],
+    createTester: (props: PiStackingProps) => {
+        const opts = getPiStackingOptions(props)
+        return {
+            maxDistanceSq: props.distanceMax * props.distanceMax,
+            getType: (structure, infoA, infoB, distanceSq) => testPiStacking(structure, infoA, infoB, distanceSq, opts)
+        }
+    }
+}
+
+export const CationPiProvider: LinkProvider<CationPiParams> = {
+    name: 'cation-pi',
+    params: CationPiParams,
+    requiredFeatures: [FeatureType.AromaticRing, FeatureType.PositiveCharge],
+    createTester: (props: CationPiProps) => {
+        const opts = getCationPiOptions(props)
+        return {
+            maxDistanceSq: props.distanceMax * props.distanceMax,
+            getType: (structure, infoA, infoB, distanceSq) => testCationPi(structure, infoA, infoB, distanceSq, opts)
         }
     }
 }

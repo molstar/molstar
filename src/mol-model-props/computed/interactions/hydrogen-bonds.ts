@@ -11,24 +11,38 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
 import { AtomGeometry, AtomGeometryAngles, calcAngles, calcPlaneAngle } from '../chemistry/geometry';
 import { FeaturesBuilder, Features } from './features';
-import { MoleculeType, ProteinBackboneAtoms } from '../../../mol-model/structure/model/types';
-import { typeSymbol, bondToElementCount, bondCount, formalCharge, atomId, compId } from '../chemistry/util';
+import { typeSymbol, bondToElementCount, bondCount, formalCharge, compId, atomId } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { ValenceModelProvider } from '../valence-model';
 import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
 import { LinkProvider } from './links';
+import { MoleculeType, ProteinBackboneAtoms } from '../../../mol-model/structure/model/types';
 
-export const HydrogenBondsParams = {
+const GeometryParams = {
     distanceMax: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
-    sulfurDistanceMax: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
+    backbone: PD.Boolean(false, { description: 'Include backbone-to-backbone hydrogen bonds' }),
     accAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
     donAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal donor angle' }),
     accOutOfPlaneAngleMax: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
     donOutOfPlaneAngleMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
 }
-export type HydrogenBondsParams = typeof HydrogenBondsParams
-export type HydrogenBondsProps = PD.Values<HydrogenBondsParams>
+type GeometryParams = typeof GeometryParams
+type GeometryProps = PD.Values<GeometryParams>
+
+const HydrogenBondsParams = {
+    ...GeometryParams,
+    water: PD.Boolean(false, { description: 'Include water-to-water hydrogen bonds' }),
+    sulfurDistanceMax: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
+}
+type HydrogenBondsParams = typeof HydrogenBondsParams
+type HydrogenBondsProps = PD.Values<HydrogenBondsParams>
+
+const WeakHydrogenBondsParams = {
+    ...GeometryParams,
+}
+type WeakHydrogenBondsParams = typeof WeakHydrogenBondsParams
+type WeakHydrogenBondsProps = PD.Values<WeakHydrogenBondsParams>
 
 //
 
@@ -50,7 +64,7 @@ function getUnitValenceModel(structure: Structure, unit: Unit.Atomic) {
 /**
  * Potential hydrogen donor
  */
-export function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
+function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { totalH } = getUnitValenceModel(structure, unit)
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
@@ -74,7 +88,7 @@ export function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, b
 /**
  * Weak hydrogen donor.
  */
-export function addUnitWeakHydrogenDonors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
+function addUnitWeakHydrogenDonors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { totalH } = getUnitValenceModel(structure, unit)
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
@@ -120,7 +134,7 @@ function inAromaticRingWithElectronNegativeElement(structure: Structure, unit: U
 /**
  * Potential hydrogen acceptor
  */
-export function addUnitHydrogenAcceptors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
+function addUnitHydrogenAcceptors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { charge, implicitH, idealGeometry } = getUnitValenceModel(structure, unit)
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
@@ -200,44 +214,35 @@ function isWeakHydrogenBond(ti: FeatureType, tj: FeatureType) {
     )
 }
 
-function getHydrogenBondType(unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex) {
-    if (isWaterHydrogenBond(unitA, indexA, unitB, indexB)) {
-        return InteractionType.WaterHydrogenBond
-    } else if (isBackboneHydrogenBond(unitA, indexA, unitB, indexB)) {
-        return InteractionType.BackboneHydrogenBond
-    } else {
-        return InteractionType.HydrogenBond
-    }
-}
-
-function getOptions(props: HydrogenBondsProps) {
+function getGeometryOptions(props: GeometryProps) {
     return {
+        includeBackbone: props.backbone,
         maxAccAngleDev: degToRad(props.accAngleDevMax),
         maxDonAngleDev: degToRad(props.donAngleDevMax),
         maxAccOutOfPlaneAngle: degToRad(props.accOutOfPlaneAngleMax),
         maxDonOutOfPlaneAngle: degToRad(props.donOutOfPlaneAngleMax),
-        maxDist: Math.max(props.distanceMax, props.sulfurDistanceMax),
-        maxHbondDistSq: props.distanceMax * props.distanceMax,
     }
 }
-type Options = ReturnType<typeof getOptions>
+type GeometryOptions = ReturnType<typeof getGeometryOptions>
+
+function getHydrogenBondsOptions(props: HydrogenBondsProps) {
+    const maxDist = Math.max(props.distanceMax, props.sulfurDistanceMax)
+    return {
+        ...getGeometryOptions(props),
+        includeWater: props.water,
+        maxHbondDistSq: maxDist * maxDist
+    }
+}
+type HydrogenBondsOptions = ReturnType<typeof getHydrogenBondsOptions>
 
 const deg120InRad = degToRad(120)
 
-function testHydrogenBond(structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, opts: Options): InteractionType | undefined {
-    const typeA = infoA.types[infoA.feature]
-    const typeB = infoB.types[infoB.feature]
-
-    const isWeak = isWeakHydrogenBond(typeA, typeB)
-    if (!isWeak && !isHydrogenBond(typeA, typeB)) return
-
-    const [don, acc] = typeB === FeatureType.HydrogenAcceptor ? [infoA, infoB] : [infoB, infoA]
+function checkGeometry(structure: Structure, don: Features.Info, acc: Features.Info, opts: GeometryOptions): true | undefined {
 
     const donIndex = don.members[don.offsets[don.feature]]
     const accIndex = acc.members[acc.offsets[acc.feature]]
 
-    // check if distance is ok for non-sulfur-containing hbond
-    if (typeSymbol(don.unit, donIndex) !== Elements.S && typeSymbol(acc.unit, accIndex) !== Elements.S && distanceSq > opts.maxHbondDistSq) return
+    if (!opts.includeBackbone && isBackboneHydrogenBond(don.unit, donIndex, acc.unit, accIndex)) return
 
     const donAngles = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex)
     const idealDonAngle = AtomGeometryAngles.get(don.idealGeometry[donIndex]) || deg120InRad
@@ -259,18 +264,72 @@ function testHydrogenBond(structure: Structure, infoA: Features.Info, infoB: Fea
         if (outOfPlane !== undefined && outOfPlane > opts.maxAccOutOfPlaneAngle) return
     }
 
-    return isWeak ? InteractionType.WeakHydrogenBond : getHydrogenBondType(don.unit, donIndex, acc.unit, accIndex)
+    return true
 }
+
+function testHydrogenBond(structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, opts: HydrogenBondsOptions): InteractionType | undefined {
+    const typeA = infoA.types[infoA.feature]
+    const typeB = infoB.types[infoB.feature]
+
+    if (!isHydrogenBond(typeA, typeB)) return
+
+    const [don, acc] = typeB === FeatureType.HydrogenAcceptor ? [infoA, infoB] : [infoB, infoA]
+
+    const donIndex = don.members[don.offsets[don.feature]]
+    const accIndex = acc.members[acc.offsets[acc.feature]]
+
+    // check if distance is ok for non-sulfur-containing hbond
+    if (typeSymbol(don.unit, donIndex) !== Elements.S && typeSymbol(acc.unit, accIndex) !== Elements.S && distanceSq > opts.maxHbondDistSq) return
+
+    if (!opts.includeWater && isWaterHydrogenBond(don.unit, donIndex, acc.unit, accIndex)) return
+
+    if (!checkGeometry(structure, don, acc, opts)) return
+
+    return InteractionType.HydrogenBond
+}
+
+function testWeakHydrogenBond(structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, opts: GeometryOptions): InteractionType | undefined {
+    const typeA = infoA.types[infoA.feature]
+    const typeB = infoB.types[infoB.feature]
+
+    if (!isWeakHydrogenBond(typeA, typeB)) return
+
+    const [don, acc] = typeB === FeatureType.HydrogenAcceptor ? [infoA, infoB] : [infoB, infoA]
+
+    if (!checkGeometry(structure, don, acc, opts)) return
+
+    return InteractionType.WeakHydrogenBond
+}
+
+//
+
+export const HydrogenDonorProvider = { type: FeatureType.HydrogenDonor, add: addUnitHydrogenDonors }
+export const WeakHydrogenDonorProvider = { type: FeatureType.WeakHydrogenDonor, add: addUnitWeakHydrogenDonors }
+export const HydrogenAcceptorProvider = { type: FeatureType.HydrogenAcceptor, add: addUnitHydrogenAcceptors }
 
 export const HydrogenBondsProvider: LinkProvider<HydrogenBondsParams> = {
     name: 'hydrogen-bonds',
     params: HydrogenBondsParams,
+    requiredFeatures: [FeatureType.HydrogenDonor, FeatureType.HydrogenAcceptor],
     createTester: (props: HydrogenBondsProps) => {
         const maxDistance = Math.max(props.distanceMax, props.sulfurDistanceMax)
-        const opts = getOptions(props)
+        const opts = getHydrogenBondsOptions(props)
         return {
             maxDistanceSq: maxDistance * maxDistance,
             getType: (structure, infoA, infoB, distanceSq) => testHydrogenBond(structure, infoA, infoB, distanceSq, opts)
+        }
+    }
+}
+
+export const WeakHydrogenBondsProvider: LinkProvider<WeakHydrogenBondsParams> = {
+    name: 'weak-hydrogen-bonds',
+    params: WeakHydrogenBondsParams,
+    requiredFeatures: [FeatureType.WeakHydrogenDonor, FeatureType.HydrogenAcceptor],
+    createTester: (props: WeakHydrogenBondsProps) => {
+        const opts = getGeometryOptions(props)
+        return {
+            maxDistanceSq: props.distanceMax * props.distanceMax,
+            getType: (structure, infoA, infoB, distanceSq) => testWeakHydrogenBond(structure, infoA, infoB, distanceSq, opts)
         }
     }
 }

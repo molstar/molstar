@@ -7,7 +7,7 @@
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit } from '../../../mol-model/structure';
 import { Features } from './features';
-import { InteractionType } from './common';
+import { InteractionType, FeatureType } from './common';
 import { IntraLinksBuilder, InterLinksBuilder } from './builder';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { altLoc, connectedTo } from '../chemistry/util';
@@ -15,8 +15,9 @@ import { altLoc, connectedTo } from '../chemistry/util';
 const MAX_DISTANCE = 5
 
 export interface LinkProvider<P extends PD.Params> {
-    name: string
-    params: P
+    readonly name: string
+    readonly params: P
+    readonly requiredFeatures: ReadonlyArray<FeatureType>
     createTester(props: PD.Values<P>): LinkTester
 }
 
@@ -67,7 +68,10 @@ export function addUnitLinks(structure: Structure, unit: Unit.Atomic, features: 
             for (const tester of testers) {
                 if (distanceSq < tester.maxDistanceSq) {
                     const type = tester.getType(structure, infoA, infoB, distanceSq)
-                    if (type) builder.add(i, j, type)
+                    if (type) {
+                        builder.add(i, j, type)
+                        break
+                    }
                 }
             }
         }
@@ -117,7 +121,10 @@ export function addStructureLinks(structure: Structure, unitA: Unit.Atomic, feat
             for (const tester of testers) {
                 if (distanceSq < tester.maxDistanceSq) {
                     const type = tester.getType(structure, infoA, infoB, distanceSq)
-                    if (type) builder.add(i, j, type)
+                    if (type) {
+                        builder.add(i, j, type)
+                        break
+                    }
                 }
             }
         }

@@ -9,14 +9,15 @@ import { Structure, Unit } from '../../../mol-model/structure';
 import { RuntimeContext } from '../../../mol-task';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
-import { InteractionsIntraLinks, InteractionsInterLinks } from './common';
+import { InteractionsIntraLinks, InteractionsInterLinks, FeatureType } from './common';
 import { IntraLinksBuilder, InterLinksBuilder } from './builder';
 import { IntMap } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { addUnitLinks, LinkTester, addStructureLinks } from './links';
-import { addUnitHalogenDonors, addUnitHalogenAcceptors, HalogenBondsProvider } from './halogen-bonds';
-import { addUnitHydrogenDonors, addUnitWeakHydrogenDonors, addUnitHydrogenAcceptors, HydrogenBondsProvider } from './hydrogen-bonds';
-import { addUnitPositiveCharges, addUnitNegativeCharges, addUnitAromaticRings, ChargedProvider } from './charged';
+import { addUnitLinks, LinkTester, addStructureLinks, LinkProvider } from './links';
+import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds';
+import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
+import { NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider, IonicProvider, PiStackingProvider, CationPiProvider } from './charged';
+import { HydrophobicAtomProvider, HydrophobicProvider } from './hydrophobic';
 
 export { Interactions }
 
@@ -99,10 +100,43 @@ namespace Interactions {
     }
 }
 
+const FeatureProviders = [
+    HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider,
+    NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider,
+    HalogenDonorProvider, HalogenAcceptorProvider,
+    HydrophobicAtomProvider,
+]
+
+const LinkProviders = {
+    'ionic': IonicProvider,
+    'pi-stacking': PiStackingProvider,
+    'cation-pi': CationPiProvider,
+    'halogen-bonds': HalogenBondsProvider,
+    'hydrogen-bonds': HydrogenBondsProvider,
+    'weak-hydrogen-bonds': WeakHydrogenBondsProvider,
+    'hydrophobic': HydrophobicProvider,
+}
+type LinkProviders = typeof LinkProviders
+
+function getProvidersParams() {
+    const params: { [k in keyof LinkProviders]: PD.Group<LinkProviders[k]['params']> } = Object.create(null)
+    Object.keys(LinkProviders).forEach(k => {
+        (params as any)[k] = PD.Group(LinkProviders[k as keyof LinkProviders].params)
+    })
+    return params
+}
 export const InteractionsParams = {
-    hydrogenBonds: PD.Group(HydrogenBondsProvider.params),
-    halogenBonds: PD.Group(HalogenBondsProvider.params),
-    charged: PD.Group(ChargedProvider.params),
+    types: PD.MultiSelect([
+        'ionic',
+        'cation-pi',
+        'pi-stacking',
+        'hydrogen-bonds',
+        'halogen-bonds',
+        // 'hydrophobic',
+        // 'metal-coordination',
+        'weak-hydrogen-bonds',
+    ], PD.objectToOptions(LinkProviders)),
+    ...getProvidersParams()
 }
 export type InteractionsParams = typeof InteractionsParams
 export type InteractionsProps = PD.Values<InteractionsParams>
@@ -111,11 +145,15 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props }
     await ValenceModelProvider.attach(structure).runInContext(runtime)
 
-    const linkTesters: LinkTester[] = [
-        HydrogenBondsProvider.createTester(p.hydrogenBonds),
-        HalogenBondsProvider.createTester(p.halogenBonds),
-        ChargedProvider.createTester(p.charged),
-    ]
+    const linkProviders: LinkProvider<any>[] = []
+    Object.keys(LinkProviders).forEach(k => {
+        if (p.types.includes(k)) linkProviders.push(LinkProviders[k as keyof typeof LinkProviders])
+    })
+    const linkTesters = linkProviders.map(l => l.createTester(p[l.name as keyof InteractionsProps]))
+
+    const requiredFeatures = new Set<FeatureType>()
+    linkProviders.forEach(l => { for (const f of l.requiredFeatures) requiredFeatures.add(f) })
+    const featureProviders = FeatureProviders.filter(f => requiredFeatures.has(f.type))
 
     const unitsFeatures = IntMap.Mutable<Features>()
     const unitsLinks = IntMap.Mutable<InteractionsIntraLinks>()
@@ -125,11 +163,12 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
         if (runtime.shouldUpdate) {
             await runtime.update({ message: 'computing interactions', current: i, max: il })
         }
-        const d = findIntraUnitLinksAndFeatures(structure, group.units[0], linkTesters)
+        const features = findUnitFeatures(structure, group.units[0], featureProviders)
+        const intraUnitLinks = findIntraUnitLinks(structure, group.units[0], features, linkTesters)
         for (let j = 0, jl = group.units.length; j < jl; ++j) {
             const u = group.units[j]
-            unitsFeatures.set(u.id, d.features)
-            unitsLinks.set(u.id, d.links)
+            unitsFeatures.set(u.id, features)
+            unitsLinks.set(u.id, intraUnitLinks)
         }
     }
 
@@ -138,35 +177,23 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
     return { unitsFeatures, unitsLinks, links }
 }
 
-const FeatureProviders: Features.Provider[] = [
-    { name: 'hydrogen-donors', add: addUnitHydrogenDonors },
-    { name: 'weak-hydrogen-donors', add: addUnitWeakHydrogenDonors },
-    { name: 'hydrogen-acceptors', add: addUnitHydrogenAcceptors },
-
-    { name: 'halogen-donors', add: addUnitHalogenDonors },
-    { name: 'halogen-acceptors', add: addUnitHalogenAcceptors },
-
-    { name: 'positive-charges', add: addUnitPositiveCharges },
-    { name: 'negative-charges', add: addUnitNegativeCharges },
-    { name: 'aromatic-rings', add: addUnitAromaticRings },
-]
-
-function findIntraUnitLinksAndFeatures(structure: Structure, unit: Unit, linkTesters: ReadonlyArray<LinkTester>) {
+function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Features.Provider[]) {
     const count = unit.elements.length
     const featuresBuilder = FeaturesBuilder.create(count, count / 2)
     if (Unit.isAtomic(unit)) {
-        for (const featureProvider of FeatureProviders) {
-            featureProvider.add(structure, unit, featuresBuilder)
+        for (const fp of featureProviders) {
+            fp.add(structure, unit, featuresBuilder)
         }
     }
-    const features = featuresBuilder.getFeatures(count)
+    return featuresBuilder.getFeatures(count)
+}
 
-    const linksBuilder = IntraLinksBuilder.create(features, count)
+function findIntraUnitLinks(structure: Structure, unit: Unit, features: Features, linkTesters: ReadonlyArray<LinkTester>) {
+    const linksBuilder = IntraLinksBuilder.create(features, unit.elements.length)
     if (Unit.isAtomic(unit)) {
         addUnitLinks(structure, unit, features, linksBuilder, linkTesters)
     }
-
-    return { features, links: linksBuilder.getLinks() }
+    return linksBuilder.getLinks()
 }
 
 function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features>, linkTesters: ReadonlyArray<LinkTester>) {

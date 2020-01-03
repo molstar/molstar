@@ -43,14 +43,12 @@ const InteractionTypeColorTable: [string, Color][] = [
 function typeColor(type: InteractionType): Color {
     switch (type) {
         case InteractionType.HydrogenBond:
-        case InteractionType.WaterHydrogenBond:
-        case InteractionType.BackboneHydrogenBond:
             return InteractionTypeColors.HydrogenBond
         case InteractionType.Hydrophobic:
             return InteractionTypeColors.Hydrophobic
         case InteractionType.HalogenBond:
             return InteractionTypeColors.HalogenBond
-        case InteractionType.IonicInteraction:
+        case InteractionType.Ionic:
             return InteractionTypeColors.Ionic
         case InteractionType.MetalCoordination:
             return InteractionTypeColors.MetalCoordination

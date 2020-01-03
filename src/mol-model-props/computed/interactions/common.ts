@@ -19,7 +19,7 @@ namespace InteractionsInterLinks {
 
 export const enum InteractionType {
     Unknown = 0,
-    IonicInteraction = 1,
+    Ionic = 1,
     CationPi = 2,
     PiStacking = 3,
     HydrogenBond = 4,
@@ -27,21 +27,17 @@ export const enum InteractionType {
     Hydrophobic = 6,
     MetalCoordination = 7,
     WeakHydrogenBond = 8,
-    WaterHydrogenBond = 9,
-    BackboneHydrogenBond = 10
 }
 
 export function interactionTypeLabel(type: InteractionType): string {
     switch (type) {
         case InteractionType.HydrogenBond:
-        case InteractionType.WaterHydrogenBond:
-        case InteractionType.BackboneHydrogenBond:
             return 'Hydrogen Bond'
         case InteractionType.Hydrophobic:
             return 'Hydrophobic Contact'
         case InteractionType.HalogenBond:
             return 'Halogen Bond'
-        case InteractionType.IonicInteraction:
+        case InteractionType.Ionic:
             return 'Ionic Interaction'
         case InteractionType.MetalCoordination:
             return 'Metal Coordination'
@@ -65,7 +61,7 @@ export const enum FeatureType {
     HydrogenAcceptor = 5,
     HalogenDonor = 6,
     HalogenAcceptor = 7,
-    Hydrophobic = 8,
+    HydrophobicAtom = 8,
     WeakHydrogenDonor = 9,
     IonicTypePartner = 10,
     DativeBondPartner = 11,
@@ -91,8 +87,8 @@ export function featureTypeLabel(type: FeatureType): string {
             return 'Halogen Donor'
         case FeatureType.HalogenAcceptor:
             return 'Halogen Acceptor'
-        case FeatureType.Hydrophobic:
-            return 'Hydrophobic'
+        case FeatureType.HydrophobicAtom:
+            return 'HydrophobicAtom'
         case FeatureType.WeakHydrogenDonor:
             return 'Weak Hydrogen Donor'
         case FeatureType.IonicTypePartner:
