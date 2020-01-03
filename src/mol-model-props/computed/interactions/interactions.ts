@@ -10,7 +10,7 @@ import { RuntimeContext } from '../../../mol-task';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
 import { InteractionsIntraLinks, InteractionsInterLinks, FeatureType } from './common';
-import { IntraLinksBuilder, InterLinksBuilder } from './builder';
+import { IntraLinksBuilder, InterLinksBuilder } from './links-builder';
 import { IntMap } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { addUnitLinks, LinkTester, addStructureLinks, LinkProvider } from './links';
@@ -18,6 +18,8 @@ import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } f
 import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
 import { NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider, IonicProvider, PiStackingProvider, CationPiProvider } from './charged';
 import { HydrophobicAtomProvider, HydrophobicProvider } from './hydrophobic';
+import { SetUtils } from '../../../mol-util/set';
+import { MetalCoordinationProvider, MetalProvider, MetalBindingProvider } from './metal';
 
 export { Interactions }
 
@@ -105,6 +107,7 @@ const FeatureProviders = [
     NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider,
     HalogenDonorProvider, HalogenAcceptorProvider,
     HydrophobicAtomProvider,
+    MetalProvider, MetalBindingProvider,
 ]
 
 const LinkProviders = {
@@ -115,6 +118,7 @@ const LinkProviders = {
     'hydrogen-bonds': HydrogenBondsProvider,
     'weak-hydrogen-bonds': WeakHydrogenBondsProvider,
     'hydrophobic': HydrophobicProvider,
+    'metal-coordination': MetalCoordinationProvider,
 }
 type LinkProviders = typeof LinkProviders
 
@@ -133,7 +137,7 @@ export const InteractionsParams = {
         'hydrogen-bonds',
         'halogen-bonds',
         // 'hydrophobic',
-        // 'metal-coordination',
+        'metal-coordination',
         'weak-hydrogen-bonds',
     ], PD.objectToOptions(LinkProviders)),
     ...getProvidersParams()
@@ -153,7 +157,7 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
 
     const requiredFeatures = new Set<FeatureType>()
     linkProviders.forEach(l => { for (const f of l.requiredFeatures) requiredFeatures.add(f) })
-    const featureProviders = FeatureProviders.filter(f => requiredFeatures.has(f.type))
+    const featureProviders = FeatureProviders.filter(f => SetUtils.areIntersecting(requiredFeatures, new Set(f.types)))
 
     const unitsFeatures = IntMap.Mutable<Features>()
     const unitsLinks = IntMap.Mutable<InteractionsIntraLinks>()

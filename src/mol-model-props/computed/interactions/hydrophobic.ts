@@ -15,18 +15,18 @@ import { Elements } from '../../../mol-model/structure/model/properties/atomic/t
 import { FeatureType, FeatureGroup, InteractionType } from './common';
 import { LinkProvider } from './links';
 
-export const HydrophobicParams = {
+const HydrophobicParams = {
     distanceMax: PD.Numeric(4.0, { min: 1, max: 5, step: 0.1 }),
 }
-export type HydrophobicParams = typeof HydrophobicParams
-export type HydrophobicProps = PD.Values<HydrophobicParams>
+type HydrophobicParams = typeof HydrophobicParams
+type HydrophobicProps = PD.Values<HydrophobicParams>
 
 /**
  * Hydropbobic atoms
  * - Carbon only bonded to carbon or hydrogen
  * - Fluorine
  */
-export function addHydrophobicAtom(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
+function addHydrophobicAtom(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
 
@@ -49,7 +49,7 @@ export function addHydrophobicAtom(structure: Structure, unit: Unit.Atomic, buil
     }
 }
 
-function isHydrophobicContact (ti: FeatureType, tj: FeatureType) {
+function isHydrophobicContact(ti: FeatureType, tj: FeatureType) {
     return ti === FeatureType.HydrophobicAtom && tj === FeatureType.HydrophobicAtom
 }
 
@@ -68,7 +68,7 @@ function testHydrophobic(structure: Structure, infoA: Features.Info, infoB: Feat
 
 //
 
-export const HydrophobicAtomProvider = { type: FeatureType.HydrophobicAtom, add: addHydrophobicAtom }
+export const HydrophobicAtomProvider = Features.Provider([FeatureType.HydrophobicAtom], addHydrophobicAtom)
 
 export const HydrophobicProvider: LinkProvider<HydrophobicParams> = {
     name: 'hydrophobic',

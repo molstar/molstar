@@ -128,8 +128,11 @@ namespace Features {
     }
 
     export interface Provider {
-        type: FeatureType
+        types: Set<FeatureType>
         add: (structure: Structure, unit: Unit.Atomic, featuresBuilder: FeaturesBuilder) => void
+    }
+    export function Provider(types: FeatureType[], add: Provider['add']): Provider {
+        return { types: new Set(types), add }
     }
 }
 

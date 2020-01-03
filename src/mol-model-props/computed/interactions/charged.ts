@@ -371,9 +371,9 @@ function testCationPi(structure: Structure, infoA: Features.Info, infoB: Feature
 
 //
 
-export const NegativChargeProvider = { type: FeatureType.NegativeCharge, add: addUnitNegativeCharges }
-export const PositiveChargeProvider = { type: FeatureType.PositiveCharge, add: addUnitPositiveCharges }
-export const AromaticRingProvider = { type: FeatureType.AromaticRing, add: addUnitAromaticRings }
+export const NegativChargeProvider = Features.Provider([FeatureType.NegativeCharge], addUnitNegativeCharges)
+export const PositiveChargeProvider = Features.Provider([FeatureType.PositiveCharge], addUnitPositiveCharges)
+export const AromaticRingProvider = Features.Provider([FeatureType.AromaticRing], addUnitAromaticRings)
 
 export const IonicProvider: LinkProvider<IonicParams> = {
     name: 'ionic',

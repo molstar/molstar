@@ -30,7 +30,7 @@ const halBondElements = [Elements.CL, Elements.BR, Elements.I, Elements.AT] as E
 /**
  * Halogen bond donors (X-C, with X one of Cl, Br, I or At) not F!
  */
-export function addUnitHalogenDonors (structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
+function addUnitHalogenDonors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
 
@@ -48,7 +48,7 @@ const Y = [Elements.C, Elements.N, Elements.P, Elements.S] as ElementSymbol[]
 /**
  * Halogen bond acceptors (Y-{O|N|S}, with Y=C,P,N,S)
  */
-export function addUnitHalogenAcceptors (structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
+function addUnitHalogenAcceptors(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
 
@@ -68,7 +68,7 @@ export function addUnitHalogenAcceptors (structure: Structure, unit: Unit.Atomic
     }
 }
 
-function isHalogenBond (ti: FeatureType, tj: FeatureType) {
+function isHalogenBond(ti: FeatureType, tj: FeatureType) {
     return (
         (ti === FeatureType.HalogenAcceptor && tj === FeatureType.HalogenDonor) ||
         (ti === FeatureType.HalogenDonor && tj === FeatureType.HalogenAcceptor)
@@ -112,8 +112,8 @@ function testHalogenBond(structure: Structure, infoA: Features.Info, infoB: Feat
 
 //
 
-export const HalogenDonorProvider = { type: FeatureType.HalogenDonor, add: addUnitHalogenDonors }
-export const HalogenAcceptorProvider = { type: FeatureType.HalogenAcceptor, add: addUnitHalogenAcceptors }
+export const HalogenDonorProvider = Features.Provider([FeatureType.HalogenDonor], addUnitHalogenDonors)
+export const HalogenAcceptorProvider = Features.Provider([FeatureType.HalogenAcceptor], addUnitHalogenAcceptors)
 
 export const HalogenBondsProvider: LinkProvider<HalogenBondsParams> = {
     name: 'halogen-bonds',

@@ -8,7 +8,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit } from '../../../mol-model/structure';
 import { Features } from './features';
 import { InteractionType, FeatureType } from './common';
-import { IntraLinksBuilder, InterLinksBuilder } from './builder';
+import { IntraLinksBuilder, InterLinksBuilder } from './links-builder';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { altLoc, connectedTo } from '../chemistry/util';
 

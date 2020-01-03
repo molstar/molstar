@@ -303,9 +303,9 @@ function testWeakHydrogenBond(structure: Structure, infoA: Features.Info, infoB:
 
 //
 
-export const HydrogenDonorProvider = { type: FeatureType.HydrogenDonor, add: addUnitHydrogenDonors }
-export const WeakHydrogenDonorProvider = { type: FeatureType.WeakHydrogenDonor, add: addUnitWeakHydrogenDonors }
-export const HydrogenAcceptorProvider = { type: FeatureType.HydrogenAcceptor, add: addUnitHydrogenAcceptors }
+export const HydrogenDonorProvider = Features.Provider([FeatureType.HydrogenDonor], addUnitHydrogenDonors)
+export const WeakHydrogenDonorProvider = Features.Provider([FeatureType.WeakHydrogenDonor], addUnitWeakHydrogenDonors)
+export const HydrogenAcceptorProvider = Features.Provider([FeatureType.HydrogenAcceptor], addUnitHydrogenAcceptors)
 
 export const HydrogenBondsProvider: LinkProvider<HydrogenBondsParams> = {
     name: 'hydrogen-bonds',
