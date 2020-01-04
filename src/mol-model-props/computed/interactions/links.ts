@@ -11,19 +11,20 @@ import { InteractionType, FeatureType } from './common';
 import { IntraLinksBuilder, InterLinksBuilder } from './links-builder';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { altLoc, connectedTo } from '../chemistry/util';
+import { OrderedSet } from '../../../mol-data/int';
 
 const MAX_DISTANCE = 5
 
 export interface LinkProvider<P extends PD.Params> {
     readonly name: string
     readonly params: P
-    readonly requiredFeatures: ReadonlyArray<FeatureType>
     createTester(props: PD.Values<P>): LinkTester
 }
 
 export interface LinkTester {
-    maxDistanceSq: number
-    getType: (structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number, ) => InteractionType | undefined
+    readonly maxDistance: number
+    readonly requiredFeatures: ReadonlySet<FeatureType>
+    getType: (structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number) => InteractionType | undefined
 }
 
 function validPair(structure: Structure, infoA: Features.Info, infoB: Features.Info): boolean {
@@ -44,36 +45,35 @@ function validPair(structure: Structure, infoA: Features.Info, infoB: Features.I
  * Add all intra-unit links, i.e. pairs of features
  */
 export function addUnitLinks(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraLinksBuilder, testers: ReadonlyArray<LinkTester>) {
-    const { x, y, z, count, lookup3d } = features
+
+    for (const tester of testers) {
+        _addUnitLinks(structure, unit, features, builder, tester)
+    }
+}
+
+function _addUnitLinks(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraLinksBuilder, tester: LinkTester) {
+    const { x, y, z } = features
+    const { lookup3d, indices: subsetIndices } = features.subset(tester.requiredFeatures)
 
     const infoA = Features.Info(structure, unit, features)
     const infoB = { ...infoA }
 
-    const maxDistanceSq = Math.max(...testers.map(t => t.maxDistanceSq))
-
-    for (let i = 0; i < count; ++i) {
-        const { count, indices, squaredDistances } = lookup3d.find(x[i], y[i], z[i], maxDistanceSq)
+    for (let t = 0, tl = OrderedSet.size(subsetIndices); t < tl; ++t) {
+        const i = OrderedSet.getAt(subsetIndices, t)
+        const { count, indices, squaredDistances } = lookup3d.find(x[i], y[i], z[i], tester.maxDistance)
         if (count === 0) continue
 
         infoA.feature = i
 
         for (let r = 0; r < count; ++r) {
-            const j = indices[r]
+            const j = OrderedSet.getAt(subsetIndices, indices[r])
             if (j <= i) continue
 
-            const distanceSq = squaredDistances[r]
             infoB.feature = j
             if (!validPair(structure, infoA, infoB)) continue
 
-            for (const tester of testers) {
-                if (distanceSq < tester.maxDistanceSq) {
-                    const type = tester.getType(structure, infoA, infoB, distanceSq)
-                    if (type) {
-                        builder.add(i, j, type)
-                        break
-                    }
-                }
-            }
+            const type = tester.getType(structure, infoA, infoB, squaredDistances[r])
+            if (type) builder.add(i, j, type)
         }
     }
 }
@@ -93,9 +93,9 @@ export function addStructureLinks(structure: Structure, unitA: Unit.Atomic, feat
     const isNotIdentity = !Mat4.isIdentity(imageTransform)
     const imageA = Vec3()
 
-    const maxDistanceSq = Math.max(...testers.map(t => t.maxDistanceSq))
+    const maxDistance = Math.max(...testers.map(t => t.maxDistance))
     const { center, radius } = lookup3d.boundary.sphere;
-    const testDistanceSq = (radius + maxDistanceSq) * (radius + maxDistanceSq);
+    const testDistanceSq = (radius + maxDistance) * (radius + maxDistance);
 
     const infoA = Features.Info(structure, unitA, featuresA)
     const infoB = Features.Info(structure, unitB, featuresB)
@@ -114,12 +114,12 @@ export function addStructureLinks(structure: Structure, unitA: Unit.Atomic, feat
 
         for (let r = 0; r < count; ++r) {
             const j = indices[r]
-            const distanceSq = squaredDistances[r]
             infoB.feature = j
             if (!validPair(structure, infoA, infoB)) continue
 
+            const distanceSq = squaredDistances[r]
             for (const tester of testers) {
-                if (distanceSq < tester.maxDistanceSq) {
+                if (distanceSq < tester.maxDistance * tester.maxDistance) {
                     const type = tester.getType(structure, infoA, infoB, distanceSq)
                     if (type) {
                         builder.add(i, j, type)

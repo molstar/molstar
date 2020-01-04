@@ -7,7 +7,7 @@
 import { StructureElement, Unit, Structure } from '../../../mol-model/structure/structure';
 import { ChunkedArray } from '../../../mol-data/util';
 import { GridLookup3D } from '../../../mol-math/geometry';
-import { OrderedSet } from '../../../mol-data/int';
+import { OrderedSet, SortedArray } from '../../../mol-data/int';
 import { FeatureGroup, FeatureType } from './common';
 import { ValenceModelProvider } from '../valence-model';
 
@@ -32,6 +32,8 @@ interface Features {
     readonly lookup3d: GridLookup3D
     /** maps unit elements to features, range for unit element i is offsets[i] to offsets[i + 1] */
     readonly elementsIndex: Features.ElementsIndex
+
+    subset(types: ReadonlySet<FeatureType>): Features.Subset
 }
 
 namespace Features {
@@ -55,6 +57,11 @@ namespace Features {
         groups: ArrayLike<FeatureGroup>
         offsets: ArrayLike<number>
         members: ArrayLike<StructureElement.UnitIndex>
+    }
+
+    export type Subset = {
+        readonly indices: OrderedSet
+        readonly lookup3d: GridLookup3D
     }
 
     export function createElementsIndex(data: Data, elementsCount: number): ElementsIndex {
@@ -96,6 +103,26 @@ namespace Features {
             get elementsIndex() {
                 return elementsIndex || (elementsIndex = createElementsIndex(data, elementsCount))
             },
+
+            subset: (types: Set<FeatureType>) => createSubset(data, types)
+        }
+    }
+
+    export function createSubset(data: Data, types: ReadonlySet<FeatureType>): Subset {
+        let lookup3d: GridLookup3D
+
+        const { count, types: _types } = data
+        const _indices = []
+        for (let i = 0; i < count; ++i) {
+            if (types.has(_types[i])) _indices.push(i)
+        }
+        const indices = SortedArray.ofSortedArray(_indices)
+
+        return {
+            indices,
+            get lookup3d() {
+                return lookup3d || (lookup3d = GridLookup3D({ x: data.x, y: data.y, z: data.z, indices }))
+            }
         }
     }
 

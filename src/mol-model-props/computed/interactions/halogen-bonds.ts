@@ -118,11 +118,11 @@ export const HalogenAcceptorProvider = Features.Provider([FeatureType.HalogenAcc
 export const HalogenBondsProvider: LinkProvider<HalogenBondsParams> = {
     name: 'halogen-bonds',
     params: HalogenBondsParams,
-    requiredFeatures: [FeatureType.HalogenDonor, FeatureType.HalogenAcceptor],
     createTester: (props: HalogenBondsProps) => {
         const opts = getOptions(props)
         return {
-            maxDistanceSq: props.distanceMax * props.distanceMax,
+            maxDistance: props.distanceMax,
+            requiredFeatures: new Set([FeatureType.HalogenDonor, FeatureType.HalogenAcceptor]),
             getType: (structure, infoA, infoB) => testHalogenBond(structure, infoA, infoB, opts)
         }
     }

@@ -310,12 +310,12 @@ export const HydrogenAcceptorProvider = Features.Provider([FeatureType.HydrogenA
 export const HydrogenBondsProvider: LinkProvider<HydrogenBondsParams> = {
     name: 'hydrogen-bonds',
     params: HydrogenBondsParams,
-    requiredFeatures: [FeatureType.HydrogenDonor, FeatureType.HydrogenAcceptor],
     createTester: (props: HydrogenBondsProps) => {
         const maxDistance = Math.max(props.distanceMax, props.sulfurDistanceMax)
         const opts = getHydrogenBondsOptions(props)
         return {
-            maxDistanceSq: maxDistance * maxDistance,
+            maxDistance,
+            requiredFeatures: new Set([FeatureType.HydrogenDonor, FeatureType.HydrogenAcceptor]),
             getType: (structure, infoA, infoB, distanceSq) => testHydrogenBond(structure, infoA, infoB, distanceSq, opts)
         }
     }
@@ -324,11 +324,11 @@ export const HydrogenBondsProvider: LinkProvider<HydrogenBondsParams> = {
 export const WeakHydrogenBondsProvider: LinkProvider<WeakHydrogenBondsParams> = {
     name: 'weak-hydrogen-bonds',
     params: WeakHydrogenBondsParams,
-    requiredFeatures: [FeatureType.WeakHydrogenDonor, FeatureType.HydrogenAcceptor],
     createTester: (props: WeakHydrogenBondsProps) => {
         const opts = getGeometryOptions(props)
         return {
-            maxDistanceSq: props.distanceMax * props.distanceMax,
+            maxDistance: props.distanceMax,
+            requiredFeatures: new Set([FeatureType.WeakHydrogenDonor, FeatureType.HydrogenAcceptor]),
             getType: (structure, infoA, infoB, distanceSq) => testWeakHydrogenBond(structure, infoA, infoB, distanceSq, opts)
         }
     }

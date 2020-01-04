@@ -155,10 +155,10 @@ export const MetalBindingProvider = Features.Provider([FeatureType.IonicTypePart
 export const MetalCoordinationProvider: LinkProvider<MetalCoordinationParams> = {
     name: 'metal-coordination',
     params: MetalCoordinationParams,
-    requiredFeatures: [FeatureType.IonicTypeMetal, FeatureType.TransitionMetal, FeatureType.IonicTypePartner, FeatureType.DativeBondPartner],
     createTester: (props: MetalCoordinationProps) => {
         return {
-            maxDistanceSq: props.distanceMax * props.distanceMax,
+            maxDistance: props.distanceMax,
+            requiredFeatures: new Set([FeatureType.IonicTypeMetal, FeatureType.TransitionMetal, FeatureType.IonicTypePartner, FeatureType.DativeBondPartner]),
             getType: (structure, infoA, infoB, distanceSq) => testMetalCoordination(structure, infoA, infoB, distanceSq)
         }
     }

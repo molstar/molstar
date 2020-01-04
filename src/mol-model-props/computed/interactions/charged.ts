@@ -378,11 +378,11 @@ export const AromaticRingProvider = Features.Provider([FeatureType.AromaticRing]
 export const IonicProvider: LinkProvider<IonicParams> = {
     name: 'ionic',
     params: IonicParams,
-    requiredFeatures: [FeatureType.NegativeCharge, FeatureType.PositiveCharge],
     createTester: (props: IonicProps) => {
         const opts = getIonicOptions(props)
         return {
-            maxDistanceSq: opts.distanceMaxSq,
+            maxDistance: props.distanceMax,
+            requiredFeatures: new Set([FeatureType.NegativeCharge, FeatureType.PositiveCharge]),
             getType: (structure, infoA, infoB, distanceSq) => testIonic(structure, infoA, infoB, distanceSq, opts)
         }
     }
@@ -391,11 +391,11 @@ export const IonicProvider: LinkProvider<IonicParams> = {
 export const PiStackingProvider: LinkProvider<PiStackingParams> = {
     name: 'pi-stacking',
     params: PiStackingParams,
-    requiredFeatures: [FeatureType.AromaticRing],
     createTester: (props: PiStackingProps) => {
         const opts = getPiStackingOptions(props)
         return {
-            maxDistanceSq: props.distanceMax * props.distanceMax,
+            maxDistance: props.distanceMax,
+            requiredFeatures: new Set([FeatureType.AromaticRing]),
             getType: (structure, infoA, infoB, distanceSq) => testPiStacking(structure, infoA, infoB, distanceSq, opts)
         }
     }
@@ -404,11 +404,11 @@ export const PiStackingProvider: LinkProvider<PiStackingParams> = {
 export const CationPiProvider: LinkProvider<CationPiParams> = {
     name: 'cation-pi',
     params: CationPiParams,
-    requiredFeatures: [FeatureType.AromaticRing, FeatureType.PositiveCharge],
     createTester: (props: CationPiProps) => {
         const opts = getCationPiOptions(props)
         return {
-            maxDistanceSq: props.distanceMax * props.distanceMax,
+            maxDistance: props.distanceMax,
+            requiredFeatures: new Set([FeatureType.AromaticRing, FeatureType.PositiveCharge]),
             getType: (structure, infoA, infoB, distanceSq) => testCationPi(structure, infoA, infoB, distanceSq, opts)
         }
     }

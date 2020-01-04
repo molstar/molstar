@@ -138,7 +138,7 @@ export const InteractionsParams = {
         'halogen-bonds',
         // 'hydrophobic',
         'metal-coordination',
-        'weak-hydrogen-bonds',
+        // 'weak-hydrogen-bonds',
     ], PD.objectToOptions(LinkProviders)),
     ...getProvidersParams()
 }
@@ -156,8 +156,8 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
     const linkTesters = linkProviders.map(l => l.createTester(p[l.name as keyof InteractionsProps]))
 
     const requiredFeatures = new Set<FeatureType>()
-    linkProviders.forEach(l => { for (const f of l.requiredFeatures) requiredFeatures.add(f) })
-    const featureProviders = FeatureProviders.filter(f => SetUtils.areIntersecting(requiredFeatures, new Set(f.types)))
+    linkTesters.forEach(l => SetUtils.add(requiredFeatures, l.requiredFeatures))
+    const featureProviders = FeatureProviders.filter(f => SetUtils.areIntersecting(requiredFeatures, f.types))
 
     const unitsFeatures = IntMap.Mutable<Features>()
     const unitsLinks = IntMap.Mutable<InteractionsIntraLinks>()
@@ -203,7 +203,7 @@ function findIntraUnitLinks(structure: Structure, unit: Unit, features: Features
 function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features>, linkTesters: ReadonlyArray<LinkTester>) {
     const builder = InterLinksBuilder.create()
 
-    const maxDistance = Math.sqrt(Math.max(...linkTesters.map(t => t.maxDistanceSq)))
+    const maxDistance = Math.max(...linkTesters.map(t => t.maxDistance))
 
     const lookup = structure.lookup3d;
     const imageCenter = Vec3.zero();

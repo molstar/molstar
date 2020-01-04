@@ -73,10 +73,10 @@ export const HydrophobicAtomProvider = Features.Provider([FeatureType.Hydrophobi
 export const HydrophobicProvider: LinkProvider<HydrophobicParams> = {
     name: 'hydrophobic',
     params: HydrophobicParams,
-    requiredFeatures: [FeatureType.HydrophobicAtom],
     createTester: (props: HydrophobicProps) => {
         return {
-            maxDistanceSq: props.distanceMax * props.distanceMax,
+            maxDistance: props.distanceMax,
+            requiredFeatures: new Set([FeatureType.HydrophobicAtom]),
             getType: (structure, infoA, infoB, distanceSq) => testHydrophobic(structure, infoA, infoB, distanceSq)
         }
     }
