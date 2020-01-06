@@ -16,7 +16,7 @@ import { Elements } from '../../../mol-model/structure/model/properties/atomic/t
 import { ValenceModelProvider } from '../valence-model';
 import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
-import { LinkProvider } from './links';
+import { ContactProvider } from './contacts';
 import { Segmentation, SortedArray } from '../../../mol-data/int';
 import { isGuanidine, isAcetamidine, isPhosphate, isSulfonicAcid, isSulfate, isCarboxylate } from '../chemistry/functional-group';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
@@ -375,7 +375,7 @@ export const NegativChargeProvider = Features.Provider([FeatureType.NegativeChar
 export const PositiveChargeProvider = Features.Provider([FeatureType.PositiveCharge], addUnitPositiveCharges)
 export const AromaticRingProvider = Features.Provider([FeatureType.AromaticRing], addUnitAromaticRings)
 
-export const IonicProvider: LinkProvider<IonicParams> = {
+export const IonicProvider: ContactProvider<IonicParams> = {
     name: 'ionic',
     params: IonicParams,
     createTester: (props: IonicProps) => {
@@ -388,7 +388,7 @@ export const IonicProvider: LinkProvider<IonicParams> = {
     }
 }
 
-export const PiStackingProvider: LinkProvider<PiStackingParams> = {
+export const PiStackingProvider: ContactProvider<PiStackingParams> = {
     name: 'pi-stacking',
     params: PiStackingParams,
     createTester: (props: PiStackingProps) => {
@@ -401,7 +401,7 @@ export const PiStackingProvider: LinkProvider<PiStackingParams> = {
     }
 }
 
-export const CationPiProvider: LinkProvider<CationPiParams> = {
+export const CationPiProvider: ContactProvider<CationPiParams> = {
     name: 'cation-pi',
     params: CationPiParams,
     createTester: (props: CationPiProps) => {

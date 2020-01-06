@@ -16,7 +16,7 @@ import { Elements } from '../../../mol-model/structure/model/properties/atomic/t
 import { ValenceModelProvider } from '../valence-model';
 import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
-import { LinkProvider } from './links';
+import { ContactProvider } from './contacts';
 import { MoleculeType, ProteinBackboneAtoms } from '../../../mol-model/structure/model/types';
 
 const GeometryParams = {
@@ -307,7 +307,7 @@ export const HydrogenDonorProvider = Features.Provider([FeatureType.HydrogenDono
 export const WeakHydrogenDonorProvider = Features.Provider([FeatureType.WeakHydrogenDonor], addUnitWeakHydrogenDonors)
 export const HydrogenAcceptorProvider = Features.Provider([FeatureType.HydrogenAcceptor], addUnitHydrogenAcceptors)
 
-export const HydrogenBondsProvider: LinkProvider<HydrogenBondsParams> = {
+export const HydrogenBondsProvider: ContactProvider<HydrogenBondsParams> = {
     name: 'hydrogen-bonds',
     params: HydrogenBondsParams,
     createTester: (props: HydrogenBondsProps) => {
@@ -321,7 +321,7 @@ export const HydrogenBondsProvider: LinkProvider<HydrogenBondsParams> = {
     }
 }
 
-export const WeakHydrogenBondsProvider: LinkProvider<WeakHydrogenBondsParams> = {
+export const WeakHydrogenBondsProvider: ContactProvider<WeakHydrogenBondsParams> = {
     name: 'weak-hydrogen-bonds',
     params: WeakHydrogenBondsParams,
     createTester: (props: WeakHydrogenBondsProps) => {

@@ -16,7 +16,7 @@ import { typeSymbol, eachBondedAtom } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
-import { LinkProvider } from './links';
+import { ContactProvider } from './contacts';
 
 const HalogenBondsParams = {
     distanceMax: PD.Numeric(4.0, { min: 1, max: 5, step: 0.1 }),
@@ -115,7 +115,7 @@ function testHalogenBond(structure: Structure, infoA: Features.Info, infoB: Feat
 export const HalogenDonorProvider = Features.Provider([FeatureType.HalogenDonor], addUnitHalogenDonors)
 export const HalogenAcceptorProvider = Features.Provider([FeatureType.HalogenAcceptor], addUnitHalogenAcceptors)
 
-export const HalogenBondsProvider: LinkProvider<HalogenBondsParams> = {
+export const HalogenBondsProvider: ContactProvider<HalogenBondsParams> = {
     name: 'halogen-bonds',
     params: HalogenBondsParams,
     createTester: (props: HalogenBondsProps) => {

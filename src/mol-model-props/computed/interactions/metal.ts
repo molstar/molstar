@@ -12,7 +12,7 @@ import { FeaturesBuilder, Features } from './features';
 import { typeSymbol, compId, atomId } from '../chemistry/util';
 import { Elements, isTransitionMetal, isHalogen } from '../../../mol-model/structure/model/properties/atomic/types';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
-import { LinkProvider } from './links';
+import { ContactProvider } from './contacts';
 import { ElementSymbol, AminoAcidNames, BaseNames, ProteinBackboneAtoms, NucleicBackboneAtoms } from '../../../mol-model/structure/model/types';
 
 export const MetalCoordinationParams = {
@@ -152,7 +152,7 @@ function testMetalCoordination(structure: Structure, infoA: Features.Info, infoB
 export const MetalProvider = Features.Provider([FeatureType.IonicTypeMetal, FeatureType.TransitionMetal], addMetal)
 export const MetalBindingProvider = Features.Provider([FeatureType.IonicTypePartner, FeatureType.DativeBondPartner], addMetalBinding)
 
-export const MetalCoordinationProvider: LinkProvider<MetalCoordinationParams> = {
+export const MetalCoordinationProvider: ContactProvider<MetalCoordinationParams> = {
     name: 'metal-coordination',
     params: MetalCoordinationParams,
     createTester: (props: MetalCoordinationProps) => {

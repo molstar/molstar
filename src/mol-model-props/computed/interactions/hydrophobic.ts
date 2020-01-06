@@ -13,7 +13,7 @@ import { FeaturesBuilder, Features } from './features';
 import { typeSymbol, eachBondedAtom } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
-import { LinkProvider } from './links';
+import { ContactProvider } from './contacts';
 
 const HydrophobicParams = {
     distanceMax: PD.Numeric(4.0, { min: 1, max: 5, step: 0.1 }),
@@ -70,7 +70,7 @@ function testHydrophobic(structure: Structure, infoA: Features.Info, infoB: Feat
 
 export const HydrophobicAtomProvider = Features.Provider([FeatureType.HydrophobicAtom], addHydrophobicAtom)
 
-export const HydrophobicProvider: LinkProvider<HydrophobicParams> = {
+export const HydrophobicProvider: ContactProvider<HydrophobicParams> = {
     name: 'hydrophobic',
     params: HydrophobicParams,
     createTester: (props: HydrophobicProps) => {

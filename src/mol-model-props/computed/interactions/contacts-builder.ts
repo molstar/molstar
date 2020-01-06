@@ -6,20 +6,20 @@
 
 import { Features } from './features';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
-import { InteractionType, InteractionsIntraLinks, InteractionsInterLinks } from './common';
+import { InteractionType, InteractionsIntraContacts, InteractionsInterContacts } from './common';
 import { Unit, StructureElement } from '../../../mol-model/structure/structure';
 import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph';
 import { UniqueArray } from '../../../mol-data/generic';
 
-export { IntraLinksBuilder }
+export { IntraContactsBuilder }
 
-interface IntraLinksBuilder {
+interface IntraContactsBuilder {
     add: (indexA: number, indexB: number, type: InteractionType) => void
-    getLinks: () => InteractionsIntraLinks
+    getLinks: () => InteractionsIntraContacts
 }
 
-namespace IntraLinksBuilder {
-    export function create(features: Features, elementsCount: number): IntraLinksBuilder {
+namespace IntraContactsBuilder {
+    export function create(features: Features, elementsCount: number): IntraContactsBuilder {
         const aIndices: number[] = []
         const bIndices: number[] = []
         const types: number[] = []
@@ -43,31 +43,31 @@ namespace IntraLinksBuilder {
     }
 }
 
-export { InterLinksBuilder }
+export { InterContactsBuilder }
 
-interface InterLinksBuilder {
+interface InterContactsBuilder {
     startUnitPair: (unitA: Unit, unitB: Unit) => void
     finishUnitPair: () => void
     add: (indexA: number, indexB: number, type: InteractionType) => void
-    getLinks: () => InteractionsInterLinks
+    getLinks: () => InteractionsInterContacts
 }
 
-namespace InterLinksBuilder {
+namespace InterContactsBuilder {
     function addMapEntry<A, B>(map: Map<A, B[]>, a: A, b: B) {
         if (map.has(a)) map.get(a)!.push(b);
         else map.set(a, [b]);
     }
 
-    export function create(): InterLinksBuilder {
+    export function create(): InterContactsBuilder {
         let uA: Unit
         let uB: Unit
-        let mapAB: Map<number, InteractionsInterLinks.Info[]>
-        let mapBA: Map<number, InteractionsInterLinks.Info[]>
+        let mapAB: Map<number, InteractionsInterContacts.Info[]>
+        let mapBA: Map<number, InteractionsInterContacts.Info[]>
         let bondedA: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
         let bondedB: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
         let bondCount: number
 
-        const map = new Map<number, InteractionsInterLinks.Pair[]>();
+        const map = new Map<number, InteractionsInterContacts.Pair[]>();
 
         return {
             startUnitPair(unitA: Unit, unitB: Unit) {
@@ -81,8 +81,8 @@ namespace InterLinksBuilder {
             },
             finishUnitPair() {
                 if (bondCount === 0) return
-                addMapEntry(map, uA.id, new InteractionsInterLinks.Pair(uA, uB, bondCount, bondedA.array, mapAB))
-                addMapEntry(map, uB.id, new InteractionsInterLinks.Pair(uB, uA, bondCount, bondedB.array, mapBA))
+                addMapEntry(map, uA.id, new InteractionsInterContacts.Pair(uA, uB, bondCount, bondedA.array, mapAB))
+                addMapEntry(map, uB.id, new InteractionsInterContacts.Pair(uB, uA, bondCount, bondedB.array, mapBA))
             },
             add(indexA: number, indexB: number, type: InteractionType) {
                 addMapEntry(mapAB, indexA, { indexB, props: { type } })

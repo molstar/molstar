@@ -9,11 +9,11 @@ import { Structure, Unit } from '../../../mol-model/structure';
 import { RuntimeContext } from '../../../mol-task';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
-import { InteractionsIntraLinks, InteractionsInterLinks, FeatureType } from './common';
-import { IntraLinksBuilder, InterLinksBuilder } from './links-builder';
+import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType } from './common';
+import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
 import { IntMap } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { addUnitLinks, LinkTester, addStructureLinks, LinkProvider } from './links';
+import { addUnitContacts, ContactTester, addStructureContacts, ContactProvider } from './contacts';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds';
 import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
 import { NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider, IonicProvider, PiStackingProvider, CationPiProvider } from './charged';
@@ -27,9 +27,9 @@ interface Interactions {
     /** Features of each unit */
     unitsFeatures: IntMap<Features>
     /** Interactions of each unit */
-    unitsLinks: IntMap<InteractionsIntraLinks>
+    unitsLinks: IntMap<InteractionsIntraContacts>
     /** Interactions between units */
-    links: InteractionsInterLinks
+    links: InteractionsInterContacts
 }
 
 namespace Interactions {
@@ -149,7 +149,7 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props }
     await ValenceModelProvider.attach(structure).runInContext(runtime)
 
-    const linkProviders: LinkProvider<any>[] = []
+    const linkProviders: ContactProvider<any>[] = []
     Object.keys(LinkProviders).forEach(k => {
         if (p.types.includes(k)) linkProviders.push(LinkProviders[k as keyof typeof LinkProviders])
     })
@@ -160,7 +160,7 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
     const featureProviders = FeatureProviders.filter(f => SetUtils.areIntersecting(requiredFeatures, f.types))
 
     const unitsFeatures = IntMap.Mutable<Features>()
-    const unitsLinks = IntMap.Mutable<InteractionsIntraLinks>()
+    const unitsLinks = IntMap.Mutable<InteractionsIntraContacts>()
 
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
         const group = structure.unitSymmetryGroups[i]
@@ -192,16 +192,16 @@ function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Fe
     return featuresBuilder.getFeatures(count)
 }
 
-function findIntraUnitLinks(structure: Structure, unit: Unit, features: Features, linkTesters: ReadonlyArray<LinkTester>) {
-    const linksBuilder = IntraLinksBuilder.create(features, unit.elements.length)
+function findIntraUnitLinks(structure: Structure, unit: Unit, features: Features, linkTesters: ReadonlyArray<ContactTester>) {
+    const linksBuilder = IntraContactsBuilder.create(features, unit.elements.length)
     if (Unit.isAtomic(unit)) {
-        addUnitLinks(structure, unit, features, linksBuilder, linkTesters)
+        addUnitContacts(structure, unit, features, linksBuilder, linkTesters)
     }
     return linksBuilder.getLinks()
 }
 
-function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features>, linkTesters: ReadonlyArray<LinkTester>) {
-    const builder = InterLinksBuilder.create()
+function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features>, linkTesters: ReadonlyArray<ContactTester>) {
+    const builder = InterContactsBuilder.create()
 
     const maxDistance = Math.max(...linkTesters.map(t => t.maxDistance))
 
@@ -224,9 +224,9 @@ function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features
             const featuresB = unitsFeatures.get(unitB.id)
 
             if (unitB.elements.length >= unitA.elements.length) {
-                addStructureLinks(structure, unitA, featuresA, unitB, featuresB, builder, linkTesters)
+                addStructureContacts(structure, unitA, featuresA, unitB, featuresB, builder, linkTesters)
             } else {
-                addStructureLinks(structure, unitB, featuresB, unitA, featuresA, builder, linkTesters)
+                addStructureContacts(structure, unitB, featuresB, unitA, featuresA, builder, linkTesters)
             }
         }
     }

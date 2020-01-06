@@ -8,11 +8,11 @@ import { IntAdjacencyGraph } from '../../../mol-math/graph'
 import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph'
 import { Unit } from '../../../mol-model/structure'
 
-export type InteractionsIntraLinks = IntAdjacencyGraph<{ readonly type: ArrayLike<InteractionType> }>
+export type InteractionsIntraContacts = IntAdjacencyGraph<{ readonly type: ArrayLike<InteractionType> }>
 
-export { InteractionsInterLinks }
-type InteractionsInterLinks = InterUnitGraph<Unit, number, { type: InteractionType }>
-namespace InteractionsInterLinks {
+export { InteractionsInterContacts }
+type InteractionsInterContacts = InterUnitGraph<Unit, number, { type: InteractionType }>
+namespace InteractionsInterContacts {
     export class Pair extends InterUnitGraph.UnitPairEdges<Unit, number, { type: InteractionType }> {}
     export type Info = InterUnitGraph.EdgeInfo<number, { type: InteractionType }>
 }

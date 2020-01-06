@@ -8,20 +8,20 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit } from '../../../mol-model/structure';
 import { Features } from './features';
 import { InteractionType, FeatureType } from './common';
-import { IntraLinksBuilder, InterLinksBuilder } from './links-builder';
+import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { altLoc, connectedTo } from '../chemistry/util';
 import { OrderedSet } from '../../../mol-data/int';
 
 const MAX_DISTANCE = 5
 
-export interface LinkProvider<P extends PD.Params> {
+export interface ContactProvider<P extends PD.Params> {
     readonly name: string
     readonly params: P
-    createTester(props: PD.Values<P>): LinkTester
+    createTester(props: PD.Values<P>): ContactTester
 }
 
-export interface LinkTester {
+export interface ContactTester {
     readonly maxDistance: number
     readonly requiredFeatures: ReadonlySet<FeatureType>
     getType: (structure: Structure, infoA: Features.Info, infoB: Features.Info, distanceSq: number) => InteractionType | undefined
@@ -42,16 +42,16 @@ function validPair(structure: Structure, infoA: Features.Info, infoB: Features.I
 }
 
 /**
- * Add all intra-unit links, i.e. pairs of features
+ * Add all intra-unit contacts, i.e. pairs of features
  */
-export function addUnitLinks(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraLinksBuilder, testers: ReadonlyArray<LinkTester>) {
+export function addUnitContacts(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraContactsBuilder, testers: ReadonlyArray<ContactTester>) {
 
     for (const tester of testers) {
-        _addUnitLinks(structure, unit, features, builder, tester)
+        _addUnitContacts(structure, unit, features, builder, tester)
     }
 }
 
-function _addUnitLinks(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraLinksBuilder, tester: LinkTester) {
+function _addUnitContacts(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraContactsBuilder, tester: ContactTester) {
     const { x, y, z } = features
     const { lookup3d, indices: subsetIndices } = features.subset(tester.requiredFeatures)
 
@@ -81,9 +81,9 @@ function _addUnitLinks(structure: Structure, unit: Unit.Atomic, features: Featur
 const _imageTransform = Mat4()
 
 /**
- * Add all inter-unit links, i.e. pairs of features
+ * Add all inter-unit contacts, i.e. pairs of features
  */
-export function addStructureLinks(structure: Structure, unitA: Unit.Atomic, featuresA: Features, unitB: Unit.Atomic, featuresB: Features, builder: InterLinksBuilder, testers: ReadonlyArray<LinkTester>) {
+export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, featuresA: Features, unitB: Unit.Atomic, featuresB: Features, builder: InterContactsBuilder, testers: ReadonlyArray<ContactTester>) {
     const { count, x: xA, y: yA, z: zA } = featuresA;
     const { lookup3d } = featuresB;
 
