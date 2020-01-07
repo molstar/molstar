@@ -226,11 +226,11 @@ function getGeometryOptions(props: GeometryProps) {
 type GeometryOptions = ReturnType<typeof getGeometryOptions>
 
 function getHydrogenBondsOptions(props: HydrogenBondsProps) {
-    const maxDist = Math.max(props.distanceMax, props.sulfurDistanceMax)
     return {
         ...getGeometryOptions(props),
         includeWater: props.water,
-        maxHbondDistSq: maxDist * maxDist
+        maxSulfurDistSq: props.sulfurDistanceMax *  props.sulfurDistanceMax,
+        maxDistSq: props.distanceMax *  props.distanceMax
     }
 }
 type HydrogenBondsOptions = ReturnType<typeof getHydrogenBondsOptions>
@@ -278,8 +278,9 @@ function testHydrogenBond(structure: Structure, infoA: Features.Info, infoB: Fea
     const donIndex = don.members[don.offsets[don.feature]]
     const accIndex = acc.members[acc.offsets[acc.feature]]
 
-    // check if distance is ok for non-sulfur-containing hbond
-    if (typeSymbol(don.unit, donIndex) !== Elements.S && typeSymbol(acc.unit, accIndex) !== Elements.S && distanceSq > opts.maxHbondDistSq) return
+    // check if distance is ok depending on non-sulfur-containing hbond
+    const maxDistSq = typeSymbol(don.unit, donIndex) === Elements.S || typeSymbol(acc.unit, accIndex) === Elements.S ? opts.maxSulfurDistSq : opts.maxDistSq
+    if (distanceSq > maxDistSq) return
 
     if (!opts.includeWater && isWaterHydrogenBond(don.unit, donIndex, acc.unit, accIndex)) return
 
