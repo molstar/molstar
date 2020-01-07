@@ -20,14 +20,15 @@ import { BondType } from '../../../mol-model/structure/model/types';
 import { Interactions } from '../../../mol-model-props/computed/interactions/interactions';
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { InteractionFlag } from '../../../mol-model-props/computed/interactions/common';
 
 function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InteractionsInterUnitParams>, mesh?: Mesh) {
     if (!structure.hasAtomic) return Mesh.createEmpty(mesh)
 
     const interactions = InteractionsProvider.getValue(structure).value!
-    const { links, unitsFeatures } = interactions
+    const { contacts, unitsFeatures } = interactions
 
-    const { edgeCount, edges } = links
+    const { edgeCount, edges } = contacts
     const { sizeFactor } = props
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
@@ -47,7 +48,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
         order: (edgeIndex: number) => 1,
         flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO
         radius: (edgeIndex: number) => sizeFactor,
-        ignore: () => false
+        ignore: (edgeIndex: number) => edges[edgeIndex].props.flag === InteractionFlag.Filtered
     }
 
     return createBondCylinderMesh(ctx, builderProps, props, mesh)
@@ -87,10 +88,10 @@ function getInteractionLoci(pickingId: PickingId, structure: Structure, id: numb
     const { objectId, groupId } = pickingId
     if (id === objectId) {
         const interactions = InteractionsProvider.getValue(structure).value!
-        const l = interactions.links.edges[groupId]
+        const c = interactions.contacts.edges[groupId]
         return Interactions.Loci(structure, interactions, [
-            { unitA: l.unitA, indexA: l.indexA, unitB: l.unitB, indexB: l.indexB },
-            { unitA: l.unitB, indexA: l.indexB, unitB: l.unitA, indexB: l.indexA },
+            { unitA: c.unitA, indexA: c.indexA, unitB: c.unitB, indexB: c.indexB },
+            { unitA: c.unitB, indexA: c.indexB, unitB: c.unitA, indexB: c.indexA },
         ])
     }
     return EmptyLoci
@@ -102,10 +103,10 @@ function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Int
         if (!Structure.areEquivalent(loci.structure, structure)) return false
         const interactions = InteractionsProvider.getValue(structure).value!
         if (loci.interactions !== interactions) return false
-        const { links } = interactions
+        const { contacts } = interactions
 
         for (const l of loci.links) {
-            const idx = links.getEdgeIndex(l.indexA, l.unitA, l.indexB, l.unitB)
+            const idx = contacts.getEdgeIndex(l.indexA, l.unitA, l.indexB, l.unitB)
             if (idx !== -1) {
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }
@@ -116,16 +117,16 @@ function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Int
 
 function createInteractionsIterator(structure: Structure): LocationIterator {
     const interactions = InteractionsProvider.getValue(structure).value!
-    const { links } = interactions
-    const groupCount = links.edgeCount
+    const { contacts } = interactions
+    const groupCount = contacts.edgeCount
     const instanceCount = 1
     const location = Interactions.Location(interactions)
     const getLocation = (groupIndex: number) => {
-        const link = links.edges[groupIndex]
-        location.unitA = link.unitA
-        location.indexA = link.indexA
-        location.unitB = link.unitB
-        location.indexB = link.indexB
+        const c = contacts.edges[groupIndex]
+        location.unitA = c.unitA
+        location.indexA = c.indexA
+        location.unitB = c.unitB
+        location.indexB = c.indexB
         return location
     }
     return LocationIterator(groupCount, instanceCount, getLocation, true)

@@ -13,13 +13,14 @@ import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType } fro
 import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
 import { IntMap } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { addUnitContacts, ContactTester, addStructureContacts, ContactProvider } from './contacts';
+import { addUnitContacts, ContactTester, addStructureContacts, ContactProvider, ContactsParams, ContactsProps } from './contacts';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds';
 import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
 import { NegativChargeProvider, PositiveChargeProvider, AromaticRingProvider, IonicProvider, PiStackingProvider, CationPiProvider } from './charged';
 import { HydrophobicAtomProvider, HydrophobicProvider } from './hydrophobic';
 import { SetUtils } from '../../../mol-util/set';
 import { MetalCoordinationProvider, MetalProvider, MetalBindingProvider } from './metal';
+import { refineInteractions } from './refine';
 
 export { Interactions }
 
@@ -27,9 +28,9 @@ interface Interactions {
     /** Features of each unit */
     unitsFeatures: IntMap<Features>
     /** Interactions of each unit */
-    unitsLinks: IntMap<InteractionsIntraContacts>
+    unitsContacts: IntMap<InteractionsIntraContacts>
     /** Interactions between units */
-    links: InteractionsInterContacts
+    contacts: InteractionsInterContacts
 }
 
 namespace Interactions {
@@ -140,12 +141,13 @@ export const InteractionsParams = {
         'metal-coordination',
         // 'weak-hydrogen-bonds',
     ], PD.objectToOptions(LinkProviders)),
+    contacts: PD.Group(ContactsParams, { isFlat: true }),
     ...getProvidersParams()
 }
 export type InteractionsParams = typeof InteractionsParams
 export type InteractionsProps = PD.Values<InteractionsParams>
 
-export async function computeInteractions(runtime: RuntimeContext, structure: Structure, props: Partial<InteractionsProps>) {
+export async function computeInteractions(runtime: RuntimeContext, structure: Structure, props: Partial<InteractionsProps>): Promise<Interactions> {
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props }
     await ValenceModelProvider.attach(structure).runInContext(runtime)
 
@@ -160,7 +162,7 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
     const featureProviders = FeatureProviders.filter(f => SetUtils.areIntersecting(requiredFeatures, f.types))
 
     const unitsFeatures = IntMap.Mutable<Features>()
-    const unitsLinks = IntMap.Mutable<InteractionsIntraContacts>()
+    const unitsContacts = IntMap.Mutable<InteractionsIntraContacts>()
 
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
         const group = structure.unitSymmetryGroups[i]
@@ -168,17 +170,19 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
             await runtime.update({ message: 'computing interactions', current: i, max: il })
         }
         const features = findUnitFeatures(structure, group.units[0], featureProviders)
-        const intraUnitLinks = findIntraUnitLinks(structure, group.units[0], features, linkTesters)
+        const intraUnitLinks = findIntraUnitContacts(structure, group.units[0], features, linkTesters, p.contacts)
         for (let j = 0, jl = group.units.length; j < jl; ++j) {
             const u = group.units[j]
             unitsFeatures.set(u.id, features)
-            unitsLinks.set(u.id, intraUnitLinks)
+            unitsContacts.set(u.id, intraUnitLinks)
         }
     }
 
-    const links = findInterUnitLinks(structure, unitsFeatures, linkTesters)
+    const contacts = findInterUnitContacts(structure, unitsFeatures, linkTesters, p.contacts)
 
-    return { unitsFeatures, unitsLinks, links }
+    const interactions = { unitsFeatures, unitsContacts, contacts }
+    refineInteractions(structure, interactions)
+    return interactions
 }
 
 function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Features.Provider[]) {
@@ -192,18 +196,18 @@ function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Fe
     return featuresBuilder.getFeatures(count)
 }
 
-function findIntraUnitLinks(structure: Structure, unit: Unit, features: Features, linkTesters: ReadonlyArray<ContactTester>) {
+function findIntraUnitContacts(structure: Structure, unit: Unit, features: Features, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps) {
     const linksBuilder = IntraContactsBuilder.create(features, unit.elements.length)
     if (Unit.isAtomic(unit)) {
-        addUnitContacts(structure, unit, features, linksBuilder, linkTesters)
+        addUnitContacts(structure, unit, features, linksBuilder, contactTesters, props)
     }
-    return linksBuilder.getLinks()
+    return linksBuilder.getContacts()
 }
 
-function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features>, linkTesters: ReadonlyArray<ContactTester>) {
+function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Features>, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps) {
     const builder = InterContactsBuilder.create()
 
-    const maxDistance = Math.max(...linkTesters.map(t => t.maxDistance))
+    const maxDistance = Math.max(...contactTesters.map(t => t.maxDistance))
 
     const lookup = structure.lookup3d;
     const imageCenter = Vec3.zero();
@@ -224,12 +228,12 @@ function findInterUnitLinks(structure: Structure, unitsFeatures: IntMap<Features
             const featuresB = unitsFeatures.get(unitB.id)
 
             if (unitB.elements.length >= unitA.elements.length) {
-                addStructureContacts(structure, unitA, featuresA, unitB, featuresB, builder, linkTesters)
+                addStructureContacts(structure, unitA, featuresA, unitB, featuresB, builder, contactTesters, props)
             } else {
-                addStructureContacts(structure, unitB, featuresB, unitA, featuresA, builder, linkTesters)
+                addStructureContacts(structure, unitB, featuresB, unitA, featuresA, builder, contactTesters, props)
             }
         }
     }
 
-    return builder.getLinks()
+    return builder.getContacts()
 }

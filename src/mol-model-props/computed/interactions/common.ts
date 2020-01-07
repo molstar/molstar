@@ -7,14 +7,25 @@
 import { IntAdjacencyGraph } from '../../../mol-math/graph'
 import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph'
 import { Unit } from '../../../mol-model/structure'
+import { AssignableArrayLike } from '../../../mol-util/type-helpers'
 
-export type InteractionsIntraContacts = IntAdjacencyGraph<{ readonly type: ArrayLike<InteractionType> }>
+type IntraProps = {
+    readonly type: ArrayLike<InteractionType>
+    readonly flag: AssignableArrayLike<InteractionFlag>
+}
+export type InteractionsIntraContacts = IntAdjacencyGraph<IntraProps>
 
 export { InteractionsInterContacts }
-type InteractionsInterContacts = InterUnitGraph<Unit, number, { type: InteractionType }>
+type InterProps = { type: InteractionType, flag: InteractionFlag }
+type InteractionsInterContacts = InterUnitGraph<Unit, number, InterProps>
 namespace InteractionsInterContacts {
-    export class Pair extends InterUnitGraph.UnitPairEdges<Unit, number, { type: InteractionType }> {}
-    export type Info = InterUnitGraph.EdgeInfo<number, { type: InteractionType }>
+    export class Pair extends InterUnitGraph.UnitPairEdges<Unit, number, InterProps> {}
+    export type Info = InterUnitGraph.EdgeInfo<number, InterProps>
+}
+
+export const enum InteractionFlag {
+    None = 0,
+    Filtered = 1,
 }
 
 export const enum InteractionType {

@@ -80,12 +80,12 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
             if (Interactions.isLocation(location)) {
                 const { interactions, unitA, indexA, unitB, indexB } = location
                 if (location.unitA === location.unitB) {
-                    const links = interactions.unitsLinks.get(location.unitA.id)
+                    const links = interactions.unitsContacts.get(location.unitA.id)
                     const idx = links.getDirectedEdgeIndex(location.indexA, location.indexB)
                     return typeColor(links.edgeProps.type[idx])
                 } else {
-                    const idx = interactions.links.getEdgeIndex(indexA, unitA, indexB, unitB)
-                    return typeColor(interactions.links.edges[idx].props.type)
+                    const idx = interactions.contacts.getEdgeIndex(indexA, unitA, indexB, unitB)
+                    return typeColor(interactions.contacts.edges[idx].props.type)
                 }
             }
             return DefaultColor

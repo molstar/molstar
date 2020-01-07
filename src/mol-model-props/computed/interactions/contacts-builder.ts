@@ -6,16 +6,17 @@
 
 import { Features } from './features';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
-import { InteractionType, InteractionsIntraContacts, InteractionsInterContacts } from './common';
+import { InteractionType, InteractionsIntraContacts, InteractionsInterContacts, InteractionFlag } from './common';
 import { Unit, StructureElement } from '../../../mol-model/structure/structure';
 import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph';
 import { UniqueArray } from '../../../mol-data/generic';
+import { NumberArray } from '../../../mol-util/type-helpers';
 
 export { IntraContactsBuilder }
 
 interface IntraContactsBuilder {
     add: (indexA: number, indexB: number, type: InteractionType) => void
-    getLinks: () => InteractionsIntraContacts
+    getContacts: () => InteractionsIntraContacts
 }
 
 namespace IntraContactsBuilder {
@@ -30,14 +31,15 @@ namespace IntraContactsBuilder {
                 bIndices[bIndices.length] = indexB
                 types[types.length] = type
             },
-            getLinks() {
+            getContacts() {
                 const builder = new IntAdjacencyGraph.EdgeBuilder(features.count, aIndices, bIndices)
                 const type = new Int8Array(builder.slotCount) as ArrayLike<InteractionType>
+                const flag = new Int8Array(builder.slotCount) as NumberArray
                 for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
                     builder.addNextEdge()
                     builder.assignProperty(type, types[i])
                 }
-                return builder.createGraph({ type })
+                return builder.createGraph({ type, flag })
             }
         }
     }
@@ -49,7 +51,7 @@ interface InterContactsBuilder {
     startUnitPair: (unitA: Unit, unitB: Unit) => void
     finishUnitPair: () => void
     add: (indexA: number, indexB: number, type: InteractionType) => void
-    getLinks: () => InteractionsInterContacts
+    getContacts: () => InteractionsInterContacts
 }
 
 namespace InterContactsBuilder {
@@ -85,13 +87,13 @@ namespace InterContactsBuilder {
                 addMapEntry(map, uB.id, new InteractionsInterContacts.Pair(uB, uA, bondCount, bondedB.array, mapBA))
             },
             add(indexA: number, indexB: number, type: InteractionType) {
-                addMapEntry(mapAB, indexA, { indexB, props: { type } })
-                addMapEntry(mapBA, indexB, { indexB: indexA, props: { type } })
+                addMapEntry(mapAB, indexA, { indexB, props: { type, flag: InteractionFlag.None } })
+                addMapEntry(mapBA, indexB, { indexB: indexA, props: { type, flag: InteractionFlag.None } })
                 UniqueArray.add(bondedA, indexA, indexA)
                 UniqueArray.add(bondedB, indexB, indexB)
                 bondCount += 1
             },
-            getLinks() {
+            getContacts() {
                 return new InterUnitGraph(map);
             }
         }

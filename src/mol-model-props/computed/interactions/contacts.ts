@@ -5,15 +5,23 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Structure, Unit } from '../../../mol-model/structure';
+import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
 import { Features } from './features';
 import { InteractionType, FeatureType } from './common';
 import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { altLoc, connectedTo } from '../chemistry/util';
+import { altLoc, connectedTo, typeSymbol } from '../chemistry/util';
 import { OrderedSet } from '../../../mol-data/int';
+import { VdwRadius } from '../../../mol-model/structure/model/properties/atomic';
+import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 
-const MAX_DISTANCE = 5
+export const ContactsParams = {
+    lineOfSightDistFactor: PD.Numeric(1.0, { min: 0, max: 3, step: 0.1 }),
+}
+export type ContactsParams = typeof ContactsParams
+export type ContactsProps = PD.Values<ContactsParams>
+
+const MAX_LINE_OF_SIGHT_DISTANCE = 3
 
 export interface ContactProvider<P extends PD.Params> {
     readonly name: string
@@ -41,22 +49,100 @@ function validPair(structure: Structure, infoA: Features.Info, infoB: Features.I
     return true
 }
 
-/**
- * Add all intra-unit contacts, i.e. pairs of features
- */
-export function addUnitContacts(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraContactsBuilder, testers: ReadonlyArray<ContactTester>) {
+//
 
-    for (const tester of testers) {
-        _addUnitContacts(structure, unit, features, builder, tester)
+function invalidAltLoc (unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex) {
+    const altA = altLoc(unitA, indexA)
+    const altB = altLoc(unitB, indexB)
+    return altA && altB && altA !== altB
+}
+
+function isMember(element: StructureElement.UnitIndex, info: Features.Info) {
+    const { feature, offsets, members } = info
+    for (let i = offsets[feature], il = offsets[feature + 1]; i < il; ++i) {
+        if (members[i] === element) return true
+    }
+    return false
+}
+
+const tmpVec = Vec3()
+const tmpVecA = Vec3()
+const tmpVecB = Vec3()
+
+function _checkLineOfSight(infoA: Features.Info, infoB: Features.Info, distFactor: number) {
+    const unit = infoA.unit
+    const featureA = infoA.feature
+    const featureB = infoB.feature
+    const indexA = infoA.members[infoA.offsets[featureA]]
+    const indexB = infoB.members[infoB.offsets[featureB]]
+
+    Vec3.set(tmpVecA, infoA.x[featureA], infoA.y[featureA], infoA.z[featureA])
+    Vec3.transformMat4(tmpVecA, tmpVecA, infoA.unit.conformation.operator.matrix)
+    Vec3.set(tmpVecB, infoB.x[featureB], infoB.y[featureB], infoB.z[featureB])
+    Vec3.transformMat4(tmpVecB, tmpVecB, infoB.unit.conformation.operator.matrix)
+    Vec3.scale(tmpVec, Vec3.add(tmpVec, tmpVecA, tmpVecB), 0.5)
+
+    const pos = unit.conformation.position
+    const distMax = distFactor * MAX_LINE_OF_SIGHT_DISTANCE
+
+    const { count, indices, squaredDistances } = unit.lookup3d.find(tmpVec[0], tmpVec[1], tmpVec[2], distMax)
+    if (count === 0) true
+
+    for (let r = 0; r < count; ++r) {
+        const i = indices[r] as StructureElement.UnitIndex
+
+        const element = typeSymbol(unit, i)
+        // allow hydrogens
+        if (element === Elements.H) continue
+
+        const vdw = VdwRadius(element)
+        // check distance
+        if (vdw * vdw * distFactor * distFactor <= squaredDistances[r]) continue
+
+        // allow different altlocs
+        if (invalidAltLoc(unit, i, infoA.unit, indexA) || invalidAltLoc(unit, i, infoB.unit, indexB)) continue
+
+        // allow member atoms
+        if (isMember(i, infoA) || (infoB.unit === unit && isMember(i, infoB))) continue
+
+        pos(unit.elements[i], tmpVec)
+        // allow atoms at the center of functional groups
+        if (Vec3.squaredDistance(tmpVec, tmpVecA) < 1 || Vec3.squaredDistance(tmpVec, tmpVecB) < 1) continue
+
+        return false
+    }
+
+    return true
+}
+
+function checkLineOfSight(infoA: Features.Info, infoB: Features.Info, distFactor: number) {
+    if (infoA.unit === infoB.unit) {
+        return _checkLineOfSight(infoA, infoB, distFactor)
+    } else {
+        return (
+            _checkLineOfSight(infoA, infoB, distFactor) &&
+            _checkLineOfSight(infoB, infoA, distFactor)
+        )
     }
 }
 
-function _addUnitContacts(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraContactsBuilder, tester: ContactTester) {
+/**
+ * Add all intra-unit contacts, i.e. pairs of features
+ */
+export function addUnitContacts(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraContactsBuilder, testers: ReadonlyArray<ContactTester>, props: ContactsProps) {
+    for (const tester of testers) {
+        _addUnitContacts(structure, unit, features, builder, tester, props)
+    }
+}
+
+function _addUnitContacts(structure: Structure, unit: Unit.Atomic, features: Features, builder: IntraContactsBuilder, tester: ContactTester, props: ContactsProps) {
     const { x, y, z } = features
     const { lookup3d, indices: subsetIndices } = features.subset(tester.requiredFeatures)
 
     const infoA = Features.Info(structure, unit, features)
     const infoB = { ...infoA }
+
+    const distFactor = props.lineOfSightDistFactor
 
     for (let t = 0, tl = OrderedSet.size(subsetIndices); t < tl; ++t) {
         const i = OrderedSet.getAt(subsetIndices, t)
@@ -73,7 +159,9 @@ function _addUnitContacts(structure: Structure, unit: Unit.Atomic, features: Fea
             if (!validPair(structure, infoA, infoB)) continue
 
             const type = tester.getType(structure, infoA, infoB, squaredDistances[r])
-            if (type) builder.add(i, j, type)
+            if (type && checkLineOfSight(infoA, infoB, distFactor)) {
+                builder.add(i, j, type)
+            }
         }
     }
 }
@@ -83,7 +171,7 @@ const _imageTransform = Mat4()
 /**
  * Add all inter-unit contacts, i.e. pairs of features
  */
-export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, featuresA: Features, unitB: Unit.Atomic, featuresB: Features, builder: InterContactsBuilder, testers: ReadonlyArray<ContactTester>) {
+export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, featuresA: Features, unitB: Unit.Atomic, featuresB: Features, builder: InterContactsBuilder, testers: ReadonlyArray<ContactTester>, props: ContactsProps) {
     const { count, x: xA, y: yA, z: zA } = featuresA;
     const { lookup3d } = featuresB;
 
@@ -97,6 +185,8 @@ export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, f
     const { center, radius } = lookup3d.boundary.sphere;
     const testDistanceSq = (radius + maxDistance) * (radius + maxDistance);
 
+    const distFactor = props.lineOfSightDistFactor
+
     const infoA = Features.Info(structure, unitA, featuresA)
     const infoB = Features.Info(structure, unitB, featuresB)
 
@@ -107,7 +197,7 @@ export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, f
         if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform)
         if (Vec3.squaredDistance(imageA, center) > testDistanceSq) continue
 
-        const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], MAX_DISTANCE)
+        const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], maxDistance)
         if (count === 0) continue
 
         infoA.feature = i
@@ -121,7 +211,7 @@ export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, f
             for (const tester of testers) {
                 if (distanceSq < tester.maxDistance * tester.maxDistance) {
                     const type = tester.getType(structure, infoA, infoB, distanceSq)
-                    if (type) {
+                    if (type && checkLineOfSight(infoA, infoB, distFactor)) {
                         builder.add(i, j, type)
                         break
                     }

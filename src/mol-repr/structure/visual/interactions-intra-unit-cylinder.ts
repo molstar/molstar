@@ -20,16 +20,17 @@ import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '.
 import { VisualUpdateState } from '../../util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { Interactions } from '../../../mol-model-props/computed/interactions/interactions';
+import { InteractionFlag } from '../../../mol-model-props/computed/interactions/common';
 
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const interactions = InteractionsProvider.getValue(structure).value!
     const features = interactions.unitsFeatures.get(unit.id)
-    const links = interactions.unitsLinks.get(unit.id)
+    const contacts = interactions.unitsContacts.get(unit.id)
 
     const { x, y, z } = features
-    const { edgeCount, a, b } = links
+    const { edgeCount, a, b, edgeProps: { flag } } = contacts
     const { sizeFactor } = props
     const { matrix } = unit.conformation.operator
 
@@ -47,7 +48,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         order: (edgeIndex: number) => 1,
         flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO
         radius: (edgeIndex: number) => sizeFactor,
-        ignore: () => false
+        ignore: (edgeIndex: number) => flag[edgeIndex] === InteractionFlag.Filtered
     }
 
     return createBondCylinderMesh(ctx, builderProps, props, mesh)
@@ -89,10 +90,10 @@ function getInteractionLoci(pickingId: PickingId, structureGroup: StructureGroup
         const { structure, group } = structureGroup
         const unit = structure.unitMap.get(group.units[instanceId].id)
         const interactions = InteractionsProvider.getValue(structure).value!
-        const links = interactions.unitsLinks.get(unit.id)
+        const contacts = interactions.unitsContacts.get(unit.id)
         return Interactions.Loci(structure, interactions, [
-            { unitA: unit, indexA: links.a[groupId], unitB: unit, indexB: links.b[groupId] },
-            { unitA: unit, indexA: links.b[groupId], unitB: unit, indexB: links.a[groupId] },
+            { unitA: unit, indexA: contacts.a[groupId], unitB: unit, indexB: contacts.b[groupId] },
+            { unitA: unit, indexA: contacts.b[groupId], unitB: unit, indexB: contacts.a[groupId] },
         ])
     }
     return EmptyLoci
@@ -106,12 +107,12 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
         const interactions = InteractionsProvider.getValue(structure).value!
         if (loci.interactions !== interactions) return false
         const unit = group.units[0]
-        const links = interactions.unitsLinks.get(unit.id)
-        const groupCount = links.edgeCount * 2
+        const contacts = interactions.unitsContacts.get(unit.id)
+        const groupCount = contacts.edgeCount * 2
         for (const l of loci.links) {
             const unitIdx = group.unitIndexMap.get(l.unitA.id)
             if (unitIdx !== undefined) {
-                const idx = links.getDirectedEdgeIndex(l.indexA, l.indexB)
+                const idx = contacts.getDirectedEdgeIndex(l.indexA, l.indexB)
                 if (idx !== -1) {
                     if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                 }
@@ -125,16 +126,16 @@ function createInteractionsIterator(structureGroup: StructureGroup): LocationIte
     const { structure, group } = structureGroup
     const unit = group.units[0]
     const interactions = InteractionsProvider.getValue(structure).value!
-    const links = interactions.unitsLinks.get(unit.id)
-    const groupCount = links.edgeCount * 2
+    const contacts = interactions.unitsContacts.get(unit.id)
+    const groupCount = contacts.edgeCount * 2
     const instanceCount = group.units.length
     const location = Interactions.Location(interactions)
     const getLocation = (groupIndex: number, instanceIndex: number) => {
         const instanceUnit = group.units[instanceIndex]
         location.unitA = instanceUnit
-        location.indexA = links.a[groupIndex]
+        location.indexA = contacts.a[groupIndex]
         location.unitB = instanceUnit
-        location.indexB = links.b[groupIndex]
+        location.indexB = contacts.b[groupIndex]
         return location
     }
     return LocationIterator(groupCount, instanceCount, getLocation)
