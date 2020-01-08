@@ -246,22 +246,23 @@ function isCationPi(ti: FeatureType, tj: FeatureType) {
     )
 }
 
+const tmpPointA = Vec3()
+const tmpPointB = Vec3()
+
 function areFeaturesWithinDistanceSq(infoA: Features.Info, infoB: Features.Info, distanceSq: number): boolean {
-    // TODO
-    // const sn = atomSet1.length
-    // const sm = atomSet2.length
-    // for (let si = 0; si < sn; ++si) {
-    //   ap1.index = atomSet1[ si ]
-    //   for (let sj = 0; sj < sm; ++sj) {
-    //     ap2.index = atomSet2[ sj ]
-    //     if (ap1.distanceTo(ap2) <= maxDist) {
-    //       return true
-    //     }
-    //   }
-    // }
+    const { feature: featureA, offsets: offsetsA, members: membersA } = infoA
+    const { feature: featureB, offsets: offsetsB, members: membersB } = infoB
+    for (let i = offsetsA[featureA], il = offsetsA[featureA + 1]; i < il; ++i) {
+        const elementA = membersA[i]
+        infoA.unit.conformation.position(infoA.unit.elements[elementA], tmpPointA)
+        for (let j = offsetsB[featureB], jl = offsetsB[featureB + 1]; j < jl; ++j) {
+            const elementB = membersB[j]
+            infoB.unit.conformation.position(infoB.unit.elements[elementB], tmpPointB)
+            if (Vec3.squaredDistance(tmpPointA, tmpPointB) < distanceSq) return true
+        }
+    }
     return false
 }
-
 
 const tmpVecA = Vec3()
 const tmpVecB = Vec3()
