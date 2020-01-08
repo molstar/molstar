@@ -29,7 +29,7 @@ interface Features {
     readonly members: ArrayLike<StructureElement.UnitIndex>
 
     /** lookup3d based on center coordinates, in invariant coordinate space */
-    readonly lookup3d: GridLookup3D
+    readonly lookup3d: GridLookup3D<Features.FeatureIndex>
     /** maps unit elements to features, range for unit element i is offsets[i] to offsets[i + 1] */
     readonly elementsIndex: Features.ElementsIndex
 
@@ -60,7 +60,7 @@ namespace Features {
     }
 
     export type Subset = {
-        readonly indices: OrderedSet
+        readonly indices: OrderedSet<FeatureIndex>
         readonly lookup3d: GridLookup3D
     }
 
@@ -92,13 +92,13 @@ namespace Features {
     }
 
     export function create(elementsCount: number, data: Data): Features {
-        let lookup3d: GridLookup3D
+        let lookup3d: GridLookup3D<FeatureIndex>
         let elementsIndex: ElementsIndex
 
         return {
             ...data,
             get lookup3d() {
-                return lookup3d || (lookup3d = GridLookup3D({ x: data.x, y: data.y, z: data.z, indices: OrderedSet.ofBounds(0, data.count) }))
+                return lookup3d || (lookup3d = GridLookup3D({ x: data.x, y: data.y, z: data.z, indices: OrderedSet.ofBounds(0 as FeatureIndex, data.count as FeatureIndex) }))
             },
             get elementsIndex() {
                 return elementsIndex || (elementsIndex = createElementsIndex(data, elementsCount))
@@ -116,7 +116,7 @@ namespace Features {
         for (let i = 0; i < count; ++i) {
             if (types.has(_types[i])) _indices.push(i)
         }
-        const indices = SortedArray.ofSortedArray(_indices)
+        const indices = SortedArray.ofSortedArray<FeatureIndex>(_indices)
 
         return {
             indices,
@@ -129,7 +129,7 @@ namespace Features {
     export interface Info {
         unit: Unit.Atomic,
         types: ArrayLike<FeatureType>,
-        feature: number,
+        feature: FeatureIndex,
         x: ArrayLike<number>
         y: ArrayLike<number>
         z: ArrayLike<number>
@@ -144,7 +144,7 @@ namespace Features {
         return {
             unit,
             types: features.types,
-            feature: -1,
+            feature: -1 as any,
             x: features.x,
             y: features.y,
             z: features.z,

@@ -39,13 +39,13 @@ namespace Interactions {
         interactions: Interactions
         unitA: Unit
         /** Index into features of unitA */
-        indexA: number
+        indexA: Features.FeatureIndex
         unitB: Unit
         /** Index into features of unitB */
-        indexB: number
+        indexB: Features.FeatureIndex
     }
 
-    export function Location(interactions?: Interactions, unitA?: Unit, indexA?: number, unitB?: Unit, indexB?: number): Location {
+    export function Location(interactions?: Interactions, unitA?: Unit, indexA?: Features.FeatureIndex, unitB?: Unit, indexB?: Features.FeatureIndex): Location {
         return { kind: 'interaction-location', interactions: interactions as any, unitA: unitA as any, indexA: indexA as any, unitB: unitB as any, indexB: indexB as any };
     }
 
@@ -68,10 +68,10 @@ namespace Interactions {
         readonly links: ReadonlyArray<{
             unitA: Unit
             /** Index into features of unitA */
-            indexA: number
+            indexA: Features.FeatureIndex
             unitB: Unit
             /** Index into features of unitB */
-            indexB: number
+            indexB: Features.FeatureIndex
         }>
     }
 
@@ -111,7 +111,7 @@ const FeatureProviders = [
     MetalProvider, MetalBindingProvider,
 ]
 
-const LinkProviders = {
+const ContactProviders = {
     'ionic': IonicProvider,
     'pi-stacking': PiStackingProvider,
     'cation-pi': CationPiProvider,
@@ -121,12 +121,12 @@ const LinkProviders = {
     'hydrophobic': HydrophobicProvider,
     'metal-coordination': MetalCoordinationProvider,
 }
-type LinkProviders = typeof LinkProviders
+type ContactProviders = typeof ContactProviders
 
 function getProvidersParams() {
-    const params: { [k in keyof LinkProviders]: PD.Group<LinkProviders[k]['params']> } = Object.create(null)
-    Object.keys(LinkProviders).forEach(k => {
-        (params as any)[k] = PD.Group(LinkProviders[k as keyof LinkProviders].params)
+    const params: { [k in keyof ContactProviders]: PD.Group<ContactProviders[k]['params']> } = Object.create(null)
+    Object.keys(ContactProviders).forEach(k => {
+        (params as any)[k] = PD.Group(ContactProviders[k as keyof ContactProviders].params)
     })
     return params
 }
@@ -140,7 +140,7 @@ export const InteractionsParams = {
         // 'hydrophobic',
         'metal-coordination',
         // 'weak-hydrogen-bonds',
-    ], PD.objectToOptions(LinkProviders)),
+    ], PD.objectToOptions(ContactProviders)),
     contacts: PD.Group(ContactsParams, { isFlat: true }),
     ...getProvidersParams()
 }
@@ -151,14 +151,14 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props }
     await ValenceModelProvider.attach(structure).runInContext(runtime)
 
-    const linkProviders: ContactProvider<any>[] = []
-    Object.keys(LinkProviders).forEach(k => {
-        if (p.types.includes(k)) linkProviders.push(LinkProviders[k as keyof typeof LinkProviders])
+    const contactProviders: ContactProvider<any>[] = []
+    Object.keys(ContactProviders).forEach(k => {
+        if (p.types.includes(k)) contactProviders.push(ContactProviders[k as keyof typeof ContactProviders])
     })
-    const linkTesters = linkProviders.map(l => l.createTester(p[l.name as keyof InteractionsProps]))
+    const contactTesters = contactProviders.map(l => l.createTester(p[l.name as keyof InteractionsProps]))
 
     const requiredFeatures = new Set<FeatureType>()
-    linkTesters.forEach(l => SetUtils.add(requiredFeatures, l.requiredFeatures))
+    contactTesters.forEach(l => SetUtils.add(requiredFeatures, l.requiredFeatures))
     const featureProviders = FeatureProviders.filter(f => SetUtils.areIntersecting(requiredFeatures, f.types))
 
     const unitsFeatures = IntMap.Mutable<Features>()
@@ -170,15 +170,15 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
             await runtime.update({ message: 'computing interactions', current: i, max: il })
         }
         const features = findUnitFeatures(structure, group.units[0], featureProviders)
-        const intraUnitLinks = findIntraUnitContacts(structure, group.units[0], features, linkTesters, p.contacts)
+        const intraUnitContacts = findIntraUnitContacts(structure, group.units[0], features, contactTesters, p.contacts)
         for (let j = 0, jl = group.units.length; j < jl; ++j) {
             const u = group.units[j]
             unitsFeatures.set(u.id, features)
-            unitsContacts.set(u.id, intraUnitLinks)
+            unitsContacts.set(u.id, intraUnitContacts)
         }
     }
 
-    const contacts = findInterUnitContacts(structure, unitsFeatures, linkTesters, p.contacts)
+    const contacts = findInterUnitContacts(structure, unitsFeatures, contactTesters, p.contacts)
 
     const interactions = { unitsFeatures, unitsContacts, contacts }
     refineInteractions(structure, interactions)
@@ -197,11 +197,11 @@ function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Fe
 }
 
 function findIntraUnitContacts(structure: Structure, unit: Unit, features: Features, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps) {
-    const linksBuilder = IntraContactsBuilder.create(features, unit.elements.length)
+    const builder = IntraContactsBuilder.create(features, unit.elements.length)
     if (Unit.isAtomic(unit)) {
-        addUnitContacts(structure, unit, features, linksBuilder, contactTesters, props)
+        addUnitContacts(structure, unit, features, builder, contactTesters, props)
     }
-    return linksBuilder.getContacts()
+    return builder.getContacts()
 }
 
 function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Features>, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps) {

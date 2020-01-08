@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -17,19 +17,19 @@ interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
 }
 
-function GridLookup3D(data: PositionData, cellSizeOrCount?: Vec3 | number): GridLookup3D {
-    return new GridLookup3DImpl(data, cellSizeOrCount);
+function GridLookup3D<T extends number = number>(data: PositionData, cellSizeOrCount?: Vec3 | number): GridLookup3D<T> {
+    return new GridLookup3DImpl<T>(data, cellSizeOrCount);
 }
 
 export { GridLookup3D }
 
-class GridLookup3DImpl implements GridLookup3D<number> {
-    private ctx: QueryContext;
+class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
+    private ctx: QueryContext<T>;
     boundary: Lookup3D['boundary'];
     buckets: GridLookup3D['buckets'];
-    result: Result<number>
+    result: Result<T>
 
-    find(x: number, y: number, z: number, radius: number): Result<number> {
+    find(x: number, y: number, z: number, radius: number): Result<T> {
         this.ctx.x = x;
         this.ctx.y = y;
         this.ctx.z = z;
@@ -50,7 +50,7 @@ class GridLookup3DImpl implements GridLookup3D<number> {
 
     constructor(data: PositionData, cellSizeOrCount?: Vec3 | number) {
         const structure = build(data, cellSizeOrCount);
-        this.ctx = createContext(structure);
+        this.ctx = createContext<T>(structure);
         this.boundary = { box: structure.boundingBox, sphere: structure.boundingSphere };
         this.buckets = { offset: structure.bucketOffset, count: structure.bucketCounts, array: structure.bucketArray };
         this.result = this.ctx.result
@@ -236,21 +236,21 @@ function build(data: PositionData, cellSizeOrCount?: Vec3 | number) {
     return _build(state);
 }
 
-interface QueryContext {
+interface QueryContext<T extends number = number> {
     grid: Grid3D,
     x: number,
     y: number,
     z: number,
     radius: number,
-    result: Result<number>,
+    result: Result<T>,
     isCheck: boolean
 }
 
-function createContext(grid: Grid3D): QueryContext {
+function createContext<T extends number = number>(grid: Grid3D): QueryContext<T> {
     return { grid, x: 0.1, y: 0.1, z: 0.1, radius: 0.1, result: Result.create(), isCheck: false }
 }
 
-function query(ctx: QueryContext): boolean {
+function query<T extends number = number>(ctx: QueryContext<T>): boolean {
     const { min, size: [sX, sY, sZ], bucketOffset, bucketCounts, bucketArray, grid, data: { x: px, y: py, z: pz, indices, radius }, delta, maxRadius } = ctx.grid;
     const { radius: inputRadius, isCheck, x, y, z, result } = ctx;
 

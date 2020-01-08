@@ -7,7 +7,7 @@
 import { Features } from './features';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { InteractionType, InteractionsIntraContacts, InteractionsInterContacts, InteractionFlag } from './common';
-import { Unit, StructureElement } from '../../../mol-model/structure/structure';
+import { Unit } from '../../../mol-model/structure/structure';
 import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph';
 import { UniqueArray } from '../../../mol-data/generic';
 import { NumberArray } from '../../../mol-util/type-helpers';
@@ -15,18 +15,18 @@ import { NumberArray } from '../../../mol-util/type-helpers';
 export { IntraContactsBuilder }
 
 interface IntraContactsBuilder {
-    add: (indexA: number, indexB: number, type: InteractionType) => void
+    add: (indexA: Features.FeatureIndex, indexB: Features.FeatureIndex, type: InteractionType) => void
     getContacts: () => InteractionsIntraContacts
 }
 
 namespace IntraContactsBuilder {
     export function create(features: Features, elementsCount: number): IntraContactsBuilder {
-        const aIndices: number[] = []
-        const bIndices: number[] = []
+        const aIndices: Features.FeatureIndex[] = []
+        const bIndices: Features.FeatureIndex[] = []
         const types: number[] = []
 
         return {
-            add(indexA: number, indexB: number, type: InteractionType) {
+            add(indexA: Features.FeatureIndex, indexB: Features.FeatureIndex, type: InteractionType) {
                 aIndices[aIndices.length] = indexA
                 bIndices[bIndices.length] = indexB
                 types[types.length] = type
@@ -50,7 +50,7 @@ export { InterContactsBuilder }
 interface InterContactsBuilder {
     startUnitPair: (unitA: Unit, unitB: Unit) => void
     finishUnitPair: () => void
-    add: (indexA: number, indexB: number, type: InteractionType) => void
+    add: (indexA: Features.FeatureIndex, indexB: Features.FeatureIndex, type: InteractionType) => void
     getContacts: () => InteractionsInterContacts
 }
 
@@ -65,9 +65,9 @@ namespace InterContactsBuilder {
         let uB: Unit
         let mapAB: Map<number, InteractionsInterContacts.Info[]>
         let mapBA: Map<number, InteractionsInterContacts.Info[]>
-        let bondedA: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
-        let bondedB: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
-        let bondCount: number
+        let linkedA: UniqueArray<Features.FeatureIndex, Features.FeatureIndex>
+        let linkedB: UniqueArray<Features.FeatureIndex, Features.FeatureIndex>
+        let linkCount: number
 
         const map = new Map<number, InteractionsInterContacts.Pair[]>();
 
@@ -77,21 +77,21 @@ namespace InterContactsBuilder {
                 uB = unitB
                 mapAB = new Map()
                 mapBA = new Map()
-                bondedA = UniqueArray.create()
-                bondedB = UniqueArray.create()
-                bondCount = 0
+                linkedA = UniqueArray.create()
+                linkedB = UniqueArray.create()
+                linkCount = 0
             },
             finishUnitPair() {
-                if (bondCount === 0) return
-                addMapEntry(map, uA.id, new InteractionsInterContacts.Pair(uA, uB, bondCount, bondedA.array, mapAB))
-                addMapEntry(map, uB.id, new InteractionsInterContacts.Pair(uB, uA, bondCount, bondedB.array, mapBA))
+                if (linkCount === 0) return
+                addMapEntry(map, uA.id, new InteractionsInterContacts.Pair(uA, uB, linkCount, linkedA.array, mapAB))
+                addMapEntry(map, uB.id, new InteractionsInterContacts.Pair(uB, uA, linkCount, linkedB.array, mapBA))
             },
-            add(indexA: number, indexB: number, type: InteractionType) {
+            add(indexA: Features.FeatureIndex, indexB: Features.FeatureIndex, type: InteractionType) {
                 addMapEntry(mapAB, indexA, { indexB, props: { type, flag: InteractionFlag.None } })
                 addMapEntry(mapBA, indexB, { indexB: indexA, props: { type, flag: InteractionFlag.None } })
-                UniqueArray.add(bondedA, indexA, indexA)
-                UniqueArray.add(bondedB, indexB, indexB)
-                bondCount += 1
+                UniqueArray.add(linkedA, indexA, indexA)
+                UniqueArray.add(linkedB, indexB, indexB)
+                linkCount += 1
             },
             getContacts() {
                 return new InterUnitGraph(map);

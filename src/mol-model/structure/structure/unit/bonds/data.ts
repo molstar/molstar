@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,7 +12,7 @@ import StructureElement from '../../element';
 import { Bond } from '../bonds';
 import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 
-type IntraUnitBonds = IntAdjacencyGraph<{ readonly order: ArrayLike<number>, readonly flags: ArrayLike<BondType.Flag> }>
+type IntraUnitBonds = IntAdjacencyGraph<StructureElement.UnitIndex, { readonly order: ArrayLike<number>, readonly flags: ArrayLike<BondType.Flag> }>
 
 namespace IntraUnitBonds {
     export const Empty: IntraUnitBonds = IntAdjacencyGraph.create([], [], [], 0, { flags: [], order: [] });

@@ -13,8 +13,9 @@ import { BondComputationProps, getElementIdx, MetalsSet, getElementThreshold, is
 import { SortedArray } from '../../../../../mol-data/int';
 import { StructConn, ComponentBond } from '../../../../../mol-model-formats/structure/mmcif/bonds';
 import { getIntraBondOrderFromTable } from '../../../model/properties/atomic/bonds';
+import StructureElement from '../../element';
 
-function getGraph(atomA: number[], atomB: number[], _order: number[], _flags: number[], atomCount: number): IntraUnitBonds {
+function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.UnitIndex[], _order: number[], _flags: number[], atomCount: number): IntraUnitBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
     const flags = new Uint16Array(builder.slotCount);
     const order = new Int8Array(builder.slotCount);
@@ -40,15 +41,15 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
     const structConn = unit.model.sourceData.kind === 'mmCIF' ? StructConn.get(unit.model) : void 0;
     const component = unit.model.sourceData.kind === 'mmCIF' ? ComponentBond.get(unit.model) : void 0;
 
-    const atomA: number[] = [];
-    const atomB: number[] = [];
+    const atomA: StructureElement.UnitIndex[] = [];
+    const atomB: StructureElement.UnitIndex[] = [];
     const flags: number[] = [];
     const order: number[] = [];
 
     let lastResidue = -1;
     let componentMap: Map<string, Map<string, { flags: number, order: number }>> | undefined = void 0;
 
-    for (let _aI = 0; _aI < atomCount; _aI++) {
+    for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI =  atoms[_aI];
         const raI = residueIndex[aI];
         const compId = label_comp_id.value(raI);
@@ -78,7 +79,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
                 if (se.distance > MAX_RADIUS) continue;
 
                 for (const p of se.partners) {
-                    const _bI = SortedArray.indexOf(unit.elements, p.atomIndex);
+                    const _bI = SortedArray.indexOf(unit.elements, p.atomIndex) as StructureElement.UnitIndex;
                     if (_bI < 0) continue;
                     atomA[atomA.length] = _aI;
                     atomB[atomB.length] = _bI;

@@ -192,7 +192,7 @@ export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, f
 
     builder.startUnitPair(unitA, unitB)
 
-    for (let i = 0; i < count; ++i) {
+    for (let i = 0 as Features.FeatureIndex; i < count; ++i) {
         Vec3.set(imageA, xA[i], yA[i], zA[i])
         if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform)
         if (Vec3.squaredDistance(imageA, center) > testDistanceSq) continue
