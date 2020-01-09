@@ -33,12 +33,22 @@ export function compId(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
 //
 
 export function interBondCount(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex): number {
-    return structure.interUnitBonds.getEdgeIndices(index, unit).length
+    let count = 0
+    const indices = structure.interUnitBonds.getEdgeIndices(index, unit)
+    for (let i = 0, il = indices.length; i < il; ++i) {
+        const b = structure.interUnitBonds.edges[indices[i]]
+        if (BondType.isCovalent(b.props.flag)) count += 1
+    }
+    return count
 }
 
 export function intraBondCount(unit: Unit.Atomic, index: StructureElement.UnitIndex): number {
-    const { offset } = unit.bonds
-    return offset[index + 1] - offset[index]
+    let count = 0
+    const { offset, edgeProps: { flags } } = unit.bonds
+    for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
+        if (BondType.isCovalent(flags[i])) count += 1
+    }
+    return count
 }
 
 export function bondCount(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex): number {
@@ -76,19 +86,17 @@ export function connectedTo(structure: Structure, unitA: Unit.Atomic, indexA: St
 //
 
 export function eachInterBondedAtom(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex, cb: (unit: Unit.Atomic, index: StructureElement.UnitIndex) => void): void {
-    // inter
-    const interIndices = structure.interUnitBonds.getEdgeIndices(index, unit)
-    for (let i = 0, il = interIndices.length; i < il; ++i) {
-        const b = structure.interUnitBonds.edges[i]
-        cb(b.unitB, b.indexB)
+    const indices = structure.interUnitBonds.getEdgeIndices(index, unit)
+    for (let i = 0, il = indices.length; i < il; ++i) {
+        const b = structure.interUnitBonds.edges[indices[i]]
+        if (BondType.isCovalent(b.props.flag)) cb(b.unitB, b.indexB)
     }
 }
 
 export function eachIntraBondedAtom(unit: Unit.Atomic, index: StructureElement.UnitIndex, cb: (unit: Unit.Atomic, index: StructureElement.UnitIndex) => void): void {
-    // intra
-    const { offset, b } = unit.bonds
+    const { offset, b, edgeProps: { flags } } = unit.bonds
     for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
-        cb(unit, b[i] as StructureElement.UnitIndex)
+        if (BondType.isCovalent(flags[i])) cb(unit, b[i] as StructureElement.UnitIndex)
     }
 }
 

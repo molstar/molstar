@@ -139,7 +139,7 @@ function addUnitHydrogenAcceptors(structure: Structure, unit: Unit.Atomic, build
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
 
-    function add(i: StructureElement.UnitIndex) {
+    const add = (i: StructureElement.UnitIndex) => {
         builder.add(FeatureType.HydrogenAcceptor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
     }
 

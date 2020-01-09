@@ -154,7 +154,7 @@ function addUnitNegativeCharges(structure: Structure, unit: Unit.Atomic, builder
                 if (typeSymbol(unit, j) === Elements.N && !ProteinBackboneAtoms.has(atomId(unit, j))) {
                     builder.pushMember(x[elements[j]], y[elements[j]], z[elements[j]], j)
                 }
-                builder.finishState(FeatureType.PositiveCharge, FeatureGroup.None)
+                builder.finishState(FeatureType.NegativeCharge, FeatureGroup.None)
 
                 let group = FeatureGroup.None
                 if (isSulfonicAcid(structure, unit, j)) {
@@ -174,7 +174,7 @@ function addUnitNegativeCharges(structure: Structure, unit: Unit.Atomic, builder
                             builder.pushMember(x[elements[k]], y[elements[k]], z[elements[k]], k)
                         }
                     })
-                    builder.finishState(FeatureType.PositiveCharge, group)
+                    builder.finishState(FeatureType.NegativeCharge, group)
                 }
             }
 
