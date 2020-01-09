@@ -44,11 +44,11 @@ class InterUnitGraph<Unit extends InterUnitGraph.UnitBase, VertexIndex extends n
         return this.vertexKeyIndex.get(InterUnitGraph.getVertexKey(index, unit)) || []
     }
 
-    constructor(private map: Map<number, InterUnitGraph.UnitPairEdges<Unit, VertexIndex, EdgeProps>[]>) {
+    constructor(protected readonly map: Map<number, InterUnitGraph.UnitPairEdges<Unit, VertexIndex, EdgeProps>[]>) {
         let count = 0
         const edges: (InterUnitGraph.Edge<Unit, VertexIndex, EdgeProps>)[] = []
         const edgeKeyIndex = new Map<string, number>()
-        const elementKeyIndex = new Map<string, number[]>()
+        const vertexKeyIndex = new Map<string, number[]>()
 
         this.map.forEach(pairEdgesArray => {
             pairEdgesArray.forEach(pairEdges => {
@@ -57,12 +57,12 @@ class InterUnitGraph<Unit extends InterUnitGraph.UnitBase, VertexIndex extends n
                     pairEdges.getEdges(indexA).forEach(edgeInfo => {
                         const { unitA, unitB } = pairEdges
 
-                        const edgeKey = InterUnitGraph.getEdgeKey<Unit, VertexIndex>(indexA, unitA, edgeInfo.indexB, unitB)
+                        const edgeKey = InterUnitGraph.getEdgeKey(indexA, unitA, edgeInfo.indexB, unitB)
                         edgeKeyIndex.set(edgeKey, edges.length)
 
-                        const elementKey = InterUnitGraph.getVertexKey(indexA, unitA)
-                        const e = elementKeyIndex.get(elementKey)
-                        if (e === undefined) elementKeyIndex.set(elementKey, [edges.length])
+                        const vertexKey = InterUnitGraph.getVertexKey(indexA, unitA)
+                        const e = vertexKeyIndex.get(vertexKey)
+                        if (e === undefined) vertexKeyIndex.set(vertexKey, [edges.length])
                         else e.push(edges.length)
 
                         edges.push({ ...edgeInfo, indexA, unitA, unitB })
@@ -74,7 +74,7 @@ class InterUnitGraph<Unit extends InterUnitGraph.UnitBase, VertexIndex extends n
         this.edgeCount = count
         this.edges = edges
         this.edgeKeyIndex = edgeKeyIndex
-        this.vertexKeyIndex = elementKeyIndex
+        this.vertexKeyIndex = vertexKeyIndex
     }
 }
 

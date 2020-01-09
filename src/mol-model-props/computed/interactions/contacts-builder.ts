@@ -8,9 +8,9 @@ import { Features } from './features';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { InteractionType, InteractionsIntraContacts, InteractionsInterContacts, InteractionFlag } from './common';
 import { Unit } from '../../../mol-model/structure/structure';
-import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph';
 import { UniqueArray } from '../../../mol-data/generic';
 import { NumberArray } from '../../../mol-util/type-helpers';
+import { IntMap } from '../../../mol-data/int';
 
 export { IntraContactsBuilder }
 
@@ -39,7 +39,15 @@ namespace IntraContactsBuilder {
                     builder.addNextEdge()
                     builder.assignProperty(type, types[i])
                 }
-                return builder.createGraph({ type, flag })
+                const graph = builder.createGraph({ type, flag })
+
+                let elementsIndex: InteractionsIntraContacts.ElementsIndex
+                const contacts: InteractionsIntraContacts = Object.defineProperty(graph, 'elementsIndex', {
+                    get: () => {
+                        return elementsIndex || (elementsIndex = InteractionsIntraContacts.createElementsIndex(graph, features, elementsCount))
+                    }
+                })
+                return contacts
             }
         }
     }
@@ -51,7 +59,7 @@ interface InterContactsBuilder {
     startUnitPair: (unitA: Unit, unitB: Unit) => void
     finishUnitPair: () => void
     add: (indexA: Features.FeatureIndex, indexB: Features.FeatureIndex, type: InteractionType) => void
-    getContacts: () => InteractionsInterContacts
+    getContacts: (unitsFeatures: IntMap<Features>) => InteractionsInterContacts
 }
 
 namespace InterContactsBuilder {
@@ -93,8 +101,8 @@ namespace InterContactsBuilder {
                 UniqueArray.add(linkedB, indexB, indexB)
                 linkCount += 1
             },
-            getContacts() {
-                return new InterUnitGraph(map);
+            getContacts(unitsFeatures: IntMap<Features>) {
+                return new InteractionsInterContacts(map, unitsFeatures);
             }
         }
     }

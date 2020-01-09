@@ -7,7 +7,7 @@
  */
 
 import { Interactions } from './interactions';
-import { InteractionType, InteractionFlag, InteractionsIntraContacts, FeatureType } from './common';
+import { InteractionType, InteractionFlag, InteractionsIntraContacts, FeatureType, InteractionsInterContacts } from './common';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Features } from './features';
@@ -15,7 +15,7 @@ import { Features } from './features';
 interface ContactRefiner {
     isApplicable: (type: InteractionType) => boolean
     handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => void
-    startUnit: (contacts: InteractionsIntraContacts) => void
+    startUnit: (unit: Unit.Atomic, contacts: InteractionsIntraContacts, features: Features) => void
     handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => void
 }
 
@@ -25,6 +25,9 @@ export function refineInteractions(structure: Structure, interactions: Interacti
     const contactRefiners: ContactRefiner[] = [
         hydrophobicRefiner(structure, interactions),
         weakHydrogenBondsRefiner(structure, interactions),
+        saltBridgeRefiner(structure, interactions),
+        piStackingRefiner(structure, interactions),
+        metalCoordinationRefiner(structure, interactions),
     ]
 
     for (let i = 0, il = contacts.edgeCount; i < il; ++i) {
@@ -56,11 +59,12 @@ export function refineInteractions(structure: Structure, interactions: Interacti
         const infoA = Features.Info(structure, unit, features)
         const infoB = Features.Info(structure, unit, features)
 
-        for (const refiner of contactRefiners) refiner.startUnit(contacts)
+        for (const refiner of contactRefiners) refiner.startUnit(unit, contacts, features)
 
         for (let i = 0, il = contacts.edgeCount * 2; i < il; ++i) {
             infoA.feature = contacts.a[i]
             infoB.feature = contacts.b[i]
+            // console.log(i, contacts.a[i], contacts.b[i])
 
             for (const refiner of contactRefiners) {
                 if (refiner.isApplicable(contacts.edgeProps.type[i])) refiner.handleIntraContact(i, infoA, infoB)
@@ -118,7 +122,7 @@ function hydrophobicRefiner(structure: Structure, interactions: Interactions): C
         handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
             handleEdge(index, infoA, infoB, residueInterMap, setInterFiltered)
         },
-        startUnit: (contacts: InteractionsIntraContacts) => {
+        startUnit: (unit: Unit.Atomic, contacts: InteractionsIntraContacts, features: Features) => {
             residueIntraMap = new Map<string, [number, number]>()
             setIntraFiltered = (i: number) => contacts.edgeProps.flag[i] = InteractionFlag.Filtered
         },
@@ -162,12 +166,104 @@ function weakHydrogenBondsRefiner(structure: Structure, interactions: Interactio
                 contacts.edges[index].props.flag = InteractionFlag.Filtered
             }
         },
-        startUnit: (contacts: InteractionsIntraContacts) => { },
+        startUnit: () => {},
         handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
             if (hasHydrogenBond(infoA, infoB)) {
                 const { flag } = interactions.unitsContacts.get(infoA.unit.id).edgeProps
                 flag[index] = InteractionFlag.Filtered
             }
+        }
+    }
+}
+
+//
+
+function filterInter(type: InteractionType, index: number, infoA: Features.Info, infoB: Features.Info, contacts: InteractionsInterContacts) {
+    const aI = infoA.members[infoA.offsets[infoA.feature]]
+    const bI = infoB.members[infoB.offsets[infoB.feature]]
+    const indices = contacts.getContactIndicesForElement(aI, infoA.unit)
+
+    for (let i = 0, il = indices.length; i < il; ++i) {
+        if (contacts.edges[i].props.type === type) {
+            if (contacts.getContactIndicesForElement(bI, infoB.unit).includes(i)) {
+                contacts.edges[index].props.flag = InteractionFlag.Filtered
+                return
+            }
+        }
+    }
+}
+
+function filterIntra(type: InteractionType, index: number, infoA: Features.Info, infoB: Features.Info, contacts: InteractionsIntraContacts) {
+    const { edgeProps: { type: _type, flag }, elementsIndex: { offsets, indices } } = contacts
+    const aI = infoA.members[infoA.offsets[infoA.feature]]
+    const bI = infoB.members[infoB.offsets[infoB.feature]]
+
+    for (let i = offsets[aI], il = offsets[aI + 1]; i < il; ++i) {
+        const cI = indices[i]
+        if (_type[cI] === type) {
+            for (let j = offsets[bI], jl = offsets[bI + 1]; j < jl; ++j) {
+                if (cI === indices[j]) {
+                    flag[index] = InteractionFlag.Filtered
+                    return
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Remove hydrogen bonds (normal and weak) between groups that also form
+ * an ionic interaction between each other
+ */
+function saltBridgeRefiner(structure: Structure, interactions: Interactions): ContactRefiner {
+    const { contacts } = interactions
+
+    return {
+        isApplicable: (type: InteractionType) => type === InteractionType.HydrogenBond || type === InteractionType.WeakHydrogenBond,
+        handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
+            filterInter(InteractionType.Ionic, index, infoA, infoB, contacts)
+        },
+        startUnit: () => {},
+        handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
+            filterIntra(InteractionType.Ionic, index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id))
+        }
+    }
+}
+
+/**
+ * Remove hydrophobic and cation-pi interactions between groups that also form
+ * a pi-stacking interaction between each other
+ */
+function piStackingRefiner(structure: Structure, interactions: Interactions): ContactRefiner {
+    const { contacts } = interactions
+
+    return {
+        isApplicable: (type: InteractionType) => type === InteractionType.Hydrophobic || type === InteractionType.CationPi,
+        handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
+            filterInter(InteractionType.PiStacking, index, infoA, infoB, contacts)
+        },
+        startUnit: () => {},
+        handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
+            filterIntra(InteractionType.PiStacking, index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id))
+        }
+    }
+}
+
+/**
+ * Remove ionic interactions between groups that also form
+ * a metal coordination between each other
+ */
+function metalCoordinationRefiner(structure: Structure, interactions: Interactions): ContactRefiner {
+    const { contacts } = interactions
+
+    return {
+        isApplicable: (type: InteractionType) => type === InteractionType.Ionic,
+        handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
+            filterInter(InteractionType.MetalCoordination, index, infoA, infoB, contacts)
+        },
+        startUnit: () => {},
+        handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
+            filterIntra(InteractionType.MetalCoordination, index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id))
         }
     }
 }

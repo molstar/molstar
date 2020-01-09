@@ -9,16 +9,131 @@ import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph'
 import { Unit } from '../../../mol-model/structure'
 import { AssignableArrayLike } from '../../../mol-util/type-helpers'
 import { Features } from './features'
+import { StructureElement } from '../../../mol-model/structure/structure'
+import { IntMap } from '../../../mol-data/int'
 
 type IntraProps = {
     readonly type: ArrayLike<InteractionType>
     readonly flag: AssignableArrayLike<InteractionFlag>
 }
-export type InteractionsIntraContacts = IntAdjacencyGraph<Features.FeatureIndex, IntraProps>
+export { InteractionsIntraContacts }
+interface InteractionsIntraContacts extends IntAdjacencyGraph<Features.FeatureIndex, IntraProps> {
+    readonly elementsIndex: InteractionsIntraContacts.ElementsIndex
+}
+namespace InteractionsIntraContacts {
+    /** maps unit elements to contacts, range for unit element i is offsets[i] to offsets[i + 1] */
+    export type ElementsIndex = {
+        /** intra contact indices */
+        readonly indices: ArrayLike<number>
+        /** range for unit element i is offsets[i] to offsets[i + 1] */
+        readonly offsets: ArrayLike<number>
+    }
+
+    /**
+     * Note: assumes that feature members of a contact are non-overlapping
+     */
+    export function createElementsIndex(contacts: IntAdjacencyGraph<Features.FeatureIndex, IntraProps>, features: Features, elementsCount: number) {
+        const offsets = new Int32Array(elementsCount + 1)
+        const bucketFill = new Int32Array(elementsCount)
+        const bucketSizes = new Int32Array(elementsCount)
+        const { members, offsets: featureOffsets } = features
+
+        for (let i = 0, il = contacts.edgeCount * 2; i < il; ++i) {
+            const aI = contacts.a[i]
+            const bI = contacts.b[i]
+            if (aI > bI) continue
+
+            for (let j = featureOffsets[aI], jl = featureOffsets[aI + 1]; j < jl; ++j) {
+                ++bucketSizes[members[j]]
+            }
+            for (let j = featureOffsets[bI], jl = featureOffsets[bI + 1]; j < jl; ++j) {
+                ++bucketSizes[members[j]]
+            }
+        }
+
+        let offset = 0
+        for (let i = 0; i < elementsCount; i++) {
+            offsets[i] = offset
+            offset += bucketSizes[i]
+        }
+        offsets[elementsCount] = offset
+
+        const indices = new Int32Array(offset)
+        for (let i = 0, il = contacts.edgeCount * 2; i < il; ++i) {
+            const aI = contacts.a[i]
+            const bI = contacts.b[i]
+            if (aI > bI) continue
+
+            for (let j = featureOffsets[aI], jl = featureOffsets[aI + 1]; j < jl; ++j) {
+                const m = members[j]
+                const om = offsets[m] + bucketFill[m]
+                indices[om] = i
+                ++bucketFill[m]
+            }
+            for (let j = featureOffsets[bI], jl = featureOffsets[bI + 1]; j < jl; ++j) {
+                const m = members[j]
+                const om = offsets[m] + bucketFill[m]
+                indices[om] = i
+                ++bucketFill[m]
+            }
+        }
+
+        return { indices, offsets }
+    }
+}
 
 export { InteractionsInterContacts }
 type InterProps = { type: InteractionType, flag: InteractionFlag }
-type InteractionsInterContacts = InterUnitGraph<Unit, Features.FeatureIndex, InterProps>
+class InteractionsInterContacts extends InterUnitGraph<Unit, Features.FeatureIndex, InterProps> {
+    private readonly elementKeyIndex: Map<string, number[]>
+
+    getContactIndicesForElement(index: StructureElement.UnitIndex, unit: Unit): ReadonlyArray<number> {
+        return this.elementKeyIndex.get(this.getElementKey(index, unit)) || []
+    }
+
+    private getElementKey(index: StructureElement.UnitIndex, unit: Unit): string {
+        return `${index}|${unit.id}`
+    }
+
+    constructor(map: Map<number, InterUnitGraph.UnitPairEdges<Unit, Features.FeatureIndex, InterProps>[]>, unitsFeatures: IntMap<Features>) {
+        super(map)
+
+        let count = 0
+        const elementKeyIndex = new Map<string, number[]>()
+
+        const add = (index: StructureElement.UnitIndex, unit: Unit) => {
+            const vertexKey = this.getElementKey(index, unit)
+            const e = elementKeyIndex.get(vertexKey)
+            if (e === undefined) elementKeyIndex.set(vertexKey, [count])
+            else e.push(count)
+        }
+
+        this.map.forEach(pairEdgesArray => {
+            pairEdgesArray.forEach(pairEdges => {
+                pairEdges.connectedIndices.forEach(indexA => {
+                    pairEdges.getEdges(indexA).forEach(edgeInfo => {
+                        const { unitA, unitB } = pairEdges
+
+                        const { offsets: offsetsA, members: membersA } = unitsFeatures.get(unitA.id)
+                        for (let j = offsetsA[indexA], jl = offsetsA[indexA + 1]; j < jl; ++j) {
+                            add(membersA[j], unitA)
+                        }
+
+                        const { indexB } = edgeInfo
+                        const { offsets: offsetsB, members: membersB } = unitsFeatures.get(unitB.id)
+                        for (let j = offsetsB[indexB], jl = offsetsB[indexB + 1]; j < jl; ++j) {
+                            add(membersB[j], unitB)
+                        }
+
+                        count += 1
+                    })
+                })
+            })
+        })
+
+        this.elementKeyIndex = elementKeyIndex
+    }
+}
 namespace InteractionsInterContacts {
     export class Pair extends InterUnitGraph.UnitPairEdges<Unit, Features.FeatureIndex, InterProps> {}
     export type Info = InterUnitGraph.EdgeInfo<Features.FeatureIndex, InterProps>

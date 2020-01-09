@@ -235,5 +235,5 @@ function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Featu
         }
     }
 
-    return builder.getContacts()
+    return builder.getContacts(unitsFeatures)
 }
