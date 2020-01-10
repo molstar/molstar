@@ -186,7 +186,7 @@ export namespace Stats {
                 // full chain
                 stats.chainCount += 1;
                 if (stats.chainCount === 1) {
-                    Location.set(stats.firstChainLoc, unit, elements[offsets[cI]]);
+                    Location.set(stats.firstChainLoc, unit, offsets[cI]);
                 }
             }
         }
