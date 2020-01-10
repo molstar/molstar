@@ -144,8 +144,7 @@ function weakHydrogenBondsRefiner(structure: Structure, interactions: Interactio
 
         // check intra
         const eI = acc.members[acc.offsets[acc.feature]]
-        const { offsets, indices } = interactions.unitsFeatures.get(acc.unit.id).elementsIndex
-        const { type } = interactions.unitsContacts.get(acc.unit.id).edgeProps
+        const { edgeProps: { type }, elementsIndex: { offsets, indices } } = interactions.unitsContacts.get(acc.unit.id)
         for (let i = offsets[eI], il = offsets[eI + 1]; i < il; ++i) {
             if (type[indices[i]] === InteractionType.HydrogenBond) return true
         }
@@ -153,7 +152,7 @@ function weakHydrogenBondsRefiner(structure: Structure, interactions: Interactio
         // check inter
         const interIndices = contacts.getEdgeIndices(acc.feature, acc.unit)
         for (let i = 0, il = interIndices.length; i < il; ++i) {
-            if (contacts.edges[i].props.type === InteractionType.HydrogenBond) return true
+            if (contacts.edges[interIndices[i]].props.type === InteractionType.HydrogenBond) return true
         }
 
         return false
@@ -176,35 +175,52 @@ function weakHydrogenBondsRefiner(structure: Structure, interactions: Interactio
     }
 }
 
-//
+/**
+ * Filter inter-unit contact `index` if there is a contact of `types` between its members
+ */
+function filterInter(types: InteractionType[], index: number, infoA: Features.Info, infoB: Features.Info, contacts: InteractionsInterContacts) {
+    const { offsets: offsetsA, feature: featureA } = infoA
+    const { offsets: offsetsB, feature: featureB } = infoB
 
-function filterInter(type: InteractionType, index: number, infoA: Features.Info, infoB: Features.Info, contacts: InteractionsInterContacts) {
-    const aI = infoA.members[infoA.offsets[infoA.feature]]
-    const bI = infoB.members[infoB.offsets[infoB.feature]]
-    const indices = contacts.getContactIndicesForElement(aI, infoA.unit)
-
-    for (let i = 0, il = indices.length; i < il; ++i) {
-        if (contacts.edges[i].props.type === type) {
-            if (contacts.getContactIndicesForElement(bI, infoB.unit).includes(i)) {
-                contacts.edges[index].props.flag = InteractionFlag.Filtered
-                return
+    for (let i = offsetsA[featureA], il = offsetsA[featureA + 1]; i < il; ++i) {
+        const aI = infoA.members[i]
+        const indices = contacts.getContactIndicesForElement(aI, infoA.unit)
+        for (let k = 0, kl = indices.length; k < kl; ++k) {
+            const cI = indices[k]
+            if (types.includes(contacts.edges[cI].props.type)) {
+                for (let j = offsetsB[featureB], jl = offsetsB[featureB + 1]; j < jl; ++j) {
+                    const bI = infoB.members[j]
+                    if (contacts.getContactIndicesForElement(bI, infoB.unit).includes(cI)) {
+                        contacts.edges[index].props.flag = InteractionFlag.Filtered
+                        return
+                    }
+                }
             }
         }
     }
 }
 
-function filterIntra(type: InteractionType, index: number, infoA: Features.Info, infoB: Features.Info, contacts: InteractionsIntraContacts) {
-    const { edgeProps: { type: _type, flag }, elementsIndex: { offsets, indices } } = contacts
-    const aI = infoA.members[infoA.offsets[infoA.feature]]
-    const bI = infoB.members[infoB.offsets[infoB.feature]]
+/**
+ * Filter intra-unit contact `index` if there is a contact of `types` between its members
+ */
+function filterIntra(types: InteractionType[], index: number, infoA: Features.Info, infoB: Features.Info, contacts: InteractionsIntraContacts) {
+    const { edgeProps: { type, flag }, elementsIndex: { offsets, indices } } = contacts
+    const { offsets: offsetsA, feature: featureA } = infoA
+    const { offsets: offsetsB, feature: featureB } = infoB
 
-    for (let i = offsets[aI], il = offsets[aI + 1]; i < il; ++i) {
-        const cI = indices[i]
-        if (_type[cI] === type) {
-            for (let j = offsets[bI], jl = offsets[bI + 1]; j < jl; ++j) {
-                if (cI === indices[j]) {
-                    flag[index] = InteractionFlag.Filtered
-                    return
+    for (let i = offsetsA[featureA], il = offsetsA[featureA + 1]; i < il; ++i) {
+        const aI = infoA.members[i]
+        for (let k = offsets[aI], kl = offsets[aI + 1]; k < kl; ++k) {
+            const cI = indices[k]
+            if (types.includes(type[cI])) {
+                for (let j = offsetsB[featureB], jl = offsetsB[featureB + 1]; j < jl; ++j) {
+                    const bI = infoB.members[j]
+                    for (let l = offsets[bI], ll = offsets[bI + 1]; l < ll; ++l) {
+                        if (cI === indices[l]) {
+                            flag[index] = InteractionFlag.Filtered
+                            return
+                        }
+                    }
                 }
             }
         }
@@ -219,13 +235,13 @@ function saltBridgeRefiner(structure: Structure, interactions: Interactions): Co
     const { contacts } = interactions
 
     return {
-        isApplicable: (type: InteractionType) => type === InteractionType.HydrogenBond || type === InteractionType.WeakHydrogenBond,
+        isApplicable: (type: InteractionType) => type === InteractionType.Ionic,
         handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
-            filterInter(InteractionType.Ionic, index, infoA, infoB, contacts)
+            filterInter([InteractionType.HydrogenBond, InteractionType.WeakHydrogenBond], index, infoA, infoB, contacts)
         },
         startUnit: () => {},
         handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
-            filterIntra(InteractionType.Ionic, index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id))
+            filterIntra([InteractionType.HydrogenBond, InteractionType.WeakHydrogenBond], index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id))
         }
     }
 }
@@ -240,11 +256,11 @@ function piStackingRefiner(structure: Structure, interactions: Interactions): Co
     return {
         isApplicable: (type: InteractionType) => type === InteractionType.Hydrophobic || type === InteractionType.CationPi,
         handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
-            filterInter(InteractionType.PiStacking, index, infoA, infoB, contacts)
+            filterInter([InteractionType.PiStacking], index, infoA, infoB, contacts)
         },
         startUnit: () => {},
         handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
-            filterIntra(InteractionType.PiStacking, index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id))
+            filterIntra([InteractionType.PiStacking], index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id))
         }
     }
 }
@@ -259,11 +275,11 @@ function metalCoordinationRefiner(structure: Structure, interactions: Interactio
     return {
         isApplicable: (type: InteractionType) => type === InteractionType.Ionic,
         handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
-            filterInter(InteractionType.MetalCoordination, index, infoA, infoB, contacts)
+            filterInter([InteractionType.MetalCoordination], index, infoA, infoB, contacts)
         },
         startUnit: () => {},
         handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
-            filterIntra(InteractionType.MetalCoordination, index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id))
+            filterIntra([InteractionType.MetalCoordination], index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id))
         }
     }
 }

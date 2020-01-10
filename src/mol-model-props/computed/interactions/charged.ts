@@ -80,9 +80,11 @@ function addUnitPositiveCharges(structure: Structure, unit: Unit.Atomic, builder
             }
             builder.finishState(FeatureType.PositiveCharge, FeatureGroup.None)
         } else if (!PolymerNames.has(compId)) {
+            addedElements.clear()
+
             for (let j = start as StructureElement.UnitIndex; j < end; ++j) {
                 builder.startState()
-                if (typeSymbol(unit, j) === Elements.N && !ProteinBackboneAtoms.has(atomId(unit, j))) {
+                if (typeSymbol(unit, j) === Elements.N) {
                     builder.pushMember(x[elements[j]], y[elements[j]], z[elements[j]], j)
                 }
                 builder.finishState(FeatureType.PositiveCharge, FeatureGroup.None)
