@@ -43,7 +43,7 @@ function validPair(structure: Structure, infoA: Features.Info, infoB: Features.I
     const altB = altLoc(infoB.unit, indexB)
     if (altA && altB && altA !== altB) return false // incompatible alternate location id
     if (infoA.unit.residueIndex[infoA.unit.elements[indexA]] === infoB.unit.residueIndex[infoB.unit.elements[indexB]]) return false // same residue
-    // no hbond if donor and acceptor are bonded
+    // e.g. no hbond if donor and acceptor are bonded
     if (connectedTo(structure, infoA.unit, indexA, infoB.unit, indexB)) return false
 
     return true
@@ -65,31 +65,34 @@ function isMember(element: StructureElement.UnitIndex, info: Features.Info) {
     return false
 }
 
+function setPosition(v: Vec3, info: Features.Info) {
+    Vec3.set(v, info.x[info.feature], info.y[info.feature], info.z[info.feature])
+    Vec3.transformMat4(v, v, info.unit.conformation.operator.matrix)
+}
+
 const tmpVec = Vec3()
 const tmpVecA = Vec3()
 const tmpVecB = Vec3()
 
-function _checkLineOfSight(infoA: Features.Info, infoB: Features.Info, distFactor: number) {
-    const unit = infoA.unit
+function checkLineOfSight(structure: Structure, infoA: Features.Info, infoB: Features.Info, distFactor: number) {
     const featureA = infoA.feature
     const featureB = infoB.feature
     const indexA = infoA.members[infoA.offsets[featureA]]
     const indexB = infoB.members[infoB.offsets[featureB]]
 
-    Vec3.set(tmpVecA, infoA.x[featureA], infoA.y[featureA], infoA.z[featureA])
-    Vec3.transformMat4(tmpVecA, tmpVecA, infoA.unit.conformation.operator.matrix)
-    Vec3.set(tmpVecB, infoB.x[featureB], infoB.y[featureB], infoB.z[featureB])
-    Vec3.transformMat4(tmpVecB, tmpVecB, infoB.unit.conformation.operator.matrix)
+    setPosition(tmpVecA, infoA)
+    setPosition(tmpVecB, infoB)
     Vec3.scale(tmpVec, Vec3.add(tmpVec, tmpVecA, tmpVecB), 0.5)
 
-    const pos = unit.conformation.position
     const distMax = distFactor * MAX_LINE_OF_SIGHT_DISTANCE
 
-    const { count, indices, squaredDistances } = unit.lookup3d.find(tmpVec[0], tmpVec[1], tmpVec[2], distMax)
-    if (count === 0) true
+    const { count, indices, units, squaredDistances } = structure.lookup3d.find(tmpVec[0], tmpVec[1], tmpVec[2], distMax)
+    if (count === 0) return true
 
     for (let r = 0; r < count; ++r) {
-        const i = indices[r] as StructureElement.UnitIndex
+        const i = indices[r]
+        const unit = units[r]
+        if (!Unit.isAtomic(unit)) continue
 
         const element = typeSymbol(unit, i)
         // allow hydrogens
@@ -103,9 +106,9 @@ function _checkLineOfSight(infoA: Features.Info, infoB: Features.Info, distFacto
         if (invalidAltLoc(unit, i, infoA.unit, indexA) || invalidAltLoc(unit, i, infoB.unit, indexB)) continue
 
         // allow member atoms
-        if (isMember(i, infoA) || (infoB.unit === unit && isMember(i, infoB))) continue
+        if ((infoA.unit === unit && isMember(i, infoA)) || (infoB.unit === unit && isMember(i, infoB))) continue
 
-        pos(unit.elements[i], tmpVec)
+        unit.conformation.position(unit.elements[i], tmpVec)
         // allow atoms at the center of functional groups
         if (Vec3.squaredDistance(tmpVec, tmpVecA) < 1 || Vec3.squaredDistance(tmpVec, tmpVecB) < 1) continue
 
@@ -113,17 +116,6 @@ function _checkLineOfSight(infoA: Features.Info, infoB: Features.Info, distFacto
     }
 
     return true
-}
-
-function checkLineOfSight(infoA: Features.Info, infoB: Features.Info, distFactor: number) {
-    if (infoA.unit === infoB.unit) {
-        return _checkLineOfSight(infoA, infoB, distFactor)
-    } else {
-        return (
-            _checkLineOfSight(infoA, infoB, distFactor) &&
-            _checkLineOfSight(infoB, infoA, distFactor)
-        )
-    }
 }
 
 /**
@@ -159,7 +151,7 @@ function _addUnitContacts(structure: Structure, unit: Unit.Atomic, features: Fea
             if (!validPair(structure, infoA, infoB)) continue
 
             const type = tester.getType(structure, infoA, infoB, squaredDistances[r])
-            if (type && checkLineOfSight(infoA, infoB, distFactor)) {
+            if (type && checkLineOfSight(structure, infoA, infoB, distFactor)) {
                 builder.add(i, j, type)
             }
         }
@@ -172,7 +164,7 @@ const _imageTransform = Mat4()
  * Add all inter-unit contacts, i.e. pairs of features
  */
 export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, featuresA: Features, unitB: Unit.Atomic, featuresB: Features, builder: InterContactsBuilder, testers: ReadonlyArray<ContactTester>, props: ContactsProps) {
-    const { count, x: xA, y: yA, z: zA } = featuresA;
+    const { count: countA, x: xA, y: yA, z: zA } = featuresA;
     const { lookup3d } = featuresB;
 
     // the lookup queries need to happen in the "unitB space".
@@ -192,7 +184,7 @@ export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, f
 
     builder.startUnitPair(unitA, unitB)
 
-    for (let i = 0 as Features.FeatureIndex; i < count; ++i) {
+    for (let i = 0 as Features.FeatureIndex; i < countA; ++i) {
         Vec3.set(imageA, xA[i], yA[i], zA[i])
         if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform)
         if (Vec3.squaredDistance(imageA, center) > testDistanceSq) continue
@@ -211,7 +203,7 @@ export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, f
             for (const tester of testers) {
                 if (distanceSq < tester.maxDistance * tester.maxDistance) {
                     const type = tester.getType(structure, infoA, infoB, distanceSq)
-                    if (type && checkLineOfSight(infoA, infoB, distFactor)) {
+                    if (type && checkLineOfSight(structure, infoA, infoB, distFactor)) {
                         builder.add(i, j, type)
                         break
                     }
