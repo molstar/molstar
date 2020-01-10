@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -11,14 +11,15 @@ import { Unit, Structure, StructureElement, Bond } from '../../../mol-model/stru
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { BitFlags } from '../../../mol-util';
-import { createBondCylinderMesh, BondCylinderParams, BondIterator } from './util/bond';
+import { BitFlags, arrayEqual } from '../../../mol-util';
+import { createBondCylinderMesh, BondCylinderParams, BondIterator, ignoreBondType } from './util/bond';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { isHydrogen } from './util/common';
+import { BondType } from '../../../mol-model/structure/model/types';
 
 function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -29,7 +30,14 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
     const bonds = unit.bonds
     const { edgeCount, a, b, edgeProps, offset } = bonds
     const { order: _order, flags: _flags } = edgeProps
-    const { sizeFactor, sizeAspectRatio, ignoreHydrogens } = props
+    const { sizeFactor, sizeAspectRatio, ignoreHydrogens, includeTypes, excludeTypes } = props
+
+    const include = BondType.fromNames(includeTypes)
+    const exclude = BondType.fromNames(excludeTypes)
+
+    const ignoreHydrogen = ignoreHydrogens ? (edgeIndex: number) => {
+        return isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]])
+    } : () => false
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
@@ -68,9 +76,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
             const sizeB = theme.size.size(location)
             return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio
         },
-        ignore: ignoreHydrogens ? (edgeIndex: number) => {
-            return isHydrogen(unit, elements[a[edgeIndex]]) || isHydrogen(unit, elements[b[edgeIndex]])
-        } : () => false
+        ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, _flags[edgeIndex])
     }
 
     return createBondCylinderMesh(ctx, builderProps, props, mesh)
@@ -100,7 +106,9 @@ export function IntraUnitBondVisual(materialId: number): UnitsVisual<IntraUnitBo
                 newProps.bondScale !== currentProps.bondScale ||
                 newProps.bondSpacing !== currentProps.bondSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.bondCap !== currentProps.bondCap
+                newProps.bondCap !== currentProps.bondCap ||
+                !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             )
         }
     }, materialId)

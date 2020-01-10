@@ -235,9 +235,9 @@ export namespace StructConn {
                 case 'covale':
                     flags = BondType.Flag.Covalent;
                     break;
-                case 'disulf': flags = BondType.Flag.Covalent | BondType.Flag.Sulfide; break;
+                case 'disulf': flags = BondType.Flag.Covalent | BondType.Flag.Disulfide; break;
                 case 'hydrog':
-                    flags = BondType.Flag.Hydrogen;
+                    flags = BondType.Flag.HydrogenBond;
                     break;
                 case 'metalc': flags = BondType.Flag.MetallicCoordination; break;
             }

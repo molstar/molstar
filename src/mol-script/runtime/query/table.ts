@@ -353,16 +353,7 @@ function atomProp(p: (e: StructureElement.Location) => any): (ctx: QueryContext,
 }
 
 function bondFlag(current: BondType, f: string): BondType {
-    switch (f.toLowerCase()) {
-        case 'covalent': return current | BondType.Flag.Covalent;
-        case 'metallic': return current | BondType.Flag.MetallicCoordination;
-        case 'ionic': return current | BondType.Flag.Ionic;
-        case 'hydrogen': return current | BondType.Flag.Hydrogen;
-        case 'sulfide': return current | BondType.Flag.Sulfide;
-        case 'aromatic': return current | BondType.Flag.Aromatic;
-        case 'computed': return current | BondType.Flag.Computed;
-        default: return current;
-    }
+    return current | (BondType.isName(f) ? BondType.fromName(f) : BondType.Flag.None)
 }
 
 function secondaryStructureFlag(current: SecondaryStructureType, f: string): SecondaryStructureType {

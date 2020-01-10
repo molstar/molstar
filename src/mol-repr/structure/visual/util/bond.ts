@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,9 +21,15 @@ export const BondCylinderParams = {
     bondSpacing: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
     bondCap: PD.Boolean(false),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }),
+    includeTypes: PD.MultiSelect(Object.keys(BondType.Names) as BondType.Names[], PD.objectToOptions(BondType.Names)),
+    excludeTypes: PD.MultiSelect([] as BondType.Names[], PD.objectToOptions(BondType.Names)),
 }
 export const DefaultBondCylinderProps = PD.getDefaultValues(BondCylinderParams)
 export type BondCylinderProps = typeof DefaultBondCylinderProps
+
+export function ignoreBondType(include: BondType.Flag, exclude: BondType.Flag, f: BondType.Flag) {
+    return !BondType.is(include, f) || BondType.is(exclude, f)
+}
 
 const tmpShiftV12 = Vec3.zero()
 const tmpShiftV13 = Vec3.zero()
@@ -99,7 +105,7 @@ export function createBondCylinderMesh(ctx: VisualContext, bondBuilder: BondCyli
         const f = flags(edgeIndex)
         builderState.currentGroup = edgeIndex
 
-        if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.Hydrogen)) {
+        if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
             // show metall coordinations and hydrogen bonds with dashed cylinders
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3
             cylinderProps.topCap = cylinderProps.bottomCap = true

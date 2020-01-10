@@ -10,14 +10,15 @@ import { Structure, StructureElement, Bond, Unit } from '../../../mol-model/stru
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { BitFlags } from '../../../mol-util';
-import { createBondCylinderMesh, BondCylinderParams, BondIterator } from './util/bond';
+import { BitFlags, arrayEqual } from '../../../mol-util';
+import { createBondCylinderMesh, BondCylinderParams, BondIterator, ignoreBondType } from './util/bond';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { isHydrogen } from './util/common';
+import { BondType } from '../../../mol-model/structure/model/types';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator()
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -36,7 +37,16 @@ const tmpLoc = StructureElement.Location.create()
 function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondParams>, mesh?: Mesh) {
     const bonds = structure.interUnitBonds
     const { edgeCount, edges } = bonds
-    const { sizeFactor, sizeAspectRatio, ignoreHydrogens } = props
+    const { sizeFactor, sizeAspectRatio, ignoreHydrogens, includeTypes, excludeTypes } = props
+
+    const include = BondType.fromNames(includeTypes)
+    const exclude = BondType.fromNames(excludeTypes)
+
+    const ignoreHydrogen = ignoreHydrogens ? (edgeIndex: number) => {
+        const b = edges[edgeIndex]
+        const uA = b.unitA, uB = b.unitB
+        return isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB])
+    } : () => false
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
@@ -75,11 +85,7 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
             const sizeB = theme.size.size(tmpLoc)
             return Math.min(sizeA, sizeB) * sizeFactor * sizeAspectRatio
         },
-        ignore: ignoreHydrogens ? (edgeIndex: number) => {
-            const b = edges[edgeIndex]
-            const uA = b.unitA, uB = b.unitB
-            return isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB])
-        } : () => false
+        ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, edges[edgeIndex].props.flag)
     }
 
     return createBondCylinderMesh(ctx, builderProps, props, mesh)
@@ -109,7 +115,9 @@ export function InterUnitBondVisual(materialId: number): ComplexVisual<InterUnit
                 newProps.bondScale !== currentProps.bondScale ||
                 newProps.bondSpacing !== currentProps.bondSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.bondCap !== currentProps.bondCap
+                newProps.bondCap !== currentProps.bondCap ||
+                !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             )
         }
     }, materialId)

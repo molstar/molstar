@@ -264,7 +264,7 @@ const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.
             MS.struct.generator.bondedAtomicPairs({
                 0: MS.core.flags.hasAny([
                     MS.struct.bondProperty.flags(),
-                    MS.core.type.bitflags([BondType.Flag.Sulfide])
+                    MS.core.type.bitflags([BondType.Flag.Disulfide])
                 ])
             })
         ])

@@ -592,11 +592,10 @@ export namespace BondType {
         None                 = 0x0,
         Covalent             = 0x1,
         MetallicCoordination = 0x2,
-        Hydrogen             = 0x4,
-        Ionic                = 0x8,
-        Sulfide              = 0x10,
-        Aromatic             = 0x20,
-        Computed             = 0x40
+        HydrogenBond         = 0x4,
+        Disulfide            = 0x8,
+        Aromatic             = 0x10,
+        Computed             = 0x20
         // currently at most 16 flags are supported!!
     }
 
@@ -606,6 +605,39 @@ export namespace BondType {
 
     export function isCovalent(flags: BondType.Flag) {
         return (flags & BondType.Flag.Covalent) !== 0;
+    }
+
+    export const Names = {
+        'covalent': Flag.Covalent,
+        'metal-coordination': Flag.MetallicCoordination,
+        'hydrogen-bond': Flag.HydrogenBond,
+        'disulfide': Flag.HydrogenBond,
+        'aromatic': Flag.HydrogenBond,
+        'computed': Flag.HydrogenBond,
+    }
+    export type Names = keyof typeof Names
+
+    export function isName(name: string): name is Names {
+        return name in Names
+    }
+
+    export function fromName(name: Names): Flag {
+        switch (name) {
+            case 'covalent': return Flag.Covalent;
+            case 'metal-coordination': return Flag.MetallicCoordination;
+            case 'hydrogen-bond': return Flag.HydrogenBond;
+            case 'disulfide': return Flag.Disulfide;
+            case 'aromatic': return Flag.Aromatic;
+            case 'computed': return Flag.Computed;
+        }
+    }
+
+    export function fromNames(names: Names[]): Flag {
+        let f = Flag.None
+        for (let i = 0, il = names.length; i < il; ++i) {
+            f |= fromName(names[i])
+        }
+        return f
     }
 }
 
