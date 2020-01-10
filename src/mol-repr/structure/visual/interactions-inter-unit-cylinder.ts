@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
-import { Structure } from '../../../mol-model/structure';
+import { Structure, StructureElement } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
@@ -21,6 +21,8 @@ import { Interactions } from '../../../mol-model-props/computed/interactions/int
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { InteractionFlag } from '../../../mol-model-props/computed/interactions/common';
+
+const tmpLoc = StructureElement.Location.create()
 
 function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InteractionsInterUnitParams>, mesh?: Mesh) {
     if (!structure.hasAtomic) return Mesh.createEmpty(mesh)
@@ -47,7 +49,18 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
         },
         order: (edgeIndex: number) => 1,
         flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO
-        radius: (edgeIndex: number) => sizeFactor,
+        radius: (edgeIndex: number) => {
+            const b = edges[edgeIndex]
+            const fA = unitsFeatures.get(b.unitA.id)
+            tmpLoc.unit = b.unitA
+            tmpLoc.element = b.unitA.elements[fA.members[fA.offsets[b.indexA]]]
+            const sizeA = theme.size.size(tmpLoc)
+            const fB = unitsFeatures.get(b.unitB.id)
+            tmpLoc.unit = b.unitB
+            tmpLoc.element = b.unitB.elements[fB.members[fB.offsets[b.indexB]]]
+            const sizeB = theme.size.size(tmpLoc)
+            return Math.min(sizeA, sizeB) * sizeFactor
+        },
         ignore: (edgeIndex: number) => edges[edgeIndex].props.flag === InteractionFlag.Filtered
     }
 

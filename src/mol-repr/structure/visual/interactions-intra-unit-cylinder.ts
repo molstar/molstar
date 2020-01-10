@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from '../../../mol-model/structure';
+import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
 import { Interval } from '../../../mol-data/int';
@@ -25,11 +25,13 @@ import { InteractionFlag } from '../../../mol-model-props/computed/interactions/
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
+    const location = StructureElement.Location.create(unit)
+
     const interactions = InteractionsProvider.getValue(structure).value!
     const features = interactions.unitsFeatures.get(unit.id)
     const contacts = interactions.unitsContacts.get(unit.id)
 
-    const { x, y, z } = features
+    const { x, y, z, members, offsets } = features
     const { edgeCount, a, b, edgeProps: { flag } } = contacts
     const { sizeFactor } = props
     const { matrix } = unit.conformation.operator
@@ -47,7 +49,13 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         },
         order: (edgeIndex: number) => 1,
         flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO
-        radius: (edgeIndex: number) => sizeFactor,
+        radius: (edgeIndex: number) => {
+            location.element = unit.elements[members[offsets[a[edgeIndex]]]]
+            const sizeA = theme.size.size(location)
+            location.element = unit.elements[members[offsets[b[edgeIndex]]]]
+            const sizeB = theme.size.size(location)
+            return Math.min(sizeA, sizeB) * sizeFactor
+        },
         ignore: (edgeIndex: number) => flag[edgeIndex] === InteractionFlag.Filtered
     }
 
