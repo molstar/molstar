@@ -14,6 +14,7 @@ import StructureElement from '../../../../../mol-model/structure/structure/eleme
 import { OrderedSet } from '../../../../../mol-data/int';
 import { featureGroupLabel, featureTypeLabel } from '../../../../../mol-model-props/computed/interactions/common';
 import { Loci } from '../../../../../mol-model/loci';
+import { arraySetAdd } from '../../../../../mol-util/array';
 
 export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'computed-interactions-prop',
@@ -29,7 +30,7 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
                 const state = this.ctx.state.dataState
                 const selections = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure, root.transform.ref));
                 for (const s of selections) {
-                    if (s.obj) structures.push(s.obj.data)
+                    if (s.obj) arraySetAdd(structures, s.obj.data)
                 }
             }
             return structures
