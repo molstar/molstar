@@ -223,7 +223,7 @@ function getRingStructure(unit: Unit.Atomic, ring: UnitRing, inputStructure: Str
     return Structure.create([unit.getChild(SortedArray.ofSortedArray(elements))], { parent: inputStructure });
 }
 
-export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): StructureQuery {
+export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>, onlyAromatic?: boolean): StructureQuery {
     return function query_rings(ctx) {
         const { units } = ctx.inputStructure;
         const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
@@ -232,8 +232,14 @@ export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): Structure
             for (const u of units) {
                 if (!Unit.isAtomic(u)) continue;
 
-                for (const r of u.rings.all) {
-                    ret.add(getRingStructure(u, r, ctx.inputStructure));
+                if (onlyAromatic) {
+                    for (const r of u.rings.aromaticRings) {
+                        ret.add(getRingStructure(u, u.rings.all[r], ctx.inputStructure));
+                    }
+                } else {
+                    for (const r of u.rings.all) {
+                        ret.add(getRingStructure(u, r, ctx.inputStructure));
+                    }
                 }
             }
         } else {
@@ -247,6 +253,7 @@ export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): Structure
                 for (const fp of uniqueFps.array) {
                     if (!rings.byFingerprint.has(fp)) continue;
                     for (const r of rings.byFingerprint.get(fp)!) {
+                        if (onlyAromatic && !rings.aromaticRings.includes(r)) continue;
                         ret.add(getRingStructure(u, rings.all[r], ctx.inputStructure));
                     }
                 }

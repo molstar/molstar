@@ -298,6 +298,10 @@ const ring = StructureSelectionQuery('Rings in Residues', MS.struct.modifier.uni
     MS.struct.generator.rings()
 ]))
 
+const aromaticRing = StructureSelectionQuery('Aromatic Rings in Residues', MS.struct.modifier.union([
+    MS.struct.generator.rings({ 'only-aromatic': true })
+]))
+
 const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B) of Selection', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.modifier.includeSurroundings({
@@ -345,6 +349,7 @@ export const StructureSelectionQueries = {
     nonStandardPolymer,
     coarse,
     ring,
+    aromaticRing,
     surroundings,
     complement,
     bonded,

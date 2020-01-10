@@ -10,17 +10,15 @@
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
 import { FeaturesBuilder, Features } from './features';
-import { ProteinBackboneAtoms, PolymerNames, BaseNames, ElementSymbol } from '../../../mol-model/structure/model/types';
-import { typeSymbol, atomId, eachBondedAtom, compId } from '../chemistry/util';
+import { ProteinBackboneAtoms, PolymerNames, BaseNames } from '../../../mol-model/structure/model/types';
+import { typeSymbol, atomId, eachBondedAtom } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
 import { ValenceModelProvider } from '../valence-model';
 import { degToRad } from '../../../mol-math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common';
 import { ContactProvider } from './contacts';
-import { Segmentation, SortedArray } from '../../../mol-data/int';
+import { Segmentation } from '../../../mol-data/int';
 import { isGuanidine, isAcetamidine, isPhosphate, isSulfonicAcid, isSulfate, isCarboxylate } from '../chemistry/functional-group';
-import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
-import { getPositions } from '../../../mol-model/structure/util';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 
 const IonicParams = {
@@ -189,38 +187,12 @@ function addUnitNegativeCharges(structure: Structure, unit: Unit.Atomic, builder
     }
 }
 
-const AromaticRingElements = [
-    Elements.B, Elements.C, Elements.N, Elements.O,
-    Elements.SI, Elements.P, Elements.S,
-    Elements.GE, Elements.AS,
-    Elements.SN, Elements.SB,
-    Elements.BI
-] as ElementSymbol[]
-const AromaticRingPlanarityThreshold = 0.05
-
-function isRingAromatic(unit: Unit.Atomic, ring: SortedArray<StructureElement.UnitIndex>) {
-    // ignore Proline (can be flat because of bad geometry)
-    if (compId(unit, ring[0]) === 'PRO') return
-    // TODO also check `chem_comp_bond.pdbx_aromatic_flag`
-    let hasAromaticRingElement = false
-    for (let i = 0, il = ring.length; i < il; ++i) {
-        if (AromaticRingElements.includes(typeSymbol(unit, ring[i]))) {
-            hasAromaticRingElement = true
-            break
-        }
-    }
-    if (!hasAromaticRingElement) return
-
-    const ma = PrincipalAxes.calculateMomentsAxes(getPositions(unit, ring))
-    return Vec3.magnitude(ma.dirC) < AromaticRingPlanarityThreshold
-}
-
 function addUnitAromaticRings(structure: Structure, unit: Unit.Atomic, builder: FeaturesBuilder) {
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
 
-    for (const ring of unit.rings.all) {
-        if (!isRingAromatic(unit, ring)) continue
+    for (const ringIndex of unit.rings.aromaticRings) {
+        const ring = unit.rings.all[ringIndex]
         builder.startState()
         for (let i = 0, il = ring.length; i < il; ++i) {
             const j = ring[i]

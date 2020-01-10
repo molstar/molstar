@@ -239,7 +239,7 @@ const symbols = [
     D(MolScript.structureQuery.generator.all, function structureQuery_generator_all(ctx) { return Queries.generators.all(ctx) }),
     D(MolScript.structureQuery.generator.empty, function structureQuery_generator_empty(ctx) { return Queries.generators.none(ctx) }),
     D(MolScript.structureQuery.generator.bondedAtomicPairs, function structureQuery_generator_bondedAtomicPairs(ctx, xs) { return Queries.generators.bondedAtomicPairs(xs && xs[0])(ctx) }),
-    D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) { return Queries.generators.rings(getArray(ctx, xs))(ctx) }),
+    D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) { return Queries.generators.rings(xs?.['fingerprint']?.(ctx) as any, xs?.['only-aromatic']?.(ctx))(ctx) }),
 
     // ============= MODIFIERS ================
 

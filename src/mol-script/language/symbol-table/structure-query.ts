@@ -99,7 +99,10 @@ const generator = {
         // 'group-by': Argument(Type.Any, { isOptional: true, defaultValue: ``, description: 'Group the bonds using the privided value' }),
     }), Types.ElementSelectionQuery, 'Return all pairs of atoms for which the test is satisfied.'),
 
-    rings: symbol(Arguments.List(Types.RingFingerprint), Types.ElementSelectionQuery, 'Return rings with the specified fingerprint(s). If no fingerprints are given, return all rings.'),
+    rings: symbol(Arguments.Dictionary({
+        'fingerprint': Argument(Types.RingFingerprint, { isOptional: true }),
+        'only-aromatic': Argument(Type.Bool, { isOptional: true, defaultValue: false }),
+    }), Types.ElementSelectionQuery, 'Return all rings or those with the specified fingerprint and/or only aromatic rings.'),
 
     queryInSelection: symbol(Arguments.Dictionary({
         0: Argument(Types.ElementSelectionQuery),
