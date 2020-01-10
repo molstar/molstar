@@ -140,7 +140,7 @@ export const InteractionsParams = {
         'halogen-bonds',
         // 'hydrophobic',
         'metal-coordination',
-        // 'weak-hydrogen-bonds',
+        'weak-hydrogen-bonds',
     ], PD.objectToOptions(ContactProviders)),
     contacts: PD.Group(ContactsParams, { isFlat: true }),
     ...getProvidersParams()

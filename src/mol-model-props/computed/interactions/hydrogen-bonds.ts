@@ -21,7 +21,7 @@ import { MoleculeType, ProteinBackboneAtoms } from '../../../mol-model/structure
 
 const GeometryParams = {
     distanceMax: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
-    backbone: PD.Boolean(false, { description: 'Include backbone-to-backbone hydrogen bonds' }),
+    backbone: PD.Boolean(true, { description: 'Include backbone-to-backbone hydrogen bonds' }),
     accAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
     donAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal donor angle' }),
     accOutOfPlaneAngleMax: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
@@ -32,7 +32,7 @@ type GeometryProps = PD.Values<GeometryParams>
 
 const HydrogenBondsParams = {
     ...GeometryParams,
-    water: PD.Boolean(false, { description: 'Include water-to-water hydrogen bonds' }),
+    water: PD.Boolean(true, { description: 'Include water-to-water hydrogen bonds' }),
     sulfurDistanceMax: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
 }
 type HydrogenBondsParams = typeof HydrogenBondsParams

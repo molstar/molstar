@@ -38,25 +38,34 @@ enum Tags {
     ResidueSel = 'structure-interaction-residue-sel',
     ResidueRepr = 'structure-interaction-residue-repr',
     SurrSel = 'structure-interaction-surr-sel',
-    SurrRepr = 'structure-interaction-surr-repr'
+    SurrRepr = 'structure-interaction-surr-repr',
+    SurrNciRepr = 'structure-interaction-surr-nci-repr'
 }
 
-const TagSet: Set<Tags> = new Set([Tags.Group, Tags.ResidueSel, Tags.ResidueRepr, Tags.SurrSel, Tags.SurrRepr])
+const TagSet: Set<Tags> = new Set([Tags.Group, Tags.ResidueSel, Tags.ResidueRepr, Tags.SurrSel, Tags.SurrRepr, Tags.SurrNciRepr])
 
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
 
     private createResVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ sizeAspectRatio: 1 })],
-            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.6 } )]
+            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
+            size: [BuiltInSizeThemes.uniform, () => ({ })]
         });
     }
 
     private createSurVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ sizeAspectRatio: 1 })],
-            color: [BuiltInColorThemes['element-symbol'], () => ({ saturation: -3, lightness: 0.6 })],
-            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.3 } )]
+            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
+            color: [BuiltInColorThemes['element-symbol'], () => ({ })],
+            size: [BuiltInSizeThemes.uniform, () => ({ })]
+        });
+    }
+
+    private createSurNciVisualParams(s: Structure) {
+        return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
+            repr: [BuiltInStructureRepresentations['interactions'], () => ({ })],
+            color: [BuiltInColorThemes['interaction-type'], () => ({ })],
+            size: [BuiltInSizeThemes.uniform, () => ({ })]
         });
     }
 
@@ -91,6 +100,11 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         if (!refs[Tags.SurrRepr]) {
             refs[Tags.SurrRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
                 this.createSurVisualParams(cell.obj!.data), { tags: Tags.SurrRepr }).ref;
+        }
+
+        if (!refs[Tags.SurrNciRepr]) {
+            refs[Tags.SurrNciRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
+                this.createSurNciVisualParams(cell.obj!.data), { tags: Tags.SurrNciRepr }).ref;
         }
 
         return { state, builder, refs };
