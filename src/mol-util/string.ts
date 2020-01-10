@@ -38,17 +38,20 @@ export function splitSnakeCase(str: string) {
     return str.replace(/_/g, ' ')
 }
 
-
 export function snakeCaseToWords(str: string) {
     return capitalize(splitSnakeCase(str))
 }
 
-function splitSnakeplitCase(str: string) {
-    return str.replace(/[_-]/g, ' ')
+export function splitKebabCase(str: string) {
+    return str.replace(/-/g, ' ')
+}
+
+export function kebabCaseToWords(str: string) {
+    return capitalize(splitKebabCase(str))
 }
 
 export function stringToWords(str: string) {
-    return capitalize(splitCamelCase(splitSnakeplitCase(str)))
+    return capitalize(splitCamelCase(splitSnakeCase(splitKebabCase(str))))
 }
 
 export function substringStartsWith(str: string, start: number, end: number, target: string) {
