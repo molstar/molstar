@@ -21,6 +21,7 @@ import { HydrophobicAtomProvider, HydrophobicProvider } from './hydrophobic';
 import { SetUtils } from '../../../mol-util/set';
 import { MetalCoordinationProvider, MetalProvider, MetalBindingProvider } from './metal';
 import { refineInteractions } from './refine';
+import { Result } from '../../../mol-math/geometry';
 
 export { Interactions }
 
@@ -211,6 +212,7 @@ function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Featu
 
     const lookup = structure.lookup3d;
     const imageCenter = Vec3.zero();
+    const closeUnits = Result.create()
 
     for (const unitA of structure.units) {
         if (!Unit.isAtomic(unitA)) continue;
@@ -219,7 +221,7 @@ function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Featu
 
         const bs = unitA.lookup3d.boundary.sphere;
         Vec3.transformMat4(imageCenter, bs.center, unitA.conformation.operator.matrix);
-        const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxDistance);
+        Result.copy(closeUnits, lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxDistance));
 
         for (let i = 0; i < closeUnits.count; i++) {
             const unitB = structure.units[closeUnits.indices[i]];
