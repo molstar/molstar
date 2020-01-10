@@ -133,14 +133,14 @@ function getProvidersParams() {
 }
 export const InteractionsParams = {
     types: PD.MultiSelect([
-        'ionic',
+        // 'ionic',
         'cation-pi',
         'pi-stacking',
         'hydrogen-bonds',
         'halogen-bonds',
         // 'hydrophobic',
         'metal-coordination',
-        'weak-hydrogen-bonds',
+        // 'weak-hydrogen-bonds',
     ], PD.objectToOptions(ContactProviders)),
     contacts: PD.Group(ContactsParams, { isFlat: true }),
     ...getProvidersParams()
