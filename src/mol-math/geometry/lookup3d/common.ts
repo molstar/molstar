@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Box3D } from '../primitives/box3d'
@@ -23,8 +24,17 @@ export namespace Result {
         result.count = 0;
     }
 
-    export function create<T>(): Result<T> {
+    export function create<T = number>(): Result<T> {
         return { count: 0, indices: [], squaredDistances: [] };
+    }
+
+    export function copy<T = number>(out: Result<T>, result: Result<T>) {
+        for (let i = 0; i < result.count; ++i) {
+            out.indices[i] = result.indices[i];
+            out.squaredDistances[i] = result.squaredDistances[i];
+        }
+        out.count = result.count
+        return out
     }
 }
 
