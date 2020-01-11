@@ -81,12 +81,6 @@ function addUnitPositiveCharges(structure: Structure, unit: Unit.Atomic, builder
             addedElements.clear()
 
             for (let j = start as StructureElement.UnitIndex; j < end; ++j) {
-                builder.startState()
-                if (typeSymbol(unit, j) === Elements.N) {
-                    builder.pushMember(x[elements[j]], y[elements[j]], z[elements[j]], j)
-                }
-                builder.finishState(FeatureType.PositiveCharge, FeatureGroup.None)
-
                 let group = FeatureGroup.None
                 if (isGuanidine(structure, unit, j)) {
                     group = FeatureGroup.Guanidine
