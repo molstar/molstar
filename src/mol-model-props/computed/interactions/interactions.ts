@@ -66,7 +66,7 @@ namespace Interactions {
         readonly kind: 'interaction-loci'
         readonly structure: Structure
         readonly interactions: Interactions
-        readonly links: ReadonlyArray<{
+        readonly contacts: ReadonlyArray<{
             unitA: Unit
             /** Index into features of unitA */
             indexA: Features.FeatureIndex
@@ -76,8 +76,8 @@ namespace Interactions {
         }>
     }
 
-    export function Loci(structure: Structure, interactions: Interactions, links: Loci['links']): Loci {
-        return { kind: 'interaction-loci', structure, interactions, links };
+    export function Loci(structure: Structure, interactions: Interactions, contacts: Loci['contacts']): Loci {
+        return { kind: 'interaction-loci', structure, interactions, contacts };
     }
 
     export function isLoci(x: any): x is Loci {
@@ -87,20 +87,20 @@ namespace Interactions {
     export function areLociEqual(a: Loci, b: Loci) {
         if (a.structure !== b.structure) return false
         if (a.interactions !== b.interactions) return false
-        if (a.links.length !== b.links.length) return false
-        for (let i = 0, il = a.links.length; i < il; ++i) {
-            const linkA = a.links[i]
-            const linkB = b.links[i]
-            if (linkA.unitA !== linkB.unitA) return false
-            if (linkA.unitB !== linkB.unitB) return false
-            if (linkA.indexA !== linkB.indexA) return false
-            if (linkA.indexB !== linkB.indexB) return false
+        if (a.contacts.length !== b.contacts.length) return false
+        for (let i = 0, il = a.contacts.length; i < il; ++i) {
+            const contactA = a.contacts[i]
+            const contactB = b.contacts[i]
+            if (contactA.unitA !== contactB.unitA) return false
+            if (contactA.unitB !== contactB.unitB) return false
+            if (contactA.indexA !== contactB.indexA) return false
+            if (contactA.indexB !== contactB.indexB) return false
         }
         return true
     }
 
     export function isLociEmpty(loci: Loci) {
-        return loci.links.length === 0 ? true : false
+        return loci.contacts.length === 0 ? true : false
     }
 }
 

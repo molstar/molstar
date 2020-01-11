@@ -33,8 +33,8 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
             const bond = loci.bonds[0]
             return bond ? bondLabel(bond) : 'Unknown'
         case 'interaction-loci':
-            const link = loci.links[0]
-            return link ? interactionLabel(Interactions.Location(loci.interactions, link.unitA, link.indexA, link.unitB, link.indexB)) : 'Unknown'
+            const contact = loci.contacts[0]
+            return contact ? interactionLabel(Interactions.Location(loci.interactions, contact.unitA, contact.indexA, contact.unitB, contact.indexB)) : 'Unknown'
         case 'shape-loci':
             return loci.shape.name
         case 'group-loci':

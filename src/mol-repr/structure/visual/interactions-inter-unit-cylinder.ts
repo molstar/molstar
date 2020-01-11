@@ -118,8 +118,8 @@ function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Int
         if (loci.interactions !== interactions) return false
         const { contacts } = interactions
 
-        for (const l of loci.links) {
-            const idx = contacts.getEdgeIndex(l.indexA, l.unitA, l.indexB, l.unitB)
+        for (const c of loci.contacts) {
+            const idx = contacts.getEdgeIndex(c.indexA, c.unitA, c.indexB, c.unitB)
             if (idx !== -1) {
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }

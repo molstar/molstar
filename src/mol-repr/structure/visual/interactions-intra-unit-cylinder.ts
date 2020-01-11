@@ -117,10 +117,10 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
         const unit = group.units[0]
         const contacts = interactions.unitsContacts.get(unit.id)
         const groupCount = contacts.edgeCount * 2
-        for (const l of loci.links) {
-            const unitIdx = group.unitIndexMap.get(l.unitA.id)
+        for (const c of loci.contacts) {
+            const unitIdx = group.unitIndexMap.get(c.unitA.id)
             if (unitIdx !== undefined) {
-                const idx = contacts.getDirectedEdgeIndex(l.indexA, l.indexB)
+                const idx = contacts.getDirectedEdgeIndex(c.indexA, c.indexB)
                 if (idx !== -1) {
                     if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                 }
