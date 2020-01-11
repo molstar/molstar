@@ -1,8 +1,9 @@
 
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { mmCIF_Database as mmCIF, mmCIF_Database } from '../../../mol-io/reader/cif/schema/mmcif'
@@ -40,7 +41,7 @@ type SecondaryStructureEntry = {
     type: SecondaryStructureType,
     key: number
 }
-type SecondaryStructureMap = Map<string, Map<number, SecondaryStructureEntry>>
+type SecondaryStructureMap = Map<string, Map<number, SecondaryStructureEntry[]>>
 type SecondaryStructureData = { type: SecondaryStructureType[], key: number[], elements: SecondaryStructure.Element[] }
 
 function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, elements: SecondaryStructure.Element[]) {
@@ -73,14 +74,18 @@ function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, eleme
             key: elements.length
         };
 
-
         elements[elements.length] = element;
 
         const asymId = beg_label_asym_id.value(i)!;
         if (map.has(asymId)) {
-            map.get(asymId)!.set(entry.startSeqNumber, entry);
+            const entries = map.get(asymId)!
+            if (entries.has(entry.startSeqNumber)) {
+                entries.get(entry.startSeqNumber)!.push(entry)
+            } else {
+                entries.set(entry.startSeqNumber, [entry]);
+            }
         } else {
-            map.set(asymId, new Map([[entry.startSeqNumber, entry]]));
+            map.set(asymId, new Map([[entry.startSeqNumber, [entry]]]));
         }
     }
 }
@@ -122,12 +127,16 @@ function addSheets(cat: mmCIF['struct_sheet_range'], map: SecondaryStructureMap,
 
         elements[elements.length] = element;
 
-
         const asymId = beg_label_asym_id.value(i)!;
         if (map.has(asymId)) {
-            map.get(asymId)!.set(entry.startSeqNumber, entry);
+            const entries = map.get(asymId)!
+            if (entries.has(entry.startSeqNumber)) {
+                entries.get(entry.startSeqNumber)!.push(entry)
+            } else {
+                entries.set(entry.startSeqNumber, [entry]);
+            }
         } else {
-            map.set(asymId, new Map([[entry.startSeqNumber, entry]]));
+            map.set(asymId, new Map([[entry.startSeqNumber, [entry]]]));
         }
     }
 
@@ -167,10 +176,12 @@ function assignSecondaryStructureRanges(hierarchy: AtomicHierarchy, map: Seconda
             for (let rI = resStart; rI < resEnd; rI++) {
                 const seqNumber = label_seq_id.value(rI);
                 if (entries.has(seqNumber)) {
-                    const entry = entries.get(seqNumber)!;
-                    const insCode = pdbx_PDB_ins_code.value(rI);
-                    if (entry.startInsCode !== insCode) continue;
-                    assignSecondaryStructureEntry(hierarchy, entry, rI, resEnd, data);
+                    const entryList = entries.get(seqNumber)!;
+                    for (const entry of entryList) {
+                        const insCode = pdbx_PDB_ins_code.value(rI);
+                        if (entry.startInsCode !== insCode) continue;
+                        assignSecondaryStructureEntry(hierarchy, entry, rI, resEnd, data);
+                    }
                 }
             }
         }
