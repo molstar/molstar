@@ -10,6 +10,7 @@ import { GridLookup3D } from '../../../mol-math/geometry';
 import { OrderedSet, SortedArray } from '../../../mol-data/int';
 import { FeatureGroup, FeatureType } from './common';
 import { ValenceModelProvider } from '../valence-model';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 export { Features }
 
@@ -39,6 +40,12 @@ interface Features {
 namespace Features {
     /** Index into Features data arrays */
     export type FeatureIndex = { readonly '@type': 'feature-index' } & number
+
+    export function setPosition(out: Vec3, unit: Unit, index: FeatureIndex, features: Features) {
+        Vec3.set(out, features.x[index], features.y[index], features.z[index])
+        Vec3.transformMat4(out, out, unit.conformation.operator.matrix)
+        return out
+    }
 
     /** maps unit elements to features, range for unit element i is offsets[i] to offsets[i + 1] */
     export type ElementsIndex = {

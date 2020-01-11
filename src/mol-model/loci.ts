@@ -15,6 +15,7 @@ import { Structure } from './structure/structure';
 import { PrincipalAxes } from '../mol-math/linear-algebra/matrix/principal-axes';
 import { ParamDefinition } from '../mol-util/param-definition';
 import { Interactions } from '../mol-model-props/computed/interactions/interactions';
+import { Features } from '../mol-model-props/computed/interactions/features';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -118,7 +119,7 @@ namespace Loci {
         return loci
     }
 
-    const sphereHelper = new CentroidHelper(), tempPos = Vec3.zero();
+    const sphereHelper = new CentroidHelper(), tmpPos = Vec3.zero();
 
     export function getBoundingSphere(loci: Loci, boundingSphere?: Sphere3D): Sphere3D | undefined {
         if (loci.kind === 'every-loci' || loci.kind === 'empty-loci') return void 0;
@@ -129,24 +130,36 @@ namespace Loci {
         if (loci.kind === 'structure-loci') {
             return Sphere3D.copy(boundingSphere, loci.structure.boundary.sphere)
         } else if (loci.kind === 'element-loci') {
-            return StructureElement.Loci.getBoundary(loci).sphere;
+            return Sphere3D.copy(boundingSphere, StructureElement.Loci.getBoundary(loci).sphere);
         } else if (loci.kind === 'bond-loci') {
             for (const e of loci.bonds) {
-                e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tempPos);
-                sphereHelper.includeStep(tempPos);
-                e.bUnit.conformation.position(e.bUnit.elements[e.bIndex], tempPos);
-                sphereHelper.includeStep(tempPos);
+                e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tmpPos);
+                sphereHelper.includeStep(tmpPos);
+                e.bUnit.conformation.position(e.bUnit.elements[e.bIndex], tmpPos);
+                sphereHelper.includeStep(tmpPos);
             }
             sphereHelper.finishedIncludeStep();
             for (const e of loci.bonds) {
-                e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tempPos);
-                sphereHelper.radiusStep(tempPos);
-                e.aUnit.conformation.position(e.bUnit.elements[e.bIndex], tempPos);
-                sphereHelper.radiusStep(tempPos);
+                e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tmpPos);
+                sphereHelper.radiusStep(tmpPos);
+                e.aUnit.conformation.position(e.bUnit.elements[e.bIndex], tmpPos);
+                sphereHelper.radiusStep(tmpPos);
             }
         } else if (loci.kind === 'interaction-loci') {
-            // TODO
-            // return Interactions.Loci.getBoundary(loci).sphere;
+            const { unitsFeatures } = loci.interactions
+            for (const e of loci.contacts) {
+                Features.setPosition(tmpPos, e.unitA, e.indexA, unitsFeatures.get(e.unitA.id))
+                sphereHelper.includeStep(tmpPos)
+                Features.setPosition(tmpPos, e.unitB, e.indexB, unitsFeatures.get(e.unitB.id))
+                sphereHelper.includeStep(tmpPos);
+            }
+            sphereHelper.finishedIncludeStep();
+            for (const e of loci.contacts) {
+                Features.setPosition(tmpPos, e.unitA, e.indexA, unitsFeatures.get(e.unitA.id))
+                sphereHelper.radiusStep(tmpPos)
+                Features.setPosition(tmpPos, e.unitB, e.indexB, unitsFeatures.get(e.unitB.id))
+                sphereHelper.radiusStep(tmpPos);
+            }
         } else if (loci.kind === 'shape-loci') {
             // TODO
             return void 0;

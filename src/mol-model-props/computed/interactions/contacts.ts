@@ -65,9 +65,10 @@ function isMember(element: StructureElement.UnitIndex, info: Features.Info) {
     return false
 }
 
-function setPosition(v: Vec3, info: Features.Info) {
-    Vec3.set(v, info.x[info.feature], info.y[info.feature], info.z[info.feature])
-    Vec3.transformMat4(v, v, info.unit.conformation.operator.matrix)
+function setPosition(out: Vec3, info: Features.Info) {
+    Vec3.set(out, info.x[info.feature], info.y[info.feature], info.z[info.feature])
+    Vec3.transformMat4(out, out, info.unit.conformation.operator.matrix)
+    return out
 }
 
 const tmpVec = Vec3()
