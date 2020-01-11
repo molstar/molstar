@@ -65,7 +65,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         const { origin, dirA, dirC } = principalAxes.boxAxes
         const { sphere } = this.plugin.helpers.structureSelectionManager.getBoundary()
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
-        this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);
+        this.plugin.canvas3d?.camera.focus(origin, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs, dirA, dirC);
     }
 
     focusLoci(loci: StructureElement.Loci) {
@@ -74,7 +74,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             if (this.plugin.helpers.structureSelectionManager.stats.elementCount === 0) return
             const { sphere } = StructureElement.Loci.getBoundary(loci)
             const radius = Math.max(sphere.radius + extraRadius, minRadius);
-            this.plugin.canvas3d?.camera.focus(sphere.center, radius, durationMs);
+            this.plugin.canvas3d?.camera.focus(sphere.center, radius, this.plugin.canvas3d.boundingSphere.radius, durationMs);
         }
     }
 

@@ -79,7 +79,9 @@ namespace CameraTransitionManager {
         // Lerp target, position & radius
         Vec3.lerp(out.target, source.target, target.target, t);
         Vec3.lerp(out.position, source.position, target.position, t);
-        out.radius = lerp(source.radius, target.radius, t);
+        out.radiusNear = lerp(source.radiusNear, target.radiusNear, t);
+        // TODO take change of `clipFar` into account
+        out.radiusFar = lerp(source.radiusFar, target.radiusFar, t);
 
         // Lerp fov & fog
         out.fov = lerp(source.fov, target.fov, t);

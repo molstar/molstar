@@ -33,10 +33,12 @@ import { DrawPass } from './passes/draw';
 import { PickPass } from './passes/pick';
 import { Task } from '../mol-task';
 import { ImagePass, ImageProps } from './passes/image';
+import { Sphere3D } from '../mol-math/geometry';
 
 export const Canvas3DParams = {
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     cameraFog: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
+    cameraClipFar: PD.Boolean(true),
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     transparentBackground: PD.Boolean(false),
 
@@ -73,6 +75,7 @@ interface Canvas3D {
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
     resetCamera: () => void
     readonly camera: Camera
+    readonly boundingSphere: Readonly<Sphere3D>
     downloadScreenshot: () => void
     getPixelData: (variant: GraphicsRenderVariant) => PixelData
     setProps: (props: Partial<Canvas3DProps>) => void
@@ -127,7 +130,8 @@ namespace Canvas3D {
         const camera = new Camera({
             position: Vec3.create(0, 0, 100),
             mode: p.cameraMode,
-            fog: p.cameraFog
+            fog: p.cameraFog,
+            clipFar: p.cameraClipFar
         })
 
         const controls = TrackballControls.create(input, camera, p.trackball)
@@ -240,7 +244,8 @@ namespace Canvas3D {
 
             return runTask(scene.commit()).then(() => {
                 if (cameraResetRequested && !scene.isCommiting) {
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
+                    const { center, radius } = scene.boundingSphere
+                    camera.focus(center, radius, radius)
                     cameraResetRequested = false
                 }
                 if (debugHelper.isEnabled) debugHelper.update()
@@ -320,11 +325,13 @@ namespace Canvas3D {
                 if (scene.isCommiting) {
                     cameraResetRequested = true
                 } else {
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius, p.cameraResetDurationMs)
+                    const { center, radius } = scene.boundingSphere
+                    camera.focus(center, radius, radius, p.cameraResetDurationMs)
                     requestDraw(true);
                 }
             },
             camera,
+            boundingSphere: scene.boundingSphere,
             downloadScreenshot: () => {
                 // TODO
             },
@@ -346,6 +353,9 @@ namespace Canvas3D {
                 if (props.cameraFog !== undefined && props.cameraFog !== camera.state.fog) {
                     camera.setState({ fog: props.cameraFog })
                 }
+                if (props.cameraClipFar !== undefined && props.cameraClipFar !== camera.state.clipFar) {
+                    camera.setState({ clipFar: props.cameraClipFar })
+                }
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground
 
@@ -364,6 +374,7 @@ namespace Canvas3D {
                 return {
                     cameraMode: camera.state.mode,
                     cameraFog: camera.state.fog,
+                    cameraClipFar: camera.state.clipFar,
                     cameraResetDurationMs: p.cameraResetDurationMs,
                     transparentBackground: p.transparentBackground,
 

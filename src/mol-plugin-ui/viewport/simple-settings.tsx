@@ -25,6 +25,7 @@ const SimpleSettingsParams = {
     occlusion: PD.Boolean(false, { description: 'Darken occluded crevices with the ambient occlusion effect' }),
     outline: PD.Boolean(false, { description: 'Draw outline around 3D objects' }),
     fog: PD.Boolean(false, { description: 'Show fog in the distance' }),
+    clipFar: PD.Boolean(true, { description: 'Clip scene in the distance' }),
 };
 
 export class SimpleSettingsControl extends PluginUIComponent {
@@ -81,6 +82,10 @@ export class SimpleSettingsControl extends PluginUIComponent {
             PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
                 cameraFog: p.value ? 50 : 1,
             } });
+        } else if (p.name === 'clipFar') {;
+            PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
+                cameraClipFar: p.value,
+            } });
         }
     }
 
@@ -117,7 +122,8 @@ export class SimpleSettingsControl extends PluginUIComponent {
             renderStyle,
             occlusion: this.plugin.canvas3d?.props.postprocessing.occlusionEnable,
             outline: this.plugin.canvas3d?.props.postprocessing.outlineEnable,
-            fog: this.plugin.canvas3d ? this.plugin.canvas3d.props.cameraFog > 1 : false
+            fog: this.plugin.canvas3d ? this.plugin.canvas3d.props.cameraFog > 1 : false,
+            clipFar: this.plugin.canvas3d?.props.cameraClipFar
         }
     }
 
