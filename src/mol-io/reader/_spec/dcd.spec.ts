@@ -10,7 +10,6 @@ function createDcdData() {
     const data = new Uint8Array(4 * 128)
 
     const dv = new DataView(data.buffer)
-    // const intView = new Int32Array(data.buffer, 0, 23)
 
     // set little endian
     dv.setInt32(0, 84)
