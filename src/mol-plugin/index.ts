@@ -22,6 +22,7 @@ import { VolumeStreamingCustomControls } from '../mol-plugin-ui/custom/volume';
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
         PluginSpec.Action(StateActions.Structure.DownloadStructure),
+        PluginSpec.Action(StateActions.Structure.AddTrajectoryFromModelAndCoordinates),
         PluginSpec.Action(StateActions.Volume.DownloadDensity),
         PluginSpec.Action(StateActions.DataFormat.OpenFile),
         PluginSpec.Action(StateActions.Structure.Create3DRepresentationPreset),

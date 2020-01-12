@@ -7,6 +7,7 @@
 
 import { CifFile } from '../../mol-io/reader/cif';
 import { PlyFile } from '../../mol-io/reader/ply/schema';
+import { Coordinates as _Coordinates } from '../../mol-model/structure';
 import { Model as _Model, Structure as _Structure, StructureElement } from '../../mol-model/structure';
 import { VolumeData } from '../../mol-model/volume';
 import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
@@ -19,6 +20,8 @@ import { Dsn6File } from '../../mol-io/reader/dsn6/schema';
 import { ShapeRepresentation } from '../../mol-repr/shape/representation';
 import { Shape as _Shape } from '../../mol-model/shape';
 import { ShapeProvider } from '../../mol-model/shape/provider';
+import { File3DG } from '../../mol-io/reader/3dg/parser';
+import { DcdFile } from '../../mol-io/reader/dcd/parser';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -64,6 +67,10 @@ export namespace PluginStateObject {
     export namespace Format {
         export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
         export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
+        export class Pdb extends Create<CifFile>({ name: 'PDB File', typeClass: 'Data' }) { }
+        export class Gro extends Create<CifFile>({ name: 'GRO File', typeClass: 'Data' }) { }
+        export class _3dg extends Create<CifFile>({ name: '3DG File', typeClass: 'Data' }) { }
+        export class Dcd extends Create<CifFile>({ name: 'DCD File', typeClass: 'Data' }) { }
         export class Ply extends Create<PlyFile>({ name: 'PLY File', typeClass: 'Data' }) { }
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
@@ -73,6 +80,10 @@ export namespace PluginStateObject {
             | { kind: 'string', data: string }
             | { kind: 'binary', data: Uint8Array }
             | { kind: 'cif', data: CifFile }
+            | { kind: 'pdb', data: CifFile }
+            | { kind: 'gro', data: CifFile }
+            | { kind: '3dg', data: File3DG }
+            | { kind: 'dcd', data: DcdFile }
             | { kind: 'ccp4', data: Ccp4File }
             | { kind: 'dsn6', data: Dsn6File }
             | { kind: 'ply', data: PlyFile }
@@ -83,8 +94,9 @@ export namespace PluginStateObject {
     }
 
     export namespace Molecule {
-        export class Trajectory extends Create<ReadonlyArray<_Model>>({ name: 'Trajectory', typeClass: 'Object' }) { }
+        export class Coordinates extends Create<_Coordinates>({ name: 'Coordinates', typeClass: 'Object' }) { }
         export class Model extends Create<_Model>({ name: 'Model', typeClass: 'Object' }) { }
+        export class Trajectory extends Create<ReadonlyArray<_Model>>({ name: 'Trajectory', typeClass: 'Object' }) { }
         export class Structure extends Create<_Structure>({ name: 'Structure', typeClass: 'Object' }) { }
 
         export namespace Structure {

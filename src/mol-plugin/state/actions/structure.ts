@@ -11,7 +11,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
-import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties } from '../transforms/model';
+import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties, CoordinatesFromDcd, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
@@ -82,6 +82,21 @@ export const Provider3dg: DataFormatProvider<any> = {
         return Task.create('3DG default builder', async taskCtx => {
             const traj = createModelTree(data, '3dg');
             await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
+        })
+    }
+}
+
+export const DcdProvider: DataFormatProvider<any> = {
+    label: 'DCD',
+    description: 'DCD',
+    stringExtensions: [],
+    binaryExtensions: ['dcd'],
+    isApplicable: (info: FileInfo, data: string) => {
+        return info.ext === 'dcd'
+    },
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, options: DataFormatBuilderOptions, state: State) => {
+        return Task.create('DCD default builder', async taskCtx => {
+            await state.updateTree(data.apply(CoordinatesFromDcd)).runInContext(taskCtx)
         })
     }
 }
@@ -395,4 +410,29 @@ export const StructureFromSelection = StateAction.build({
     const expression = StructureElement.Loci.toExpression(sel);
     const root = state.build().to(ref).apply(StructureSelectionFromExpression, { expression, label: params.label });
     return state.updateTree(root);
+});
+
+export const AddTrajectoryFromModelAndCoordinates = StateAction.build({
+    display: { name: 'Add Trajectory', description: 'Add trajectory from existing model and coordinates.' },
+    from: PluginStateObject.Root,
+    params(a, ctx: PluginContext) {
+        const state = ctx.state.dataState
+        const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model))
+        const modelOptions = models.map(m => [m.transform.ref, m.obj!.label]) as [string, string][]
+        const coords = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Coordinates))
+        const coordsOptions = coords.map(c => [c.transform.ref, c.obj!.label]) as [string, string][]
+        return {
+            model: PD.Select(modelOptions.length ? modelOptions[0][0] : '', modelOptions),
+            coordinates: PD.Select(coordsOptions.length ? coordsOptions[0][0] : '', coordsOptions)
+        }
+    }
+})(({ ref, params, state }, ctx: PluginContext) => {
+    const dependsOn = [params.model, params.coordinates];
+    const root = state.build().toRoot()
+        .apply(TrajectoryFromModelAndCoordinates, {
+            modelRef: params.model,
+            coordinatesRef: params.coordinates
+        }, { dependsOn })
+        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
+    return state.updateTree(createStructureAndVisuals(ctx, root, false));
 });
