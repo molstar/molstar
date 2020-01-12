@@ -29,7 +29,7 @@ export class AsyncQueue<T> {
     remove(v: T) {
         const rem = arrayRemoveInPlace(this.queue, v);
         if (rem)
-        this.signal.next({ v, stillPresent: false })
+            this.signal.next({ v, stillPresent: false })
         return rem;
     }
 

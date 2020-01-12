@@ -380,11 +380,11 @@ export namespace PropertyAccess {
     }
 
     export async function run() {
-        // const { structures, models/*, mmcif*/ } = await getBcif('1cbs');
+        // const { structures, models/* , mmcif */ } = await getBcif('1cbs');
         // const { structures, models } = await getBcif('3j3q');
 
-        const { structures, models /*, mmcif*/ } = await readCIF('e:/test/quick/1cbs_updated.cif');
-        // const { structures: s1, /*, mmcif*/ } = await readCIF('e:/test/quick/1tqn_updated.cif');
+        const { structures, models /* , mmcif */ } = await readCIF('e:/test/quick/1cbs_updated.cif');
+        // const { structures: s1, /* , mmcif */ } = await readCIF('e:/test/quick/1tqn_updated.cif');
 
         // testGrouping(structures[0]);
         // console.log('------');

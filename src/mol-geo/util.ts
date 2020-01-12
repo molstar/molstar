@@ -106,7 +106,7 @@ export function computeVertexNormals<T extends NumberArray> (vertices: NumberArr
     const cb = Vec3.zero()
     const ab = Vec3.zero()
 
-     for (let i = 0, il = vertices.length; i < il; i += 9) {
+    for (let i = 0, il = vertices.length; i < il; i += 9) {
         Vec3.fromArray(a, vertices, i)
         Vec3.fromArray(b, vertices, i + 3)
         Vec3.fromArray(c, vertices, i + 6)
