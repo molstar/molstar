@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+export * from './structure/coordinates'
 export * from './structure/model'
 export * from './structure/structure'
 export * from './structure/query'

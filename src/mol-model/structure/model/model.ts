@@ -31,7 +31,12 @@ export interface Model extends Readonly<{
     /** the name of the entry/file/collection the model is part of */
     entry: string,
 
-    /** for IHM, corresponds to ihm_model_list.model_id */
+    /**
+     * corresponds to
+     * - for IHM: `ihm_model_list.model_id`
+     * - for standard mmCIF: `atom_site.pdbx_PDB_model_num`
+     * - for models from coordinates: frame index
+     */
     modelNum: number,
 
     sourceData: ModelFormat,
