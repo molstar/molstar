@@ -41,7 +41,7 @@ namespace Transformer {
         /** A cache object that is purged each time the corresponding StateObject is removed or recreated. */
         cache: unknown,
         spine: StateTreeSpine,
-        dependencies?: { [k: string]: StateObject }
+        dependencies?: { [k: string]: StateObject<unknown> }
     }
 
     export interface UpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
@@ -52,7 +52,7 @@ namespace Transformer {
         /** A cache object that is purged each time the corresponding StateObject is removed or recreated. */
         cache: unknown,
         spine: StateTreeSpine,
-        dependencies?: { [k: string]: StateObject }
+        dependencies?: { [k: string]: StateObject<unknown> }
     }
 
     export interface AutoUpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
