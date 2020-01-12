@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -16,4 +16,17 @@ export function flipByteOrder(data: Uint8Array, bytes: number) {
         }
     }
     return buffer;
+}
+
+const ChunkSize = 0x7000
+export function uint8ToString(array: Uint8Array) {
+    if (array.length > ChunkSize) {
+        const c = []
+        for (let i = 0; i < array.length; i += ChunkSize) {
+            c.push(String.fromCharCode.apply(null, array.subarray(i, i + ChunkSize)))
+        }
+        return c.join('')
+    } else {
+        return String.fromCharCode.apply(null, array)
+    }
 }
