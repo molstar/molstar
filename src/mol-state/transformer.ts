@@ -190,13 +190,13 @@ namespace Transformer {
                 display: typeof info.display === 'string'
                     ? { name: info.display }
                     : !!info.display
-                    ? info.display
-                    : { name: capitalize(info.name.replace(/[-]/g, ' ')) },
+                        ? info.display
+                        : { name: capitalize(info.name.replace(/[-]/g, ' ')) },
                 params: typeof info.params === 'object'
                     ? () => info.params as any
                     : !!info.params
-                    ? info.params as any
-                    : void 0,
+                        ? info.params as any
+                        : void 0,
                 ...def
             });
         }

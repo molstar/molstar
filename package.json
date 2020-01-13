@@ -11,7 +11,7 @@
     "url": "https://github.com/molstar/molstar/issues"
   },
   "scripts": {
-    "lint": "tslint src/**/*.ts",
+    "lint": "eslint src/**/*.ts",
     "test": "npm run lint && jest",
     "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
     "build-tsc": "tsc",
@@ -63,11 +63,15 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.13.0",
+    "@typescript-eslint/eslint-plugin-tslint": "^2.13.0",
+    "@typescript-eslint/parser": "^2.13.0",
     "benchmark": "^2.1.4",
     "circular-dependency-plugin": "^5.2.0",
     "concurrently": "^5.0.1",
     "cpx": "^1.5.0",
     "css-loader": "^3.3.2",
+    "eslint": "^6.8.0",
     "extra-watch-webpack-plugin": "^1.0.3",
     "file-loader": "^5.0.2",
     "fs-extra": "^8.1.0",
@@ -85,7 +89,6 @@
     "simple-git": "^1.129.0",
     "style-loader": "^1.0.1",
     "ts-jest": "^24.2.0",
-    "tslint": "^5.20.1",
     "typescript": "^3.7.3",
     "webpack": "^4.41.3",
     "webpack-cli": "^3.3.10"
