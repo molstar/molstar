@@ -91,7 +91,7 @@ namespace Tokenizer {
         return eatLine(state);
     }
 
-    /** Advance the state by the given number of lines and return line starts/ends as tokens. */
+    /** Advance the state by the given number of lines and return line as string. */
     export function readLine(state: Tokenizer): string {
         markLine(state);
         return getTokenString(state);

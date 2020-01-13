@@ -10,7 +10,7 @@ import { StateAction, StateBuilder, StateSelection, StateTransformer, State } fr
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
-import { Download } from '../transforms/data';
+import { Download, ParsePsf } from '../transforms/data';
 import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties, CoordinatesFromDcd, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../../mol-util/file-info';
@@ -82,6 +82,21 @@ export const Provider3dg: DataFormatProvider<any> = {
         return Task.create('3DG default builder', async taskCtx => {
             const traj = createModelTree(data, '3dg');
             await state.updateTree(options.visuals ? createStructureAndVisuals(ctx, traj, false) : traj).runInContext(taskCtx)
+        })
+    }
+}
+
+export const PsfProvider: DataFormatProvider<any> = {
+    label: 'PSF',
+    description: 'PSF',
+    stringExtensions: ['psf'],
+    binaryExtensions: [],
+    isApplicable: (info: FileInfo, data: string) => {
+        return info.ext === 'psf'
+    },
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
+        return Task.create('PSF default builder', async taskCtx => {
+            await state.updateTree(data.apply(ParsePsf)).runInContext(taskCtx)
         })
     }
 }

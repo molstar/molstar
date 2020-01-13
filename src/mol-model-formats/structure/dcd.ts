@@ -11,7 +11,6 @@ import { Coordinates, Frame, Time } from '../../mol-model/structure/coordinates'
 const charmmTimeUnitFactor = 20.45482949774598
 
 export function coordinatesFromDcd(dcdFile: DcdFile): Task<Coordinates> {
-    console.log('coordinatesFromDcd', dcdFile)
     return Task.create('Parse DCD', async ctx => {
         await ctx.update('Converting to coordinates');
 

@@ -16,6 +16,7 @@ import { readFromFile, ajaxGetMany } from '../../../mol-util/data-source';
 import * as CCP4 from '../../../mol-io/reader/ccp4/parser'
 import * as DSN6 from '../../../mol-io/reader/dsn6/parser'
 import * as PLY from '../../../mol-io/reader/ply/parser'
+import { parsePsf } from '../../../mol-io/reader/psf/parser';
 
 export { Download }
 type Download = typeof Download
@@ -182,6 +183,23 @@ const ParseCif = PluginStateTransform.BuiltIn({
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Cif(parsed.result);
+        });
+    }
+});
+
+export { ParsePsf }
+type ParsePsf = typeof ParsePsf
+const ParsePsf = PluginStateTransform.BuiltIn({
+    name: 'parse-psf',
+    display: { name: 'Parse PSF', description: 'Parse PSF from String data' },
+    from: [SO.Data.String],
+    to: SO.Format.Psf
+})({
+    apply({ a }) {
+        return Task.create('Parse PSF', async ctx => {
+            const parsed = await parsePsf(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Psf(parsed.result);
         });
     }
 });

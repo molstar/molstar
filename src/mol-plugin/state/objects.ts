@@ -22,6 +22,7 @@ import { Shape as _Shape } from '../../mol-model/shape';
 import { ShapeProvider } from '../../mol-model/shape/provider';
 import { File3DG } from '../../mol-io/reader/3dg/parser';
 import { DcdFile } from '../../mol-io/reader/dcd/parser';
+import { PsfFile } from '../../mol-io/reader/psf/parser';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -70,6 +71,7 @@ export namespace PluginStateObject {
         export class Pdb extends Create<CifFile>({ name: 'PDB File', typeClass: 'Data' }) { }
         export class Gro extends Create<CifFile>({ name: 'GRO File', typeClass: 'Data' }) { }
         export class _3dg extends Create<CifFile>({ name: '3DG File', typeClass: 'Data' }) { }
+        export class Psf extends Create<PsfFile>({ name: 'PSF File', typeClass: 'Data' }) { }
         export class Dcd extends Create<CifFile>({ name: 'DCD File', typeClass: 'Data' }) { }
         export class Ply extends Create<PlyFile>({ name: 'PLY File', typeClass: 'Data' }) { }
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
