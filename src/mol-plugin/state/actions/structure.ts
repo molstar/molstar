@@ -173,15 +173,15 @@ const DownloadStructure = StateAction.build({
                 })
             }, { isFlat: true })
         }, {
-                options: [
-                    ['pdbe-updated', 'PDBe Updated'],
-                    ['rcsb', 'RCSB'],
-                    ['pdb-dev', 'PDBDEV'],
-                    ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
-                    ['swissmodel', 'SWISS-MODEL'],
-                    ['url', 'URL']
-                ]
-            })
+            options: [
+                ['pdbe-updated', 'PDBe Updated'],
+                ['rcsb', 'RCSB'],
+                ['pdb-dev', 'PDBDEV'],
+                ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
+                ['swissmodel', 'SWISS-MODEL'],
+                ['url', 'URL']
+            ]
+        })
     }
 })(({ params, state }, plugin: PluginContext) => Task.create('Download Structure', async ctx => {
     plugin.behaviors.layout.leftPanelTabName.next('data');

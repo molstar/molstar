@@ -59,9 +59,10 @@ export namespace PluginStateObject {
         export class String extends Create<string>({ name: 'String Data', typeClass: 'Data', }) { }
         export class Binary extends Create<Uint8Array>({ name: 'Binary Data', typeClass: 'Data' }) { }
 
-        export type BlobEntry = { id: string } &
-            ( { kind: 'string', data: string }
-            | { kind: 'binary', data: Uint8Array })
+        export type BlobEntry = { id: string } & (
+            { kind: 'string', data: string } |
+            { kind: 'binary', data: Uint8Array }
+        )
         export type BlobData = BlobEntry[]
         export class Blob extends Create<BlobData>({ name: 'Data Blob', typeClass: 'Data' }) { }
     }
@@ -78,20 +79,21 @@ export namespace PluginStateObject {
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
 
-        export type BlobEntry = { id: string } &
-            ( { kind: 'json', data: unknown }
-            | { kind: 'string', data: string }
-            | { kind: 'binary', data: Uint8Array }
-            | { kind: 'cif', data: CifFile }
-            | { kind: 'pdb', data: CifFile }
-            | { kind: 'gro', data: CifFile }
-            | { kind: '3dg', data: File3DG }
-            | { kind: 'dcd', data: DcdFile }
-            | { kind: 'ccp4', data: Ccp4File }
-            | { kind: 'dsn6', data: Dsn6File }
-            | { kind: 'ply', data: PlyFile }
+        export type BlobEntry = { id: string } & (
+            { kind: 'json', data: unknown } |
+            { kind: 'string', data: string } |
+            { kind: 'binary', data: Uint8Array } |
+            { kind: 'cif', data: CifFile } |
+            { kind: 'pdb', data: CifFile } |
+            { kind: 'gro', data: CifFile } |
+            { kind: '3dg', data: File3DG } |
+            { kind: 'dcd', data: DcdFile } |
+            { kind: 'ccp4', data: Ccp4File } |
+            { kind: 'dsn6', data: Dsn6File } |
+            { kind: 'ply', data: PlyFile } |
             // For non-build in extensions
-            | { kind: 'custom', data: unknown, tag: string })
+            { kind: 'custom', data: unknown, tag: string }
+        )
         export type BlobData = BlobEntry[]
         export class Blob extends Create<BlobData>({ name: 'Format Blob', typeClass: 'Data' }) { }
     }
