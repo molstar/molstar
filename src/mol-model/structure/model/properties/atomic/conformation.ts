@@ -35,6 +35,10 @@ export interface AtomicConformation {
     // transformed by an operator. Use Unit.getPosition instead.
 
     /**
+     * Are xyz coordinates defined?
+     */
+    xyzDefined: boolean,
+    /**
      * The x coordinate in angstroms specified according to a set of orthogonal Cartesian axes.
      */
     x: ArrayLike<number>,

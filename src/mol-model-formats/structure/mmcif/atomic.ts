@@ -69,8 +69,8 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
     const chains = Table.view(atom_site, ChainsSchema, offsets.chains);
 
     // Fix possibly missing auth_/label_ columns
-    substUndefinedColumn(residues, 'label_seq_id', 'auth_seq_id');
     substUndefinedColumn(atoms, 'label_atom_id', 'auth_atom_id');
+    substUndefinedColumn(residues, 'label_seq_id', 'auth_seq_id');
     substUndefinedColumn(residues, 'label_comp_id', 'auth_comp_id');
     substUndefinedColumn(chains, 'label_asym_id', 'auth_asym_id');
 
@@ -83,6 +83,7 @@ function getConformation(atom_site: AtomSite): AtomicConformation {
         atomId: atom_site.id,
         occupancy: atom_site.occupancy,
         B_iso_or_equiv: atom_site.B_iso_or_equiv,
+        xyzDefined: atom_site.Cartn_x.isDefined && atom_site.Cartn_y.isDefined && atom_site.Cartn_z.isDefined,
         x: atom_site.Cartn_x.toArray({ array: Float32Array }),
         y: atom_site.Cartn_y.toArray({ array: Float32Array }),
         z: atom_site.Cartn_z.toArray({ array: Float32Array }),
