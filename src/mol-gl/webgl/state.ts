@@ -114,20 +114,22 @@ export function createState(gl: GLRenderingContext): WebGLState {
             }
         },
         colorMask: (red: boolean, green: boolean, blue: boolean, alpha: boolean) => {
-            if (red !== currentColorMask[0] || green !== currentColorMask[1] || blue !== currentColorMask[2] || alpha !== currentColorMask[3])
-            gl.colorMask(red, green, blue, alpha)
-            currentColorMask[0] = red
-            currentColorMask[1] = green
-            currentColorMask[2] = blue
-            currentColorMask[3] = alpha
+            if (red !== currentColorMask[0] || green !== currentColorMask[1] || blue !== currentColorMask[2] || alpha !== currentColorMask[3]) {
+                gl.colorMask(red, green, blue, alpha)
+                currentColorMask[0] = red
+                currentColorMask[1] = green
+                currentColorMask[2] = blue
+                currentColorMask[3] = alpha
+            }
         },
         clearColor: (red: number, green: number, blue: number, alpha: number) => {
-            if (red !== currentClearColor[0] || green !== currentClearColor[1] || blue !== currentClearColor[2] || alpha !== currentClearColor[3])
-            gl.clearColor(red, green, blue, alpha)
-            currentClearColor[0] = red
-            currentClearColor[1] = green
-            currentClearColor[2] = blue
-            currentClearColor[3] = alpha
+            if (red !== currentClearColor[0] || green !== currentClearColor[1] || blue !== currentClearColor[2] || alpha !== currentClearColor[3]) {
+                gl.clearColor(red, green, blue, alpha)
+                currentClearColor[0] = red
+                currentClearColor[1] = green
+                currentClearColor[2] = blue
+                currentClearColor[3] = alpha
+            }
         },
 
         blendFunc: (src: number, dst: number) => {
