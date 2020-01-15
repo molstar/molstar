@@ -222,7 +222,7 @@ export namespace CifField {
     }
 
     export function ofColumn(column: Column<any>): CifField {
-        const { rowCount, valueKind, areValuesEqual } = column;
+        const { rowCount, valueKind, areValuesEqual, isDefined } = column;
 
         let str: CifField['str']
         let int: CifField['int']
@@ -253,7 +253,7 @@ export namespace CifField {
         return {
             __array: void 0,
             binaryEncoding: void 0,
-            isDefined: true,
+            isDefined,
             rowCount,
             str,
             int,
