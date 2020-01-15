@@ -8,6 +8,7 @@
 import { CifFile } from '../../mol-io/reader/cif';
 import { PlyFile } from '../../mol-io/reader/ply/schema';
 import { Coordinates as _Coordinates } from '../../mol-model/structure';
+import { Topology as _Topology } from '../../mol-model/structure';
 import { Model as _Model, Structure as _Structure, StructureElement } from '../../mol-model/structure';
 import { VolumeData } from '../../mol-model/volume';
 import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
@@ -97,6 +98,7 @@ export namespace PluginStateObject {
 
     export namespace Molecule {
         export class Coordinates extends Create<_Coordinates>({ name: 'Coordinates', typeClass: 'Object' }) { }
+        export class Topology extends Create<_Topology>({ name: 'Topology', typeClass: 'Object' }) { }
         export class Model extends Create<_Model>({ name: 'Model', typeClass: 'Object' }) { }
         export class Trajectory extends Create<ReadonlyArray<_Model>>({ name: 'Trajectory', typeClass: 'Object' }) { }
         export class Structure extends Create<_Structure>({ name: 'Structure', typeClass: 'Object' }) { }

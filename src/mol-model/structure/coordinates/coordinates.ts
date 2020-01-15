@@ -6,10 +6,7 @@
 
 import { UUID } from '../../../mol-util';
 import { Cell } from '../../../mol-math/geometry/spacegroup/cell';
-import { Model } from '../model';
 import { AtomicConformation } from '../model/properties/atomic';
-import { CustomProperties } from '../../structure';
-import { Mutable } from '../../../mol-util/type-helpers';
 import { Column } from '../../../mol-data/db';
 
 export interface Frame {
@@ -91,37 +88,17 @@ namespace Coordinates {
             timeOffset
         }
     }
-}
 
-function getAtomicConformation(frame: Frame, atomId: Column<number>): AtomicConformation {
-    return {
-        id: UUID.create22(),
-        atomId,
-        occupancy: Column.ofConst(1, frame.elementCount, Column.Schema.int),
-        B_iso_or_equiv: Column.ofConst(0, frame.elementCount, Column.Schema.float),
-        x: frame.x,
-        y: frame.y,
-        z: frame.z,
-    }
-}
-
-export function trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates): Model.Trajectory {
-    const trajectory: Mutable<Model.Trajectory> = []
-    const { frames } = coordinates
-    for (let i = 0, il = frames.length; i < il; ++i) {
-        const f = frames[i]
-        const m = {
-            ...model,
+    export function getAtomicConformation(frame: Frame, atomId: Column<number>): AtomicConformation {
+        return {
             id: UUID.create22(),
-            modelNum: i,
-            atomicConformation: getAtomicConformation(f, model.atomicConformation.atomId),
-            // TODO: add support for supplying sphere and gaussian coordinates in addition to atomic coordinates
-            // coarseConformation: coarse.conformation,
-            customProperties: new CustomProperties(),
-            _staticPropertyData: Object.create(null),
-            _dynamicPropertyData: Object.create(null)
+            atomId,
+            occupancy: Column.ofConst(1, frame.elementCount, Column.Schema.int),
+            B_iso_or_equiv: Column.ofConst(0, frame.elementCount, Column.Schema.float),
+            xyzDefined: true,
+            x: frame.x,
+            y: frame.y,
+            z: frame.z,
         }
-        trajectory.push(m)
     }
-    return trajectory
 }

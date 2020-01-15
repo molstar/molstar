@@ -97,7 +97,7 @@ function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
         && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
 }
 
-export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, formatData: FormatData, previous?: Model) {
+function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, formatData: FormatData, previous?: Model) {
     const hierarchyOffsets = findHierarchyOffsets(atom_site);
     const hierarchyData = createHierarchyData(atom_site, sourceIndex, hierarchyOffsets);
 
@@ -105,11 +105,8 @@ export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceInd
         return {
             sameAsPrevious: true,
             hierarchy: previous.atomicHierarchy,
-            conformation: getConformation(atom_site)
         };
     }
-
-    const conformation = getConformation(atom_site)
 
     const hierarchySegments: AtomicSegments = {
         residueAtomSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, Interval.ofBounds(0, atom_site._rowCount)),
@@ -119,5 +116,11 @@ export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceInd
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
     const derived = getAtomicDerivedData(hierarchyData, index, formatData.chemicalComponentMap);
     const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, index, derived };
-    return { sameAsPrevious: false, hierarchy, conformation };
+    return { sameAsPrevious: false, hierarchy };
+}
+
+export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, formatData: FormatData, previous?: Model) {
+    const { sameAsPrevious, hierarchy } = getAtomicHierarchy(atom_site, sourceIndex, entities, formatData, previous)
+    const conformation = getConformation(atom_site)
+    return { sameAsPrevious, hierarchy, conformation };
 }

@@ -11,7 +11,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download, ParsePsf } from '../transforms/data';
-import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties, CoordinatesFromDcd, TrajectoryFromModelAndCoordinates } from '../transforms/model';
+import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties, CoordinatesFromDcd, TrajectoryFromModelAndCoordinates, TopologyFromPsf } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
@@ -96,7 +96,7 @@ export const PsfProvider: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('PSF default builder', async taskCtx => {
-            await state.updateTree(data.apply(ParsePsf)).runInContext(taskCtx)
+            await state.updateTree(data.apply(ParsePsf, {}, { state: { isGhost: true } }).apply(TopologyFromPsf)).runInContext(taskCtx)
         })
     }
 }
@@ -427,18 +427,21 @@ export const StructureFromSelection = StateAction.build({
     return state.updateTree(root);
 });
 
-export const AddTrajectoryFromModelAndCoordinates = StateAction.build({
-    display: { name: 'Add Trajectory', description: 'Add trajectory from existing model and coordinates.' },
+export const AddTrajectory = StateAction.build({
+    display: { name: 'Add Trajectory', description: 'Add trajectory from existing model/topology and coordinates.' },
     from: PluginStateObject.Root,
     params(a, ctx: PluginContext) {
         const state = ctx.state.dataState
-        const models = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model))
-        const modelOptions = models.map(m => [m.transform.ref, m.obj!.label]) as [string, string][]
+        const models = [
+            ...state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)),
+            ...state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Topology)),
+        ]
+        const modelOptions = models.map(t => [t.transform.ref, t.obj!.label]) as [string, string][]
         const coords = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Coordinates))
-        const coordsOptions = coords.map(c => [c.transform.ref, c.obj!.label]) as [string, string][]
+        const coordOptions = coords.map(c => [c.transform.ref, c.obj!.label]) as [string, string][]
         return {
             model: PD.Select(modelOptions.length ? modelOptions[0][0] : '', modelOptions),
-            coordinates: PD.Select(coordsOptions.length ? coordsOptions[0][0] : '', coordsOptions)
+            coordinates: PD.Select(coordOptions.length ? coordOptions[0][0] : '', coordOptions)
         }
     }
 })(({ ref, params, state }, ctx: PluginContext) => {

@@ -9,7 +9,7 @@ import { parsePDB } from '../../../mol-io/reader/pdb/parser';
 import { Vec3, Mat4, Quat } from '../../../mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../mol-model-formats/structure/pdb';
-import { Model, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureElement, trajectoryFromModelAndCoordinates, Coordinates } from '../../../mol-model/structure';
+import { Model, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureElement, Coordinates, Topology } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 import Expression from '../../../mol-script/language/expression';
@@ -30,8 +30,10 @@ import { StructureQueryHelper } from '../../util/structure-query';
 import { ModelStructureRepresentation } from '../representation/model';
 import { parseDcd } from '../../../mol-io/reader/dcd/parser';
 import { coordinatesFromDcd } from '../../../mol-model-formats/structure/dcd';
+import { topologyFromPsf } from '../../../mol-model-formats/structure/psf';
 
 export { CoordinatesFromDcd };
+export { TopologyFromPsf };
 export { TrajectoryFromModelAndCoordinates };
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -64,15 +66,41 @@ const CoordinatesFromDcd = PluginStateTransform.BuiltIn({
             const parsed = await parseDcd(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const coordinates = await coordinatesFromDcd(parsed.result).runInContext(ctx);
-            return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: a.description });
+            return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
         });
     }
 });
 
+type TopologyFromPsf = typeof TopologyFromPsf
+const TopologyFromPsf = PluginStateTransform.BuiltIn({
+    name: 'topology-from-psf',
+    display: { name: 'PSF Topology', description: 'Parse PSF string data.' },
+    from: [SO.Format.Psf],
+    to: SO.Molecule.Topology
+})({
+    apply({ a }) {
+        return Task.create('Create Topology', async ctx => {
+            const topology = await topologyFromPsf(a.data).runInContext(ctx);
+            return new SO.Molecule.Topology(topology, { label: topology.label || a.label, description: 'Topology' });
+        });
+    }
+});
+
+async function getTrajectory(ctx: RuntimeContext, obj: StateObject, coordinates: Coordinates) {
+    if (obj.type === SO.Molecule.Topology.type) {
+        const topology = obj.data as Topology
+        return await Model.trajectoryFromTopologyAndCoordinates(topology, coordinates).runInContext(ctx);
+    } else if (obj.type === SO.Molecule.Model.type) {
+        const model = obj.data as Model
+        return Model.trajectoryFromModelAndCoordinates(model, coordinates);
+    }
+    throw new Error('no model/topology found')
+}
+
 type TrajectoryFromModelAndCoordinates = typeof TrajectoryFromModelAndCoordinates
 const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-model-and-coordinates',
-    display: { name: 'Trajectory from Model & Coordinates', description: 'Create a trajectory from existing model and coordinates.' },
+    display: { name: 'Trajectory from Topology & Coordinates', description: 'Create a trajectory from existing model/topology and coordinates.' },
     from: SO.Root,
     to: SO.Molecule.Trajectory,
     params: {
@@ -81,10 +109,9 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
     }
 })({
     apply({ params, dependencies }) {
-        return Task.create('Create trajectory from model and coordinates', async ctx => {
-            const model = dependencies![params.modelRef].data as Model
+        return Task.create('Create trajectory from model/topology and coordinates', async ctx => {
             const coordinates = dependencies![params.coordinatesRef].data as Coordinates
-            const trajectory = trajectoryFromModelAndCoordinates(model, coordinates);
+            const trajectory = await getTrajectory(ctx, dependencies![params.modelRef], coordinates);
             const props = { label: 'Trajectory', description: `${trajectory.length} model${trajectory.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(trajectory, props);
         });
