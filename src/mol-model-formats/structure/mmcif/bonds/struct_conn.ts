@@ -118,7 +118,6 @@ export namespace StructConn {
             return this._atomIndex;
         }
 
-
         getResidueEntries(residueAIndex: ResidueIndex, residueBIndex: ResidueIndex): ReadonlyArray<StructConn.Entry> {
             return this.getResiduePairIndex().get(_resKey(residueAIndex, residueBIndex)) || _emptyEntry;
         }

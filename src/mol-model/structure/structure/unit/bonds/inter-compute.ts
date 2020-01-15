@@ -17,6 +17,7 @@ import StructureElement from '../../element';
 import { StructConn } from '../../../../../mol-model-formats/structure/mmcif/bonds';
 import { ElementIndex } from '../../../model/indexing';
 import { getInterBondOrderFromTable } from '../../../model/properties/atomic/bonds';
+import { IndexPairBonds } from '../../../../../mol-model-formats/structure/mmcif/bonds/index-pair';
 
 const MAX_RADIUS = 4;
 
@@ -68,6 +69,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
     const { lookup3d } = unitB;
     const structConn = unitA.model === unitB.model && unitA.model.sourceData.kind === 'mmCIF' ? StructConn.get(unitA.model) : void 0;
+    const indexPairs = unitA.model === unitB.model ? IndexPairBonds.get(unitA.model) : void 0;
 
     // the lookup queries need to happen in the "unitB space".
     // that means imageA = inverseOperB(operA(aI))
@@ -83,6 +85,16 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
         Vec3.set(imageA, xA[aI], yA[aI], zA[aI]);
         if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform);
         if (Vec3.squaredDistance(imageA, bCenter) > testDistanceSq) continue;
+
+        if (!props.forceCompute && indexPairs) {
+            for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
+                const _bI = SortedArray.indexOf(unitA.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
+                if (_bI < 0) continue;
+                addBond(_aI, _bI, indexPairs.edgeProps.order[i], BondType.Flag.Covalent, state);
+                bondCount++;
+            }
+            continue // assume `indexPairs` supplies all bonds
+        }
 
         const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
         if (structConnEntries && structConnEntries.length) {
