@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import '../../mol-util/polyfill';
 import { createPlugin, DefaultPluginSpec } from '../../mol-plugin';
 import './index.html'
 import './favicon.ico'
