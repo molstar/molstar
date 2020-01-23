@@ -211,8 +211,8 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
 
     function _createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G) {
         return includesUnitKind(props.unitKinds, unit)
-                ? createGeometry(ctx, unit, structure, theme, props, geometry)
-                : createEmptyGeometry(geometry)
+            ? createGeometry(ctx, unit, structure, theme, props, geometry)
+            : createEmptyGeometry(geometry)
     }
 
     function lociIsSuperset(loci: Loci) {

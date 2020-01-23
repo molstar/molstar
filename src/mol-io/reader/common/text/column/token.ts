@@ -19,11 +19,11 @@ export function TokenColumn<T extends Column.Schema>(tokens: Tokens, schema: T):
     const { valueType: type } = schema;
 
     const value: Column<T['T']>['value'] =
-          type === 'str'
-        ? row => data.substring(indices[2 * row], indices[2 * row + 1])
-        : type === 'int'
-        ? row => fastParseInt(data, indices[2 * row], indices[2 * row + 1]) || 0
-        : row => fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
+        type === 'str'
+            ? row => data.substring(indices[2 * row], indices[2 * row + 1])
+            : type === 'int'
+                ? row => fastParseInt(data, indices[2 * row], indices[2 * row + 1]) || 0
+                : row => fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
 
     return {
         schema: schema,

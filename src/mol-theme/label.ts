@@ -183,7 +183,6 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
     const compId = granularity === 'residue' && microHetCompIds.length > 1 ?
         `(${microHetCompIds.join('|')})` : comp_id
 
-    
     const label: string[] = []
 
     switch (granularity) {

@@ -184,11 +184,11 @@ namespace Quat {
         cosom = ax * bx + ay * by + az * bz + aw * bw;
         // adjust signs (if necessary)
         if ( cosom < 0.0 ) {
-        cosom = -cosom;
-        bx = - bx;
-        by = - by;
-        bz = - bz;
-        bw = - bw;
+            cosom = -cosom;
+            bx = - bx;
+            by = - by;
+            bz = - bz;
+            bw = - bw;
         }
         // calculate coefficients
         if ( (1.0 - cosom) > 0.000001 ) {
@@ -258,7 +258,7 @@ namespace Quat {
             out[0] = (m[5]-m[7])*fRoot;
             out[1] = (m[6]-m[2])*fRoot;
             out[2] = (m[1]-m[3])*fRoot;
-            } else {
+        } else {
             // |w| <= 1/2
             let i = 0;
             if ( m[4] > m[0] ) i = 1;
@@ -384,7 +384,7 @@ namespace Quat {
         if (dot < -0.999999) {
             Vec3.cross(rotTmpVec3, rotTmpVec3UnitX, a);
             if (Vec3.magnitude(rotTmpVec3) < 0.000001)
-            Vec3.cross(rotTmpVec3, rotTmpVec3UnitY, a);
+                Vec3.cross(rotTmpVec3, rotTmpVec3UnitY, a);
             Vec3.normalize(rotTmpVec3, rotTmpVec3);
             setAxisAngle(out, rotTmpVec3, Math.PI);
             return out;

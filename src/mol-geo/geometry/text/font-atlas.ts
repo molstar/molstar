@@ -24,11 +24,11 @@ export type FontVariant = 'normal' | 'small-caps'
 export type FontWeight = 'normal' | 'bold'
 
 export const FontAtlasParams = {
-  fontFamily: PD.Select('sans-serif', [['sans-serif', 'Sans Serif'], ['monospace', 'Monospace'], ['serif', 'Serif'], ['cursive', 'Cursive']] as [FontFamily, string][]),
-  fontQuality: PD.Select(3, [[0, 'lower'], [1, 'low'], [2, 'medium'], [3, 'high'], [4, 'higher']]),
-  fontStyle: PD.Select('normal', [['normal', 'Normal'], ['italic', 'Italic'], ['oblique', 'Oblique']] as [FontStyle, string][]),
-  fontVariant: PD.Select('normal', [['normal', 'Normal'], ['small-caps', 'Small Caps']] as [FontVariant, string][]),
-  fontWeight: PD.Select('normal', [['normal', 'Normal'], ['bold', 'Bold']] as [FontWeight, string][]),
+    fontFamily: PD.Select('sans-serif', [['sans-serif', 'Sans Serif'], ['monospace', 'Monospace'], ['serif', 'Serif'], ['cursive', 'Cursive']] as [FontFamily, string][]),
+    fontQuality: PD.Select(3, [[0, 'lower'], [1, 'low'], [2, 'medium'], [3, 'high'], [4, 'higher']]),
+    fontStyle: PD.Select('normal', [['normal', 'Normal'], ['italic', 'Italic'], ['oblique', 'Oblique']] as [FontStyle, string][]),
+    fontVariant: PD.Select('normal', [['normal', 'Normal'], ['small-caps', 'Small Caps']] as [FontVariant, string][]),
+    fontWeight: PD.Select('normal', [['normal', 'Normal'], ['bold', 'Bold']] as [FontWeight, string][]),
 }
 export type FontAtlasParams = typeof FontAtlasParams
 export type FontAtlasProps = PD.Values<FontAtlasParams>

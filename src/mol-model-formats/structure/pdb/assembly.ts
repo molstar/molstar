@@ -202,18 +202,18 @@ export function parseMtrix(lines: Tokens, lineStart: number, lineEnd: number): C
     const struct_ncs_oper_rows: { [P in keyof CifCategory.Fields<mmCIF_Schema['struct_ncs_oper']>]?: string }[] = [];
     let id = 1;
     for (const oper of matrices) {
-            const row = {
-                id: 'ncsop' + (id++),
-                code: '.',
-                details: '.'
-            } as (typeof struct_ncs_oper_rows)[0] as any;
-            for (let i = 0; i < 3; i++) {
-                for (let j = 0; j < 3; j++) {
-                    row[`matrix[${i + 1}][${j + 1}]`] = '' + Mat4.getValue(oper, i, j);
-                }
-                row[`vector[${i + 1}]`] = '' + Mat4.getValue(oper, i, 3);
+        const row = {
+            id: 'ncsop' + (id++),
+            code: '.',
+            details: '.'
+        } as (typeof struct_ncs_oper_rows)[0] as any;
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                row[`matrix[${i + 1}][${j + 1}]`] = '' + Mat4.getValue(oper, i, j);
             }
-            struct_ncs_oper_rows.push(row);
+            row[`vector[${i + 1}]`] = '' + Mat4.getValue(oper, i, 3);
+        }
+        struct_ncs_oper_rows.push(row);
     }
 
     const struct_ncs_oper: CifCategory.SomeFields<mmCIF_Schema['struct_ncs_oper']> = {

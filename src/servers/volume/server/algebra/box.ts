@@ -11,9 +11,7 @@ export interface Cartesian extends Box<Coords.Cartesian> { }
 export interface Fractional extends Box<Coords.Fractional> { }
 export interface Grid<K> extends Box<Coords.Grid<K>> { }
 
-///////////////////////////////////////////
 // CONVERSIONS
-///////////////////////////////////////////
 
 export function cartesianToFractional(box: Cartesian, spacegroup: SpacegroupCell): Fractional {
     const { a: l, b: r } = box;
@@ -54,9 +52,7 @@ export function expandGridBox<K>(box: Grid<K>, by: number) {
     }
 }
 
-///////////////////////////////////////////
 // MISC
-///////////////////////////////////////////
 
 export function shift<C extends Coords.Coord<S>, S extends Coords.Space>(box: Box<C>, offset: C): Box<C> {
     return { a: Coords.add(box.a, offset), b: Coords.add(box.b, offset) } as Box<C>;

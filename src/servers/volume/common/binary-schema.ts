@@ -12,18 +12,17 @@ import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
 export type Bool = { kind: 'bool' }
 export type Int = { kind: 'int' }
 export type Float = { kind: 'float' }
-export type String = { kind: 'string' }
+export type Str = { kind: 'string' }
 export type Array = { kind: 'array', element: Element }
 export type Prop = { element: Element, prop: string }
 export type Obj = { kind: 'object', props: Prop[] }
-// tslint:disable-next-line:array-type
-export type Element = Bool | Int | Float | String | Array | Obj
+export type Element = Bool | Int | Float | Str | Array | Obj
 
 export const bool: Bool = { kind: 'bool' };
 export const int: Int = { kind: 'int' };
 export const float: Float = { kind: 'float' };
-export const str: String = { kind: 'string' };
-// tslint:disable-next-line:array-type
+export const str: Str = { kind: 'string' };
+
 export function array(element: Element): Array { return { kind: 'array', element }; }
 export function obj<T>(schema: ((keyof T) | Element)[][]): Obj {
     return {

@@ -10,7 +10,7 @@ import { LimitsConfig, ServerConfig } from '../config';
 
 export function getSchema() {
     function detail(i: number) {
-       return `${i} (${Math.round(100 * LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel[i] / 1000 / 1000) / 100 }M voxels)`;
+        return `${i} (${Math.round(100 * LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel[i] / 1000 / 1000) / 100 }M voxels)`;
     }
     const detailMax = LimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1;
     const sources = ServerConfig.idMap.map(m => m[0])

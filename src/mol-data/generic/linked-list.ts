@@ -90,14 +90,14 @@ class LinkedListImpl<T> implements LinkedList<T> {
         if (node.previous !== null) {
             node.previous.next = node.next;
         }
-        else if (/*first == item*/ node.previous === null) {
+        else if (/* first == item*/ node.previous === null) {
             this.first = node.next;
         }
 
         if (node.next !== null) {
             node.next.previous = node.previous;
         }
-        else if (/*last == item*/ node.next === null) {
+        else if (/* last == item*/ node.next === null) {
             this.last = node.previous;
         }
 

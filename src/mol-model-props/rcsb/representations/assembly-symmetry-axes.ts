@@ -124,7 +124,7 @@ export function createAssemblySymmetryAxesMesh(ctx: VisualContext, structure: St
     const cylinderProps = { radiusTop: radius, radiusBottom: radius }
     const builderState = MeshBuilder.createState(256, 128, mesh)
 
-     for (let i = 0, il = axes._rowCount; i < il; ++i) {
+    for (let i = 0, il = axes._rowCount; i < il; ++i) {
         if (axes.symmetry_id.value(i) !== symmetryId) continue
 
         const start = Tensor.toVec3(Vec3(), vectorSpace, axes.start.value(i))

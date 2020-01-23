@@ -160,9 +160,9 @@ class MolStarProteopediaWrapper {
                 root.delete(StateElements.WaterVisual);
             } else {
                 root.applyOrUpdate(StateElements.WaterVisual, StateTransforms.Representation.StructureRepresentation3D,
-                        StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
-                            (style.water && style.water.kind) || 'ball-and-stick',
-                            (style.water && style.water.coloring), structure, { alpha: 0.51 }));
+                    StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
+                        (style.water && style.water.kind) || 'ball-and-stick',
+                        (style.water && style.water.coloring), structure, { alpha: 0.51 }));
             }
         }
 

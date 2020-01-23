@@ -13,7 +13,7 @@ import { AllowedContours } from './tables';
 import { LinesBuilder } from '../../geometry/lines/lines-builder';
 import { Lines } from '../../geometry/lines/lines';
 
- export interface MarchinCubesBuilder<T> {
+export interface MarchinCubesBuilder<T> {
     addVertex(x: number, y: number, z: number): number
     addNormal(x: number, y: number, z: number): void
     addGroup(group: number): void

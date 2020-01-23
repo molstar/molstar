@@ -156,11 +156,11 @@ export namespace Stats {
 
         const segments = Unit.isAtomic(unit)
             ? unit.model.atomicHierarchy.chainAtomSegments
-                : Unit.isSpheres(unit)
-            ? unit.model.coarseHierarchy.spheres.chainElementSegments
+            : Unit.isSpheres(unit)
+                ? unit.model.coarseHierarchy.spheres.chainElementSegments
                 : Unit.isGaussians(unit)
-            ? unit.model.coarseHierarchy.gaussians.chainElementSegments
-                : void 0;
+                    ? unit.model.coarseHierarchy.gaussians.chainElementSegments
+                    : void 0;
 
         if (!segments) {
             console.warn('StructureElement loci stats: unknown unit type');
@@ -198,11 +198,11 @@ export namespace Stats {
         // all the elements have the same model since they are part of the same group so this is ok.
         const segments = Unit.isAtomic(element.unit)
             ? element.unit.model.atomicHierarchy.chainAtomSegments
-                : Unit.isSpheres(element.unit)
-            ? element.unit.model.coarseHierarchy.spheres.chainElementSegments
+            : Unit.isSpheres(element.unit)
+                ? element.unit.model.coarseHierarchy.spheres.chainElementSegments
                 : Unit.isGaussians(element.unit)
-            ? element.unit.model.coarseHierarchy.gaussians.chainElementSegments
-                : void 0;
+                    ? element.unit.model.coarseHierarchy.gaussians.chainElementSegments
+                    : void 0;
 
         if (!segments) {
             console.warn('StructureElement loci stats: unknown unit type');

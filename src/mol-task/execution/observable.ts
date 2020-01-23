@@ -198,7 +198,7 @@ class ObservableRuntimeContext implements RuntimeContext {
         this.updateProgress(progress);
 
         // TODO: do the shouldNotify check here?
-        if (!!dontNotify /*|| !shouldNotify(this.info, this.lastUpdatedTime)*/) return;
+        if (!!dontNotify /* || !shouldNotify(this.info, this.lastUpdatedTime)*/) return;
 
         notifyObserver(this.info, this.lastUpdatedTime);
 

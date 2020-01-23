@@ -31,12 +31,12 @@ function setupShutdown() {
         console.log();
 
         setTimeout(() => {
-            /*if (WebApi.ApiState.pendingQueries > 0) {
-                WebApi.ApiState.shutdownOnZeroPending = true;
-            } else*/ {
-                ConsoleLogger.log('Server', `Shut down due to timeout.`);
-                process.exit(0);
-            }
+            // if (WebApi.ApiState.pendingQueries > 0) {
+            //     WebApi.ApiState.shutdownOnZeroPending = true;
+            // } else {
+            ConsoleLogger.log('Server', `Shut down due to timeout.`);
+            process.exit(0);
+            // }
         }, tMs);
     }
 }

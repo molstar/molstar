@@ -169,7 +169,6 @@ const symbols = [
         return (tested & test) === test;
     }),
 
-    ////////////////////////////////////
     // Structure
 
     // ============= TYPES ================
@@ -340,8 +339,6 @@ const symbols = [
     D(MolScript.structureQuery.bondProperty.atomB, (ctx, xs) => ctx.atomicBond.b),
     D(MolScript.structureQuery.bondProperty.length, (ctx, xs) => ctx.atomicBond.length),
 
-
-    ////////////////////////////////////
     // Internal
     D(MolScript.internal.generator.bundleElement, function internal_generator_bundleElement(ctx, xs) { return bundleElementImpl(xs.groupedUnits(ctx), xs.ranges(ctx), xs.set(ctx)) }),
     D(MolScript.internal.generator.bundle, function internal_generator_bundle(ctx, xs) { return bundleGenerator(xs.elements(ctx))(ctx) }),

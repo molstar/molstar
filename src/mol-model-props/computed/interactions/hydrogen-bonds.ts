@@ -72,14 +72,13 @@ function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, builder:
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {
         const element = typeSymbol(unit, i)
         if ((
-                // include both nitrogen atoms in histidine due to
-                // their often ambiguous protonation assignment
-                isHistidineNitrogen(unit, i)
-            ) || (
-                totalH[i] > 0 &&
-                (element === Elements.N || element === Elements.O || element === Elements.S)
-            )
-        ) {
+            // include both nitrogen atoms in histidine due to
+            // their often ambiguous protonation assignment
+            isHistidineNitrogen(unit, i)
+        ) || (
+            totalH[i] > 0 &&
+            (element === Elements.N || element === Elements.O || element === Elements.S)
+        )) {
             builder.add(FeatureType.HydrogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
         }
     }

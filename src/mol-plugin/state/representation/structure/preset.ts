@@ -134,7 +134,7 @@ const coarseCapsid = StructureRepresentationProvider({
         const params = StructureRepresentation3DHelpers.createParams(plugin, structure, {
             repr: [
                 BuiltInStructureRepresentations['gaussian-surface'],
-                () => ({ smoothness: 0.5, radiusOffset: 1, /*visuals: ['gaussian-surface-mesh']*/ })
+                () => ({ smoothness: 0.5, radiusOffset: 1, /* visuals: ['gaussian-surface-mesh']*/ })
             ]
         });
 

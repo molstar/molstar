@@ -63,7 +63,7 @@ namespace StructureRepresentation3DHelpers {
     }
 
     export function createParams<R extends RepresentationProvider<Structure, any, any>, C extends ColorTheme.Provider<any>, S extends SizeTheme.Provider<any>>(
-            ctx: PluginContext, structure: Structure, params: {
+        ctx: PluginContext, structure: Structure, params: {
             repr?: R | [R, (r: R, ctx: ThemeRegistryContext, s: Structure) => Partial<RepresentationProvider.ParamValues<R>>],
             color?: C | [C, (c: C, ctx: ThemeRegistryContext) => Partial<ColorTheme.ParamValues<C>>],
             size?: S | [S, (c: S, ctx: ThemeRegistryContext) => Partial<SizeTheme.ParamValues<S>>]

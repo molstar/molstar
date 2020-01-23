@@ -9,7 +9,7 @@
 import * as Coords from '../algebra/coordinate'
 import * as Box from '../algebra/box'
 import * as Data from './data-model'
-//import { FastMap } from '../utils/collections'
+// import { FastMap } from '../utils/collections'
 
 /** Find a list of unique blocks+offsets that overlap with the query region. */
 export default function findUniqueBlocks(data: Data.DataContext, sampling: Data.Sampling, queryBox: Box.Fractional) {
@@ -56,7 +56,7 @@ function overlapMultiplierRange(a: number, b: number, u: number, v: number): num
 
 /**
  * Finds that list of "unit" offsets (in fractional space) so that
- * shift(box, offset) has non-empty interaction with the region 
+ * shift(box, offset) has non-empty interaction with the region
  * described in the give domain.
  */
 function findDataOverlapTranslationList(box: Box.Fractional, domain: Coords.GridDomain<'Data'>): Translations {
@@ -106,7 +106,7 @@ function findUniqueBlocksOffset(data: Data.DataContext, sampling: Data.Sampling,
 
     const blockDomain = sampling.blockDomain;
 
-    // this gets the "3d range" of block indices that contain data that overlaps 
+    // this gets the "3d range" of block indices that contain data that overlaps
     // with the query region.
     //
     // Clamping the data makes sure we avoid silly rounding errors (hopefully :))

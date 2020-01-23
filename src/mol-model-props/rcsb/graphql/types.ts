@@ -12,77 +12,77 @@ export type Unrepresentable = any;
 // ====================================================
 
 export namespace AssemblySymmetry {
-  export type Variables = {
-    pdbId: string;
-  };
+    export type Variables = {
+        pdbId: string;
+    };
 
-  export type Query = {
-    __typename?: "Query";
+    export type Query = {
+        __typename?: 'Query';
 
-    entry: Maybe<Entry>;
-  };
+        entry: Maybe<Entry>;
+    };
 
-  export type Entry = {
-    __typename?: "CoreEntry";
+    export type Entry = {
+        __typename?: 'CoreEntry';
 
-    assemblies: Maybe<(Maybe<Assemblies>)[]>;
-  };
+        assemblies: Maybe<(Maybe<Assemblies>)[]>;
+    };
 
-  export type Assemblies = {
-    __typename?: "CoreAssembly";
+    export type Assemblies = {
+        __typename?: 'CoreAssembly';
 
-    pdbx_struct_assembly: Maybe<PdbxStructAssembly>;
+        pdbx_struct_assembly: Maybe<PdbxStructAssembly>;
 
-    rcsb_struct_symmetry: Maybe<(Maybe<RcsbStructSymmetry>)[]>;
-  };
+        rcsb_struct_symmetry: Maybe<(Maybe<RcsbStructSymmetry>)[]>;
+    };
 
-  export type PdbxStructAssembly = {
-    __typename?: "PdbxStructAssembly";
+    export type PdbxStructAssembly = {
+        __typename?: 'PdbxStructAssembly';
 
-    id: string;
-  };
+        id: string;
+    };
 
-  export type RcsbStructSymmetry = {
-    __typename?: "RcsbStructSymmetry";
+    export type RcsbStructSymmetry = {
+        __typename?: 'RcsbStructSymmetry';
 
-    clusters: (Maybe<Clusters>)[];
+        clusters: (Maybe<Clusters>)[];
 
-    kind: string;
+        kind: string;
 
-    oligomeric_state: string;
+        oligomeric_state: string;
 
-    rotation_axes: Maybe<(Maybe<RotationAxes>)[]>;
+        rotation_axes: Maybe<(Maybe<RotationAxes>)[]>;
 
-    stoichiometry: (Maybe<string>)[];
+        stoichiometry: (Maybe<string>)[];
 
-    symbol: string;
+        symbol: string;
 
-    type: string;
-  };
+        type: string;
+    };
 
-  export type Clusters = {
-    __typename?: "RcsbStructSymmetryClusters";
+    export type Clusters = {
+        __typename?: 'RcsbStructSymmetryClusters';
 
-    avg_rmsd: Maybe<number>;
+        avg_rmsd: Maybe<number>;
 
-    members: (Maybe<Members>)[];
-  };
+        members: (Maybe<Members>)[];
+    };
 
-  export type Members = {
-    __typename?: "ClustersMembers";
+    export type Members = {
+        __typename?: 'ClustersMembers';
 
-    asym_id: string;
+        asym_id: string;
 
-    pdbx_struct_oper_list_ids: Maybe<(Maybe<string>)[]>;
-  };
+        pdbx_struct_oper_list_ids: Maybe<(Maybe<string>)[]>;
+    };
 
-  export type RotationAxes = {
-    __typename?: "RcsbStructSymmetryRotationAxes";
+    export type RotationAxes = {
+        __typename?: 'RcsbStructSymmetryRotationAxes';
 
-    start: (Maybe<number>)[];
+        start: (Maybe<number>)[];
 
-    end: (Maybe<number>)[];
+        end: (Maybe<number>)[];
 
-    order: Maybe<number>;
-  };
+        order: Maybe<number>;
+    };
 }

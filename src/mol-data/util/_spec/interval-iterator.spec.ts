@@ -7,12 +7,12 @@
 import { Interval, OrderedSet, SortedArray } from '../../int';
 import { IntervalIterator } from '../interval-iterator';
 
- describe('interval', () => {
+describe('interval', () => {
     function testIterator(name: string, interval: Interval, set: OrderedSet, expectedValues: { index: number[], start: number[], end: number[]}) {
         it(`iterator, ${name}`, () => {
             const intervalIt = new IntervalIterator(interval, set)
             const { index, start, end } = expectedValues
-    
+
             let i = 0
             while (intervalIt.hasNext) {
                 const segment = intervalIt.move()
