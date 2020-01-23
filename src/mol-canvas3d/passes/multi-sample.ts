@@ -14,7 +14,7 @@ import { ShaderCode } from '../../mol-gl/shader-code';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/renderable';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { RenderTarget, createRenderTarget } from '../../mol-gl/webgl/render-target';
+import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Camera } from '../../mol-canvas3d/camera';
 import { PostprocessingPass } from './postprocessing';
 import { DrawPass } from './draw';
@@ -35,7 +35,7 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): Compose
     const values: Values<typeof ComposeSchema> = {
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
-        uTexSize: ValueCell.create(Vec2.create(colorTexture.width, colorTexture.height)),
+        uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
         uWeight: ValueCell.create(1.0),
     }
 
@@ -66,9 +66,9 @@ export class MultiSamplePass {
 
     constructor(private webgl: WebGLContext, private camera: Camera, private drawPass: DrawPass, private postprocessing: PostprocessingPass, props: Partial<MultiSampleProps>) {
         const { gl } = webgl
-        this.colorTarget = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
-        this.composeTarget = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
-        this.holdTarget = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
+        this.colorTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight)
+        this.composeTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight)
+        this.holdTarget = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture)
         this.props = { ...PD.getDefaultValues(MultiSampleParams), ...props }
     }
@@ -131,7 +131,8 @@ export class MultiSamplePass {
         ValueCell.update(compose.values.tColor, postprocessing.enabled ? postprocessing.target.texture : drawPass.colorTarget.texture)
         compose.update()
 
-        const { width, height } = drawPass.colorTarget
+        const width = drawPass.colorTarget.getWidth()
+        const height = drawPass.colorTarget.getHeight()
 
         // render the scene multiple times, each slightly jitter offset
         // from the last and accumulate the results.
@@ -222,7 +223,8 @@ export class MultiSamplePass {
         ValueCell.update(compose.values.uWeight, sampleWeight)
         compose.update()
 
-        const { width, height } = drawPass.colorTarget
+        const width = drawPass.colorTarget.getWidth()
+        const height = drawPass.colorTarget.getHeight()
 
         // render the scene multiple times, each slightly jitter offset
         // from the last and accumulate the results.

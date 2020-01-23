@@ -1,10 +1,9 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createReferenceCache, ReferenceCache } from '../../mol-util/reference-cache';
 import { idFactory } from '../../mol-util/id-factory';
 import { GLRenderingContext } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
@@ -20,16 +19,16 @@ function addLineNumbers(source: string) {
 }
 
 export type ShaderType = 'vert' | 'frag'
-export interface ShaderProps { type: ShaderType, source: string }
+export type ShaderProps = { type: ShaderType, source: string }
 export interface Shader {
     readonly id: number
     attach: (program: WebGLProgram) => void
+    reset: () => void
     destroy: () => void
 }
 
-function createShader(gl: GLRenderingContext, props: ShaderProps): Shader {
+function getShader(gl: GLRenderingContext, props: ShaderProps) {
     const { type, source } = props
-
     const shader = gl.createShader(type === 'vert' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER)
     if (shader === null) {
         throw new Error(`Error creating ${type} shader`)
@@ -43,23 +42,23 @@ function createShader(gl: GLRenderingContext, props: ShaderProps): Shader {
         throw new Error(`Error compiling ${type} shader`)
     }
 
+    return shader
+}
+
+export function createShader(gl: GLRenderingContext, props: ShaderProps): Shader {
+    let shader = getShader(gl, props)
+
     return {
         id: getNextShaderId(),
         attach: (program: WebGLProgram) => {
             gl.attachShader(program, shader)
         },
+
+        reset: () => {
+            shader = getShader(gl, props)
+        },
         destroy: () => {
             gl.deleteShader(shader)
         }
     }
-}
-
-export type ShaderCache = ReferenceCache<Shader, ShaderProps>
-
-export function createShaderCache(gl: GLRenderingContext): ShaderCache {
-    return createReferenceCache(
-        (props: ShaderProps) => JSON.stringify(props),
-        (props: ShaderProps) => createShader(gl, props),
-        (shader: Shader) => { shader.destroy() }
-    )
 }

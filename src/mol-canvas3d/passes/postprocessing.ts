@@ -14,7 +14,7 @@ import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/renderable';
 import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { createRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-target';
+import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { DrawPass } from './draw';
 import { Camera } from '../../mol-canvas3d/camera';
 
@@ -66,7 +66,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
         tDepth: ValueCell.create(depthTexture),
-        uTexSize: ValueCell.create(Vec2.create(colorTexture.width, colorTexture.height)),
+        uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
 
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),
@@ -101,7 +101,7 @@ export class PostprocessingPass {
 
     constructor(private webgl: WebGLContext, private camera: Camera, drawPass: DrawPass, props: Partial<PostprocessingProps>) {
         const { gl } = webgl
-        this.target = createRenderTarget(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight)
+        this.target = webgl.createRenderTarget(gl.drawingBufferWidth, gl.drawingBufferHeight)
         this.props = { ...PD.getDefaultValues(PostprocessingParams), ...props }
         const { colorTarget, depthTexture, packedDepth } = drawPass
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture, packedDepth, this.props)

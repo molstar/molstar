@@ -5,7 +5,7 @@
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
-import { createRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-target';
+import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import Renderer from '../../mol-gl/renderer';
 import Scene from '../../mol-gl/scene';
 import { PickingId } from '../../mol-geo/geometry/picking';
@@ -36,9 +36,9 @@ export class PickPass {
         this.pickWidth = Math.round(width * this.pickScale)
         this.pickHeight = Math.round(height * this.pickScale)
 
-        this.objectPickTarget = createRenderTarget(webgl, this.pickWidth, this.pickHeight)
-        this.instancePickTarget = createRenderTarget(webgl, this.pickWidth, this.pickHeight)
-        this.groupPickTarget = createRenderTarget(webgl, this.pickWidth, this.pickHeight)
+        this.objectPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight)
+        this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight)
+        this.groupPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight)
 
         this.setupBuffers()
     }
@@ -97,6 +97,8 @@ export class PickPass {
 
     identify(x: number, y: number): PickingId | undefined {
         const { webgl, pickScale } = this
+        if (webgl.isContextLost) return
+
         const { gl } = webgl
         if (this.pickDirty) {
             this.render()

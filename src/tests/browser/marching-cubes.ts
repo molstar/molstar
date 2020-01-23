@@ -102,7 +102,7 @@ async function init() {
     console.timeEnd('gpu mc vert')
     console.timeEnd('gpu mc')
 
-    console.log({ ...webgl.stats, programCount: webgl.programCache.count, shaderCount: webgl.shaderCache.count })
+    console.log({ ...webgl.stats, programCount: webgl.stats.resourceCounts.program, shaderCount: webgl.stats.resourceCounts.shader })
 
     const mcBoundingSphere = Sphere3D.fromBox3D(Sphere3D(), densityTextureData.bbox)
     const mcIsosurface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, mcBoundingSphere)

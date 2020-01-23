@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,7 +31,7 @@ export interface ReferenceCache<T, P> {
     dispose: () => void
 }
 
-export function createReferenceCache<T, P, C>(hashFn: (props: P) => string, ctor: (props: P) => T, deleteFn: (v: T) => void): ReferenceCache<T, P> {
+export function createReferenceCache<T, P>(hashFn: (props: P) => string, ctor: (props: P) => T, deleteFn: (v: T) => void): ReferenceCache<T, P> {
     const map: Map<string, Reference<T>> = new Map()
 
     return {

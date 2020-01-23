@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,7 +13,7 @@ import { Vec2 } from '../../mol-math/linear-algebra';
 import { GLRenderingContext } from '../../mol-gl/webgl/compat';
 
 export const QuadPositions = new Float32Array([
-     1.0,  1.0,  -1.0,  1.0,  -1.0, -1.0, // First triangle
+    1.0,  1.0,  -1.0,  1.0,  -1.0, -1.0, // First triangle
     -1.0, -1.0,   1.0, -1.0,   1.0,  1.0  // Second triangle
 ])
 
@@ -42,11 +42,11 @@ function getArrayForTexture(gl: GLRenderingContext, texture: Texture, size: numb
 }
 
 export function readTexture(ctx: WebGLContext, texture: Texture, width?: number, height?: number) {
-    const { gl, framebufferCache } = ctx
-    width = defaults(width, texture.width)
-    height = defaults(height, texture.height)
+    const { gl, resources } = ctx
+    width = defaults(width, texture.getWidth())
+    height = defaults(height, texture.getHeight())
     const size = width * height * 4
-    const framebuffer = framebufferCache.get('read-texture').value
+    const framebuffer = resources.framebuffer()
     const array = getArrayForTexture(gl, texture, size)
     framebuffer.bind()
     texture.attachFramebuffer(framebuffer, 0)

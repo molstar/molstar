@@ -58,10 +58,12 @@ export type WebGLState = {
     blendEquation: (mode: number) => void
     /** set the RGB blend equation and alpha blend equation separately, determines how a new pixel is combined with an existing */
     blendEquationSeparate: (modeRGB: number, modeAlpha: number) => void
+
+    reset: () => void
 }
 
 export function createState(gl: GLRenderingContext): WebGLState {
-    const enabledCapabilities: { [k: number]: boolean } = {}
+    let enabledCapabilities: { [k: number]: boolean } = {}
 
     let currentFrontFace = gl.getParameter(gl.FRONT_FACE)
     let currentCullFace = gl.getParameter(gl.CULL_FACE_MODE)
@@ -164,6 +166,24 @@ export function createState(gl: GLRenderingContext): WebGLState {
                 currentBlendEqRGB = modeRGB
                 currentBlendEqAlpha = modeAlpha
             }
+        },
+
+        reset: () => {
+            enabledCapabilities = {}
+
+            currentFrontFace = gl.getParameter(gl.FRONT_FACE)
+            currentCullFace = gl.getParameter(gl.CULL_FACE_MODE)
+            currentDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK)
+            currentColorMask = gl.getParameter(gl.COLOR_WRITEMASK)
+            currentClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE)
+
+            currentBlendSrcRGB = gl.getParameter(gl.BLEND_SRC_RGB)
+            currentBlendDstRGB = gl.getParameter(gl.BLEND_DST_RGB)
+            currentBlendSrcAlpha = gl.getParameter(gl.BLEND_SRC_ALPHA)
+            currentBlendDstAlpha = gl.getParameter(gl.BLEND_DST_ALPHA)
+
+            currentBlendEqRGB = gl.getParameter(gl.BLEND_EQUATION_RGB)
+            currentBlendEqAlpha = gl.getParameter(gl.BLEND_EQUATION_ALPHA)
         }
     }
 }

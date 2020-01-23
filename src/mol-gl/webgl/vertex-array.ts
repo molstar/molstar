@@ -1,42 +1,75 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { WebGLContext } from './context';
 import { Program } from './program';
 import { ElementsBuffer, AttributeBuffers } from './buffer';
+import { WebGLExtensions } from './extensions';
+import { idFactory } from '../../mol-util/id-factory';
 
-export function createVertexArray(ctx: WebGLContext, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) {
-    const { vertexArrayObject } = ctx.extensions
-    let vertexArray: WebGLVertexArrayObject | null = null
-    if (vertexArrayObject) {
-        vertexArray = vertexArrayObject.createVertexArray()
-        if (vertexArray) {
-            updateVertexArray(ctx, vertexArray, program, attributeBuffers, elementsBuffer)
-            ctx.stats.vaoCount += 1
-        } else {
-            console.warn('Could not create WebGL vertex array')
-        }
+const getNextVertexArrayId = idFactory()
+
+function getVertexArray(extensions: WebGLExtensions): WebGLVertexArrayObject {
+    const { vertexArrayObject } = extensions
+    if (!vertexArrayObject) {
+        throw new Error('VertexArrayObject not supported')
+    }
+    const vertexArray = vertexArrayObject.createVertexArray()
+    if (!vertexArray) {
+        throw new Error('Could not create WebGL vertex array')
     }
     return vertexArray
 }
 
-export function updateVertexArray(ctx: WebGLContext, vertexArray: WebGLVertexArrayObject | null, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) {
-    const { vertexArrayObject } = ctx.extensions
-    if (vertexArrayObject && vertexArray) {
+function getVertexArrayObject(extensions: WebGLExtensions) {
+    const { vertexArrayObject } = extensions
+    if (vertexArrayObject === null) {
+        throw new Error('VertexArrayObject not supported')
+    }
+    return vertexArrayObject
+}
+
+export interface VertexArray {
+    readonly id: number
+
+    bind: () => void
+    update: () => void
+    reset: () => void
+    destroy: () => void
+}
+
+export function createVertexArray(extensions: WebGLExtensions, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer): VertexArray {
+    const id = getNextVertexArrayId()
+    let vertexArray = getVertexArray(extensions)
+    let vertexArrayObject = getVertexArrayObject(extensions)
+
+    function update() {
         vertexArrayObject.bindVertexArray(vertexArray)
         if (elementsBuffer) elementsBuffer.bind()
         program.bindAttributes(attributeBuffers)
         vertexArrayObject.bindVertexArray(null)
     }
-}
 
-export function deleteVertexArray(ctx: WebGLContext, vertexArray: WebGLVertexArrayObject | null) {
-    const { vertexArrayObject } = ctx.extensions
-    if (vertexArrayObject && vertexArray) {
-        vertexArrayObject.deleteVertexArray(vertexArray)
-        ctx.stats.vaoCount -= 1
+    update()
+    let destroyed = false
+
+    return {
+        id,
+        bind: () => {
+            vertexArrayObject.bindVertexArray(vertexArray)
+        },
+        update,
+        reset: () => {
+            vertexArray = getVertexArray(extensions)
+            vertexArrayObject = getVertexArrayObject(extensions)
+            update()
+        },
+        destroy: () => {
+            if (destroyed) return
+            vertexArrayObject.deleteVertexArray(vertexArray)
+            destroyed = true
+        }
     }
 }

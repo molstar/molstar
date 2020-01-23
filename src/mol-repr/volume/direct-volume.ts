@@ -11,7 +11,6 @@ import { VolumeData } from '../../mol-model/volume';
 import { RuntimeContext } from '../../mol-task';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
-import { createTexture } from '../../mol-gl/webgl/texture';
 import { VisualContext } from '../visual';
 import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
@@ -95,7 +94,7 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, v
     dim[0] += 1 // horizontal padding
     dim[0] += 1 // vertical padding
 
-    const texture = directVolume ? directVolume.gridTexture.ref.value : createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'linear')
+    const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear')
     texture.load(textureImage)
 
     return DirectVolume.create(bbox, dim, transform, texture, directVolume)
@@ -135,7 +134,7 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
     // Mat4.invert(transform, transform)
     const bbox = getBoundingBox(gridDimension, transform)
 
-    const texture = directVolume ? directVolume.gridTexture.ref.value : createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
+    const texture = directVolume ? directVolume.gridTexture.ref.value : webgl.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear')
     texture.load(textureVolume)
 
     return DirectVolume.create(bbox, gridDimension, transform, texture, directVolume)

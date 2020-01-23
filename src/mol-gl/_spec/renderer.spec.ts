@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -101,11 +101,11 @@ describe('renderer', () => {
         expect(ctx.gl.canvas.width).toBe(32)
         expect(ctx.gl.canvas.height).toBe(32)
 
-        expect(ctx.stats.bufferCount).toBe(0);
-        expect(ctx.stats.textureCount).toBe(0);
-        expect(ctx.stats.vaoCount).toBe(0);
-        expect(ctx.programCache.count).toBe(0);
-        expect(ctx.shaderCache.count).toBe(0);
+        expect(ctx.stats.resourceCounts.attribute).toBe(0);
+        expect(ctx.stats.resourceCounts.texture).toBe(0);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
+        expect(ctx.stats.resourceCounts.program).toBe(0);
+        expect(ctx.stats.resourceCounts.shader).toBe(0);
 
         renderer.setViewport(0, 0, 64, 48)
         expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[2]).toBe(64)
@@ -122,24 +122,22 @@ describe('renderer', () => {
 
         scene.add(points)
         await scene.commit().run()
-        expect(ctx.stats.bufferCount).toBe(4);
-        expect(ctx.stats.textureCount).toBe(5);
-        expect(ctx.stats.vaoCount).toBe(5);
-        expect(ctx.programCache.count).toBe(5);
-        expect(ctx.shaderCache.count).toBe(10);
+        expect(ctx.stats.resourceCounts.attribute).toBe(4);
+        expect(ctx.stats.resourceCounts.texture).toBe(5);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(5);
+        expect(ctx.stats.resourceCounts.program).toBe(5);
+        expect(ctx.stats.resourceCounts.shader).toBe(10);
 
         scene.remove(points)
         await scene.commit().run()
-        expect(ctx.stats.bufferCount).toBe(0);
-        expect(ctx.stats.textureCount).toBe(0);
-        expect(ctx.stats.vaoCount).toBe(0);
-        expect(ctx.programCache.count).toBe(5);
-        expect(ctx.shaderCache.count).toBe(10);
+        expect(ctx.stats.resourceCounts.attribute).toBe(0);
+        expect(ctx.stats.resourceCounts.texture).toBe(0);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
+        expect(ctx.stats.resourceCounts.program).toBe(5);
+        expect(ctx.stats.resourceCounts.shader).toBe(10);
 
-        ctx.programCache.dispose()
-        expect(ctx.programCache.count).toBe(0);
-
-        ctx.shaderCache.clear()
-        expect(ctx.shaderCache.count).toBe(0);
+        ctx.resources.destroy()
+        expect(ctx.stats.resourceCounts.program).toBe(0);
+        expect(ctx.stats.resourceCounts.shader).toBe(0);
     })
 })

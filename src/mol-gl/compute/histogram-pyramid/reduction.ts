@@ -8,13 +8,13 @@ import { createComputeRenderable, ComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
 import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
-import { Texture, createTexture } from '../../../mol-gl/webgl/texture';
+import { Texture } from '../../../mol-gl/webgl/texture';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
 import { QuadSchema, QuadValues } from '../util';
 import { Vec2 } from '../../../mol-math/linear-algebra';
 import { getHistopyramidSum } from './sum';
-import { Framebuffer, createFramebuffer } from '../../../mol-gl/webgl/framebuffer';
+import { Framebuffer } from '../../../mol-gl/webgl/framebuffer';
 import { isPowerOfTwo } from '../../../mol-math/misc';
 import quad_vert from '../../../mol-gl/shader/quad.vert'
 import reduction_frag from '../../../mol-gl/shader/histogram-pyramid/reduction.frag'
@@ -55,8 +55,8 @@ function getLevelTextureFramebuffer(ctx: WebGLContext, level: number) {
     let textureFramebuffer  = LevelTexturesFramebuffers[level]
     const size = Math.pow(2, level)
     if (textureFramebuffer === undefined) {
-        const texture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-        const framebuffer = createFramebuffer(ctx.gl, ctx.stats)
+        const texture = ctx.resources.texture('image-float32', 'rgba', 'float', 'nearest')
+        const framebuffer = ctx.resources.framebuffer()
         texture.attachFramebuffer(framebuffer, 0)
         textureFramebuffer = { texture, framebuffer }
         textureFramebuffer.texture.define(size, size)
@@ -85,22 +85,22 @@ export interface HistogramPyramid {
 }
 
 export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture, scale: Vec2): HistogramPyramid {
-    const { gl, framebufferCache } = ctx
+    const { gl, resources } = ctx
 
     // printTexture(ctx, inputTexture, 2)
-    if (inputTexture.width !== inputTexture.height || !isPowerOfTwo(inputTexture.width)) {
+    if (inputTexture.getWidth() !== inputTexture.getHeight() || !isPowerOfTwo(inputTexture.getWidth())) {
         throw new Error('inputTexture must be of square power-of-two size')
     }
 
     // This part set the levels
-    const levels = Math.ceil(Math.log(inputTexture.width) / Math.log(2))
+    const levels = Math.ceil(Math.log(inputTexture.getWidth()) / Math.log(2))
     const maxSize = Math.pow(2, levels)
     // console.log('levels', levels, 'maxSize', maxSize)
 
-    const pyramidTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
+    const pyramidTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest')
     pyramidTexture.define(maxSize, maxSize)
 
-    const framebuffer = framebufferCache.get('reduction').value
+    const framebuffer = resources.framebuffer()
     pyramidTexture.attachFramebuffer(framebuffer, 0)
     gl.clear(gl.COLOR_BUFFER_BIT)
 

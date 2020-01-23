@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,16 +7,14 @@
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
 import { WebGLState } from './state';
 import { WebGLExtensions } from './extensions';
-import { getUniformSetters, UniformsList, getUniformType } from './uniform';
+import { getUniformSetters, UniformsList, getUniformType, UniformSetters } from './uniform';
 import { AttributeBuffers, getAttribType } from './buffer';
 import { TextureId, Textures } from './texture';
-import { createReferenceCache, ReferenceCache } from '../../mol-util/reference-cache';
 import { idFactory } from '../../mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
-import { hashFnv32a, hashString } from '../../mol-data/util';
 import { isDebugMode } from '../../mol-util/debug';
 import { GLRenderingContext } from './compat';
-import { ShaderCache } from './shader';
+import { ShaderType, Shader } from './shader';
 
 const getNextProgramId = idFactory()
 
@@ -28,6 +26,7 @@ export interface Program {
     bindAttributes: (attribueBuffers: AttributeBuffers) => void
     bindTextures: (textures: Textures) => void
 
+    reset: () => void
     destroy: () => void
 }
 
@@ -113,43 +112,60 @@ function checkActiveUniforms(gl: GLRenderingContext, program: WebGLProgram, sche
     }
 }
 
+function checkProgram(gl: GLRenderingContext, program: WebGLProgram) {
+    // no-op in FF on Mac, see https://bugzilla.mozilla.org/show_bug.cgi?id=1284425
+    // gl.validateProgram(program)
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        throw new Error(`Could not compile WebGL program. \n\n${gl.getProgramInfoLog(program)}`);
+    }
+}
+
 export interface ProgramProps {
     defineValues: DefineValues,
     shaderCode: ShaderCode,
     schema: RenderableSchema
 }
 
-export function createProgram(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, shaderCache: ShaderCache, props: ProgramProps): Program {
-    const { defineValues, shaderCode: _shaderCode, schema } = props
-
+function getProgram(gl: GLRenderingContext) {
     const program = gl.createProgram()
     if (program === null) {
         throw new Error('Could not create WebGL program')
     }
+    return program
+}
+
+type ShaderGetter = (type: ShaderType, source: string) => Shader
+
+export function createProgram(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, getShader: ShaderGetter, props: ProgramProps): Program {
+    const { defineValues, shaderCode: _shaderCode, schema } = props
+
+    let program = getProgram(gl)
     const programId = getNextProgramId()
 
     const shaderCode = addShaderDefines(gl, extensions, defineValues, _shaderCode)
-    const vertShaderRef = shaderCache.get({ type: 'vert', source: shaderCode.vert })
-    const fragShaderRef = shaderCache.get({ type: 'frag', source: shaderCode.frag })
+    const vertShader = getShader('vert', shaderCode.vert)
+    const fragShader = getShader('frag', shaderCode.frag)
 
-    vertShaderRef.value.attach(program)
-    fragShaderRef.value.attach(program)
-    gl.linkProgram(program)
-    if (isDebugMode) {
-        // no-op in FF on Mac, see https://bugzilla.mozilla.org/show_bug.cgi?id=1284425
-        // gl.validateProgram(program)
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            throw new Error(`Could not compile WebGL program. \n\n${gl.getProgramInfoLog(program)}`);
+    let locations: Locations // = getLocations(gl, program, schema)
+    let uniformSetters: UniformSetters // = getUniformSetters(schema)
+
+    function init() {
+        vertShader.attach(program)
+        fragShader.attach(program)
+        gl.linkProgram(program)
+        if (isDebugMode) {
+            checkProgram(gl, program)
+        }
+
+        locations = getLocations(gl, program, schema)
+        uniformSetters = getUniformSetters(schema)
+
+        if (isDebugMode) {
+            checkActiveAttributes(gl, program, schema)
+            checkActiveUniforms(gl, program, schema)
         }
     }
-
-    const locations = getLocations(gl, program, schema)
-    const uniformSetters = getUniformSetters(schema)
-
-    if (isDebugMode) {
-        checkActiveAttributes(gl, program, schema)
-        checkActiveUniforms(gl, program, schema)
-    }
+    init()
 
     let destroyed = false
 
@@ -190,34 +206,16 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
             }
         },
 
+        reset: () => {
+            program = getProgram(gl)
+            init()
+        },
         destroy: () => {
             if (destroyed) return
-            vertShaderRef.free()
-            fragShaderRef.free()
+            vertShader.destroy()
+            fragShader.destroy()
             gl.deleteProgram(program)
             destroyed = true
         }
     }
-}
-
-export type ProgramCache = ReferenceCache<Program, ProgramProps>
-
-function defineValueHash(v: boolean | number | string): number {
-    return typeof v === 'boolean' ? (v ? 1 : 0) :
-        typeof v === 'number' ? v : hashString(v)
-}
-
-export function createProgramCache(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, shaderCache: ShaderCache): ProgramCache {
-    return createReferenceCache(
-        (props: ProgramProps) => {
-            const array = [ props.shaderCode.id ]
-            Object.keys(props.defineValues).forEach(k => {
-                const v = props.defineValues[k].ref.value
-                array.push(hashString(k), defineValueHash(v))
-            })
-            return hashFnv32a(array).toString()
-        },
-        (props: ProgramProps) => createProgram(gl, state, extensions, shaderCache, props),
-        (program: Program) => { program.destroy() }
-    )
 }

@@ -41,7 +41,8 @@ export interface TextureMesh {
 
 export namespace TextureMesh {
     export function create(vertexCount: number, groupCount: number, vertexGroupTexture: Texture, normalTexture: Texture, boundingSphere: Sphere3D, textureMesh?: TextureMesh): TextureMesh {
-        const { width, height } = vertexGroupTexture
+        const width = vertexGroupTexture.getWidth()
+        const height = vertexGroupTexture.getHeight()
         if (textureMesh) {
             ValueCell.update(textureMesh.vertexCount, vertexCount)
             ValueCell.update(textureMesh.groupCount, groupCount)

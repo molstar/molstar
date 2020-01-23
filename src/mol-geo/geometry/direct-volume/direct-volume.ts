@@ -46,7 +46,9 @@ export interface DirectVolume {
 
 export namespace DirectVolume {
     export function create(bbox: Box3D, gridDimension: Vec3, transform: Mat4, texture: Texture, directVolume?: DirectVolume): DirectVolume {
-        const { width, height, depth } = texture
+        const width = texture.getWidth()
+        const height = texture.getHeight()
+        const depth = texture.getDepth()
         if (directVolume) {
             ValueCell.update(directVolume.gridDimension, gridDimension)
             ValueCell.update(directVolume.gridTextureDim, Vec3.set(directVolume.gridTextureDim.ref.value, width, height, depth))
@@ -138,7 +140,7 @@ export namespace DirectVolume {
             dRenderMode: ValueCell.create(props.renderMode),
             tTransferTex: transferTex,
 
-            dGridTexType: ValueCell.create(gridTexture.ref.value.depth > 0 ? '3d' : '2d'),
+            dGridTexType: ValueCell.create(gridTexture.ref.value.getDepth() > 0 ? '3d' : '2d'),
             uGridTexDim: gridTextureDim,
             tGridTex: gridTexture,
         }

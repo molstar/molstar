@@ -5,11 +5,11 @@
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
-import { createRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-target';
+import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import Renderer from '../../mol-gl/renderer';
 import Scene from '../../mol-gl/scene';
 import { BoundingSphereHelper } from '../helper/bounding-sphere-helper';
-import { createTexture, Texture } from '../../mol-gl/webgl/texture';
+import { Texture } from '../../mol-gl/webgl/texture';
 import { Camera } from '../camera';
 
 export class DrawPass {
@@ -20,13 +20,13 @@ export class DrawPass {
     private depthTarget: RenderTarget | null
 
     constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, private debugHelper: BoundingSphereHelper) {
-        const { gl, extensions } = webgl
+        const { gl, extensions, resources } = webgl
         const width = gl.drawingBufferWidth
         const height = gl.drawingBufferHeight
-        this.colorTarget = createRenderTarget(webgl, width, height)
+        this.colorTarget = webgl.createRenderTarget(width, height)
         this.packedDepth = !extensions.depthTexture
-        this.depthTarget = this.packedDepth ? createRenderTarget(webgl, width, height) : null
-        this.depthTexture = this.depthTarget ? this.depthTarget.texture : createTexture(webgl, 'image-depth', 'depth', 'ushort', 'nearest')
+        this.depthTarget = this.packedDepth ? webgl.createRenderTarget(width, height) : null
+        this.depthTexture = this.depthTarget ? this.depthTarget.texture : resources.texture('image-depth', 'depth', 'ushort', 'nearest')
         if (!this.packedDepth) {
             this.depthTexture.define(width, height)
             this.depthTexture.attachFramebuffer(this.colorTarget.framebuffer, 'depth')
@@ -48,9 +48,13 @@ export class DrawPass {
             webgl.unbindFramebuffer()
         } else {
             colorTarget.bind()
+            if (!this.packedDepth) {
+                // TODO unlcear why it is not enough to call `attachFramebuffer` in `Texture.reset`
+                this.depthTexture.attachFramebuffer(this.colorTarget.framebuffer, 'depth')
+            }
         }
 
-        renderer.setViewport(0, 0, colorTarget.width, colorTarget.height)
+        renderer.setViewport(0, 0, colorTarget.getWidth(), colorTarget.getHeight())
         renderer.render(scene, camera, 'color', true, transparentBackground)
         if (debugHelper.isEnabled) {
             debugHelper.syncVisibility()
