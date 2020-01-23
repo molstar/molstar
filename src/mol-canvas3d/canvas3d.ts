@@ -261,8 +261,8 @@ namespace Canvas3D {
 
             if (oldRO) {
                 if (!SetUtils.areEqual(newRO, oldRO)) {
-                    for (const o of Array.from(newRO)) { if (!oldRO.has(o)) scene.add(o) }
-                    for (const o of Array.from(oldRO)) { if (!newRO.has(o)) scene.remove(o) }
+                    newRO.forEach(o => { if (!oldRO.has(o)) scene.add(o) })
+                    oldRO.forEach(o => { if (!newRO.has(o)) scene.remove(o) })
                 }
             } else {
                 repr.renderObjects.forEach(o => scene.add(o))

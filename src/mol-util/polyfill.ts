@@ -593,3 +593,103 @@ if (!Array.prototype.fill) {
         }
     });
 }
+
+if (!Array.prototype.copyWithin) {
+    Object.defineProperty(Array.prototype, 'copyWithin', {
+        value: function(target: any, start: any/* , end*/) {
+            // Steps 1-2.
+            if (this == null) {
+                throw new TypeError('this is null or not defined');
+            }
+
+            let O = Object(this);
+
+            // Steps 3-5.
+            let len = O.length >>> 0;
+
+            // Steps 6-8.
+            let relativeTarget = target >> 0;
+
+            let to = relativeTarget < 0 ?
+                Math.max(len + relativeTarget, 0) :
+                Math.min(relativeTarget, len);
+
+            // Steps 9-11.
+            let relativeStart = start >> 0;
+
+            let from = relativeStart < 0 ?
+                Math.max(len + relativeStart, 0) :
+                Math.min(relativeStart, len);
+
+            // Steps 12-14.
+            let end = arguments[2];
+            let relativeEnd = end === undefined ? len : end >> 0;
+
+            let final = relativeEnd < 0 ?
+                Math.max(len + relativeEnd, 0) :
+                Math.min(relativeEnd, len);
+
+            // Step 15.
+            let count = Math.min(final - from, len - to);
+
+            // Steps 16-17.
+            let direction = 1;
+
+            if (from < to && to < (from + count)) {
+                direction = -1;
+                from += count - 1;
+                to += count - 1;
+            }
+
+            // Step 18.
+            while (count > 0) {
+                if (from in O) {
+                    O[to] = O[from];
+                } else {
+                    delete O[to];
+                }
+
+                from += direction;
+                to += direction;
+                count--;
+            }
+
+            // Step 19.
+            return O;
+        },
+        configurable: true,
+        writable: true
+    });
+}
+
+if (!Int8Array.prototype.copyWithin) {
+    Object.defineProperty(Int8Array.prototype, 'copyWithin', { value: Array.prototype.copyWithin })
+}
+
+if (!Int16Array.prototype.copyWithin) {
+    Object.defineProperty(Int16Array.prototype, 'copyWithin', { value: Array.prototype.copyWithin })
+}
+
+if (!Int32Array.prototype.copyWithin) {
+    Object.defineProperty(Int32Array.prototype, 'copyWithin', { value: Array.prototype.copyWithin })
+}
+
+if (!Uint8Array.prototype.copyWithin) {
+    Object.defineProperty(Uint8Array.prototype, 'copyWithin', { value: Array.prototype.copyWithin })
+}
+
+if (!Uint16Array.prototype.copyWithin) {
+    Object.defineProperty(Uint16Array.prototype, 'copyWithin', { value: Array.prototype.copyWithin })
+}
+
+if (!Uint32Array.prototype.copyWithin) {
+    Object.defineProperty(Uint32Array.prototype, 'copyWithin', { value: Array.prototype.copyWithin })
+}
+
+if (!Float32Array.prototype.copyWithin) {
+    Object.defineProperty(Float32Array.prototype, 'copyWithin', { value: Array.prototype.copyWithin })
+}
+
+if (!Float64Array.prototype.copyWithin) {
+    Object.defineProperty(Float64Array.prototype, 'copyWithin', { value: Array.prototype.copyWithin })
+}

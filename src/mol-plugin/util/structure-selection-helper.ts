@@ -68,7 +68,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
                     ])
                 ]),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': MS.core.set.has([MS.set(...Array.from(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
+                'atom-test': MS.core.set.has([MS.set(...Array.from(ProteinBackboneAtoms.values())), MS.ammp('label_atom_id')])
             })
         ]),
         MS.struct.modifier.union([
@@ -81,7 +81,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
                     ])
                 ]),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': MS.core.set.has([MS.set(...Array.from(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
+                'atom-test': MS.core.set.has([MS.set(...Array.from(NucleicBackboneAtoms.values())), MS.ammp('label_atom_id')])
             })
         ])
     ])

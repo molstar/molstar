@@ -13,7 +13,7 @@ export function getAssemblyIds(units: ReadonlyArray<Unit>) {
     units.forEach(u => {
         if (u.conformation.operator.assembly) ids.add(u.conformation.operator.assembly.id)
     })
-    return Array.from(ids)
+    return Array.from(ids.values())
 }
 
 export function getSymmetrySelectParam(structure?: Structure) {
