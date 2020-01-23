@@ -177,11 +177,13 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
     const comp_id = Props.residue.label_comp_id(location)
     const atom_id = Props.atom.label_atom_id(location)
     const alt_id = Props.atom.label_alt_id(location)
+    const occupancy = Props.atom.occupancy(location);
 
     const microHetCompIds = Props.residue.microheterogeneityCompIds(location)
     const compId = granularity === 'residue' && microHetCompIds.length > 1 ?
         `(${microHetCompIds.join('|')})` : comp_id
 
+    
     const label: string[] = []
 
     switch (granularity) {
@@ -203,6 +205,10 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
                     label.push(`<b>${label_asym_id}</b> <small>[auth</small> <b>${auth_asym_id}</b><small>]</small>`)
                 }
             }
+    }
+
+    if (label.length > 0 && occupancy !== 1) {
+        label[0] = `${label[0]} <small>[occupancy</small> <b>${Math.round(100 * occupancy) / 100}</b><small>]</small>`;
     }
 
     return label.reverse()

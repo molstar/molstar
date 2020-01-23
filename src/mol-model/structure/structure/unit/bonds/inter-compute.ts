@@ -64,8 +64,10 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     // const { type_symbol: type_symbolB, label_alt_id: label_alt_idB } = unitB.model.atomicHierarchy.atoms;
     const { type_symbol: type_symbolA, label_alt_id: label_alt_idA, label_atom_id: label_atom_idA } = unitA.model.atomicHierarchy.atoms;
     const { type_symbol: type_symbolB, label_alt_id: label_alt_idB, label_atom_id: label_atom_idB } = unitB.model.atomicHierarchy.atoms;
-    const { label_comp_id: label_comp_idA } = unitA.model.atomicHierarchy.residues;
-    const { label_comp_id: label_comp_idB } = unitB.model.atomicHierarchy.residues;
+    const { label_comp_id: label_comp_idA, auth_seq_id: auth_seq_idA } = unitA.model.atomicHierarchy.residues;
+    const { label_comp_id: label_comp_idB, auth_seq_id: auth_seq_idB } = unitB.model.atomicHierarchy.residues;
+    const { occupancy: occupancyA } = unitA.model.atomicConformation;
+    const { occupancy: occupancyB } = unitB.model.atomicConformation;
 
     const { lookup3d } = unitB;
     const structConn = unitA.model === unitB.model && unitA.model.sourceData.kind === 'mmCIF' ? StructConn.get(unitA.model) : void 0;
@@ -125,6 +127,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
         const metalA = MetalsSet.has(aeI);
         const atomIdA = label_atom_idA.value(aI);
         const compIdA = label_comp_idA.value(residueIndexA[aI]);
+        const occA = occupancyA.value(aI);
 
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni] as StructureElement.UnitIndex;
@@ -132,6 +135,14 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
             const altB = label_alt_idB.value(bI);
             if (altA && altB && altA !== altB) continue;
+
+            // Do not include bonds between images of the same residue.
+            // TODO: is this condition good enough?
+            if (occupancyB.value(bI) < 1 && occA < 1)  {
+                if (auth_seq_idA.value(aI) === auth_seq_idB.value(bI)) {
+                    continue;
+                }
+            }
 
             const beI = getElementIdx(type_symbolB.value(bI)!);
             const isMetal = metalA || MetalsSet.has(beI);
