@@ -201,13 +201,17 @@ const glsl300FragPrefixCommon = `
 #define gl_FragColor out_FragData0
 #define gl_FragDepthEXT gl_FragDepth
 
-#define enabledStandardDerivatives
-#define enabledFragDepth
 #define requiredDrawBuffers
 `
 
 function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
     const prefix = [ '#version 300 es' ]
+    if (shaderExtensions.standardDerivatives) {
+        prefix.push('#define enabledStandardDerivatives')
+    }
+    if (shaderExtensions.fragDepth) {
+        prefix.push('#define enabledFragDepth')
+    }
     if (extensions.drawBuffers) {
         const maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS) as number
         for (let i = 0, il = maxDrawBuffers; i < il; ++i) {
