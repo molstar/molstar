@@ -21,6 +21,7 @@ import { Mat4 } from '../mol-math/linear-algebra';
 import { getQualityProps } from './util';
 import { BaseGeometry } from '../mol-geo/geometry/base';
 import { Visual } from './visual';
+import { CustomPropertyContext } from '../mol-model-props/common/custom-property-registry';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -47,7 +48,7 @@ export interface RepresentationProvider<D, P extends PD.Params, S extends Repres
     readonly defaultColorTheme: string
     readonly defaultSizeTheme: string
     readonly isApplicable: (data: D) => boolean
-    readonly ensureDependencies?: (data: D) => Task<void>
+    readonly ensureCustomProperties?: (ctx: CustomPropertyContext, data: D) => Promise<void>
 }
 
 export namespace RepresentationProvider {

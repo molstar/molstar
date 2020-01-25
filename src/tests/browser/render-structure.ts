@@ -24,6 +24,8 @@ import { lociLabel } from '../../mol-theme/label';
 import { InteractionsRepresentationProvider } from '../../mol-repr/structure/representation/interactions';
 import { InteractionsProvider } from '../../mol-model-props/computed/interactions';
 import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
+import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
+import { ajaxGet } from '../../mol-util/data-source';
 
 const parent = document.getElementById('app')!
 parent.style.width = '100%'
@@ -115,15 +117,18 @@ function getGaussianSurfaceRepr() {
 }
 
 async function init() {
+    const ctx = { runtime: SyncRuntimeContext, fetch: ajaxGet }
+
     const cif = await downloadFromPdb('3pqr')
     const models = await getModels(cif)
     const structure = await getStructure(models[0])
+
     console.time('compute SecondaryStructure')
-    await SecondaryStructureProvider.attach(structure).run()
+    await SecondaryStructureProvider.attach(ctx, structure)
     console.timeEnd('compute SecondaryStructure');
 
     console.time('compute Interactions')
-    await InteractionsProvider.attach(structure).run()
+    await InteractionsProvider.attach(ctx, structure)
     console.timeEnd('compute Interactions');
     console.log(InteractionsProvider.getValue(structure).value)
 

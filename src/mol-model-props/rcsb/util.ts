@@ -1,31 +1,22 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from '../../mol-model/structure';
+import { Structure } from '../../mol-model/structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
-import { AssemblySymmetry } from './assembly-symmetry';
-
-export function getAssemblyIds(units: ReadonlyArray<Unit>) {
-    const ids = new Set<string>()
-    units.forEach(u => {
-        if (u.conformation.operator.assembly) ids.add(u.conformation.operator.assembly.id)
-    })
-    return Array.from(ids.values())
-}
+import {  AssemblySymmetryProvider } from './assembly-symmetry';
 
 export function getSymmetrySelectParam(structure?: Structure) {
-    const param = PD.Select<number>(-1, [[-1, 'No Symmetries']])
-    if (structure && structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)) {
-        const assemblySymmetry = AssemblySymmetry.get(structure.models[0])!
-        const assemblyIds = getAssemblyIds(structure.units)
-        const s = assemblySymmetry.getSymmetries(assemblyIds)
-        if (s._rowCount) {
+    const param = PD.Select<number>(0, [[0, 'No Symmetries']])
+    if (structure) {
+        const assemblySymmetry = AssemblySymmetryProvider.getValue(structure).value
+        if (assemblySymmetry) {
             const options: [number, string][] = []
-            for (let i = 0, il = s._rowCount; i < il; ++i) {
-                options.push([ s.id.value(i), `${s.assembly_id.value(i)}: ${s.symbol.value(i)} ${s.kind.value(i)}` ])
+            for (let i = 0, il = assemblySymmetry.length; i < il; ++i) {
+                const { symbol, kind } = assemblySymmetry[i]
+                options.push([ i, `${i + 1}: ${symbol} ${kind}` ])
             }
             if (options.length) {
                 param.options = options

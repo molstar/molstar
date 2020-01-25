@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,14 +7,14 @@
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition'
-import { Table } from '../../../mol-data/db';
-import { AssemblySymmetry } from '../assembly-symmetry';
+import { AssemblySymmetryProvider, AssemblySymmetry } from '../assembly-symmetry';
 import { Color } from '../../../mol-util/color';
 import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
 import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
 import { getSymmetrySelectParam } from '../util';
 import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
+import { CustomPropertyContext } from '../../common/custom-property-registry';
 
 const DefaultColor = Color(0xCCCCCC)
 
@@ -28,18 +28,18 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
     }
 }
 
-function clusterMemberKey(assemblyId: string, asymId: string, operList: string[]) {
-    return `${assemblyId}-${asymId}-${operList.join('|')}`
+function clusterMemberKey(asymId: string, operList: string[]) {
+    return `${asymId}-${operList.join('|')}`
 }
 
 export const AssemblySymmetryClusterColorThemeParams = {
     ...getPaletteParams({ scaleList: 'red-yellow-blue' }),
-    symmetryId: getSymmetrySelectParam(),
+    symmetryIndex: getSymmetrySelectParam(),
 }
 export type AssemblySymmetryClusterColorThemeParams = typeof AssemblySymmetryClusterColorThemeParams
 export function getAssemblySymmetryClusterColorThemeParams(ctx: ThemeDataContext) {
     const params = PD.clone(AssemblySymmetryClusterColorThemeParams)
-    params.symmetryId = getSymmetrySelectParam(ctx.structure)
+    params.symmetryIndex = getSymmetrySelectParam(ctx.structure)
     return params
 }
 
@@ -47,44 +47,35 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
     let color: LocationColor = () => DefaultColor
     let legend: ScaleLegend | TableLegend | undefined
 
-    const { symmetryId } = props
+    const { symmetryIndex } = props
+    const assemblySymmetry = ctx.structure && AssemblySymmetryProvider.getValue(ctx.structure)
+    const contextHash = assemblySymmetry?.version
 
-    if (ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)) {
-        const assemblySymmetry = AssemblySymmetry.get(ctx.structure.models[0])!
+    const clusters = assemblySymmetry?.value?.[symmetryIndex]?.clusters
 
-        const s = assemblySymmetry.db.rcsb_assembly_symmetry
-        const symmetry = Table.pickRow(s, i => s.id.value(i) === symmetryId)
-        if (symmetry) {
-
-            const clusters = assemblySymmetry.getClusters(symmetryId)
-            if (clusters._rowCount) {
-
-                const clusterByMember = new Map<string, number>()
-                for (let i = 0, il = clusters._rowCount; i < il; ++i) {
-                    const clusterMembers = assemblySymmetry.getClusterMembers(clusters.id.value(i))
-                    for (let j = 0, jl = clusterMembers._rowCount; j < jl; ++j) {
-                        const asymId = clusterMembers.asym_id.value(j)
-                        const operList = clusterMembers.pdbx_struct_oper_list_ids.value(j)
-                        if (operList.length === 0) operList.push('1') // TODO hack assuming '1' is the id of the identity operator
-                        clusterByMember.set(clusterMemberKey(symmetry.assembly_id, asymId, operList), i)
-                    }
-                }
-
-                const palette = getPalette(clusters._rowCount, props)
-                legend = palette.legend
-
-                color = (location: Location): Color => {
-                    if (StructureElement.Location.is(location)) {
-                        const { assembly } = location.unit.conformation.operator
-                        if (assembly && assembly.id === symmetry.assembly_id) {
-                            const asymId = getAsymId(location.unit)(location)
-                            const cluster = clusterByMember.get(clusterMemberKey(assembly.id, asymId, assembly.operList))
-                            return cluster !== undefined ? palette.color(cluster) : DefaultColor
-                        }
-                    }
-                    return DefaultColor
-                }
+    if (clusters?.length && ctx.structure) {
+        const clusterByMember = new Map<string, number>()
+        for (let i = 0, il = clusters.length; i < il; ++i) {
+            const { members } = clusters[i]!
+            for (let j = 0, jl = members.length; j < jl; ++j) {
+                const asymId = members[j]!.asym_id
+                const operList = [...members[j]!.pdbx_struct_oper_list_ids || []] as string[]
+                if (operList.length === 0) operList.push('1') // TODO hack assuming '1' is the id of the identity operator
+                clusterByMember.set(clusterMemberKey(asymId, operList), i)
             }
+        }
+
+        const palette = getPalette(clusters.length, props)
+        legend = palette.legend
+
+        color = (location: Location): Color => {
+            if (StructureElement.Location.is(location)) {
+                const { assembly } = location.unit.conformation.operator
+                const asymId = getAsymId(location.unit)(location)
+                const cluster = clusterByMember.get(clusterMemberKey(asymId, assembly.operList))
+                return cluster !== undefined ? palette.color(cluster) : DefaultColor
+            }
+            return DefaultColor
         }
     }
 
@@ -93,6 +84,7 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
         granularity: 'instance',
         color,
         props,
+        contextHash,
         description: 'Assigns chain colors according to assembly symmetry cluster membership.',
         legend
     }
@@ -103,5 +95,8 @@ export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<Asse
     factory: AssemblySymmetryClusterColorTheme,
     getParams: getAssemblySymmetryClusterColorThemeParams,
     defaultValues: PD.getDefaultValues(AssemblySymmetryClusterColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)
+    isApplicable: (ctx: ThemeDataContext) => AssemblySymmetry.isApplicable(ctx.structure),
+    ensureCustomProperties: (ctx: CustomPropertyContext, data: ThemeDataContext) => {
+        return data.structure ? AssemblySymmetryProvider.attach(ctx, data.structure) : Promise.resolve()
+    }
 }

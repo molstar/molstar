@@ -13,8 +13,8 @@ import { Unit, StructureElement, StructureProperties } from '../../mol-model/str
 import { Location } from '../../mol-model/location';
 import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 import { ColorListName, ColorListOptionsScale } from '../../mol-util/color/lists';
-import { Task } from '../../mol-task';
 import { AccessibleSurfaceArea } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley';
+import { CustomPropertyContext } from '../../mol-model-props/common/custom-property-registry';
 
 const DefaultColor = Color(0xFAFAFA)
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.'
@@ -40,7 +40,7 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
     const accessibleSurfaceArea = ctx.structure && AccessibleSurfaceAreaProvider.getValue(ctx.structure)
     const contextHash = accessibleSurfaceArea?.version
 
-    if (accessibleSurfaceArea && accessibleSurfaceArea.value && ctx.structure) {
+    if (accessibleSurfaceArea?.value && ctx.structure) {
         const { getSerialIndex } = ctx.structure.root.serialMapping
         const { area, serialResidueIndex } = accessibleSurfaceArea.value
 
@@ -72,7 +72,7 @@ export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<Access
     getParams: getAccessibleSurfaceAreaColorThemeParams,
     defaultValues: PD.getDefaultValues(AccessibleSurfaceAreaColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
-    ensureDependencies: (ctx: ThemeDataContext) => {
-        return ctx.structure ? AccessibleSurfaceAreaProvider.attach(ctx.structure) : Task.empty()
+    ensureCustomProperties: (ctx: CustomPropertyContext, data: ThemeDataContext) => {
+        return data.structure ? AccessibleSurfaceAreaProvider.attach(ctx, data.structure) : Promise.resolve()
     }
 }

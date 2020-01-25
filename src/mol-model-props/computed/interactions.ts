@@ -5,10 +5,9 @@
  */
 
 import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
-import { RuntimeContext } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { computeInteractions, Interactions, InteractionsParams as _InteractionsParams } from './interactions/interactions';
-import { CustomStructureProperty } from '../common/custom-property-registry';
+import { CustomStructureProperty, CustomPropertyContext } from '../common/custom-property-registry';
 
 export const InteractionsParams = {
     ..._InteractionsParams
@@ -29,7 +28,7 @@ export const InteractionsProvider: CustomStructureProperty.Provider<Interactions
     defaultParams: InteractionsParams,
     getParams: (data: Structure) => InteractionsParams,
     isApplicable: (data: Structure) => true,
-    compute: async (ctx: RuntimeContext, data: Structure, props: Partial<InteractionsProps>) => {
+    obtain: async (ctx: CustomPropertyContext, data: Structure, props: Partial<InteractionsProps>) => {
         const p = { ...PD.getDefaultValues(InteractionsParams), ...props }
         return await computeInteractions(ctx, data, p)
     }

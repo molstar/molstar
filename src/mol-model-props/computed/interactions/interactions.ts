@@ -6,7 +6,6 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit } from '../../../mol-model/structure';
-import { RuntimeContext } from '../../../mol-task';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
 import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType } from './common';
@@ -22,6 +21,7 @@ import { SetUtils } from '../../../mol-util/set';
 import { MetalCoordinationProvider, MetalProvider, MetalBindingProvider } from './metal';
 import { refineInteractions } from './refine';
 import { Result } from '../../../mol-math/geometry';
+import { CustomPropertyContext } from '../../common/custom-property-registry';
 
 export { Interactions }
 
@@ -148,9 +148,9 @@ export const InteractionsParams = {
 export type InteractionsParams = typeof InteractionsParams
 export type InteractionsProps = PD.Values<InteractionsParams>
 
-export async function computeInteractions(runtime: RuntimeContext, structure: Structure, props: Partial<InteractionsProps>): Promise<Interactions> {
+export async function computeInteractions(ctx: CustomPropertyContext, structure: Structure, props: Partial<InteractionsProps>): Promise<Interactions> {
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props }
-    await ValenceModelProvider.attach(structure).runInContext(runtime)
+    await ValenceModelProvider.attach(ctx, structure)
 
     const contactProviders: ContactProvider<any>[] = []
     Object.keys(ContactProviders).forEach(k => {
@@ -167,8 +167,8 @@ export async function computeInteractions(runtime: RuntimeContext, structure: St
 
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
         const group = structure.unitSymmetryGroups[i]
-        if (runtime.shouldUpdate) {
-            await runtime.update({ message: 'computing interactions', current: i, max: il })
+        if (ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'computing interactions', current: i, max: il })
         }
         const features = findUnitFeatures(structure, group.units[0], featureProviders)
         const intraUnitContacts = findIntraUnitContacts(structure, group.units[0], features, contactTesters, p.contacts)

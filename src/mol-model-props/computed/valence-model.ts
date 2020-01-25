@@ -5,10 +5,9 @@
  */
 
 import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
-import { RuntimeContext } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { calcValenceModel, ValenceModel, ValenceModelParams as _ValenceModelParams } from './chemistry/valence-model';
-import { CustomStructureProperty } from '../common/custom-property-registry';
+import { CustomStructureProperty, CustomPropertyContext } from '../common/custom-property-registry';
 
 export const ValenceModelParams = {
     ..._ValenceModelParams
@@ -29,8 +28,8 @@ export const ValenceModelProvider: CustomStructureProperty.Provider<ValenceModel
     defaultParams: ValenceModelParams,
     getParams: (data: Structure) => ValenceModelParams,
     isApplicable: (data: Structure) => true,
-    compute: async (ctx: RuntimeContext, data: Structure, props: Partial<ValenceModelProps>) => {
+    obtain: async (ctx: CustomPropertyContext, data: Structure, props: Partial<ValenceModelProps>) => {
         const p = { ...PD.getDefaultValues(ValenceModelParams), ...props }
-        return await calcValenceModel(ctx, data, p)
+        return await calcValenceModel(ctx.runtime, data, p)
     }
 })

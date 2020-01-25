@@ -1,72 +1,105 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../../../../mol-util/param-definition'
-import { AssemblySymmetry } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
-import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
-import { AssemblySymmetryAxesRepresentationProvider } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry-axes';
-import { Loci, isDataLoci } from '../../../../../mol-model/loci';
-import { OrderedSet } from '../../../../../mol-data/int';
-import { Table } from '../../../../../mol-data/db';
-import { CustomPropertyRegistry } from '../../../../../mol-model-props/common/custom-property-registry';
+import { AssemblySymmetryProvider, AssemblySymmetry } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
 import { PluginBehavior } from '../../../behavior';
+import { OrderedSet } from '../../../../../mol-data/int';
+import { Loci } from '../../../../../mol-model/loci';
+import { getAssemblySymmetryAxesRepresentation, AssemblySymmetryAxesParams } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry-axes';
+import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
+import { PluginStateTransform, PluginStateObject } from '../../../../state/objects';
+import { Task } from '../../../../../mol-task';
+import { PluginSpec } from '../../../../spec';
+import { PluginContext } from '../../../../context';
+import { getSymmetrySelectParam } from '../../../../../mol-model-props/rcsb/util';
+import { StateTransformer } from '../../../../../mol-state';
 
 export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'rcsb-assembly-symmetry-prop',
     category: 'custom-props',
     display: { name: 'RCSB Assembly Symmetry' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
-        private attach = AssemblySymmetry.createAttachTask(this.ctx.fetch);
+        private provider = AssemblySymmetryProvider
 
-        private provider: CustomPropertyRegistry.ModelProvider = {
-            option: [AssemblySymmetry.Descriptor.name, 'RCSB Assembly Symmetry'],
-            descriptor: AssemblySymmetry.Descriptor,
-            defaultSelected: this.params.autoAttach,
-            attachableTo: () => true,
-            attach: this.attach
+        private label = (loci: Loci): string | undefined => {
+            if (AssemblySymmetry.isAxesLoci(loci)) {
+                const labels: string[] = []
+                OrderedSet.forEach(loci.indices, v => {
+                    const { kind, type } = loci.data[v]
+                    if (type && kind) {
+                        labels.push(`Axis of type ${type} for ${kind} symmetry`)
+                    }
+                })
+                return labels.length ? labels.join(', ') : undefined
+            }
+            return undefined
         }
 
         register(): void {
-            this.ctx.customModelProperties.register(this.provider);
-            this.ctx.lociLabels.addProvider(labelAssemblySymmetryAxes);
+            this.ctx.state.dataState.actions.add(PluginSpec.Action(AssemblySymmetryAxes3D).action)
+            this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('rcsb-assembly-symmetry-cluster', AssemblySymmetryClusterColorThemeProvider)
-            this.ctx.structureRepresentation.registry.add('rcsb-assembly-symmetry-axes', AssemblySymmetryAxesRepresentationProvider)
+            this.ctx.lociLabels.addProvider(this.label);
         }
 
         update(p: { autoAttach: boolean }) {
             let updated = this.params.autoAttach !== p.autoAttach
             this.params.autoAttach = p.autoAttach;
-            this.provider.defaultSelected = p.autoAttach;
+            this.ctx.customStructureProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
             return updated;
         }
 
         unregister() {
-            this.ctx.customModelProperties.unregister(AssemblySymmetry.Descriptor.name);
-            this.ctx.lociLabels.removeProvider(labelAssemblySymmetryAxes);
+            // TODO remove `AssemblySymmetryAxes3D` from `this.ctx.state.dataState.actions`
+            this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('rcsb-assembly-symmetry-cluster')
-            this.ctx.structureRepresentation.registry.remove('rcsb-assembly-symmetry-axes')
+            this.ctx.lociLabels.removeProvider(this.label);
         }
     },
     params: () => ({
-        autoAttach: PD.Boolean(false)
+        autoAttach: PD.Boolean(false),
+        serverUrl: PD.Text(AssemblySymmetry.DefaultServerUrl)
     })
 });
 
-function labelAssemblySymmetryAxes(loci: Loci): string | undefined {
-    if (isDataLoci(loci) && AssemblySymmetry.is(loci.data) && loci.tag === 'axes') {
-        const { rcsb_assembly_symmetry_axis: axis, rcsb_assembly_symmetry: sym } = loci.data.db
-        const labels: string[] = []
-        OrderedSet.forEach(loci.indices, v => {
-            const symmetryId = axis.symmetry_id.value(v)
-            const symmetry = Table.pickRow(sym, i => sym.id.value(i) === symmetryId)
-            if (symmetry) {
-                labels.push(`Axis of order ${axis.order.value(v)} for ${symmetry.kind} ${symmetry.type.toLowerCase()} symmetry`)
-            }
-        })
-        return labels.length ? labels.join(', ') : undefined
+type AssemblySymmetryAxes3D = typeof AssemblySymmetryAxes3D
+const AssemblySymmetryAxes3D = PluginStateTransform.BuiltIn({
+    name: 'rcsb-assembly-symmetry-axes-3d',
+    display: 'RCSB Assembly Symmetry Axes',
+    from: PluginStateObject.Molecule.Structure,
+    to: PluginStateObject.Shape.Representation3D,
+    params: (a, ctx: PluginContext) => {
+        console.log(a?.data, getSymmetrySelectParam(a?.data))
+        return {
+            ...AssemblySymmetryAxesParams,
+            symmetryIndex: getSymmetrySelectParam(a?.data),
+        }
     }
-    return undefined
-}
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('RCSB Assembly Symmetry Axes', async ctx => {
+            await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
+            const repr = await getAssemblySymmetryAxesRepresentation(ctx, a.data, params)
+            const { symbol, kind } = AssemblySymmetryProvider.getValue(a.data).value![params.symmetryIndex]
+            return new PluginStateObject.Shape.Representation3D({ repr, source: a }, { label: `Axes`, description: `${symbol} ${kind}` });
+        });
+    },
+    update({ a, b, newParams }) {
+        return Task.create('RCSB Assembly Symmetry Axes', async ctx => {
+            await getAssemblySymmetryAxesRepresentation(ctx, a.data, newParams, b.data.repr);
+            const { symbol, kind } = AssemblySymmetryProvider.getValue(a.data).value![newParams.symmetryIndex]
+            b.description = `${symbol} ${kind}`
+            return StateTransformer.UpdateResult.Updated;
+        });
+    },
+    isApplicable(a) {
+        return AssemblySymmetry.isApplicable(a.data)
+    }
+});

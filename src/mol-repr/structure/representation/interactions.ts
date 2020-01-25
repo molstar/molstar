@@ -13,6 +13,7 @@ import { InteractionsIntraUnitParams, InteractionsIntraUnitVisual } from '../vis
 import { UnitKindOptions, UnitKind } from '../visual/util/common';
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
 import { InteractionsInterUnitParams, InteractionsInterUnitVisual } from '../visual/interactions-inter-unit-cylinder';
+import { CustomPropertyContext } from '../../../mol-model-props/common/custom-property-registry';
 
 const InteractionsVisuals = {
     'intra-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsIntraUnitParams>) => UnitsRepresentation('Intra-unit interactions cylinder', ctx, getParams, InteractionsIntraUnitVisual),
@@ -45,7 +46,7 @@ export const InteractionsRepresentationProvider: StructureRepresentationProvider
     defaultColorTheme: 'interaction-type',
     defaultSizeTheme: 'uniform',
     isApplicable: (structure: Structure) => structure.elementCount > 0,
-    ensureDependencies: (structure: Structure) => {
-        return InteractionsProvider.attach(structure)
+    ensureCustomProperties: (ctx: CustomPropertyContext, structure: Structure) => {
+        return InteractionsProvider.attach(ctx, structure)
     }
 }

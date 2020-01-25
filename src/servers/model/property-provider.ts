@@ -11,12 +11,10 @@ import { ConsoleLogger } from '../../mol-util/console-logger';
 
 // TODO enable dynamic imports again
 import * as pdbeProps from './properties/pdbe'
-import * as rcsbProps from './properties/rcsb'
 import * as wwpdbProps from './properties/wwpdb'
 
 const attachModelProperties: { [k: string]: AttachModelProperties } = {
     pdbe: pdbeProps.attachModelProperties,
-    rcsb: rcsbProps.attachModelProperties,
     wwpdb: wwpdbProps.attachModelProperties
 }
 

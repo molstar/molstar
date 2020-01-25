@@ -204,11 +204,12 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
+            const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
             const provider = plugin.structureRepresentation.registry.get(params.type.name)
-            if (provider.ensureDependencies) await provider.ensureDependencies(a.data).runInContext(ctx)
+            if (provider.ensureCustomProperties) await provider.ensureCustomProperties(propertyCtx, a.data)
             const props = params.type.params || {}
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, provider.getParams)
-            await Theme.ensureDependencies(plugin.structureRepresentation.themeCtx, { structure: a.data }, params).runInContext(ctx)
+            await Theme.ensureDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, params)
             repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, params))
             // TODO set initial state, repr.setState({})
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
@@ -218,10 +219,11 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return StateTransformer.UpdateResult.Recreate;
+            const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
             const provider = plugin.structureRepresentation.registry.get(newParams.type.name)
-            if (provider.ensureDependencies) await provider.ensureDependencies(a.data).runInContext(ctx)
+            if (provider.ensureCustomProperties) await provider.ensureCustomProperties(propertyCtx, a.data)
             const props = { ...b.data.repr.props, ...newParams.type.params }
-            await Theme.ensureDependencies(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams).runInContext(ctx)
+            await Theme.ensureDependencies(propertyCtx, plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams)
             b.data.repr.setTheme(Theme.create(plugin.structureRepresentation.themeCtx, { structure: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.source = a
@@ -579,8 +581,9 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
+            const propertyCtx = { runtime: ctx, fetch: plugin.fetch }
             const provider = plugin.volumeRepresentation.registry.get(params.type.name)
-            if (provider.ensureDependencies) await provider.ensureDependencies(a.data)
+            if (provider.ensureCustomProperties) await provider.ensureCustomProperties(propertyCtx, a.data)
             const props = params.type.params || {}
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.volumeRepresentation.themeCtx }, provider.getParams)
             repr.setTheme(Theme.create(plugin.volumeRepresentation.themeCtx, { volume: a.data }, params))
@@ -657,7 +660,7 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, newParams }) {
         return Task.create('Model Unitcell', async ctx => {
-            await getUnitcellRepresentation(ctx, a.data, newParams, b.data.repr as ShapeRepresentation<any, any, any>);
+            await getUnitcellRepresentation(ctx, a.data, newParams, b.data.repr);
             return StateTransformer.UpdateResult.Updated;
         });
     }

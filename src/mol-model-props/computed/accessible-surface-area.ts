@@ -8,8 +8,7 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { ShrakeRupleyComputationParams, AccessibleSurfaceArea } from './accessible-surface-area/shrake-rupley';
 import { Structure, CustomPropertyDescriptor } from '../../mol-model/structure';
-import { RuntimeContext } from '../../mol-task';
-import { CustomStructureProperty } from '../common/custom-property-registry';
+import { CustomStructureProperty, CustomPropertyContext } from '../common/custom-property-registry';
 
 export const AccessibleSurfaceAreaParams = {
     ...ShrakeRupleyComputationParams
@@ -30,8 +29,8 @@ export const AccessibleSurfaceAreaProvider: CustomStructureProperty.Provider<Acc
     defaultParams: AccessibleSurfaceAreaParams,
     getParams: (data: Structure) => AccessibleSurfaceAreaParams,
     isApplicable: (data: Structure) => true,
-    compute: async (ctx: RuntimeContext, data: Structure, props: Partial<AccessibleSurfaceAreaProps>) => {
+    obtain: async (ctx: CustomPropertyContext, data: Structure, props: Partial<AccessibleSurfaceAreaProps>) => {
         const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props }
-        return await AccessibleSurfaceArea.compute(data, p).runInContext(ctx)
+        return await AccessibleSurfaceArea.compute(data, p).runInContext(ctx.runtime)
     }
 })

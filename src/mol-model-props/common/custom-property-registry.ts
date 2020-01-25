@@ -69,6 +69,13 @@ namespace CustomPropertyRegistry {
     export type StructureProvider = Provider<Structure>
 }
 
+type AjaxTask = import('../../mol-util/data-source').AjaxTask
+
+export interface CustomPropertyContext {
+    runtime: RuntimeContext
+    fetch: AjaxTask
+}
+
 export { CustomStructureProperty }
 
 namespace CustomStructureProperty {
@@ -77,7 +84,7 @@ namespace CustomStructureProperty {
         readonly descriptor: CustomPropertyDescriptor
         readonly getParams: (data: Structure) => Params
         readonly isApplicable: (data: Structure) => boolean
-        readonly attach: (data: Structure, props?: Partial<PD.Values<Params>>) => Task<void>
+        readonly attach: (ctx: CustomPropertyContext, data: Structure, props?: Partial<PD.Values<Params>>) => Promise<void>
         readonly getValue: (data: Structure) => ValueBox<Value | undefined>
         readonly setProps: (data: Structure, props: PD.Values<Params>) => void
     }
@@ -88,7 +95,7 @@ namespace CustomStructureProperty {
         readonly defaultParams: Params
         readonly getParams: (data: Structure) => Params
         readonly isApplicable: (data: Structure) => boolean
-        readonly compute: (ctx: RuntimeContext, data: Structure, props: PD.Values<Params>) => Promise<Value>
+        readonly obtain: (ctx: CustomPropertyContext, data: Structure, props: PD.Values<Params>) => Promise<Value>
         readonly type: 'root' | 'local'
     }
 
@@ -118,15 +125,15 @@ namespace CustomStructureProperty {
             descriptor: builder.descriptor,
             getParams: builder.getParams,
             isApplicable: builder.isApplicable,
-            attach: (data: Structure, props: Partial<PD.Values<Params>> = {}) => Task.create(`Attach ${builder.label}`, async ctx => {
+            attach: async (ctx: CustomPropertyContext, data: Structure, props: Partial<PD.Values<Params>> = {}) => {
                 if (builder.type === 'root') data = data.root
                 const property = get(data)
                 const p = { ...property.props, ...props }
                 if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return
-                const value = await builder.compute(ctx, data, p)
+                const value = await builder.obtain(ctx, data, p)
                 data.customPropertyDescriptors.add(builder.descriptor);
                 set(data, p, value);
-            }),
+            },
             getValue: (data: Structure) => get(data)?.data,
             setProps: (data: Structure, props: Partial<PD.Values<Params>> = {}) => {
                 const property = get(data)

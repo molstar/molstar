@@ -5,12 +5,11 @@
  */
 
 import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
-import { RuntimeContext } from '../../mol-task';
 import { DSSPComputationParams, DSSPComputationProps, computeUnitDSSP } from './secondary-structure/dssp';
 import { SecondaryStructure } from '../../mol-model/structure/model/properties/seconday-structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Unit } from '../../mol-model/structure/structure';
-import { CustomStructureProperty } from '../common/custom-property-registry';
+import { CustomStructureProperty, CustomPropertyContext } from '../common/custom-property-registry';
 
 function getSecondaryStructureParams(data?: Structure) {
     let defaultType = 'mmcif' as 'mmcif' | 'dssp'
@@ -56,7 +55,7 @@ export const SecondaryStructureProvider: CustomStructureProperty.Provider<Second
     defaultParams: SecondaryStructureParams,
     getParams: getSecondaryStructureParams,
     isApplicable: (data: Structure) => true,
-    compute: async (ctx: RuntimeContext, data: Structure, props: Partial<SecondaryStructureProps>) => {
+    obtain: async (ctx: CustomPropertyContext, data: Structure, props: Partial<SecondaryStructureProps>) => {
         const p = { ...PD.getDefaultValues(SecondaryStructureParams), ...props }
         switch (p.type.name) {
             case 'dssp': return await computeDssp(data, p.type.params)

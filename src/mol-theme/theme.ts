@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,7 +10,7 @@ import { Structure } from '../mol-model/structure';
 import { VolumeData } from '../mol-model/volume';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { Shape } from '../mol-model/shape';
-import { Task } from '../mol-task';
+import { CustomPropertyContext } from '../mol-model-props/common/custom-property-registry';
 
 export interface ThemeRegistryContext {
     colorThemeRegistry: ColorTheme.Registry
@@ -51,11 +51,9 @@ namespace Theme {
         return { color: ColorTheme.Empty, size: SizeTheme.Empty }
     }
 
-    export function ensureDependencies(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
-        return Task.create(`Theme dependencies`, async runtime => {
-            await ctx.colorThemeRegistry.get(props.colorTheme.name).ensureDependencies?.(data).runInContext(runtime)
-            await ctx.sizeThemeRegistry.get(props.sizeTheme.name).ensureDependencies?.(data).runInContext(runtime)
-        })
+    export async function ensureDependencies(ctx: CustomPropertyContext, theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
+        await theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.(ctx, data)
+        await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.(ctx, data)
     }
 }
 
@@ -67,7 +65,7 @@ export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends
     readonly getParams: (ctx: ThemeDataContext) => P
     readonly defaultValues: PD.Values<P>
     readonly isApplicable: (ctx: ThemeDataContext) => boolean
-    readonly ensureDependencies?: (ctx: ThemeDataContext) => Task<void>
+    readonly ensureCustomProperties?: (ctx: CustomPropertyContext, data: ThemeDataContext) => Promise<void>
 }
 
 function getTypes(list: { name: string, provider: ThemeProvider<any, any> }[]) {
