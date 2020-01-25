@@ -32,9 +32,9 @@ export function isEmptyLoci(x?: Loci): x is EmptyLoci {
 }
 
 /** A generic data loci */
-export interface DataLoci {
+export interface DataLoci<T = unknown> {
     readonly kind: 'data-loci',
-    readonly data: any,
+    readonly data: T,
     readonly tag: string
     readonly indices: OrderedSet<number>
 }
@@ -47,7 +47,7 @@ export function areDataLociEqual(a: DataLoci, b: DataLoci) {
 export function isDataLociEmpty(loci: DataLoci) {
     return OrderedSet.size(loci.indices) === 0 ? true : false
 }
-export function createDataLoci(data: any, tag: string, indices: OrderedSet<number>): DataLoci {
+export function createDataLoci<T = unknown>(data: T, tag: string, indices: OrderedSet<number>): DataLoci<T> {
     return { kind: 'data-loci', data, tag, indices }
 }
 
