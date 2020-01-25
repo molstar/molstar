@@ -8,7 +8,6 @@
 
 import { Interactions } from './interactions';
 import { InteractionType, InteractionFlag, InteractionsIntraContacts, FeatureType, InteractionsInterContacts } from './common';
-import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Features } from './features';
 
@@ -91,21 +90,16 @@ function hydrophobicRefiner(structure: Structure, interactions: Interactions): C
         }
     }
 
-    const pA = Vec3()
-    const pB = Vec3()
-
     function handleEdge(edge: number, infoA: Features.Info, infoB: Features.Info, map: Map<string, [number, number]>, set: (i: number) => void) {
         const elementA = infoA.members[infoA.offsets[infoA.feature]]
         const elementB = infoB.members[infoB.offsets[infoB.feature]]
         const residueA = infoA.unit.getResidueIndex(elementA)
         const residueB = infoB.unit.getResidueIndex(elementB)
 
-        infoA.unit.conformation.position(infoA.unit.elements[elementA], pA)
-        infoB.unit.conformation.position(infoB.unit.elements[elementB], pB)
-        const dist = Vec3.distance(pA, pB)
-
         const keyA = `${elementA}|${infoA.unit.id}|${residueB}|${infoB.unit.id}|A`
         const keyB = `${elementB}|${infoB.unit.id}|${residueA}|${infoA.unit.id}|B`
+
+        const dist = Features.distance(infoA, infoB)
 
         handleResidueContact(dist, edge, keyA, map, set)
         handleResidueContact(dist, edge, keyB, map, set)
