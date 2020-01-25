@@ -24,7 +24,7 @@
     "serve": "http-server -p 1338",
     "model-server": "node lib/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/servers/model/server.js",
-    "volume-server": "node lib/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort  1336",
+    "volume-server": "node lib/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags",
     "prepublishOnly": "npm run test && npm run build"
@@ -76,7 +76,7 @@
     "benchmark": "^2.1.4",
     "circular-dependency-plugin": "^5.2.0",
     "concurrently": "^5.0.2",
-    "cpx": "^1.5.0",
+    "cpx2": "^2.0.0",
     "css-loader": "^3.4.2",
     "eslint": "^6.8.0",
     "extra-watch-webpack-plugin": "^1.0.3",
