@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -18,3 +18,5 @@ export type ValueOf<T> = T[keyof T]
 export type ArrayCtor<T> = { new(size: number): { [i: number]: T, length: number } }
 /** assignable ArrayLike version */
 export type AssignableArrayLike<T> =  { [i: number]: T, length: number }
+
+export type NonNullableArray<T extends any[] | ReadonlyArray<any>> = T extends any[] ? NonNullable<T[0]>[] : ReadonlyArray<NonNullable<T[0]>>
