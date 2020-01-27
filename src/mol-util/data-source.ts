@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,8 +8,7 @@
  */
 
 import { Task, RuntimeContext } from '../mol-task';
-import { utf8Read } from '../mol-io/common/utf8';
-import { parseXml } from './xml-parser';
+
 // polyfill XMLHttpRequest in node.js
 const XHR = typeof document === 'undefined' ? require('xhr2') as {
     prototype: XMLHttpRequest;
@@ -21,68 +20,41 @@ const XHR = typeof document === 'undefined' ? require('xhr2') as {
     readonly UNSENT: number;
 } : XMLHttpRequest
 
-// export enum DataCompressionMethod {
-//     None,
-//     Gzip
-// }
+type DataType = 'json' | 'xml' | 'string' | 'binary'
+type DataValue = 'string' | any | XMLDocument | Uint8Array
+type DataResponse<T extends DataType> =
+    T extends 'json' ? any :
+        T extends 'xml' ? XMLDocument :
+            T extends 'string' ? string :
+                T extends 'binary' ? Uint8Array : never
 
-export interface AjaxGetParams<T extends 'string' | 'binary' | 'json' | 'xml' = 'string'> {
+export interface AjaxGetParams<T extends DataType = 'string'> {
     url: string,
     type?: T,
     title?: string,
-    // compression?: DataCompressionMethod
     body?: string
 }
 
 export function readStringFromFile(file: File) {
-    return <Task<string>>readFromFileInternal(file, false);
+    return readFromFileInternal(file, 'string');
 }
 
 export function readUint8ArrayFromFile(file: File) {
-    return <Task<Uint8Array>>readFromFileInternal(file, true);
+    return readFromFileInternal(file, 'binary');
 }
 
-export function readFromFile(file: File, type: 'string' | 'binary') {
-    return <Task<Uint8Array | string>>readFromFileInternal(file, type === 'binary');
+export function readFromFile<T extends DataType>(file: File, type: T) {
+    return readFromFileInternal(file, type);
 }
 
-// TODO: support for no-referrer
-export function ajaxGet(url: string): Task<string>
-export function ajaxGet(params: AjaxGetParams<'string'>): Task<string>
-export function ajaxGet(params: AjaxGetParams<'binary'>): Task<Uint8Array>
-export function ajaxGet<T = any>(params: AjaxGetParams<'json' | 'xml'>): Task<T>
-export function ajaxGet(params: AjaxGetParams<'string' | 'binary'>): Task<string | Uint8Array>
-export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json' | 'xml'>): Task<string | Uint8Array | object>
-export function ajaxGet(params: AjaxGetParams<'string' | 'binary' | 'json' | 'xml'> | string) {
-    if (typeof params === 'string') return ajaxGetInternal(params, params, 'string', false);
-    return ajaxGetInternal(params.title, params.url, params.type || 'string', false /* params.compression === DataCompressionMethod.Gzip */, params.body);
+export function ajaxGet(url: string): Task<DataValue>
+export function ajaxGet<T extends DataType>(params: AjaxGetParams<T>): Task<DataResponse<T>>
+export function ajaxGet<T extends DataType>(params: AjaxGetParams<T> | string) {
+    if (typeof params === 'string') return ajaxGetInternal(params, params, 'string');
+    return ajaxGetInternal(params.title, params.url, params.type || 'string', params.body);
 }
 
 export type AjaxTask = typeof ajaxGet
-
-function decompress(buffer: Uint8Array): Uint8Array {
-    // TODO
-    throw 'nyi';
-    // const gzip = new LiteMolZlib.Gunzip(new Uint8Array(buffer));
-    // return gzip.decompress();
-}
-
-async function processFile(ctx: RuntimeContext, asUint8Array: boolean, compressed: boolean, fileReader: FileReader) {
-    const data = fileReader.result;
-
-    if (compressed) {
-        await ctx.update('Decompressing...');
-
-        const decompressed = decompress(new Uint8Array(data as ArrayBuffer));
-        if (asUint8Array) {
-            return decompressed;
-        } else {
-            return utf8Read(decompressed, 0, decompressed.length);
-        }
-    } else {
-        return asUint8Array ? new Uint8Array(data as ArrayBuffer) : data as string;
-    }
-}
 
 function isDone(data: XMLHttpRequest | FileReader) {
     if (data instanceof FileReader) {
@@ -93,13 +65,13 @@ function isDone(data: XMLHttpRequest | FileReader) {
     throw new Error('unknown data type')
 }
 
-function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, action: string, data: T, asUint8Array: boolean): Promise<T> {
+function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, action: string, data: T): Promise<T> {
     return new Promise<T>((resolve, reject) => {
         // first check if data reading is already done
         if (isDone(data)) {
-            const error = (<FileReader>data).error;
-            if (error) {
-                reject((<FileReader>data).error || 'Failed.');
+            const { error } = data as FileReader;
+            if (error !== null) {
+                reject(error ?? 'Failed.');
             } else {
                 resolve(data);
             }
@@ -107,8 +79,8 @@ function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, ac
         }
 
         data.onerror = (e: ProgressEvent) => {
-            const error = (<FileReader>e.target).error;
-            reject(error || 'Failed.');
+            const { error } = e.target as FileReader;
+            reject(error ?? 'Failed.');
         };
 
         let hasError = false;
@@ -133,20 +105,36 @@ function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, ac
     });
 }
 
-function readFromFileInternal(file: File, asUint8Array: boolean): Task<string | Uint8Array> {
+function processFile<T extends DataType>(reader: FileReader, type: T): DataResponse<T> {
+    const { result } = reader
+
+    if (type === 'binary' && result instanceof ArrayBuffer) {
+        return new Uint8Array(result) as DataResponse<T>
+    } else if (type === 'string' && typeof result === 'string') {
+        return result as DataResponse<T>
+    } else if (type === 'xml' && typeof result === 'string') {
+        const parser = new DOMParser();
+        return parser.parseFromString(result, 'application/xml') as DataResponse<T>
+    } else if (type === 'json' && typeof result === 'string') {
+        return JSON.parse(result) as DataResponse<T>
+    }
+    throw new Error(`could not get requested response data '${type}'`)
+}
+
+function readFromFileInternal<T extends DataType>(file: File, type: T): Task<DataResponse<T>> {
     let reader: FileReader | undefined = void 0;
     return Task.create('Read File', async ctx => {
         try {
             reader = new FileReader();
-            const isCompressed = /\.gz$/i.test(file.name);
 
-            if (isCompressed || asUint8Array) reader.readAsArrayBuffer(file);
-            else reader.readAsBinaryString(file);
+            if (type === 'binary') reader.readAsArrayBuffer(file)
+            else reader.readAsText(file)
 
-            ctx.update({ message: 'Opening file...', canAbort: true });
-            const fileReader = await readData(ctx, 'Reading...', reader, asUint8Array);
-            const result = processFile(ctx, asUint8Array, isCompressed, fileReader);
-            return result;
+            await ctx.update({ message: 'Opening file...', canAbort: true });
+            const fileReader = await readData(ctx, 'Reading...', reader);
+
+            await ctx.update({ message: 'Parsing file...', canAbort: false });
+            return processFile(fileReader, type);
         } finally {
             reader = void 0;
         }
@@ -179,55 +167,52 @@ class RequestPool {
     }
 }
 
-async function processAjax(ctx: RuntimeContext, asUint8Array: boolean, decompressGzip: boolean, req: XMLHttpRequest) {
+function processAjax<T extends DataType>(req: XMLHttpRequest, type: T): DataResponse<T> {
     if (req.status >= 200 && req.status < 400) {
-        if (asUint8Array === true) {
-            const buff = new Uint8Array(req.response);
-            RequestPool.deposit(req);
+        const { response } = req;
+        RequestPool.deposit(req);
 
-            if (decompressGzip) {
-                return decompress(buff);
-            } else {
-                return buff;
-            }
-        } else {
-            const text = req.responseText;
-            RequestPool.deposit(req);
-            return text;
+        if (type === 'binary' && response instanceof ArrayBuffer) {
+            return new Uint8Array(response) as DataResponse<T>
+        } else if (type === 'string' && typeof response === 'string') {
+            return response as DataResponse<T>
+        } else if (type === 'xml' && response instanceof XMLDocument) {
+            return response as DataResponse<T>
+        } else if (type === 'json' && typeof response === 'object') {
+            return response as DataResponse<T>
         }
+        throw new Error(`could not get requested response data '${type}'`)
     } else {
         const status = req.statusText;
         RequestPool.deposit(req);
-        throw status;
+        throw new Error(status);
     }
 }
 
-function ajaxGetInternal(title: string | undefined, url: string, type: 'json' | 'xml' | 'string' | 'binary', decompressGzip: boolean, body?: string): Task<string | Uint8Array> {
+function getRequestResponseType(type: DataType): XMLHttpRequestResponseType {
+    switch(type) {
+        case 'json': return 'json'
+        case 'xml': return 'document'
+        case 'string': return 'text'
+        case 'binary': return 'arraybuffer'
+    }
+}
+
+function ajaxGetInternal<T extends DataType>(title: string | undefined, url: string, type: T, body?: string): Task<DataResponse<T>> {
     let xhttp: XMLHttpRequest | undefined = void 0;
     return Task.create(title ? title : 'Download', async ctx => {
-        const asUint8Array = type === 'binary';
-        if (!asUint8Array && decompressGzip) {
-            throw 'Decompress is only available when downloading binary data.';
-        }
-
         xhttp = RequestPool.get();
 
         xhttp.open(body ? 'post' : 'get', url, true);
-        xhttp.responseType = asUint8Array ? 'arraybuffer' : 'text';
+        xhttp.responseType = getRequestResponseType(type);
         xhttp.send(body);
 
         await ctx.update({ message: 'Waiting for server...', canAbort: true });
-        const req = await readData(ctx, 'Downloading...', xhttp, asUint8Array);
+        const req = await readData(ctx, 'Downloading...', xhttp);
         xhttp = void 0; // guard against reuse, help garbage collector
-        const result = await processAjax(ctx, asUint8Array, decompressGzip, req)
 
-        if (type === 'json') {
-            await ctx.update({ message: 'Parsing JSON...', canAbort: false });
-            return JSON.parse(result as string);
-        } else if (type === 'xml') {
-            await ctx.update({ message: 'Parsing XML...', canAbort: false });
-            return parseXml(result as string);
-        }
+        await ctx.update({ message: 'Parsing response...', canAbort: false });
+        const result = processAjax(req, type)
 
         return result;
     }, () => {

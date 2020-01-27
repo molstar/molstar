@@ -9,7 +9,6 @@ import { Structure, Model } from '../../../../mol-model/structure';
 import { VolumeServerInfo } from './model';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { RuntimeContext } from '../../../../mol-task';
-import { getXMLNodeByName, XMLDocument } from '../../../../mol-util/xml-parser';
 
 export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.Kind = 'x-ray'): VolumeServerInfo.Kind {
     if (!s) return defaultKind;
@@ -78,10 +77,9 @@ export async function getContourLevel(provider: 'wwpdb' | 'pdbe', plugin: Plugin
 
 export async function getContourLevelWwpdb(plugin: PluginContext, taskCtx: RuntimeContext, emdbId: string) {
     // TODO: parametrize to a differnt URL? in plugin settings perhaps
-    const header = await plugin.fetch<XMLDocument>({ url: `https://ftp.wwpdb.org/pub/emdb/structures/${emdbId.toUpperCase()}/header/${emdbId.toLowerCase()}.xml`, type: 'xml' }).runInContext(taskCtx);
-
-    const map = getXMLNodeByName('map', header!.root!.children!)!
-    const contourLevel = parseFloat(getXMLNodeByName('contourLevel', map.children!)!.content!)
+    const header = await plugin.fetch({ url: `https://ftp.wwpdb.org/pub/emdb/structures/${emdbId.toUpperCase()}/header/${emdbId.toLowerCase()}.xml`, type: 'xml' }).runInContext(taskCtx);
+    const map = header.getElementsByTagName('map')[0]
+    const contourLevel = parseFloat(map.getElementsByTagName('contourLevel')[0].textContent!)
 
     return contourLevel;
 }
@@ -90,9 +88,9 @@ export async function getContourLevelPdbe(plugin: PluginContext, taskCtx: Runtim
     emdbId = emdbId.toUpperCase()
     // TODO: parametrize to a differnt URL? in plugin settings perhaps
     const header = await plugin.fetch({ url: `https://www.ebi.ac.uk/pdbe/api/emdb/entry/map/${emdbId}`, type: 'json' }).runInContext(taskCtx);
-    const emdbEntry = header && header[emdbId];
+    const emdbEntry = header?.[emdbId];
     let contourLevel: number | undefined = void 0;
-    if (emdbEntry && emdbEntry[0] && emdbEntry[0].map && emdbEntry[0].map.contour_level && emdbEntry[0].map.contour_level.value !== void 0) {
+    if (emdbEntry?.[0]?.map?.contour_level?.value !== void 0) {
         contourLevel = +emdbEntry[0].map.contour_level.value;
     }
 
@@ -103,9 +101,9 @@ export async function getEmdbIds(plugin: PluginContext, taskCtx: RuntimeContext,
     // TODO: parametrize to a differnt URL? in plugin settings perhaps
     const summary = await plugin.fetch({ url: `https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/${pdbId}`, type: 'json' }).runInContext(taskCtx);
 
-    const summaryEntry = summary && summary[pdbId];
+    const summaryEntry = summary?.[pdbId];
     let emdbIds: string[] = [];
-    if (summaryEntry && summaryEntry[0] && summaryEntry[0].related_structures) {
+    if (summaryEntry?.[0]?.related_structures) {
         const emdb = summaryEntry[0].related_structures.filter((s: any) => s.resource === 'EMDB' && s.relationship === 'associated EM volume');
         if (!emdb.length) {
             throw new Error(`No related EMDB entry found for '${pdbId}'.`);
