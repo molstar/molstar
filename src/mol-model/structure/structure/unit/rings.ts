@@ -25,6 +25,7 @@ class UnitRings {
     private _byFingerprint?: ReadonlyMap<UnitRing.Fingerprint, ReadonlyArray<UnitRings.Index>>;
     private _index?: {
         readonly elementRingIndices: ReadonlyMap<StructureElement.UnitIndex, UnitRings.Index[]>,
+        readonly elementAromaticRingIndices: ReadonlyMap<StructureElement.UnitIndex, UnitRings.Index[]>,
         readonly ringComponentIndex: ReadonlyArray<UnitRings.ComponentIndex>,
         readonly ringComponents: ReadonlyArray<ReadonlyArray<UnitRings.Index>>
     };
@@ -32,7 +33,7 @@ class UnitRings {
 
     private get index() {
         if (this._index) return this._index;
-        this._index = createIndex(this.all);
+        this._index = createIndex(this.all, this.aromaticRings);
         return this._index;
     }
 
@@ -42,9 +43,13 @@ class UnitRings {
         return this._byFingerprint;
     }
 
-    /** Maps atom index inside a Unit to the smallest ring index (an atom can be part of more than one ring) */
+    /** Maps atom index inside a Unit to ring indices (an atom can be part of more than one ring) */
     get elementRingIndices() {
         return this.index.elementRingIndices;
+    }
+
+    get elementAromaticRingIndices() {
+        return this.index.elementAromaticRingIndices;
     }
 
     /** Maps UnitRings.Index to index to ringComponents */
