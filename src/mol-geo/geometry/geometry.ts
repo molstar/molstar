@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,32 +19,30 @@ import { Spheres } from './spheres/spheres';
 import { arrayMax } from '../../mol-util/array';
 import { TransformData } from './transform-data';
 import { Theme } from '../../mol-theme/theme';
-import { RenderObjectValuesType } from '../../mol-gl/render-object';
-import { ValueOf } from '../../mol-util/type-helpers';
+import { RenderObjectValues } from '../../mol-gl/render-object';
 import { TextureMesh } from './texture-mesh/texture-mesh';
 
-export type GeometryKindType = {
-    'mesh': Mesh,
-    'points': Points,
-    'spheres': Spheres,
-    'text': Text,
-    'lines': Lines,
-    'direct-volume': DirectVolume,
-    'texture-mesh': TextureMesh,
-}
-export type GeometryKindParams = {
-    'mesh': Mesh.Params,
-    'points': Points.Params,
-    'spheres': Spheres.Params,
-    'text': Text.Params,
-    'lines': Lines.Params,
-    'direct-volume': DirectVolume.Params,
-    'texture-mesh': TextureMesh.Params,
-}
-export type GeometryKind = keyof GeometryKindType
-export type Geometry = ValueOf<GeometryKindType>
+export type GeometryKind = 'mesh' | 'points' | 'spheres' | 'text' | 'lines' | 'direct-volume' | 'texture-mesh'
 
-export interface GeometryUtils<G extends Geometry, P extends PD.Params = GeometryKindParams[G['kind']], V = RenderObjectValuesType[G['kind']]> {
+export type Geometry<T extends GeometryKind = GeometryKind> =
+    T extends 'mesh' ? Mesh :
+        T extends 'points' ? Points :
+            T extends 'spheres' ? Spheres :
+                T extends 'text' ? Text :
+                    T extends 'lines' ? Lines :
+                        T extends 'direct-volume' ? DirectVolume :
+                            T extends 'texture-mesh' ? TextureMesh : never
+
+type GeometryParams<T extends GeometryKind> =
+    T extends 'mesh' ? Mesh.Params :
+        T extends 'points' ? Points.Params :
+            T extends 'spheres' ? Spheres.Params :
+                T extends 'text' ? Text.Params :
+                    T extends 'lines' ? Lines.Params :
+                        T extends 'direct-volume' ? DirectVolume.Params :
+                            T extends 'texture-mesh' ? TextureMesh.Params : never
+
+export interface GeometryUtils<G extends Geometry, P extends PD.Params = GeometryParams<G['kind']>, V = RenderObjectValues<G['kind']>> {
     Params: P
     createEmpty(geometry?: G): G
     createValues(geometry: G, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<P>): V
@@ -56,7 +54,7 @@ export interface GeometryUtils<G extends Geometry, P extends PD.Params = Geometr
 }
 
 export namespace Geometry {
-    export type Params<G extends Geometry> = GeometryKindParams[G['kind']]
+    export type Params<G extends Geometry> = GeometryParams<G['kind']>
 
     export function getDrawCount(geometry: Geometry): number {
         switch (geometry.kind) {
@@ -96,7 +94,6 @@ export namespace Geometry {
             case 'direct-volume': return DirectVolume.Utils as any
             case 'texture-mesh': return TextureMesh.Utils as any
         }
-        throw new Error('unknown geometry kind')
     }
 
     export function getGranularity(locationIt: LocationIterator, granularity: ColorType | SizeType) {

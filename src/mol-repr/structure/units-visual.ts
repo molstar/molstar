@@ -12,7 +12,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createUnitsTransform, includesUnitKind } from './visual/util/common';
-import { createRenderObject, RenderObjectKindType, RenderObjectValuesType } from '../../mol-gl/render-object';
+import { createRenderObject, RenderObjectValues, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { UnitsParams } from './units-representation';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
@@ -36,6 +36,7 @@ import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { SizeValues } from '../../mol-gl/renderable/schema';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -67,7 +68,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
     const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
-    let renderObject: RenderObjectKindType[G['kind']] | undefined
+    let renderObject: GraphicsRenderObject<G['kind']> | undefined
 
     let newProps: PD.Values<P> = Object.assign({}, defaultProps)
     let newTheme: Theme = Theme.createEmpty()
@@ -183,14 +184,14 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
 
             if (updateState.updateTransform || updateState.createGeometry) {
                 // console.log('UnitsVisual.updateBoundingSphere')
-                updateBoundingSphere(renderObject.values as RenderObjectValuesType[G['kind']], newGeometry || geometry)
+                updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry || geometry)
             }
 
             if (updateState.updateSize) {
                 // not all geometries have size data, so check here
                 if ('uSize' in renderObject.values) {
                     // console.log('update size')
-                    createSizes(locationIt, newTheme.size, renderObject.values)
+                    createSizes(locationIt, newTheme.size, renderObject.values as SizeValues)
                 }
             }
 
@@ -199,7 +200,7 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
                 createColors(locationIt, newTheme.color, renderObject.values)
             }
 
-            updateValues(renderObject.values as RenderObjectValuesType[G['kind']], newProps)
+            updateValues(renderObject.values as RenderObjectValues<G['kind']>, newProps)
             updateRenderableState(renderObject.state, newProps)
         }
 

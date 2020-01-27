@@ -8,7 +8,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { Representation } from '../representation';
 import { Shape, ShapeGroup } from '../../mol-model/shape';
 import { Subject } from 'rxjs';
-import { getNextMaterialId, RenderObjectKindType, createRenderObject, RenderObjectValuesType } from '../../mol-gl/render-object';
+import { getNextMaterialId, createRenderObject, RenderObjectValues, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Theme } from '../../mol-theme/theme';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
@@ -18,7 +18,7 @@ import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { ValueCell } from '../../mol-util';
 import { createColors } from '../../mol-geo/geometry/color-data';
-import { createSizes } from '../../mol-geo/geometry/size-data';
+import { createSizes, SizeData } from '../../mol-geo/geometry/size-data';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { PickingId } from '../../mol-geo/geometry/picking';
@@ -44,8 +44,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     const updated = new Subject<number>()
     const _state = Representation.createState()
     const materialId = getNextMaterialId()
-    const renderObjects: RenderObjectKindType[G['kind']][] = []
-    let _renderObject: RenderObjectKindType[G['kind']] | undefined
+    const renderObjects: GraphicsRenderObject<G['kind']>[] = []
+    let _renderObject: GraphicsRenderObject<G['kind']> | undefined
     let _shape: Shape<G>
     let _theme = Theme.createEmpty()
     let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P) // TODO avoid casting
@@ -136,7 +136,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 if (updateState.updateTransform || updateState.createGeometry) {
                     // console.log('updateBoundingSphere')
-                    geometryUtils.updateBoundingSphere(_renderObject.values as RenderObjectValuesType[G['kind']], _shape.geometry)
+                    geometryUtils.updateBoundingSphere(_renderObject.values as RenderObjectValues<G['kind']>, _shape.geometry)
                 }
 
                 if (updateState.updateColor) {
@@ -148,11 +148,11 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     // not all geometries have size data, so check here
                     if ('uSize' in _renderObject.values) {
                         // console.log('update size')
-                        createSizes(locationIt, _theme.size, _renderObject.values)
+                        createSizes(locationIt, _theme.size, _renderObject.values as SizeData)
                     }
                 }
 
-                geometryUtils.updateValues(_renderObject.values as RenderObjectValuesType[G['kind']], newProps)
+                geometryUtils.updateValues(_renderObject.values as RenderObjectValues<G['kind']>, newProps)
                 geometryUtils.updateRenderableState(_renderObject.state, newProps)
             }
 

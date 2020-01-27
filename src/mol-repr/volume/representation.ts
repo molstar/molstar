@@ -11,7 +11,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
-import { createRenderObject, RenderObjectKindType, RenderObjectValuesType, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
+import { createRenderObject, RenderObjectValues, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
@@ -28,6 +28,7 @@ import { Representation, RepresentationProvider, RepresentationContext, Represen
 import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { Subject } from 'rxjs';
 import { Task } from '../../mol-task';
+import { SizeValues } from '../../mol-gl/renderable/schema';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
@@ -57,7 +58,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
     const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
-    let renderObject: RenderObjectKindType[G['kind']] | undefined
+    let renderObject: GraphicsRenderObject<G['kind']> | undefined
 
     let newProps: PD.Values<P>
     let newTheme: Theme
@@ -119,7 +120,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             if (updateState.createGeometry) {
                 if (newGeometry) {
                     ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
-                    updateBoundingSphere(renderObject.values as RenderObjectValuesType[G['kind']], newGeometry)
+                    updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry)
                 } else {
                     throw new Error('expected geometry to be given')
                 }
@@ -128,7 +129,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             if (updateState.updateSize) {
                 // not all geometries have size data, so check here
                 if ('uSize' in renderObject.values) {
-                    createSizes(locationIt, newTheme.size, renderObject.values)
+                    createSizes(locationIt, newTheme.size, renderObject.values as SizeValues)
                 }
             }
 
@@ -136,7 +137,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
                 createColors(locationIt, newTheme.color, renderObject.values)
             }
 
-            updateValues(renderObject.values as RenderObjectValuesType[G['kind']], newProps)
+            updateValues(renderObject.values, newProps)
             updateRenderableState(renderObject.state, newProps)
         }
 
