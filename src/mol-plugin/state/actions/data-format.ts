@@ -125,7 +125,7 @@ export const OpenFile = StateAction.build({
     params: (a, ctx: PluginContext) => {
         const { extensions, options } = ctx.dataFormat.registry
         return {
-            file: PD.File({ accept: Array.from(extensions.values()).map(e => `.${e}`).join(',')}),
+            file: PD.File({ accept: Array.from(extensions.values()).map(e => `.${e}`).join(',') + ',.gz,.zip' }),
             format: PD.Select('auto', options),
             visuals: PD.Boolean(true, { description: 'Add default visuals' }),
         }

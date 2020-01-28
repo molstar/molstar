@@ -8,6 +8,9 @@
  */
 
 import { Task, RuntimeContext } from '../mol-task';
+import { parse, ungzip } from './zip/zip';
+// import { inflate, inflateRaw, parse } from 'uzip-module';
+import { utf8Read } from '../mol-io/common/utf8';
 
 // polyfill XMLHttpRequest in node.js
 const XHR = typeof document === 'undefined' ? require('xhr2') as {
@@ -19,6 +22,12 @@ const XHR = typeof document === 'undefined' ? require('xhr2') as {
     readonly OPENED: number;
     readonly UNSENT: number;
 } : XMLHttpRequest
+
+export enum DataCompressionMethod {
+    None,
+    Gzip,
+    Zip,
+}
 
 type DataType = 'json' | 'xml' | 'string' | 'binary'
 type DataValue = 'string' | any | XMLDocument | Uint8Array
@@ -105,18 +114,49 @@ function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, ac
     });
 }
 
-function processFile<T extends DataType>(reader: FileReader, type: T): DataResponse<T> {
+function getCompression(name: string) {
+    return /\.gz$/i.test(name) ? DataCompressionMethod.Gzip :
+        /\.zip$/i.test(name) ? DataCompressionMethod.Zip :
+            DataCompressionMethod.None
+}
+
+function decompress(data: Uint8Array, compression: DataCompressionMethod): Uint8Array {
+    switch (compression) {
+        case DataCompressionMethod.None: return data
+        case DataCompressionMethod.Gzip: return ungzip(data)
+        case DataCompressionMethod.Zip:
+            const parsed = parse(data.buffer)
+            const names = Object.keys(parsed)
+            if (names.length !== 1) throw new Error('can only decompress zip files with a single entry')
+            return parsed[names[0]] as Uint8Array
+    }
+}
+
+function processFile<T extends DataType>(reader: FileReader, type: T, compression: DataCompressionMethod): DataResponse<T> {
     const { result } = reader
 
-    if (type === 'binary' && result instanceof ArrayBuffer) {
-        return new Uint8Array(result) as DataResponse<T>
-    } else if (type === 'string' && typeof result === 'string') {
-        return result as DataResponse<T>
-    } else if (type === 'xml' && typeof result === 'string') {
+    let data = result instanceof ArrayBuffer ? new Uint8Array(result) : result
+    if (data === null) throw new Error('no data given')
+
+    if (compression !== DataCompressionMethod.None) {
+        if (!(data instanceof Uint8Array)) throw new Error('need Uint8Array for decompression')
+        const decompressed = decompress(data, compression);
+        if (type === 'string') {
+            data = utf8Read(decompressed, 0, decompressed.length);
+        } else {
+            data = decompressed
+        }
+    }
+
+    if (type === 'binary' && data instanceof Uint8Array) {
+        return data as DataResponse<T>
+    } else if (type === 'string' && typeof data === 'string') {
+        return data as DataResponse<T>
+    } else if (type === 'xml' && typeof data === 'string') {
         const parser = new DOMParser();
-        return parser.parseFromString(result, 'application/xml') as DataResponse<T>
-    } else if (type === 'json' && typeof result === 'string') {
-        return JSON.parse(result) as DataResponse<T>
+        return parser.parseFromString(data, 'application/xml') as DataResponse<T>
+    } else if (type === 'json' && typeof data === 'string') {
+        return JSON.parse(data) as DataResponse<T>
     }
     throw new Error(`could not get requested response data '${type}'`)
 }
@@ -126,15 +166,19 @@ function readFromFileInternal<T extends DataType>(file: File, type: T): Task<Dat
     return Task.create('Read File', async ctx => {
         try {
             reader = new FileReader();
+            const compression = getCompression(file.name)
 
-            if (type === 'binary') reader.readAsArrayBuffer(file)
-            else reader.readAsText(file)
+            if (type === 'binary' || compression !== DataCompressionMethod.None) {
+                reader.readAsArrayBuffer(file)
+            } else {
+                reader.readAsText(file)
+            }
 
             await ctx.update({ message: 'Opening file...', canAbort: true });
             const fileReader = await readData(ctx, 'Reading...', reader);
 
             await ctx.update({ message: 'Parsing file...', canAbort: false });
-            return processFile(fileReader, type);
+            return processFile(fileReader, type, compression);
         } finally {
             reader = void 0;
         }
