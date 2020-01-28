@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { deflate, inflate, parse, encode } from '../zip/zip'
+import { deflate, inflate, unzip, zip } from '../zip/zip'
 
 describe('zip', () => {
     it('roundtrip deflate/inflate', () => {
@@ -16,11 +16,11 @@ describe('zip', () => {
     })
 
     it('roundtrip zip', () => {
-        const zipped = encode({
+        const zipped = zip({
             'test.foo': new Uint8Array([1, 2, 3, 4, 5, 6, 7])
         })
         console.log(zipped)
-        const unzipped = parse(zipped)
+        const unzipped = unzip(zipped)
         console.log(unzipped)
     })
 })

@@ -14,7 +14,7 @@ import { crc, adler } from './checksum';
 import { _inflate } from './inflate';
 import { _deflateRaw } from './deflate';
 
-export function parse(buf: ArrayBuffer, onlyNames = false) {
+export function unzip(buf: ArrayBuffer, onlyNames = false) {
     const out: { [k: string]: Uint8Array | { size: number, csize: number } } = Object.create(null);
     const data = new Uint8Array(buf);
     let eocd = data.length-4;
@@ -200,7 +200,7 @@ function deflateRaw(data: Uint8Array, opts?: { level: number }) {
     return new Uint8Array(buf.buffer, 0, off);
 }
 
-export function encode(obj: { [k: string]: Uint8Array }, noCmpr = false) {
+export function zip(obj: { [k: string]: Uint8Array }, noCmpr = false) {
     let tot = 0;
     const zpd: { [k: string]: { cpr: boolean, usize: number, crc: number, file: Uint8Array } } = {};
     for(const p in obj) {

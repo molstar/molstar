@@ -8,8 +8,7 @@
  */
 
 import { Task, RuntimeContext } from '../mol-task';
-import { parse, ungzip } from './zip/zip';
-// import { inflate, inflateRaw, parse } from 'uzip-module';
+import { unzip, ungzip } from './zip/zip';
 import { utf8Read } from '../mol-io/common/utf8';
 
 // polyfill XMLHttpRequest in node.js
@@ -125,7 +124,7 @@ function decompress(data: Uint8Array, compression: DataCompressionMethod): Uint8
         case DataCompressionMethod.None: return data
         case DataCompressionMethod.Gzip: return ungzip(data)
         case DataCompressionMethod.Zip:
-            const parsed = parse(data.buffer)
+            const parsed = unzip(data.buffer)
             const names = Object.keys(parsed)
             if (names.length !== 1) throw new Error('can only decompress zip files with a single entry')
             return parsed[names[0]] as Uint8Array
