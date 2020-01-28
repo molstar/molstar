@@ -119,19 +119,19 @@ function getCompression(name: string) {
             DataCompressionMethod.None
 }
 
-function decompress(data: Uint8Array, compression: DataCompressionMethod): Uint8Array {
+async function decompress(ctx: RuntimeContext, data: Uint8Array, compression: DataCompressionMethod): Promise<Uint8Array> {
     switch (compression) {
         case DataCompressionMethod.None: return data
-        case DataCompressionMethod.Gzip: return ungzip(data)
+        case DataCompressionMethod.Gzip: return ungzip(ctx, data)
         case DataCompressionMethod.Zip:
-            const parsed = unzip(data.buffer)
+            const parsed = await unzip(ctx, data.buffer)
             const names = Object.keys(parsed)
             if (names.length !== 1) throw new Error('can only decompress zip files with a single entry')
             return parsed[names[0]] as Uint8Array
     }
 }
 
-function processFile<T extends DataType>(reader: FileReader, type: T, compression: DataCompressionMethod): DataResponse<T> {
+async function processFile<T extends DataType>(ctx: RuntimeContext, reader: FileReader, type: T, compression: DataCompressionMethod): Promise<DataResponse<T>> {
     const { result } = reader
 
     let data = result instanceof ArrayBuffer ? new Uint8Array(result) : result
@@ -139,9 +139,10 @@ function processFile<T extends DataType>(reader: FileReader, type: T, compressio
 
     if (compression !== DataCompressionMethod.None) {
         if (!(data instanceof Uint8Array)) throw new Error('need Uint8Array for decompression')
-        const decompressed = decompress(data, compression);
+        const decompressed = await decompress(ctx, data, compression);
         if (type === 'string') {
-            data = utf8Read(decompressed, 0, decompressed.length);
+            await ctx.update({ message: 'Decoding text...' });
+            data = utf8Read(decompressed, 0, decompressed.length)
         } else {
             data = decompressed
         }
@@ -176,8 +177,8 @@ function readFromFileInternal<T extends DataType>(file: File, type: T): Task<Dat
             await ctx.update({ message: 'Opening file...', canAbort: true });
             const fileReader = await readData(ctx, 'Reading...', reader);
 
-            await ctx.update({ message: 'Parsing file...', canAbort: false });
-            return processFile(fileReader, type, compression);
+            await ctx.update({ message: 'Processing file...', canAbort: false });
+            return await processFile(ctx, fileReader, type, compression);
         } finally {
             reader = void 0;
         }

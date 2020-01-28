@@ -9,44 +9,65 @@
 
 import { NumberArray } from '../type-helpers';
 import { U, makeCodes, codes2map } from './util';
+import { RuntimeContext } from '../../mol-task';
 
-export function _inflate(data: Uint8Array, buf?: Uint8Array) {
-    if(data[0] === 3 && data[1] === 0) return (buf ? buf : new Uint8Array(0));
-    // var F=UZIP.F, bitsF = F._bitsF, bitsE = F._bitsE, decodeTiny = F._decodeTiny, makeCodes = F.makeCodes, codes2map=F.codes2map, get17 = F._get17;
-    // var U = F.U;
-
+function InflateContext(data: Uint8Array, buf?: Uint8Array) {
     const noBuf = buf === undefined;
     if(buf === undefined) buf = new Uint8Array((data.length>>>2)<<3);
+    return {
+        data,
+        buf,
+        noBuf,
+        BFINAL: 0,
+        off: 0,
+        pos: 0
+    }
+}
+type InflateContext = ReturnType<typeof InflateContext>
 
-    let BFINAL=0, BTYPE=0, HLIT=0, HDIST=0, HCLEN=0, ML=0, MD=0;
-    let off = 0, pos = 0;
-    let lmap, dmap;
+function inflateBlocks(ctx: InflateContext, count: number) {
+    const { data, noBuf } = ctx
+    let { buf, BFINAL, off, pos } = ctx
 
-    while(BFINAL === 0) {
-        BFINAL = _bitsF(data, pos  , 1);
-        BTYPE  = _bitsF(data, pos+1, 2);
+    let iBlock = 0
+
+    while(BFINAL === 0 && iBlock < count) {
+        let lmap, dmap;
+        let ML = 0, MD = 0;
+
+        BFINAL = _bitsF(data, pos, 1);
+        iBlock += 1
+        const BTYPE = _bitsF(data, pos + 1, 2);
         pos+=3;
 
         if(BTYPE === 0) {
-            if((pos&7) !== 0) pos+=8-(pos&7);
-            const p8 = (pos>>>3)+4, len = data[p8-4]|(data[p8-3]<<8);  // console.log(len);//bitsF(data, pos, 16),
-            if(noBuf) buf=_check(buf, off+len);
-            buf.set(new Uint8Array(data.buffer, data.byteOffset+p8, len), off);
-            // for(var i=0; i<len; i++) buf[off+i] = data[p8+i];
-            // for(var i=0; i<len; i++) if(buf[off+i] != data[p8+i]) throw "e";
-            pos = ((p8+len)<<3);  off+=len;  continue;
+            // uncompressed block
+            if((pos&7) !== 0) pos += 8 - (pos&7);
+            const p8 = (pos>>>3) + 4
+            const len = data[p8-4] | (data[p8-3]<<8);
+            if(noBuf) buf=_check(buf, off + len);
+            buf.set(new Uint8Array(data.buffer, data.byteOffset + p8, len), off);
+            pos = ((p8+len)<<3);
+            off += len;
+            continue;
         }
-        if(noBuf) buf=_check(buf, off+(1<<17));  // really not enough in many cases (but PNG and ZIP provide buffer in advance)
+
+        // grow output buffer if not provided
+        if(noBuf) buf = _check(buf, off + (1<<17));
+
         if(BTYPE === 1) {
+            // block compressed with fixed Huffman codes
             lmap = U.flmap;
             dmap = U.fdmap;
-            ML = (1<<9)-1;
-            MD = (1<<5)-1;
+            ML = (1<<9) - 1;
+            MD = (1<<5) - 1;
         } else if(BTYPE === 2) {
-            HLIT  = _bitsE(data, pos   , 5)+257;
-            HDIST = _bitsE(data, pos+ 5, 5)+  1;
-            HCLEN = _bitsE(data, pos+10, 4)+  4;  pos+=14;
-            // const ppos = pos;
+            // block compressed with dynamic Huffman codes
+            const HLIT = _bitsE(data, pos, 5) + 257;
+            const HDIST = _bitsE(data, pos + 5, 5) + 1;
+            const HCLEN = _bitsE(data, pos + 10, 4) + 4;
+            pos += 14;
+
             for(let i=0; i<38; i+=2) {
                 U.itree[i]=0;
                 U.itree[i+1]=0;
@@ -57,32 +78,31 @@ export function _inflate(data: Uint8Array, buf?: Uint8Array) {
                 U.itree[(U.ordr[i]<<1)+1] = l;
                 if(l>tl) tl = l;
             }
-            pos+=3*HCLEN;  // console.log(itree);
+            pos += 3 * HCLEN;
             makeCodes(U.itree, tl);
             codes2map(U.itree, tl, U.imap);
 
             lmap = U.lmap;  dmap = U.dmap;
 
             pos = _decodeTiny(U.imap, (1<<tl)-1, HLIT+HDIST, data, pos, U.ttree);
-            const mx0 = _copyOut(U.ttree,    0, HLIT , U.ltree);  ML = (1<<mx0)-1;
-            const mx1 = _copyOut(U.ttree, HLIT, HDIST, U.dtree);  MD = (1<<mx1)-1;
+            const mx0 = _copyOut(U.ttree,    0, HLIT , U.ltree);
+            ML = (1<<mx0)-1;
+            const mx1 = _copyOut(U.ttree, HLIT, HDIST, U.dtree);
+            MD = (1<<mx1)-1;
 
-            // var ml = decodeTiny(U.imap, (1<<tl)-1, HLIT , data, pos, U.ltree); ML = (1<<(ml>>>24))-1;  pos+=(ml&0xffffff);
             makeCodes(U.ltree, mx0);
             codes2map(U.ltree, mx0, lmap);
 
-            // var md = decodeTiny(U.imap, (1<<tl)-1, HDIST, data, pos, U.dtree); MD = (1<<(md>>>24))-1;  pos+=(md&0xffffff);
             makeCodes(U.dtree, mx1);
             codes2map(U.dtree, mx1, dmap);
         } else {
             throw new Error(`unknown BTYPE ${BTYPE}`)
         }
 
-        // var ooff=off, opos=pos;
         while(true) {
             const code = lmap[_get17(data, pos) & ML];
             pos += code&15;
-            const lit = code >>> 4;  // U.lhst[lit]++;
+            const lit = code >>> 4;
             if((lit >>> 8) === 0) {
                 buf[off++] = lit;
             } else if(lit === 256) {
@@ -94,32 +114,44 @@ export function _inflate(data: Uint8Array, buf?: Uint8Array) {
                     end = off + (ebs>>>3) + _bitsE(data, pos, ebs&7);
                     pos += ebs&7;
                 }
-                // UZIP.F.dst[end-off]++;
 
-                const dcode = dmap[_get17(data, pos) & MD];  pos += dcode&15;
+                const dcode = dmap[_get17(data, pos) & MD];
+                pos += dcode&15;
                 const dlit = dcode>>>4;
-                const dbs = U.ddef[dlit], dst = (dbs>>>4) + _bitsF(data, pos, dbs&15);  pos += dbs&15;
+                const dbs = U.ddef[dlit]
+                const dst = (dbs>>>4) + _bitsF(data, pos, dbs&15);
+                pos += dbs&15;
 
-                // var o0 = off-dst, stp = Math.min(end-off, dst);
-                // if(stp>20) while(off<end) {  buf.copyWithin(off, o0, o0+stp);  off+=stp;  }  else
-                // if(end-dst<=off) buf.copyWithin(off, off-dst, end-dst);  else
-                // if(dst==1) buf.fill(buf[off-1], off, end);  else
                 if(noBuf) buf = _check(buf, off+(1<<17));
                 while(off<end) {
-                    buf[off]=buf[off++-dst];
-                    buf[off]=buf[off++-dst];
-                    buf[off]=buf[off++-dst];
-                    buf[off]=buf[off++-dst];
+                    buf[off] = buf[off++-dst];
+                    buf[off] = buf[off++-dst];
+                    buf[off] = buf[off++-dst];
+                    buf[off] = buf[off++-dst];
                 }
-                off=end;
-                // while(off!=end) {  buf[off]=buf[off++-dst];  }
+                off = end;
             }
         }
-        // console.log(off-ooff, (pos-opos)>>>3);
     }
-    // console.log(UZIP.F.dst);
-    // console.log(tlen, dlen, off-tlen+tcnt);
-    return buf.length === off ? buf : buf.slice(0, off);
+
+    ctx.buf = buf
+    ctx.BFINAL = BFINAL
+    ctx.off = off
+    ctx.pos = pos
+}
+
+// https://tools.ietf.org/html/rfc1951
+export async function _inflate(runtime: RuntimeContext, data: Uint8Array, buf?: Uint8Array) {
+    if(data[0] === 3 && data[1] === 0) return (buf ? buf : new Uint8Array(0));
+
+    const ctx = InflateContext(data, buf)
+    while(ctx.BFINAL === 0) {
+        if (runtime.shouldUpdate) {
+            await runtime.update({ message: 'Inflating blocks...', current: ctx.pos, max: data.length })
+        }
+        inflateBlocks(ctx, 100)
+    }
+    return ctx.buf.length === ctx.off ? ctx.buf : ctx.buf.slice(0, ctx.off);
 }
 
 function _check(buf: Uint8Array, len: number) {
@@ -127,27 +159,30 @@ function _check(buf: Uint8Array, len: number) {
     if(len <= bl) return buf;
     const nbuf = new Uint8Array(Math.max(bl << 1, len));
     nbuf.set(buf, 0);
-    // for(var i=0; i<bl; i+=4) {  nbuf[i]=buf[i];  nbuf[i+1]=buf[i+1];  nbuf[i+2]=buf[i+2];  nbuf[i+3]=buf[i+3];  }
     return nbuf;
 }
 
 function _decodeTiny(lmap: NumberArray, LL: number, len: number, data: Uint8Array, pos: number, tree: number[]) {
     let i = 0;
-    while(i<len) {
+    while(i < len) {
         const code = lmap[_get17(data, pos)&LL];
         pos += code&15;
         const lit = code>>>4;
-        if(lit<=15) {
+        if(lit <= 15) {
             tree[i]=lit;
             i++;
         } else {
             let ll = 0, n = 0;
             if(lit === 16) {
-                n = (3  + _bitsE(data, pos, 2));  pos += 2;  ll = tree[i-1];
+                n = (3  + _bitsE(data, pos, 2));
+                pos += 2;
+                ll = tree[i-1];
             } else if(lit === 17) {
-                n = (3  + _bitsE(data, pos, 3));  pos += 3;
+                n = (3  + _bitsE(data, pos, 3));
+                pos += 3;
             } else if(lit === 18) {
-                n = (11 + _bitsE(data, pos, 7));  pos += 7;
+                n = (11 + _bitsE(data, pos, 7));
+                pos += 7;
             }
             const ni = i+n;
             while(i<ni) {
@@ -160,15 +195,16 @@ function _decodeTiny(lmap: NumberArray, LL: number, len: number, data: Uint8Arra
 }
 
 function _copyOut(src: number[], off: number, len: number, tree: number[]) {
-    let mx=0, i=0, tl=tree.length>>>1;
-    while(i<len) {
+    let mx=0, i=0
+    const tl=tree.length>>>1;
+    while(i < len) {
         let v=src[i+off];
         tree[(i<<1)]=0;
         tree[(i<<1)+1]=v;
         if(v>mx)mx=v;
         i++;
     }
-    while(i<tl ) {
+    while(i < tl) {
         tree[(i<<1)]=0;
         tree[(i<<1)+1]=0;
         i++;

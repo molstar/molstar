@@ -13,8 +13,9 @@ import { writeUint, writeUshort, sizeUTF8, writeUTF8, readUshort, readUint, read
 import { crc, adler } from './checksum';
 import { _inflate } from './inflate';
 import { _deflateRaw } from './deflate';
+import { RuntimeContext } from '../../mol-task';
 
-export function unzip(buf: ArrayBuffer, onlyNames = false) {
+export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames = false) {
     const out: { [k: string]: Uint8Array | { size: number, csize: number } } = Object.create(null);
     const data = new Uint8Array(buf);
     let eocd = data.length-4;
@@ -57,13 +58,13 @@ export function unzip(buf: ArrayBuffer, onlyNames = false) {
         const roff = readUint(data, o);  o+=4;
         o += nl + el + cl;
 
-        _readLocal(data, roff, out, csize, usize, onlyNames);
+        await _readLocal(runtime, data, roff, out, csize, usize, onlyNames);
     }
     // console.log(out);
     return out;
 }
 
-function _readLocal(data: Uint8Array, o: number, out: { [k: string]: Uint8Array | { size: number, csize: number } }, csize: number, usize: number, onlyNames: boolean) {
+async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, out: { [k: string]: Uint8Array | { size: number, csize: number } }, csize: number, usize: number, onlyNames: boolean) {
     // const sign  = readUint(data, o);
     o+=4;
     // const ver   = readUshort(data, o);
@@ -83,16 +84,15 @@ function _readLocal(data: Uint8Array, o: number, out: { [k: string]: Uint8Array 
     // var usize = rUi(data, o);  o+=4;
     o+=8;
 
-    const nlen  = readUshort(data, o);
+    const nlen = readUshort(data, o);
     o+=2;
-    const elen  = readUshort(data, o);
+    const elen = readUshort(data, o);
     o+=2;
 
-    const name =  readUTF8(data, o, nlen);
+    const name = readUTF8(data, o, nlen);
     o += nlen;  // console.log(name);
     o += elen;
 
-    // console.log(sign.toString(16), ver, gpflg, cmpr, crc32.toString(16), "csize, usize", csize, usize, nlen, elen, name, o);
     if(onlyNames) {
         out[name] = { size: usize, csize };
         return;
@@ -103,33 +103,27 @@ function _readLocal(data: Uint8Array, o: number, out: { [k: string]: Uint8Array 
         out[name] = new Uint8Array(file.buffer.slice(o, o+csize));
     } else if(cmpr === 8) {
         const buf = new Uint8Array(usize);
-        inflateRaw(file, buf);
-        // var nbuf = pako["inflateRaw"](file);
-        // if(usize>8514000) {
-        //     //console.log(PUtils.readASCII(buf , 8514500, 500));
-        //     //console.log(PUtils.readASCII(nbuf, 8514500, 500));
-        // }
-        // for(var i=0; i<buf.length; i++) if(buf[i]!=nbuf[i]) {  console.log(buf.length, nbuf.length, usize, i);  throw "e";  }
+        await inflateRaw(runtime, file, buf);
         out[name] = buf;
     }
     else throw `unknown compression method: ${cmpr}`;
 }
 
-export function inflateRaw(file: Uint8Array, buf?: Uint8Array) {
-    return _inflate(file, buf);
+export async function inflateRaw(runtime: RuntimeContext, file: Uint8Array, buf?: Uint8Array) {
+    return _inflate(runtime, file, buf);
 }
 
-export function inflate(file: Uint8Array, buf?: Uint8Array) {
+export function inflate(runtime: RuntimeContext, file: Uint8Array, buf?: Uint8Array) {
     // const CMF = file[0]
     // const FLG = file[1]
     // const CM = (CMF&15)
     // const CINFO = (CMF>>>4);
     // console.log(CM, CINFO,CMF,FLG);
-    return inflateRaw(new Uint8Array(file.buffer, file.byteOffset+2, file.length-6), buf);
+    return inflateRaw(runtime, new Uint8Array(file.buffer, file.byteOffset+2, file.length-6), buf);
 }
 
 // https://tools.ietf.org/html/rfc1952
-export function ungzip(file: Uint8Array, buf?: Uint8Array) {
+export async function ungzip(runtime: RuntimeContext, file: Uint8Array, buf?: Uint8Array) {
     // const id1 = file[0]
     // const id2 = file[1]
     // const cm = file[2]
@@ -170,7 +164,7 @@ export function ungzip(file: Uint8Array, buf?: Uint8Array) {
     if (buf === undefined) buf = new Uint8Array(isize)
 
     const blocks = new Uint8Array(file.buffer, file.byteOffset + o, file.length - o - 8)
-    const inflated = inflateRaw(blocks, buf);
+    const inflated = await inflateRaw(runtime, blocks, buf);
     const crcValue = crc(inflated, 0, inflated.length)
     if (crc32 !== crcValue) {
         console.error("ungzip: checksums don't match")
