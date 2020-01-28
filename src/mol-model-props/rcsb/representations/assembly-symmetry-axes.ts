@@ -6,13 +6,12 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure } from '../../../mol-model/structure';
-import { AssemblySymmetryProvider, AssemblySymmetryValue } from '../assembly-symmetry';
+import { AssemblySymmetryProvider, AssemblySymmetryValue, getSymmetrySelectParam } from '../assembly-symmetry';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
-import { getSymmetrySelectParam } from '../util';
 import { RuntimeContext } from '../../../mol-task';
 import { Shape } from '../../../mol-model/shape';
 import { ColorNames } from '../../../mol-util/color/names';

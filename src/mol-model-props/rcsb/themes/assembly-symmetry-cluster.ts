@@ -7,12 +7,11 @@
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition'
-import { AssemblySymmetryProvider, AssemblySymmetry } from '../assembly-symmetry';
+import { AssemblySymmetryProvider, AssemblySymmetry, getSymmetrySelectParam } from '../assembly-symmetry';
 import { Color } from '../../../mol-util/color';
 import { Unit, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { Location } from '../../../mol-model/location';
 import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
-import { getSymmetrySelectParam } from '../util';
 import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
 import { CustomPropertyContext } from '../../common/custom-property-registry';
 

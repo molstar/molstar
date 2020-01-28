@@ -12,20 +12,10 @@ import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
 import { Database as _Database } from '../../mol-data/db'
 import { GraphQLClient } from '../../mol-util/graphql-client';
 import { CustomStructureProperty, CustomPropertyContext } from '../common/custom-property-registry';
-import { Loci, isDataLoci, DataLoci, createDataLoci } from '../../mol-model/loci';
 import { NonNullableArray } from '../../mol-util/type-helpers';
-import { OrderedSet } from '../../mol-data/int';
 
 export namespace AssemblySymmetry {
     export const DefaultServerUrl = 'http://data-staging.rcsb.org/graphql'
-
-    const AxesLociTag = 'rcsb_assembly_symmetry_axes'
-    export function createAxesLoci(assemblySymmetry: AssemblySymmetryValue, indices: OrderedSet): DataLoci<AssemblySymmetryValue> {
-        return createDataLoci(assemblySymmetry, AxesLociTag, indices)
-    }
-    export function isAxesLoci(x?: Loci): x is DataLoci<AssemblySymmetryValue> {
-        return isDataLoci(x) && x.tag === AxesLociTag
-    }
 
     export function isApplicable(structure?: Structure): boolean {
         return (
@@ -37,7 +27,7 @@ export namespace AssemblySymmetry {
         )
     }
 
-    export async function compute(ctx: CustomPropertyContext, structure: Structure, props: AssemblySymmetryProps): Promise<AssemblySymmetryValue> {
+    export async function fetch(ctx: CustomPropertyContext, structure: Structure, props: AssemblySymmetryProps): Promise<AssemblySymmetryValue> {
         const client = new GraphQLClient(props.serverUrl, ctx.fetch)
         const variables: AssemblySymmetryQueryVariables = {
             assembly_id: structure.units[0].conformation.operator.assembly.id,
@@ -50,6 +40,25 @@ export namespace AssemblySymmetry {
         }
         return result.assembly.rcsb_struct_symmetry as AssemblySymmetryValue
     }
+}
+
+export function getSymmetrySelectParam(structure?: Structure) {
+    const param = PD.Select<number>(0, [[0, 'No Symmetries']])
+    if (structure) {
+        const assemblySymmetry = AssemblySymmetryProvider.getValue(structure).value
+        if (assemblySymmetry) {
+            const options: [number, string][] = []
+            for (let i = 0, il = assemblySymmetry.length; i < il; ++i) {
+                const { symbol, kind } = assemblySymmetry[i]
+                options.push([ i, `${i + 1}: ${symbol} ${kind}` ])
+            }
+            if (options.length) {
+                param.options = options
+                param.defaultValue = options[0][0]
+            }
+        }
+    }
+    return param
 }
 
 export const AssemblySymmetryParams = {
@@ -73,6 +82,6 @@ export const AssemblySymmetryProvider: CustomStructureProperty.Provider<Assembly
     isApplicable: (data: Structure) => AssemblySymmetry.isApplicable(data),
     obtain: async (ctx: CustomPropertyContext, data: Structure, props: Partial<AssemblySymmetryProps>) => {
         const p = { ...PD.getDefaultValues(AssemblySymmetryParams), ...props }
-        return await AssemblySymmetry.compute(ctx, data, p)
+        return await AssemblySymmetry.fetch(ctx, data, p)
     }
 })

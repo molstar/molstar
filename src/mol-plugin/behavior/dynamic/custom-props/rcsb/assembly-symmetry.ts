@@ -5,17 +5,14 @@
  */
 
 import { ParamDefinition as PD } from '../../../../../mol-util/param-definition'
-import { AssemblySymmetryProvider, AssemblySymmetry } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
+import { AssemblySymmetryProvider, AssemblySymmetry, getSymmetrySelectParam } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
 import { PluginBehavior } from '../../../behavior';
-import { OrderedSet } from '../../../../../mol-data/int';
-import { Loci } from '../../../../../mol-model/loci';
 import { getAssemblySymmetryAxesRepresentation, AssemblySymmetryAxesParams } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry-axes';
 import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
 import { PluginStateTransform, PluginStateObject } from '../../../../state/objects';
 import { Task } from '../../../../../mol-task';
 import { PluginSpec } from '../../../../spec';
 import { PluginContext } from '../../../../context';
-import { getSymmetrySelectParam } from '../../../../../mol-model-props/rcsb/util';
 import { StateTransformer } from '../../../../../mol-state';
 
 export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
@@ -25,25 +22,10 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private provider = AssemblySymmetryProvider
 
-        private label = (loci: Loci): string | undefined => {
-            if (AssemblySymmetry.isAxesLoci(loci)) {
-                const labels: string[] = []
-                OrderedSet.forEach(loci.indices, v => {
-                    const { kind, type } = loci.data[v]
-                    if (type && kind) {
-                        labels.push(`Axis of type ${type} for ${kind} symmetry`)
-                    }
-                })
-                return labels.length ? labels.join(', ') : undefined
-            }
-            return undefined
-        }
-
         register(): void {
             this.ctx.state.dataState.actions.add(PluginSpec.Action(AssemblySymmetryAxes3D).action)
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('rcsb-assembly-symmetry-cluster', AssemblySymmetryClusterColorThemeProvider)
-            this.ctx.lociLabels.addProvider(this.label);
         }
 
         update(p: { autoAttach: boolean }) {
@@ -57,7 +39,6 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
             // TODO remove `AssemblySymmetryAxes3D` from `this.ctx.state.dataState.actions`
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('rcsb-assembly-symmetry-cluster')
-            this.ctx.lociLabels.removeProvider(this.label);
         }
     },
     params: () => ({
@@ -73,7 +54,6 @@ const AssemblySymmetryAxes3D = PluginStateTransform.BuiltIn({
     from: PluginStateObject.Molecule.Structure,
     to: PluginStateObject.Shape.Representation3D,
     params: (a, ctx: PluginContext) => {
-        console.log(a?.data, getSymmetrySelectParam(a?.data))
         return {
             ...AssemblySymmetryAxesParams,
             symmetryIndex: getSymmetrySelectParam(a?.data),
