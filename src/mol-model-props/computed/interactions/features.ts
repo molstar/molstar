@@ -161,6 +161,22 @@ namespace Features {
         }
     }
 
+    export function position(out: Vec3, info: Info) {
+        Vec3.set(out, info.x[info.feature], info.y[info.feature], info.z[info.feature])
+        Vec3.transformMat4(out, out, info.unit.conformation.operator.matrix)
+        return out
+    }
+
+    const tmpVecA = Vec3()
+    const tmpVecB = Vec3()
+    export function distance(infoA: Info, infoB: Info) {
+        const elementA = infoA.members[infoA.offsets[infoA.feature]]
+        const elementB = infoB.members[infoB.offsets[infoB.feature]]
+        infoA.unit.conformation.position(infoA.unit.elements[elementA], tmpVecA)
+        infoB.unit.conformation.position(infoB.unit.elements[elementB], tmpVecB)
+        return Vec3.distance(tmpVecA, tmpVecB)
+    }
+
     export interface Provider {
         types: Set<FeatureType>
         add: (structure: Structure, unit: Unit.Atomic, featuresBuilder: FeaturesBuilder) => void

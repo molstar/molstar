@@ -68,8 +68,11 @@ function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, builder:
     const { totalH } = getUnitValenceModel(structure, unit)
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
+    const { elementAromaticRingIndices } = unit.rings
 
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {
+        if (elementAromaticRingIndices.has(i)) continue;
+
         const element = typeSymbol(unit, i)
         if ((
             // include both nitrogen atoms in histidine due to
@@ -99,7 +102,7 @@ function addUnitWeakHydrogenDonors(structure: Structure, unit: Unit.Atomic, buil
             (
                 bondToElementCount(structure, unit, i, Elements.N) > 0 ||
                 bondToElementCount(structure, unit, i, Elements.O) > 0 ||
-                inAromaticRingWithElectronNegativeElement(structure, unit, i)
+                inAromaticRingWithElectronNegativeElement(unit, i)
             )
         ) {
             builder.add(FeatureType.WeakHydrogenDonor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
@@ -107,27 +110,21 @@ function addUnitWeakHydrogenDonors(structure: Structure, unit: Unit.Atomic, buil
     }
 }
 
-function inAromaticRingWithElectronNegativeElement(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-    return false // TODO
-    // if (!a.isAromatic()) return false
+function inAromaticRingWithElectronNegativeElement(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+    const { elementAromaticRingIndices, all } = unit.rings
+    const ringIndices = elementAromaticRingIndices.get(index)
+    if (ringIndices === undefined) return false
 
-    // const ringData = a.residueType.getRings()
-    // if (!ringData) return false
-
-    // let hasElement = false
-    // const rings = ringData.rings
-    // rings.forEach(ring => {
-    //     if (hasElement) return  // already found one
-    //     if (ring.some(idx => (a.index - a.residueAtomOffset) === idx)) {  // in ring
-    //         hasElement = ring.some(idx => {
-    //             const atomTypeId = a.residueType.atomTypeIdList[ idx ]
-    //             const number = a.atomMap.get(atomTypeId).number
-    //             return number === Elements.N || number === Elements.O
-    //         })
-    //     }
-    // })
-
-    // return hasElement
+    for (let i = 0, il = ringIndices.length; i < il; ++i) {
+        const ring = all[ringIndices[i]]
+        for (let j = 0, jl = ring.length; j < jl; ++j) {
+            const element = typeSymbol(unit, ring[j])
+            if (element === Elements.N || element === Elements.O) {
+                return true
+            }
+        }
+    }
+    return false
 }
 
 /**
@@ -137,12 +134,15 @@ function addUnitHydrogenAcceptors(structure: Structure, unit: Unit.Atomic, build
     const { charge, implicitH, idealGeometry } = getUnitValenceModel(structure, unit)
     const { elements } = unit
     const { x, y, z } = unit.model.atomicConformation
+    const { elementAromaticRingIndices } = unit.rings
 
     const add = (i: StructureElement.UnitIndex) => {
         builder.add(FeatureType.HydrogenAcceptor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i)
     }
 
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {
+        if (elementAromaticRingIndices.has(i)) continue;
+
         const element = typeSymbol(unit, i)
         if (element === Elements.O) {
             // Basically assume all oxygen atoms are acceptors!

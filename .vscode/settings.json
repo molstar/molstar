@@ -6,4 +6,7 @@
         "*.vert.ts": "glsl",
         "*.gql.ts": "graphql"
     },
+    "eslint.options": {
+        "ignorePattern": ["webpack.config.js", "scripts/*"],
+    }
 }

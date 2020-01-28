@@ -65,12 +65,6 @@ function isMember(element: StructureElement.UnitIndex, info: Features.Info) {
     return false
 }
 
-function setPosition(out: Vec3, info: Features.Info) {
-    Vec3.set(out, info.x[info.feature], info.y[info.feature], info.z[info.feature])
-    Vec3.transformMat4(out, out, info.unit.conformation.operator.matrix)
-    return out
-}
-
 const tmpVec = Vec3()
 const tmpVecA = Vec3()
 const tmpVecB = Vec3()
@@ -81,8 +75,8 @@ function checkLineOfSight(structure: Structure, infoA: Features.Info, infoB: Fea
     const indexA = infoA.members[infoA.offsets[featureA]]
     const indexB = infoB.members[infoB.offsets[featureB]]
 
-    setPosition(tmpVecA, infoA)
-    setPosition(tmpVecB, infoB)
+    Features.position(tmpVecA, infoA)
+    Features.position(tmpVecB, infoB)
     Vec3.scale(tmpVec, Vec3.add(tmpVec, tmpVecA, tmpVecB), 0.5)
 
     const distMax = distFactor * MAX_LINE_OF_SIGHT_DISTANCE

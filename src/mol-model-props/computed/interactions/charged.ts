@@ -240,22 +240,18 @@ const tmpVecD = Vec3()
 function getNormal(out: Vec3, info: Features.Info) {
     const { unit, feature, offsets, members } = info
     const { elements } = unit
-    const { x, y, z } = unit.model.atomicConformation
 
     const i = offsets[feature]
-    const aI = elements[members[i]]
-    const bI = elements[members[i + 1]]
-    const cI = elements[members[i + 2]]
-    Vec3.set(tmpVecA, x[aI], y[aI], z[aI])
-    Vec3.set(tmpVecB, x[bI], y[bI], z[bI])
-    Vec3.set(tmpVecC, x[cI], y[cI], z[cI])
+    info.unit.conformation.position(elements[members[i]], tmpVecA)
+    info.unit.conformation.position(elements[members[i + 1]], tmpVecB)
+    info.unit.conformation.position(elements[members[i + 2]], tmpVecC)
 
     return Vec3.triangleNormal(out, tmpVecA, tmpVecB, tmpVecC)
 }
 
 const getOffset = function (infoA: Features.Info, infoB: Features.Info, normal: Vec3) {
-    Vec3.set(tmpVecA, infoA.x[infoA.feature], infoA.y[infoA.feature], infoA.z[infoA.feature])
-    Vec3.set(tmpVecB, infoB.x[infoB.feature], infoB.y[infoB.feature], infoB.z[infoB.feature])
+    Features.position(tmpVecA, infoA)
+    Features.position(tmpVecB, infoB)
 
     Vec3.sub(tmpVecC, tmpVecA, tmpVecB)
 
