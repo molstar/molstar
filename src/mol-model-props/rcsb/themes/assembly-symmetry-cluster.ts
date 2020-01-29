@@ -13,7 +13,7 @@ import { Unit, StructureElement, StructureProperties } from '../../../mol-model/
 import { Location } from '../../../mol-model/location';
 import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
 import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
-import { CustomPropertyContext } from '../../common/custom-property-registry';
+import { CustomProperty } from '../../common/custom-property';
 
 const DefaultColor = Color(0xCCCCCC)
 
@@ -95,7 +95,7 @@ export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<Asse
     getParams: getAssemblySymmetryClusterColorThemeParams,
     defaultValues: PD.getDefaultValues(AssemblySymmetryClusterColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => AssemblySymmetry.isApplicable(ctx.structure),
-    ensureCustomProperties: (ctx: CustomPropertyContext, data: ThemeDataContext) => {
+    ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
         return data.structure ? AssemblySymmetryProvider.attach(ctx, data.structure) : Promise.resolve()
     }
 }

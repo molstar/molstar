@@ -21,7 +21,7 @@ import { SetUtils } from '../../../mol-util/set';
 import { MetalCoordinationProvider, MetalProvider, MetalBindingProvider } from './metal';
 import { refineInteractions } from './refine';
 import { Result } from '../../../mol-math/geometry';
-import { CustomPropertyContext } from '../../common/custom-property-registry';
+import { CustomProperty } from '../../common/custom-property';
 
 export { Interactions }
 
@@ -148,7 +148,7 @@ export const InteractionsParams = {
 export type InteractionsParams = typeof InteractionsParams
 export type InteractionsProps = PD.Values<InteractionsParams>
 
-export async function computeInteractions(ctx: CustomPropertyContext, structure: Structure, props: Partial<InteractionsProps>): Promise<Interactions> {
+export async function computeInteractions(ctx: CustomProperty.Context, structure: Structure, props: Partial<InteractionsProps>): Promise<Interactions> {
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props }
     await ValenceModelProvider.attach(ctx, structure)
 

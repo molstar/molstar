@@ -15,7 +15,7 @@ import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { SecondaryStructureProvider, SecondaryStructureValue } from '../../mol-model-props/computed/secondary-structure';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
-import { CustomPropertyContext } from '../../mol-model-props/common/custom-property-registry';
+import { CustomProperty } from '../../mol-model-props/common/custom-property';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -117,7 +117,7 @@ export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<Secondary
     getParams: getSecondaryStructureColorThemeParams,
     defaultValues: PD.getDefaultValues(SecondaryStructureColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
-    ensureCustomProperties: (ctx: CustomPropertyContext, data: ThemeDataContext) => {
+    ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
         return data.structure ? SecondaryStructureProvider.attach(ctx, data.structure) : Promise.resolve()
     }
 }

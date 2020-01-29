@@ -10,7 +10,7 @@ import { Structure } from '../mol-model/structure';
 import { VolumeData } from '../mol-model/volume';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { Shape } from '../mol-model/shape';
-import { CustomPropertyContext } from '../mol-model-props/common/custom-property-registry';
+import { CustomProperty } from '../mol-model-props/common/custom-property';
 
 export interface ThemeRegistryContext {
     colorThemeRegistry: ColorTheme.Registry
@@ -51,7 +51,7 @@ namespace Theme {
         return { color: ColorTheme.Empty, size: SizeTheme.Empty }
     }
 
-    export async function ensureDependencies(ctx: CustomPropertyContext, theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
+    export async function ensureDependencies(ctx: CustomProperty.Context, theme: ThemeRegistryContext, data: ThemeDataContext, props: Props) {
         await theme.colorThemeRegistry.get(props.colorTheme.name).ensureCustomProperties?.(ctx, data)
         await theme.sizeThemeRegistry.get(props.sizeTheme.name).ensureCustomProperties?.(ctx, data)
     }
@@ -65,7 +65,7 @@ export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends
     readonly getParams: (ctx: ThemeDataContext) => P
     readonly defaultValues: PD.Values<P>
     readonly isApplicable: (ctx: ThemeDataContext) => boolean
-    readonly ensureCustomProperties?: (ctx: CustomPropertyContext, data: ThemeDataContext) => Promise<void>
+    readonly ensureCustomProperties?: (ctx: CustomProperty.Context, data: ThemeDataContext) => Promise<void>
 }
 
 function getTypes(list: { name: string, provider: ThemeProvider<any, any> }[]) {

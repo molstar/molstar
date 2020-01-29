@@ -11,8 +11,9 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
 import { Database as _Database } from '../../mol-data/db'
 import { GraphQLClient } from '../../mol-util/graphql-client';
-import { CustomStructureProperty, CustomPropertyContext } from '../common/custom-property-registry';
+import { CustomProperty } from '../common/custom-property';
 import { NonNullableArray } from '../../mol-util/type-helpers';
+import { CustomStructureProperty } from '../common/custom-structure-property';
 
 export namespace AssemblySymmetry {
     export const DefaultServerUrl = 'http://data-staging.rcsb.org/graphql'
@@ -27,7 +28,7 @@ export namespace AssemblySymmetry {
         )
     }
 
-    export async function fetch(ctx: CustomPropertyContext, structure: Structure, props: AssemblySymmetryProps): Promise<AssemblySymmetryValue> {
+    export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryProps): Promise<AssemblySymmetryValue> {
         const client = new GraphQLClient(props.serverUrl, ctx.fetch)
         const variables: AssemblySymmetryQueryVariables = {
             assembly_id: structure.units[0].conformation.operator.assembly.id,
@@ -80,7 +81,7 @@ export const AssemblySymmetryProvider: CustomStructureProperty.Provider<Assembly
     defaultParams: AssemblySymmetryParams,
     getParams: (data: Structure) => AssemblySymmetryParams,
     isApplicable: (data: Structure) => AssemblySymmetry.isApplicable(data),
-    obtain: async (ctx: CustomPropertyContext, data: Structure, props: Partial<AssemblySymmetryProps>) => {
+    obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<AssemblySymmetryProps>) => {
         const p = { ...PD.getDefaultValues(AssemblySymmetryParams), ...props }
         return await AssemblySymmetry.fetch(ctx, data, p)
     }

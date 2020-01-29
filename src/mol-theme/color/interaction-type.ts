@@ -13,7 +13,7 @@ import { ColorTheme, LocationColor } from '../color';
 import { InteractionType } from '../../mol-model-props/computed/interactions/common';
 import { TableLegend } from '../../mol-util/legend';
 import { Interactions } from '../../mol-model-props/computed/interactions/interactions';
-import { CustomPropertyContext } from '../../mol-model-props/common/custom-property-registry';
+import { CustomProperty } from '../../mol-model-props/common/custom-property';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Assigns colors according the interaction type of a link.'
@@ -111,7 +111,7 @@ export const InteractionTypeColorThemeProvider: ColorTheme.Provider<InteractionT
     getParams: getInteractionTypeColorThemeParams,
     defaultValues: PD.getDefaultValues(InteractionTypeColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
-    ensureCustomProperties: (ctx: CustomPropertyContext, data: ThemeDataContext) => {
+    ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
         return data.structure ? InteractionsProvider.attach(ctx, data.structure) : Promise.resolve()
     }
 }

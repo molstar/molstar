@@ -16,7 +16,7 @@ import { PolymerDirectionParams, PolymerDirectionVisual } from '../visual/polyme
 import { PolymerGapParams, PolymerGapVisual } from '../visual/polymer-gap-cylinder';
 import { PolymerTraceParams, PolymerTraceVisual } from '../visual/polymer-trace-mesh';
 import { SecondaryStructureProvider } from '../../../mol-model-props/computed/secondary-structure';
-import { CustomPropertyContext } from '../../../mol-model-props/common/custom-property-registry';
+import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 
 const CartoonVisuals = {
     'polymer-trace': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTraceParams>) => UnitsRepresentation('Polymer trace mesh', ctx, getParams, PolymerTraceVisual),
@@ -64,7 +64,7 @@ export const CartoonRepresentationProvider: StructureRepresentationProvider<Cart
     defaultColorTheme: 'polymer-id',
     defaultSizeTheme: 'uniform',
     isApplicable: (structure: Structure) => structure.polymerResidueCount > 0,
-    ensureCustomProperties: (ctx: CustomPropertyContext, structure: Structure) => {
+    ensureCustomProperties: (ctx: CustomProperty.Context, structure: Structure) => {
         return SecondaryStructureProvider.attach(ctx, structure)
     }
 }
