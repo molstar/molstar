@@ -1,8 +1,10 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * from https://github.com/dsehnal/CIFTools.js
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ *
+ * based in part on https://github.com/dsehnal/CIFTools.js
  */
 
 /**
@@ -78,6 +80,7 @@ export function parseFloat(str: string, start: number, end: number) {
 export const enum NumberType {
     Int,
     Float,
+    Scientific,
     NaN
 }
 
@@ -94,7 +97,7 @@ function isInt(str: string, start: number, end: number) {
 function getNumberTypeScientific(str: string, start: number, end: number) {
     // handle + in '1e+1' separately.
     if (str.charCodeAt(start) === 43 /* + */) start++;
-    return isInt(str, start, end) ? NumberType.Float : NumberType.NaN;
+    return isInt(str, start, end) ? NumberType.Scientific : NumberType.NaN;
 }
 
 /** The whole range must match, otherwise returns NaN */
