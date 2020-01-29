@@ -46,7 +46,7 @@ export const ValenceModel = PluginBehavior.create<{ autoAttach: boolean, showToo
                     const structures = this.getStructures(loci.structure)
 
                     for (const s of structures) {
-                        const valenceModel = this.provider.getValue(s).value
+                        const valenceModel = this.provider.get(s).value
                         if (!valenceModel) continue;
 
                         const l = StructureElement.Loci.remap(loci, s)

@@ -47,7 +47,7 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
     let legend: ScaleLegend | TableLegend | undefined
 
     const { symmetryIndex } = props
-    const assemblySymmetry = ctx.structure && AssemblySymmetryProvider.getValue(ctx.structure)
+    const assemblySymmetry = ctx.structure && AssemblySymmetryProvider.get(ctx.structure)
     const contextHash = assemblySymmetry?.version
 
     const clusters = assemblySymmetry?.value?.[symmetryIndex]?.clusters

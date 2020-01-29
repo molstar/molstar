@@ -85,7 +85,7 @@ namespace CustomStructureProperty {
         readonly getParams: (data: Structure) => Params
         readonly isApplicable: (data: Structure) => boolean
         readonly attach: (ctx: CustomPropertyContext, data: Structure, props?: Partial<PD.Values<Params>>) => Promise<void>
-        readonly getValue: (data: Structure) => ValueBox<Value | undefined>
+        readonly get: (data: Structure) => ValueBox<Value | undefined>
         readonly setProps: (data: Structure, props: PD.Values<Params>) => void
     }
 
@@ -134,7 +134,7 @@ namespace CustomStructureProperty {
                 data.customPropertyDescriptors.add(builder.descriptor);
                 set(data, p, value);
             },
-            getValue: (data: Structure) => get(data)?.data,
+            get: (data: Structure) => get(data)?.data,
             setProps: (data: Structure, props: Partial<PD.Values<Params>> = {}) => {
                 const property = get(data)
                 const p = { ...property.props, ...props }

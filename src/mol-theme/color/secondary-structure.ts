@@ -84,7 +84,7 @@ export function secondaryStructureColor(colorMap: SecondaryStructureColors, unit
 
 export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Values<SecondaryStructureColorThemeParams>): ColorTheme<SecondaryStructureColorThemeParams> {
 
-    const computedSecondaryStructure = ctx.structure && SecondaryStructureProvider.getValue(ctx.structure)
+    const computedSecondaryStructure = ctx.structure && SecondaryStructureProvider.get(ctx.structure)
     const contextHash = computedSecondaryStructure && computedSecondaryStructure.version
 
     const colorMap = getAdjustedColorMap(SecondaryStructureColors, props.saturation, props.lightness)

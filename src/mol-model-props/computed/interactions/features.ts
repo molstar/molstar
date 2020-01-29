@@ -145,7 +145,7 @@ namespace Features {
         idealGeometry: Int8Array
     }
     export function Info(structure: Structure, unit: Unit.Atomic, features: Features): Info {
-        const valenceModel = ValenceModelProvider.getValue(structure).value
+        const valenceModel = ValenceModelProvider.get(structure).value
         if (!valenceModel || !valenceModel.has(unit.id)) throw new Error('valence model required')
 
         return {

@@ -55,7 +55,7 @@ function getAxesMesh(data: AssemblySymmetryValue, props: PD.Values<AssemblySymme
 
 export async function getAssemblySymmetryAxesRepresentation(ctx: RuntimeContext, structure: Structure, params: AssemblySymmetryAxesProps, prev?: ShapeRepresentation<AssemblySymmetryValue, Mesh, Mesh.Params>) {
     const repr = prev || ShapeRepresentation(getAxesShape, Mesh.Utils);
-    const data = AssemblySymmetryProvider.getValue(structure).value
+    const data = AssemblySymmetryProvider.get(structure).value
     await repr.createOrUpdate(params, data).runInContext(ctx);
     return repr;
 }

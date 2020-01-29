@@ -130,7 +130,7 @@ async function init() {
     console.time('compute Interactions')
     await InteractionsProvider.attach(ctx, structure)
     console.timeEnd('compute Interactions');
-    console.log(InteractionsProvider.getValue(structure).value)
+    console.log(InteractionsProvider.get(structure).value)
 
     const show = {
         cartoon: true,

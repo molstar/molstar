@@ -67,14 +67,14 @@ const AssemblySymmetryAxes3D = PluginStateTransform.BuiltIn({
         return Task.create('RCSB Assembly Symmetry Axes', async ctx => {
             await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
             const repr = await getAssemblySymmetryAxesRepresentation(ctx, a.data, params)
-            const { symbol, kind } = AssemblySymmetryProvider.getValue(a.data).value![params.symmetryIndex]
+            const { symbol, kind } = AssemblySymmetryProvider.get(a.data).value![params.symmetryIndex]
             return new PluginStateObject.Shape.Representation3D({ repr, source: a }, { label: `Axes`, description: `${symbol} ${kind}` });
         });
     },
     update({ a, b, newParams }) {
         return Task.create('RCSB Assembly Symmetry Axes', async ctx => {
             await getAssemblySymmetryAxesRepresentation(ctx, a.data, newParams, b.data.repr);
-            const { symbol, kind } = AssemblySymmetryProvider.getValue(a.data).value![newParams.symmetryIndex]
+            const { symbol, kind } = AssemblySymmetryProvider.get(a.data).value![newParams.symmetryIndex]
             b.description = `${symbol} ${kind}`
             return StateTransformer.UpdateResult.Updated;
         });

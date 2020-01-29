@@ -27,7 +27,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
 
     const location = StructureElement.Location.create(unit)
 
-    const interactions = InteractionsProvider.getValue(structure).value!
+    const interactions = InteractionsProvider.get(structure).value!
     const features = interactions.unitsFeatures.get(unit.id)
     const contacts = interactions.unitsContacts.get(unit.id)
 
@@ -82,7 +82,7 @@ export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<Int
                 newProps.radialSegments !== currentProps.radialSegments
             )
 
-            const interactionsHash = InteractionsProvider.getValue(newStructureGroup.structure).version
+            const interactionsHash = InteractionsProvider.get(newStructureGroup.structure).version
             if ((state.info.interactionsHash as number) !== interactionsHash) {
                 state.createGeometry = true
                 state.updateTransform = true
@@ -97,7 +97,7 @@ function getInteractionLoci(pickingId: PickingId, structureGroup: StructureGroup
     if (id === objectId) {
         const { structure, group } = structureGroup
         const unit = structure.unitMap.get(group.units[instanceId].id)
-        const interactions = InteractionsProvider.getValue(structure).value!
+        const interactions = InteractionsProvider.get(structure).value!
         const contacts = interactions.unitsContacts.get(unit.id)
         return Interactions.Loci(structure, interactions, [
             { unitA: unit, indexA: contacts.a[groupId], unitB: unit, indexB: contacts.b[groupId] },
@@ -112,7 +112,7 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
     if (Interactions.isLoci(loci)) {
         const { structure, group } = structureGroup
         if (!Structure.areEquivalent(loci.structure, structure)) return false
-        const interactions = InteractionsProvider.getValue(structure).value!
+        const interactions = InteractionsProvider.get(structure).value!
         if (loci.interactions !== interactions) return false
         const unit = group.units[0]
         const contacts = interactions.unitsContacts.get(unit.id)
@@ -133,7 +133,7 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
 function createInteractionsIterator(structureGroup: StructureGroup): LocationIterator {
     const { structure, group } = structureGroup
     const unit = group.units[0]
-    const interactions = InteractionsProvider.getValue(structure).value!
+    const interactions = InteractionsProvider.get(structure).value!
     const contacts = interactions.unitsContacts.get(unit.id)
     const groupCount = contacts.edgeCount * 2
     const instanceCount = group.units.length

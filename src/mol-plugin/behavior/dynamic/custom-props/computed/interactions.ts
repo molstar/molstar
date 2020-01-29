@@ -47,7 +47,7 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
                     const structures = this.getStructures(loci.structure)
 
                     for (const s of structures) {
-                        const interactions = this.provider.getValue(s).value
+                        const interactions = this.provider.get(s).value
                         if (!interactions) continue;
 
                         const l = StructureElement.Loci.remap(loci, s)

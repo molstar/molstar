@@ -24,7 +24,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
                     if (loci.elements.length === 0) return void 0;
                     // const e = loci.elements[0];
                     // const u = e.unit;
-                    if (!this.provider.getValue(loci.structure).value) return;
+                    if (!this.provider.get(loci.structure).value) return;
 
                     return `Accessible Surface Area: ${'TODO'} \u212B<sup>3</sup>`;
 

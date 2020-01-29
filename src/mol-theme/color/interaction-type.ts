@@ -72,7 +72,7 @@ export function getInteractionTypeColorThemeParams(ctx: ThemeDataContext) {
 export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<InteractionTypeColorThemeParams>): ColorTheme<InteractionTypeColorThemeParams> {
     let color: LocationColor
 
-    const interactions = ctx.structure ? InteractionsProvider.getValue(ctx.structure) : undefined
+    const interactions = ctx.structure ? InteractionsProvider.get(ctx.structure) : undefined
     const contextHash = interactions?.version
 
     if (interactions && interactions.value) {

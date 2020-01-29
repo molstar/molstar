@@ -48,7 +48,7 @@ const PositvelyCharged = ['ARG', 'HIS', 'LYS']
 const NegativelyCharged = ['GLU', 'ASP']
 
 function getUnitValenceModel(structure: Structure, unit: Unit.Atomic) {
-    const valenceModel = ValenceModelProvider.getValue(structure).value
+    const valenceModel = ValenceModelProvider.get(structure).value
     if (!valenceModel) throw Error('expected valence model to be available')
     const unitValenceModel = valenceModel.get(unit.id)
     if (!unitValenceModel) throw Error('expected valence model for unit to be available')

@@ -45,7 +45,7 @@ export namespace AssemblySymmetry {
 export function getSymmetrySelectParam(structure?: Structure) {
     const param = PD.Select<number>(0, [[0, 'No Symmetries']])
     if (structure) {
-        const assemblySymmetry = AssemblySymmetryProvider.getValue(structure).value
+        const assemblySymmetry = AssemblySymmetryProvider.get(structure).value
         if (assemblySymmetry) {
             const options: [number, string][] = []
             for (let i = 0, il = assemblySymmetry.length; i < il; ++i) {

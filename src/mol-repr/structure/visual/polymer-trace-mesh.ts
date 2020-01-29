@@ -172,7 +172,7 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
                 newProps.arrowFactor !== currentProps.arrowFactor
             )
 
-            const secondaryStructureHash = SecondaryStructureProvider.getValue(newStructureGroup.structure).version
+            const secondaryStructureHash = SecondaryStructureProvider.get(newStructureGroup.structure).version
             if ((state.info.secondaryStructureHash as number) !== secondaryStructureHash) {
                 state.createGeometry = true;
                 state.info.secondaryStructureHash = secondaryStructureHash
