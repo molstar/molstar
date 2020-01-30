@@ -31,6 +31,7 @@ import { ModelStructureRepresentation } from '../representation/model';
 import { parseDcd } from '../../../mol-io/reader/dcd/parser';
 import { coordinatesFromDcd } from '../../../mol-model-formats/structure/dcd';
 import { topologyFromPsf } from '../../../mol-model-formats/structure/psf';
+import { deepEqual } from '../../../mol-util';
 
 export { CoordinatesFromDcd };
 export { TopologyFromPsf };
@@ -280,6 +281,11 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
         return Task.create('Build Structure', async ctx => {
             return ModelStructureRepresentation.create(plugin, ctx, a.data, params && params.type);
         })
+    },
+    update: ({ a, b, oldParams, newParams }) => {
+        if (!b.data.models.includes(a.data)) return StateTransformer.UpdateResult.Recreate;
+        if (!deepEqual(oldParams, newParams)) return StateTransformer.UpdateResult.Recreate;
+        return StateTransformer.UpdateResult.Unchanged;
     }
 });
 
