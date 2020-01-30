@@ -21,5 +21,12 @@ describe('common', () => {
         expect(getNumberType('0.42')).toBe(NumberType.Float)
         expect(getNumberType('Foo123')).toBe(NumberType.NaN)
         expect(getNumberType('11.0829(23)')).toBe(NumberType.NaN)
+        expect(getNumberType('1..2')).toBe(NumberType.NaN)
+        expect(getNumberType('.')).toBe(NumberType.NaN)
+        expect(getNumberType('-.')).toBe(NumberType.NaN)
+        expect(getNumberType('e')).toBe(NumberType.NaN)
+        expect(getNumberType('-e')).toBe(NumberType.NaN)
+        expect(getNumberType('1e')).toBe(NumberType.Scientific)
+        expect(getNumberType('-1e')).toBe(NumberType.Scientific)
     });
 });

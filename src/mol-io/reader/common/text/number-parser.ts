@@ -103,8 +103,14 @@ function getNumberTypeScientific(str: string, start: number, end: number) {
 /** The whole range must match, otherwise returns NaN */
 export function getNumberType(str: string): NumberType {
     let start = 0, end = str.length;
-    if (str.charCodeAt(start) === 45) {
+
+    if (str.charCodeAt(start) === 45) { // -
         ++start;
+    }
+
+    // string is . or -.
+    if (str.charCodeAt(start) === 46 && end - start === 1) {
+        return NumberType.NaN
     }
 
     while (start < end) {
@@ -127,6 +133,9 @@ export function getNumberType(str: string): NumberType {
             }
             return hasDigit ? NumberType.Float : NumberType.Int;
         } else if (c === 53 || c === 21) { // 'e'/'E'
+            if (start === 0 || start === 1 && str.charCodeAt(0) === 45) {
+                return NumberType.NaN; // string starts with e/E or -e/-E
+            }
             return getNumberTypeScientific(str, start + 1, end);
         }
         else break;
