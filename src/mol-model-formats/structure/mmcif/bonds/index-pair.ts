@@ -24,7 +24,6 @@ function getGraph(indexA: ArrayLike<number>, indexB: ArrayLike<number>, _order: 
 
 export namespace IndexPairBonds {
     export const Descriptor: CustomPropertyDescriptor = {
-        isStatic: true,
         name: 'index_pair_bonds',
     }
 

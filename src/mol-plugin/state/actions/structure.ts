@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -15,7 +15,7 @@ import { CustomModelProperties, StructureSelectionFromExpression, CustomStructur
 import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
-import { StructureElement, Structure } from '../../../mol-model/structure';
+import { StructureElement } from '../../../mol-model/structure';
 import { createDefaultStructureComplex } from '../../util/structure-complex-helper';
 import { ModelStructureRepresentation } from '../representation/model';
 
@@ -372,11 +372,10 @@ export const UpdateTrajectory = StateAction.build({
 });
 
 export const EnableModelCustomProps = StateAction.build({
-    display: { name: 'Custom Model Properties', description: 'Enable the addition of custom properties to the model.' },
+    display: { name: 'Custom Model Properties', description: 'Enable parameters for custom properties of the model.' },
     from: PluginStateObject.Molecule.Model,
     params(a, ctx: PluginContext) {
-        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of model property descriptor ids.' }) };
-        return { properties: ctx.customModelProperties.getSelect(a.data) };
+        return ctx.customModelProperties.getParams(a?.data)
     },
     isApplicable(a, t, ctx: PluginContext) {
         return t.transformer !== CustomModelProperties;
@@ -390,7 +389,7 @@ export const EnableStructureCustomProps = StateAction.build({
     display: { name: 'Custom Structure Properties', description: 'Enable parameters for custom properties of the structure.' },
     from: PluginStateObject.Molecule.Structure,
     params(a, ctx: PluginContext) {
-        return ctx.customStructureProperties.getParams(a?.data || Structure.Empty)
+        return ctx.customStructureProperties.getParams(a?.data)
     },
     isApplicable(a, t, ctx: PluginContext) {
         return t.transformer !== CustomStructureProperties;

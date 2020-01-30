@@ -25,7 +25,6 @@ export interface StructConn {
 
 export namespace StructConn {
     export const Descriptor: CustomPropertyDescriptor = {
-        isStatic: true,
         name: 'struct_conn',
         cifExport: {
             prefix: '',

@@ -21,7 +21,6 @@ export type ValenceModelValue = Map<number, ValenceModel>
 export const ValenceModelProvider: CustomStructureProperty.Provider<ValenceModelParams, ValenceModelValue> = CustomStructureProperty.createProvider({
     label: 'Valence Model',
     descriptor: CustomPropertyDescriptor({
-        isStatic: true,
         name: 'molstar_computed_valence_model',
         // TODO `cifExport` and `symbol`
     }),

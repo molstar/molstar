@@ -21,7 +21,6 @@ export type InteractionsValue = Interactions
 export const InteractionsProvider: CustomStructureProperty.Provider<InteractionsParams, InteractionsValue> = CustomStructureProperty.createProvider({
     label: 'Interactions',
     descriptor: CustomPropertyDescriptor({
-        isStatic: true,
         name: 'molstar_computed_interactions',
         // TODO `cifExport` and `symbol`
     }),

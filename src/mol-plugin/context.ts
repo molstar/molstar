@@ -7,7 +7,6 @@
 
 import { List } from 'immutable';
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
-import { CustomPropertyRegistry } from '../mol-model-props/common/custom-property-registry';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { State, StateTransform, StateTransformer } from '../mol-state';
@@ -129,7 +128,7 @@ export class PluginContext {
         registry: new DataFormatRegistry()
     } as const
 
-    readonly customModelProperties = new CustomPropertyRegistry<Model>();
+    readonly customModelProperties = new CustomProperty.Registry<Model>();
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 

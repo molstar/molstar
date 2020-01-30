@@ -47,9 +47,9 @@ class BasicWrapper {
             }
         });
 
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.Descriptor.name, StripedResidues.colorTheme!);
-        this.plugin.lociLabels.addProvider(StripedResidues.labelProvider);
-        this.plugin.customModelProperties.register(StripedResidues.propertyProvider);
+        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(StripedResidues.propertyProvider.descriptor.name, StripedResidues.colorThemeProvider!);
+        this.plugin.lociLabels.addProvider(StripedResidues.labelProvider!);
+        this.plugin.customModelProperties.register(StripedResidues.propertyProvider, true);
     }
 
     private download(b: StateBuilder.To<PSO.Root>, url: string) {
@@ -63,7 +63,7 @@ class BasicWrapper {
 
         return parsed
             .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
-            .apply(StateTransforms.Model.CustomModelProperties, { properties: [StripedResidues.Descriptor.name] }, { ref: 'props', state: { isGhost: false } })
+            .apply(StateTransforms.Model.CustomModelProperties, { properties: [StripedResidues.propertyProvider.descriptor.name] }, { ref: 'props', state: { isGhost: false } })
             .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
     }
 
@@ -141,7 +141,7 @@ class BasicWrapper {
 
             const visuals = state.selectQ(q => q.ofTransformer(StateTransforms.Representation.StructureRepresentation3D));
             const tree = state.build();
-            const colorTheme = { name: StripedResidues.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(StripedResidues.Descriptor.name).defaultValues };
+            const colorTheme = { name: StripedResidues.propertyProvider.descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(StripedResidues.propertyProvider.descriptor.name).defaultValues };
 
             for (const v of visuals) {
                 tree.to(v).update(old => ({ ...old, colorTheme }));

@@ -73,7 +73,6 @@ export type AssemblySymmetryValue = NonNullableArray<NonNullable<NonNullable<Ass
 export const AssemblySymmetryProvider: CustomStructureProperty.Provider<AssemblySymmetryParams, AssemblySymmetryValue> = CustomStructureProperty.createProvider({
     label: 'Assembly Symmetry',
     descriptor: CustomPropertyDescriptor({
-        isStatic: true,
         name: 'rcsb_struct_symmetry',
         // TODO `cifExport` and `symbol`
     }),

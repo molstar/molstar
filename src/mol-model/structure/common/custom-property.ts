@@ -12,7 +12,6 @@ import { UUID } from '../../../mol-util';
 export { CustomPropertyDescriptor, CustomProperties }
 
 interface CustomPropertyDescriptor<ExportCtx = CifExportContext, Symbols extends { [name: string]: QuerySymbolRuntime } = { }> {
-    readonly isStatic: boolean,
     readonly name: string,
 
     cifExport?: {

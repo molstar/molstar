@@ -32,7 +32,7 @@ namespace CustomProperty {
         readonly isApplicable: (data: Data) => boolean
         readonly attach: (ctx: Context, data: Data, props?: Partial<PD.Values<Params>>) => Promise<void>
         readonly get: (data: Data) => ValueBox<Value | undefined>
-        readonly setProps: (data: Data, props: PD.Values<Params>) => void
+        readonly set: (data: Data, props: PD.Values<Params>, value?: Value) => void
     }
 
     export class Registry<Data> {
@@ -40,18 +40,20 @@ namespace CustomProperty {
         private defaultAutoAttachValues = new Map<string, boolean>()
 
         /** Get params for all applicable property providers */
-        getParams(data: Data) {
-            const values = this.providers.values();
+        getParams(data?: Data) {
             const params: PD.Params = {}
-            while (true) {
-                const v = values.next()
-                if (v.done) break
-                const provider = v.value
-                if (!provider.isApplicable(data)) continue
-                params[provider.descriptor.name] = PD.Group({
-                    autoAttach: PD.Boolean(this.defaultAutoAttachValues.get(provider.descriptor.name)!),
-                    ...provider.getParams(data),
-                }, { label: v.value.label })
+            if (data) {
+            const values = this.providers.values();
+                while (true) {
+                    const v = values.next()
+                    if (v.done) break
+                    const provider = v.value
+                    if (!provider.isApplicable(data)) continue
+                    params[provider.descriptor.name] = PD.Group({
+                        autoAttach: PD.Boolean(this.defaultAutoAttachValues.get(provider.descriptor.name)!),
+                        ...provider.getParams(data),
+                    }, { label: v.value.label })
+                }
             }
             return params
         }

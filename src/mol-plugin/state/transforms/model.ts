@@ -703,24 +703,29 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Model,
     to: SO.Molecule.Model,
     params: (a, ctx: PluginContext) => {
-        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of property descriptor ids.' }) };
-        return { properties: ctx.customModelProperties.getSelect(a.data) };
+        return ctx.customModelProperties.getParams(a?.data)
     }
 })({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
-            await attachModelProps(a.data, ctx, taskCtx, params.properties);
-            return new SO.Molecule.Model(a.data, { label: 'Model Props', description: `${params.properties.length} Selected` });
+            await attachModelProps(a.data, ctx, taskCtx, params);
+            return new SO.Molecule.Model(a.data, { label: 'Model Props' });
         });
     }
 });
-async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, names: string[]) {
-    for (const name of names) {
-        try {
-            const p = ctx.customModelProperties.get(name);
-            await p.attach(model).runInContext(taskCtx);
-        } catch (e) {
-            ctx.log.warn(`Error attaching model prop '${name}': ${e}`);
+async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: PD.Values<PD.Params>) {
+    const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch }
+    for (const name of Object.keys(params)) {
+        const property = ctx.customModelProperties.get(name)
+        const props = params[name as keyof typeof params]
+        if (props.autoAttach) {
+            try {
+                await property.attach(propertyCtx, model, props)
+            } catch (e) {
+                ctx.log.warn(`Error attaching model prop '${name}': ${e}`);
+            }
+        } else {
+            property.set(model, props)
         }
     }
 }
@@ -732,7 +737,7 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: (a, ctx: PluginContext) => {
-        return ctx.customStructureProperties.getParams(a?.data || Structure.Empty)
+        return ctx.customStructureProperties.getParams(a?.data)
     }
 })({
     apply({ a, params }, ctx: PluginContext) {
@@ -748,9 +753,13 @@ async function attachStructureProps(structure: Structure, ctx: PluginContext, ta
         const property = ctx.customStructureProperties.get(name)
         const props = params[name as keyof typeof params]
         if (props.autoAttach) {
-            await property.attach(propertyCtx, structure, props)
+            try {
+                await property.attach(propertyCtx, structure, props)
+            } catch (e) {
+                ctx.log.warn(`Error attaching structure prop '${name}': ${e}`);
+            }
         } else {
-            property.setProps(structure, props)
+            property.set(structure, props)
         }
     }
 }

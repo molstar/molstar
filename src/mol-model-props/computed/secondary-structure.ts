@@ -48,7 +48,6 @@ export type SecondaryStructureValue = Map<number, SecondaryStructure>
 export const SecondaryStructureProvider: CustomStructureProperty.Provider<SecondaryStructureParams, SecondaryStructureValue> = CustomStructureProperty.createProvider({
     label: 'Secondary Structure',
     descriptor: CustomPropertyDescriptor({
-        isStatic: true,
         name: 'molstar_computed_secondary_structure',
         // TODO `cifExport` and `symbol`
     }),

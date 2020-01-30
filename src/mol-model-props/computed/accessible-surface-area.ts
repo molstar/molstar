@@ -22,7 +22,6 @@ export type AccessibleSurfaceAreaValue = AccessibleSurfaceArea
 export const AccessibleSurfaceAreaProvider: CustomStructureProperty.Provider<AccessibleSurfaceAreaParams, AccessibleSurfaceAreaValue> = CustomStructureProperty.createProvider({
     label: 'Accessible Surface Area',
     descriptor: CustomPropertyDescriptor({
-        isStatic: true,
         name: 'molstar_accessible_surface_area',
         // TODO `cifExport` and `symbol`
     }),

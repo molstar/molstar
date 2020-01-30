@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructureQualityReport } from '../../../mol-model-props/pdbe/structure-quality-report';
+import { StructureQualityReport, StructureQualityReportProvider } from '../../../mol-model-props/pdbe/structure-quality-report';
 import { Location } from '../../../mol-model/location';
 import { StructureElement } from '../../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
@@ -31,7 +31,7 @@ const ValidationColorTable: [string, Color][] = [
 export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: {}): ColorTheme<{}> {
     let color: LocationColor
 
-    if (ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(StructureQualityReport.Descriptor)) {
+    if (ctx.structure && !ctx.structure.isEmpty && ctx.structure.models[0].customProperties.has(StructureQualityReportProvider.descriptor)) {
         const getIssues = StructureQualityReport.getIssues;
         color = (location: Location) => {
             if (StructureElement.Location.is(location)) {
