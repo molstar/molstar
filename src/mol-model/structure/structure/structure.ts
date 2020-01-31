@@ -965,6 +965,39 @@ namespace Structure {
             ? a.model === b.model || a.model === s.masterModel || b.model === s.masterModel
             : a.model === b.model
     }
+
+    export interface EachUnitPairProps {
+        maxRadius: number
+        validUnit: (unit: Unit) => boolean
+        validUnitPair: (unitA: Unit, unitB: Unit) => boolean
+    }
+
+    /**
+     * Iterate over all unit pairs of a structure and invokes callback for valid units
+     * and unit pairs if within a max distance.
+     */
+    export function eachUnitPair(structure: Structure, callback: (unitA: Unit, unitB: Unit) => void, props: EachUnitPairProps) {
+        const { maxRadius, validUnit, validUnitPair } = props
+        if (!structure.units.some(u => validUnit(u))) return;
+
+        const lookup = structure.lookup3d;
+        const imageCenter = Vec3.zero();
+
+        for (const unit of structure.units) {
+            if (!validUnit(unit)) continue;
+
+            const bs = unit.lookup3d.boundary.sphere;
+            Vec3.transformMat4(imageCenter, bs.center, unit.conformation.operator.matrix);
+            const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxRadius);
+            for (let i = 0; i < closeUnits.count; i++) {
+                const other = structure.units[closeUnits.indices[i]];
+                if (!validUnit(other) || unit.id >= other.id || !validUnitPair(unit, other)) continue;
+
+                if (other.elements.length >= unit.elements.length) callback(unit, other);
+                else callback(other, unit);
+            }
+        }
+    }
 }
 
 export default Structure

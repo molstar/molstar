@@ -11,7 +11,6 @@ import { ValenceModelProvider } from '../valence-model';
 import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType } from './common';
 import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
 import { IntMap } from '../../../mol-data/int';
-import { Vec3 } from '../../../mol-math/linear-algebra';
 import { addUnitContacts, ContactTester, addStructureContacts, ContactProvider, ContactsParams, ContactsProps } from './contacts';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds';
 import { HydrogenDonorProvider, WeakHydrogenDonorProvider, HydrogenAcceptorProvider, HydrogenBondsProvider, WeakHydrogenBondsProvider } from './hydrogen-bonds';
@@ -20,7 +19,6 @@ import { HydrophobicAtomProvider, HydrophobicProvider } from './hydrophobic';
 import { SetUtils } from '../../../mol-util/set';
 import { MetalCoordinationProvider, MetalProvider, MetalBindingProvider } from './metal';
 import { refineInteractions } from './refine';
-import { Result } from '../../../mol-math/geometry';
 import { CustomProperty } from '../../common/custom-property';
 
 export { Interactions }
@@ -208,34 +206,15 @@ function findIntraUnitContacts(structure: Structure, unit: Unit, features: Featu
 function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Features>, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps) {
     const builder = InterContactsBuilder.create()
 
-    const maxDistance = Math.max(...contactTesters.map(t => t.maxDistance))
-
-    const lookup = structure.lookup3d;
-    const imageCenter = Vec3.zero();
-    const closeUnits = Result.create()
-
-    for (const unitA of structure.units) {
-        if (!Unit.isAtomic(unitA)) continue;
-
+    Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {
         const featuresA = unitsFeatures.get(unitA.id)
-
-        const bs = unitA.lookup3d.boundary.sphere;
-        Vec3.transformMat4(imageCenter, bs.center, unitA.conformation.operator.matrix);
-        Result.copy(closeUnits, lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxDistance));
-
-        for (let i = 0; i < closeUnits.count; i++) {
-            const unitB = structure.units[closeUnits.indices[i]];
-            if (!Unit.isAtomic(unitB) || unitA.id >= unitB.id || !Structure.validUnitPair(structure, unitA, unitB)) continue;
-
-            const featuresB = unitsFeatures.get(unitB.id)
-
-            if (unitB.elements.length >= unitA.elements.length) {
-                addStructureContacts(structure, unitA, featuresA, unitB, featuresB, builder, contactTesters, props)
-            } else {
-                addStructureContacts(structure, unitB, featuresB, unitA, featuresA, builder, contactTesters, props)
-            }
-        }
-    }
+        const featuresB = unitsFeatures.get(unitB.id)
+        addStructureContacts(structure, unitA as Unit.Atomic, featuresA, unitB as Unit.Atomic, featuresB, builder, contactTesters, props)
+    }, {
+        maxRadius: Math.max(...contactTesters.map(t => t.maxDistance)),
+        validUnit: (unit: Unit) => Unit.isAtomic(unit),
+        validUnitPair: (unitA: Unit, unitB: Unit) => Structure.validUnitPair(structure, unitA, unitB)
+    })
 
     return builder.getContacts(unitsFeatures)
 }

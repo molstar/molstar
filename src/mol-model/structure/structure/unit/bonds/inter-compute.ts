@@ -199,7 +199,6 @@ export interface InterBondComputationProps extends BondComputationProps {
 
 function findBonds(structure: Structure, props: InterBondComputationProps) {
     const map = new Map<number, InterUnitBonds.UnitPairBonds[]>();
-    if (!structure.units.some(u => Unit.isAtomic(u))) return new InterUnitBonds(map);
 
     if (props.noCompute) {
         // TODO add function that only adds bonds defined in structConn and avoids using
@@ -208,24 +207,13 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
         return new InterUnitBonds(map);
     }
 
-    const { validUnitPair } = props;
-    const lookup = structure.lookup3d;
-    const imageCenter = Vec3.zero();
-
-    for (const unit of structure.units) {
-        if (!Unit.isAtomic(unit)) continue;
-
-        const bs = unit.lookup3d.boundary.sphere;
-        Vec3.transformMat4(imageCenter, bs.center, unit.conformation.operator.matrix);
-        const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + MAX_RADIUS);
-        for (let i = 0; i < closeUnits.count; i++) {
-            const other = structure.units[closeUnits.indices[i]];
-            if (!Unit.isAtomic(other) || unit.id >= other.id || !validUnitPair(structure, unit, other)) continue;
-
-            if (other.elements.length >= unit.elements.length) findPairBonds(unit, other, props, map);
-            else findPairBonds(other, unit, props, map);
-        }
-    }
+    Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {
+        findPairBonds(unitA as Unit.Atomic, unitB as Unit.Atomic, props, map)
+    }, {
+        maxRadius: MAX_RADIUS,
+        validUnit: (unit: Unit) => Unit.isAtomic(unit),
+        validUnitPair: (unitA: Unit, unitB: Unit) => props.validUnitPair(structure, unitA, unitB)
+    })
 
     return new InterUnitBonds(map);
 }
