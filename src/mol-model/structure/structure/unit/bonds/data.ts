@@ -37,4 +37,4 @@ namespace InterUnitBonds {
     export type BondInfo = InterUnitGraph.EdgeInfo<StructureElement.UnitIndex, InterUnitEdgeProps>
 }
 
-export { IntraUnitBonds, InterUnitBonds }
+export { IntraUnitBonds, InterUnitBonds, InterUnitEdgeProps }

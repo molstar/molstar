@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,8 +9,7 @@ import { BondType } from '../../../model/types';
 import Structure from '../../structure';
 import Unit from '../../unit';
 import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, BondComputationProps, MetalsSet, DefaultBondComputationProps } from './common';
-import { InterUnitBonds } from './data';
-import { UniqueArray } from '../../../../../mol-data/generic';
+import { InterUnitBonds, InterUnitEdgeProps } from './data';
 import { SortedArray } from '../../../../../mol-data/int';
 import { Vec3, Mat4 } from '../../../../../mol-math/linear-algebra';
 import StructureElement from '../../element';
@@ -18,28 +17,9 @@ import { StructConn } from '../../../../../mol-model-formats/structure/mmcif/bon
 import { ElementIndex } from '../../../model/indexing';
 import { getInterBondOrderFromTable } from '../../../model/properties/atomic/bonds';
 import { IndexPairBonds } from '../../../../../mol-model-formats/structure/mmcif/bonds/index-pair';
+import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 
 const MAX_RADIUS = 4;
-
-function addMapEntry<A, B>(map: Map<A, B[]>, a: A, b: B) {
-    if (map.has(a)) map.get(a)!.push(b);
-    else map.set(a, [b]);
-}
-
-interface PairState {
-    mapAB: Map<number, InterUnitBonds.BondInfo[]>,
-    mapBA: Map<number, InterUnitBonds.BondInfo[]>,
-    bondedA: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>,
-    bondedB: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
-}
-
-function addBond(indexA: StructureElement.UnitIndex, indexB: StructureElement.UnitIndex, order: number, flag: BondType.Flag, state: PairState) {
-    addMapEntry(state.mapAB, indexA, { indexB, props: { order, flag } });
-    addMapEntry(state.mapBA, indexB, { indexB: indexA, props: { order, flag } });
-
-    UniqueArray.add(state.bondedA, indexA, indexA);
-    UniqueArray.add(state.bondedB, indexB, indexB);
-}
 
 const tmpDistVecA = Vec3()
 const tmpDistVecB = Vec3()
@@ -51,17 +31,13 @@ function getDistance(unitA: Unit.Atomic, indexA: ElementIndex, unitB: Unit.Atomi
 
 const _imageTransform = Mat4.zero();
 
-function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComputationProps, map: Map<number, InterUnitBonds.UnitPairBonds[]>) {
-    const state: PairState = { mapAB: new Map(), mapBA: new Map(), bondedA: UniqueArray.create(), bondedB: UniqueArray.create() };
-    let bondCount = 0;
+function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComputationProps, builder: InterUnitGraph.Builder<Unit.Atomic, StructureElement.UnitIndex, InterUnitEdgeProps>) {
 
     const { elements: atomsA, residueIndex: residueIndexA } = unitA;
     const { x: xA, y: yA, z: zA } = unitA.model.atomicConformation;
     const { elements: atomsB, residueIndex: residueIndexB } = unitB;
     const atomCount = unitA.elements.length;
 
-    // const { type_symbol: type_symbolA, label_alt_id: label_alt_idA } = unitA.model.atomicHierarchy.atoms;
-    // const { type_symbol: type_symbolB, label_alt_id: label_alt_idB } = unitB.model.atomicHierarchy.atoms;
     const { type_symbol: type_symbolA, label_alt_id: label_alt_idA, label_atom_id: label_atom_idA } = unitA.model.atomicHierarchy.atoms;
     const { type_symbol: type_symbolB, label_alt_id: label_alt_idB, label_atom_id: label_atom_idB } = unitB.model.atomicHierarchy.atoms;
     const { label_comp_id: label_comp_idA, auth_seq_id: auth_seq_idA } = unitA.model.atomicHierarchy.residues;
@@ -82,6 +58,8 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const { center: bCenter, radius: bRadius } = lookup3d.boundary.sphere;
     const testDistanceSq = (bRadius + MAX_RADIUS) * (bRadius + MAX_RADIUS);
 
+    builder.startUnitPair(unitA, unitB)
+
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atomsA[_aI];
         Vec3.set(imageA, xA[aI], yA[aI], zA[aI]);
@@ -92,8 +70,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
                 const _bI = SortedArray.indexOf(unitA.elements, indexPairs.b[i]) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
-                addBond(_aI, _bI, indexPairs.edgeProps.order[i], BondType.Flag.Covalent, state);
-                bondCount++;
+                builder.add(_aI, _bI, { order: indexPairs.edgeProps.order[i], flag: BondType.Flag.Covalent });
             }
             continue // assume `indexPairs` supplies all bonds
         }
@@ -107,8 +84,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                     if (_bI < 0) continue;
                     // check if the bond is within MAX_RADIUS for this pair of units
                     if (getDistance(unitA, aI, unitB, p.atomIndex) > MAX_RADIUS) continue;
-                    addBond(_aI, _bI, se.order, se.flags, state);
-                    bondCount++;
+                    builder.add(_aI, _bI, { order: se.order, flag: se.flags });
                     added = true;
                 }
             }
@@ -136,8 +112,10 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             const altB = label_alt_idB.value(bI);
             if (altA && altB && altA !== altB) continue;
 
-            // Do not include bonds between images of the same residue.
+            // Do not include bonds between images of the same residue with partial occupancy.
             // TODO: is this condition good enough?
+            // - It works for cases like 3WQJ (label_asym_id: I) which have partial occupancy.
+            // - Does NOT work for cases like 1RB8 (DC 7) with full occupancy.
             if (occupancyB.value(bI) < 1 && occA < 1)  {
                 if (auth_seq_idA.value(aI) === auth_seq_idB.value(bI)) {
                     continue;
@@ -155,13 +133,11 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
             if (isHa || isHb) {
                 if (dist < props.maxCovalentHydrogenBondingLength) {
-                    addBond(
-                        _aI, _bI,
-                        1, // covalent bonds involving a hydrogen are always of order 1
-                        BondType.Flag.Covalent | BondType.Flag.Computed,
-                        state
-                    );
-                    bondCount++;
+                    // covalent bonds involving a hydrogen are always of order 1
+                    builder.add(_aI, _bI, {
+                        order: 1,
+                        flag: BondType.Flag.Covalent | BondType.Flag.Computed
+                    });
                 }
                 continue;
             }
@@ -174,23 +150,15 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             if (dist <= pairingThreshold) {
                 const atomIdB = label_atom_idB.value(bI);
                 const compIdB = label_comp_idB.value(residueIndexB[bI]);
-                addBond(
-                    _aI, _bI,
-                    getInterBondOrderFromTable(compIdA, compIdB, atomIdA, atomIdB),
-                    (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed,
-                    state
-                );
-                bondCount++;
+                builder.add(_aI, _bI, {
+                    order: getInterBondOrderFromTable(compIdA, compIdB, atomIdA, atomIdB),
+                    flag: (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed
+                });
             }
         }
     }
 
-    if (bondCount) {
-        addMapEntry(map, unitA.id, new InterUnitBonds.UnitPairBonds(unitA, unitB, bondCount, state.bondedA.array, state.mapAB));
-        addMapEntry(map, unitB.id, new InterUnitBonds.UnitPairBonds(unitB, unitA, bondCount, state.bondedB.array, state.mapBA));
-    }
-
-    return bondCount;
+    builder.finishUnitPair()
 }
 
 export interface InterBondComputationProps extends BondComputationProps {
@@ -198,24 +166,24 @@ export interface InterBondComputationProps extends BondComputationProps {
 }
 
 function findBonds(structure: Structure, props: InterBondComputationProps) {
-    const map = new Map<number, InterUnitBonds.UnitPairBonds[]>();
+    const builder = new InterUnitGraph.Builder<Unit.Atomic, StructureElement.UnitIndex, InterUnitEdgeProps>()
 
     if (props.noCompute) {
         // TODO add function that only adds bonds defined in structConn and avoids using
         //      structure.lookup and unit.lookup (expensive for large structure and not
         //      needed for archival files or files with an MD topology)
-        return new InterUnitBonds(map);
+        return new InterUnitBonds(builder.getMap());
     }
 
     Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {
-        findPairBonds(unitA as Unit.Atomic, unitB as Unit.Atomic, props, map)
+        findPairBonds(unitA as Unit.Atomic, unitB as Unit.Atomic, props, builder)
     }, {
         maxRadius: MAX_RADIUS,
         validUnit: (unit: Unit) => Unit.isAtomic(unit),
         validUnitPair: (unitA: Unit, unitB: Unit) => props.validUnitPair(structure, unitA, unitB)
     })
 
-    return new InterUnitBonds(map);
+    return new InterUnitBonds(builder.getMap());
 }
 
 function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondComputationProps>): InterUnitBonds {

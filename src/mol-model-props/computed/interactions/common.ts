@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,15 +12,16 @@ import { Features } from './features'
 import { StructureElement } from '../../../mol-model/structure/structure'
 import { IntMap } from '../../../mol-data/int'
 
-type IntraProps = {
-    readonly type: ArrayLike<InteractionType>
-    readonly flag: AssignableArrayLike<InteractionFlag>
-}
 export { InteractionsIntraContacts }
-interface InteractionsIntraContacts extends IntAdjacencyGraph<Features.FeatureIndex, IntraProps> {
+interface InteractionsIntraContacts extends IntAdjacencyGraph<Features.FeatureIndex, InteractionsIntraContacts.Props> {
     readonly elementsIndex: InteractionsIntraContacts.ElementsIndex
 }
 namespace InteractionsIntraContacts {
+    export type Props = {
+        readonly type: ArrayLike<InteractionType>
+        readonly flag: AssignableArrayLike<InteractionFlag>
+    }
+
     /** maps unit elements to contacts, range for unit element i is offsets[i] to offsets[i + 1] */
     export type ElementsIndex = {
         /** intra contact indices */
@@ -32,7 +33,7 @@ namespace InteractionsIntraContacts {
     /**
      * Note: assumes that feature members of a contact are non-overlapping
      */
-    export function createElementsIndex(contacts: IntAdjacencyGraph<Features.FeatureIndex, IntraProps>, features: Features, elementsCount: number) {
+    export function createElementsIndex(contacts: IntAdjacencyGraph<Features.FeatureIndex, Props>, features: Features, elementsCount: number) {
         const offsets = new Int32Array(elementsCount + 1)
         const bucketFill = new Int32Array(elementsCount)
         const bucketSizes = new Int32Array(elementsCount)
@@ -83,8 +84,7 @@ namespace InteractionsIntraContacts {
 }
 
 export { InteractionsInterContacts }
-type InterProps = { type: InteractionType, flag: InteractionFlag }
-class InteractionsInterContacts extends InterUnitGraph<Unit, Features.FeatureIndex, InterProps> {
+class InteractionsInterContacts extends InterUnitGraph<Unit, Features.FeatureIndex, InteractionsInterContacts.Props> {
     private readonly elementKeyIndex: Map<string, number[]>
 
     getContactIndicesForElement(index: StructureElement.UnitIndex, unit: Unit): ReadonlyArray<number> {
@@ -95,7 +95,7 @@ class InteractionsInterContacts extends InterUnitGraph<Unit, Features.FeatureInd
         return `${index}|${unit.id}`
     }
 
-    constructor(map: Map<number, InterUnitGraph.UnitPairEdges<Unit, Features.FeatureIndex, InterProps>[]>, unitsFeatures: IntMap<Features>) {
+    constructor(map: Map<number, InterUnitGraph.UnitPairEdges<Unit, Features.FeatureIndex, InteractionsInterContacts.Props>[]>, unitsFeatures: IntMap<Features>) {
         super(map)
 
         let count = 0
@@ -135,8 +135,7 @@ class InteractionsInterContacts extends InterUnitGraph<Unit, Features.FeatureInd
     }
 }
 namespace InteractionsInterContacts {
-    export class Pair extends InterUnitGraph.UnitPairEdges<Unit, Features.FeatureIndex, InterProps> {}
-    export type Info = InterUnitGraph.EdgeInfo<Features.FeatureIndex, InterProps>
+    export type Props = { type: InteractionType, flag: InteractionFlag }
 }
 
 export const enum InteractionFlag {

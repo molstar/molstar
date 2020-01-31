@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,9 +8,9 @@ import { Features } from './features';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { InteractionType, InteractionsIntraContacts, InteractionsInterContacts, InteractionFlag } from './common';
 import { Unit } from '../../../mol-model/structure/structure';
-import { UniqueArray } from '../../../mol-data/generic';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { IntMap } from '../../../mol-data/int';
+import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph';
 
 export { IntraContactsBuilder }
 
@@ -63,46 +63,21 @@ interface InterContactsBuilder {
 }
 
 namespace InterContactsBuilder {
-    function addMapEntry<A, B>(map: Map<A, B[]>, a: A, b: B) {
-        if (map.has(a)) map.get(a)!.push(b);
-        else map.set(a, [b]);
-    }
-
     export function create(): InterContactsBuilder {
-        let uA: Unit
-        let uB: Unit
-        let mapAB: Map<number, InteractionsInterContacts.Info[]>
-        let mapBA: Map<number, InteractionsInterContacts.Info[]>
-        let linkedA: UniqueArray<Features.FeatureIndex, Features.FeatureIndex>
-        let linkedB: UniqueArray<Features.FeatureIndex, Features.FeatureIndex>
-        let linkCount: number
-
-        const map = new Map<number, InteractionsInterContacts.Pair[]>();
+        const builder = new InterUnitGraph.Builder<Unit, Features.FeatureIndex, InteractionsInterContacts.Props>()
 
         return {
             startUnitPair(unitA: Unit, unitB: Unit) {
-                uA = unitA
-                uB = unitB
-                mapAB = new Map()
-                mapBA = new Map()
-                linkedA = UniqueArray.create()
-                linkedB = UniqueArray.create()
-                linkCount = 0
+                builder.startUnitPair(unitA, unitB)
             },
             finishUnitPair() {
-                if (linkCount === 0) return
-                addMapEntry(map, uA.id, new InteractionsInterContacts.Pair(uA, uB, linkCount, linkedA.array, mapAB))
-                addMapEntry(map, uB.id, new InteractionsInterContacts.Pair(uB, uA, linkCount, linkedB.array, mapBA))
+                builder.finishUnitPair()
             },
             add(indexA: Features.FeatureIndex, indexB: Features.FeatureIndex, type: InteractionType) {
-                addMapEntry(mapAB, indexA, { indexB, props: { type, flag: InteractionFlag.None } })
-                addMapEntry(mapBA, indexB, { indexB: indexA, props: { type, flag: InteractionFlag.None } })
-                UniqueArray.add(linkedA, indexA, indexA)
-                UniqueArray.add(linkedB, indexB, indexB)
-                linkCount += 1
+                builder.add(indexA, indexB, { type, flag: InteractionFlag.None })
             },
             getContacts(unitsFeatures: IntMap<Features>) {
-                return new InteractionsInterContacts(map, unitsFeatures);
+                return new InteractionsInterContacts(builder.getMap(), unitsFeatures);
             }
         }
     }
