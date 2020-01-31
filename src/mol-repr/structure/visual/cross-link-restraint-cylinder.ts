@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,9 +10,7 @@ import { Structure, StructureElement, Bond } from '../../../mol-model/structure'
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { BitFlags } from '../../../mol-util';
-import { BondType } from '../../../mol-model/structure/model/types';
-import { createBondCylinderMesh, BondCylinderParams } from './util/bond';
+import { createLinkCylinderMesh, LinkCylinderParams } from './util/link';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -29,31 +27,27 @@ function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Str
     const location = StructureElement.Location.create()
 
     const builderProps = {
-        bondCount: crossLinks.count,
-        referencePosition: () => null,
+        linkCount: crossLinks.count,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const b = crossLinks.pairs[edgeIndex]
             const uA = b.unitA, uB = b.unitB
             uA.conformation.position(uA.elements[b.indexA], posA)
             uB.conformation.position(uB.elements[b.indexB], posB)
         },
-        order: () => 1,
-        flags: () => BitFlags.create(BondType.Flag.None),
         radius: (edgeIndex: number) => {
             const b = crossLinks.pairs[edgeIndex]
             location.unit = b.unitA
             location.element = b.unitA.elements[b.indexA]
             return theme.size.size(location) * sizeFactor
         },
-        ignore: () => false
     }
 
-    return createBondCylinderMesh(ctx, builderProps, props, mesh)
+    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const CrossLinkRestraintParams = {
     ...ComplexMeshParams,
-    ...BondCylinderParams,
+    ...LinkCylinderParams,
     sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
 }
 export type CrossLinkRestraintParams = typeof CrossLinkRestraintParams
@@ -69,7 +63,7 @@ export function CrossLinkRestraintVisual(materialId: number): ComplexVisual<Cros
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments ||
-                newProps.bondCap !== currentProps.bondCap
+                newProps.linkCap !== currentProps.linkCap
             )
         }
     }, materialId)

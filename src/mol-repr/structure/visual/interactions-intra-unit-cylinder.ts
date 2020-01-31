@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,9 +13,8 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { VisualContext } from '../../visual';
 import { Theme } from '../../../mol-theme/theme';
-import { BondType } from '../../../mol-model/structure/model/types';
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
-import { createBondCylinderMesh, BondCylinderParams } from './util/bond';
+import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from './util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -39,16 +38,14 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
     const builderProps = {
-        bondCount: edgeCount * 2,
-        referencePosition: () => null,
+        linkCount: edgeCount * 2,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]])
             Vec3.transformMat4(posA, posA, matrix)
             Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]])
             Vec3.transformMat4(posB, posB, matrix)
         },
-        order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO
+        style: (edgeIndex: number) => LinkCylinderStyle.Dashed,
         radius: (edgeIndex: number) => {
             location.element = unit.elements[members[offsets[a[edgeIndex]]]]
             const sizeA = theme.size.size(location)
@@ -59,12 +56,12 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         ignore: (edgeIndex: number) => flag[edgeIndex] === InteractionFlag.Filtered
     }
 
-    return createBondCylinderMesh(ctx, builderProps, props, mesh)
+    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const InteractionsIntraUnitParams = {
     ...UnitsMeshParams,
-    ...BondCylinderParams,
+    ...LinkCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
 }
 export type InteractionsIntraUnitParams = typeof InteractionsIntraUnitParams

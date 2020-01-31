@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,11 +7,9 @@
 import { Structure, Bond, StructureElement } from '../../../mol-model/structure';
 import { Loci, EmptyLoci } from '../../../mol-model/loci';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { createBondCylinderMesh, BondCylinderParams } from './util/bond';
+import { createLinkCylinderMesh, LinkCylinderParams } from './util/link';
 import { OrderedSet, Interval } from '../../../mol-data/int';
 import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
-import { BondType } from '../../../mol-model/structure/model/types';
-import { BitFlags } from '../../../mol-util';
 import { UnitsMeshParams } from '../units-visual';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
@@ -28,30 +26,26 @@ function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Struc
     const location = StructureElement.Location.create()
 
     const builderProps = {
-        bondCount: links.length,
-        referencePosition: (edgeIndex: number) => null,
+        linkCount: links.length,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const l = links[edgeIndex]
             Vec3.copy(posA, elements[l.carbohydrateIndexA].geometry.center)
             Vec3.copy(posB, elements[l.carbohydrateIndexB].geometry.center)
         },
-        order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => BitFlags.create(BondType.Flag.None),
         radius: (edgeIndex: number) => {
             const l = links[edgeIndex]
             location.unit = elements[l.carbohydrateIndexA].unit
             location.element = elements[l.carbohydrateIndexA].anomericCarbon
             return theme.size.size(location) * linkSizeFactor
         },
-        ignore: (edgeIndex: number) => false
     }
 
-    return createBondCylinderMesh(ctx, builderProps, props, mesh)
+    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const CarbohydrateLinkParams = {
     ...UnitsMeshParams,
-    ...BondCylinderParams,
+    ...LinkCylinderParams,
     linkSizeFactor: PD.Numeric(0.3, { min: 0, max: 3, step: 0.01 }),
 }
 export type CarbohydrateLinkParams = typeof CarbohydrateLinkParams
@@ -67,7 +61,7 @@ export function CarbohydrateLinkVisual(materialId: number): ComplexVisual<Carboh
             state.createGeometry = (
                 newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
                 newProps.radialSegments !== currentProps.radialSegments ||
-                newProps.bondCap !== currentProps.bondCap
+                newProps.linkCap !== currentProps.linkCap
             )
         }
     }, materialId)

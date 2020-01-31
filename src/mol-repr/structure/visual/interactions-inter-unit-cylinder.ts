@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,13 +10,12 @@ import { Structure, StructureElement } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { createBondCylinderMesh, BondCylinderParams } from './util/bond';
+import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from './util/link';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Interval } from '../../../mol-data/int';
-import { BondType } from '../../../mol-model/structure/model/types';
 import { Interactions } from '../../../mol-model-props/computed/interactions/interactions';
 import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -36,8 +35,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
     const builderProps = {
-        bondCount: edgeCount,
-        referencePosition: () => null,
+        linkCount: edgeCount,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const { unitA, indexA, unitB, indexB } = edges[edgeIndex]
             const fA = unitsFeatures.get(unitA.id)
@@ -47,8 +45,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
             Vec3.set(posB, fB.x[indexB], fB.y[indexB], fB.z[indexB])
             Vec3.transformMat4(posB, posB, unitB.conformation.operator.matrix)
         },
-        order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => BondType.Flag.MetallicCoordination, // TODO
+        style: (edgeIndex: number) => LinkCylinderStyle.Dashed,
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex]
             const fA = unitsFeatures.get(b.unitA.id)
@@ -64,12 +61,12 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
         ignore: (edgeIndex: number) => edges[edgeIndex].props.flag === InteractionFlag.Filtered
     }
 
-    return createBondCylinderMesh(ctx, builderProps, props, mesh)
+    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const InteractionsInterUnitParams = {
     ...ComplexMeshParams,
-    ...BondCylinderParams,
+    ...LinkCylinderParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
 }
 export type InteractionsInterUnitParams = typeof InteractionsInterUnitParams

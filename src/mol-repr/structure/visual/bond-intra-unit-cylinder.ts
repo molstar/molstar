@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -12,7 +12,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
-import { createBondCylinderMesh, BondCylinderParams, BondIterator, ignoreBondType } from './util/bond';
+import { createLinkCylinderMesh, LinkCylinderStyle } from './util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
@@ -20,6 +20,7 @@ import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Interval, OrderedSet } from '../../../mol-data/int';
 import { isHydrogen } from './util/common';
 import { BondType } from '../../../mol-model/structure/model/types';
+import { ignoreBondType, BondCylinderParams, BondIterator } from './util/bond';
 
 function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -45,7 +46,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
     const pos = unit.conformation.invariantPosition
 
     const builderProps = {
-        bondCount: edgeCount * 2,
+        linkCount: edgeCount * 2,
         referencePosition: (edgeIndex: number) => {
             let aI = a[edgeIndex], bI = b[edgeIndex];
 
@@ -67,8 +68,20 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
             pos(elements[a[edgeIndex]], posA)
             pos(elements[b[edgeIndex]], posB)
         },
-        order: (edgeIndex: number) => _order[edgeIndex],
-        flags: (edgeIndex: number) => BitFlags.create(_flags[edgeIndex]),
+        style: (edgeIndex: number) => {
+            const o = _order[edgeIndex]
+            const f = BitFlags.create(_flags[edgeIndex])
+            if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
+                // show metall coordinations and hydrogen bonds with dashed cylinders
+                return LinkCylinderStyle.Dashed
+            } else if (o === 2) {
+                return LinkCylinderStyle.Double
+            } else if (o === 3) {
+                return LinkCylinderStyle.Triple
+            } else {
+                return LinkCylinderStyle.Solid
+            }
+        },
         radius: (edgeIndex: number) => {
             location.element = elements[a[edgeIndex]]
             const sizeA = theme.size.size(location)
@@ -79,7 +92,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
         ignore: (edgeIndex: number) => ignoreHydrogen(edgeIndex) || ignoreBondType(include, exclude, _flags[edgeIndex])
     }
 
-    return createBondCylinderMesh(ctx, builderProps, props, mesh)
+    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const IntraUnitBondParams = {
@@ -103,10 +116,10 @@ export function IntraUnitBondVisual(materialId: number): UnitsVisual<IntraUnitBo
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
                 newProps.radialSegments !== currentProps.radialSegments ||
-                newProps.bondScale !== currentProps.bondScale ||
-                newProps.bondSpacing !== currentProps.bondSpacing ||
+                newProps.linkScale !== currentProps.linkScale ||
+                newProps.linkSpacing !== currentProps.linkSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.bondCap !== currentProps.bondCap ||
+                newProps.linkCap !== currentProps.linkCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             )
