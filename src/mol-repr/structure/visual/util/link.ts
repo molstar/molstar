@@ -21,8 +21,10 @@ export const LinkCylinderParams = {
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams)
 export type LinkCylinderProps = typeof DefaultLinkCylinderProps
 
-const tmpShiftV12 = Vec3.zero()
-const tmpShiftV13 = Vec3.zero()
+const tmpV12 = Vec3()
+const tmpShiftV12 = Vec3()
+const tmpShiftV13 = Vec3()
+const up = Vec3.create(0, 1, 0)
 
 /** Calculate 'shift' direction that is perpendiculat to v1 - v2 and goes through v3 */
 export function calculateShiftDir (out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3 | null) {
@@ -63,7 +65,8 @@ export enum LinkCylinderStyle {
     Solid = 0,
     Dashed = 1,
     Double = 2,
-    Triple = 3
+    Triple = 3,
+    Disk = 4
 }
 
 /**
@@ -103,6 +106,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
         if (linkStyle === LinkCylinderStyle.Dashed) {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3
             cylinderProps.topCap = cylinderProps.bottomCap = true
+
             addFixedCountDashedCylinder(builderState, va, vb, 0.5, 7, cylinderProps)
         } else if (linkStyle === LinkCylinderStyle.Double || linkStyle === LinkCylinderStyle.Triple) {
             const order = LinkCylinderStyle.Double ? 2 : 3
@@ -117,9 +121,25 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
 
             if (order === 3) addCylinder(builderState, va, vb, 0.5, cylinderProps)
             addDoubleCylinder(builderState, va, vb, 0.5, vShift, cylinderProps)
+        } else if (linkStyle === LinkCylinderStyle.Disk) {
+            Vec3.scale(tmpV12, Vec3.sub(tmpV12, vb, va), 0.475)
+            Vec3.add(va, va, tmpV12)
+            Vec3.sub(vb, vb, tmpV12)
+
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius
+            if (Vec3.dot(tmpV12, up) > 0) {
+                cylinderProps.topCap = false
+                cylinderProps.bottomCap = linkCap
+            } else {
+                cylinderProps.topCap = linkCap
+                cylinderProps.bottomCap = false
+            }
+
+            addCylinder(builderState, va, vb, 0.5, cylinderProps)
         } else {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius
             cylinderProps.topCap = cylinderProps.bottomCap = linkCap
+
             addCylinder(builderState, va, vb, 0.5, cylinderProps)
         }
     }
