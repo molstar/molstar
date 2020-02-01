@@ -1,11 +1,11 @@
-import { UniqueArray } from '../../mol-data/generic'
-
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
+
+import { UniqueArray } from '../../mol-data/generic'
 
 export { InterUnitGraph }
 
