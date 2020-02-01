@@ -92,7 +92,13 @@ namespace Column {
         return !!v && !!(v as Column<any>).schema && !!(v as Column<any>).value;
     }
 
-    export const enum ValueKind { Present = 0, NotPresent = 1, Unknown = 2 }
+    export const enum ValueKind {
+        Present = 0,
+        /** Expressed in CIF as `.` */
+        NotPresent = 1,
+        /** Expressed in CIF as `?` */
+        Unknown = 2
+    }
 
     export function Undefined<T extends Schema>(rowCount: number, schema: T): Column<T['T']> {
         return constColumn(schema['T'], rowCount, schema, ValueKind.NotPresent);
