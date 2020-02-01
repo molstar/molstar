@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { AtomicData, AtomicSegments } from '../atomic'
@@ -49,7 +50,7 @@ interface Mapping {
     entity_index_label_asym_id: Map<EntityIndex, Map<string, ChainIndex>>,
     chain_index_label_seq_id: Map<ChainIndex, Map<string | number, ResidueIndex>>,
 
-    auth_asym_id: Map<string, ChainIndex>,
+    auth_asym_id_auth_seq_id: Map<string, Map<number, ChainIndex>>,
     chain_index_auth_seq_id: Map<ChainIndex, Map<string | number, ResidueIndex>>
 }
 
@@ -64,7 +65,7 @@ function createMapping(entities: Entities, data: AtomicData, segments: AtomicSeg
         chain_index_entity_index: new Int32Array(data.chains._rowCount) as any,
         entity_index_label_asym_id: new Map(),
         chain_index_label_seq_id: new Map(),
-        auth_asym_id: new Map(),
+        auth_asym_id_auth_seq_id: new Map(),
         chain_index_auth_seq_id: new Map(),
     };
 }
@@ -87,7 +88,9 @@ class Index implements AtomicIndex {
     }
 
     findChainAuth(key: AtomicIndex.ChainAuthKey): ChainIndex {
-        return this.map.auth_asym_id.has(key.auth_asym_id) ? this.map.auth_asym_id.get(key.auth_asym_id)! : -1 as ChainIndex;
+        if (!this.map.auth_asym_id_auth_seq_id.has(key.auth_asym_id)) return -1 as ChainIndex
+        const rm = this.map.auth_asym_id_auth_seq_id.get(key.auth_asym_id)!
+        return rm.has(key.auth_seq_id) ? rm.get(key.auth_seq_id)! : -1 as ChainIndex
     }
 
     findResidue(label_entity_id: string, label_asym_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string): ResidueIndex
@@ -202,12 +205,16 @@ export function getAtomicIndex(data: AtomicData, entities: Entities, segments: A
         const chainSegment = chainsIt.move();
         const chainIndex = chainSegment.index;
 
-        let entityIndex = entities.getEntityIndex(label_entity_id.value(chainIndex));
+        const entityIndex = entities.getEntityIndex(label_entity_id.value(chainIndex));
         if (entityIndex < 0) missingEntity(label_entity_id.value(chainIndex));
         map.chain_index_entity_index[chainIndex] = entityIndex;
 
         const authAsymId = auth_asym_id.value(chainIndex);
-        if (!map.auth_asym_id.has(authAsymId)) map.auth_asym_id.set(authAsymId, chainIndex);
+        let auth_asym_id_auth_seq_id = map.auth_asym_id_auth_seq_id.get(authAsymId)
+        if (!auth_asym_id_auth_seq_id) {
+            auth_asym_id_auth_seq_id = new Map<number, ChainIndex>();
+            map.auth_asym_id_auth_seq_id.set(authAsymId, auth_asym_id_auth_seq_id)
+        }
 
         updateMapMapIndex(map.entity_index_label_asym_id, entityIndex, label_asym_id.value(chainIndex), chainIndex);
 
@@ -220,9 +227,11 @@ export function getAtomicIndex(data: AtomicData, entities: Entities, segments: A
         while (residuesIt.hasNext) {
             const residueSegment = residuesIt.move();
             const rI = residueSegment.index;
+            const authSeqId = auth_seq_id.value(rI)
             const insCode = pdbx_PDB_ins_code.value(rI);
             chain_index_label_seq_id.set(getResidueId(label_seq_id.value(rI), insCode), rI);
-            chain_index_auth_seq_id.set(getResidueId(auth_seq_id.value(rI), insCode), rI);
+            chain_index_auth_seq_id.set(getResidueId(authSeqId, insCode), rI);
+            auth_asym_id_auth_seq_id.set(authSeqId, chainIndex)
         }
     }
 
