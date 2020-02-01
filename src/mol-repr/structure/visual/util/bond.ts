@@ -5,7 +5,7 @@
  */
 
 import { BondType } from '../../../../mol-model/structure/model/types';
-import { Unit, StructureElement, Structure, Bond } from '../../../../mol-model/structure';
+import { Unit, StructureElement, Structure } from '../../../../mol-model/structure';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
 import { StructureGroup } from '../../units-visual';
@@ -42,13 +42,11 @@ export namespace BondIterator {
     export function fromStructure(structure: Structure): LocationIterator {
         const groupCount = structure.interUnitBonds.edgeCount
         const instanceCount = 1
-        const location = Bond.Location()
+        const location = StructureElement.Location.create()
         const getLocation = (groupIndex: number) => {
             const bond = structure.interUnitBonds.edges[groupIndex]
-            location.aUnit = bond.unitA
-            location.aIndex = bond.indexA as StructureElement.UnitIndex
-            location.bUnit = bond.unitB
-            location.bIndex = bond.indexB as StructureElement.UnitIndex
+            location.unit = bond.unitA
+            location.element = bond.unitA.elements[bond.indexA]
             return location
         }
         return LocationIterator(groupCount, instanceCount, getLocation, true)
