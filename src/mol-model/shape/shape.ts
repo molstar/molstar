@@ -61,8 +61,8 @@ export namespace ShapeGroup {
         instance: number
     }
 
-    export function Location(shape?: Shape, group?: number, instance?: number): Location {
-        return { kind: 'group-location', shape: shape!, group: group || 0, instance: instance || 0 };
+    export function Location(shape?: Shape, group = 0, instance = 0): Location {
+        return { kind: 'group-location', shape: shape!, group, instance };
     }
 
     export function isLocation(x: any): x is Location {

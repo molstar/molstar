@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,4 +16,18 @@ export function isNullLocation(x: any): x is NullLocation {
     return !!x && x.kind === 'null-location';
 }
 
-export type Location = StructureElement.Location | Bond.Location | Interactions.Location | ShapeGroup.Location | NullLocation
+/** A generic data Location */
+export interface DataLocation<T = unknown> {
+    readonly kind: 'data-location',
+    data: T,
+    tag: string
+    index: number
+}
+export function DataLocation<T = unknown>(data?: T, tag = '', index = 0): DataLocation<T> {
+    return { kind: 'data-location', data: data!, tag, index }
+}
+export function isDataLocation(x: any): x is DataLocation {
+    return !!x && x.kind === 'data-location';
+}
+
+export type Location = StructureElement.Location | Bond.Location | Interactions.Location | ShapeGroup.Location | DataLocation | NullLocation
