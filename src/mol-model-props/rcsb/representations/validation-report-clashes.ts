@@ -24,6 +24,7 @@ import { ClashesProvider } from '../validation-report';
 import { CustomProperty } from '../../common/custom-property';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mol-repr/structure/complex-visual';
 import { Color } from '../../../mol-util/color';
+import { MarkerActions } from '../../../mol-util/marker-action';
 
 //
 
@@ -217,7 +218,9 @@ export function getClashesParams(ctx: ThemeRegistryContext, structure: Structure
 
 export type ClashesRepresentation = StructureRepresentation<ClashesParams>
 export function ClashesRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ClashesParams>): ClashesRepresentation {
-    return Representation.createMulti('Clashes', ctx, getParams, StructureRepresentationStateBuilder, ClashesVisuals as unknown as Representation.Def<Structure, ClashesParams>)
+    const repr = Representation.createMulti('Clashes', ctx, getParams, StructureRepresentationStateBuilder, ClashesVisuals as unknown as Representation.Def<Structure, ClashesParams>)
+    repr.setState({ markerActions: MarkerActions.Highlighting })
+    return repr
 }
 
 export const ClashesRepresentationProvider: StructureRepresentationProvider<ClashesParams> = {

@@ -16,6 +16,7 @@ import { RuntimeContext } from '../../../mol-task';
 import { Shape } from '../../../mol-model/shape';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ShapeRepresentation } from '../../../mol-repr/shape/representation';
+import { MarkerActions } from '../../../mol-util/marker-action';
 
 export const AssemblySymmetryAxesParams = {
     ...Mesh.Params,
@@ -57,6 +58,7 @@ export async function getAssemblySymmetryAxesRepresentation(ctx: RuntimeContext,
     const repr = prev || ShapeRepresentation(getAxesShape, Mesh.Utils);
     const data = AssemblySymmetryProvider.get(structure).value
     await repr.createOrUpdate(params, data).runInContext(ctx);
+    repr.setState({ markerActions: MarkerActions.Highlighting })
     return repr;
 }
 

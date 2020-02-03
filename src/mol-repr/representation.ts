@@ -13,7 +13,7 @@ import { Subject } from 'rxjs';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
 import { Task } from '../mol-task';
 import { PickingId } from '../mol-geo/geometry/picking';
-import { MarkerAction } from '../mol-util/marker-action';
+import { MarkerAction, MarkerActions } from '../mol-util/marker-action';
 import { Loci as ModelLoci, EmptyLoci, isEmptyLoci } from '../mol-model/loci';
 import { Overpaint } from '../mol-theme/overpaint';
 import { Transparency } from '../mol-theme/transparency';
@@ -167,9 +167,11 @@ namespace Representation {
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
         transform: Mat4
+        /** Bit mask of allowed marker actions */
+        markerActions: MarkerActions
     }
     export function createState(): State {
-        return { visible: false, alphaFactor: 0, pickable: false, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty }
+        return { visible: true, alphaFactor: 1, pickable: true, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty, markerActions: MarkerActions.All }
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible
@@ -179,6 +181,7 @@ namespace Representation {
         if (update.transparency !== undefined) state.transparency = update.transparency
         if (update.syncManually !== undefined) state.syncManually = update.syncManually
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
+        if (update.markerActions !== undefined) state.markerActions = update.markerActions
     }
     export interface StateBuilder<S extends State> {
         create(): S
@@ -212,7 +215,9 @@ namespace Representation {
         const reprMap: { [k: number]: string } = {}
         const reprList: Representation<D, P>[] = Object.keys(reprDefs).map((name, i) => {
             reprMap[i] = name
-            return reprDefs[name](ctx, getParams)
+            const repr = reprDefs[name](ctx, getParams)
+            repr.setState(currentState)
+            return repr
         })
 
         return {
@@ -283,10 +288,10 @@ namespace Representation {
                 return marked
             },
             setState: (state: Partial<S>) => {
-                for (let i = 0, il = reprList.length; i < il; ++i) {
-                    reprList[i].setState(state)
-                }
                 stateBuilder.update(currentState, state)
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    reprList[i].setState(currentState)
+                }
             },
             setTheme: (theme: Theme) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {

@@ -1,18 +1,39 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { OrderedSet, Interval } from '../mol-data/int';
+import BitFlags from './bit-flags';
 
 export enum MarkerAction {
-    Highlight,
-    RemoveHighlight,
-    Select,
-    Deselect,
-    Toggle,
-    Clear
+    None = 0x0,
+    Highlight = 0x1,
+    RemoveHighlight = 0x2,
+    Select = 0x4,
+    Deselect = 0x8,
+    Toggle = 0x10,
+    Clear = 0x20
+}
+
+export type MarkerActions = BitFlags<MarkerAction>
+export namespace MarkerActions {
+    export const is: (m: MarkerActions, f: MarkerAction) => boolean = BitFlags.has
+
+    export const All = (
+        MarkerAction.Highlight | MarkerAction.RemoveHighlight |
+        MarkerAction.Select | MarkerAction.Deselect | MarkerAction.Toggle |
+        MarkerAction.Clear
+    ) as MarkerActions
+    export const Highlighting = (
+        MarkerAction.Highlight | MarkerAction.RemoveHighlight |
+        MarkerAction.Clear
+    ) as MarkerActions
+    export const Selecting = (
+        MarkerAction.Select | MarkerAction.Deselect | MarkerAction.Toggle |
+        MarkerAction.Clear
+    ) as MarkerActions
 }
 
 export function applyMarkerActionAtPosition(array: Uint8Array, i: number, action: MarkerAction) {

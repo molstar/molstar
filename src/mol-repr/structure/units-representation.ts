@@ -18,9 +18,11 @@ import { Theme } from '../../mol-theme/theme';
 import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, EmptyLoci, isEmptyLoci, isEveryLoci } from '../../mol-model/loci';
-import { MarkerAction } from '../../mol-util/marker-action';
+import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Interactions } from '../../mol-model-props/computed/interactions/interactions';
+import { Transparency } from '../../mol-theme/transparency';
+import { Mat4, EPSILON } from '../../mol-math/linear-algebra';
 
 export const UnitsParams = {
     ...StructureParams,
@@ -63,6 +65,8 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                     const visual = visualCtor(materialId)
                     const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                     if (promise) await promise
+                    // ensure state is current for new visual
+                    setVisualState(visual, group, _state)
                     visuals.set(group.hashCode, { visual, group })
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length })
                 }
@@ -89,6 +93,8 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                         // console.log(label, 'not found visualGroup to reuse, creating new')
                         // newGroups.push(group)
                         const visual = visualCtor(materialId)
+                        // ensure state is current for new visual
+                        setVisualState(visual, group, _state)
                         const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                         if (promise) await promise
                         visuals.set(group.hashCode, { visual, group })
@@ -166,8 +172,8 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     }
 
     function mark(loci: Loci, action: MarkerAction) {
-        let changed = false
         if (!_structure) return false
+        if (!MarkerActions.is(_state.markerActions, action)) return false
         if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Bond.isLoci(loci) || Interactions.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
             // Remap `loci` from equivalent structure to the current `_structure`
@@ -176,38 +182,57 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         } else if (!isEveryLoci(loci)) {
             return false
         }
+
+        let changed = false
         visuals.forEach(({ visual }) => {
             changed = visual.mark(loci, action) || changed
         })
         return changed
     }
 
-    function setState(state: Partial<StructureRepresentationState>) {
+    function setVisualState(visual: UnitsVisual<P>, group: Unit.SymmetryGroup, state: Partial<StructureRepresentationState>) {
         const { visible, alphaFactor, pickable, overpaint, transparency, transform, unitTransforms } = state
-        if (visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(visible))
-        if (alphaFactor !== undefined) visuals.forEach(({ visual }) => visual.setAlphaFactor(alphaFactor))
-        if (pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(pickable))
-        if (overpaint !== undefined) {
-            // Remap loci from equivalent structure to the current `_structure`
-            if (_structure) {
-                const remappedOverpaint = Overpaint.remap(overpaint, _structure)
-                visuals.forEach(({ visual }) => visual.setOverpaint(remappedOverpaint))
+
+        if (visible !== undefined) visual.setVisibility(visible)
+        if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor)
+        if (pickable !== undefined) visual.setPickable(pickable)
+        if (overpaint !== undefined) visual.setOverpaint(overpaint)
+        if (transparency !== undefined) visual.setTransparency(transparency)
+        if (transform !== undefined) visual.setTransform(transform)
+        if (unitTransforms !== undefined) {
+            if (unitTransforms) {
+                // console.log(group.hashCode, unitTransforms.getSymmetryGroupTransforms(group))
+                visual.setTransform(undefined, unitTransforms.getSymmetryGroupTransforms(group))
+            } else {
+                visual.setTransform(undefined, null)
             }
         }
-        if (transparency !== undefined) visuals.forEach(({ visual }) => visual.setTransparency(transparency))
-        if (transform !== undefined) visuals.forEach(({ visual }) => visual.setTransform(transform))
-        if (unitTransforms !== undefined) {
-            visuals.forEach(({ visual, group }) => {
-                if (unitTransforms) {
-                    // console.log(group.hashCode, unitTransforms.getSymmetryGroupTransforms(group))
-                    visual.setTransform(undefined, unitTransforms.getSymmetryGroupTransforms(group))
-                } else {
-                    visual.setTransform(undefined, null)
-                }
-            })
-        }
+    }
 
-        StructureRepresentationStateBuilder.update(_state, state)
+    function setState(state: Partial<StructureRepresentationState>) {
+        const { visible, alphaFactor, pickable, overpaint, transparency, transform, unitTransforms, syncManually, markerActions } = state
+        const newState: Partial<StructureRepresentationState> = {}
+
+        if (visible !== _state.visible) newState.visible = visible
+        if (alphaFactor !== _state.alphaFactor) newState.alphaFactor = alphaFactor
+        if (pickable !== _state.pickable) newState.pickable = pickable
+        if (overpaint !== undefined && !Overpaint.areEqual(overpaint, _state.overpaint)) {
+            if (_structure) {
+                newState.overpaint = Overpaint.remap(overpaint, _structure)
+            }
+        }
+        if (transparency !== undefined && !Transparency.areEqual(transparency, _state.transparency)) {
+            newState.transparency = transparency
+        }
+        if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) { newState.transform = transform
+        }
+        if (unitTransforms !== _state.unitTransforms) newState.unitTransforms = unitTransforms
+        if (syncManually !== _state.syncManually) newState.syncManually = syncManually
+        if (markerActions !== _state.markerActions) newState.markerActions = markerActions
+
+        visuals.forEach(({ visual, group }) => setVisualState(visual, group, newState))
+
+        StructureRepresentationStateBuilder.update(_state, newState)
     }
 
     function setTheme(theme: Theme) {

@@ -15,7 +15,7 @@ import { VisualUpdateState } from '../util';
 import { ShapeGroupColorTheme } from '../../mol-theme/color/shape-group';
 import { ShapeGroupSizeTheme } from '../../mol-theme/size/shape-group';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { MarkerAction } from '../../mol-util/marker-action';
+import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { ValueCell } from '../../mol-util';
 import { createColors } from '../../mol-geo/geometry/color-data';
 import { createSizes, SizeData } from '../../mol-geo/geometry/size-data';
@@ -189,6 +189,12 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
+            if (!MarkerActions.is(_state.markerActions, action)) return false
+            if (ShapeGroup.isLoci(loci) || Shape.isLoci(loci)) {
+                if (loci.shape !== _shape) return false
+            } else if (!isEveryLoci(loci)) {
+                return false
+            }
             return Visual.mark(_renderObject, loci, action, lociApply)
         },
         setState(state: Partial<Representation.State>) {

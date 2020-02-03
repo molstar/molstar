@@ -21,6 +21,7 @@ import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { arcLength, halfPI, radToDeg } from '../../../mol-math/misc';
 import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
+import { MarkerActions } from '../../../mol-util/marker-action';
 
 export interface DihedralData {
     quads: Loci.Bundle<4>[]
@@ -74,7 +75,7 @@ const DihedralVisuals = {
     'vectors': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, VectorsParams>) => ShapeRepresentation(getVectorsShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'extenders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getExtendersShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
-    'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }) }),
+    'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }), modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
     'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
 

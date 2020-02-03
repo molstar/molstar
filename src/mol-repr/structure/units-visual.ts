@@ -264,10 +264,10 @@ export function UnitsVisual<G extends Geometry, P extends UnitsParams & Geometry
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
         setOverpaint(overpaint: Overpaint) {
-            return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
+            Visual.setOverpaint(renderObject, overpaint, lociApply, true)
         },
         setTransparency(transparency: Transparency) {
-            return Visual.setTransparency(renderObject, transparency, lociApply, true)
+            Visual.setTransparency(renderObject, transparency, lociApply, true)
         },
         destroy() {
             // TODO

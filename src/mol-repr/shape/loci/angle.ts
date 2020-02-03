@@ -21,6 +21,7 @@ import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { radToDeg, arcLength } from '../../../mol-math/misc';
 import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
+import { MarkerActions } from '../../../mol-util/marker-action';
 
 export interface AngleData {
     triples: Loci.Bundle<3>[]
@@ -68,7 +69,7 @@ type TextParams = typeof TextParams
 const AngleVisuals = {
     'vectors': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, VectorsParams>) => ShapeRepresentation(getVectorsShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
-    'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }) }),
+    'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }), modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
     'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 }
 

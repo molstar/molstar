@@ -16,6 +16,7 @@ import { Shape } from '../../../mol-model/shape';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { MarkerActions } from '../../../mol-util/marker-action';
 
 export interface DistanceData {
     pairs: Loci.Bundle<2>[]
@@ -141,5 +142,7 @@ function getTextShape(ctx: RuntimeContext, data: DistanceData, props: DistancePr
 
 export type DistanceRepresentation = Representation<DistanceData, DistanceParams>
 export function DistanceRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, DistanceParams>): DistanceRepresentation {
-    return Representation.createMulti('Distance', ctx, getParams, Representation.StateBuilder, DistanceVisuals as unknown as Representation.Def<DistanceData, DistanceParams>)
+    const repr = Representation.createMulti('Distance', ctx, getParams, Representation.StateBuilder, DistanceVisuals as unknown as Representation.Def<DistanceData, DistanceParams>)
+    repr.setState({ markerActions: MarkerActions.Highlighting })
+    return repr
 }
