@@ -52,13 +52,13 @@ namespace StructureRepresentation3DHelpers {
         const type = ctx.structureRepresentation.registry.get(name);
 
         const themeDataCtx = { structure };
-        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).getParams(themeDataCtx);
-        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).getParams(themeDataCtx)
+        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme.name).getParams(themeDataCtx);
+        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name).getParams(themeDataCtx)
         const structureDefaultParams = PD.getDefaultValues(type.getParams(ctx.structureRepresentation.themeCtx, structure))
         return ({
             type: { name, params: structureParams ? { ...structureDefaultParams, ...structureParams } : structureDefaultParams },
-            colorTheme: { name: type.defaultColorTheme, params: PD.getDefaultValues(colorParams) },
-            sizeTheme: { name: type.defaultSizeTheme, params: PD.getDefaultValues(sizeParams) }
+            colorTheme: { name: type.defaultColorTheme.name, params: { ...PD.getDefaultValues(colorParams), ...type.defaultColorTheme.props } },
+            sizeTheme: { name: type.defaultSizeTheme.name, params: { ...PD.getDefaultValues(sizeParams), ...type.defaultSizeTheme.props } }
         })
     }
 
@@ -81,16 +81,16 @@ namespace StructureRepresentation3DHelpers {
 
         const color = params.color
             ? params.color instanceof Array ? params.color[0] : params.color
-            : themeCtx.colorThemeRegistry.get(repr.defaultColorTheme);
-        const colorDefaultParams = PD.getDefaultValues(color.getParams(themeCtx))
+            : themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
+        const colorDefaultParams = { ...PD.getDefaultValues(color.getParams(themeCtx)), ...repr.defaultColorTheme.props }
         const colorParams = params.color instanceof Array
             ? { ...colorDefaultParams, ...params.color[1](color as C, themeCtx) }
             : colorDefaultParams;
 
         const size = params.size
             ? params.size instanceof Array ? params.size[0] : params.size
-            : themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme);
-        const sizeDefaultParams = PD.getDefaultValues(size.getParams(themeCtx))
+            : themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
+        const sizeDefaultParams = { ...PD.getDefaultValues(size.getParams(themeCtx)), ...repr.defaultSizeTheme.props }
         const sizeParams = params.size instanceof Array
             ? { ...sizeDefaultParams, ...params.size[1](size as S, themeCtx) }
             : sizeDefaultParams;
@@ -106,26 +106,26 @@ namespace StructureRepresentation3DHelpers {
         const type = ctx.structureRepresentation.registry.get(reprName);
 
         const themeDataCtx = { structure };
-        const color = colorName || type.defaultColorTheme;
+        const color = colorName || type.defaultColorTheme.name;
         const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(color).getParams(themeDataCtx);
-        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).getParams(themeDataCtx)
+        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name).getParams(themeDataCtx)
         const structureDefaultParams = PD.getDefaultValues(type.getParams(ctx.structureRepresentation.themeCtx, structure))
         return ({
             type: { name: reprName, params: structureParams ? { ...structureDefaultParams, ...structureParams } : structureDefaultParams },
             colorTheme: { name: color, params: PD.getDefaultValues(colorParams) },
-            sizeTheme: { name: type.defaultSizeTheme, params: PD.getDefaultValues(sizeParams) }
+            sizeTheme: { name: type.defaultSizeTheme.name, params: PD.getDefaultValues(sizeParams) }
         })
     }
 
     export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structureParams?: Partial<PD.Values<StructureParams>>, colorName?: BuiltInColorThemeName): StateTransformer.Params<StructureRepresentation3D> {
         const type = ctx.structureRepresentation.registry.get(name);
-        const color = colorName || type.defaultColorTheme;
+        const color = colorName || type.defaultColorTheme.name;
         const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(color).defaultValues;
-        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).defaultValues
+        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name).defaultValues
         return ({
             type: { name, params: structureParams ? { ...type.defaultValues, ...structureParams } : type.defaultValues },
             colorTheme: { name: color, params: colorParams },
-            sizeTheme: { name: type.defaultSizeTheme, params: sizeParams }
+            sizeTheme: { name: type.defaultSizeTheme.name, params: sizeParams }
         })
     }
 }
@@ -156,13 +156,13 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
                     registry.types,
                     name => PD.Group<any>(registry.get(name).getParams(themeCtx, Structure.Empty))),
                 colorTheme: PD.Mapped<any>(
-                    type.defaultColorTheme,
+                    type.defaultColorTheme.name,
                     themeCtx.colorThemeRegistry.types,
                     name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
                     colorThemeInfo
                 ),
                 sizeTheme: PD.Mapped<any>(
-                    type.defaultSizeTheme,
+                    type.defaultSizeTheme.name,
                     themeCtx.sizeThemeRegistry.types,
                     name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ structure: Structure.Empty }))
                 )
@@ -185,13 +185,13 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
                 registry.getApplicableTypes(a.data),
                 name => PD.Group<any>(registry.get(name).getParams(themeCtx, a.data))),
             colorTheme: PD.Mapped<any>(
-                type.defaultColorTheme,
+                type.defaultColorTheme.name,
                 themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
                 name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
                 colorThemeInfo
             ),
             sizeTheme: PD.Mapped<any>(
-                type.defaultSizeTheme,
+                type.defaultSizeTheme.name,
                 themeCtx.sizeThemeRegistry.types,
                 name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx))
             )
@@ -502,24 +502,24 @@ export namespace VolumeRepresentation3DHelpers {
         const type = ctx.volumeRepresentation.registry.get(name);
 
         const themeDataCtx = { volume };
-        const colorParams = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).getParams(themeDataCtx);
-        const sizeParams = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).getParams(themeDataCtx)
+        const colorParams = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme.name).getParams(themeDataCtx);
+        const sizeParams = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme.name).getParams(themeDataCtx)
         const volumeDefaultParams = PD.getDefaultValues(type.getParams(ctx.volumeRepresentation.themeCtx, volume))
         return ({
             type: { name, params: volumeParams ? { ...volumeDefaultParams, ...volumeParams } : volumeDefaultParams },
-            colorTheme: { name: type.defaultColorTheme, params: PD.getDefaultValues(colorParams) },
-            sizeTheme: { name: type.defaultSizeTheme, params: PD.getDefaultValues(sizeParams) }
+            colorTheme: { name: type.defaultColorTheme.name, params: PD.getDefaultValues(colorParams) },
+            sizeTheme: { name: type.defaultSizeTheme.name, params: PD.getDefaultValues(sizeParams) }
         })
     }
 
     export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInVolumeRepresentationsName, volumeParams?: Partial<PD.Values<PD.Params>>, colorName?: BuiltInColorThemeName, colorParams?: Partial<ColorTheme.Props>, sizeName?: BuiltInSizeThemeName, sizeParams?: Partial<SizeTheme.Props>): StateTransformer.Params<VolumeRepresentation3D> {
         const type = ctx.volumeRepresentation.registry.get(name);
-        const colorType = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(colorName || type.defaultColorTheme);
-        const sizeType = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(sizeName || type.defaultSizeTheme);
+        const colorType = ctx.volumeRepresentation.themeCtx.colorThemeRegistry.get(colorName || type.defaultColorTheme.name);
+        const sizeType = ctx.volumeRepresentation.themeCtx.sizeThemeRegistry.get(sizeName || type.defaultSizeTheme.name);
         return ({
             type: { name, params: volumeParams ? { ...type.defaultValues, ...volumeParams } : type.defaultValues },
-            colorTheme: { name: type.defaultColorTheme, params: colorParams ? { ...colorType.defaultValues, ...colorParams } : colorType.defaultValues },
-            sizeTheme: { name: type.defaultSizeTheme, params: sizeParams ? { ...sizeType.defaultValues, ...sizeParams } : sizeType.defaultValues }
+            colorTheme: { name: type.defaultColorTheme.name, params: colorParams ? { ...colorType.defaultValues, ...colorParams } : colorType.defaultValues },
+            sizeTheme: { name: type.defaultSizeTheme.name, params: sizeParams ? { ...sizeType.defaultValues, ...sizeParams } : sizeType.defaultValues }
         })
     }
 
@@ -544,12 +544,12 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                     registry.types,
                     name => PD.Group<any>(registry.get(name).getParams(themeCtx, VolumeData.One ))),
                 colorTheme: PD.Mapped<any>(
-                    type.defaultColorTheme,
+                    type.defaultColorTheme.name,
                     themeCtx.colorThemeRegistry.types,
                     name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ volume: VolumeData.One }))
                 ),
                 sizeTheme: PD.Mapped<any>(
-                    type.defaultSizeTheme,
+                    type.defaultSizeTheme.name,
                     themeCtx.sizeThemeRegistry.types,
                     name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ volume: VolumeData.One }))
                 )
@@ -563,12 +563,12 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                 registry.types,
                 name => PD.Group<any>(registry.get(name).getParams(themeCtx, a.data))),
             colorTheme: PD.Mapped<any>(
-                type.defaultColorTheme,
+                type.defaultColorTheme.name,
                 themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
                 name => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx))
             ),
             sizeTheme: PD.Mapped<any>(
-                type.defaultSizeTheme,
+                type.defaultSizeTheme.name,
                 themeCtx.sizeThemeRegistry.types,
                 name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx))
             )

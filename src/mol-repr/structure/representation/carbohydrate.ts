@@ -42,7 +42,7 @@ export const CarbohydrateRepresentationProvider: StructureRepresentationProvider
     factory: CarbohydrateRepresentation,
     getParams: getCarbohydrateParams,
     defaultValues: PD.getDefaultValues(CarbohydrateParams),
-    defaultColorTheme: 'carbohydrate-symbol',
-    defaultSizeTheme: 'uniform',
+    defaultColorTheme: { name: 'carbohydrate-symbol' },
+    defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.carbohydrates.elements.length > 0
 }

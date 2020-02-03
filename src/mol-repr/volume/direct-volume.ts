@@ -185,7 +185,7 @@ export const DirectVolumeRepresentationProvider: VolumeRepresentationProvider<Di
     factory: DirectVolumeRepresentation,
     getParams: getDirectVolumeParams,
     defaultValues: PD.getDefaultValues(DirectVolumeParams),
-    defaultColorTheme: 'uniform',
-    defaultSizeTheme: 'uniform',
+    defaultColorTheme: { name: 'uniform' },
+    defaultSizeTheme: { name: 'uniform' },
     isApplicable: (volume: VolumeData) => volume.data.data.length > 0
 }

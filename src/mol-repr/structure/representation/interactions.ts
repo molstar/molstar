@@ -43,8 +43,8 @@ export const InteractionsRepresentationProvider: StructureRepresentationProvider
     factory: InteractionRepresentation,
     getParams: getInteractionParams,
     defaultValues: PD.getDefaultValues(InteractionsParams),
-    defaultColorTheme: 'interaction-type',
-    defaultSizeTheme: 'uniform',
+    defaultColorTheme: { name: 'interaction-type' },
+    defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0,
     ensureCustomProperties: (ctx: CustomProperty.Context, structure: Structure) => {
         return InteractionsProvider.attach(ctx, structure)

@@ -45,8 +45,8 @@ export interface RepresentationProvider<D, P extends PD.Params, S extends Repres
     readonly factory: RepresentationFactory<D, P, S>
     readonly getParams: RepresentationParamsGetter<D, P>
     readonly defaultValues: PD.Values<P>
-    readonly defaultColorTheme: string
-    readonly defaultSizeTheme: string
+    readonly defaultColorTheme: { name: string, props?: {} }
+    readonly defaultSizeTheme: { name: string, props?: {} }
     readonly isApplicable: (data: D) => boolean
     readonly ensureCustomProperties?: (ctx: CustomProperty.Context, data: D) => Promise<void>
 }

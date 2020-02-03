@@ -35,7 +35,7 @@ export const LabelRepresentationProvider: StructureRepresentationProvider<LabelP
     factory: LabelRepresentation,
     getParams: getLabelParams,
     defaultValues: PD.getDefaultValues(LabelParams),
-    defaultColorTheme: 'uniform',
-    defaultSizeTheme: 'uniform',
+    defaultColorTheme: { name: 'uniform' },
+    defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 }
