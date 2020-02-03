@@ -7,6 +7,8 @@
 import { StateAction } from '../action';
 import { StateObject, StateObjectCell } from '../object';
 import { StateTransformer } from '../transformer';
+import { UUID } from '../../mol-util';
+import { arraySetRemove } from '../../mol-util/array';
 
 export { StateActionManager }
 
@@ -27,6 +29,28 @@ class StateActionManager {
             } else {
                 this.fromTypeIndex.set(t.type, [action]);
             }
+        }
+
+        return this;
+    }
+
+    remove(actionOrTransformer: StateAction | StateTransformer | UUID) {
+        const id = StateTransformer.is(actionOrTransformer) 
+            ? actionOrTransformer.toAction().id 
+            : UUID.is(actionOrTransformer)
+            ? actionOrTransformer
+            : actionOrTransformer.id;
+
+        const action = this.actions.get(id);
+        if (!action) return this;
+
+        this.actions.delete(id);
+        for (const t of action.definition.from) {
+            const xs = this.fromTypeIndex.get(t.type);
+            if (!xs) continue;
+
+            arraySetRemove(xs, action);
+            if (xs.length === 0) this.fromTypeIndex.delete(t.type);
         }
 
         return this;

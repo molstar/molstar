@@ -11,7 +11,6 @@ import { getAssemblySymmetryAxesRepresentation, AssemblySymmetryAxesParams } fro
 import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
 import { PluginStateTransform, PluginStateObject } from '../../../../state/objects';
 import { Task } from '../../../../../mol-task';
-import { PluginSpec } from '../../../../spec';
 import { PluginContext } from '../../../../context';
 import { StateTransformer } from '../../../../../mol-state';
 
@@ -23,7 +22,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         private provider = AssemblySymmetryProvider
 
         register(): void {
-            this.ctx.state.dataState.actions.add(PluginSpec.Action(AssemblySymmetryAxes3D).action)
+            this.ctx.state.dataState.actions.add(AssemblySymmetryAxes3D)
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('rcsb-assembly-symmetry-cluster', AssemblySymmetryClusterColorThemeProvider)
         }
@@ -36,7 +35,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         }
 
         unregister() {
-            // TODO remove `AssemblySymmetryAxes3D` from `this.ctx.state.dataState.actions`
+            this.ctx.state.dataState.actions.remove(AssemblySymmetryAxes3D)
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('rcsb-assembly-symmetry-cluster')
         }
