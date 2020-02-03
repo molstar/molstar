@@ -5,13 +5,18 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
-import { CustomPropertyDescriptor } from '../../mol-model/structure';
+import { CustomPropertyDescriptor, Structure, Unit } from '../../mol-model/structure';
 // import { Database as _Database } from '../../mol-data/db'
 import { CustomProperty } from '../common/custom-property';
 import { CustomModelProperty } from '../common/custom-model-property';
 import { Model, ElementIndex, ResidueIndex } from '../../mol-model/structure/model';
 import { IntAdjacencyGraph } from '../../mol-math/graph';
 import { readFromFile } from '../../mol-util/data-source';
+import { CustomStructureProperty } from '../common/custom-structure-property';
+import { InterUnitGraph } from '../../mol-math/graph/inter-unit-graph';
+import { UnitIndex } from '../../mol-model/structure/structure/element/element';
+import { IntMap, SortedArray } from '../../mol-data/int';
+import { arrayMax } from '../../mol-util/array';
 
 export { ValidationReport }
 
@@ -147,6 +152,135 @@ export const ValidationReportProvider: CustomModelProperty.Provider<ValidationRe
     obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<ValidationReportProps>) => {
         const p = { ...PD.getDefaultValues(ValidationReportParams), ...props }
         return await ValidationReport.obtain(ctx, data, p)
+    }
+})
+
+//
+
+type IntraUnitClashesProps = {
+    readonly id: ArrayLike<number>
+    readonly magnitude: ArrayLike<number>
+    readonly distance: ArrayLike<number>
+}
+type InterUnitClashesProps = {
+    readonly id: number
+    readonly magnitude: number
+    readonly distance: number
+}
+
+export type IntraUnitClashes = IntAdjacencyGraph<UnitIndex, IntraUnitClashesProps>
+export type InterUnitClashes = InterUnitGraph<Unit.Atomic, UnitIndex, InterUnitClashesProps>
+
+export interface Clashes {
+    readonly interUnit: InterUnitClashes
+    readonly intraUnit: IntMap<IntraUnitClashes>
+}
+
+function createInterUnitClashes(structure: Structure, clashes: ValidationReport['clashes']) {
+    const builder = new InterUnitGraph.Builder<Unit.Atomic, UnitIndex, InterUnitClashesProps>()
+    const { a, b, edgeProps: { id, magnitude, distance } } = clashes
+
+    Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {
+        const elementsA = unitA.elements
+        const elementsB = unitB.elements
+
+        builder.startUnitPair(unitA as Unit.Atomic, unitB as Unit.Atomic)
+
+        for (let i = 0, il = clashes.edgeCount * 2; i < il; ++i) {
+            // TODO create lookup
+            let indexA = SortedArray.indexOf(elementsA, a[i])
+            let indexB = SortedArray.indexOf(elementsB, b[i])
+
+            if (indexA !== -1 && indexB !== -1) {
+                builder.add(indexA as UnitIndex, indexB as UnitIndex, {
+                    id: id[i],
+                    magnitude: magnitude[i],
+                    distance: distance[i]
+                })
+            }
+        }
+
+        builder.finishUnitPair()
+    }, {
+        maxRadius: arrayMax(clashes.edgeProps.distance),
+        validUnit: (unit: Unit) => Unit.isAtomic(unit),
+        validUnitPair: (unitA: Unit, unitB: Unit) => unitA.model === unitB.model
+    })
+
+    return new InterUnitGraph(builder.getMap())
+}
+
+function createIntraUnitClashes(unit: Unit.Atomic, clashes: ValidationReport['clashes']): IntraUnitClashes {
+    const aIndices: UnitIndex[] = []
+    const bIndices: UnitIndex[] = []
+    const ids: number[] = []
+    const magnitudes: number[] = []
+    const distances: number[] = []
+
+    const { elements } = unit
+    const { a, b, edgeCount, edgeProps } = clashes
+
+    for (let i = 0, il = edgeCount * 2; i < il; ++i) {
+        // TODO create lookup
+        let indexA = SortedArray.indexOf(elements, a[i])
+        let indexB = SortedArray.indexOf(elements, b[i])
+
+        if (indexA !== -1 && indexB !== -1) {
+            aIndices.push(indexA as UnitIndex)
+            bIndices.push(indexB as UnitIndex)
+            ids.push(edgeProps.id[i])
+            magnitudes.push(edgeProps.magnitude[i])
+            distances.push(edgeProps.distance[i])
+        }
+    }
+
+    const builder = new IntAdjacencyGraph.EdgeBuilder(elements.length, aIndices, bIndices)
+    const id = new Int32Array(builder.slotCount)
+    const magnitude = new Float32Array(builder.slotCount)
+    const distance = new Float32Array(builder.slotCount)
+    for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
+        builder.addNextEdge()
+        builder.assignProperty(id, ids[i])
+        builder.assignProperty(magnitude, magnitudes[i])
+        builder.assignProperty(distance, distances[i])
+    }
+    return builder.createGraph({ id, magnitude, distance })
+}
+
+function createClashes(structure: Structure, clashes: ValidationReport['clashes']): Clashes {
+
+    const intraUnit = IntMap.Mutable<IntraUnitClashes>()
+
+    for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
+        const group = structure.unitSymmetryGroups[i]
+        if (!Unit.isAtomic(group.units[0])) continue
+
+        const intraClashes = createIntraUnitClashes(group.units[0], clashes)
+        for (let j = 0, jl = group.units.length; j < jl; ++j) {
+            intraUnit.set(group.units[j].id, intraClashes)
+        }
+    }
+
+    return {
+        interUnit: createInterUnitClashes(structure, clashes),
+        intraUnit
+    }
+}
+
+export const ClashesProvider: CustomStructureProperty.Provider<{}, Clashes> = CustomStructureProperty.createProvider({
+    label: 'Clashes',
+    descriptor: CustomPropertyDescriptor({
+        name: 'rcsb_clashes',
+        // TODO `cifExport` and `symbol`
+    }),
+    type: 'local',
+    defaultParams: {},
+    getParams: (data: Structure) => ({}),
+    isApplicable: (data: Structure) => true,
+    obtain: async (ctx: CustomProperty.Context, data: Structure) => {
+        await ValidationReportProvider.attach(ctx, data.models[0])
+        const validationReport = ValidationReportProvider.get(data.models[0]).value!
+        return createClashes(data, validationReport.clashes)
     }
 })
 

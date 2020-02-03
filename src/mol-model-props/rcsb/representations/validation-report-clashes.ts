@@ -5,13 +5,13 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Unit, Structure } from '../../../mol-model/structure';
-import { Theme, ThemeRegistryContext, ThemeDataContext } from '../../../mol-theme/theme';
+import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
+import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { PickingId } from '../../../mol-geo/geometry/picking';
-import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Interval, SortedArray } from '../../../mol-data/int';
+import { EmptyLoci, Loci, createDataLoci } from '../../../mol-model/loci';
+import { Interval, OrderedSet } from '../../../mol-data/int';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../../../mol-repr/representation';
 import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
 import { UnitKind, UnitKindOptions } from '../../../mol-repr/structure/visual/util/common';
@@ -20,47 +20,34 @@ import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '.
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { DataLocation } from '../../../mol-model/location';
-import { ValidationReportProvider, ValidationReport } from '../validation-report';
+import { ClashesProvider } from '../validation-report';
 import { CustomProperty } from '../../common/custom-property';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mol-repr/structure/complex-visual';
-import { arrayMax } from '../../../mol-util/array';
-import { UnitIndex } from '../../../mol-model/structure/structure/element/element';
-import { InterUnitGraph } from '../../../mol-math/graph/inter-unit-graph';
-import { ColorTheme } from '../../../mol-theme/color';
-import { ColorNames } from '../../../mol-util/color/names';
+import { Color } from '../../../mol-util/color';
 
 //
 
 function createIntraUnitClashCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitClashParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
-    const validationReport = ValidationReportProvider.get(unit.model).value!
-    const { clashes } = validationReport
-
+    const clashes = ClashesProvider.get(structure).value!.intraUnit.get(unit.id)
     const { edgeCount, a, b, edgeProps } = clashes
     const { magnitude } = edgeProps
     const { sizeFactor } = props
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
+    const { elements } = unit
     const pos = unit.conformation.invariantPosition
 
     const builderProps = {
         linkCount: edgeCount * 2,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            pos(a[edgeIndex], posA)
-            pos(b[edgeIndex], posB)
+            pos(elements[a[edgeIndex]], posA)
+            pos(elements[b[edgeIndex]], posB)
         },
         style: (edgeIndex: number) => LinkCylinderStyle.Disk,
         radius: (edgeIndex: number) => magnitude[edgeIndex] * sizeFactor,
-        ignore: (edgeIndex: number) => {
-            return (
-                // TODO create lookup
-                !SortedArray.has(unit.elements, a[edgeIndex]) ||
-                !SortedArray.has(unit.elements, b[edgeIndex])
-            )
-        }
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)
@@ -99,9 +86,8 @@ function getIntraClashLoci(pickingId: PickingId, structureGroup: StructureGroup,
         const { structure, group } = structureGroup
         const unit = group.units[instanceId]
         if (Unit.isAtomic(unit)) {
-            structure
-            groupId
-            // TODO
+            const clashes = ClashesProvider.get(structure).value!.intraUnit.get(unit.id)
+            return createDataLoci(clashes, 'clashes', OrderedSet.ofSingleton(groupId))
         }
     }
     return EmptyLoci
@@ -114,15 +100,17 @@ function eachIntraClash(loci: Loci, structureGroup: StructureGroup, apply: (inte
 }
 
 function createIntraClashIterator(structureGroup: StructureGroup): LocationIterator {
-    const { group } = structureGroup
+    const { structure, group } = structureGroup
     const unit = group.units[0]
-    const validationReport = ValidationReportProvider.get(unit.model).value!
-    const { clashes } = validationReport
+    const clashes = ClashesProvider.get(structure).value!.intraUnit.get(unit.id)
+    const { a } = clashes
     const groupCount = clashes.edgeCount * 2
     const instanceCount = group.units.length
-    const location = DataLocation(validationReport, 'clashes')
+    const location = StructureElement.Location.create()
     const getLocation = (groupIndex: number, instanceIndex: number) => {
-        location.index = groupIndex + instanceIndex * groupCount
+        const unit = group.units[instanceIndex]
+        location.unit = unit
+        location.element = unit.elements[a[groupIndex]]
         return location
     }
     return LocationIterator(groupCount, instanceCount, getLocation)
@@ -130,46 +118,8 @@ function createIntraClashIterator(structureGroup: StructureGroup): LocationItera
 
 //
 
-type InterUnitClashesProps = { id: number, magnitude: number, distance: number }
-
-function createInterUnitClashes(structure: Structure, clashes: ValidationReport['clashes']) {
-    const builder = new InterUnitGraph.Builder<Unit.Atomic, UnitIndex, InterUnitClashesProps>()
-    const { a, b, edgeProps: { id, magnitude, distance } } = clashes
-
-    Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {
-        const elementsA = unitA.elements
-        const elementsB = unitB.elements
-
-        builder.startUnitPair(unitA as Unit.Atomic, unitB as Unit.Atomic)
-
-        for (let i = 0, il = clashes.edgeCount * 2; i < il; ++i) {
-            // TODO create lookup
-            let indexA = SortedArray.indexOf(elementsA, a[i])
-            let indexB = SortedArray.indexOf(elementsB, b[i])
-
-            if (indexA !== -1 && indexB !== -1) {
-                builder.add(indexA as UnitIndex, indexB as UnitIndex, {
-                    id: id[i],
-                    magnitude: magnitude[i],
-                    distance: distance[i]
-                })
-            }
-        }
-
-        builder.finishUnitPair()
-    }, {
-        maxRadius: arrayMax(clashes.edgeProps.distance),
-        validUnit: (unit: Unit) => Unit.isAtomic(unit),
-        validUnitPair: (unitA: Unit, unitB: Unit) => unitA.model === unitB.model
-    })
-
-    return new InterUnitGraph(builder.getMap())
-}
-
 function createInterUnitClashCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitClashParams>, mesh?: Mesh) {
-    const validationReport = ValidationReportProvider.get(structure.models[0]).value!
-    const clashes = createInterUnitClashes(structure, validationReport.clashes)
-
+    const clashes = ClashesProvider.get(structure).value!.interUnit
     const { edges, edgeCount } = clashes
     const { sizeFactor } = props
 
@@ -234,8 +184,17 @@ function eachInterClash(loci: Loci, structure: Structure, apply: (interval: Inte
 }
 
 function createInterClashIterator(structure: Structure): LocationIterator {
-    const location = DataLocation({}, 'clashes')
-    return LocationIterator(1, 1, () => location)
+    const clashes = ClashesProvider.get(structure).value!.interUnit
+    const groupCount = clashes.edgeCount
+    const instanceCount = 1
+    const location = StructureElement.Location.create()
+    const getLocation = (groupIndex: number) => {
+        const clash = clashes.edges[groupIndex]
+        location.unit = clash.unitA
+        location.element = clash.unitA.elements[clash.indexA]
+        return location
+    }
+    return LocationIterator(groupCount, instanceCount, getLocation, true)
 }
 
 //
@@ -267,30 +226,10 @@ export const ClashesRepresentationProvider: StructureRepresentationProvider<Clas
     factory: ClashesRepresentation,
     getParams: getClashesParams,
     defaultValues: PD.getDefaultValues(ClashesParams),
-    defaultColorTheme: ValidationReport.Tag.Clashes,
-    defaultSizeTheme: 'physical',
+    defaultColorTheme: { name: 'uniform', props: { value: Color(0xFA28FF) } },
+    defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0,
     ensureCustomProperties: (ctx: CustomProperty.Context, structure: Structure) => {
-        return ValidationReportProvider.attach(ctx, structure.models[0])
+        return ClashesProvider.attach(ctx, structure)
     }
-}
-
-//
-
-function ClashesColorTheme(ctx: ThemeDataContext, props: {}): ColorTheme<{}> {
-    return {
-        factory: ClashesColorTheme,
-        granularity: 'uniform',
-        color: () => ColorNames.hotpink,
-        props,
-        description: 'Uniform color for clashes',
-    }
-}
-
-export const ClashesColorThemeProvider: ColorTheme.Provider<{}> = {
-    label: 'RCSB Clashes',
-    factory: ClashesColorTheme,
-    getParams: () => ({}),
-    defaultValues: PD.getDefaultValues({}),
-    isApplicable: (ctx: ThemeDataContext) => false,
 }
