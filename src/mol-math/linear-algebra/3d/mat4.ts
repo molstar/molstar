@@ -739,6 +739,37 @@ namespace Mat4 {
         return true;
     }
 
+    /**
+     * Check if the matrix has only translation and uniform scaling
+     * [ S  0  0  X ]
+     * [ 0  S  0  Y ]
+     * [ 0  0  S  Z ]
+     * [ 0  0  0  1 ]
+     */
+    export function isTranslationAndUniformScaling(a: Mat4, eps?: number) {
+        return _isTranslationAndUniformScaling(a, typeof eps !== 'undefined' ? eps : EPSILON)
+    }
+
+    function _isTranslationAndUniformScaling(a: Mat4, eps: number) {
+        const a00 = a[0]
+        return (
+            // 0 base scaling
+            equalEps(a[1], 0, eps) &&
+            equalEps(a[2], 0, eps) &&
+            equalEps(a[3], 0, eps) &&
+            equalEps(a[4], 0, eps) &&
+            equalEps(a[5], a00, eps) &&
+            equalEps(a[6], 0, eps) &&
+            equalEps(a[7], 0, eps) &&
+            equalEps(a[8], 0, eps) &&
+            equalEps(a[9], 0, eps) &&
+            equalEps(a[10], a00, eps) &&
+            equalEps(a[11], 0, eps) &&
+            // 12, 13, 14 translation can be anything
+            equalEps(a[15], 1, eps)
+        )
+    }
+
     export function fromQuat(out: Mat4, q: Quat) {
         const x = q[0], y = q[1], z = q[2], w = q[3];
         const x2 = x + x;
