@@ -8,8 +8,7 @@
 import { ValueCell } from '../../../mol-util'
 import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra'
 import { Sphere3D } from '../../../mol-math/geometry'
-import { transformPositionArray,/* , transformDirectionArray, getNormalMatrix */
-transformDirectionArray} from '../../util';
+import { transformPositionArray, transformDirectionArray, computeIndexedVertexNormals} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
@@ -106,40 +105,19 @@ export namespace Mesh {
     }
 
     export function computeNormals(mesh: Mesh) {
-        const normals = mesh.normalBuffer.ref.value.length >= mesh.vertexCount * 3
-            ? mesh.normalBuffer.ref.value : new Float32Array(mesh.vertexBuffer.ref.value.length);
+        const { vertexCount, triangleCount } = mesh
+        const vertices = mesh.vertexBuffer.ref.value
+        const indices = mesh.indexBuffer.ref.value
 
-        const v = mesh.vertexBuffer.ref.value, triangles = mesh.indexBuffer.ref.value;
+        const normals = mesh.normalBuffer.ref.value.length >= vertexCount * 3
+            ? mesh.normalBuffer.ref.value
+            : new Float32Array(vertexCount * 3);
 
         if (normals === mesh.normalBuffer.ref.value) {
-            for (let i = 0, ii = 3 * mesh.vertexCount; i < ii; i += 3) {
-                normals[i] = 0; normals[i + 1] = 0; normals[i + 2] = 0;
-            }
+            normals.fill(0, 0, vertexCount * 3)
         }
 
-        const x = Vec3.zero(), y = Vec3.zero(), z = Vec3.zero(), d1 = Vec3.zero(), d2 = Vec3.zero(), n = Vec3.zero();
-        for (let i = 0, ii = 3 * mesh.triangleCount; i < ii; i += 3) {
-            const a = 3 * triangles[i], b = 3 * triangles[i + 1], c = 3 * triangles[i + 2];
-
-            Vec3.fromArray(x, v, a);
-            Vec3.fromArray(y, v, b);
-            Vec3.fromArray(z, v, c);
-            Vec3.sub(d1, z, y);
-            Vec3.sub(d2, x, y);
-            Vec3.cross(n, d1, d2);
-
-            normals[a] += n[0]; normals[a + 1] += n[1]; normals[a + 2] += n[2];
-            normals[b] += n[0]; normals[b + 1] += n[1]; normals[b + 2] += n[2];
-            normals[c] += n[0]; normals[c + 1] += n[1]; normals[c + 2] += n[2];
-        }
-
-        for (let i = 0, ii = 3 * mesh.vertexCount; i < ii; i += 3) {
-            const nx = normals[i];
-            const ny = normals[i + 1];
-            const nz = normals[i + 2];
-            const f = 1.0 / Math.sqrt(nx * nx + ny * ny + nz * nz);
-            normals[i] *= f; normals[i + 1] *= f; normals[i + 2] *= f;
-        }
+        computeIndexedVertexNormals(vertices, indices, normals, vertexCount, triangleCount)
         ValueCell.update(mesh.normalBuffer, normals);
     }
 
@@ -150,7 +128,7 @@ export namespace Mesh {
         const hash = (v: Vec3, d: number) => `${v[0].toFixed(d)}|${v[1].toFixed(d)}|${v[2].toFixed(d)}`
         let duplicates = 0
 
-        const a = Vec3.zero()
+        const a = Vec3()
         for (let i = 0, il = mesh.vertexCount; i < il; ++i) {
             Vec3.fromArray(a, v, i * 3)
             const k = hash(a, fractionDigits)
@@ -165,7 +143,7 @@ export namespace Mesh {
         return duplicates
     }
 
-    const tmpMat3 = Mat3.zero()
+    const tmpMat3 = Mat3()
     export function transform(mesh: Mesh, t: Mat4) {
         const v = mesh.vertexBuffer.ref.value
         transformPositionArray(t, v, 0, mesh.vertexCount)
@@ -201,12 +179,12 @@ export namespace Mesh {
         group.currentIndex = vertexCount
         group.elementCount = vertexCount
 
-        const vi = Vec3.zero()
-        const vj = Vec3.zero()
-        const vk = Vec3.zero()
-        const ni = Vec3.zero()
-        const nj = Vec3.zero()
-        const nk = Vec3.zero()
+        const vi = Vec3()
+        const vj = Vec3()
+        const vk = Vec3()
+        const ni = Vec3()
+        const nj = Vec3()
+        const nk = Vec3()
 
         function add(i: number) {
             Vec3.fromArray(vi, vb, i * 3)

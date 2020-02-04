@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,17 +7,17 @@
 import { Vec3, Mat4, Mat3 } from '../mol-math/linear-algebra'
 import { NumberArray } from '../mol-util/type-helpers';
 
-export function normalizeVec3Array<T extends NumberArray> (a: T) {
-    const n = a.length
-    for (let i = 0; i < n; i += 3) {
-        const x = a[ i ]
-        const y = a[ i + 1 ]
-        const z = a[ i + 2 ]
+export function normalizeVec3Array<T extends NumberArray> (a: T, count: number) {
+    for (let i = 0, il = count * 3; i < il; i += 3) {
+        const x = a[i]
+        const y = a[i + 1]
+        const z = a[i + 2]
         const s = 1 / Math.sqrt(x * x + y * y + z * z)
-        a[ i ] = x * s
-        a[ i + 1 ] = y * s
-        a[ i + 2 ] = z * s
+        a[i] = x * s
+        a[i + 1] = y * s
+        a[i + 2] = z * s
     }
+    return a
 }
 
 const tmpV3 = Vec3.zero()
@@ -38,38 +38,33 @@ export function transformDirectionArray (n: Mat3, array: NumberArray, offset: nu
     }
 }
 
-export function setArrayZero(array: NumberArray) {
-    const n = array.length
-    for (let i = 0; i < n; ++i) array[i] = 0
-}
-
-/** iterate over the entire buffer and apply the radius to each vertex */
+/** iterate over the entire array and apply the radius to each vertex */
 export function appplyRadius(vertices: NumberArray, radius: number) {
-    const v = Vec3.zero()
-    const n = vertices.length
-    for (let i = 0; i < n; i += 3) {
-        Vec3.fromArray(v, vertices, i)
-        Vec3.normalize(v, v)
-        Vec3.scale(v, v, radius)
-        Vec3.toArray(v, vertices, i)
+    for (let i = 0, il = vertices.length; i < il; i += 3) {
+        Vec3.fromArray(tmpV3, vertices, i)
+        Vec3.normalize(tmpV3, tmpV3)
+        Vec3.scale(tmpV3, tmpV3, radius)
+        Vec3.toArray(tmpV3, vertices, i)
     }
 }
 
-/**
- * indexed vertex normals weighted by triangle areas http://www.iquilezles.org/www/articles/normals/normals.htm
- * normal array must contain only zeros
- */
-export function computeIndexedVertexNormals<T extends NumberArray> (vertices: NumberArray, indices: NumberArray, normals: T) {
-    const a = Vec3.zero()
-    const b = Vec3.zero()
-    const c = Vec3.zero()
-    const cb = Vec3.zero()
-    const ab = Vec3.zero()
+const a = Vec3()
+const b = Vec3()
+const c = Vec3()
+const cb = Vec3()
+const ab = Vec3()
 
-    for (let i = 0, il = indices.length; i < il; i += 3) {
-        const ai = indices[ i ] * 3
-        const bi = indices[ i + 1 ] * 3
-        const ci = indices[ i + 2 ] * 3
+/**
+ * indexed vertex normals weighted by triangle areas
+ *      http://www.iquilezles.org/www/articles/normals/normals.htm
+ * - normals array must contain only zeros
+ */
+export function computeIndexedVertexNormals<T extends NumberArray> (vertices: NumberArray, indices: NumberArray, normals: T, vertexCount: number, triangleCount: number) {
+
+    for (let i = 0, il = triangleCount * 3; i < il; i += 3) {
+        const ai = indices[i] * 3
+        const bi = indices[i + 1] * 3
+        const ci = indices[i + 2] * 3
 
         Vec3.fromArray(a, vertices, ai)
         Vec3.fromArray(b, vertices, bi)
@@ -79,34 +74,28 @@ export function computeIndexedVertexNormals<T extends NumberArray> (vertices: Nu
         Vec3.sub(ab, a, b)
         Vec3.cross(cb, cb, ab)
 
-        normals[ ai ] += cb[ 0 ]
-        normals[ ai + 1 ] += cb[ 1 ]
-        normals[ ai + 2 ] += cb[ 2 ]
+        normals[ai] += cb[0]
+        normals[ai + 1] += cb[1]
+        normals[ai + 2] += cb[2]
 
-        normals[ bi ] += cb[ 0 ]
-        normals[ bi + 1 ] += cb[ 1 ]
-        normals[ bi + 2 ] += cb[ 2 ]
+        normals[bi] += cb[0]
+        normals[bi + 1] += cb[1]
+        normals[bi + 2] += cb[2]
 
-        normals[ ci ] += cb[ 0 ]
-        normals[ ci + 1 ] += cb[ 1 ]
-        normals[ ci + 2 ] += cb[ 2 ]
+        normals[ci] += cb[0]
+        normals[ci + 1] += cb[1]
+        normals[ci + 2] += cb[2]
     }
 
-    normalizeVec3Array(normals)
-    return normals
+    return normalizeVec3Array(normals, vertexCount)
 }
 
-/** vertex normals for unindexed triangle soup, normal array must contain only zeros */
-export function computeVertexNormals<T extends NumberArray> (vertices: NumberArray, normals: T) {
-    setArrayZero(normals)
-
-    const a = Vec3.zero()
-    const b = Vec3.zero()
-    const c = Vec3.zero()
-    const cb = Vec3.zero()
-    const ab = Vec3.zero()
-
-    for (let i = 0, il = vertices.length; i < il; i += 9) {
+/**
+ * vertex normals for unindexed triangle soup
+ * - normals array must contain only zeros
+ */
+export function computeVertexNormals<T extends NumberArray> (vertices: NumberArray, normals: T, vertexCount: number) {
+    for (let i = 0, il = vertexCount * 3; i < il; i += 9) {
         Vec3.fromArray(a, vertices, i)
         Vec3.fromArray(b, vertices, i + 3)
         Vec3.fromArray(c, vertices, i + 6)
@@ -115,19 +104,18 @@ export function computeVertexNormals<T extends NumberArray> (vertices: NumberArr
         Vec3.sub(ab, a, b)
         Vec3.cross(cb, cb, ab)
 
-        normals[ i ] = cb[ 0 ]
-        normals[ i + 1 ] = cb[ 1 ]
-        normals[ i + 2 ] = cb[ 2 ]
+        normals[i] = cb[0]
+        normals[i + 1] = cb[1]
+        normals[i + 2] = cb[2]
 
-        normals[ i + 3 ] = cb[ 0 ]
-        normals[ i + 4 ] = cb[ 1 ]
-        normals[ i + 5 ] = cb[ 2 ]
+        normals[i + 3] = cb[0]
+        normals[i + 4] = cb[1]
+        normals[i + 5] = cb[2]
 
-        normals[ i + 6 ] = cb[ 0 ]
-        normals[ i + 7 ] = cb[ 1 ]
-        normals[ i + 8 ] = cb[ 2 ]
+        normals[i + 6] = cb[0]
+        normals[i + 7] = cb[1]
+        normals[i + 8] = cb[2]
     }
 
-    normalizeVec3Array(normals)
-    return normals
+    return normalizeVec3Array(normals, vertexCount)
 }
