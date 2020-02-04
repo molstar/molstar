@@ -186,7 +186,7 @@ namespace Tokenizer {
      * Handles incrementing line count.
      */
     export function skipWhitespace(state: Tokenizer): number {
-        let prev = 10;
+        let prev = -1;
         while (state.position < state.length) {
             let c = state.data.charCodeAt(state.position);
             switch (c) {

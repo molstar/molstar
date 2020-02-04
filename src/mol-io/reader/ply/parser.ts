@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ import { TokenColumn } from '../common/text/column/token';
 
 // TODO add support for binary ply files
 // TODO parse elements asynchronously
+// TODO handle lists with appended properties
 
 interface State {
     data: string
@@ -79,7 +80,10 @@ function parseHeader(state: State) {
                     break
                 }
             }
-            if (isList && currentProperties.length !== 1) throw new Error('expected single list property')
+            if (isList && currentProperties.length !== 1) {
+                // TODO handle lists with appended properties
+                //      currently only the list part will be accessible
+            }
             if (isList) {
                 elementSpecs.push({
                     kind: 'list',
@@ -203,10 +207,6 @@ function parseListElement(state: State, spec: ListElementSpec) {
     let entryCount = 0
 
     for (let i = 0, il = count; i < il; ++i) {
-        // skip over row entry count as it is determined by line break
-        Tokenizer.skipWhitespace(tokenizer)
-        Tokenizer.eatValue(tokenizer)
-
         while (Tokenizer.skipWhitespace(tokenizer) !== 10) {
             ++entryCount
             Tokenizer.markStart(tokenizer)
@@ -215,9 +215,6 @@ function parseListElement(state: State, spec: ListElementSpec) {
         }
         offsets[i + 1] = entryCount
     }
-
-    // console.log(tokens.indices)
-    // console.log(offsets)
 
     /** holds row value entries transiently */
     const listValue = {
@@ -233,12 +230,12 @@ function parseListElement(state: State, spec: ListElementSpec) {
         name: property.name,
         type: property.dataType,
         value: (row: number) => {
-            const start = offsets[row]
-            const end = offsets[row + 1]
-            for (let i = start; i < end; ++i) {
-                listValue.entries[i - start] = column.value(i)
+            const offset = offsets[row] + 1
+            const count = column.value(offset - 1)
+            for (let i = offset, il = offset + count; i < il; ++i) {
+                listValue.entries[i - offset] = column.value(i)
             }
-            listValue.count = end - start
+            listValue.count = count
             return listValue
         }
     })
@@ -248,8 +245,6 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     const state = State(data, ctx);
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
     parseHeader(state)
-    // console.log(state.comments)
-    // console.log(JSON.stringify(state.elementSpecs, undefined, 4))
     parseElements(state)
     const { elements, elementSpecs, comments } = state
     const elementNames = elementSpecs.map(s => s.name)

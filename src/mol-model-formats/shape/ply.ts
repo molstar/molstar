@@ -166,9 +166,8 @@ async function getMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, gro
     }
 
     const m = MeshBuilder.getMesh(builderState);
-    m.normalsComputed = hasNormals
-    await Mesh.computeNormals(m).runInContext(ctx)
-
+    if (!hasNormals) Mesh.computeNormals(m)
+    console.log(m)
     return m
 }
 
