@@ -10,6 +10,7 @@ import { Representation, RepresentationParamsGetter, RepresentationContext } fro
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
 import { LabelTextVisual, LabelTextParams } from '../visual/label-text';
+import { MarkerAction } from '../../../mol-util/marker-action';
 
 const LabelVisuals = {
     'label-text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, LabelTextParams>) => ComplexRepresentation('Label text', ctx, getParams, LabelTextVisual),
@@ -26,7 +27,9 @@ export function getLabelParams(ctx: ThemeRegistryContext, structure: Structure) 
 
 export type LabelRepresentation = StructureRepresentation<LabelParams>
 export function LabelRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, LabelParams>): LabelRepresentation {
-    return Representation.createMulti('Label', ctx, getParams, StructureRepresentationStateBuilder, LabelVisuals as unknown as Representation.Def<Structure, LabelParams>)
+    const repr = Representation.createMulti('Label', ctx, getParams, StructureRepresentationStateBuilder, LabelVisuals as unknown as Representation.Def<Structure, LabelParams>)
+    repr.setState({ pickable: false, markerActions: MarkerAction.None })
+    return repr
 }
 
 export const LabelRepresentationProvider: StructureRepresentationProvider<LabelParams> = {

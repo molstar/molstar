@@ -30,7 +30,7 @@ const TextParams = {
 type TextParams = typeof TextParams
 
 const LabelVisuals = {
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<LabelData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<LabelData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
 }
 
 export const LabelParams = {

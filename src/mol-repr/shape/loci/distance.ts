@@ -46,8 +46,8 @@ const TextParams = {
 type TextParams = typeof TextParams
 
 const DistanceVisuals = {
-    'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, LineParams>) => ShapeRepresentation(getLinesShape, Lines.Utils),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
+    'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, LineParams>) => ShapeRepresentation(getLinesShape, Lines.Utils, { modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
 }
 
 export const DistanceParams = {
@@ -142,7 +142,5 @@ function getTextShape(ctx: RuntimeContext, data: DistanceData, props: DistancePr
 
 export type DistanceRepresentation = Representation<DistanceData, DistanceParams>
 export function DistanceRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, DistanceParams>): DistanceRepresentation {
-    const repr = Representation.createMulti('Distance', ctx, getParams, Representation.StateBuilder, DistanceVisuals as unknown as Representation.Def<DistanceData, DistanceParams>)
-    repr.setState({ markerActions: MarkerActions.Highlighting })
-    return repr
+    return Representation.createMulti('Distance', ctx, getParams, Representation.StateBuilder, DistanceVisuals as unknown as Representation.Def<DistanceData, DistanceParams>)
 }
