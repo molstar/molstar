@@ -64,7 +64,7 @@ export namespace Geometry {
             case 'text': return geometry.charCount * 2 * 3
             case 'lines': return geometry.lineCount * 2 * 3
             case 'direct-volume': return 12 * 3
-            case 'texture-mesh': return geometry.vertexCount.ref.value
+            case 'texture-mesh': return geometry.vertexCount
         }
     }
 
@@ -79,7 +79,7 @@ export namespace Geometry {
             case 'direct-volume':
                 return 1
             case 'texture-mesh':
-                return geometry.groupCount.ref.value
+                return geometry.groupCount
         }
     }
 

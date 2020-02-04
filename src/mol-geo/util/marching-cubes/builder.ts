@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,7 +7,7 @@
  */
 
 import { ChunkedArray } from '../../../mol-data/util';
-import { ValueCell, noop } from '../../../mol-util';
+import { noop } from '../../../mol-util';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { AllowedContours } from './tables';
 import { LinesBuilder } from '../../geometry/lines/lines-builder';
@@ -52,17 +52,7 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
             const nb = ChunkedArray.compact(normals, true) as Float32Array;
             const ib = ChunkedArray.compact(indices, true) as Uint32Array;
             const gb = ChunkedArray.compact(groups, true) as Float32Array;
-
-            return {
-                kind: 'mesh',
-                vertexCount,
-                triangleCount,
-                vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
-                groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, gb) : ValueCell.create(gb),
-                indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
-                normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
-                normalsComputed: true
-            }
+            return Mesh.create(vb, ib, nb, gb, vertexCount, triangleCount, mesh)
         }
     }
 }

@@ -161,11 +161,10 @@ namespace Loci {
                 sphereHelper.radiusStep(tmpPos);
             }
         } else if (loci.kind === 'shape-loci') {
-            // TODO
-            return void 0;
+            return Sphere3D.copy(boundingSphere, loci.shape.geometry.boundingSphere)
         } else if (loci.kind === 'group-loci') {
             // TODO
-            return void 0;
+            return Sphere3D.copy(boundingSphere, loci.shape.geometry.boundingSphere)
         } else if (loci.kind === 'data-loci') {
             // TODO maybe add loci.getBoundingSphere()???
             return void 0;

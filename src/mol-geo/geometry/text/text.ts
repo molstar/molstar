@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,7 +15,7 @@ import { createSizes, getMaxSize } from '../size-data';
 import { createMarkers } from '../marker-data';
 import { ColorNames } from '../../../mol-util/color/names';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { calculateBoundingSphere, TextureImage, createTextureImage } from '../../../mol-gl/renderable/util';
+import { TextureImage, createTextureImage, calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { TextValues } from '../../../mol-gl/renderable/text';
 import { Color } from '../../../mol-util/color';
 import { Vec3 } from '../../../mol-math/linear-algebra';
@@ -26,6 +26,7 @@ import { createRenderObject as _createRenderObject } from '../../../mol-gl/rende
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
+import { hashFnv32a } from '../../../mol-data/util';
 
 type TextAttachment = (
     'bottom-left' | 'bottom-center' | 'bottom-right' |
@@ -38,7 +39,8 @@ export interface Text {
     readonly kind: 'text',
 
     /** Number of characters in the text */
-    readonly charCount: number,
+    charCount: number,
+
     /** Font Atlas */
     readonly fontTexture: ValueCell<TextureImage<Uint8Array>>,
 
@@ -54,9 +56,18 @@ export interface Text {
     readonly groupBuffer: ValueCell<Float32Array>,
     /** Texture coordinates buffer as array of uv values wrapped in a value cell */
     readonly tcoordBuffer: ValueCell<Float32Array>,
+
+    /** Bounding sphere of the text */
+    readonly boundingSphere: Sphere3D
 }
 
 export namespace Text {
+    export function create(fontTexture: TextureImage<Uint8Array>, centers: Float32Array, mappings: Float32Array, depths: Float32Array, indices: Uint32Array, groups: Float32Array, tcoords: Float32Array, charCount: number, text?: Text): Text {
+        return text ?
+            update(fontTexture, centers, mappings, depths, indices, groups, tcoords, charCount, text) :
+            fromData(fontTexture, centers, mappings, depths, indices, groups, tcoords, charCount)
+    }
+
     export function createEmpty(text?: Text): Text {
         const ft = text ? text.fontTexture.ref.value : createTextureImage(0, 1, Uint8Array)
         const cb = text ? text.centerBuffer.ref.value : new Float32Array(0)
@@ -65,17 +76,56 @@ export namespace Text {
         const ib = text ? text.indexBuffer.ref.value : new Uint32Array(0)
         const gb = text ? text.groupBuffer.ref.value : new Float32Array(0)
         const tb = text ? text.tcoordBuffer.ref.value : new Float32Array(0)
-        return {
-            kind: 'text',
-            charCount: 0,
-            fontTexture: text ? ValueCell.update(text.fontTexture, ft) : ValueCell.create(ft),
-            centerBuffer: text ? ValueCell.update(text.centerBuffer, cb) : ValueCell.create(cb),
-            mappingBuffer: text ? ValueCell.update(text.mappingBuffer, mb) : ValueCell.create(mb),
-            depthBuffer: text ? ValueCell.update(text.depthBuffer, db) : ValueCell.create(db),
-            indexBuffer: text ? ValueCell.update(text.indexBuffer, ib) : ValueCell.create(ib),
-            groupBuffer: text ? ValueCell.update(text.groupBuffer, gb) : ValueCell.create(gb),
-            tcoordBuffer: text ? ValueCell.update(text.tcoordBuffer, tb) : ValueCell.create(tb)
+        return create(ft, cb, mb, db, ib, gb, tb, 0, text)
+    }
+
+    function hashCode(text: Text) {
+        return hashFnv32a([
+            text.charCount, text.fontTexture.ref.version,
+            text.centerBuffer.ref.version, text.mappingBuffer.ref.version,
+            text.depthBuffer.ref.version, text.indexBuffer.ref.version,
+            text.groupBuffer.ref.version, text.tcoordBuffer.ref.version
+        ])
+    }
+
+    function fromData(fontTexture: TextureImage<Uint8Array>, centers: Float32Array, mappings: Float32Array, depths: Float32Array, indices: Uint32Array, groups: Float32Array, tcoords: Float32Array, charCount: number): Text {
+
+        const boundingSphere = Sphere3D()
+        let currentHash = -1
+
+        const text = {
+            kind: 'text' as const,
+            charCount,
+            fontTexture: ValueCell.create(fontTexture),
+            centerBuffer: ValueCell.create(centers),
+            mappingBuffer: ValueCell.create(mappings),
+            depthBuffer: ValueCell.create(depths),
+            indexBuffer: ValueCell.create(indices),
+            groupBuffer: ValueCell.create(groups),
+            tcoordBuffer: ValueCell.create(tcoords),
+            get boundingSphere() {
+                const newHash = hashCode(text)
+                if (newHash !== currentHash) {
+                    const b = calculateInvariantBoundingSphere(text.centerBuffer.ref.value, text.charCount * 4, 4)
+                    Sphere3D.copy(boundingSphere, b)
+                    currentHash = newHash
+                }
+                return boundingSphere
+            },
         }
+        return text
+    }
+
+    function update(fontTexture: TextureImage<Uint8Array>, centers: Float32Array, mappings: Float32Array, depths: Float32Array, indices: Uint32Array, groups: Float32Array, tcoords: Float32Array, charCount: number, text: Text) {
+        text.charCount = charCount
+        ValueCell.update(text.fontTexture, fontTexture)
+        ValueCell.update(text.centerBuffer, centers)
+        ValueCell.update(text.mappingBuffer, mappings)
+        ValueCell.update(text.depthBuffer, depths)
+        ValueCell.update(text.indexBuffer, indices)
+        ValueCell.update(text.groupBuffer, groups)
+        ValueCell.update(text.tcoordBuffer, tcoords)
+        return text
     }
 
     export const Params = {
@@ -130,10 +180,8 @@ export namespace Text {
         const counts = { drawCount: text.charCount * 2 * 3, groupCount, instanceCount }
 
         const padding = getPadding(text.mappingBuffer.ref.value, text.depthBuffer.ref.value, text.charCount, getMaxSize(size))
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            text.centerBuffer.ref.value, text.charCount * 4,
-            transform.aTransform.ref.value, instanceCount, padding
-        )
+        const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), text.boundingSphere, padding)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount)
 
         return {
             aPosition: text.centerBuffer,
@@ -194,10 +242,9 @@ export namespace Text {
 
     function updateBoundingSphere(values: TextValues, text: Text) {
         const padding = getPadding(values.aMapping.ref.value, values.aDepth.ref.value, text.charCount, getMaxSize(values))
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            values.aPosition.ref.value, text.charCount * 4,
-            values.aTransform.ref.value, values.instanceCount.ref.value, padding
-        )
+        const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), text.boundingSphere, padding)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value)
+
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }

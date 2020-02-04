@@ -1,10 +1,9 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from '../../../mol-util/value-cell'
 import { ChunkedArray } from '../../../mol-data/util';
 import { Spheres } from './spheres';
 
@@ -50,14 +49,7 @@ export namespace SpheresBuilder {
                 const mb = ChunkedArray.compact(mappings, true) as Float32Array
                 const ib = ChunkedArray.compact(indices, true) as Uint32Array
                 const gb = ChunkedArray.compact(groups, true) as Float32Array
-                return {
-                    kind: 'spheres',
-                    sphereCount: centers.elementCount / 4,
-                    centerBuffer: spheres ? ValueCell.update(spheres.centerBuffer, cb) : ValueCell.create(cb),
-                    mappingBuffer: spheres ? ValueCell.update(spheres.mappingBuffer, mb) : ValueCell.create(mb),
-                    indexBuffer: spheres ? ValueCell.update(spheres.indexBuffer, ib) : ValueCell.create(ib),
-                    groupBuffer: spheres ? ValueCell.update(spheres.groupBuffer, gb) : ValueCell.create(gb),
-                }
+                return Spheres.create(cb, mb, ib, gb, centers.elementCount / 4, spheres)
             }
         }
     }

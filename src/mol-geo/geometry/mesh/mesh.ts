@@ -1,22 +1,23 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task } from '../../../mol-task'
 import { ValueCell } from '../../../mol-util'
-import { Vec3, Mat4 } from '../../../mol-math/linear-algebra'
+import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra'
 import { Sphere3D } from '../../../mol-math/geometry'
-import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
+import { transformPositionArray,/* , transformDirectionArray, getNormalMatrix */
+transformDirectionArray} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { createColors } from '../color-data';
-import { ChunkedArray } from '../../../mol-data/util';
+import { ChunkedArray, hashFnv32a } from '../../../mol-data/util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { calculateBoundingSphere } from '../../../mol-gl/renderable/util';
+import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { Theme } from '../../../mol-theme/theme';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Color } from '../../../mol-util/color';
@@ -41,47 +42,70 @@ export interface Mesh {
     /** Group buffer as array of group ids for each vertex wrapped in a value cell */
     readonly groupBuffer: ValueCell<Float32Array>,
 
-    /** Flag indicating if normals are computed for the current set of vertices */
-    normalsComputed: boolean,
-
     /** Bounding sphere of the mesh */
-    boundingSphere?: Sphere3D
+    readonly boundingSphere: Sphere3D
 }
 
 export namespace Mesh {
+    export function create(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, triangleCount: number, mesh?: Mesh): Mesh {
+        return mesh ?
+            update(vertices, indices, normals, groups, vertexCount, triangleCount, mesh) :
+            fromArrays(vertices, indices, normals, groups, vertexCount, triangleCount)
+    }
+
     export function createEmpty(mesh?: Mesh): Mesh {
         const vb = mesh ? mesh.vertexBuffer.ref.value : new Float32Array(0)
         const ib = mesh ? mesh.indexBuffer.ref.value : new Uint32Array(0)
         const nb = mesh ? mesh.normalBuffer.ref.value : new Float32Array(0)
         const gb = mesh ? mesh.groupBuffer.ref.value : new Float32Array(0)
-        return {
-            kind: 'mesh',
-            vertexCount: 0,
-            triangleCount: 0,
-            vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
-            indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
-            normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
-            groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, gb) : ValueCell.create(gb),
-            normalsComputed: true,
-        }
+        return create(vb, ib, nb, gb, 0, 0, mesh)
     }
 
-    export function fromArrays(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, triangleCount: number, normalsComputed: boolean): Mesh {
-        return {
-            kind: 'mesh',
+    function hashCode(mesh: Mesh) {
+        return hashFnv32a([
+            mesh.vertexCount, mesh.triangleCount,
+            mesh.vertexBuffer.ref.version, mesh.indexBuffer.ref.version,
+            mesh.normalBuffer.ref.version, mesh.groupBuffer.ref.version
+        ])
+    }
+
+    function fromArrays(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, triangleCount: number): Mesh {
+
+        const boundingSphere = Sphere3D()
+        let currentHash = -1
+
+        const mesh = {
+            kind: 'mesh' as const,
             vertexCount,
             triangleCount,
             vertexBuffer: ValueCell.create(vertices),
             indexBuffer: ValueCell.create(indices),
             normalBuffer: ValueCell.create(normals),
             groupBuffer: ValueCell.create(groups),
-            normalsComputed,
+            get boundingSphere() {
+                const newHash = hashCode(mesh)
+                if (newHash !== currentHash) {
+                    const b = calculateInvariantBoundingSphere(mesh.vertexBuffer.ref.value, mesh.vertexCount, 1)
+                    Sphere3D.copy(boundingSphere, b)
+                    currentHash = newHash
+                }
+                return boundingSphere
+            },
         }
+        return mesh
     }
 
-    export function computeNormalsImmediate(mesh: Mesh) {
-        if (mesh.normalsComputed) return;
+    function update(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, triangleCount: number, mesh: Mesh) {
+        mesh.vertexCount = vertexCount
+        mesh.triangleCount = triangleCount
+        ValueCell.update(mesh.vertexBuffer, vertices)
+        ValueCell.update(mesh.indexBuffer, indices)
+        ValueCell.update(mesh.normalBuffer, normals)
+        ValueCell.update(mesh.groupBuffer, groups)
+        return mesh
+    }
 
+    export function computeNormals(mesh: Mesh) {
         const normals = mesh.normalBuffer.ref.value.length >= mesh.vertexCount * 3
             ? mesh.normalBuffer.ref.value : new Float32Array(mesh.vertexBuffer.ref.value.length);
 
@@ -115,11 +139,8 @@ export namespace Mesh {
             const nz = normals[i + 2];
             const f = 1.0 / Math.sqrt(nx * nx + ny * ny + nz * nz);
             normals[i] *= f; normals[i + 1] *= f; normals[i + 2] *= f;
-
-            // console.log([normals[i], normals[i + 1], normals[i + 2]], [v[i], v[i + 1], v[i + 2]])
         }
         ValueCell.update(mesh.normalBuffer, normals);
-        mesh.normalsComputed = true;
     }
 
     export function checkForDuplicateVertices(mesh: Mesh, fractionDigits = 3) {
@@ -144,63 +165,15 @@ export namespace Mesh {
         return duplicates
     }
 
-    export function computeNormals(surface: Mesh): Task<Mesh> {
-        return Task.create<Mesh>('Surface (Compute Normals)', async ctx => {
-            if (surface.normalsComputed) return surface;
-
-            await ctx.update('Computing normals...');
-            computeNormalsImmediate(surface);
-            return surface;
-        });
-    }
-
-    export function transformImmediate(mesh: Mesh, t: Mat4) {
-        transformRangeImmediate(mesh, t, 0, mesh.vertexCount)
-    }
-
-    export function transformRangeImmediate(mesh: Mesh, t: Mat4, offset: number, count: number) {
+    const tmpMat3 = Mat3.zero()
+    export function transform(mesh: Mesh, t: Mat4) {
         const v = mesh.vertexBuffer.ref.value
-        transformPositionArray(t, v, offset, count)
-        // TODO normals transformation does not work for an unknown reason, ASR
-        // if (mesh.normalBuffer.ref.value) {
-        //     const n = getNormalMatrix(Mat3.zero(), t)
-        //     transformDirectionArray(n, mesh.normalBuffer.ref.value, offset, count)
-        //     mesh.normalsComputed = true;
-        // }
+        transformPositionArray(t, v, 0, mesh.vertexCount)
+        if (!Mat4.isTranslationAndUniformScaling(t)) {
+            const n = Mat3.directionTransform(tmpMat3, t)
+            transformDirectionArray(n, mesh.normalBuffer.ref.value, 0, mesh.vertexCount)
+        }
         ValueCell.update(mesh.vertexBuffer, v);
-        mesh.normalsComputed = false;
-    }
-
-    export function computeBoundingSphere(mesh: Mesh): Task<Mesh> {
-        return Task.create<Mesh>('Mesh (Compute Bounding Sphere)', async ctx => {
-            if (mesh.boundingSphere) {
-                return mesh;
-            }
-            await ctx.update('Computing bounding sphere...');
-
-            const vertices = mesh.vertexBuffer.ref.value;
-            let x = 0, y = 0, z = 0;
-            for (let i = 0, _c = vertices.length; i < _c; i += 3) {
-                x += vertices[i];
-                y += vertices[i + 1];
-                z += vertices[i + 2];
-            }
-            x /= mesh.vertexCount;
-            y /= mesh.vertexCount;
-            z /= mesh.vertexCount;
-            let r = 0;
-            for (let i = 0, _c = vertices.length; i < _c; i += 3) {
-                const dx = x - vertices[i];
-                const dy = y - vertices[i + 1];
-                const dz = z - vertices[i + 2];
-                r = Math.max(r, dx * dx + dy * dy + dz * dz);
-            }
-            mesh.boundingSphere = {
-                center: Vec3.create(x, y, z),
-                radius: Math.sqrt(r)
-            }
-            return mesh;
-        });
     }
 
     /**
@@ -389,10 +362,8 @@ export namespace Mesh {
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
 
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            mesh.vertexBuffer.ref.value, mesh.vertexCount,
-            transform.aTransform.ref.value, instanceCount
-        )
+        const invariantBoundingSphere = Sphere3D.clone(mesh.boundingSphere)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount)
 
         return {
             aPosition: mesh.vertexBuffer,
@@ -430,10 +401,9 @@ export namespace Mesh {
     }
 
     function updateBoundingSphere(values: MeshValues, mesh: Mesh) {
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            values.aPosition.ref.value, mesh.vertexCount,
-            values.aTransform.ref.value, values.instanceCount.ref.value
-        )
+        const invariantBoundingSphere = Sphere3D.clone(mesh.boundingSphere)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value)
+
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
@@ -442,86 +412,3 @@ export namespace Mesh {
         }
     }
 }
-
-//     function addVertex(src: Float32Array, i: number, dst: Float32Array, j: number) {
-//         dst[3 * j] += src[3 * i];
-//         dst[3 * j + 1] += src[3 * i + 1];
-//         dst[3 * j + 2] += src[3 * i + 2];
-//     }
-
-//     function laplacianSmoothIter(surface: Surface, vertexCounts: Int32Array, vs: Float32Array, vertexWeight: number) {
-//         const triCount = surface.triangleIndices.length,
-//             src = surface.vertices;
-
-//         const triangleIndices = surface.triangleIndices;
-
-//         for (let i = 0; i < triCount; i += 3) {
-//             const a = triangleIndices[i],
-//                 b = triangleIndices[i + 1],
-//                 c = triangleIndices[i + 2];
-
-//             addVertex(src, b, vs, a);
-//             addVertex(src, c, vs, a);
-
-//             addVertex(src, a, vs, b);
-//             addVertex(src, c, vs, b);
-
-//             addVertex(src, a, vs, c);
-//             addVertex(src, b, vs, c);
-//         }
-
-//         const vw = 2 * vertexWeight;
-//         for (let i = 0, _b = surface.vertexCount; i < _b; i++) {
-//             const n = vertexCounts[i] + vw;
-//             vs[3 * i] = (vs[3 * i] + vw * src[3 * i]) / n;
-//             vs[3 * i + 1] = (vs[3 * i + 1] + vw * src[3 * i + 1]) / n;
-//             vs[3 * i + 2] = (vs[3 * i + 2] + vw * src[3 * i + 2]) / n;
-//         }
-//     }
-
-//     async function laplacianSmoothComputation(ctx: Computation.Context, surface: Surface, iterCount: number, vertexWeight: number) {
-//         await ctx.updateProgress('Smoothing surface...', true);
-
-//         const vertexCounts = new Int32Array(surface.vertexCount),
-//             triCount = surface.triangleIndices.length;
-
-//         const tris = surface.triangleIndices;
-//         for (let i = 0; i < triCount; i++) {
-//             // in a triangle 2 edges touch each vertex, hence the constant.
-//             vertexCounts[tris[i]] += 2;
-//         }
-
-//         let vs = new Float32Array(surface.vertices.length);
-//         let started = Utils.PerformanceMonitor.currentTime();
-//         await ctx.updateProgress('Smoothing surface...', true);
-//         for (let i = 0; i < iterCount; i++) {
-//             if (i > 0) {
-//                 for (let j = 0, _b = vs.length; j < _b; j++) vs[j] = 0;
-//             }
-//             surface.normals = void 0;
-//             laplacianSmoothIter(surface, vertexCounts, vs, vertexWeight);
-//             const t = surface.vertices;
-//             surface.vertices = <any>vs;
-//             vs = <any>t;
-
-//             const time = Utils.PerformanceMonitor.currentTime();
-//             if (time - started > Computation.UpdateProgressDelta) {
-//                 started = time;
-//                 await ctx.updateProgress('Smoothing surface...', true, i + 1, iterCount);
-//             }
-//         }
-//         return surface;
-//     }
-
-//     /*
-//      * Smooths the vertices by averaging the neighborhood.
-//      *
-//      * Resets normals. Might replace vertex array.
-//      */
-//     export function laplacianSmooth(surface: Surface, iterCount: number = 1, vertexWeight: number = 1): Computation<Surface> {
-
-//         if (iterCount < 1) iterCount = 0;
-//         if (iterCount === 0) return Computation.resolve(surface);
-
-//         return computation(async ctx => await laplacianSmoothComputation(ctx, surface, iterCount, (1.1 * vertexWeight) / 1.1));
-//     }

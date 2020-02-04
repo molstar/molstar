@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,19 +17,22 @@ import { LinesValues } from '../../../mol-gl/renderable/lines';
 import { Mesh } from '../mesh/mesh';
 import { LinesBuilder } from './lines-builder';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { calculateBoundingSphere } from '../../../mol-gl/renderable/util';
+import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Theme } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
+import { hashFnv32a } from '../../../mol-data/util';
 
 /** Wide line */
 export interface Lines {
     readonly kind: 'lines',
+
     /** Number of lines */
     lineCount: number,
+
     /** Mapping buffer as array of xy values wrapped in a value cell */
     readonly mappingBuffer: ValueCell<Float32Array>,
     /** Index buffer as array of vertex index triplets wrapped in a value cell */
@@ -40,24 +43,25 @@ export interface Lines {
     readonly startBuffer: ValueCell<Float32Array>,
     /** Line end buffer as array of xyz values wrapped in a value cell */
     readonly endBuffer: ValueCell<Float32Array>,
+
+    /** Bounding sphere of the lines */
+    readonly boundingSphere: Sphere3D
 }
 
 export namespace Lines {
+    export function create(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, lineCount: number, lines?: Lines): Lines {
+        return lines ?
+            update(mappings, indices, groups, starts, ends, lineCount, lines) :
+            fromArrays(mappings, indices, groups, starts, ends, lineCount)
+    }
+
     export function createEmpty(lines?: Lines): Lines {
         const mb = lines ? lines.mappingBuffer.ref.value : new Float32Array(0)
         const ib = lines ? lines.indexBuffer.ref.value : new Uint32Array(0)
         const gb = lines ? lines.groupBuffer.ref.value : new Float32Array(0)
         const sb = lines ? lines.startBuffer.ref.value : new Float32Array(0)
         const eb = lines ? lines.endBuffer.ref.value : new Float32Array(0)
-        return {
-            kind: 'lines',
-            lineCount: 0,
-            mappingBuffer: lines ? ValueCell.update(lines.mappingBuffer, mb) : ValueCell.create(mb),
-            indexBuffer: lines ? ValueCell.update(lines.indexBuffer, ib) : ValueCell.create(ib),
-            groupBuffer: lines ? ValueCell.update(lines.groupBuffer, gb) : ValueCell.create(gb),
-            startBuffer: lines ? ValueCell.update(lines.startBuffer, sb) : ValueCell.create(sb),
-            endBuffer: lines ? ValueCell.update(lines.endBuffer, eb) : ValueCell.create(eb),
-        }
+        return create(mb, ib, gb, sb, eb, 0, lines)
     }
 
     export function fromMesh(mesh: Mesh, lines?: Lines) {
@@ -81,16 +85,57 @@ export namespace Lines {
         return builder.getLines();
     }
 
-    export function transformImmediate(line: Lines, t: Mat4) {
-        transformRangeImmediate(line, t, 0, line.lineCount)
+    function hashCode(lines: Lines) {
+        return hashFnv32a([
+            lines.lineCount, lines.mappingBuffer.ref.version, lines.indexBuffer.ref.version,
+            lines.groupBuffer.ref.version, lines.startBuffer.ref.version, lines.startBuffer.ref.version
+        ])
     }
 
-    export function transformRangeImmediate(lines: Lines, t: Mat4, offset: number, count: number) {
+    function fromArrays(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, lineCount: number): Lines {
+
+        const boundingSphere = Sphere3D()
+        let currentHash = -1
+
+        const lines = {
+            kind: 'lines' as const,
+            lineCount,
+            mappingBuffer: ValueCell.create(mappings),
+            indexBuffer: ValueCell.create(indices),
+            groupBuffer: ValueCell.create(groups),
+            startBuffer: ValueCell.create(starts),
+            endBuffer: ValueCell.create(ends),
+            get boundingSphere() {
+                const newHash = hashCode(lines)
+                if (newHash !== currentHash) {
+                    const s = calculateInvariantBoundingSphere(lines.startBuffer.ref.value, lines.lineCount * 4, 4)
+                    const e = calculateInvariantBoundingSphere(lines.endBuffer.ref.value, lines.lineCount * 4, 4)
+
+                    Sphere3D.copy(boundingSphere, Sphere3D.expandBySphere(s, e))
+                    currentHash = newHash
+                }
+                return boundingSphere
+            },
+        }
+        return lines
+    }
+
+    function update(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, lineCount: number, lines: Lines) {
+        lines.lineCount = lineCount
+        ValueCell.update(lines.mappingBuffer, mappings)
+        ValueCell.update(lines.indexBuffer, indices)
+        ValueCell.update(lines.groupBuffer, groups)
+        ValueCell.update(lines.startBuffer, starts)
+        ValueCell.update(lines.endBuffer, ends)
+        return lines
+    }
+
+    export function transform(lines: Lines, t: Mat4) {
         const start = lines.startBuffer.ref.value
-        transformPositionArray(t, start, offset, count * 4)
+        transformPositionArray(t, start, 0, lines.lineCount * 4)
         ValueCell.update(lines.startBuffer, start);
         const end = lines.endBuffer.ref.value
-        transformPositionArray(t, end, offset, count * 4)
+        transformPositionArray(t, end, 0, lines.lineCount * 4)
         ValueCell.update(lines.endBuffer, end);
     }
 
@@ -124,8 +169,8 @@ export namespace Lines {
 
         const counts = { drawCount: lines.lineCount * 2 * 3, groupCount, instanceCount }
 
-        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(lines.startBuffer.ref.value, lines.endBuffer.ref.value, lines.lineCount,
-            transform.aTransform.ref.value, transform.instanceCount.ref.value)
+        const invariantBoundingSphere = Sphere3D.clone(lines.boundingSphere)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount)
 
         return {
             aMapping: lines.mappingBuffer,
@@ -163,24 +208,14 @@ export namespace Lines {
     }
 
     function updateBoundingSphere(values: LinesValues, lines: Lines) {
-        const { boundingSphere, invariantBoundingSphere } = getBoundingSphere(
-            values.aStart.ref.value, values.aEnd.ref.value, lines.lineCount,
-            values.aTransform.ref.value, values.instanceCount.ref.value
-        )
+        const invariantBoundingSphere = Sphere3D.clone(lines.boundingSphere)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value)
+
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
         if (!Sphere3D.equals(invariantBoundingSphere, values.invariantBoundingSphere.ref.value)) {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere)
         }
-    }
-}
-
-function getBoundingSphere(lineStart: Float32Array, lineEnd: Float32Array, lineCount: number, transform: Float32Array, transformCount: number) {
-    const start = calculateBoundingSphere(lineStart, lineCount * 4, transform, transformCount, 0, 4)
-    const end = calculateBoundingSphere(lineEnd, lineCount * 4, transform, transformCount, 0, 4)
-    return {
-        boundingSphere: Sphere3D.expandBySphere(start.boundingSphere, end.boundingSphere),
-        invariantBoundingSphere: Sphere3D.expandBySphere(start.invariantBoundingSphere, end.invariantBoundingSphere)
     }
 }

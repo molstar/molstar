@@ -26,7 +26,7 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
     }
     const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime)
 
-    Lines.transformImmediate(wireframe, transform)
+    Lines.transform(wireframe, transform)
 
     return wireframe
 }

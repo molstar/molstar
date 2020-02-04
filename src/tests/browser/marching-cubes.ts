@@ -133,7 +133,7 @@ async function init() {
     const surface = await computeMarchingCubesMesh(params).run()
     console.timeEnd('cpu mc')
     console.log('surface', surface)
-    Mesh.transformImmediate(surface, densityData.transform)
+    Mesh.transform(surface, densityData.transform)
     const meshProps = { doubleSided: true, flatShaded: false, alpha: 1.0 }
     const meshValues = Mesh.Utils.createValuesSimple(surface, meshProps, Color(0x995511), 1)
     const meshState = Mesh.Utils.createRenderableState(meshProps)

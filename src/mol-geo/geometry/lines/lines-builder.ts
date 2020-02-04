@@ -1,10 +1,9 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from '../../../mol-util/value-cell'
 import { ChunkedArray } from '../../../mol-data/util';
 import { Lines } from './lines';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
@@ -84,15 +83,7 @@ export namespace LinesBuilder {
                 const gb = ChunkedArray.compact(groups, true) as Float32Array
                 const sb = ChunkedArray.compact(starts, true) as Float32Array
                 const eb = ChunkedArray.compact(ends, true) as Float32Array
-                return {
-                    kind: 'lines',
-                    lineCount: indices.elementCount / 2,
-                    mappingBuffer: lines ? ValueCell.update(lines.mappingBuffer, mb) : ValueCell.create(mb),
-                    indexBuffer: lines ? ValueCell.update(lines.indexBuffer, ib) : ValueCell.create(ib),
-                    groupBuffer: lines ? ValueCell.update(lines.groupBuffer, gb) : ValueCell.create(gb),
-                    startBuffer: lines ? ValueCell.update(lines.startBuffer, sb) : ValueCell.create(sb),
-                    endBuffer: lines ? ValueCell.update(lines.endBuffer, eb) : ValueCell.create(eb),
-                }
+                return Lines.create(mb, ib, gb, sb, eb, indices.elementCount / 2)
             }
         }
     }
