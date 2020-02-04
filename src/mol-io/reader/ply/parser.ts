@@ -207,6 +207,8 @@ function parseListElement(state: State, spec: ListElementSpec) {
     let entryCount = 0
 
     for (let i = 0, il = count; i < il; ++i) {
+        Tokenizer.skipWhitespace(tokenizer)
+        Tokenizer.markStart(tokenizer)
         while (Tokenizer.skipWhitespace(tokenizer) !== 10) {
             ++entryCount
             Tokenizer.markStart(tokenizer)
