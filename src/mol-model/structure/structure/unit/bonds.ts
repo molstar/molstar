@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,7 +10,6 @@ import Structure from '../structure';
 import { BondType } from '../../model/types';
 import { SortedArray, Iterator } from '../../../../mol-data/int';
 import { CentroidHelper } from '../../../../mol-math/geometry/centroid-helper';
-import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { Sphere3D } from '../../../../mol-math/geometry';
 
 export * from './bonds/data'
@@ -223,32 +222,12 @@ namespace Bond {
         }
     }
 
-    //
-
-    const sphereHelper = new CentroidHelper()
-    const tmpPos = Vec3()
-
-    export function getBoundingSphere(loci: Loci, boundingSphere?: Sphere3D) {
-        if (!boundingSphere) boundingSphere = Sphere3D()
-        sphereHelper.reset();
-
-        for (const e of loci.bonds) {
-            e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tmpPos);
-            sphereHelper.includeStep(tmpPos);
-            e.bUnit.conformation.position(e.bUnit.elements[e.bIndex], tmpPos);
-            sphereHelper.includeStep(tmpPos);
-        }
-        sphereHelper.finishedIncludeStep();
-        for (const e of loci.bonds) {
-            e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tmpPos);
-            sphereHelper.radiusStep(tmpPos);
-            e.aUnit.conformation.position(e.bUnit.elements[e.bIndex], tmpPos);
-            sphereHelper.radiusStep(tmpPos);
-        }
-
-        Vec3.copy(boundingSphere.center, sphereHelper.center)
-        boundingSphere.radius = Math.sqrt(sphereHelper.radiusSq)
-        return boundingSphere
+    export function getBoundingSphere(loci: Loci, boundingSphere: Sphere3D) {
+        return CentroidHelper.fromPairProvider(loci.bonds.length, (i, pA, pB) => {
+            const { aUnit, aIndex, bUnit, bIndex } = loci.bonds[i]
+            aUnit.conformation.position(aUnit.elements[aIndex], pA)
+            bUnit.conformation.position(bUnit.elements[bIndex], pB)
+        }, boundingSphere)
     }
 }
 
