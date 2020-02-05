@@ -17,6 +17,8 @@ import { InterUnitGraph } from '../../mol-math/graph/inter-unit-graph';
 import { UnitIndex } from '../../mol-model/structure/structure/element/element';
 import { IntMap, SortedArray } from '../../mol-data/int';
 import { arrayMax } from '../../mol-util/array';
+import { equalEps } from '../../mol-math/linear-algebra/3d/common';
+import { Vec3 } from '../../mol-math/linear-algebra';
 
 export { ValidationReport }
 
@@ -180,6 +182,9 @@ function createInterUnitClashes(structure: Structure, clashes: ValidationReport[
     const builder = new InterUnitGraph.Builder<Unit.Atomic, UnitIndex, InterUnitClashesProps>()
     const { a, b, edgeProps: { id, magnitude, distance } } = clashes
 
+    const pA = Vec3()
+    const pB = Vec3()
+
     Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {
         const elementsA = unitA.elements
         const elementsB = unitB.elements
@@ -192,11 +197,17 @@ function createInterUnitClashes(structure: Structure, clashes: ValidationReport[
             let indexB = SortedArray.indexOf(elementsB, b[i])
 
             if (indexA !== -1 && indexB !== -1) {
-                builder.add(indexA as UnitIndex, indexB as UnitIndex, {
-                    id: id[i],
-                    magnitude: magnitude[i],
-                    distance: distance[i]
-                })
+                unitA.conformation.position(a[i], pA)
+                unitB.conformation.position(b[i], pB)
+
+                // check actual distance to avoid clashes between unrelated chain instances
+                if (equalEps(distance[i], Vec3.distance(pA, pB), 0.1)) {
+                    builder.add(indexA as UnitIndex, indexB as UnitIndex, {
+                        id: id[i],
+                        magnitude: magnitude[i],
+                        distance: distance[i]
+                    })
+                }
             }
         }
 
