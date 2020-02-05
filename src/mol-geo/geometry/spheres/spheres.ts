@@ -21,6 +21,7 @@ import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
+import { GroupMapping, createGroupMapping } from '../../util';
 
 export interface Spheres {
     readonly kind: 'spheres',
@@ -39,6 +40,8 @@ export interface Spheres {
 
     /** Bounding sphere of the spheres */
     readonly boundingSphere: Sphere3D
+    /** Maps group ids to sphere indices */
+    readonly groupMapping: GroupMapping
 }
 
 export namespace Spheres {
@@ -67,7 +70,10 @@ export namespace Spheres {
     function fromArrays(centers: Float32Array, mappings: Float32Array, indices: Uint32Array, groups: Float32Array, sphereCount: number): Spheres {
 
         const boundingSphere = Sphere3D()
+        let groupMapping: GroupMapping
+
         let currentHash = -1
+        let currentGroup = -1
 
         const spheres = {
             kind: 'spheres' as const,
@@ -85,6 +91,13 @@ export namespace Spheres {
                 }
                 return boundingSphere
             },
+            get groupMapping() {
+                if (spheres.groupBuffer.ref.version !== currentGroup) {
+                    groupMapping = createGroupMapping(spheres.groupBuffer.ref.value, spheres.sphereCount, 4)
+                    currentGroup = spheres.groupBuffer.ref.version
+                }
+                return groupMapping
+            }
         }
         return spheres
     }

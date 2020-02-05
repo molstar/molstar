@@ -6,6 +6,7 @@
 
 import { Vec3, Mat4, Mat3 } from '../mol-math/linear-algebra'
 import { NumberArray } from '../mol-util/type-helpers';
+import { arrayMax } from '../mol-util/array';
 
 export function normalizeVec3Array<T extends NumberArray> (a: T, count: number) {
     for (let i = 0, il = count * 3; i < il; i += 3) {
@@ -118,4 +119,44 @@ export function computeVertexNormals<T extends NumberArray> (vertices: NumberArr
     }
 
     return normalizeVec3Array(normals, vertexCount)
+}
+
+/**
+ * Maps groups to data, range for group i is offsets[i] to offsets[i + 1]
+ */
+export type GroupMapping = {
+    /** data indices */
+    readonly indices: ArrayLike<number>
+    /** range for group i is offsets[i] to offsets[i + 1] */
+    readonly offsets: ArrayLike<number>
+}
+
+/**
+ * The `step` parameter allows to skip over repeated values in `groups`
+ */
+export function createGroupMapping(groups: ArrayLike<number>, dataCount: number, step = 1): GroupMapping {
+    const maxId = arrayMax(groups)
+
+    const offsets = new Int32Array(maxId + 2)
+    const bucketFill = new Int32Array(dataCount)
+    const bucketSizes = new Int32Array(dataCount)
+
+    for (let i = 0, il = dataCount * step; i < il; i += step) ++bucketSizes[groups[i]]
+
+    let offset = 0
+    for (let i = 0; i < dataCount; i++) {
+        offsets[i] = offset
+        offset += bucketSizes[i]
+    }
+    offsets[dataCount] = offset
+
+    const indices = new Int32Array(offset)
+    for (let i = 0, il = dataCount * step; i < il; i += step) {
+        const g = groups[i]
+        const og = offsets[g] + bucketFill[g]
+        indices[og] = i
+        ++bucketFill[g]
+    }
+
+    return { indices, offsets }
 }

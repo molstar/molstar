@@ -8,7 +8,7 @@
 import { ValueCell } from '../../../mol-util'
 import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra'
 import { Sphere3D } from '../../../mol-math/geometry'
-import { transformPositionArray, transformDirectionArray, computeIndexedVertexNormals} from '../../util';
+import { transformPositionArray, transformDirectionArray, computeIndexedVertexNormals, GroupMapping, createGroupMapping} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
@@ -43,6 +43,8 @@ export interface Mesh {
 
     /** Bounding sphere of the mesh */
     readonly boundingSphere: Sphere3D
+    /** Maps group ids to vertex indices */
+    readonly groupMapping: GroupMapping
 }
 
 export namespace Mesh {
@@ -71,7 +73,10 @@ export namespace Mesh {
     function fromArrays(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, triangleCount: number): Mesh {
 
         const boundingSphere = Sphere3D()
+        let groupMapping: GroupMapping
+
         let currentHash = -1
+        let currentGroup = -1
 
         const mesh = {
             kind: 'mesh' as const,
@@ -90,6 +95,13 @@ export namespace Mesh {
                 }
                 return boundingSphere
             },
+            get groupMapping() {
+                if (mesh.groupBuffer.ref.version !== currentGroup) {
+                    groupMapping = createGroupMapping(mesh.groupBuffer.ref.value, mesh.vertexCount)
+                    currentGroup = mesh.groupBuffer.ref.version
+                }
+                return groupMapping
+            }
         }
         return mesh
     }

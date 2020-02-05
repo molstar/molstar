@@ -6,7 +6,9 @@
 
 import { ValueCell } from '../../../mol-util'
 import { Mat4 } from '../../../mol-math/linear-algebra'
-import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
+import { transformPositionArray,/* , transformDirectionArray, getNormalMatrix */
+GroupMapping,
+createGroupMapping} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
@@ -46,6 +48,8 @@ export interface Lines {
 
     /** Bounding sphere of the lines */
     readonly boundingSphere: Sphere3D
+    /** Maps group ids to line indices */
+    readonly groupMapping: GroupMapping
 }
 
 export namespace Lines {
@@ -95,7 +99,10 @@ export namespace Lines {
     function fromArrays(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, lineCount: number): Lines {
 
         const boundingSphere = Sphere3D()
+        let groupMapping: GroupMapping
+
         let currentHash = -1
+        let currentGroup = -1
 
         const lines = {
             kind: 'lines' as const,
@@ -111,11 +118,18 @@ export namespace Lines {
                     const s = calculateInvariantBoundingSphere(lines.startBuffer.ref.value, lines.lineCount * 4, 4)
                     const e = calculateInvariantBoundingSphere(lines.endBuffer.ref.value, lines.lineCount * 4, 4)
 
-                    Sphere3D.copy(boundingSphere, Sphere3D.expandBySphere(s, e))
+                    Sphere3D.expandBySphere(boundingSphere, s, e)
                     currentHash = newHash
                 }
                 return boundingSphere
             },
+            get groupMapping() {
+                if (lines.groupBuffer.ref.version !== currentGroup) {
+                    groupMapping = createGroupMapping(lines.groupBuffer.ref.value, lines.lineCount, 4)
+                    currentGroup = lines.groupBuffer.ref.version
+                }
+                return groupMapping
+            }
         }
         return lines
     }
