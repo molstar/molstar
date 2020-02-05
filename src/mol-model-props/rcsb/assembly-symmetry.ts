@@ -16,7 +16,7 @@ import { NonNullableArray } from '../../mol-util/type-helpers';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 
 export namespace AssemblySymmetry {
-    export const DefaultServerUrl = 'http://data-staging.rcsb.org/graphql'
+    export const DefaultServerUrl = 'http://data-beta.rcsb.org/graphql'
 
     export function isApplicable(structure?: Structure): boolean {
         return (

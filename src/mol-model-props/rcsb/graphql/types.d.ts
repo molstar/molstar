@@ -1,7 +1,7 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
 
-// Generated in 2020-01-23T15:44:21-08:00
+// Generated in 2020-02-05T13:46:39-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -78,6 +78,7 @@ export type Citation = {
   readonly pdbx_database_id_DOI?: Maybe<Scalars['String']>,
   readonly pdbx_database_id_PubMed?: Maybe<Scalars['Int']>,
   readonly rcsb_authors?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
+  readonly rcsb_is_primary?: Maybe<Scalars['String']>,
   readonly rcsb_journal_abbrev?: Maybe<Scalars['String']>,
   readonly title?: Maybe<Scalars['String']>,
   readonly unpublished_flag?: Maybe<Scalars['String']>,
@@ -235,16 +236,6 @@ export type CoreEntry = {
   readonly symmetry?: Maybe<Symmetry>,
 };
 
-export type CoreGo = {
-  readonly __typename?: 'CoreGo',
-  readonly rcsb_go_aspect: Scalars['String'],
-  readonly rcsb_go_container_identifiers: RcsbGoContainerIdentifiers,
-  readonly rcsb_go_description?: Maybe<Scalars['String']>,
-  readonly rcsb_go_label: Scalars['String'],
-  readonly rcsb_go_synonyms?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
-  readonly rcsb_id: Scalars['String'],
-};
-
 export type CoreNonpolymerEntity = {
   readonly __typename?: 'CoreNonpolymerEntity',
   readonly nonpolymer_comp?: Maybe<CoreChemComp>,
@@ -254,6 +245,7 @@ export type CoreNonpolymerEntity = {
   readonly rcsb_id: Scalars['String'],
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>,
   readonly rcsb_nonpolymer_entity?: Maybe<RcsbNonpolymerEntity>,
+  readonly rcsb_nonpolymer_entity_annotation?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerEntityAnnotation>>>,
   readonly rcsb_nonpolymer_entity_container_identifiers?: Maybe<RcsbNonpolymerEntityContainerIdentifiers>,
   readonly rcsb_nonpolymer_entity_feature?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerEntityFeature>>>,
   readonly rcsb_nonpolymer_entity_feature_summary?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerEntityFeatureSummary>>>,
@@ -267,6 +259,7 @@ export type CoreNonpolymerEntityInstance = {
   readonly rcsb_id: Scalars['String'],
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>,
   readonly rcsb_nonpolymer_entity_instance_container_identifiers?: Maybe<RcsbNonpolymerEntityInstanceContainerIdentifiers>,
+  readonly rcsb_nonpolymer_instance_annotation?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceAnnotation>>>,
   readonly rcsb_nonpolymer_instance_feature?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceFeature>>>,
   readonly rcsb_nonpolymer_instance_feature_summary?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceFeatureSummary>>>,
   readonly rcsb_nonpolymer_struct_conn?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerStructConn>>>,
@@ -292,7 +285,6 @@ export type CorePolymerEntity = {
   readonly entity_poly?: Maybe<EntityPoly>,
   readonly entity_src_gen?: Maybe<ReadonlyArray<Maybe<EntitySrcGen>>>,
   readonly entity_src_nat?: Maybe<ReadonlyArray<Maybe<EntitySrcNat>>>,
-  readonly gos?: Maybe<ReadonlyArray<Maybe<CoreGo>>>,
   readonly pdbx_entity_src_syn?: Maybe<ReadonlyArray<Maybe<PdbxEntitySrcSyn>>>,
   readonly pfams?: Maybe<ReadonlyArray<Maybe<CorePfam>>>,
   readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>,
@@ -308,6 +300,7 @@ export type CorePolymerEntity = {
   readonly rcsb_membrane_lineage_provenance_code?: Maybe<Scalars['String']>,
   readonly rcsb_polymer_entity?: Maybe<RcsbPolymerEntity>,
   readonly rcsb_polymer_entity_align?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAlign>>>,
+  readonly rcsb_polymer_entity_annotation?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAnnotation>>>,
   readonly rcsb_polymer_entity_container_identifiers: RcsbPolymerEntityContainerIdentifiers,
   readonly rcsb_polymer_entity_feature?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityFeature>>>,
   readonly rcsb_polymer_entity_feature_summary?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityFeatureSummary>>>,
@@ -323,6 +316,7 @@ export type CorePolymerEntityInstance = {
   readonly rcsb_id: Scalars['String'],
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>,
   readonly rcsb_polymer_entity_instance_container_identifiers?: Maybe<RcsbPolymerEntityInstanceContainerIdentifiers>,
+  readonly rcsb_polymer_instance_annotation?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceAnnotation>>>,
   readonly rcsb_polymer_instance_feature?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceFeature>>>,
   readonly rcsb_polymer_instance_feature_summary?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceFeatureSummary>>>,
   readonly rcsb_polymer_struct_conn?: Maybe<ReadonlyArray<Maybe<RcsbPolymerStructConn>>>,
@@ -1410,6 +1404,7 @@ export type PdbxStructAssemblyGen = {
 
 export type PdbxStructAssemblyProp = {
   readonly __typename?: 'PdbxStructAssemblyProp',
+  readonly assembly_id?: Maybe<Scalars['String']>,
   readonly biol_id: Scalars['String'],
   readonly type: Scalars['String'],
   readonly value?: Maybe<Scalars['String']>,
@@ -1567,21 +1562,19 @@ export type PdbxVrptSummary = {
 export type Query = {
   readonly __typename?: 'Query',
   readonly polymer_entity_instance?: Maybe<CorePolymerEntityInstance>,
+  readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>,
   readonly nonpolymer_entities?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntity>>>,
+  readonly nonpolymer_entity_instance?: Maybe<CoreNonpolymerEntityInstance>,
   readonly polymer_entities?: Maybe<ReadonlyArray<Maybe<CorePolymerEntity>>>,
   readonly polymer_entity?: Maybe<CorePolymerEntity>,
-  readonly pubmed?: Maybe<CorePubmed>,
-  readonly pfam?: Maybe<CorePfam>,
-  readonly assembly?: Maybe<CoreAssembly>,
-  readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>,
-  readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>,
-  readonly go?: Maybe<CoreGo>,
-  readonly nonpolymer_entity_instance?: Maybe<CoreNonpolymerEntityInstance>,
   readonly chem_comp?: Maybe<CoreChemComp>,
   readonly entry?: Maybe<CoreEntry>,
   readonly entries?: Maybe<ReadonlyArray<Maybe<CoreEntry>>>,
+  readonly pubmed?: Maybe<CorePubmed>,
+  readonly assembly?: Maybe<CoreAssembly>,
   readonly uniprot?: Maybe<CoreUniprot>,
   readonly nonpolymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntityInstance>>>,
+  readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>,
   readonly nonpolymer_entity?: Maybe<CoreNonpolymerEntity>,
 };
 
@@ -1592,8 +1585,19 @@ export type QueryPolymer_Entity_InstanceArgs = {
 };
 
 
+export type QueryAssembliesArgs = {
+  assembly_ids: ReadonlyArray<Maybe<Scalars['String']>>
+};
+
+
 export type QueryNonpolymer_EntitiesArgs = {
   entity_ids: ReadonlyArray<Scalars['String']>
+};
+
+
+export type QueryNonpolymer_Entity_InstanceArgs = {
+  asym_id: Scalars['String'],
+  entry_id: Scalars['String']
 };
 
 
@@ -1604,43 +1608,6 @@ export type QueryPolymer_EntitiesArgs = {
 
 export type QueryPolymer_EntityArgs = {
   entity_id: Scalars['String'],
-  entry_id: Scalars['String']
-};
-
-
-export type QueryPubmedArgs = {
-  pubmed_id: Scalars['Int']
-};
-
-
-export type QueryPfamArgs = {
-  pfam_id: Scalars['String']
-};
-
-
-export type QueryAssemblyArgs = {
-  assembly_id: Scalars['String'],
-  entry_id: Scalars['String']
-};
-
-
-export type QueryPolymer_Entity_InstancesArgs = {
-  instance_ids: ReadonlyArray<Maybe<Scalars['String']>>
-};
-
-
-export type QueryAssembliesArgs = {
-  assembly_ids: ReadonlyArray<Maybe<Scalars['String']>>
-};
-
-
-export type QueryGoArgs = {
-  go_id: Scalars['String']
-};
-
-
-export type QueryNonpolymer_Entity_InstanceArgs = {
-  asym_id: Scalars['String'],
   entry_id: Scalars['String']
 };
 
@@ -1660,12 +1627,28 @@ export type QueryEntriesArgs = {
 };
 
 
+export type QueryPubmedArgs = {
+  pubmed_id: Scalars['Int']
+};
+
+
+export type QueryAssemblyArgs = {
+  assembly_id: Scalars['String'],
+  entry_id: Scalars['String']
+};
+
+
 export type QueryUniprotArgs = {
   uniprot_id: Scalars['String']
 };
 
 
 export type QueryNonpolymer_Entity_InstancesArgs = {
+  instance_ids: ReadonlyArray<Maybe<Scalars['String']>>
+};
+
+
+export type QueryPolymer_Entity_InstancesArgs = {
   instance_ids: ReadonlyArray<Maybe<Scalars['String']>>
 };
 
@@ -1835,8 +1818,8 @@ export type RcsbClusterFlexibility = {
 
 export type RcsbClusterMembership = {
   readonly __typename?: 'RcsbClusterMembership',
-  readonly cluster_id?: Maybe<Scalars['Int']>,
-  readonly identity?: Maybe<Scalars['Int']>,
+  readonly cluster_id: Scalars['Int'],
+  readonly identity: Scalars['Int'],
 };
 
 export type RcsbEntityHostOrganism = {
@@ -1849,7 +1832,7 @@ export type RcsbEntityHostOrganism = {
   readonly ncbi_scientific_name?: Maybe<Scalars['String']>,
   readonly ncbi_taxonomy_id?: Maybe<Scalars['Int']>,
   readonly pdbx_src_id: Scalars['String'],
-  readonly provenance_code?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
   readonly scientific_name?: Maybe<Scalars['String']>,
   readonly taxonomy_lineage?: Maybe<ReadonlyArray<Maybe<RcsbEntityHostOrganismTaxonomyLineage>>>,
 };
@@ -1871,7 +1854,7 @@ export type RcsbEntitySourceOrganism = {
   readonly ncbi_scientific_name?: Maybe<Scalars['String']>,
   readonly ncbi_taxonomy_id?: Maybe<Scalars['Int']>,
   readonly pdbx_src_id: Scalars['String'],
-  readonly provenance_code?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
   readonly rcsb_gene_name?: Maybe<ReadonlyArray<Maybe<RcsbEntitySourceOrganismRcsbGeneName>>>,
   readonly scientific_name?: Maybe<Scalars['String']>,
   readonly source_type?: Maybe<Scalars['String']>,
@@ -1880,7 +1863,7 @@ export type RcsbEntitySourceOrganism = {
 
 export type RcsbEntitySourceOrganismRcsbGeneName = {
   readonly __typename?: 'RcsbEntitySourceOrganismRcsbGeneName',
-  readonly provenance_code?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
   readonly value?: Maybe<Scalars['String']>,
 };
 
@@ -1964,11 +1947,6 @@ export type RcsbGenomicLineage = {
   readonly name?: Maybe<Scalars['String']>,
 };
 
-export type RcsbGoContainerIdentifiers = {
-  readonly __typename?: 'RcsbGoContainerIdentifiers',
-  readonly go_id?: Maybe<Scalars['String']>,
-};
-
 export type RcsbLatestRevision = {
   readonly __typename?: 'RcsbLatestRevision',
   readonly major_revision?: Maybe<Scalars['Int']>,
@@ -1991,6 +1969,25 @@ export type RcsbNonpolymerEntity = {
   readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']>,
 };
 
+export type RcsbNonpolymerEntityAnnotation = {
+  readonly __typename?: 'RcsbNonpolymerEntityAnnotation',
+  readonly annotation_id?: Maybe<Scalars['String']>,
+  readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerEntityAnnotationAnnotationLineage>>>,
+  readonly assignment_version?: Maybe<Scalars['String']>,
+  readonly comp_id?: Maybe<Scalars['String']>,
+  readonly description?: Maybe<Scalars['String']>,
+  readonly name?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
+  readonly type?: Maybe<Scalars['String']>,
+};
+
+export type RcsbNonpolymerEntityAnnotationAnnotationLineage = {
+  readonly __typename?: 'RcsbNonpolymerEntityAnnotationAnnotationLineage',
+  readonly depth?: Maybe<Scalars['Int']>,
+  readonly id?: Maybe<Scalars['String']>,
+  readonly name?: Maybe<Scalars['String']>,
+};
+
 export type RcsbNonpolymerEntityContainerIdentifiers = {
   readonly __typename?: 'RcsbNonpolymerEntityContainerIdentifiers',
   readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
@@ -2010,25 +2007,21 @@ export type RcsbNonpolymerEntityFeature = {
   readonly assignment_version?: Maybe<Scalars['String']>,
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly description?: Maybe<Scalars['String']>,
-  readonly feature_class_lineage?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerEntityFeatureFeatureClassLineage>>>,
   readonly feature_id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
-  readonly provenance_code?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
   readonly type?: Maybe<Scalars['String']>,
   readonly value?: Maybe<Scalars['Float']>,
-};
-
-export type RcsbNonpolymerEntityFeatureFeatureClassLineage = {
-  readonly __typename?: 'RcsbNonpolymerEntityFeatureFeatureClassLineage',
-  readonly depth?: Maybe<Scalars['Int']>,
-  readonly id?: Maybe<Scalars['String']>,
-  readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbNonpolymerEntityFeatureSummary = {
   readonly __typename?: 'RcsbNonpolymerEntityFeatureSummary',
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly count?: Maybe<Scalars['Int']>,
+  readonly maximum_length?: Maybe<Scalars['Int']>,
+  readonly maximum_value?: Maybe<Scalars['Float']>,
+  readonly minimum_length?: Maybe<Scalars['Int']>,
+  readonly minimum_value?: Maybe<Scalars['Float']>,
   readonly type?: Maybe<Scalars['String']>,
 };
 
@@ -2053,26 +2046,38 @@ export type RcsbNonpolymerEntityNameCom = {
   readonly name: Scalars['String'],
 };
 
+export type RcsbNonpolymerInstanceAnnotation = {
+  readonly __typename?: 'RcsbNonpolymerInstanceAnnotation',
+  readonly annotation_id?: Maybe<Scalars['String']>,
+  readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceAnnotationAnnotationLineage>>>,
+  readonly assignment_version?: Maybe<Scalars['String']>,
+  readonly comp_id?: Maybe<Scalars['String']>,
+  readonly description?: Maybe<Scalars['String']>,
+  readonly name?: Maybe<Scalars['String']>,
+  readonly ordinal: Scalars['Int'],
+  readonly provenance_source?: Maybe<Scalars['String']>,
+  readonly type?: Maybe<Scalars['String']>,
+};
+
+export type RcsbNonpolymerInstanceAnnotationAnnotationLineage = {
+  readonly __typename?: 'RcsbNonpolymerInstanceAnnotationAnnotationLineage',
+  readonly depth?: Maybe<Scalars['Int']>,
+  readonly id?: Maybe<Scalars['String']>,
+  readonly name?: Maybe<Scalars['String']>,
+};
+
 export type RcsbNonpolymerInstanceFeature = {
   readonly __typename?: 'RcsbNonpolymerInstanceFeature',
   readonly assignment_version?: Maybe<Scalars['String']>,
   readonly auth_seq_id?: Maybe<Scalars['String']>,
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly description?: Maybe<Scalars['String']>,
-  readonly feature_class_lineage?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceFeatureFeatureClassLineage>>>,
   readonly feature_id?: Maybe<Scalars['String']>,
   readonly feature_value?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceFeatureFeatureValue>>>,
   readonly name?: Maybe<Scalars['String']>,
   readonly ordinal: Scalars['Int'],
-  readonly provenance_code?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
   readonly type?: Maybe<Scalars['String']>,
-};
-
-export type RcsbNonpolymerInstanceFeatureFeatureClassLineage = {
-  readonly __typename?: 'RcsbNonpolymerInstanceFeatureFeatureClassLineage',
-  readonly depth?: Maybe<Scalars['Int']>,
-  readonly id?: Maybe<Scalars['String']>,
-  readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbNonpolymerInstanceFeatureFeatureValue = {
@@ -2088,6 +2093,10 @@ export type RcsbNonpolymerInstanceFeatureFeatureValue = {
 export type RcsbNonpolymerInstanceFeatureSummary = {
   readonly __typename?: 'RcsbNonpolymerInstanceFeatureSummary',
   readonly count?: Maybe<Scalars['Int']>,
+  readonly maximum_length?: Maybe<Scalars['Int']>,
+  readonly maximum_value?: Maybe<Scalars['Float']>,
+  readonly minimum_length?: Maybe<Scalars['Int']>,
+  readonly minimum_value?: Maybe<Scalars['Float']>,
   readonly type?: Maybe<Scalars['String']>,
 };
 
@@ -2106,9 +2115,9 @@ export type RcsbNonpolymerStructConn = {
 export type RcsbNonpolymerStructConnConnectPartner = {
   readonly __typename?: 'RcsbNonpolymerStructConnConnectPartner',
   readonly label_alt_id?: Maybe<Scalars['String']>,
-  readonly label_asym_id?: Maybe<Scalars['String']>,
+  readonly label_asym_id: Scalars['String'],
   readonly label_atom_id?: Maybe<Scalars['String']>,
-  readonly label_comp_id?: Maybe<Scalars['String']>,
+  readonly label_comp_id: Scalars['String'],
   readonly label_seq_id?: Maybe<Scalars['Int']>,
   readonly symmetry?: Maybe<Scalars['String']>,
 };
@@ -2118,9 +2127,9 @@ export type RcsbNonpolymerStructConnConnectTarget = {
   readonly auth_asym_id?: Maybe<Scalars['String']>,
   readonly auth_seq_id?: Maybe<Scalars['String']>,
   readonly label_alt_id?: Maybe<Scalars['String']>,
-  readonly label_asym_id?: Maybe<Scalars['String']>,
+  readonly label_asym_id: Scalars['String'],
   readonly label_atom_id?: Maybe<Scalars['String']>,
-  readonly label_comp_id?: Maybe<Scalars['String']>,
+  readonly label_comp_id: Scalars['String'],
   readonly label_seq_id?: Maybe<Scalars['Int']>,
   readonly symmetry?: Maybe<Scalars['String']>,
 };
@@ -2140,6 +2149,7 @@ export type RcsbPolymerEntity = {
   readonly pdbx_mutation?: Maybe<Scalars['String']>,
   readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']>,
   readonly rcsb_ec_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityRcsbEcLineage>>>,
+  readonly rcsb_enzyme_class_combined?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityRcsbEnzymeClassCombined>>>,
   readonly rcsb_macromolecular_names_combined?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityRcsbMacromolecularNamesCombined>>>,
   readonly rcsb_multiple_source_flag?: Maybe<Scalars['String']>,
   readonly rcsb_source_part_count?: Maybe<Scalars['Int']>,
@@ -2149,7 +2159,7 @@ export type RcsbPolymerEntity = {
 export type RcsbPolymerEntityAlign = {
   readonly __typename?: 'RcsbPolymerEntityAlign',
   readonly aligned_regions?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAlignAlignedRegions>>>,
-  readonly provenance_code?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
   readonly reference_database_accession?: Maybe<Scalars['String']>,
   readonly reference_database_isoform?: Maybe<Scalars['String']>,
   readonly reference_database_name?: Maybe<Scalars['String']>,
@@ -2162,6 +2172,24 @@ export type RcsbPolymerEntityAlignAlignedRegions = {
   readonly ref_beg_seq_id?: Maybe<Scalars['Int']>,
 };
 
+export type RcsbPolymerEntityAnnotation = {
+  readonly __typename?: 'RcsbPolymerEntityAnnotation',
+  readonly annotation_id?: Maybe<Scalars['String']>,
+  readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAnnotationAnnotationLineage>>>,
+  readonly assignment_version?: Maybe<Scalars['String']>,
+  readonly description?: Maybe<Scalars['String']>,
+  readonly name?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
+  readonly type?: Maybe<Scalars['String']>,
+};
+
+export type RcsbPolymerEntityAnnotationAnnotationLineage = {
+  readonly __typename?: 'RcsbPolymerEntityAnnotationAnnotationLineage',
+  readonly depth?: Maybe<Scalars['Int']>,
+  readonly id?: Maybe<Scalars['String']>,
+  readonly name?: Maybe<Scalars['String']>,
+};
+
 export type RcsbPolymerEntityContainerIdentifiers = {
   readonly __typename?: 'RcsbPolymerEntityContainerIdentifiers',
   readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
@@ -2170,13 +2198,9 @@ export type RcsbPolymerEntityContainerIdentifiers = {
   readonly chem_comp_nstd_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly entity_id: Scalars['String'],
   readonly entry_id: Scalars['String'],
-  readonly go_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
-  readonly pfam_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly prd_id?: Maybe<Scalars['String']>,
   readonly rcsb_id?: Maybe<Scalars['String']>,
   readonly reference_sequence_identifiers?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers>>>,
-  readonly related_annotation_identifiers?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityContainerIdentifiersRelatedAnnotationIdentifiers>>>,
-  readonly related_annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityContainerIdentifiersRelatedAnnotationLineage>>>,
   readonly uniprot_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
 };
 
@@ -2188,52 +2212,22 @@ export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = 
   readonly provenance_source?: Maybe<Scalars['String']>,
 };
 
-export type RcsbPolymerEntityContainerIdentifiersRelatedAnnotationIdentifiers = {
-  readonly __typename?: 'RcsbPolymerEntityContainerIdentifiersRelatedAnnotationIdentifiers',
-  readonly provenance_source?: Maybe<Scalars['String']>,
-  readonly resource_identifier?: Maybe<Scalars['String']>,
-  readonly resource_name?: Maybe<Scalars['String']>,
-};
-
-export type RcsbPolymerEntityContainerIdentifiersRelatedAnnotationLineage = {
-  readonly __typename?: 'RcsbPolymerEntityContainerIdentifiersRelatedAnnotationLineage',
-  readonly depth?: Maybe<Scalars['Int']>,
-  readonly id?: Maybe<Scalars['String']>,
-  readonly name?: Maybe<Scalars['String']>,
-  readonly resource?: Maybe<Scalars['String']>,
-};
-
 export type RcsbPolymerEntityFeature = {
   readonly __typename?: 'RcsbPolymerEntityFeature',
   readonly assignment_version?: Maybe<Scalars['String']>,
   readonly description?: Maybe<Scalars['String']>,
-  readonly feature_class_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityFeatureFeatureClassLineage>>>,
   readonly feature_id?: Maybe<Scalars['String']>,
   readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityFeatureFeaturePositions>>>,
-  readonly feature_ranges?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityFeatureFeatureRanges>>>,
   readonly name?: Maybe<Scalars['String']>,
-  readonly provenance_code?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
   readonly reference_scheme?: Maybe<Scalars['String']>,
   readonly type?: Maybe<Scalars['String']>,
 };
 
-export type RcsbPolymerEntityFeatureFeatureClassLineage = {
-  readonly __typename?: 'RcsbPolymerEntityFeatureFeatureClassLineage',
-  readonly depth?: Maybe<Scalars['Int']>,
-  readonly id?: Maybe<Scalars['String']>,
-  readonly name?: Maybe<Scalars['String']>,
-};
-
 export type RcsbPolymerEntityFeatureFeaturePositions = {
   readonly __typename?: 'RcsbPolymerEntityFeatureFeaturePositions',
-  readonly comp_id?: Maybe<Scalars['String']>,
-  readonly seq_id?: Maybe<Scalars['Int']>,
-  readonly value?: Maybe<Scalars['Float']>,
-};
-
-export type RcsbPolymerEntityFeatureFeatureRanges = {
-  readonly __typename?: 'RcsbPolymerEntityFeatureFeatureRanges',
-  readonly beg_seq_id?: Maybe<Scalars['Int']>,
+  readonly beg_comp_id?: Maybe<Scalars['String']>,
+  readonly beg_seq_id: Scalars['Int'],
   readonly end_seq_id?: Maybe<Scalars['Int']>,
   readonly value?: Maybe<Scalars['Float']>,
 };
@@ -2242,6 +2236,10 @@ export type RcsbPolymerEntityFeatureSummary = {
   readonly __typename?: 'RcsbPolymerEntityFeatureSummary',
   readonly count?: Maybe<Scalars['Int']>,
   readonly coverage?: Maybe<Scalars['Float']>,
+  readonly maximum_length?: Maybe<Scalars['Int']>,
+  readonly maximum_value?: Maybe<Scalars['Float']>,
+  readonly minimum_length?: Maybe<Scalars['Int']>,
+  readonly minimum_value?: Maybe<Scalars['Float']>,
   readonly type?: Maybe<Scalars['String']>,
 };
 
@@ -2277,6 +2275,13 @@ export type RcsbPolymerEntityRcsbEcLineage = {
   readonly name?: Maybe<Scalars['String']>,
 };
 
+export type RcsbPolymerEntityRcsbEnzymeClassCombined = {
+  readonly __typename?: 'RcsbPolymerEntityRcsbEnzymeClassCombined',
+  readonly depth?: Maybe<Scalars['Int']>,
+  readonly ec?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
+};
+
 export type RcsbPolymerEntityRcsbMacromolecularNamesCombined = {
   readonly __typename?: 'RcsbPolymerEntityRcsbMacromolecularNamesCombined',
   readonly name?: Maybe<Scalars['String']>,
@@ -2284,38 +2289,42 @@ export type RcsbPolymerEntityRcsbMacromolecularNamesCombined = {
   readonly provenance_source?: Maybe<Scalars['String']>,
 };
 
-export type RcsbPolymerInstanceFeature = {
-  readonly __typename?: 'RcsbPolymerInstanceFeature',
+export type RcsbPolymerInstanceAnnotation = {
+  readonly __typename?: 'RcsbPolymerInstanceAnnotation',
+  readonly annotation_id?: Maybe<Scalars['String']>,
+  readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceAnnotationAnnotationLineage>>>,
   readonly assignment_version?: Maybe<Scalars['String']>,
   readonly description?: Maybe<Scalars['String']>,
-  readonly feature_class_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceFeatureFeatureClassLineage>>>,
-  readonly feature_id?: Maybe<Scalars['String']>,
-  readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceFeatureFeaturePositions>>>,
-  readonly feature_ranges?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceFeatureFeatureRanges>>>,
   readonly name?: Maybe<Scalars['String']>,
   readonly ordinal: Scalars['Int'],
-  readonly provenance_code?: Maybe<Scalars['String']>,
-  readonly reference_scheme?: Maybe<Scalars['String']>,
+  readonly provenance_source?: Maybe<Scalars['String']>,
   readonly type?: Maybe<Scalars['String']>,
 };
 
-export type RcsbPolymerInstanceFeatureFeatureClassLineage = {
-  readonly __typename?: 'RcsbPolymerInstanceFeatureFeatureClassLineage',
+export type RcsbPolymerInstanceAnnotationAnnotationLineage = {
+  readonly __typename?: 'RcsbPolymerInstanceAnnotationAnnotationLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
-export type RcsbPolymerInstanceFeatureFeaturePositions = {
-  readonly __typename?: 'RcsbPolymerInstanceFeatureFeaturePositions',
-  readonly comp_id?: Maybe<Scalars['String']>,
-  readonly seq_id?: Maybe<Scalars['Int']>,
-  readonly value?: Maybe<Scalars['Float']>,
+export type RcsbPolymerInstanceFeature = {
+  readonly __typename?: 'RcsbPolymerInstanceFeature',
+  readonly assignment_version?: Maybe<Scalars['String']>,
+  readonly description?: Maybe<Scalars['String']>,
+  readonly feature_id?: Maybe<Scalars['String']>,
+  readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceFeatureFeaturePositions>>>,
+  readonly name?: Maybe<Scalars['String']>,
+  readonly ordinal: Scalars['Int'],
+  readonly provenance_source?: Maybe<Scalars['String']>,
+  readonly reference_scheme?: Maybe<Scalars['String']>,
+  readonly type?: Maybe<Scalars['String']>,
 };
 
-export type RcsbPolymerInstanceFeatureFeatureRanges = {
-  readonly __typename?: 'RcsbPolymerInstanceFeatureFeatureRanges',
-  readonly beg_seq_id?: Maybe<Scalars['Int']>,
+export type RcsbPolymerInstanceFeatureFeaturePositions = {
+  readonly __typename?: 'RcsbPolymerInstanceFeatureFeaturePositions',
+  readonly beg_comp_id?: Maybe<Scalars['String']>,
+  readonly beg_seq_id: Scalars['Int'],
   readonly end_seq_id?: Maybe<Scalars['Int']>,
   readonly value?: Maybe<Scalars['Float']>,
 };
@@ -2324,6 +2333,10 @@ export type RcsbPolymerInstanceFeatureSummary = {
   readonly __typename?: 'RcsbPolymerInstanceFeatureSummary',
   readonly count?: Maybe<Scalars['Int']>,
   readonly coverage?: Maybe<Scalars['Float']>,
+  readonly maximum_length?: Maybe<Scalars['Int']>,
+  readonly maximum_value?: Maybe<Scalars['Float']>,
+  readonly minimum_length?: Maybe<Scalars['Int']>,
+  readonly minimum_value?: Maybe<Scalars['Float']>,
   readonly type?: Maybe<Scalars['String']>,
 };
 
@@ -2342,9 +2355,9 @@ export type RcsbPolymerStructConn = {
 export type RcsbPolymerStructConnConnectPartner = {
   readonly __typename?: 'RcsbPolymerStructConnConnectPartner',
   readonly label_alt_id?: Maybe<Scalars['String']>,
-  readonly label_asym_id?: Maybe<Scalars['String']>,
+  readonly label_asym_id: Scalars['String'],
   readonly label_atom_id?: Maybe<Scalars['String']>,
-  readonly label_comp_id?: Maybe<Scalars['String']>,
+  readonly label_comp_id: Scalars['String'],
   readonly label_seq_id?: Maybe<Scalars['Int']>,
   readonly symmetry?: Maybe<Scalars['String']>,
 };
@@ -2354,9 +2367,9 @@ export type RcsbPolymerStructConnConnectTarget = {
   readonly auth_asym_id?: Maybe<Scalars['String']>,
   readonly auth_seq_id?: Maybe<Scalars['String']>,
   readonly label_alt_id?: Maybe<Scalars['String']>,
-  readonly label_asym_id?: Maybe<Scalars['String']>,
+  readonly label_asym_id: Scalars['String'],
   readonly label_atom_id?: Maybe<Scalars['String']>,
-  readonly label_comp_id?: Maybe<Scalars['String']>,
+  readonly label_comp_id: Scalars['String'],
   readonly label_seq_id?: Maybe<Scalars['Int']>,
   readonly symmetry?: Maybe<Scalars['String']>,
 };
