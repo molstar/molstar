@@ -182,7 +182,7 @@ function getGrouping(vertex: PlyTable, props: PD.Values<PlyShapeParams>): Groupi
     const label = grouping.name === 'vertex' ? stringToWords(grouping.params.group) : 'Vertex'
 
     const ids = column ? column.toArray({ array: Uint32Array }) : fillSerial(new Uint32Array(rowCount))
-    const maxId = arrayMax(ids) // assumes uint ids
+    const maxId = column ? arrayMax(ids) : rowCount - 1 // assumes uint ids
     const map = new Uint32Array(maxId + 1)
     for (let i = 0, il = ids.length; i < il; ++i) map[ids[i]] = i
     return { ids, map, label  }

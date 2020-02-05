@@ -39,7 +39,7 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
             return loci.shape.name
         case 'group-loci':
             const g = loci.groups[0]
-            return g ? loci.shape.getLabel(OrderedSet.start(g.ids), loci.instance) : 'Unknown'
+            return g ? loci.shape.getLabel(OrderedSet.start(g.ids), g.instance) : 'Unknown'
         case 'every-loci':
             return 'Everything'
         case 'empty-loci':

@@ -163,8 +163,7 @@ namespace Loci {
         } else if (loci.kind === 'shape-loci') {
             return Sphere3D.copy(boundingSphere, loci.shape.geometry.boundingSphere)
         } else if (loci.kind === 'group-loci') {
-            // TODO
-            return Sphere3D.copy(boundingSphere, loci.shape.geometry.boundingSphere)
+            return ShapeGroup.getBoundingSphere(loci, boundingSphere)
         } else if (loci.kind === 'data-loci') {
             // TODO maybe add loci.getBoundingSphere()???
             return void 0;
@@ -249,7 +248,12 @@ namespace Loci {
             return StructureElement.Loci.is(loci)
                 ? Structure.toStructureElementLoci(loci.structure)
                 : loci
-        }
+        },
+        'shape': (loci: Loci) => {
+            return ShapeGroup.isLoci(loci)
+                ? Shape.Loci(loci.shape)
+                : loci
+        },
     }
     export type Granularity = keyof typeof Granularity
     export const GranularityOptions = ParamDefinition.objectToOptions(Granularity);

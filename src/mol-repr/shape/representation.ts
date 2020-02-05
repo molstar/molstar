@@ -184,7 +184,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             if (pickingId === undefined) return Shape.Loci(_shape)
             const { objectId, groupId, instanceId } = pickingId
             if (_renderObject && _renderObject.id === objectId) {
-                return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId) }], instanceId)
+                return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }])
             }
             return EmptyLoci
         },
@@ -239,15 +239,15 @@ function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) =>
     if (loci.shape !== shape) return false
     let changed = false
     const { groupCount } = shape
-    const { instance, groups } = loci
-    for (const g of groups) {
-        if (Interval.is(g.ids)) {
-            const start = instance * groupCount + Interval.start(g.ids)
-            const end = instance * groupCount + Interval.end(g.ids)
+    const { groups } = loci
+    for (const { ids, instance } of groups) {
+        if (Interval.is(ids)) {
+            const start = instance * groupCount + Interval.start(ids)
+            const end = instance * groupCount + Interval.end(ids)
             if (apply(Interval.ofBounds(start, end))) changed = true
         } else {
-            for (let i = 0, _i = g.ids.length; i < _i; i++) {
-                const idx = instance * groupCount + g.ids[i];
+            for (let i = 0, _i = ids.length; i < _i; i++) {
+                const idx = instance * groupCount + ids[i];
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }
         }
