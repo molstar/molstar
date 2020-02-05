@@ -119,7 +119,7 @@ namespace Loci {
         return loci
     }
 
-    const sphereHelper = new CentroidHelper(), tmpPos = Vec3.zero();
+    const sphereHelper = new CentroidHelper(), tmpPos = Vec3();
 
     export function getBoundingSphere(loci: Loci, boundingSphere?: Sphere3D): Sphere3D | undefined {
         if (loci.kind === 'every-loci' || loci.kind === 'empty-loci') return void 0;
@@ -132,19 +132,7 @@ namespace Loci {
         } else if (loci.kind === 'element-loci') {
             return Sphere3D.copy(boundingSphere, StructureElement.Loci.getBoundary(loci).sphere);
         } else if (loci.kind === 'bond-loci') {
-            for (const e of loci.bonds) {
-                e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tmpPos);
-                sphereHelper.includeStep(tmpPos);
-                e.bUnit.conformation.position(e.bUnit.elements[e.bIndex], tmpPos);
-                sphereHelper.includeStep(tmpPos);
-            }
-            sphereHelper.finishedIncludeStep();
-            for (const e of loci.bonds) {
-                e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tmpPos);
-                sphereHelper.radiusStep(tmpPos);
-                e.aUnit.conformation.position(e.bUnit.elements[e.bIndex], tmpPos);
-                sphereHelper.radiusStep(tmpPos);
-            }
+            return Bond.getBoundingSphere(loci, boundingSphere)
         } else if (loci.kind === 'interaction-loci') {
             const { unitsFeatures } = loci.interactions
             for (const e of loci.contacts) {

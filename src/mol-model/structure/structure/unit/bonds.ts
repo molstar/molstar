@@ -9,6 +9,9 @@ import { Unit, StructureElement } from '../../structure'
 import Structure from '../structure';
 import { BondType } from '../../model/types';
 import { SortedArray, Iterator } from '../../../../mol-data/int';
+import { CentroidHelper } from '../../../../mol-math/geometry/centroid-helper';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { Sphere3D } from '../../../../mol-math/geometry';
 
 export * from './bonds/data'
 export * from './bonds/intra-compute'
@@ -218,6 +221,34 @@ namespace Bond {
         constructor() {
             this.hasNext = false
         }
+    }
+
+    //
+
+    const sphereHelper = new CentroidHelper()
+    const tmpPos = Vec3()
+
+    export function getBoundingSphere(loci: Loci, boundingSphere?: Sphere3D) {
+        if (!boundingSphere) boundingSphere = Sphere3D()
+        sphereHelper.reset();
+
+        for (const e of loci.bonds) {
+            e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tmpPos);
+            sphereHelper.includeStep(tmpPos);
+            e.bUnit.conformation.position(e.bUnit.elements[e.bIndex], tmpPos);
+            sphereHelper.includeStep(tmpPos);
+        }
+        sphereHelper.finishedIncludeStep();
+        for (const e of loci.bonds) {
+            e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tmpPos);
+            sphereHelper.radiusStep(tmpPos);
+            e.aUnit.conformation.position(e.bUnit.elements[e.bIndex], tmpPos);
+            sphereHelper.radiusStep(tmpPos);
+        }
+
+        Vec3.copy(boundingSphere.center, sphereHelper.center)
+        boundingSphere.radius = Math.sqrt(sphereHelper.radiusSq)
+        return boundingSphere
     }
 }
 
