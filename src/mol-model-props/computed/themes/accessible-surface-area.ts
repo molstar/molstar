@@ -5,16 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ThemeDataContext } from '../theme';
-import { ColorTheme, LocationColor } from '../color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
-import { ColorScale, Color } from '../../mol-util/color';
-import { Unit, StructureElement, StructureProperties } from '../../mol-model/structure';
-import { Location } from '../../mol-model/location';
-import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
-import { ColorListName, ColorListOptionsScale } from '../../mol-util/color/lists';
-import { AccessibleSurfaceArea } from '../../mol-model-props/computed/accessible-surface-area/shrake-rupley';
-import { CustomProperty } from '../../mol-model-props/common/custom-property';
+import { ColorListName, ColorListOptionsScale } from '../../../mol-util/color/lists'
+import { ParamDefinition as PD } from '../../../mol-util/param-definition'
+import { Color, ColorScale } from '../../../mol-util/color'
+import { ThemeDataContext } from '../../../mol-theme/theme'
+import { ColorTheme, LocationColor } from '../../../mol-theme/color'
+import { StructureProperties, StructureElement, Unit } from '../../../mol-model/structure'
+import { AccessibleSurfaceAreaProvider } from '../accessible-surface-area'
+import { AccessibleSurfaceArea } from '../accessible-surface-area/shrake-rupley'
+import { CustomProperty } from '../../common/custom-property'
+import { Location } from '../../../mol-model/location';
 
 const DefaultColor = Color(0xFAFAFA)
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.'

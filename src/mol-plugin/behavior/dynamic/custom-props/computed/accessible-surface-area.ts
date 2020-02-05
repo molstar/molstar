@@ -8,6 +8,9 @@ import { PluginBehavior } from '../../../behavior';
 import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
 import { AccessibleSurfaceAreaProvider } from '../../../../../mol-model-props/computed/accessible-surface-area';
 import { Loci } from '../../../../../mol-model/loci';
+import { AccessibleSurfaceAreaColorThemeProvider } from '../../../../../mol-model-props/computed/themes/accessible-surface-area';
+import { OrderedSet } from '../../../../../mol-data/int';
+import { arraySum } from '../../../../../mol-util/array';
 
 export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'computed-accessible-surface-area-prop',
@@ -17,18 +20,40 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
         private provider = AccessibleSurfaceAreaProvider
 
         private label = (loci: Loci): string | undefined => {
-            if (!this.params.showTooltip) return void 0;
+            if (!this.params.showTooltip) return
 
-            switch (loci.kind) {
-                case 'element-loci':
-                    if (loci.elements.length === 0) return void 0;
-                    // const e = loci.elements[0];
-                    // const u = e.unit;
-                    if (!this.provider.get(loci.structure).value) return;
+            const { granularity } = this.ctx.interactivity.props
+            if (granularity === 'element' || granularity === 'elementInstances') return
 
-                    return `Accessible Surface Area: ${'TODO'} \u212B<sup>3</sup>`;
+            if(loci.kind === 'element-loci') {
+                if (loci.elements.length === 0) return;
 
-                default: return void 0;
+                const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(loci.structure).value
+                if (!accessibleSurfaceArea) return;
+
+                const { getSerialIndex } = loci.structure.root.serialMapping
+                const { area, serialResidueIndex } = accessibleSurfaceArea
+                const seen = new Set<number>()
+                let cummulativeArea = 0
+
+                for (const { indices, unit } of loci.elements) {
+                    OrderedSet.forEach(indices, idx => {
+                        const rSI = serialResidueIndex[getSerialIndex(unit, unit.elements[idx])]
+                        if (rSI !== -1 && !seen.has(rSI)) {
+                            cummulativeArea += area[rSI]
+                            seen.add(rSI)
+                        }
+                    })
+                }
+                if (seen.size === 0) return
+
+                return `Accessible Surface Area: ${cummulativeArea.toFixed(2)} \u212B<sup>3</sup>`;
+
+            } else if(loci.kind === 'structure-loci') {
+                const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(loci.structure).value
+                if (!accessibleSurfaceArea) return;
+
+                return `Accessible Surface Area: ${arraySum(accessibleSurfaceArea.area).toFixed(2)} \u212B<sup>3</sup>`;
             }
         }
 
@@ -45,11 +70,13 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
 
         register(): void {
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('accessible-surface-area', AccessibleSurfaceAreaColorThemeProvider)
             this.ctx.lociLabels.addProvider(this.label);
         }
 
         unregister() {
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('accessible-surface-area')
             this.ctx.lociLabels.removeProvider(this.label);
         }
     },
