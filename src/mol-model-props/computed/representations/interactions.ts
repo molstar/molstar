@@ -5,15 +5,15 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../representation';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
-import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../representation';
-import { InteractionsIntraUnitParams, InteractionsIntraUnitVisual } from '../visual/interactions-intra-unit-cylinder';
-import { UnitKindOptions, UnitKind } from '../visual/util/common';
-import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
-import { InteractionsInterUnitParams, InteractionsInterUnitVisual } from '../visual/interactions-inter-unit-cylinder';
-import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
+import { InteractionsIntraUnitParams, InteractionsIntraUnitVisual } from './interactions-intra-unit-cylinder';
+import { UnitKindOptions, UnitKind } from '../../../mol-repr/structure/visual/util/common';
+import { InteractionsProvider } from '../interactions';
+import { InteractionsInterUnitParams, InteractionsInterUnitVisual } from './interactions-inter-unit-cylinder';
+import { CustomProperty } from '../../common/custom-property';
 
 const InteractionsVisuals = {
     'intra-unit': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InteractionsIntraUnitParams>) => UnitsRepresentation('Intra-unit interactions cylinder', ctx, getParams, InteractionsIntraUnitVisual),

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,6 +20,8 @@ import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-obs
 import { Binding } from '../../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { isEmptyLoci, Loci, EmptyLoci } from '../../../../mol-model/loci';
+import { InteractionsRepresentationProvider } from '../../../../mol-model-props/computed/representations/interactions';
+import { InteractionTypeColorThemeProvider } from '../../../../mol-model-props/computed/themes/interaction-type';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -63,8 +65,8 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
 
     private createSurNciVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: [BuiltInStructureRepresentations['interactions'], () => ({ })],
-            color: [BuiltInColorThemes['interaction-type'], () => ({ })],
+            repr: [InteractionsRepresentationProvider, () => ({ })],
+            color: [InteractionTypeColorThemeProvider, () => ({ })],
             size: [BuiltInSizeThemes.uniform, () => ({ })]
         });
     }

@@ -33,7 +33,6 @@ import { ModelIndexColorThemeProvider } from './color/model-index';
 import { OccupancyColorThemeProvider } from './color/occupancy';
 import { OperatorNameColorThemeProvider } from './color/operator-name';
 import { OperatorHklColorThemeProvider } from './color/operator-hkl';
-import { InteractionTypeColorThemeProvider } from './color/interaction-type';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -83,7 +82,6 @@ export const BuiltInColorThemes = {
     'entity-source': EntitySourceColorThemeProvider,
     'hydrophobicity': HydrophobicityColorThemeProvider,
     'illustrative': IllustrativeColorThemeProvider,
-    'interaction-type': InteractionTypeColorThemeProvider,
     'model-index': ModelIndexColorThemeProvider,
     'molecule-type': MoleculeTypeColorThemeProvider,
     'occupancy': OccupancyColorThemeProvider,

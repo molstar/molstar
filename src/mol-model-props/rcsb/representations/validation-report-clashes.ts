@@ -5,13 +5,13 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
+import { Unit, Structure, StructureElement, Bond } from '../../../mol-model/structure';
 import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { PickingId } from '../../../mol-geo/geometry/picking';
-import { EmptyLoci, Loci, createDataLoci } from '../../../mol-model/loci';
-import { Interval, OrderedSet } from '../../../mol-data/int';
+import { EmptyLoci, Loci, DataLoci } from '../../../mol-model/loci';
+import { Interval } from '../../../mol-data/int';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../../../mol-repr/representation';
 import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
 import { UnitKind, UnitKindOptions } from '../../../mol-repr/structure/visual/util/common';
@@ -20,11 +20,14 @@ import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '.
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { ClashesProvider } from '../validation-report';
+import { ClashesProvider, IntraUnitClashes, InterUnitClashes } from '../validation-report';
 import { CustomProperty } from '../../common/custom-property';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mol-repr/structure/complex-visual';
 import { Color } from '../../../mol-util/color';
 import { MarkerActions } from '../../../mol-util/marker-action';
+import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
+import { Sphere3D } from '../../../mol-math/geometry';
+import { bondLabel } from '../../../mol-theme/label';
 
 //
 
@@ -81,6 +84,30 @@ export function IntraUnitClashVisual(materialId: number): UnitsVisual<IntraUnitC
     }, materialId)
 }
 
+function getIntraClashBoundingSphere(unit: Unit.Atomic, clashes: IntraUnitClashes, elements: number[], boundingSphere: Sphere3D) {
+    return CentroidHelper.fromPairProvider(elements.length, (i, pA, pB) => {
+        unit.conformation.position(unit.elements[clashes.a[elements[i]]], pA)
+        unit.conformation.position(unit.elements[clashes.b[elements[i]]], pB)
+    }, boundingSphere)
+}
+
+function getIntraClashLabel(unit: Unit.Atomic, clashes: IntraUnitClashes, elements: number[]) {
+    const idx = elements[0]
+    if (idx === undefined) return ''
+    const { edgeProps: { id, magnitude, distance } } = clashes
+    const mag = magnitude[idx].toFixed(2)
+    const dist = distance[idx].toFixed(2)
+
+    return [
+        `RCSB Clash id: ${id[idx]} | Magnitude: ${mag} \u212B | Distance: ${dist} \u212B`,
+        bondLabel(Bond.Location(unit, clashes.a[idx], unit, clashes.b[idx]))
+    ].join('</br>')
+}
+
+function IntraClashLoci(unit: Unit.Atomic, clashes: IntraUnitClashes, elements: number[]) {
+    return DataLoci('intra-clashes', { unit, clashes }, elements, (boundingSphere: Sphere3D) =>  getIntraClashBoundingSphere(unit, clashes, elements, boundingSphere), () => getIntraClashLabel(unit, clashes, elements))
+}
+
 function getIntraClashLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
@@ -88,7 +115,7 @@ function getIntraClashLoci(pickingId: PickingId, structureGroup: StructureGroup,
         const unit = group.units[instanceId]
         if (Unit.isAtomic(unit)) {
             const clashes = ClashesProvider.get(structure).value!.intraUnit.get(unit.id)
-            return createDataLoci(clashes, 'clashes', OrderedSet.ofSingleton(groupId))
+            return IntraClashLoci(unit, clashes, [groupId])
         }
     }
     return EmptyLoci
@@ -168,12 +195,36 @@ export function InterUnitClashVisual(materialId: number): ComplexVisual<InterUni
     }, materialId)
 }
 
+function getInterClashBoundingSphere(clashes: InterUnitClashes, elements: number[], boundingSphere: Sphere3D) {
+    return CentroidHelper.fromPairProvider(elements.length, (i, pA, pB) => {
+        const c = clashes.edges[elements[i]]
+        c.unitA.conformation.position(c.unitA.elements[c.indexA], pA)
+        c.unitB.conformation.position(c.unitB.elements[c.indexB], pB)
+    }, boundingSphere)
+}
+
+function getInterClashLabel(clashes: InterUnitClashes, elements: number[]) {
+    const idx = elements[0]
+    if (idx === undefined) return ''
+    const c = clashes.edges[idx]
+    const mag = c.props.magnitude.toFixed(2)
+    const dist = c.props.distance.toFixed(2)
+
+    return [
+        `RCSB Clash id: ${c.props.id} | Magnitude: ${mag} \u212B | Distance: ${dist} \u212B`,
+        bondLabel(Bond.Location(c.unitA, c.indexA, c.unitB, c.indexB))
+    ].join('</br>')
+}
+
+function InterClashLoci(clashes: InterUnitClashes, elements: number[]) {
+    return DataLoci('inter-clashes', clashes, elements, (boundingSphere: Sphere3D) =>  getInterClashBoundingSphere(clashes, elements, boundingSphere), () => getInterClashLabel(clashes, elements))
+}
+
 function getInterClashLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId
     if (id === objectId) {
-        structure
-        groupId
-        // TODO
+        const clashes = ClashesProvider.get(structure).value!.interUnit
+        return InterClashLoci(clashes, [groupId])
     }
     return EmptyLoci
 }

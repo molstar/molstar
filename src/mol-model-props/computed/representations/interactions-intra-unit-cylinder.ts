@@ -11,15 +11,15 @@ import { Interval } from '../../../mol-data/int';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { PickingId } from '../../../mol-geo/geometry/picking';
-import { VisualContext } from '../../visual';
+import { VisualContext } from '../../../mol-repr/visual';
 import { Theme } from '../../../mol-theme/theme';
-import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
-import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from './util/link';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
-import { VisualUpdateState } from '../../util';
+import { InteractionsProvider } from '../interactions';
+import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '../../../mol-repr/structure/visual/util/link';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
+import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { Interactions } from '../../../mol-model-props/computed/interactions/interactions';
-import { InteractionFlag } from '../../../mol-model-props/computed/interactions/common';
+import { Interactions } from '../interactions/interactions';
+import { InteractionFlag } from '../interactions/common';
 
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -95,10 +95,10 @@ function getInteractionLoci(pickingId: PickingId, structureGroup: StructureGroup
         const { structure, group } = structureGroup
         const unit = structure.unitMap.get(group.units[instanceId].id)
         const interactions = InteractionsProvider.get(structure).value!
-        const contacts = interactions.unitsContacts.get(unit.id)
+        const { a, b } = interactions.unitsContacts.get(unit.id)
         return Interactions.Loci(structure, interactions, [
-            { unitA: unit, indexA: contacts.a[groupId], unitB: unit, indexB: contacts.b[groupId] },
-            { unitA: unit, indexA: contacts.b[groupId], unitB: unit, indexB: contacts.a[groupId] },
+            { unitA: unit, indexA: a[groupId], unitB: unit, indexB: b[groupId] },
+            { unitA: unit, indexA: b[groupId], unitB: unit, indexB: a[groupId] },
         ])
     }
     return EmptyLoci
@@ -108,16 +108,16 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
     let changed = false
     if (Interactions.isLoci(loci)) {
         const { structure, group } = structureGroup
-        if (!Structure.areEquivalent(loci.structure, structure)) return false
+        if (!Structure.areEquivalent(loci.data.structure, structure)) return false
         const interactions = InteractionsProvider.get(structure).value!
-        if (loci.interactions !== interactions) return false
+        if (loci.data.interactions !== interactions) return false
         const unit = group.units[0]
         const contacts = interactions.unitsContacts.get(unit.id)
         const groupCount = contacts.edgeCount * 2
-        for (const c of loci.contacts) {
-            const unitIdx = group.unitIndexMap.get(c.unitA.id)
+        for (const e of loci.elements) {
+            const unitIdx = group.unitIndexMap.get(e.unitA.id)
             if (unitIdx !== undefined) {
-                const idx = contacts.getDirectedEdgeIndex(c.indexA, c.indexB)
+                const idx = contacts.getDirectedEdgeIndex(e.indexA, e.indexB)
                 if (idx !== -1) {
                     if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                 }
@@ -135,12 +135,13 @@ function createInteractionsIterator(structureGroup: StructureGroup): LocationIte
     const groupCount = contacts.edgeCount * 2
     const instanceCount = group.units.length
     const location = Interactions.Location(interactions)
+    const { element } = location
     const getLocation = (groupIndex: number, instanceIndex: number) => {
         const instanceUnit = group.units[instanceIndex]
-        location.unitA = instanceUnit
-        location.indexA = contacts.a[groupIndex]
-        location.unitB = instanceUnit
-        location.indexB = contacts.b[groupIndex]
+        element.unitA = instanceUnit
+        element.indexA = contacts.a[groupIndex]
+        element.unitB = instanceUnit
+        element.indexB = contacts.b[groupIndex]
         return location
     }
     return LocationIterator(groupCount, instanceCount, getLocation)

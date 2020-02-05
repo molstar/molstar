@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -10,8 +10,6 @@ import { Loci } from '../mol-model/loci';
 import { OrderedSet } from '../mol-data/int';
 import { capitalize, stripTags } from '../mol-util/string';
 import { Column } from '../mol-data/db';
-import { Interactions } from '../mol-model-props/computed/interactions/interactions';
-import { interactionTypeLabel } from '../mol-model-props/computed/interactions/common';
 
 export type LabelGranularity = 'element' | 'conformation' | 'residue' | 'chain' | 'structure'
 
@@ -31,21 +29,18 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
             return structureElementStatsLabel(StructureElement.Stats.ofLoci(loci), options)
         case 'bond-loci':
             const bond = loci.bonds[0]
-            return bond ? bondLabel(bond) : 'Unknown'
-        case 'interaction-loci':
-            const contact = loci.contacts[0]
-            return contact ? interactionLabel(Interactions.Location(loci.interactions, contact.unitA, contact.indexA, contact.unitB, contact.indexB)) : 'Unknown'
+            return bond ? bondLabel(bond) : ''
         case 'shape-loci':
             return loci.shape.name
         case 'group-loci':
             const g = loci.groups[0]
-            return g ? loci.shape.getLabel(OrderedSet.start(g.ids), g.instance) : 'Unknown'
+            return g ? loci.shape.getLabel(OrderedSet.start(g.ids), g.instance) : ''
         case 'every-loci':
             return 'Everything'
         case 'empty-loci':
             return 'Nothing'
         case 'data-loci':
-            return ''
+            return loci.getLabel()
     }
 }
 
@@ -126,18 +121,6 @@ export function bondLabel(bond: Bond.Location): string {
         else break
     }
     return `${labelA.join(' | ')} \u2014 ${labelB.slice(offset).join(' | ')}`
-}
-
-export function interactionLabel(location: Interactions.Location): string {
-    const { interactions, unitA, indexA, unitB, indexB } = location
-    if (location.unitA === location.unitB) {
-        const contacts = interactions.unitsContacts.get(location.unitA.id)
-        const idx = contacts.getDirectedEdgeIndex(location.indexA, location.indexB)
-        return interactionTypeLabel(contacts.edgeProps.type[idx])
-    } else {
-        const idx = interactions.contacts.getEdgeIndex(indexA, unitA, indexB, unitB)
-        return interactionTypeLabel(interactions.contacts.edges[idx].props.type)
-    }
 }
 
 export function elementLabel(location: StructureElement.Location, options: Partial<LabelOptions> = {}): string {

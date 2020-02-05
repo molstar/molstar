@@ -5,21 +5,21 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { VisualContext } from '../../visual';
+import { VisualContext } from '../../../mol-repr/visual';
 import { Structure, StructureElement } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from './util/link';
-import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../complex-visual';
-import { VisualUpdateState } from '../../util';
+import { createLinkCylinderMesh, LinkCylinderParams, LinkCylinderStyle } from '../../../mol-repr/structure/visual/util/link';
+import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mol-repr/structure/complex-visual';
+import { VisualUpdateState } from '../../../mol-repr/util';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Interval } from '../../../mol-data/int';
-import { Interactions } from '../../../mol-model-props/computed/interactions/interactions';
-import { InteractionsProvider } from '../../../mol-model-props/computed/interactions';
+import { Interactions } from '../interactions/interactions';
+import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { InteractionFlag } from '../../../mol-model-props/computed/interactions/common';
+import { InteractionFlag } from '../interactions/common';
 
 const tmpLoc = StructureElement.Location.create()
 
@@ -110,12 +110,12 @@ function getInteractionLoci(pickingId: PickingId, structure: Structure, id: numb
 function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
     if (Interactions.isLoci(loci)) {
-        if (!Structure.areEquivalent(loci.structure, structure)) return false
+        if (!Structure.areEquivalent(loci.data.structure, structure)) return false
         const interactions = InteractionsProvider.get(structure).value!
-        if (loci.interactions !== interactions) return false
+        if (loci.data.interactions !== interactions) return false
         const { contacts } = interactions
 
-        for (const c of loci.contacts) {
+        for (const c of loci.elements) {
             const idx = contacts.getEdgeIndex(c.indexA, c.unitA, c.indexB, c.unitB)
             if (idx !== -1) {
                 if (apply(Interval.ofSingleton(idx))) changed = true
@@ -131,12 +131,13 @@ function createInteractionsIterator(structure: Structure): LocationIterator {
     const groupCount = contacts.edgeCount
     const instanceCount = 1
     const location = Interactions.Location(interactions)
+    const { element } = location
     const getLocation = (groupIndex: number) => {
         const c = contacts.edges[groupIndex]
-        location.unitA = c.unitA
-        location.indexA = c.indexA
-        location.unitB = c.unitB
-        location.indexB = c.indexB
+        element.unitA = c.unitA
+        element.indexA = c.indexA
+        element.unitB = c.unitB
+        element.indexB = c.indexB
         return location
     }
     return LocationIterator(groupCount, instanceCount, getLocation, true)

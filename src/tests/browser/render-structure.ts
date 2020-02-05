@@ -21,7 +21,7 @@ import { throttleTime } from 'rxjs/operators';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { EveryLoci } from '../../mol-model/loci';
 import { lociLabel } from '../../mol-theme/label';
-import { InteractionsRepresentationProvider } from '../../mol-repr/structure/representation/interactions';
+import { InteractionsRepresentationProvider } from '../../mol-model-props/computed/representations/interactions';
 import { InteractionsProvider } from '../../mol-model-props/computed/interactions';
 import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';

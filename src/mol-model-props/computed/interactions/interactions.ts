@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,7 +8,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit } from '../../../mol-model/structure';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
-import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType } from './common';
+import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType, interactionTypeLabel } from './common';
 import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
 import { IntMap } from '../../../mol-data/int';
 import { addUnitContacts, ContactTester, addStructureContacts, ContactProvider, ContactsParams, ContactsProps } from './contacts';
@@ -20,6 +20,10 @@ import { SetUtils } from '../../../mol-util/set';
 import { MetalCoordinationProvider, MetalProvider, MetalBindingProvider } from './metal';
 import { refineInteractions } from './refine';
 import { CustomProperty } from '../../common/custom-property';
+import { DataLocation } from '../../../mol-model/location';
+import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
+import { Sphere3D } from '../../../mol-math/geometry';
+import { DataLoci } from '../../../mol-model/loci';
 
 export { Interactions }
 
@@ -33,9 +37,7 @@ interface Interactions {
 }
 
 namespace Interactions {
-    export interface Location {
-        readonly kind: 'interaction-location'
-        interactions: Interactions
+    export interface Element {
         unitA: Unit
         /** Index into features of unitA */
         indexA: Features.FeatureIndex
@@ -43,62 +45,65 @@ namespace Interactions {
         /** Index into features of unitB */
         indexB: Features.FeatureIndex
     }
+    export interface Location extends DataLocation<Interactions, Element> {}
 
-    export function Location(interactions?: Interactions, unitA?: Unit, indexA?: Features.FeatureIndex, unitB?: Unit, indexB?: Features.FeatureIndex): Location {
-        return { kind: 'interaction-location', interactions: interactions as any, unitA: unitA as any, indexA: indexA as any, unitB: unitB as any, indexB: indexB as any };
+    export function Location(interactions: Interactions, unitA?: Unit, indexA?: Features.FeatureIndex, unitB?: Unit, indexB?: Features.FeatureIndex): Location {
+        return DataLocation('interactions', interactions, { unitA: unitA as any, indexA: indexA as any, unitB: unitB as any, indexB: indexB as any });
     }
 
     export function isLocation(x: any): x is Location {
-        return !!x && x.kind === 'interaction-location';
+        return !!x && x.kind === 'data-location' && x.tag === 'interactions';
     }
 
     export function areLocationsEqual(locA: Location, locB: Location) {
         return (
-            locA.interactions === locB.interactions &&
-            locA.indexA === locB.indexA && locA.indexB === locB.indexB &&
-            locA.unitA === locB.unitA && locA.unitB === locB.unitB
+            locA.data === locB.data &&
+            locA.element.indexA === locB.element.indexA &&
+            locA.element.indexB === locB.element.indexB &&
+            locA.element.unitA === locB.element.unitA &&
+            locA.element.unitB === locB.element.unitB
         )
     }
 
-    export interface Loci {
-        readonly kind: 'interaction-loci'
-        readonly structure: Structure
-        readonly interactions: Interactions
-        readonly contacts: ReadonlyArray<{
-            unitA: Unit
-            /** Index into features of unitA */
-            indexA: Features.FeatureIndex
-            unitB: Unit
-            /** Index into features of unitB */
-            indexB: Features.FeatureIndex
-        }>
+    function _label(interactions: Interactions, element: Element): string {
+        const { unitA, indexA, unitB, indexB } = element
+        const { contacts, unitsContacts } = interactions
+        if (unitA === unitB) {
+            const contacts = unitsContacts.get(unitA.id)
+            const idx = contacts.getDirectedEdgeIndex(indexA, indexB)
+            return interactionTypeLabel(contacts.edgeProps.type[idx])
+        } else {
+            const idx = contacts.getEdgeIndex(indexA, unitA, indexB, unitB)
+            return interactionTypeLabel(contacts.edges[idx].props.type)
+        }
     }
 
-    export function Loci(structure: Structure, interactions: Interactions, contacts: Loci['contacts']): Loci {
-        return { kind: 'interaction-loci', structure, interactions, contacts };
+    export function locationLabel(location: Location): string {
+        return _label(location.data, location.element)
+    }
+
+    type StructureInteractions = { readonly structure: Structure, readonly interactions: Interactions }
+    export interface Loci extends DataLoci<StructureInteractions, Element> { }
+
+    export function Loci(structure: Structure, interactions: Interactions, elements: ReadonlyArray<Element>): Loci {
+        return DataLoci('interactions', { structure, interactions }, elements, (boundingSphere) => getBoundingSphere(interactions, elements, boundingSphere), () => getLabel(interactions, elements));
     }
 
     export function isLoci(x: any): x is Loci {
-        return !!x && x.kind === 'interaction-loci';
+        return !!x && x.kind === 'data-loci' && x.tag === 'interactions';
     }
 
-    export function areLociEqual(a: Loci, b: Loci) {
-        if (a.structure !== b.structure) return false
-        if (a.interactions !== b.interactions) return false
-        if (a.contacts.length !== b.contacts.length) return false
-        for (let i = 0, il = a.contacts.length; i < il; ++i) {
-            const contactA = a.contacts[i]
-            const contactB = b.contacts[i]
-            if (contactA.unitA !== contactB.unitA) return false
-            if (contactA.unitB !== contactB.unitB) return false
-            if (contactA.indexA !== contactB.indexA) return false
-            if (contactA.indexB !== contactB.indexB) return false
-        }
-        return true
+    export function getBoundingSphere(interactions: Interactions, elements: ReadonlyArray<Element>, boundingSphere: Sphere3D) {
+        const { unitsFeatures } = interactions
+        return CentroidHelper.fromPairProvider(elements.length, (i, pA, pB) => {
+            const e = elements[i]
+            Features.setPosition(pA, e.unitA, e.indexA, unitsFeatures.get(e.unitA.id))
+            Features.setPosition(pB, e.unitB, e.indexB, unitsFeatures.get(e.unitB.id))
+        }, boundingSphere)
     }
 
-    export function isLociEmpty(loci: Loci) {
-        return loci.contacts.length === 0 ? true : false
+    export function getLabel(interactions: Interactions, elements: ReadonlyArray<Element>) {
+        return elements.length > 0 ? _label(interactions, elements[0]) : ''
     }
 }
 

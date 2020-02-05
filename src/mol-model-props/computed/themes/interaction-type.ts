@@ -1,19 +1,19 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Location } from '../../mol-model/location';
-import { Color, ColorMap } from '../../mol-util/color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition'
-import { InteractionsProvider } from '../../mol-model-props/computed/interactions';
-import { ThemeDataContext } from '../theme';
-import { ColorTheme, LocationColor } from '../color';
-import { InteractionType } from '../../mol-model-props/computed/interactions/common';
-import { TableLegend } from '../../mol-util/legend';
-import { Interactions } from '../../mol-model-props/computed/interactions/interactions';
-import { CustomProperty } from '../../mol-model-props/common/custom-property';
+import { Location } from '../../../mol-model/location';
+import { Color, ColorMap } from '../../../mol-util/color';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition'
+import { InteractionsProvider } from '../interactions';
+import { ThemeDataContext } from '../../../mol-theme/theme';
+import { ColorTheme, LocationColor } from '../../../mol-theme/color';
+import { InteractionType } from '../interactions/common';
+import { TableLegend } from '../../../mol-util/legend';
+import { Interactions } from '../interactions/interactions';
+import { CustomProperty } from '../../common/custom-property';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Assigns colors according the interaction type of a link.'
@@ -78,14 +78,15 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
     if (interactions && interactions.value) {
         color = (location: Location) => {
             if (Interactions.isLocation(location)) {
-                const { interactions, unitA, indexA, unitB, indexB } = location
-                if (location.unitA === location.unitB) {
-                    const links = interactions.unitsContacts.get(location.unitA.id)
-                    const idx = links.getDirectedEdgeIndex(location.indexA, location.indexB)
+                const { unitsContacts, contacts } = location.data
+                const { unitA, unitB, indexA, indexB } = location.element
+                if (unitA === unitB) {
+                    const links = unitsContacts.get(unitA.id)
+                    const idx = links.getDirectedEdgeIndex(indexA, indexB)
                     return typeColor(links.edgeProps.type[idx])
                 } else {
-                    const idx = interactions.contacts.getEdgeIndex(indexA, unitA, indexB, unitB)
-                    return typeColor(interactions.contacts.edges[idx].props.type)
+                    const idx = contacts.getEdgeIndex(indexA, unitA, indexB, unitB)
+                    return typeColor(contacts.edges[idx].props.type)
                 }
             }
             return DefaultColor
