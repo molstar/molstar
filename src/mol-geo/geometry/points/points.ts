@@ -6,7 +6,9 @@
 
 import { ValueCell } from '../../../mol-util'
 import { Mat4 } from '../../../mol-math/linear-algebra'
-import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
+import { transformPositionArray,/* , transformDirectionArray, getNormalMatrix */
+GroupMapping,
+createGroupMapping} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
@@ -39,6 +41,8 @@ export interface Points {
 
     /** Bounding sphere of the points */
     readonly boundingSphere: Sphere3D
+    /** Maps group ids to point indices */
+    readonly groupMapping: GroupMapping
 }
 
 export namespace Points {
@@ -63,7 +67,10 @@ export namespace Points {
     function fromArrays(centers: Float32Array, groups: Float32Array, pointCount: number): Points {
 
         const boundingSphere = Sphere3D()
+        let groupMapping: GroupMapping
+
         let currentHash = -1
+        let currentGroup = -1
 
         const points = {
             kind: 'points' as const,
@@ -79,6 +86,13 @@ export namespace Points {
                 }
                 return boundingSphere
             },
+            get groupMapping() {
+                if (points.groupBuffer.ref.version !== currentGroup) {
+                    groupMapping = createGroupMapping(points.groupBuffer.ref.value, points.pointCount)
+                    currentGroup = points.groupBuffer.ref.version
+                }
+                return groupMapping
+            }
         }
         return points
     }

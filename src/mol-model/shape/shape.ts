@@ -149,8 +149,10 @@ export namespace ShapeGroup {
 
         const { geometry, transforms } = loci.shape
 
-        if (geometry.kind === 'mesh') {
-            const positions = geometry.vertexBuffer.ref.value
+        if (geometry.kind === 'mesh' || geometry.kind === 'points') {
+            const positions = geometry.kind === 'mesh'
+                ? geometry.vertexBuffer.ref.value
+                : geometry.centerBuffer.ref.value
             sphereHelperInclude(loci.groups, geometry.groupMapping, positions, transforms)
             sphereHelper.finishedIncludeStep()
             sphereHelperRadius(loci.groups, geometry.groupMapping, positions, transforms)
@@ -162,7 +164,7 @@ export namespace ShapeGroup {
             sphereHelper.finishedIncludeStep()
             sphereHelperRadius(loci.groups, geometry.groupMapping, start, transforms)
             sphereHelperRadius(loci.groups, geometry.groupMapping, end, transforms)
-        } else if (geometry.kind === 'spheres') {
+        } else if (geometry.kind === 'spheres' || geometry.kind === 'text') {
             const positions = geometry.centerBuffer.ref.value
             sphereHelperInclude(loci.groups, geometry.groupMapping, positions, transforms)
             sphereHelper.finishedIncludeStep()
@@ -174,7 +176,7 @@ export namespace ShapeGroup {
                 })
             }
         } else {
-            // TODO implement for other geometry kinds
+            // use whole shape bounding-sphere for other geometry kinds
             return Sphere3D.copy(boundingSphere, geometry.boundingSphere)
         }
 

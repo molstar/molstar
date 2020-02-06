@@ -27,6 +27,7 @@ import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
+import { GroupMapping, createGroupMapping } from '../../util';
 
 type TextAttachment = (
     'bottom-left' | 'bottom-center' | 'bottom-right' |
@@ -59,6 +60,8 @@ export interface Text {
 
     /** Bounding sphere of the text */
     readonly boundingSphere: Sphere3D
+    /** Maps group ids to text indices */
+    readonly groupMapping: GroupMapping
 }
 
 export namespace Text {
@@ -91,7 +94,10 @@ export namespace Text {
     function fromData(fontTexture: TextureImage<Uint8Array>, centers: Float32Array, mappings: Float32Array, depths: Float32Array, indices: Uint32Array, groups: Float32Array, tcoords: Float32Array, charCount: number): Text {
 
         const boundingSphere = Sphere3D()
+        let groupMapping: GroupMapping
+
         let currentHash = -1
+        let currentGroup = -1
 
         const text = {
             kind: 'text' as const,
@@ -112,6 +118,13 @@ export namespace Text {
                 }
                 return boundingSphere
             },
+            get groupMapping() {
+                if (text.groupBuffer.ref.version !== currentGroup) {
+                    groupMapping = createGroupMapping(text.groupBuffer.ref.value, text.charCount, 4)
+                    currentGroup = text.groupBuffer.ref.version
+                }
+                return groupMapping
+            }
         }
         return text
     }
