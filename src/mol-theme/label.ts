@@ -110,11 +110,12 @@ function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly =
     }
 }
 
-export function bondLabel(bond: Bond.Location): string {
+export function bondLabel(bond: Bond.Location, options: Partial<LabelOptions> = {}): string {
+    const o = { ...DefaultLabelOptions, ...options }
     const locA = StructureElement.Location.create(bond.aUnit, bond.aUnit.elements[bond.aIndex])
     const locB = StructureElement.Location.create(bond.bUnit, bond.bUnit.elements[bond.bIndex])
-    const labelA = _elementLabel(locA)
-    const labelB = _elementLabel(locB)
+    const labelA = _elementLabel(locA, o.granularity, o.hidePrefix)
+    const labelB = _elementLabel(locB, o.granularity, o.hidePrefix)
     let offset = 0
     for (let i = 0, il = Math.min(labelA.length, labelB.length); i < il; ++i) {
         if (labelA[i] === labelB[i]) offset += 1

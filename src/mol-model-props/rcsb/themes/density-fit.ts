@@ -32,12 +32,10 @@ export function DensityFitColorTheme(ctx: ThemeDataContext, props: {}): ColorThe
 
     const validationReport = ctx.structure && ValidationReportProvider.get(ctx.structure.models[0])
     const contextHash = validationReport?.version
-
-    const rsrz = validationReport?.value?.rsrz
-    const rscc = validationReport?.value?.rscc
     const model = ctx.structure?.models[0]
 
-    if (rsrz && rscc && model) {
+    if (validationReport?.value && model) {
+        const { rsrz, rscc } = validationReport.value
         const residueIndex = model.atomicHierarchy.residueAtomSegments.index
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location) && location.unit.model === model) {

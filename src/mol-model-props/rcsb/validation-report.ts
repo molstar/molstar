@@ -47,22 +47,20 @@ interface ValidationReport {
      * Set of bond outliers
      */
     bondOutliers: {
-        index: Map<ElementIndex, number>
+        index: Map<ElementIndex, number[]>
         data: {
-            atomA: ElementIndex, atomB: ElementIndex
-            zScore: number, mean: number, mindiff: number,
-            numobs: number, obsval: number, stdev: number
+            tag: string, atomA: ElementIndex, atomB: ElementIndex
+            z: number, mean: number, obs: number, stdev: number
         }[]
     }
     /**
      * Set of angle outliers
      */
     angleOutliers: {
-        index: Map<ElementIndex, number>
+        index: Map<ElementIndex, number[]>
         data: {
-            atomA: ElementIndex, atomB: ElementIndex, atomC: ElementIndex,
-            zScore: number, mean: number, mindiff: number,
-            numobs: number, obsval: number, stdev: number
+            tag: string, atomA: ElementIndex, atomB: ElementIndex, atomC: ElementIndex,
+            z: number, mean: number, obs: number, stdev: number
         }[]
     }
 
@@ -309,13 +307,25 @@ function hasAttr(a: NamedNodeMap, name: string, value: string) {
 
 function getMogInfo(a: NamedNodeMap) {
     return {
-        zScore: parseFloat(getItem(a, 'Zscore')),
         mean: parseFloat(getItem(a, 'mean')),
-        mindiff: parseFloat(getItem(a, 'mindiff')),
-        numobs: parseInt(getItem(a, 'numobs')),
-        obsval: parseFloat(getItem(a, 'obsval')),
+        obs: parseFloat(getItem(a, 'obsval')),
         stdev: parseFloat(getItem(a, 'stdev')),
+        z: parseFloat(getItem(a, 'Zscore')),
     }
+}
+
+function getMolInfo(a: NamedNodeMap) {
+    return {
+        mean: parseFloat(getItem(a, 'mean')),
+        obs: parseFloat(getItem(a, 'obs')),
+        stdev: parseFloat(getItem(a, 'stdev')),
+        z: parseInt(getItem(a, 'z')),
+    }
+}
+
+function addIndex(index: number, element: ElementIndex, map: Map<ElementIndex, number[]>) {
+    if (map.has(element)) map.get(element)!.push(index)
+    else map.set(element, [index])
 }
 
 function ClashesBuilder(elementsCount: number) {
@@ -363,11 +373,11 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
     const geometryIssues = new Map<ResidueIndex, Set<string>>()
 
     const bondOutliers = {
-        index: new Map<ElementIndex, number>(),
+        index: new Map<ElementIndex, number[]>(),
         data: [] as ValidationReport['bondOutliers']['data']
     }
     const angleOutliers = {
-        index: new Map<ElementIndex, number>(),
+        index: new Map<ElementIndex, number[]>(),
         data: [] as ValidationReport['angleOutliers']['data']
     }
 
@@ -418,11 +428,37 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
         const issues = new Set<string>()
 
         if (isPolymer) {
-            const angleOutliers = g.getElementsByTagName('angle-outlier')
-            if (angleOutliers.length) issues.add('angle-outlier')
+            const molBondOutliers = g.getElementsByTagName('bond-outlier')
+            if (molBondOutliers.length) issues.add('bond-outlier')
 
-            const bondOutliers = g.getElementsByTagName('bond-outlier')
-            if (bondOutliers.length) issues.add('bond-outlier')
+            for (let j = 0, jl = molBondOutliers.length; j < jl; ++j) {
+                const bo = molBondOutliers[j].attributes
+                const idx = bondOutliers.data.length
+                const atomA = index.findAtomOnResidue(rI, getItem(bo, 'atom0'))
+                const atomB = index.findAtomOnResidue(rI, getItem(bo, 'atom1'))
+                addIndex(idx, atomA, bondOutliers.index)
+                addIndex(idx, atomB, bondOutliers.index)
+                bondOutliers.data.push({
+                    tag: 'bond-outlier', atomA, atomB, ...getMolInfo(bo)
+                })
+            }
+
+            const molAngleOutliers = g.getElementsByTagName('angle-outlier')
+            if (molAngleOutliers.length) issues.add('angle-outlier')
+
+            for (let j = 0, jl = molAngleOutliers.length; j < jl; ++j) {
+                const ao = molAngleOutliers[j].attributes
+                const idx = bondOutliers.data.length
+                const atomA = index.findAtomOnResidue(rI, getItem(ao, 'atom0'))
+                const atomB = index.findAtomOnResidue(rI, getItem(ao, 'atom1'))
+                const atomC = index.findAtomOnResidue(rI, getItem(ao, 'atom2'))
+                addIndex(idx, atomA, angleOutliers.index)
+                addIndex(idx, atomB, angleOutliers.index)
+                addIndex(idx, atomC, angleOutliers.index)
+                angleOutliers.data.push({
+                    tag: 'angle-outlier', atomA, atomB, atomC, ...getMolInfo(ao)
+                })
+            }
 
             const planeOutliers = g.getElementsByTagName('plane-outlier')
             if (planeOutliers.length) issues.add('plane-outlier')
@@ -432,33 +468,37 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
             if (hasAttr(ga, 'RNApucker', 'outlier')) issues.add('RNApucker-outlier')
         } else {
             const mogBondOutliers = g.getElementsByTagName('mog-bond-outlier')
-            if (mogBondOutliers.length) issues.add('mogul-bond-outlier')
-
-            const mogAngleOutliers = g.getElementsByTagName('mog-angle-outlier')
-            if (mogAngleOutliers.length) issues.add('mogul-angle-outlier')
+            if (mogBondOutliers.length) issues.add('mog-bond-outlier')
 
             for (let j = 0, jl = mogBondOutliers.length; j < jl; ++j) {
-                const mbo = mogBondOutliers[ j ].attributes
+                const mbo = mogBondOutliers[j].attributes
                 const atoms = getItem(mbo, 'atoms').split(',')
                 const idx = bondOutliers.data.length
                 const atomA = index.findAtomOnResidue(rI, atoms[0])
                 const atomB = index.findAtomOnResidue(rI, atoms[1])
-                bondOutliers.index.set(atomA, idx)
-                bondOutliers.index.set(atomB, idx)
-                bondOutliers.data.push({ atomA, atomB, ...getMogInfo(mbo) })
+                addIndex(idx, atomA, bondOutliers.index)
+                addIndex(idx, atomB, bondOutliers.index)
+                bondOutliers.data.push({
+                    tag: 'mog-bond-outlier', atomA, atomB, ...getMogInfo(mbo)
+                })
             }
 
+            const mogAngleOutliers = g.getElementsByTagName('mog-angle-outlier')
+            if (mogAngleOutliers.length) issues.add('mog-angle-outlier')
+
             for (let j = 0, jl = mogAngleOutliers.length; j < jl; ++j) {
-                const mao = mogAngleOutliers[ j ].attributes
+                const mao = mogAngleOutliers[j].attributes
                 const atoms = getItem(mao, 'atoms').split(',')
                 const idx = angleOutliers.data.length
                 const atomA = index.findAtomOnResidue(rI, atoms[0])
                 const atomB = index.findAtomOnResidue(rI, atoms[1])
-                const atomC = index.findAtomOnResidue(rI, atoms[1])
-                angleOutliers.index.set(atomA, idx)
-                angleOutliers.index.set(atomB, idx)
-                angleOutliers.index.set(atomC, idx)
-                angleOutliers.data.push({ atomA, atomB, atomC, ...getMogInfo(mao) })
+                const atomC = index.findAtomOnResidue(rI, atoms[2])
+                addIndex(idx, atomA, angleOutliers.index)
+                addIndex(idx, atomB, angleOutliers.index)
+                addIndex(idx, atomC, angleOutliers.index)
+                angleOutliers.data.push({
+                    tag: 'mog-angle-outlier', atomA, atomB, atomC, ...getMogInfo(mao)
+                })
             }
         }
 
@@ -466,7 +506,7 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
         if (clashes.length) issues.add('clash')
 
         for (let j = 0, jl = clashes.length; j < jl; ++j) {
-            const ca = clashes[ j ].attributes
+            const ca = clashes[j].attributes
             const id = parseInt(getItem(ca, 'cid'))
             const magnitude = parseFloat(getItem(ca, 'clashmag'))
             const distance = parseFloat(getItem(ca, 'dist'))

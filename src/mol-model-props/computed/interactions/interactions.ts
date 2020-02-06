@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Structure, Unit } from '../../../mol-model/structure';
+import { Structure, Unit, Bond } from '../../../mol-model/structure';
 import { Features, FeaturesBuilder } from './features';
 import { ValenceModelProvider } from '../valence-model';
 import { InteractionsIntraContacts, InteractionsInterContacts, FeatureType, interactionTypeLabel } from './common';
@@ -24,6 +24,7 @@ import { DataLocation } from '../../../mol-model/location';
 import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { DataLoci } from '../../../mol-model/loci';
+import { bondLabel, LabelGranularity } from '../../../mol-theme/label';
 
 export { Interactions }
 
@@ -103,7 +104,20 @@ namespace Interactions {
     }
 
     export function getLabel(interactions: Interactions, elements: ReadonlyArray<Element>) {
-        return elements.length > 0 ? _label(interactions, elements[0]) : ''
+        const element = elements[0]
+        if (element === undefined) return ''
+        const { unitA, indexA, unitB, indexB } = element
+        const { unitsFeatures } = interactions
+        const { members: mA, offsets: oA } = unitsFeatures.get(unitA.id)
+        const { members: mB, offsets: oB } = unitsFeatures.get(unitB.id)
+        const options = { granularity: 'element' as LabelGranularity }
+        if (oA[indexA + 1] - oA[indexA] > 1 || oB[indexB + 1] - oB[indexB] > 1) {
+            options.granularity = 'residue'
+        }
+        return [
+            _label(interactions, element),
+            bondLabel(Bond.Location(unitA, mA[oA[indexA]], unitB, mB[oB[indexB]]), options)
+        ].join('</br>')
     }
 }
 

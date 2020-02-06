@@ -99,7 +99,7 @@ function getIntraClashLabel(unit: Unit.Atomic, clashes: IntraUnitClashes, elemen
     const dist = distance[idx].toFixed(2)
 
     return [
-        `RCSB Clash id: ${id[idx]} | Magnitude: ${mag} \u212B | Distance: ${dist} \u212B`,
+        `Clash id: ${id[idx]} | Magnitude: ${mag} \u212B | Distance: ${dist} \u212B`,
         bondLabel(Bond.Location(unit, clashes.a[idx], unit, clashes.b[idx]))
     ].join('</br>')
 }
@@ -211,7 +211,7 @@ function getInterClashLabel(clashes: InterUnitClashes, elements: number[]) {
     const dist = c.props.distance.toFixed(2)
 
     return [
-        `RCSB Clash id: ${c.props.id} | Magnitude: ${mag} \u212B | Distance: ${dist} \u212B`,
+        `Clash id: ${c.props.id} | Magnitude: ${mag} \u212B | Distance: ${dist} \u212B`,
         bondLabel(Bond.Location(c.unitA, c.indexA, c.unitB, c.indexB))
     ].join('</br>')
 }
