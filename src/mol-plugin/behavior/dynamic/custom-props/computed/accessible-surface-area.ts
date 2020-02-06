@@ -76,7 +76,7 @@ function accessibleSurfaceAreaLabel(loci: Loci): string | undefined {
             })
         }
         if (seen.size === 0) return
-        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues' : 'Residue'})</small>`
+        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues Sum' : 'Residue'})</small>`
 
         return `Accessible Surface Area ${residueCount}: ${cummulativeArea.toFixed(2)} \u212B<sup>3</sup>`;
 
