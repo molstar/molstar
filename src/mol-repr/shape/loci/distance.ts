@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,7 +16,8 @@ import { Shape } from '../../../mol-model/shape';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { MarkerActions } from '../../../mol-util/marker-action';
+import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
+import { bundleLabel } from '../../../mol-theme/label';
 
 export interface DistanceData {
     pairs: Loci.Bundle<2>[]
@@ -47,7 +48,7 @@ type TextParams = typeof TextParams
 
 const DistanceVisuals = {
     'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, LineParams>) => ShapeRepresentation(getLinesShape, Lines.Utils, { modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
 }
 
 export const DistanceParams = {
@@ -111,7 +112,11 @@ function getLinesShape(ctx: RuntimeContext, data: DistanceData, props: DistanceP
     const lines = buildLines(data, props, shape && shape.geometry);
     const name = getDistanceName(data, props.unitLabel)
     const getLabel = function (groupId: number ) {
-        return distanceLabel(data.pairs[groupId], props.unitLabel)
+        const pair = data.pairs[groupId]
+        return [
+            distanceLabel(pair, props.unitLabel),
+            bundleLabel(pair)
+        ].join('</br>')
     }
     return Shape.create(name, data, lines, () => props.linesColor, () => props.linesSize, getLabel)
 }
@@ -133,7 +138,11 @@ function getTextShape(ctx: RuntimeContext, data: DistanceData, props: DistancePr
     const text = buildText(data, props, shape && shape.geometry);
     const name = getDistanceName(data, props.unitLabel)
     const getLabel = function (groupId: number ) {
-        return distanceLabel(data.pairs[groupId], props.unitLabel)
+        const pair = data.pairs[groupId]
+        return [
+            distanceLabel(pair, props.unitLabel),
+            bundleLabel(pair)
+        ].join('</br>')
     }
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel)
 }

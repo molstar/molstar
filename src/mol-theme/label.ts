@@ -124,6 +124,50 @@ export function bondLabel(bond: Bond.Location, options: Partial<LabelOptions> = 
     return `${labelA.join(' | ')} \u2014 ${labelB.slice(offset).join(' | ')}`
 }
 
+export function bundleLabel(bundle: Loci.Bundle<any>, options: Partial<LabelOptions> = {}) {
+    let isSingleElements = true
+    for (const l of bundle.loci) {
+        if (!StructureElement.Loci.is(l) || StructureElement.Loci.size(l) !== 1) {
+            isSingleElements = false
+            break
+        }
+    }
+
+    if (isSingleElements) {
+        const o = { ...DefaultLabelOptions, ...options }
+        const locations = (bundle.loci as StructureElement.Loci[]).map(l => {
+            const { unit, indices } = l.elements[0]
+            return StructureElement.Location.create(unit, unit.elements[OrderedSet.start(indices)])
+        })
+        const labels = locations.map(l => _elementLabel(l, o.granularity, o.hidePrefix))
+
+        let offset = 0
+        for (let i = 0, il = Math.min(...labels.map(l => l.length)); i < il; ++i) {
+            let areIdentical = true
+            for (let j = 1, jl = labels.length; j < jl; ++j) {
+                if (labels[0][i] !== labels[j][i]) {
+                    areIdentical = false
+                    break
+                }
+            }
+            if (areIdentical) offset += 1
+            else break
+        }
+
+        if (offset > 0) {
+            const offsetLabels = [labels[0].join(' | ')]
+            for (let j = 1, jl = labels.length; j < jl; ++j) {
+                offsetLabels.push(labels[j].slice(offset).join(' | '))
+            }
+            return offsetLabels.join(' \u2014 ')
+        } else {
+            return labels.map(l => l.join(' | ')).join('</br>')
+        }
+    } else {
+        return bundle.loci.map(l => lociLabel(l)).join('</br>')
+    }
+}
+
 export function elementLabel(location: StructureElement.Location, options: Partial<LabelOptions> = {}): string {
     const o = { ...DefaultLabelOptions, ...options }
     const label = _elementLabel(location, o.granularity, o.hidePrefix).join(' | ')

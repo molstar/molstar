@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,7 +21,8 @@ import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { radToDeg, arcLength } from '../../../mol-math/misc';
 import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
-import { MarkerActions } from '../../../mol-util/marker-action';
+import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
+import { bundleLabel } from '../../../mol-theme/label';
 
 export interface AngleData {
     triples: Loci.Bundle<3>[]
@@ -70,7 +71,7 @@ const AngleVisuals = {
     'vectors': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, VectorsParams>) => ShapeRepresentation(getVectorsShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }), modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
 }
 
 export const AngleParams = {
@@ -165,10 +166,7 @@ function buildVectorsLines(data: AngleData, props: AngleProps, lines?: Lines): L
 function getVectorsShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Lines>) {
     const lines = buildVectorsLines(data, props, shape && shape.geometry);
     const name = getAngleName(data)
-    const getLabel = function (groupId: number ) {
-        return angleLabel(data.triples[groupId])
-    }
-    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, () => '')
 }
 
 //
@@ -198,10 +196,7 @@ function buildArcLines(data: AngleData, props: AngleProps, lines?: Lines): Lines
 function getArcShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Lines>) {
     const lines = buildArcLines(data, props, shape && shape.geometry);
     const name = getAngleName(data)
-    const getLabel = function (groupId: number ) {
-        return angleLabel(data.triples[groupId])
-    }
-    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, () => '')
 }
 
 //
@@ -222,7 +217,11 @@ function getSectorShape(ctx: RuntimeContext, data: AngleData, props: AngleProps,
     const mesh = buildSectorMesh(data, props, shape && shape.geometry);
     const name = getAngleName(data)
     const getLabel = function (groupId: number ) {
-        return angleLabel(data.triples[groupId])
+        const triple = data.triples[groupId]
+        return [
+            angleLabel(triple),
+            bundleLabel(triple)
+        ].join('</br>')
     }
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel)
 }
@@ -249,7 +248,11 @@ function getTextShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, s
     const text = buildText(data, props, shape && shape.geometry);
     const name = getAngleName(data)
     const getLabel = function (groupId: number ) {
-        return angleLabel(data.triples[groupId])
+        const triple = data.triples[groupId]
+        return [
+            angleLabel(triple),
+            bundleLabel(triple)
+        ].join('</br>')
     }
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel)
 }
