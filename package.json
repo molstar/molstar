@@ -25,6 +25,7 @@
     "model-server": "node lib/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/servers/model/server.js",
     "volume-server": "node lib/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",
+    "plugin-state": "node lib/servers/plugin-state/index.js",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags",
     "prepublishOnly": "npm run test && npm run build"
@@ -70,6 +71,7 @@
     "@graphql-codegen/typescript-graphql-files-modules": "^1.11.2",
     "@graphql-codegen/typescript-graphql-request": "^1.11.2",
     "@graphql-codegen/typescript-operations": "^1.11.2",
+    "@types/cors": "^2.8.6",
     "@typescript-eslint/eslint-plugin": "^2.17.0",
     "@typescript-eslint/eslint-plugin-tslint": "^2.17.0",
     "@typescript-eslint/parser": "^2.17.0",
@@ -112,6 +114,7 @@
     "argparse": "^1.0.10",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
+    "cors": "^2.8.5",
     "express": "^4.17.1",
     "graphql": "^14.5.8",
     "immutable": "^3.8.2",

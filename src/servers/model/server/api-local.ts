@@ -13,6 +13,7 @@ import { StructureCache } from './structure-wrapper';
 import { now } from '../../../mol-util/now';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { QueryName } from './api';
+import { makeDir } from '../../../mol-util/make-dir';
 
 export type LocalInput = {
     input: string,
@@ -103,18 +104,4 @@ export function wrapFileToWriter(fn: string) {
     };
 
     return w;
-}
-
-function makeDir(path: string, root?: string): boolean {
-    let dirs = path.split(/\/|\\/g),
-        dir = dirs.shift();
-
-    root = (root || '') + dir + '/';
-
-    try { fs.mkdirSync(root); }
-    catch (e) {
-        if (!fs.statSync(root).isDirectory()) throw new Error(e);
-    }
-
-    return !dirs.length || makeDir(dirs.join('/'), root);
 }
