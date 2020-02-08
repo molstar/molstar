@@ -14,11 +14,11 @@ import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { BoxCage } from '../../mol-geo/primitive/box';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { transformCage, copyCage } from '../../mol-geo/primitive/cage';
+import { transformCage, cloneCage } from '../../mol-geo/primitive/cage';
 import { radToDeg } from '../../mol-math/misc';
 
 const translate05 = Mat4.fromTranslation(Mat4(), Vec3.create(0.5, 0.5, 0.5))
-const unitCage = transformCage(copyCage(BoxCage()), translate05)
+const unitCage = transformCage(cloneCage(BoxCage()), translate05)
 
 const tmpRef = Vec3()
 const tmpTranslate = Mat4()
@@ -43,7 +43,7 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
 
     Vec3.floor(tmpRef, data.ref)
     Mat4.fromTranslation(tmpTranslate, tmpRef)
-    const cellCage = transformCage(copyCage(unitCage), tmpTranslate)
+    const cellCage = transformCage(cloneCage(unitCage), tmpTranslate)
 
     const radius = (Math.cbrt(data.symmetry.spacegroup.cell.volume) / 300) * props.cellScale
     state.currentGroup = 1

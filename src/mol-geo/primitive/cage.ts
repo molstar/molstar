@@ -16,7 +16,7 @@ export function createCage(vertices: ArrayLike<number>, edges: ArrayLike<number>
     return { vertices, edges }
 }
 
-export function copyCage(cage: Cage): Cage {
+export function cloneCage(cage: Cage): Cage {
     return {
         vertices: new Float32Array(cage.vertices),
         edges: new Uint32Array(cage.edges)
