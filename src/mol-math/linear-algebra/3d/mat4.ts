@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -1038,6 +1038,8 @@ namespace Mat4 {
     export const rotY90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), yAxis)
     /** Rotation matrix for 180deg around y-axis */
     export const rotY180: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(180), yAxis)
+    /** Rotation matrix for 270deg around y-axis */
+    export const rotY270: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(270), yAxis)
     /** Rotation matrix for 90deg around z-axis */
     export const rotZ90: ReadonlyMat4 = Mat4.fromRotation(Mat4(), degToRad(90), zAxis)
     /** Rotation matrix for 180deg around z-axis */

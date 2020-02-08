@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,6 +21,8 @@ import Mat4 from './mat4';
 import { Quat, Mat3, EPSILON } from '../3d';
 import { spline as _spline, quadraticBezier as _quadraticBezier, clamp } from '../../interpolate'
 import { NumberArray } from '../../../mol-util/type-helpers';
+
+export { ReadonlyVec3 }
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 interface ReadonlyVec3 extends Array<number> { readonly [d: number]: number, '@type': 'vec3', length: 3 }
@@ -546,6 +548,10 @@ namespace Vec3 {
 
     export const unit: ReadonlyVec3 = Vec3.create(1, 1, 1)
     export const negUnit: ReadonlyVec3 = Vec3.create(-1, -1, -1)
+
+    export const unitX: ReadonlyVec3 = Vec3.create(1, 0, 0)
+    export const unitY: ReadonlyVec3 = Vec3.create(0, 1, 0)
+    export const unitZ: ReadonlyVec3 = Vec3.create(0, 0, 1)
 }
 
 export default Vec3

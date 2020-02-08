@@ -7,7 +7,7 @@
 import { ParamDefinition as PD } from '../../../../../mol-util/param-definition'
 import { AssemblySymmetryProvider, AssemblySymmetry, getSymmetrySelectParam } from '../../../../../mol-model-props/rcsb/assembly-symmetry';
 import { PluginBehavior } from '../../../behavior';
-import { getAssemblySymmetryAxesRepresentation, AssemblySymmetryAxesParams } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry-axes';
+import { AssemblySymmetryParams, AssemblySymmetryRepresentation } from '../../../../../mol-model-props/rcsb/representations/assembly-symmetry';
 import { AssemblySymmetryClusterColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/assembly-symmetry-cluster';
 import { PluginStateTransform, PluginStateObject } from '../../../../state/objects';
 import { Task } from '../../../../../mol-task';
@@ -22,7 +22,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         private provider = AssemblySymmetryProvider
 
         register(): void {
-            this.ctx.state.dataState.actions.add(AssemblySymmetryAxes3D)
+            this.ctx.state.dataState.actions.add(AssemblySymmetry3D)
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('rcsb-assembly-symmetry-cluster', AssemblySymmetryClusterColorThemeProvider)
         }
@@ -35,7 +35,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         }
 
         unregister() {
-            this.ctx.state.dataState.actions.remove(AssemblySymmetryAxes3D)
+            this.ctx.state.dataState.actions.remove(AssemblySymmetry3D)
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('rcsb-assembly-symmetry-cluster')
         }
@@ -46,15 +46,15 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
     })
 });
 
-type AssemblySymmetryAxes3D = typeof AssemblySymmetryAxes3D
-const AssemblySymmetryAxes3D = PluginStateTransform.BuiltIn({
-    name: 'rcsb-assembly-symmetry-axes-3d',
-    display: 'RCSB Assembly Symmetry Axes',
+type AssemblySymmetry3D = typeof AssemblySymmetry3D
+const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
+    name: 'rcsb-assembly-symmetry-3d',
+    display: 'RCSB Assembly Symmetry',
     from: PluginStateObject.Molecule.Structure,
     to: PluginStateObject.Shape.Representation3D,
     params: (a, ctx: PluginContext) => {
         return {
-            ...AssemblySymmetryAxesParams,
+            ...AssemblySymmetryParams,
             symmetryIndex: getSymmetrySelectParam(a?.data),
         }
     }
@@ -63,19 +63,24 @@ const AssemblySymmetryAxes3D = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params }, plugin: PluginContext) {
-        return Task.create('RCSB Assembly Symmetry Axes', async ctx => {
+        return Task.create('RCSB Assembly Symmetry', async ctx => {
             await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
-            const repr = await getAssemblySymmetryAxesRepresentation(ctx, a.data, params)
-            const { symbol, kind } = AssemblySymmetryProvider.get(a.data).value![params.symmetryIndex]
-            return new PluginStateObject.Shape.Representation3D({ repr, source: a }, { label: `Axes`, description: `${symbol} ${kind}` });
+            const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value
+            const repr = AssemblySymmetryRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.structureRepresentation.themeCtx }, () => AssemblySymmetryParams)
+            await repr.createOrUpdate(params, a.data).runInContext(ctx);
+            const { type, kind, symbol } = assemblySymmetry![params.symmetryIndex]
+            return new PluginStateObject.Shape.Representation3D({ repr, source: a }, { label: kind, description: `${type} (${symbol})` });
         });
     },
     update({ a, b, newParams }, plugin: PluginContext) {
-        return Task.create('RCSB Assembly Symmetry Axes', async ctx => {
+        return Task.create('RCSB Assembly Symmetry', async ctx => {
             await AssemblySymmetryProvider.attach({ runtime: ctx, fetch: plugin.fetch }, a.data)
-            await getAssemblySymmetryAxesRepresentation(ctx, a.data, newParams, b.data.repr);
-            const { symbol, kind } = AssemblySymmetryProvider.get(a.data).value![newParams.symmetryIndex]
-            b.description = `${symbol} ${kind}`
+            const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value
+            const props = { ...b.data.repr.props, ...newParams }
+            await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
+            const { type, kind, symbol } = assemblySymmetry![newParams.symmetryIndex]
+            b.label = kind
+            b.description = `${type} (${symbol})`
             return StateTransformer.UpdateResult.Updated;
         });
     },
