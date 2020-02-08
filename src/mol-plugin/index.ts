@@ -18,6 +18,7 @@ import { InitVolumeStreaming, BoxifyVolumeStreaming, CreateVolumeStreamingBehavi
 import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
 import { TransformStructureConformation } from './state/actions/structure';
 import { VolumeStreamingCustomControls } from '../mol-plugin-ui/custom/volume';
+import { PluginConfig } from './config';
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
@@ -86,7 +87,10 @@ export const DefaultPluginSpec: PluginSpec = {
         AnimateAssemblyUnwind,
         AnimateUnitsExplode,
         AnimateStateInterpolation
-    ]
+    ],
+    config: new Map([
+        [PluginConfig.PluginState.Server, 'https://webchem.ncbr.muni.cz/molstar-state']
+    ])
 }
 
 export function createPlugin(target: HTMLElement, spec?: PluginSpec): PluginContext {

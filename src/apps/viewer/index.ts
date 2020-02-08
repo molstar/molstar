@@ -42,7 +42,8 @@ function init() {
             controls: {
                 ...DefaultPluginSpec.layout && DefaultPluginSpec.layout.controls
             }
-        }
+        },
+        config: DefaultPluginSpec.config
     };
     const plugin = createPlugin(document.getElementById('app')!, spec);
     trySetSnapshot(plugin);

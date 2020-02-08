@@ -10,6 +10,7 @@ import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { PluginLayoutStateProps } from './layout';
 import { PluginStateAnimation } from './state/animation/model';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { PluginConfigItem } from './config';
 
 export { PluginSpec }
 
@@ -25,7 +26,8 @@ interface PluginSpec {
     },
     components?: {
         remoteState?: 'none' | 'default' // TODO: props for server etc
-    }
+    },
+    config?: Map<PluginConfigItem, unknown>
 }
 
 namespace PluginSpec {

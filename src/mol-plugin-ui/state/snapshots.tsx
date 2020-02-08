@@ -15,6 +15,7 @@ import { PluginState } from '../../mol-plugin/state';
 import { urlCombine } from '../../mol-util/url';
 import { IconButton, Icon, SectionHeader } from '../controls/common';
 import { formatTimespan } from '../../mol-util/now';
+import { PluginConfig } from '../../mol-plugin/config';
 
 export class StateSnapshots extends PluginUIComponent<{ }> {
     downloadToFile = () => {
@@ -161,22 +162,22 @@ class LocalStateSnapshotList extends PluginUIComponent<{ }, { }> {
 export type RemoteEntry = { url: string, removeUrl: string, timestamp: number, id: string, name: string, description: string, isSticky?: boolean }
 export class RemoteStateSnapshots extends PluginUIComponent<
     { listOnly?: boolean },
-    { params: PD.Values<typeof RemoteStateSnapshots.Params>, entries: OrderedMap<string, RemoteEntry>, isBusy: boolean }> {
+    { params: PD.Values<RemoteStateSnapshots['Params']>, entries: OrderedMap<string, RemoteEntry>, isBusy: boolean }> {
 
-    state = { params: PD.getDefaultValues(RemoteStateSnapshots.Params), entries: OrderedMap<string, RemoteEntry>(), isBusy: false };
-
-    static Params = {
+    Params = {
         name: PD.Text(),
         options: PD.Group({
             description: PD.Text(),
             playOnLoad: PD.Boolean(false),
-            serverUrl: PD.Text('https://webchem.ncbr.muni.cz/molstar-state')
+            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.PluginState.Server))
         })
     };
 
-    static ListOnlyParams = {
+    state = { params: PD.getDefaultValues(this.Params), entries: OrderedMap<string, RemoteEntry>(), isBusy: false };
+
+    ListOnlyParams = {
         options: PD.Group({
-            serverUrl: PD.Text('https://webchem.ncbr.muni.cz/molstar-state')
+            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.PluginState.Server))
         }, { isFlat: true })
     };
 
@@ -268,7 +269,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
             <SectionHeader title='Remote States' />
 
             {!this.props.listOnly && <>
-                <ParameterControls params={RemoteStateSnapshots.Params} values={this.state.params} onEnter={this.upload} onChange={p => {
+                <ParameterControls params={this.Params} values={this.state.params} onEnter={this.upload} onChange={p => {
                     this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
                 }} isDisabled={this.state.isBusy}/>
                 <div className='msp-btn-row-group'>
@@ -281,7 +282,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
                 fetch={this.fetch} remove={this.props.listOnly ? void 0 : this.remove} />
 
             {this.props.listOnly && <>
-                <ParameterControls params={RemoteStateSnapshots.ListOnlyParams} values={this.state.params} onEnter={this.upload} onChange={p => {
+                <ParameterControls params={this.ListOnlyParams} values={this.state.params} onEnter={this.upload} onChange={p => {
                     this.setState({ params: { ...this.state.params, [p.name]: p.value } } as any);
                 }} isDisabled={this.state.isBusy}/>
                 <div className='msp-btn-row-group'>

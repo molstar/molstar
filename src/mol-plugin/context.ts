@@ -44,6 +44,7 @@ import { StructureMeasurementManager } from './util/structure-measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { StructureRepresentationManager } from './state/representation/structure';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
+import { PluginConfigManager } from './config';
 
 interface Log {
     entries: List<LogEntry>
@@ -88,6 +89,8 @@ export class PluginContext {
             selectionUpdated: this.ev()
         }
     } as const
+    
+    readonly config = new PluginConfigManager(this.spec.config);
 
     readonly behaviors = {
         state: {
@@ -112,6 +115,7 @@ export class PluginContext {
     readonly interactivity: Interactivity;
 
     readonly lociLabels: LociLabelManager;
+
 
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
