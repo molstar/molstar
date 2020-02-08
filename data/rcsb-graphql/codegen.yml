@@ -9,3 +9,4 @@ generates:
       - typescript-operations
     config:
       immutableTypes: true
+      skipTypename: true

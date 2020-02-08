@@ -1,7 +1,7 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
 
-// Generated in 2020-02-05T13:46:39-08:00
+// Generated in 2020-02-07T10:59:45-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -16,14 +16,12 @@ export type Scalars = {
 
 
 export type AuditAuthor = {
-  readonly __typename?: 'AuditAuthor',
   readonly identifier_ORCID?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
   readonly pdbx_ordinal: Scalars['Int'],
 };
 
 export type Cell = {
-  readonly __typename?: 'Cell',
   readonly Z_PDB?: Maybe<Scalars['Int']>,
   readonly angle_alpha?: Maybe<Scalars['Float']>,
   readonly angle_beta?: Maybe<Scalars['Float']>,
@@ -37,7 +35,6 @@ export type Cell = {
 };
 
 export type ChemComp = {
-  readonly __typename?: 'ChemComp',
   readonly formula?: Maybe<Scalars['String']>,
   readonly formula_weight?: Maybe<Scalars['Float']>,
   readonly id: Scalars['String'],
@@ -58,7 +55,6 @@ export type ChemComp = {
 };
 
 export type Citation = {
-  readonly __typename?: 'Citation',
   readonly book_id_ISBN?: Maybe<Scalars['String']>,
   readonly book_publisher?: Maybe<Scalars['String']>,
   readonly book_publisher_city?: Maybe<Scalars['String']>,
@@ -86,13 +82,11 @@ export type Citation = {
 };
 
 export type ClustersMembers = {
-  readonly __typename?: 'ClustersMembers',
   readonly asym_id: Scalars['String'],
   readonly pdbx_struct_oper_list_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
 };
 
 export type CoreAssembly = {
-  readonly __typename?: 'CoreAssembly',
   readonly entry?: Maybe<CoreEntry>,
   readonly pdbx_struct_assembly?: Maybe<PdbxStructAssembly>,
   readonly pdbx_struct_assembly_auth_evidence?: Maybe<ReadonlyArray<Maybe<PdbxStructAssemblyAuthEvidence>>>,
@@ -109,7 +103,6 @@ export type CoreAssembly = {
 };
 
 export type CoreChemComp = {
-  readonly __typename?: 'CoreChemComp',
   readonly chem_comp?: Maybe<ChemComp>,
   readonly drugbank?: Maybe<CoreDrugbank>,
   readonly pdbx_chem_comp_audit?: Maybe<ReadonlyArray<Maybe<PdbxChemCompAudit>>>,
@@ -144,14 +137,12 @@ export type CoreChemComp = {
 };
 
 export type CoreDrugbank = {
-  readonly __typename?: 'CoreDrugbank',
   readonly drugbank_container_identifiers?: Maybe<DrugbankContainerIdentifiers>,
   readonly drugbank_info?: Maybe<DrugbankInfo>,
   readonly drugbank_target?: Maybe<ReadonlyArray<Maybe<DrugbankTarget>>>,
 };
 
 export type CoreEntry = {
-  readonly __typename?: 'CoreEntry',
   readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>,
   readonly audit_author?: Maybe<ReadonlyArray<Maybe<AuditAuthor>>>,
   readonly cell?: Maybe<Cell>,
@@ -237,7 +228,6 @@ export type CoreEntry = {
 };
 
 export type CoreNonpolymerEntity = {
-  readonly __typename?: 'CoreNonpolymerEntity',
   readonly nonpolymer_comp?: Maybe<CoreChemComp>,
   readonly nonpolymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntityInstance>>>,
   readonly pdbx_entity_nonpoly?: Maybe<PdbxEntityNonpoly>,
@@ -254,7 +244,6 @@ export type CoreNonpolymerEntity = {
 };
 
 export type CoreNonpolymerEntityInstance = {
-  readonly __typename?: 'CoreNonpolymerEntityInstance',
   readonly pdbx_struct_special_symmetry?: Maybe<ReadonlyArray<Maybe<PdbxStructSpecialSymmetry>>>,
   readonly rcsb_id: Scalars['String'],
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>,
@@ -266,7 +255,6 @@ export type CoreNonpolymerEntityInstance = {
 };
 
 export type CorePfam = {
-  readonly __typename?: 'CorePfam',
   readonly rcsb_id: Scalars['String'],
   readonly rcsb_pfam_accession: Scalars['String'],
   readonly rcsb_pfam_clan_id?: Maybe<Scalars['String']>,
@@ -279,7 +267,6 @@ export type CorePfam = {
 };
 
 export type CorePolymerEntity = {
-  readonly __typename?: 'CorePolymerEntity',
   readonly chem_comp_monomers?: Maybe<ReadonlyArray<Maybe<CoreChemComp>>>,
   readonly chem_comp_nstd_monomers?: Maybe<ReadonlyArray<Maybe<CoreChemComp>>>,
   readonly entity_poly?: Maybe<EntityPoly>,
@@ -311,7 +298,6 @@ export type CorePolymerEntity = {
 };
 
 export type CorePolymerEntityInstance = {
-  readonly __typename?: 'CorePolymerEntityInstance',
   readonly pdbx_struct_special_symmetry?: Maybe<ReadonlyArray<Maybe<PdbxStructSpecialSymmetry>>>,
   readonly rcsb_id: Scalars['String'],
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>,
@@ -323,7 +309,6 @@ export type CorePolymerEntityInstance = {
 };
 
 export type CorePubmed = {
-  readonly __typename?: 'CorePubmed',
   readonly rcsb_id?: Maybe<Scalars['String']>,
   readonly rcsb_pubmed_abstract_text?: Maybe<Scalars['String']>,
   readonly rcsb_pubmed_affiliation_info?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
@@ -335,7 +320,6 @@ export type CorePubmed = {
 };
 
 export type CoreUniprot = {
-  readonly __typename?: 'CoreUniprot',
   readonly rcsb_id?: Maybe<Scalars['String']>,
   readonly rcsb_uniprot_accession?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly rcsb_uniprot_container_identifiers: RcsbUniprotContainerIdentifiers,
@@ -346,7 +330,6 @@ export type CoreUniprot = {
 };
 
 export type CurrentEntry = {
-  readonly __typename?: 'CurrentEntry',
   readonly rcsb_id: Scalars['String'],
   readonly rcsb_repository_holdings_current?: Maybe<RcsbRepositoryHoldingsCurrent>,
   readonly rcsb_repository_holdings_current_entry_container_identifiers?: Maybe<RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers>,
@@ -354,7 +337,6 @@ export type CurrentEntry = {
 
 
 export type Diffrn = {
-  readonly __typename?: 'Diffrn',
   readonly ambient_pressure?: Maybe<Scalars['Float']>,
   readonly ambient_temp?: Maybe<Scalars['Float']>,
   readonly ambient_temp_details?: Maybe<Scalars['String']>,
@@ -366,7 +348,6 @@ export type Diffrn = {
 };
 
 export type DiffrnDetector = {
-  readonly __typename?: 'DiffrnDetector',
   readonly details?: Maybe<Scalars['String']>,
   readonly detector?: Maybe<Scalars['String']>,
   readonly diffrn_id: Scalars['String'],
@@ -376,7 +357,6 @@ export type DiffrnDetector = {
 };
 
 export type DiffrnRadiation = {
-  readonly __typename?: 'DiffrnRadiation',
   readonly collimation?: Maybe<Scalars['String']>,
   readonly diffrn_id: Scalars['String'],
   readonly monochromator?: Maybe<Scalars['String']>,
@@ -390,7 +370,6 @@ export type DiffrnRadiation = {
 };
 
 export type DiffrnSource = {
-  readonly __typename?: 'DiffrnSource',
   readonly details?: Maybe<Scalars['String']>,
   readonly diffrn_id: Scalars['String'],
   readonly pdbx_synchrotron_beamline?: Maybe<Scalars['String']>,
@@ -402,12 +381,10 @@ export type DiffrnSource = {
 };
 
 export type DrugbankContainerIdentifiers = {
-  readonly __typename?: 'DrugbankContainerIdentifiers',
   readonly drugbank_id: Scalars['String'],
 };
 
 export type DrugbankInfo = {
-  readonly __typename?: 'DrugbankInfo',
   readonly affected_organisms?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly atc_codes?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly brand_names?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
@@ -424,7 +401,6 @@ export type DrugbankInfo = {
 };
 
 export type DrugbankTarget = {
-  readonly __typename?: 'DrugbankTarget',
   readonly interaction_type?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
   readonly ordinal: Scalars['Int'],
@@ -436,7 +412,6 @@ export type DrugbankTarget = {
 };
 
 export type Em2dCrystalEntity = {
-  readonly __typename?: 'Em2dCrystalEntity',
   readonly angle_gamma?: Maybe<Scalars['Float']>,
   readonly c_sampling_length?: Maybe<Scalars['Float']>,
   readonly id: Scalars['String'],
@@ -448,7 +423,6 @@ export type Em2dCrystalEntity = {
 };
 
 export type Em3dCrystalEntity = {
-  readonly __typename?: 'Em3dCrystalEntity',
   readonly angle_alpha?: Maybe<Scalars['Float']>,
   readonly angle_beta?: Maybe<Scalars['Float']>,
   readonly angle_gamma?: Maybe<Scalars['Float']>,
@@ -462,7 +436,6 @@ export type Em3dCrystalEntity = {
 };
 
 export type Em3dFitting = {
-  readonly __typename?: 'Em3dFitting',
   readonly details?: Maybe<Scalars['String']>,
   readonly id: Scalars['String'],
   readonly method?: Maybe<Scalars['String']>,
@@ -473,7 +446,6 @@ export type Em3dFitting = {
 };
 
 export type Em3dFittingList = {
-  readonly __typename?: 'Em3dFittingList',
   readonly _3d_fitting_id: Scalars['String'],
   readonly details?: Maybe<Scalars['String']>,
   readonly id: Scalars['String'],
@@ -483,7 +455,6 @@ export type Em3dFittingList = {
 };
 
 export type Em3dReconstruction = {
-  readonly __typename?: 'Em3dReconstruction',
   readonly actual_pixel_size?: Maybe<Scalars['Float']>,
   readonly algorithm?: Maybe<Scalars['String']>,
   readonly details?: Maybe<Scalars['String']>,
@@ -501,7 +472,6 @@ export type Em3dReconstruction = {
 };
 
 export type EmCtfCorrection = {
-  readonly __typename?: 'EmCtfCorrection',
   readonly details?: Maybe<Scalars['String']>,
   readonly em_image_processing_id?: Maybe<Scalars['String']>,
   readonly id: Scalars['String'],
@@ -509,7 +479,6 @@ export type EmCtfCorrection = {
 };
 
 export type EmDiffraction = {
-  readonly __typename?: 'EmDiffraction',
   readonly camera_length?: Maybe<Scalars['Float']>,
   readonly id: Scalars['String'],
   readonly imaging_id?: Maybe<Scalars['String']>,
@@ -517,7 +486,6 @@ export type EmDiffraction = {
 };
 
 export type EmDiffractionShell = {
-  readonly __typename?: 'EmDiffractionShell',
   readonly em_diffraction_stats_id?: Maybe<Scalars['String']>,
   readonly fourier_space_coverage?: Maybe<Scalars['Float']>,
   readonly high_resolution?: Maybe<Scalars['Float']>,
@@ -529,7 +497,6 @@ export type EmDiffractionShell = {
 };
 
 export type EmDiffractionStats = {
-  readonly __typename?: 'EmDiffractionStats',
   readonly details?: Maybe<Scalars['String']>,
   readonly fourier_space_coverage?: Maybe<Scalars['Float']>,
   readonly high_resolution?: Maybe<Scalars['Float']>,
@@ -545,7 +512,6 @@ export type EmDiffractionStats = {
 };
 
 export type EmEmbedding = {
-  readonly __typename?: 'EmEmbedding',
   readonly details?: Maybe<Scalars['String']>,
   readonly id: Scalars['String'],
   readonly material?: Maybe<Scalars['String']>,
@@ -553,7 +519,6 @@ export type EmEmbedding = {
 };
 
 export type EmEntityAssembly = {
-  readonly __typename?: 'EmEntityAssembly',
   readonly details?: Maybe<Scalars['String']>,
   readonly entity_id_list?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly id: Scalars['String'],
@@ -566,7 +531,6 @@ export type EmEntityAssembly = {
 };
 
 export type EmExperiment = {
-  readonly __typename?: 'EmExperiment',
   readonly aggregation_state?: Maybe<Scalars['String']>,
   readonly entity_assembly_id?: Maybe<Scalars['String']>,
   readonly id?: Maybe<Scalars['String']>,
@@ -574,7 +538,6 @@ export type EmExperiment = {
 };
 
 export type EmHelicalEntity = {
-  readonly __typename?: 'EmHelicalEntity',
   readonly angular_rotation_per_subunit?: Maybe<Scalars['Float']>,
   readonly axial_rise_per_subunit?: Maybe<Scalars['Float']>,
   readonly axial_symmetry?: Maybe<Scalars['String']>,
@@ -584,7 +547,6 @@ export type EmHelicalEntity = {
 };
 
 export type EmImageRecording = {
-  readonly __typename?: 'EmImageRecording',
   readonly average_exposure_time?: Maybe<Scalars['Float']>,
   readonly avg_electron_dose_per_image?: Maybe<Scalars['Float']>,
   readonly details?: Maybe<Scalars['String']>,
@@ -598,7 +560,6 @@ export type EmImageRecording = {
 };
 
 export type EmImaging = {
-  readonly __typename?: 'EmImaging',
   readonly accelerating_voltage?: Maybe<Scalars['Int']>,
   readonly alignment_procedure?: Maybe<Scalars['String']>,
   readonly astigmatism?: Maybe<Scalars['String']>,
@@ -632,7 +593,6 @@ export type EmImaging = {
 };
 
 export type EmParticleSelection = {
-  readonly __typename?: 'EmParticleSelection',
   readonly details?: Maybe<Scalars['String']>,
   readonly id: Scalars['String'],
   readonly image_processing_id: Scalars['String'],
@@ -640,14 +600,12 @@ export type EmParticleSelection = {
 };
 
 export type EmSingleParticleEntity = {
-  readonly __typename?: 'EmSingleParticleEntity',
   readonly id: Scalars['String'],
   readonly image_processing_id: Scalars['String'],
   readonly point_symmetry?: Maybe<Scalars['String']>,
 };
 
 export type EmSoftware = {
-  readonly __typename?: 'EmSoftware',
   readonly category?: Maybe<Scalars['String']>,
   readonly details?: Maybe<Scalars['String']>,
   readonly fitting_id?: Maybe<Scalars['String']>,
@@ -659,7 +617,6 @@ export type EmSoftware = {
 };
 
 export type EmSpecimen = {
-  readonly __typename?: 'EmSpecimen',
   readonly concentration?: Maybe<Scalars['Float']>,
   readonly details?: Maybe<Scalars['String']>,
   readonly embedding_applied?: Maybe<Scalars['String']>,
@@ -671,7 +628,6 @@ export type EmSpecimen = {
 };
 
 export type EmStaining = {
-  readonly __typename?: 'EmStaining',
   readonly details?: Maybe<Scalars['String']>,
   readonly id: Scalars['String'],
   readonly material?: Maybe<Scalars['String']>,
@@ -680,7 +636,6 @@ export type EmStaining = {
 };
 
 export type EmVitrification = {
-  readonly __typename?: 'EmVitrification',
   readonly chamber_temperature?: Maybe<Scalars['Float']>,
   readonly cryogen_name?: Maybe<Scalars['String']>,
   readonly details?: Maybe<Scalars['String']>,
@@ -694,7 +649,6 @@ export type EmVitrification = {
 };
 
 export type EntityPoly = {
-  readonly __typename?: 'EntityPoly',
   readonly nstd_linkage?: Maybe<Scalars['String']>,
   readonly nstd_monomer?: Maybe<Scalars['String']>,
   readonly pdbx_seq_one_letter_code?: Maybe<Scalars['String']>,
@@ -715,7 +669,6 @@ export type EntityPoly = {
 };
 
 export type EntitySrcGen = {
-  readonly __typename?: 'EntitySrcGen',
   readonly expression_system_id?: Maybe<Scalars['String']>,
   readonly gene_src_common_name?: Maybe<Scalars['String']>,
   readonly gene_src_details?: Maybe<Scalars['String']>,
@@ -766,7 +719,6 @@ export type EntitySrcGen = {
 };
 
 export type EntitySrcNat = {
-  readonly __typename?: 'EntitySrcNat',
   readonly common_name?: Maybe<Scalars['String']>,
   readonly details?: Maybe<Scalars['String']>,
   readonly genus?: Maybe<Scalars['String']>,
@@ -794,12 +746,10 @@ export type EntitySrcNat = {
 };
 
 export type Entry = {
-  readonly __typename?: 'Entry',
   readonly id: Scalars['String'],
 };
 
 export type Exptl = {
-  readonly __typename?: 'Exptl',
   readonly crystals_number?: Maybe<Scalars['Int']>,
   readonly details?: Maybe<Scalars['String']>,
   readonly method: Scalars['String'],
@@ -807,7 +757,6 @@ export type Exptl = {
 };
 
 export type ExptlCrystal = {
-  readonly __typename?: 'ExptlCrystal',
   readonly colour?: Maybe<Scalars['String']>,
   readonly density_Matthews?: Maybe<Scalars['Float']>,
   readonly density_meas?: Maybe<Scalars['Float']>,
@@ -820,7 +769,6 @@ export type ExptlCrystal = {
 };
 
 export type ExptlCrystalGrow = {
-  readonly __typename?: 'ExptlCrystalGrow',
   readonly crystal_id: Scalars['String'],
   readonly details?: Maybe<Scalars['String']>,
   readonly method?: Maybe<Scalars['String']>,
@@ -832,13 +780,11 @@ export type ExptlCrystalGrow = {
 };
 
 export type GeneName = {
-  readonly __typename?: 'GeneName',
   readonly type?: Maybe<Scalars['String']>,
   readonly value?: Maybe<Scalars['String']>,
 };
 
 export type PdbxAuditRevisionCategory = {
-  readonly __typename?: 'PdbxAuditRevisionCategory',
   readonly category?: Maybe<Scalars['String']>,
   readonly data_content_type: Scalars['String'],
   readonly ordinal: Scalars['Int'],
@@ -846,7 +792,6 @@ export type PdbxAuditRevisionCategory = {
 };
 
 export type PdbxAuditRevisionDetails = {
-  readonly __typename?: 'PdbxAuditRevisionDetails',
   readonly data_content_type: Scalars['String'],
   readonly ordinal: Scalars['Int'],
   readonly provider?: Maybe<Scalars['String']>,
@@ -855,7 +800,6 @@ export type PdbxAuditRevisionDetails = {
 };
 
 export type PdbxAuditRevisionGroup = {
-  readonly __typename?: 'PdbxAuditRevisionGroup',
   readonly data_content_type: Scalars['String'],
   readonly group?: Maybe<Scalars['String']>,
   readonly ordinal: Scalars['Int'],
@@ -863,7 +807,6 @@ export type PdbxAuditRevisionGroup = {
 };
 
 export type PdbxAuditRevisionHistory = {
-  readonly __typename?: 'PdbxAuditRevisionHistory',
   readonly data_content_type: Scalars['String'],
   readonly major_revision?: Maybe<Scalars['Int']>,
   readonly minor_revision?: Maybe<Scalars['Int']>,
@@ -872,7 +815,6 @@ export type PdbxAuditRevisionHistory = {
 };
 
 export type PdbxAuditRevisionItem = {
-  readonly __typename?: 'PdbxAuditRevisionItem',
   readonly data_content_type: Scalars['String'],
   readonly item?: Maybe<Scalars['String']>,
   readonly ordinal: Scalars['Int'],
@@ -880,7 +822,6 @@ export type PdbxAuditRevisionItem = {
 };
 
 export type PdbxAuditSupport = {
-  readonly __typename?: 'PdbxAuditSupport',
   readonly country?: Maybe<Scalars['String']>,
   readonly funding_organization?: Maybe<Scalars['String']>,
   readonly grant_number?: Maybe<Scalars['String']>,
@@ -888,7 +829,6 @@ export type PdbxAuditSupport = {
 };
 
 export type PdbxChemCompAudit = {
-  readonly __typename?: 'PdbxChemCompAudit',
   readonly action_type?: Maybe<Scalars['String']>,
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly date?: Maybe<Scalars['Date']>,
@@ -897,7 +837,6 @@ export type PdbxChemCompAudit = {
 };
 
 export type PdbxChemCompDescriptor = {
-  readonly __typename?: 'PdbxChemCompDescriptor',
   readonly comp_id: Scalars['String'],
   readonly descriptor?: Maybe<Scalars['String']>,
   readonly program: Scalars['String'],
@@ -906,7 +845,6 @@ export type PdbxChemCompDescriptor = {
 };
 
 export type PdbxChemCompFeature = {
-  readonly __typename?: 'PdbxChemCompFeature',
   readonly comp_id: Scalars['String'],
   readonly source: Scalars['String'],
   readonly type: Scalars['String'],
@@ -914,7 +852,6 @@ export type PdbxChemCompFeature = {
 };
 
 export type PdbxChemCompIdentifier = {
-  readonly __typename?: 'PdbxChemCompIdentifier',
   readonly comp_id: Scalars['String'],
   readonly identifier?: Maybe<Scalars['String']>,
   readonly program: Scalars['String'],
@@ -923,7 +860,6 @@ export type PdbxChemCompIdentifier = {
 };
 
 export type PdbxDatabasePdbObsSpr = {
-  readonly __typename?: 'PdbxDatabasePDBObsSpr',
   readonly date?: Maybe<Scalars['Date']>,
   readonly details?: Maybe<Scalars['String']>,
   readonly id?: Maybe<Scalars['String']>,
@@ -932,7 +868,6 @@ export type PdbxDatabasePdbObsSpr = {
 };
 
 export type PdbxDatabaseRelated = {
-  readonly __typename?: 'PdbxDatabaseRelated',
   readonly content_type: Scalars['String'],
   readonly db_id: Scalars['String'],
   readonly db_name: Scalars['String'],
@@ -940,7 +875,6 @@ export type PdbxDatabaseRelated = {
 };
 
 export type PdbxDatabaseStatus = {
-  readonly __typename?: 'PdbxDatabaseStatus',
   readonly SG_entry?: Maybe<Scalars['String']>,
   readonly deposit_site?: Maybe<Scalars['String']>,
   readonly methods_development_category?: Maybe<Scalars['String']>,
@@ -954,7 +888,6 @@ export type PdbxDatabaseStatus = {
 };
 
 export type PdbxDepositGroup = {
-  readonly __typename?: 'PdbxDepositGroup',
   readonly group_description?: Maybe<Scalars['String']>,
   readonly group_id: Scalars['String'],
   readonly group_title?: Maybe<Scalars['String']>,
@@ -962,7 +895,6 @@ export type PdbxDepositGroup = {
 };
 
 export type PdbxEntityNonpoly = {
-  readonly __typename?: 'PdbxEntityNonpoly',
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly entity_id: Scalars['String'],
   readonly name?: Maybe<Scalars['String']>,
@@ -970,7 +902,6 @@ export type PdbxEntityNonpoly = {
 };
 
 export type PdbxEntitySrcSyn = {
-  readonly __typename?: 'PdbxEntitySrcSyn',
   readonly details?: Maybe<Scalars['String']>,
   readonly ncbi_taxonomy_id?: Maybe<Scalars['String']>,
   readonly organism_common_name?: Maybe<Scalars['String']>,
@@ -982,7 +913,6 @@ export type PdbxEntitySrcSyn = {
 };
 
 export type PdbxFamilyPrdAudit = {
-  readonly __typename?: 'PdbxFamilyPrdAudit',
   readonly action_type: Scalars['String'],
   readonly annotator?: Maybe<Scalars['String']>,
   readonly date: Scalars['Date'],
@@ -992,7 +922,6 @@ export type PdbxFamilyPrdAudit = {
 };
 
 export type PdbxMoleculeFeatures = {
-  readonly __typename?: 'PdbxMoleculeFeatures',
   readonly class?: Maybe<Scalars['String']>,
   readonly details?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
@@ -1001,12 +930,10 @@ export type PdbxMoleculeFeatures = {
 };
 
 export type PdbxNmrDetails = {
-  readonly __typename?: 'PdbxNmrDetails',
   readonly text?: Maybe<Scalars['String']>,
 };
 
 export type PdbxNmrEnsemble = {
-  readonly __typename?: 'PdbxNmrEnsemble',
   readonly average_constraint_violations_per_residue?: Maybe<Scalars['Int']>,
   readonly average_constraints_per_residue?: Maybe<Scalars['Int']>,
   readonly average_distance_constraint_violation?: Maybe<Scalars['Float']>,
@@ -1024,7 +951,6 @@ export type PdbxNmrEnsemble = {
 };
 
 export type PdbxNmrExptl = {
-  readonly __typename?: 'PdbxNmrExptl',
   readonly conditions_id: Scalars['String'],
   readonly experiment_id: Scalars['String'],
   readonly sample_state?: Maybe<Scalars['String']>,
@@ -1034,7 +960,6 @@ export type PdbxNmrExptl = {
 };
 
 export type PdbxNmrExptlSampleConditions = {
-  readonly __typename?: 'PdbxNmrExptlSampleConditions',
   readonly conditions_id: Scalars['String'],
   readonly details?: Maybe<Scalars['String']>,
   readonly ionic_strength?: Maybe<Scalars['String']>,
@@ -1053,20 +978,17 @@ export type PdbxNmrExptlSampleConditions = {
 };
 
 export type PdbxNmrRefine = {
-  readonly __typename?: 'PdbxNmrRefine',
   readonly details?: Maybe<Scalars['String']>,
   readonly method?: Maybe<Scalars['String']>,
   readonly software_ordinal: Scalars['Int'],
 };
 
 export type PdbxNmrRepresentative = {
-  readonly __typename?: 'PdbxNmrRepresentative',
   readonly conformer_id?: Maybe<Scalars['String']>,
   readonly selection_criteria?: Maybe<Scalars['String']>,
 };
 
 export type PdbxNmrSampleDetails = {
-  readonly __typename?: 'PdbxNmrSampleDetails',
   readonly contents?: Maybe<Scalars['String']>,
   readonly details?: Maybe<Scalars['String']>,
   readonly label?: Maybe<Scalars['String']>,
@@ -1076,7 +998,6 @@ export type PdbxNmrSampleDetails = {
 };
 
 export type PdbxNmrSoftware = {
-  readonly __typename?: 'PdbxNmrSoftware',
   readonly authors?: Maybe<Scalars['String']>,
   readonly classification?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
@@ -1085,7 +1006,6 @@ export type PdbxNmrSoftware = {
 };
 
 export type PdbxNmrSpectrometer = {
-  readonly __typename?: 'PdbxNmrSpectrometer',
   readonly details?: Maybe<Scalars['String']>,
   readonly field_strength?: Maybe<Scalars['Float']>,
   readonly manufacturer?: Maybe<Scalars['String']>,
@@ -1095,7 +1015,6 @@ export type PdbxNmrSpectrometer = {
 };
 
 export type PdbxPrdAudit = {
-  readonly __typename?: 'PdbxPrdAudit',
   readonly action_type: Scalars['String'],
   readonly annotator?: Maybe<Scalars['String']>,
   readonly date: Scalars['Date'],
@@ -1105,7 +1024,6 @@ export type PdbxPrdAudit = {
 };
 
 export type PdbxReferenceEntityList = {
-  readonly __typename?: 'PdbxReferenceEntityList',
   readonly component_id: Scalars['Int'],
   readonly details?: Maybe<Scalars['String']>,
   readonly prd_id: Scalars['String'],
@@ -1114,7 +1032,6 @@ export type PdbxReferenceEntityList = {
 };
 
 export type PdbxReferenceEntityPoly = {
-  readonly __typename?: 'PdbxReferenceEntityPoly',
   readonly db_code?: Maybe<Scalars['String']>,
   readonly db_name?: Maybe<Scalars['String']>,
   readonly prd_id: Scalars['String'],
@@ -1123,7 +1040,6 @@ export type PdbxReferenceEntityPoly = {
 };
 
 export type PdbxReferenceEntityPolyLink = {
-  readonly __typename?: 'PdbxReferenceEntityPolyLink',
   readonly atom_id_1?: Maybe<Scalars['String']>,
   readonly atom_id_2?: Maybe<Scalars['String']>,
   readonly comp_id_1?: Maybe<Scalars['String']>,
@@ -1138,7 +1054,6 @@ export type PdbxReferenceEntityPolyLink = {
 };
 
 export type PdbxReferenceEntityPolySeq = {
-  readonly __typename?: 'PdbxReferenceEntityPolySeq',
   readonly hetero: Scalars['String'],
   readonly mon_id: Scalars['String'],
   readonly num: Scalars['Int'],
@@ -1149,7 +1064,6 @@ export type PdbxReferenceEntityPolySeq = {
 };
 
 export type PdbxReferenceEntitySequence = {
-  readonly __typename?: 'PdbxReferenceEntitySequence',
   readonly NRP_flag?: Maybe<Scalars['String']>,
   readonly one_letter_codes?: Maybe<Scalars['String']>,
   readonly prd_id: Scalars['String'],
@@ -1158,7 +1072,6 @@ export type PdbxReferenceEntitySequence = {
 };
 
 export type PdbxReferenceEntitySrcNat = {
-  readonly __typename?: 'PdbxReferenceEntitySrcNat',
   readonly atcc?: Maybe<Scalars['String']>,
   readonly db_code?: Maybe<Scalars['String']>,
   readonly db_name?: Maybe<Scalars['String']>,
@@ -1172,7 +1085,6 @@ export type PdbxReferenceEntitySrcNat = {
 };
 
 export type PdbxReferenceMolecule = {
-  readonly __typename?: 'PdbxReferenceMolecule',
   readonly chem_comp_id?: Maybe<Scalars['String']>,
   readonly class?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly class_evidence_code?: Maybe<Scalars['String']>,
@@ -1192,7 +1104,6 @@ export type PdbxReferenceMolecule = {
 };
 
 export type PdbxReferenceMoleculeAnnotation = {
-  readonly __typename?: 'PdbxReferenceMoleculeAnnotation',
   readonly family_prd_id: Scalars['String'],
   readonly ordinal: Scalars['Int'],
   readonly prd_id?: Maybe<Scalars['String']>,
@@ -1202,7 +1113,6 @@ export type PdbxReferenceMoleculeAnnotation = {
 };
 
 export type PdbxReferenceMoleculeDetails = {
-  readonly __typename?: 'PdbxReferenceMoleculeDetails',
   readonly family_prd_id: Scalars['String'],
   readonly ordinal: Scalars['Int'],
   readonly source?: Maybe<Scalars['String']>,
@@ -1211,7 +1121,6 @@ export type PdbxReferenceMoleculeDetails = {
 };
 
 export type PdbxReferenceMoleculeFamily = {
-  readonly __typename?: 'PdbxReferenceMoleculeFamily',
   readonly family_prd_id: Scalars['String'],
   readonly name?: Maybe<Scalars['String']>,
   readonly release_status?: Maybe<Scalars['String']>,
@@ -1220,7 +1129,6 @@ export type PdbxReferenceMoleculeFamily = {
 };
 
 export type PdbxReferenceMoleculeFeatures = {
-  readonly __typename?: 'PdbxReferenceMoleculeFeatures',
   readonly family_prd_id: Scalars['String'],
   readonly ordinal: Scalars['Int'],
   readonly prd_id: Scalars['String'],
@@ -1231,13 +1139,11 @@ export type PdbxReferenceMoleculeFeatures = {
 };
 
 export type PdbxReferenceMoleculeList = {
-  readonly __typename?: 'PdbxReferenceMoleculeList',
   readonly family_prd_id: Scalars['String'],
   readonly prd_id: Scalars['String'],
 };
 
 export type PdbxReferenceMoleculeRelatedStructures = {
-  readonly __typename?: 'PdbxReferenceMoleculeRelatedStructures',
   readonly citation_id?: Maybe<Scalars['String']>,
   readonly db_accession?: Maybe<Scalars['String']>,
   readonly db_code?: Maybe<Scalars['String']>,
@@ -1249,7 +1155,6 @@ export type PdbxReferenceMoleculeRelatedStructures = {
 };
 
 export type PdbxReferenceMoleculeSynonyms = {
-  readonly __typename?: 'PdbxReferenceMoleculeSynonyms',
   readonly family_prd_id: Scalars['String'],
   readonly name?: Maybe<Scalars['String']>,
   readonly ordinal: Scalars['Int'],
@@ -1258,7 +1163,6 @@ export type PdbxReferenceMoleculeSynonyms = {
 };
 
 export type PdbxSerialCrystallographyDataReduction = {
-  readonly __typename?: 'PdbxSerialCrystallographyDataReduction',
   readonly crystal_hits?: Maybe<Scalars['Int']>,
   readonly diffrn_id: Scalars['String'],
   readonly droplet_hits?: Maybe<Scalars['Int']>,
@@ -1272,7 +1176,6 @@ export type PdbxSerialCrystallographyDataReduction = {
 };
 
 export type PdbxSerialCrystallographyMeasurement = {
-  readonly __typename?: 'PdbxSerialCrystallographyMeasurement',
   readonly collection_time_total?: Maybe<Scalars['Float']>,
   readonly collimation?: Maybe<Scalars['String']>,
   readonly diffrn_id: Scalars['String'],
@@ -1287,14 +1190,12 @@ export type PdbxSerialCrystallographyMeasurement = {
 };
 
 export type PdbxSerialCrystallographySampleDelivery = {
-  readonly __typename?: 'PdbxSerialCrystallographySampleDelivery',
   readonly description?: Maybe<Scalars['String']>,
   readonly diffrn_id: Scalars['String'],
   readonly method?: Maybe<Scalars['String']>,
 };
 
 export type PdbxSerialCrystallographySampleDeliveryFixedTarget = {
-  readonly __typename?: 'PdbxSerialCrystallographySampleDeliveryFixedTarget',
   readonly crystals_per_unit?: Maybe<Scalars['Int']>,
   readonly description?: Maybe<Scalars['String']>,
   readonly details?: Maybe<Scalars['String']>,
@@ -1310,7 +1211,6 @@ export type PdbxSerialCrystallographySampleDeliveryFixedTarget = {
 };
 
 export type PdbxSerialCrystallographySampleDeliveryInjection = {
-  readonly __typename?: 'PdbxSerialCrystallographySampleDeliveryInjection',
   readonly carrier_solvent?: Maybe<Scalars['String']>,
   readonly crystal_concentration?: Maybe<Scalars['Float']>,
   readonly description?: Maybe<Scalars['String']>,
@@ -1327,7 +1227,6 @@ export type PdbxSerialCrystallographySampleDeliveryInjection = {
 };
 
 export type PdbxSgProject = {
-  readonly __typename?: 'PdbxSGProject',
   readonly full_name_of_center?: Maybe<Scalars['String']>,
   readonly id: Scalars['Int'],
   readonly initial_of_center?: Maybe<Scalars['String']>,
@@ -1335,7 +1234,6 @@ export type PdbxSgProject = {
 };
 
 export type PdbxSolnScatter = {
-  readonly __typename?: 'PdbxSolnScatter',
   readonly buffer_name?: Maybe<Scalars['String']>,
   readonly concentration_range?: Maybe<Scalars['String']>,
   readonly data_analysis_software_list?: Maybe<Scalars['String']>,
@@ -1361,7 +1259,6 @@ export type PdbxSolnScatter = {
 };
 
 export type PdbxSolnScatterModel = {
-  readonly __typename?: 'PdbxSolnScatterModel',
   readonly conformer_selection_criteria?: Maybe<Scalars['String']>,
   readonly details?: Maybe<Scalars['String']>,
   readonly entry_fitting_list?: Maybe<Scalars['String']>,
@@ -1376,7 +1273,6 @@ export type PdbxSolnScatterModel = {
 };
 
 export type PdbxStructAssembly = {
-  readonly __typename?: 'PdbxStructAssembly',
   readonly details?: Maybe<Scalars['String']>,
   readonly id: Scalars['String'],
   readonly method_details?: Maybe<Scalars['String']>,
@@ -1387,7 +1283,6 @@ export type PdbxStructAssembly = {
 };
 
 export type PdbxStructAssemblyAuthEvidence = {
-  readonly __typename?: 'PdbxStructAssemblyAuthEvidence',
   readonly assembly_id: Scalars['String'],
   readonly details?: Maybe<Scalars['String']>,
   readonly experimental_support?: Maybe<Scalars['String']>,
@@ -1395,7 +1290,6 @@ export type PdbxStructAssemblyAuthEvidence = {
 };
 
 export type PdbxStructAssemblyGen = {
-  readonly __typename?: 'PdbxStructAssemblyGen',
   readonly assembly_id?: Maybe<Scalars['String']>,
   readonly asym_id_list?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly oper_expression?: Maybe<Scalars['String']>,
@@ -1403,7 +1297,6 @@ export type PdbxStructAssemblyGen = {
 };
 
 export type PdbxStructAssemblyProp = {
-  readonly __typename?: 'PdbxStructAssemblyProp',
   readonly assembly_id?: Maybe<Scalars['String']>,
   readonly biol_id: Scalars['String'],
   readonly type: Scalars['String'],
@@ -1411,7 +1304,6 @@ export type PdbxStructAssemblyProp = {
 };
 
 export type PdbxStructOperList = {
-  readonly __typename?: 'PdbxStructOperList',
   readonly id: Scalars['String'],
   readonly matrix_1_1?: Maybe<Scalars['Float']>,
   readonly matrix_1_2?: Maybe<Scalars['Float']>,
@@ -1431,7 +1323,6 @@ export type PdbxStructOperList = {
 };
 
 export type PdbxStructSpecialSymmetry = {
-  readonly __typename?: 'PdbxStructSpecialSymmetry',
   readonly PDB_model_num?: Maybe<Scalars['Int']>,
   readonly auth_seq_id?: Maybe<Scalars['String']>,
   readonly id: Scalars['Int'],
@@ -1440,7 +1331,6 @@ export type PdbxStructSpecialSymmetry = {
 };
 
 export type PdbxVrptSummary = {
-  readonly __typename?: 'PdbxVrptSummary',
   readonly B_factor_type?: Maybe<Scalars['String']>,
   readonly Babinet_b?: Maybe<Scalars['Float']>,
   readonly Babinet_k?: Maybe<Scalars['Float']>,
@@ -1560,7 +1450,6 @@ export type PdbxVrptSummary = {
 };
 
 export type Query = {
-  readonly __typename?: 'Query',
   readonly polymer_entity_instance?: Maybe<CorePolymerEntityInstance>,
   readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>,
   readonly nonpolymer_entities?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntity>>>,
@@ -1659,7 +1548,6 @@ export type QueryNonpolymer_EntityArgs = {
 };
 
 export type RcsbAccessionInfo = {
-  readonly __typename?: 'RcsbAccessionInfo',
   readonly deposit_date?: Maybe<Scalars['Date']>,
   readonly initial_release_date?: Maybe<Scalars['Date']>,
   readonly major_revision?: Maybe<Scalars['Int']>,
@@ -1669,14 +1557,12 @@ export type RcsbAccessionInfo = {
 };
 
 export type RcsbAssemblyContainerIdentifiers = {
-  readonly __typename?: 'RcsbAssemblyContainerIdentifiers',
   readonly assembly_id: Scalars['String'],
   readonly entry_id: Scalars['String'],
   readonly rcsb_id?: Maybe<Scalars['String']>,
 };
 
 export type RcsbAssemblyInfo = {
-  readonly __typename?: 'RcsbAssemblyInfo',
   readonly assembly_id?: Maybe<Scalars['String']>,
   readonly atom_count?: Maybe<Scalars['Int']>,
   readonly branched_atom_count?: Maybe<Scalars['Int']>,
@@ -1711,7 +1597,6 @@ export type RcsbAssemblyInfo = {
 };
 
 export type RcsbBindingAffinity = {
-  readonly __typename?: 'RcsbBindingAffinity',
   readonly comp_id: Scalars['String'],
   readonly display_order: Scalars['Int'],
   readonly display_value: Scalars['String'],
@@ -1725,7 +1610,6 @@ export type RcsbBindingAffinity = {
 };
 
 export type RcsbBirdCitation = {
-  readonly __typename?: 'RcsbBirdCitation',
   readonly id: Scalars['String'],
   readonly journal_abbrev?: Maybe<Scalars['String']>,
   readonly journal_volume?: Maybe<Scalars['String']>,
@@ -1739,7 +1623,6 @@ export type RcsbBirdCitation = {
 };
 
 export type RcsbChemCompContainerIdentifiers = {
-  readonly __typename?: 'RcsbChemCompContainerIdentifiers',
   readonly atc_codes?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly comp_id: Scalars['String'],
   readonly drugbank_id?: Maybe<Scalars['String']>,
@@ -1749,7 +1632,6 @@ export type RcsbChemCompContainerIdentifiers = {
 };
 
 export type RcsbChemCompDescriptor = {
-  readonly __typename?: 'RcsbChemCompDescriptor',
   readonly InChI?: Maybe<Scalars['String']>,
   readonly InChIKey?: Maybe<Scalars['String']>,
   readonly SMILES?: Maybe<Scalars['String']>,
@@ -1758,7 +1640,6 @@ export type RcsbChemCompDescriptor = {
 };
 
 export type RcsbChemCompInfo = {
-  readonly __typename?: 'RcsbChemCompInfo',
   readonly atom_count?: Maybe<Scalars['Int']>,
   readonly atom_count_chiral?: Maybe<Scalars['Int']>,
   readonly atom_count_heavy?: Maybe<Scalars['Int']>,
@@ -1771,7 +1652,6 @@ export type RcsbChemCompInfo = {
 };
 
 export type RcsbChemCompRelated = {
-  readonly __typename?: 'RcsbChemCompRelated',
   readonly comp_id: Scalars['String'],
   readonly ordinal: Scalars['Int'],
   readonly related_mapping_method?: Maybe<Scalars['String']>,
@@ -1781,14 +1661,12 @@ export type RcsbChemCompRelated = {
 };
 
 export type RcsbChemCompRelatedResourceLineage = {
-  readonly __typename?: 'RcsbChemCompRelatedResourceLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbChemCompSynonyms = {
-  readonly __typename?: 'RcsbChemCompSynonyms',
   readonly comp_id: Scalars['String'],
   readonly name?: Maybe<Scalars['String']>,
   readonly ordinal: Scalars['Int'],
@@ -1796,7 +1674,6 @@ export type RcsbChemCompSynonyms = {
 };
 
 export type RcsbChemCompTarget = {
-  readonly __typename?: 'RcsbChemCompTarget',
   readonly comp_id: Scalars['String'],
   readonly interaction_type?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
@@ -1808,7 +1685,6 @@ export type RcsbChemCompTarget = {
 };
 
 export type RcsbClusterFlexibility = {
-  readonly __typename?: 'RcsbClusterFlexibility',
   readonly avg_rmsd?: Maybe<Scalars['Float']>,
   readonly label?: Maybe<Scalars['String']>,
   readonly link?: Maybe<Scalars['String']>,
@@ -1817,13 +1693,11 @@ export type RcsbClusterFlexibility = {
 };
 
 export type RcsbClusterMembership = {
-  readonly __typename?: 'RcsbClusterMembership',
   readonly cluster_id: Scalars['Int'],
   readonly identity: Scalars['Int'],
 };
 
 export type RcsbEntityHostOrganism = {
-  readonly __typename?: 'RcsbEntityHostOrganism',
   readonly beg_seq_num?: Maybe<Scalars['Int']>,
   readonly common_name?: Maybe<Scalars['String']>,
   readonly end_seq_num?: Maybe<Scalars['Int']>,
@@ -1838,14 +1712,12 @@ export type RcsbEntityHostOrganism = {
 };
 
 export type RcsbEntityHostOrganismTaxonomyLineage = {
-  readonly __typename?: 'RcsbEntityHostOrganismTaxonomyLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbEntitySourceOrganism = {
-  readonly __typename?: 'RcsbEntitySourceOrganism',
   readonly beg_seq_num?: Maybe<Scalars['Int']>,
   readonly common_name?: Maybe<Scalars['String']>,
   readonly end_seq_num?: Maybe<Scalars['Int']>,
@@ -1862,20 +1734,17 @@ export type RcsbEntitySourceOrganism = {
 };
 
 export type RcsbEntitySourceOrganismRcsbGeneName = {
-  readonly __typename?: 'RcsbEntitySourceOrganismRcsbGeneName',
   readonly provenance_source?: Maybe<Scalars['String']>,
   readonly value?: Maybe<Scalars['String']>,
 };
 
 export type RcsbEntitySourceOrganismTaxonomyLineage = {
-  readonly __typename?: 'RcsbEntitySourceOrganismTaxonomyLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbEntryContainerIdentifiers = {
-  readonly __typename?: 'RcsbEntryContainerIdentifiers',
   readonly assembly_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly branched_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly emdb_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
@@ -1890,7 +1759,6 @@ export type RcsbEntryContainerIdentifiers = {
 };
 
 export type RcsbEntryInfo = {
-  readonly __typename?: 'RcsbEntryInfo',
   readonly assembly_count?: Maybe<Scalars['Int']>,
   readonly branched_entity_count?: Maybe<Scalars['Int']>,
   readonly branched_molecular_weight_maximum?: Maybe<Scalars['Float']>,
@@ -1934,35 +1802,30 @@ export type RcsbEntryInfo = {
 };
 
 export type RcsbExternalReferences = {
-  readonly __typename?: 'RcsbExternalReferences',
   readonly id: Scalars['String'],
   readonly link: Scalars['String'],
   readonly type: Scalars['String'],
 };
 
 export type RcsbGenomicLineage = {
-  readonly __typename?: 'RcsbGenomicLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbLatestRevision = {
-  readonly __typename?: 'RcsbLatestRevision',
   readonly major_revision?: Maybe<Scalars['Int']>,
   readonly minor_revision?: Maybe<Scalars['Int']>,
   readonly revision_date?: Maybe<Scalars['Date']>,
 };
 
 export type RcsbMembraneLineage = {
-  readonly __typename?: 'RcsbMembraneLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbNonpolymerEntity = {
-  readonly __typename?: 'RcsbNonpolymerEntity',
   readonly details?: Maybe<Scalars['String']>,
   readonly formula_weight?: Maybe<Scalars['Float']>,
   readonly pdbx_description?: Maybe<Scalars['String']>,
@@ -1970,7 +1833,6 @@ export type RcsbNonpolymerEntity = {
 };
 
 export type RcsbNonpolymerEntityAnnotation = {
-  readonly __typename?: 'RcsbNonpolymerEntityAnnotation',
   readonly annotation_id?: Maybe<Scalars['String']>,
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerEntityAnnotationAnnotationLineage>>>,
   readonly assignment_version?: Maybe<Scalars['String']>,
@@ -1982,14 +1844,12 @@ export type RcsbNonpolymerEntityAnnotation = {
 };
 
 export type RcsbNonpolymerEntityAnnotationAnnotationLineage = {
-  readonly __typename?: 'RcsbNonpolymerEntityAnnotationAnnotationLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbNonpolymerEntityContainerIdentifiers = {
-  readonly __typename?: 'RcsbNonpolymerEntityContainerIdentifiers',
   readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly auth_asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly entity_id: Scalars['String'],
@@ -2003,7 +1863,6 @@ export type RcsbNonpolymerEntityContainerIdentifiers = {
 };
 
 export type RcsbNonpolymerEntityFeature = {
-  readonly __typename?: 'RcsbNonpolymerEntityFeature',
   readonly assignment_version?: Maybe<Scalars['String']>,
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly description?: Maybe<Scalars['String']>,
@@ -2015,7 +1874,6 @@ export type RcsbNonpolymerEntityFeature = {
 };
 
 export type RcsbNonpolymerEntityFeatureSummary = {
-  readonly __typename?: 'RcsbNonpolymerEntityFeatureSummary',
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly count?: Maybe<Scalars['Int']>,
   readonly maximum_length?: Maybe<Scalars['Int']>,
@@ -2026,7 +1884,6 @@ export type RcsbNonpolymerEntityFeatureSummary = {
 };
 
 export type RcsbNonpolymerEntityInstanceContainerIdentifiers = {
-  readonly __typename?: 'RcsbNonpolymerEntityInstanceContainerIdentifiers',
   readonly asym_id: Scalars['String'],
   readonly auth_asym_id?: Maybe<Scalars['String']>,
   readonly auth_seq_id?: Maybe<Scalars['String']>,
@@ -2037,17 +1894,14 @@ export type RcsbNonpolymerEntityInstanceContainerIdentifiers = {
 };
 
 export type RcsbNonpolymerEntityKeywords = {
-  readonly __typename?: 'RcsbNonpolymerEntityKeywords',
   readonly text?: Maybe<Scalars['String']>,
 };
 
 export type RcsbNonpolymerEntityNameCom = {
-  readonly __typename?: 'RcsbNonpolymerEntityNameCom',
   readonly name: Scalars['String'],
 };
 
 export type RcsbNonpolymerInstanceAnnotation = {
-  readonly __typename?: 'RcsbNonpolymerInstanceAnnotation',
   readonly annotation_id?: Maybe<Scalars['String']>,
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceAnnotationAnnotationLineage>>>,
   readonly assignment_version?: Maybe<Scalars['String']>,
@@ -2060,14 +1914,12 @@ export type RcsbNonpolymerInstanceAnnotation = {
 };
 
 export type RcsbNonpolymerInstanceAnnotationAnnotationLineage = {
-  readonly __typename?: 'RcsbNonpolymerInstanceAnnotationAnnotationLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbNonpolymerInstanceFeature = {
-  readonly __typename?: 'RcsbNonpolymerInstanceFeature',
   readonly assignment_version?: Maybe<Scalars['String']>,
   readonly auth_seq_id?: Maybe<Scalars['String']>,
   readonly comp_id?: Maybe<Scalars['String']>,
@@ -2081,7 +1933,6 @@ export type RcsbNonpolymerInstanceFeature = {
 };
 
 export type RcsbNonpolymerInstanceFeatureFeatureValue = {
-  readonly __typename?: 'RcsbNonpolymerInstanceFeatureFeatureValue',
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly details?: Maybe<Scalars['String']>,
   readonly reference?: Maybe<Scalars['Float']>,
@@ -2091,7 +1942,6 @@ export type RcsbNonpolymerInstanceFeatureFeatureValue = {
 };
 
 export type RcsbNonpolymerInstanceFeatureSummary = {
-  readonly __typename?: 'RcsbNonpolymerInstanceFeatureSummary',
   readonly count?: Maybe<Scalars['Int']>,
   readonly maximum_length?: Maybe<Scalars['Int']>,
   readonly maximum_value?: Maybe<Scalars['Float']>,
@@ -2101,7 +1951,6 @@ export type RcsbNonpolymerInstanceFeatureSummary = {
 };
 
 export type RcsbNonpolymerStructConn = {
-  readonly __typename?: 'RcsbNonpolymerStructConn',
   readonly connect_partner?: Maybe<RcsbNonpolymerStructConnConnectPartner>,
   readonly connect_target?: Maybe<RcsbNonpolymerStructConnConnectTarget>,
   readonly connect_type?: Maybe<Scalars['String']>,
@@ -2113,7 +1962,6 @@ export type RcsbNonpolymerStructConn = {
 };
 
 export type RcsbNonpolymerStructConnConnectPartner = {
-  readonly __typename?: 'RcsbNonpolymerStructConnConnectPartner',
   readonly label_alt_id?: Maybe<Scalars['String']>,
   readonly label_asym_id: Scalars['String'],
   readonly label_atom_id?: Maybe<Scalars['String']>,
@@ -2123,7 +1971,6 @@ export type RcsbNonpolymerStructConnConnectPartner = {
 };
 
 export type RcsbNonpolymerStructConnConnectTarget = {
-  readonly __typename?: 'RcsbNonpolymerStructConnConnectTarget',
   readonly auth_asym_id?: Maybe<Scalars['String']>,
   readonly auth_seq_id?: Maybe<Scalars['String']>,
   readonly label_alt_id?: Maybe<Scalars['String']>,
@@ -2135,12 +1982,10 @@ export type RcsbNonpolymerStructConnConnectTarget = {
 };
 
 export type RcsbPfamContainerIdentifiers = {
-  readonly __typename?: 'RcsbPfamContainerIdentifiers',
   readonly pfam_id?: Maybe<Scalars['String']>,
 };
 
 export type RcsbPolymerEntity = {
-  readonly __typename?: 'RcsbPolymerEntity',
   readonly details?: Maybe<Scalars['String']>,
   readonly formula_weight?: Maybe<Scalars['Float']>,
   readonly pdbx_description?: Maybe<Scalars['String']>,
@@ -2157,7 +2002,6 @@ export type RcsbPolymerEntity = {
 };
 
 export type RcsbPolymerEntityAlign = {
-  readonly __typename?: 'RcsbPolymerEntityAlign',
   readonly aligned_regions?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAlignAlignedRegions>>>,
   readonly provenance_source?: Maybe<Scalars['String']>,
   readonly reference_database_accession?: Maybe<Scalars['String']>,
@@ -2166,14 +2010,12 @@ export type RcsbPolymerEntityAlign = {
 };
 
 export type RcsbPolymerEntityAlignAlignedRegions = {
-  readonly __typename?: 'RcsbPolymerEntityAlignAlignedRegions',
   readonly entity_beg_seq_id?: Maybe<Scalars['Int']>,
   readonly length?: Maybe<Scalars['Int']>,
   readonly ref_beg_seq_id?: Maybe<Scalars['Int']>,
 };
 
 export type RcsbPolymerEntityAnnotation = {
-  readonly __typename?: 'RcsbPolymerEntityAnnotation',
   readonly annotation_id?: Maybe<Scalars['String']>,
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAnnotationAnnotationLineage>>>,
   readonly assignment_version?: Maybe<Scalars['String']>,
@@ -2184,14 +2026,12 @@ export type RcsbPolymerEntityAnnotation = {
 };
 
 export type RcsbPolymerEntityAnnotationAnnotationLineage = {
-  readonly __typename?: 'RcsbPolymerEntityAnnotationAnnotationLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbPolymerEntityContainerIdentifiers = {
-  readonly __typename?: 'RcsbPolymerEntityContainerIdentifiers',
   readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly auth_asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly chem_comp_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
@@ -2205,7 +2045,6 @@ export type RcsbPolymerEntityContainerIdentifiers = {
 };
 
 export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = {
-  readonly __typename?: 'RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers',
   readonly database_accession?: Maybe<Scalars['String']>,
   readonly database_isoform?: Maybe<Scalars['String']>,
   readonly database_name?: Maybe<Scalars['String']>,
@@ -2213,7 +2052,6 @@ export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = 
 };
 
 export type RcsbPolymerEntityFeature = {
-  readonly __typename?: 'RcsbPolymerEntityFeature',
   readonly assignment_version?: Maybe<Scalars['String']>,
   readonly description?: Maybe<Scalars['String']>,
   readonly feature_id?: Maybe<Scalars['String']>,
@@ -2225,7 +2063,6 @@ export type RcsbPolymerEntityFeature = {
 };
 
 export type RcsbPolymerEntityFeatureFeaturePositions = {
-  readonly __typename?: 'RcsbPolymerEntityFeatureFeaturePositions',
   readonly beg_comp_id?: Maybe<Scalars['String']>,
   readonly beg_seq_id: Scalars['Int'],
   readonly end_seq_id?: Maybe<Scalars['Int']>,
@@ -2233,7 +2070,6 @@ export type RcsbPolymerEntityFeatureFeaturePositions = {
 };
 
 export type RcsbPolymerEntityFeatureSummary = {
-  readonly __typename?: 'RcsbPolymerEntityFeatureSummary',
   readonly count?: Maybe<Scalars['Int']>,
   readonly coverage?: Maybe<Scalars['Float']>,
   readonly maximum_length?: Maybe<Scalars['Int']>,
@@ -2244,7 +2080,6 @@ export type RcsbPolymerEntityFeatureSummary = {
 };
 
 export type RcsbPolymerEntityInstanceContainerIdentifiers = {
-  readonly __typename?: 'RcsbPolymerEntityInstanceContainerIdentifiers',
   readonly asym_id: Scalars['String'],
   readonly auth_asym_id?: Maybe<Scalars['String']>,
   readonly entity_id?: Maybe<Scalars['String']>,
@@ -2253,44 +2088,37 @@ export type RcsbPolymerEntityInstanceContainerIdentifiers = {
 };
 
 export type RcsbPolymerEntityKeywords = {
-  readonly __typename?: 'RcsbPolymerEntityKeywords',
   readonly text?: Maybe<Scalars['String']>,
 };
 
 export type RcsbPolymerEntityNameCom = {
-  readonly __typename?: 'RcsbPolymerEntityNameCom',
   readonly name: Scalars['String'],
 };
 
 export type RcsbPolymerEntityNameSys = {
-  readonly __typename?: 'RcsbPolymerEntityNameSys',
   readonly name: Scalars['String'],
   readonly system?: Maybe<Scalars['String']>,
 };
 
 export type RcsbPolymerEntityRcsbEcLineage = {
-  readonly __typename?: 'RcsbPolymerEntityRcsbEcLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbPolymerEntityRcsbEnzymeClassCombined = {
-  readonly __typename?: 'RcsbPolymerEntityRcsbEnzymeClassCombined',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly ec?: Maybe<Scalars['String']>,
   readonly provenance_source?: Maybe<Scalars['String']>,
 };
 
 export type RcsbPolymerEntityRcsbMacromolecularNamesCombined = {
-  readonly __typename?: 'RcsbPolymerEntityRcsbMacromolecularNamesCombined',
   readonly name?: Maybe<Scalars['String']>,
   readonly provenance_code?: Maybe<Scalars['String']>,
   readonly provenance_source?: Maybe<Scalars['String']>,
 };
 
 export type RcsbPolymerInstanceAnnotation = {
-  readonly __typename?: 'RcsbPolymerInstanceAnnotation',
   readonly annotation_id?: Maybe<Scalars['String']>,
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceAnnotationAnnotationLineage>>>,
   readonly assignment_version?: Maybe<Scalars['String']>,
@@ -2302,14 +2130,12 @@ export type RcsbPolymerInstanceAnnotation = {
 };
 
 export type RcsbPolymerInstanceAnnotationAnnotationLineage = {
-  readonly __typename?: 'RcsbPolymerInstanceAnnotationAnnotationLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbPolymerInstanceFeature = {
-  readonly __typename?: 'RcsbPolymerInstanceFeature',
   readonly assignment_version?: Maybe<Scalars['String']>,
   readonly description?: Maybe<Scalars['String']>,
   readonly feature_id?: Maybe<Scalars['String']>,
@@ -2322,7 +2148,6 @@ export type RcsbPolymerInstanceFeature = {
 };
 
 export type RcsbPolymerInstanceFeatureFeaturePositions = {
-  readonly __typename?: 'RcsbPolymerInstanceFeatureFeaturePositions',
   readonly beg_comp_id?: Maybe<Scalars['String']>,
   readonly beg_seq_id: Scalars['Int'],
   readonly end_seq_id?: Maybe<Scalars['Int']>,
@@ -2330,7 +2155,6 @@ export type RcsbPolymerInstanceFeatureFeaturePositions = {
 };
 
 export type RcsbPolymerInstanceFeatureSummary = {
-  readonly __typename?: 'RcsbPolymerInstanceFeatureSummary',
   readonly count?: Maybe<Scalars['Int']>,
   readonly coverage?: Maybe<Scalars['Float']>,
   readonly maximum_length?: Maybe<Scalars['Int']>,
@@ -2341,7 +2165,6 @@ export type RcsbPolymerInstanceFeatureSummary = {
 };
 
 export type RcsbPolymerStructConn = {
-  readonly __typename?: 'RcsbPolymerStructConn',
   readonly connect_partner?: Maybe<RcsbPolymerStructConnConnectPartner>,
   readonly connect_target?: Maybe<RcsbPolymerStructConnConnectTarget>,
   readonly connect_type?: Maybe<Scalars['String']>,
@@ -2353,7 +2176,6 @@ export type RcsbPolymerStructConn = {
 };
 
 export type RcsbPolymerStructConnConnectPartner = {
-  readonly __typename?: 'RcsbPolymerStructConnConnectPartner',
   readonly label_alt_id?: Maybe<Scalars['String']>,
   readonly label_asym_id: Scalars['String'],
   readonly label_atom_id?: Maybe<Scalars['String']>,
@@ -2363,7 +2185,6 @@ export type RcsbPolymerStructConnConnectPartner = {
 };
 
 export type RcsbPolymerStructConnConnectTarget = {
-  readonly __typename?: 'RcsbPolymerStructConnConnectTarget',
   readonly auth_asym_id?: Maybe<Scalars['String']>,
   readonly auth_seq_id?: Maybe<Scalars['String']>,
   readonly label_alt_id?: Maybe<Scalars['String']>,
@@ -2375,24 +2196,20 @@ export type RcsbPolymerStructConnConnectTarget = {
 };
 
 export type RcsbPubmedContainerIdentifiers = {
-  readonly __typename?: 'RcsbPubmedContainerIdentifiers',
   readonly pubmed_id?: Maybe<Scalars['Int']>,
 };
 
 export type RcsbPubmedMeshDescriptorsLineage = {
-  readonly __typename?: 'RcsbPubmedMeshDescriptorsLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbRepositoryHoldingsCurrent = {
-  readonly __typename?: 'RcsbRepositoryHoldingsCurrent',
   readonly repository_content_types?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
 };
 
 export type RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers = {
-  readonly __typename?: 'RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers',
   readonly assembly_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly entry_id: Scalars['String'],
   readonly rcsb_id?: Maybe<Scalars['String']>,
@@ -2400,14 +2217,12 @@ export type RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers = {
 };
 
 export type RcsbSchemaContainerIdentifiers = {
-  readonly __typename?: 'RcsbSchemaContainerIdentifiers',
   readonly collection_name: Scalars['String'],
   readonly collection_schema_version?: Maybe<Scalars['String']>,
   readonly schema_name: Scalars['String'],
 };
 
 export type RcsbStructSymmetry = {
-  readonly __typename?: 'RcsbStructSymmetry',
   readonly clusters: ReadonlyArray<Maybe<RcsbStructSymmetryClusters>>,
   readonly kind: Scalars['String'],
   readonly oligomeric_state: Scalars['String'],
@@ -2418,27 +2233,23 @@ export type RcsbStructSymmetry = {
 };
 
 export type RcsbStructSymmetryClusters = {
-  readonly __typename?: 'RcsbStructSymmetryClusters',
   readonly avg_rmsd?: Maybe<Scalars['Float']>,
   readonly members: ReadonlyArray<Maybe<ClustersMembers>>,
 };
 
 export type RcsbStructSymmetryLineage = {
-  readonly __typename?: 'RcsbStructSymmetryLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbStructSymmetryRotationAxes = {
-  readonly __typename?: 'RcsbStructSymmetryRotationAxes',
   readonly end: ReadonlyArray<Maybe<Scalars['Float']>>,
   readonly order?: Maybe<Scalars['Int']>,
   readonly start: ReadonlyArray<Maybe<Scalars['Float']>>,
 };
 
 export type RcsbUniprotContainerIdentifiers = {
-  readonly __typename?: 'RcsbUniprotContainerIdentifiers',
   readonly ensembl_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly go_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly pfam_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
@@ -2446,7 +2257,6 @@ export type RcsbUniprotContainerIdentifiers = {
 };
 
 export type RcsbUniprotFeature = {
-  readonly __typename?: 'RcsbUniprotFeature',
   readonly assignment_version?: Maybe<Scalars['String']>,
   readonly description?: Maybe<Scalars['String']>,
   readonly feature_class_lineage?: Maybe<ReadonlyArray<Maybe<RcsbUniprotFeatureFeatureClassLineage>>>,
@@ -2460,34 +2270,29 @@ export type RcsbUniprotFeature = {
 };
 
 export type RcsbUniprotFeatureFeatureClassLineage = {
-  readonly __typename?: 'RcsbUniprotFeatureFeatureClassLineage',
   readonly depth?: Maybe<Scalars['Int']>,
   readonly id?: Maybe<Scalars['String']>,
   readonly name?: Maybe<Scalars['String']>,
 };
 
 export type RcsbUniprotFeatureFeaturePositions = {
-  readonly __typename?: 'RcsbUniprotFeatureFeaturePositions',
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly seq_id?: Maybe<Scalars['Int']>,
   readonly value?: Maybe<Scalars['Float']>,
 };
 
 export type RcsbUniprotFeatureFeatureRanges = {
-  readonly __typename?: 'RcsbUniprotFeatureFeatureRanges',
   readonly beg_seq_id?: Maybe<Scalars['Int']>,
   readonly end_seq_id?: Maybe<Scalars['Int']>,
   readonly value?: Maybe<Scalars['Float']>,
 };
 
 export type RcsbUniprotKeyword = {
-  readonly __typename?: 'RcsbUniprotKeyword',
   readonly id?: Maybe<Scalars['String']>,
   readonly value?: Maybe<Scalars['String']>,
 };
 
 export type RcsbUniprotProtein = {
-  readonly __typename?: 'RcsbUniprotProtein',
   readonly ec?: Maybe<ReadonlyArray<Maybe<RcsbUniprotProteinEc>>>,
   readonly function?: Maybe<RcsbUniprotProteinFunction>,
   readonly gene?: Maybe<ReadonlyArray<Maybe<RcsbUniprotProteinGene>>>,
@@ -2497,37 +2302,31 @@ export type RcsbUniprotProtein = {
 };
 
 export type RcsbUniprotProteinEc = {
-  readonly __typename?: 'RcsbUniprotProteinEc',
   readonly number?: Maybe<Scalars['String']>,
   readonly provenance_code?: Maybe<Scalars['String']>,
 };
 
 export type RcsbUniprotProteinFunction = {
-  readonly __typename?: 'RcsbUniprotProteinFunction',
   readonly details?: Maybe<Scalars['String']>,
   readonly provenance_code?: Maybe<Scalars['String']>,
 };
 
 export type RcsbUniprotProteinGene = {
-  readonly __typename?: 'RcsbUniprotProteinGene',
   readonly name?: Maybe<ReadonlyArray<Maybe<GeneName>>>,
 };
 
 export type RcsbUniprotProteinName = {
-  readonly __typename?: 'RcsbUniprotProteinName',
   readonly provenance_code: Scalars['String'],
   readonly value: Scalars['String'],
 };
 
 export type RcsbUniprotProteinSourceOrganism = {
-  readonly __typename?: 'RcsbUniprotProteinSourceOrganism',
   readonly provenance_code: Scalars['String'],
   readonly scientific_name: Scalars['String'],
   readonly taxonomy_id?: Maybe<Scalars['Int']>,
 };
 
 export type Refine = {
-  readonly __typename?: 'Refine',
   readonly B_iso_max?: Maybe<Scalars['Float']>,
   readonly B_iso_mean?: Maybe<Scalars['Float']>,
   readonly B_iso_min?: Maybe<Scalars['Float']>,
@@ -2603,7 +2402,6 @@ export type Refine = {
 };
 
 export type RefineAnalyze = {
-  readonly __typename?: 'RefineAnalyze',
   readonly Luzzati_coordinate_error_free?: Maybe<Scalars['Float']>,
   readonly Luzzati_coordinate_error_obs?: Maybe<Scalars['Float']>,
   readonly Luzzati_d_res_low_free?: Maybe<Scalars['Float']>,
@@ -2618,7 +2416,6 @@ export type RefineAnalyze = {
 };
 
 export type RefineHist = {
-  readonly __typename?: 'RefineHist',
   readonly cycle_id: Scalars['String'],
   readonly d_res_high?: Maybe<Scalars['Float']>,
   readonly d_res_low?: Maybe<Scalars['Float']>,
@@ -2634,7 +2431,6 @@ export type RefineHist = {
 };
 
 export type RefineLsRestr = {
-  readonly __typename?: 'RefineLsRestr',
   readonly dev_ideal?: Maybe<Scalars['Float']>,
   readonly dev_ideal_target?: Maybe<Scalars['Float']>,
   readonly number?: Maybe<Scalars['Int']>,
@@ -2645,7 +2441,6 @@ export type RefineLsRestr = {
 };
 
 export type Reflns = {
-  readonly __typename?: 'Reflns',
   readonly B_iso_Wilson_estimate?: Maybe<Scalars['Float']>,
   readonly R_free_details?: Maybe<Scalars['String']>,
   readonly Rmerge_F_all?: Maybe<Scalars['Float']>,
@@ -2689,7 +2484,6 @@ export type Reflns = {
 };
 
 export type ReflnsShell = {
-  readonly __typename?: 'ReflnsShell',
   readonly Rmerge_F_all?: Maybe<Scalars['Float']>,
   readonly Rmerge_F_obs?: Maybe<Scalars['Float']>,
   readonly Rmerge_I_all?: Maybe<Scalars['Float']>,
@@ -2721,7 +2515,6 @@ export type ReflnsShell = {
 };
 
 export type Software = {
-  readonly __typename?: 'Software',
   readonly classification?: Maybe<Scalars['String']>,
   readonly contact_author?: Maybe<Scalars['String']>,
   readonly contact_author_email?: Maybe<Scalars['String']>,
@@ -2737,7 +2530,6 @@ export type Software = {
 };
 
 export type Struct = {
-  readonly __typename?: 'Struct',
   readonly pdbx_CASP_flag?: Maybe<Scalars['String']>,
   readonly pdbx_descriptor?: Maybe<Scalars['String']>,
   readonly pdbx_model_details?: Maybe<Scalars['String']>,
@@ -2746,13 +2538,11 @@ export type Struct = {
 };
 
 export type StructKeywords = {
-  readonly __typename?: 'StructKeywords',
   readonly pdbx_keywords?: Maybe<Scalars['String']>,
   readonly text?: Maybe<Scalars['String']>,
 };
 
 export type Symmetry = {
-  readonly __typename?: 'Symmetry',
   readonly Int_Tables_number?: Maybe<Scalars['Int']>,
   readonly cell_setting?: Maybe<Scalars['String']>,
   readonly pdbx_full_space_group_name_H_M?: Maybe<Scalars['String']>,
@@ -2767,24 +2557,10 @@ export type AssemblySymmetryQueryVariables = {
 };
 
 
-export type AssemblySymmetryQuery = (
-  { readonly __typename?: 'Query' }
-  & { readonly assembly: Maybe<(
-    { readonly __typename?: 'CoreAssembly' }
-    & { readonly rcsb_struct_symmetry: Maybe<ReadonlyArray<Maybe<(
-      { readonly __typename?: 'RcsbStructSymmetry' }
-      & Pick<RcsbStructSymmetry, 'kind' | 'oligomeric_state' | 'stoichiometry' | 'symbol' | 'type'>
+export type AssemblySymmetryQuery = { readonly assembly: Maybe<{ readonly rcsb_struct_symmetry: Maybe<ReadonlyArray<Maybe<(
+      Pick<RcsbStructSymmetry, 'kind' | 'oligomeric_state' | 'stoichiometry' | 'symbol' | 'type'>
       & { readonly clusters: ReadonlyArray<Maybe<(
-        { readonly __typename?: 'RcsbStructSymmetryClusters' }
-        & Pick<RcsbStructSymmetryClusters, 'avg_rmsd'>
-        & { readonly members: ReadonlyArray<Maybe<(
-          { readonly __typename?: 'ClustersMembers' }
-          & Pick<ClustersMembers, 'asym_id' | 'pdbx_struct_oper_list_ids'>
-        )>> }
-      )>>, readonly rotation_axes: Maybe<ReadonlyArray<Maybe<(
-        { readonly __typename?: 'RcsbStructSymmetryRotationAxes' }
-        & Pick<RcsbStructSymmetryRotationAxes, 'order' | 'start' | 'end'>
-      )>>> }
-    )>>> }
-  )> }
-);
+        Pick<RcsbStructSymmetryClusters, 'avg_rmsd'>
+        & { readonly members: ReadonlyArray<Maybe<Pick<ClustersMembers, 'asym_id' | 'pdbx_struct_oper_list_ids'>>> }
+      )>>, readonly rotation_axes: Maybe<ReadonlyArray<Maybe<Pick<RcsbStructSymmetryRotationAxes, 'order' | 'start' | 'end'>>>> }
+    )>>> }> };
