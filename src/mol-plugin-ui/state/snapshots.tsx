@@ -221,6 +221,8 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
     upload = async () => {
         this.setState({ isBusy: true });
+        this.plugin.config.set(PluginConfig.State.CurrentServer, this.state.params.options.serverUrl);
+
         if (this.plugin.state.snapshots.state.entries.size === 0) {
             await PluginCommands.State.Snapshots.Add.dispatch(this.plugin, {
                 name: this.state.params.name,
