@@ -15,6 +15,7 @@ import { readFromFile } from '../../../mol-util/data-source';
 import { download } from '../../../mol-util/download';
 import { Structure } from '../../../mol-model/structure';
 import { urlCombine } from '../../../mol-util/url';
+import { PluginConfig } from '../../config';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -130,6 +131,8 @@ export function ClearHighlight(ctx: PluginContext) {
 }
 
 export function Snapshots(ctx: PluginContext) {
+    ctx.config.set(PluginConfig.State.CurrentServer, ctx.config.get(PluginConfig.State.DefaultServer));
+
     PluginCommands.State.Snapshots.Clear.subscribe(ctx, () => {
         ctx.state.snapshots.clear();
     });

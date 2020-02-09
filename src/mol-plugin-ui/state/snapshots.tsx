@@ -169,7 +169,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
         options: PD.Group({
             description: PD.Text(),
             playOnLoad: PD.Boolean(false),
-            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.PluginState.Server))
+            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.State.CurrentServer))
         })
     };
 
@@ -177,7 +177,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
     ListOnlyParams = {
         options: PD.Group({
-            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.PluginState.Server))
+            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.State.CurrentServer))
         }, { isFlat: true })
     };
 
@@ -194,6 +194,8 @@ export class RemoteStateSnapshots extends PluginUIComponent<
     refresh = async () => {
         try {
             this.setState({ isBusy: true });
+            this.plugin.config.set(PluginConfig.State.CurrentServer, this.state.params.options.serverUrl);
+
             const json = (await this.plugin.runTask<RemoteEntry[]>(this.plugin.fetch({ url: this.serverUrl('list'), type: 'json'  }))) || [];
 
             json.sort((a, b) => {
