@@ -14,6 +14,7 @@ import { getFormattedTime } from '../../../mol-util/date';
 import { readFromFile } from '../../../mol-util/data-source';
 import { download } from '../../../mol-util/download';
 import { Structure } from '../../../mol-model/structure';
+import { urlCombine } from '../../../mol-util/url';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -157,7 +158,7 @@ export function Snapshots(ctx: PluginContext) {
     });
 
     PluginCommands.State.Snapshots.Upload.subscribe(ctx, ({ name, description, playOnLoad, serverUrl }) => {
-        return fetch(`${serverUrl}/set?name=${encodeURIComponent(name || '')}&description=${encodeURIComponent(description || '')}`, {
+        return fetch(urlCombine(serverUrl, `set?name=${encodeURIComponent(name || '')}&description=${encodeURIComponent(description || '')}`), {
             method: 'POST',
             mode: 'cors',
             referrer: 'no-referrer',
