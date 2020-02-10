@@ -542,7 +542,6 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
         bondOutliers, angleOutliers,
         clashes
     }
-    console.log(validationReport)
 
     return validationReport
 }
