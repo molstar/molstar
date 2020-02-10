@@ -6,7 +6,7 @@
  */
 
 import { Color as ColorData } from './color';
-import { shallowEqual } from './index';
+import { shallowEqualObjects } from './index';
 import { Vec2 as Vec2Data, Vec3 as Vec3Data } from '../mol-math/linear-algebra';
 import { deepClone } from './object';
 import { Script as ScriptData } from '../mol-script/script';
@@ -356,7 +356,7 @@ export namespace ParamDefinition {
             }
             return true;
         } else if (typeof a === 'object' && typeof b === 'object') {
-            return shallowEqual(a, b);
+            return shallowEqualObjects(a, b);
         }
 
         // a === b was checked at the top.

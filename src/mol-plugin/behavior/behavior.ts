@@ -11,7 +11,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { PluginCommand } from '../command';
 import { Observable } from 'rxjs';
 import { ParamDefinition } from '../../mol-util/param-definition';
-import { shallowEqual } from '../../mol-util';
+import { shallowEqualObjects } from '../../mol-util';
 
 export { PluginBehavior }
 
@@ -128,7 +128,7 @@ namespace PluginBehavior {
             this.subs = [];
         }
         update(params: P): boolean | Promise<boolean> {
-            if (shallowEqual(params, this.params)) return false;
+            if (shallowEqualObjects(params, this.params)) return false;
             this.params = params;
             return true;
         }
