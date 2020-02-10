@@ -14,9 +14,7 @@ import { SpacegroupCell } from '../../../../mol-math/geometry';
 import { FileHandle } from '../../../../mol-io/common/file-handle';
 import { TypedArrayValueArray } from '../../../../mol-io/common/typed-array';
 
-//////////////////////////////////////
 // DATA
-//////////////////////////////////////
 
 export interface Sampling {
     index: number,
@@ -39,9 +37,7 @@ export interface BlockData {
     values: TypedArrayValueArray
 }
 
-//////////////////////////////////////
 // QUERY
-//////////////////////////////////////
 
 export type QueryOutputStream = Writer & { end: () => void }
 

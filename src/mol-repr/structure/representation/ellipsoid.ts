@@ -47,7 +47,7 @@ export const EllipsoidRepresentationProvider: StructureRepresentationProvider<El
     factory: EllipsoidRepresentation,
     getParams: getEllipsoidParams,
     defaultValues: PD.getDefaultValues(EllipsoidParams),
-    defaultColorTheme: 'element-symbol',
-    defaultSizeTheme: 'uniform',
+    defaultColorTheme: { name: 'element-symbol' },
+    defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0 && structure.models.some(m => m.customProperties.has(AtomSiteAnisotrop.Descriptor))
 }

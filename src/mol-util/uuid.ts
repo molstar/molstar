@@ -31,6 +31,10 @@ namespace UUID {
         });
         return uuid as any;
     }
+
+    export function is(x: any): x is UUID {
+        return typeof x === 'string';
+    }
 }
 
 export default UUID;

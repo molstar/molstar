@@ -10,7 +10,7 @@
  * MIT license.
  */
 
-declare var WorkerGlobalScope: any;
+declare const WorkerGlobalScope: any;
 function createImmediateActions() {
     const global: any = (function () {
         const _window = typeof window !== 'undefined' && window;
@@ -29,15 +29,15 @@ function createImmediateActions() {
     let registerImmediate: ((handle: number) => void);
 
     function setImmediate(callback: Callback, ...args: any[]) {
-      // Callback can either be a function or a string
-      if (typeof callback !== 'function') {
-        callback = new Function('' + callback) as Callback;
-      }
-      // Store and register the task
-      const task = { callback: callback, args: args };
-      tasksByHandle[nextHandle] = task;
-      registerImmediate(nextHandle);
-      return nextHandle++;
+        // Callback can either be a function or a string
+        if (typeof callback !== 'function') {
+            callback = new Function('' + callback) as Callback;
+        }
+        // Store and register the task
+        const task = { callback: callback, args: args };
+        tasksByHandle[nextHandle] = task;
+        registerImmediate(nextHandle);
+        return nextHandle++;
     }
 
     function clearImmediate(handle: number) {
@@ -48,21 +48,21 @@ function createImmediateActions() {
         const callback = task.callback;
         const args = task.args;
         switch (args.length) {
-        case 0:
-            callback();
-            break;
-        case 1:
-            callback(args[0]);
-            break;
-        case 2:
-            callback(args[0], args[1]);
-            break;
-        case 3:
-            callback(args[0], args[1], args[2]);
-            break;
-        default:
-            callback.apply(undefined, args);
-            break;
+            case 0:
+                callback();
+                break;
+            case 1:
+                callback(args[0]);
+                break;
+            case 2:
+                callback(args[0], args[1]);
+                break;
+            case 3:
+                callback(args[0], args[1], args[2]);
+                break;
+            default:
+                callback.apply(undefined, args);
+                break;
         }
     }
 

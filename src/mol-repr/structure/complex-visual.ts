@@ -12,7 +12,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
-import { createRenderObject, RenderObjectKindType, RenderObjectValuesType } from '../../mol-gl/render-object';
+import { createRenderObject, RenderObjectValues, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
@@ -20,7 +20,7 @@ import { Interval } from '../../mol-data/int';
 import { VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell, deepEqual } from '../../mol-util';
-import { createSizes } from '../../mol-geo/geometry/size-data';
+import { createSizes, SizeData } from '../../mol-geo/geometry/size-data';
 import { createColors } from '../../mol-geo/geometry/color-data';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { Mat4 } from '../../mol-math/linear-algebra';
@@ -30,6 +30,7 @@ import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
+import { createMarkers } from '../../mol-geo/geometry/marker-data';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -65,7 +66,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
     const { updateValues, updateBoundingSphere, updateRenderableState } = builder.geometryUtils
     const updateState = VisualUpdateState.create()
 
-    let renderObject: RenderObjectKindType[G['kind']] | undefined
+    let renderObject: GraphicsRenderObject<G['kind']> | undefined
 
     let newProps: PD.Values<P>
     let newTheme: Theme
@@ -103,6 +104,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
         setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure)
 
         if (Structure.conformationHash(newStructure) !== Structure.conformationHash(currentStructure)) {
+            updateState.updateTransform = true;
             updateState.createGeometry = true
         }
 
@@ -132,12 +134,17 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
                 throw new Error('expected renderObject to be available')
             }
 
-            locationIt.reset()
+            if (updateState.updateTransform) {
+                // console.log('update transform')
+                locationIt = createLocationIterator(newStructure)
+                const { instanceCount, groupCount } = locationIt
+                createMarkers(instanceCount * groupCount, renderObject.values)
+            }
 
             if (updateState.createGeometry) {
                 if (newGeometry) {
                     ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
-                    updateBoundingSphere(renderObject.values as RenderObjectValuesType[G['kind']], newGeometry)
+                    updateBoundingSphere(renderObject.values as RenderObjectValues<G['kind']>, newGeometry)
                 } else {
                     throw new Error('expected geometry to be given')
                 }
@@ -146,7 +153,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
             if (updateState.updateSize) {
                 // not all geometries have size data, so check here
                 if ('uSize' in renderObject.values) {
-                    createSizes(locationIt, newTheme.size, renderObject.values)
+                    createSizes(locationIt, newTheme.size, renderObject.values as SizeData)
                 }
             }
 
@@ -154,7 +161,7 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
                 createColors(locationIt, newTheme.color, renderObject.values)
             }
 
-            updateValues(renderObject.values as RenderObjectValuesType[G['kind']], newProps)
+            updateValues(renderObject.values as RenderObjectValues<G['kind']>, newProps)
             updateRenderableState(renderObject.state, newProps)
         }
 
@@ -212,10 +219,10 @@ export function ComplexVisual<G extends Geometry, P extends ComplexParams & Geom
             Visual.setTransform(renderObject, matrix, instanceMatrices)
         },
         setOverpaint(overpaint: Overpaint) {
-            return Visual.setOverpaint(renderObject, overpaint, lociApply, true)
+            Visual.setOverpaint(renderObject, overpaint, lociApply, true)
         },
         setTransparency(transparency: Transparency) {
-            return Visual.setTransparency(renderObject, transparency, lociApply, true)
+            Visual.setTransparency(renderObject, transparency, lociApply, true)
         },
         destroy() {
             // TODO

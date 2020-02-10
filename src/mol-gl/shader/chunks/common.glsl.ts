@@ -11,7 +11,7 @@ float intMod(const in float a, const in float b) { return a - b * float(int(a) /
 float pow2(const in float x) { return x*x; }
 
 const float maxFloat = 10000.0; // NOTE constant also set in TypeScript
-const float floatLogFactor = log(maxFloat + 1.0);
+const float floatLogFactor = 9.210440366976517; // log(maxFloat + 1.0);
 float encodeFloatLog(const in float value) { return log(value + 1.0) / floatLogFactor; }
 float decodeFloatLog(const in float value) { return exp(value * floatLogFactor) - 1.0; }
 

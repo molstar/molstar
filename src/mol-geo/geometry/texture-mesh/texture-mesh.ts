@@ -27,38 +27,39 @@ export interface TextureMesh {
     readonly kind: 'texture-mesh',
 
     /** Number of vertices in the texture-mesh */
-    readonly vertexCount: ValueCell<number>,
+    vertexCount: number,
     /** Number of groups in the texture-mesh */
-    readonly groupCount: ValueCell<number>,
+    groupCount: number,
 
     readonly geoTextureDim: ValueCell<Vec2>,
     /** texture has vertex positions in XYZ and group id in W */
     readonly vertexGroupTexture: ValueCell<Texture>,
     readonly normalTexture: ValueCell<Texture>,
 
-    readonly boundingSphere: ValueCell<Sphere3D>,
+    readonly boundingSphere: Sphere3D
 }
 
 export namespace TextureMesh {
     export function create(vertexCount: number, groupCount: number, vertexGroupTexture: Texture, normalTexture: Texture, boundingSphere: Sphere3D, textureMesh?: TextureMesh): TextureMesh {
-        const { width, height } = vertexGroupTexture
+        const width = vertexGroupTexture.getWidth()
+        const height = vertexGroupTexture.getHeight()
         if (textureMesh) {
-            ValueCell.update(textureMesh.vertexCount, vertexCount)
-            ValueCell.update(textureMesh.groupCount, groupCount)
+            textureMesh.vertexCount = vertexCount
+            textureMesh.groupCount = groupCount
             ValueCell.update(textureMesh.geoTextureDim, Vec2.set(textureMesh.geoTextureDim.ref.value, width, height))
             ValueCell.update(textureMesh.vertexGroupTexture, vertexGroupTexture)
             ValueCell.update(textureMesh.normalTexture, normalTexture)
-            ValueCell.update(textureMesh.boundingSphere, boundingSphere)
+            Sphere3D.copy(textureMesh.boundingSphere, boundingSphere)
             return textureMesh
         } else {
             return {
                 kind: 'texture-mesh',
-                vertexCount: ValueCell.create(vertexCount),
-                groupCount: ValueCell.create(groupCount),
+                vertexCount,
+                groupCount,
                 geoTextureDim: ValueCell.create(Vec2.create(width, height)),
                 vertexGroupTexture: ValueCell.create(vertexGroupTexture),
                 normalTexture: ValueCell.create(normalTexture),
-                boundingSphere: ValueCell.create(boundingSphere),
+                boundingSphere: Sphere3D.clone(boundingSphere),
             }
         }
     }
@@ -93,9 +94,9 @@ export namespace TextureMesh {
         const overpaint = createEmptyOverpaint()
         const transparency = createEmptyTransparency()
 
-        const counts = { drawCount: textureMesh.vertexCount.ref.value, groupCount, instanceCount }
+        const counts = { drawCount: textureMesh.vertexCount, groupCount, instanceCount }
 
-        const transformBoundingSphere = calculateTransformBoundingSphere(textureMesh.boundingSphere.ref.value, transform.aTransform.ref.value, transform.instanceCount.ref.value)
+        const transformBoundingSphere = calculateTransformBoundingSphere(textureMesh.boundingSphere, transform.aTransform.ref.value, transform.instanceCount.ref.value)
 
         return {
             uGeoTexDim: textureMesh.geoTextureDim,
@@ -103,9 +104,9 @@ export namespace TextureMesh {
             tNormal: textureMesh.normalTexture,
 
             // aGroup is used as a vertex index here and the group id is retirieved from tPositionGroup
-            aGroup: ValueCell.create(fillSerial(new Float32Array(textureMesh.vertexCount.ref.value))),
+            aGroup: ValueCell.create(fillSerial(new Float32Array(textureMesh.vertexCount))),
             boundingSphere: ValueCell.create(transformBoundingSphere),
-            invariantBoundingSphere: textureMesh.boundingSphere,
+            invariantBoundingSphere: ValueCell.create(Sphere3D.clone(textureMesh.boundingSphere)),
 
             ...color,
             ...marker,
@@ -141,7 +142,7 @@ export namespace TextureMesh {
     }
 
     function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {
-        const invariantBoundingSphere = textureMesh.boundingSphere.ref.value
+        const invariantBoundingSphere = textureMesh.boundingSphere
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value)
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)

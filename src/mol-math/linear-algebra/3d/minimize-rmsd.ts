@@ -9,6 +9,7 @@ import Vec3 from './vec3';
 import { EVD } from '../matrix/evd';
 import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import Matrix from '../matrix/matrix';
+import { Sphere3D } from '../../geometry/primitives/sphere3d';
 
 export { MinimizeRmsd };
 namespace MinimizeRmsd {
@@ -58,10 +59,10 @@ class RmsdTransformState {
         this.b = data.b;
 
         if (data.centerA) this.centerA = data.centerA;
-        else this.centerA = data.centerA = CentroidHelper.compute(data.a, Vec3.zero());
+        else this.centerA = data.centerA = CentroidHelper.fromArrays(data.a, Sphere3D()).center;
 
         if (data.centerB) this.centerB = data.centerB;
-        else this.centerB = data.centerB = CentroidHelper.compute(data.b, Vec3.zero());
+        else this.centerB = data.centerB = CentroidHelper.fromArrays(data.b, Sphere3D()).center;
 
         this.result = into;
     }

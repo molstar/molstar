@@ -105,7 +105,7 @@ function getCategories(atoms: GroAtoms) {
     }
 }
 
-async function groToMmCif(gro: GroFile) {
+function groToMmCif(gro: GroFile) {
     const categories = getCategories(gro.structures[0].atoms)
 
     return {
@@ -118,7 +118,7 @@ async function groToMmCif(gro: GroFile) {
 export function trajectoryFromGRO(gro: GroFile): Task<Model.Trajectory> {
     return Task.create('Parse GRO', async ctx => {
         await ctx.update('Converting to mmCIF');
-        const cif = await groToMmCif(gro);
+        const cif = groToMmCif(gro);
         const format = ModelFormat.mmCIF(cif);
         return _parse_mmCif(format, ctx);
     })

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -28,7 +28,7 @@ export function Polyhedron(_vertices: ArrayLike<number>, _indices: ArrayLike<num
     appplyRadius(vertices, radius);
 
     const normals = new Float32Array(vertices.length);
-    computeIndexedVertexNormals(vertices, indices, normals)
+    computeIndexedVertexNormals(vertices, indices, normals, vertices.length / 3, indices.length / 3)
 
     return {
         vertices: new Float32Array(vertices),
@@ -39,9 +39,9 @@ export function Polyhedron(_vertices: ArrayLike<number>, _indices: ArrayLike<num
     // helper functions
 
     function subdivide(detail: number) {
-        const a = Vec3.zero()
-        const b = Vec3.zero()
-        const c = Vec3.zero()
+        const a = Vec3()
+        const b = Vec3()
+        const c = Vec3()
 
         // iterate over all faces and apply a subdivison with the given detail value
         for (let i = 0; i < _indices.length; i += 3) {
@@ -66,10 +66,10 @@ export function Polyhedron(_vertices: ArrayLike<number>, _indices: ArrayLike<num
         for (let i = 0; i <= cols; ++i) {
             v[i] = []
 
-            const aj = Vec3.zero()
+            const aj = Vec3()
             Vec3.lerp(aj, a, c, i / cols)
 
-            const bj = Vec3.zero()
+            const bj = Vec3()
             Vec3.lerp(bj, b, c, i / cols)
 
             const rows = cols - i
@@ -77,7 +77,7 @@ export function Polyhedron(_vertices: ArrayLike<number>, _indices: ArrayLike<num
                 if (j === 0 && i === cols) {
                     v[i][j] = aj
                 } else {
-                    const abj = Vec3.zero()
+                    const abj = Vec3()
                     Vec3.lerp(abj, aj, bj, j / rows)
 
                     v[i][j] = abj
@@ -90,7 +90,6 @@ export function Polyhedron(_vertices: ArrayLike<number>, _indices: ArrayLike<num
             for (let j = 0; j < 2 * (cols - i) - 1; ++j) {
                 const k = Math.floor(j / 2)
                 if (j % 2 === 0) {
-                    builder.add
                     builder.add(v[i][k + 1], v[i + 1][k], v[i][k])
                 } else {
                     builder.add(v[i][k + 1], v[i + 1][k + 1], v[i + 1][k])

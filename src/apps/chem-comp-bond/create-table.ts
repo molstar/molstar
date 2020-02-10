@@ -226,8 +226,8 @@ const CCD_URL = 'http://ftp.wwpdb.org/pub/pdb/data/monomers/components.cif'
 const PVCD_URL = 'http://ftp.wwpdb.org/pub/pdb/data/monomers/aa-variants-v1.cif'
 
 const parser = new argparse.ArgumentParser({
-  addHelp: true,
-  description: 'Create a cif file with one big table of all chem_comp_bond entries from the CCD and PVCD.'
+    addHelp: true,
+    description: 'Create a cif file with one big table of all chem_comp_bond entries from the CCD and PVCD.'
 });
 parser.addArgument('out', {
     help: 'Generated file output path.'

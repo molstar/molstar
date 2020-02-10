@@ -91,7 +91,7 @@ namespace Tokenizer {
         return eatLine(state);
     }
 
-    /** Advance the state by the given number of lines and return line starts/ends as tokens. */
+    /** Advance the state by the given number of lines and return line as string. */
     export function readLine(state: Tokenizer): string {
         markLine(state);
         return getTokenString(state);
@@ -186,7 +186,7 @@ namespace Tokenizer {
      * Handles incrementing line count.
      */
     export function skipWhitespace(state: Tokenizer): number {
-        let prev = 10;
+        let prev = -1;
         while (state.position < state.length) {
             let c = state.data.charCodeAt(state.position);
             switch (c) {

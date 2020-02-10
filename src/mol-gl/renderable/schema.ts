@@ -62,7 +62,7 @@ export type KindValue = {
     'sphere': Sphere3D
 }
 
-export type Values<S extends RenderableSchema> = { [k in keyof S]: ValueCell<KindValue[S[k]['kind']]> }
+export type Values<S extends RenderableSchema> = { readonly [k in keyof S]: ValueCell<KindValue[S[k]['kind']]> }
 
 export function splitValues(schema: RenderableSchema, values: RenderableValues) {
     const attributeValues: AttributeValues = {}
@@ -128,12 +128,12 @@ export function ValueSpec<K extends ValueKind>(kind: K): ValueSpec<K> {
 //
 
 export type RenderableSchema = {
-    [k: string]: (
+    readonly [k: string]: (
         AttributeSpec<AttributeKind> | UniformSpec<UniformKind> | TextureSpec<TextureKind> |
         ValueSpec<ValueKind> | DefineSpec<DefineKind> | ElementsSpec<ElementsKind>
     )
 }
-export type RenderableValues = { [k: string]: ValueCell<any> }
+export type RenderableValues = { readonly [k: string]: ValueCell<any> }
 
 //
 
@@ -181,14 +181,14 @@ export const GlobalUniformSchema = {
 
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
-}
+} as const
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema> // { [k in keyof GlobalUniformSchema]: ValueCell<any> }
 
 export const InternalSchema = {
     uObjectId: UniformSpec('i'),
     uPickable: UniformSpec('i', true),
-}
+} as const
 export type InternalSchema = typeof InternalSchema
 export type InternalValues = { [k in keyof InternalSchema]: ValueCell<any> }
 
@@ -198,7 +198,7 @@ export const ColorSchema = {
     uColorTexDim: UniformSpec('v2'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
-}
+} as const
 export type ColorSchema = typeof ColorSchema
 export type ColorValues = Values<ColorSchema>
 
@@ -209,14 +209,14 @@ export const SizeSchema = {
     tSize: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
     uSizeFactor: UniformSpec('f'),
-}
+} as const
 export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>
 
 export const MarkerSchema = {
     uMarkerTexDim: UniformSpec('v2'),
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
-}
+} as const
 export type MarkerSchema = typeof MarkerSchema
 export type MarkerValues = Values<MarkerSchema>
 
@@ -224,7 +224,7 @@ export const OverpaintSchema = {
     uOverpaintTexDim: UniformSpec('v2'),
     tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
     dOverpaint: DefineSpec('boolean'),
-}
+} as const
 export type OverpaintSchema = typeof OverpaintSchema
 export type OverpaintValues = Values<OverpaintSchema>
 
@@ -235,7 +235,7 @@ export const TransparencySchema = {
     dTransparency: DefineSpec('boolean'),
     // dTransparencyType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']), // TODO
     dTransparencyVariant: DefineSpec('string', ['single', 'multi']),
-}
+} as const
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
 
@@ -277,6 +277,6 @@ export const BaseSchema = {
     boundingSphere: ValueSpec('sphere'),
     /** bounding sphere NOT taking aTransform into account */
     invariantBoundingSphere: ValueSpec('sphere'),
-}
+} as const
 export type BaseSchema = typeof BaseSchema
 export type BaseValues = Values<BaseSchema>

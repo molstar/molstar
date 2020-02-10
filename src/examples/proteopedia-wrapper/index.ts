@@ -68,9 +68,9 @@ class MolStarProteopediaWrapper {
         const customColoring = createProteopediaCustomTheme((options && options.customColorList) || []);
 
         this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add('proteopedia-custom', customColoring);
-        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(EvolutionaryConservation.Descriptor.name, EvolutionaryConservation.colorTheme!);
-        this.plugin.lociLabels.addProvider(EvolutionaryConservation.labelProvider);
-        this.plugin.customModelProperties.register(EvolutionaryConservation.propertyProvider);
+        this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.add(EvolutionaryConservation.propertyProvider.descriptor.name, EvolutionaryConservation.colorThemeProvider!);
+        this.plugin.lociLabels.addProvider(EvolutionaryConservation.labelProvider!);
+        this.plugin.customModelProperties.register(EvolutionaryConservation.propertyProvider, true);
     }
 
     get state() {
@@ -94,7 +94,7 @@ class MolStarProteopediaWrapper {
         const model = this.state.build().to(StateElements.Model);
 
         const s = model
-            .apply(StateTransforms.Model.CustomModelProperties, { properties: [EvolutionaryConservation.Descriptor.name] }, { ref: StateElements.ModelProps, state: { isGhost: false } })
+            .apply(StateTransforms.Model.CustomModelProperties, { properties: [EvolutionaryConservation.propertyProvider.descriptor.name] }, { ref: StateElements.ModelProps, state: { isGhost: false } })
             .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: StateElements.Assembly });
 
         s.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' }, { ref: StateElements.Sequence });
@@ -160,9 +160,9 @@ class MolStarProteopediaWrapper {
                 root.delete(StateElements.WaterVisual);
             } else {
                 root.applyOrUpdate(StateElements.WaterVisual, StateTransforms.Representation.StructureRepresentation3D,
-                        StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
-                            (style.water && style.water.kind) || 'ball-and-stick',
-                            (style.water && style.water.coloring), structure, { alpha: 0.51 }));
+                    StructureRepresentation3DHelpers.getDefaultParamsWithTheme(this.plugin,
+                        (style.water && style.water.kind) || 'ball-and-stick',
+                        (style.water && style.water.coloring), structure, { alpha: 0.51 }));
             }
         }
 
@@ -299,7 +299,7 @@ class MolStarProteopediaWrapper {
             // }
 
             const tree = state.build();
-            const colorTheme = { name: EvolutionaryConservation.Descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(EvolutionaryConservation.Descriptor.name).defaultValues };
+            const colorTheme = { name: EvolutionaryConservation.propertyProvider.descriptor.name, params: this.plugin.structureRepresentation.themeCtx.colorThemeRegistry.get(EvolutionaryConservation.propertyProvider.descriptor.name).defaultValues };
 
             if (!params || !!params.sequence) {
                 tree.to(StateElements.SequenceVisual).update(StateTransforms.Representation.StructureRepresentation3D, old => ({ ...old, colorTheme }));
@@ -385,7 +385,8 @@ class MolStarProteopediaWrapper {
             // const position = Vec3.sub(Vec3.zero(), sphere.center, asmCenter);
             // Vec3.normalize(position, position);
             // Vec3.scaleAndAdd(position, sphere.center, position, sphere.radius);
-            const snapshot = this.plugin.canvas3d!.camera.getFocus(sphere.center, Math.max(sphere.radius, 5));
+            const radius = Math.max(sphere.radius, 5)
+            const snapshot = this.plugin.canvas3d!.camera.getFocus(sphere.center, radius, radius);
             PluginCommands.Camera.SetSnapshot.dispatch(this.plugin, { snapshot, durationMs: 250 });
         }
     }
@@ -417,8 +418,7 @@ class MolStarProteopediaWrapper {
         },
         download: async (url: string) => {
             try {
-                const data = await this.plugin.runTask(this.plugin.fetch({ url }));
-                const snapshot = JSON.parse(data);
+                const snapshot = await this.plugin.runTask(this.plugin.fetch({ url, type: 'json' }));
                 await this.plugin.state.setSnapshot(snapshot);
             } catch (e) {
                 console.log(e);

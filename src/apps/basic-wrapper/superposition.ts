@@ -50,16 +50,16 @@ export function buildStaticSuperposition(ctx: PluginContext, src: SuperpositionT
 
 export const StaticSuperpositionTestData: SuperpositionTestInput = [
     { pdbId: '1aj5', auth_asym_id: 'A', matrix: Mat4.identity() },
-    { pdbId: '1df0', auth_asym_id: 'B', matrix: Mat4.ofRows(
-        [[0.406, 0.879, 0.248, -200.633],
-         [0.693, -0.473, 0.544, 73.403],
-         [0.596, -0.049, -0.802, -14.209],
-         [0, 0, 0, 1]] )},
-    { pdbId: '1dvi', auth_asym_id: 'A', matrix: Mat4.ofRows(
-        [[-0.053, -0.077, 0.996, -45.633],
-         [-0.312, 0.949, 0.057, -12.255],
-         [-0.949, -0.307, -0.074, 53.562],
-         [0, 0, 0, 1]] )}
+    { pdbId: '1df0', auth_asym_id: 'B', matrix: Mat4.ofRows([
+        [0.406, 0.879, 0.248, -200.633],
+        [0.693, -0.473, 0.544, 73.403],
+        [0.596, -0.049, -0.802, -14.209],
+        [0, 0, 0, 1]] )},
+    { pdbId: '1dvi', auth_asym_id: 'A', matrix: Mat4.ofRows([
+        [-0.053, -0.077, 0.996, -45.633],
+        [-0.312, 0.949, 0.057, -12.255],
+        [-0.949, -0.307, -0.074, 53.562],
+        [0, 0, 0, 1]] )}
 ];
 
 export async function dynamicSuperpositionTest(ctx: PluginContext, src: string[], comp_id: string) {

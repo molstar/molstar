@@ -7,7 +7,6 @@
 
 import { List } from 'immutable';
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
-import { CustomPropertyRegistry, CustomStructureProperty } from '../mol-model-props/common/custom-property-registry';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { State, StateTransform, StateTransformer } from '../mol-state';
@@ -35,7 +34,7 @@ import { StructureElementSelectionManager } from './util/structure-element-selec
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { ModifiersKeys } from '../mol-util/input/input-observer';
 import { isProductionMode, isDebugMode } from '../mol-util/debug';
-import { Model } from '../mol-model/structure';
+import { Model, Structure } from '../mol-model/structure';
 import { Interactivity } from './util/interactivity';
 import { StructureRepresentationHelper } from './util/structure-representation-helper';
 import { StructureSelectionHelper } from './util/structure-selection-helper';
@@ -45,6 +44,8 @@ import { StructureMeasurementManager } from './util/structure-measurement';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { StructureRepresentationManager } from './state/representation/structure';
 import { DataManager } from './state/manager/data';
+import { CustomProperty } from '../mol-model-props/common/custom-property';
+import { PluginConfigManager } from './config';
 
 interface Log {
     entries: List<LogEntry>
@@ -89,6 +90,8 @@ export class PluginContext {
             selectionUpdated: this.ev()
         }
     } as const
+    
+    readonly config = new PluginConfigManager(this.spec.config);
 
     readonly behaviors = {
         state: {
@@ -114,6 +117,7 @@ export class PluginContext {
 
     readonly lociLabels: LociLabelManager;
 
+
     readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
         themeCtx: { colorThemeRegistry: ColorTheme.createRegistry(), sizeThemeRegistry: SizeTheme.createRegistry() } as ThemeRegistryContext,
@@ -129,8 +133,8 @@ export class PluginContext {
         registry: new DataFormatRegistry()
     } as const
 
-    readonly customModelProperties = new CustomPropertyRegistry<Model>();
-    readonly customStructureProperties = new CustomStructureProperty.Registry();
+    readonly customModelProperties = new CustomProperty.Registry<Model>();
+    readonly customStructureProperties = new CustomProperty.Registry<Structure>();
     readonly customParamEditors = new Map<string, StateTransformParameters.Class>();
 
     readonly managers = {

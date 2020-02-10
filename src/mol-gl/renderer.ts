@@ -22,11 +22,12 @@ export interface RendererStats {
     programCount: number
     shaderCount: number
 
-    bufferCount: number
+    attributeCount: number
+    elementsCount: number
     framebufferCount: number
     renderbufferCount: number
     textureCount: number
-    vaoCount: number
+    vertexArrayCount: number
 
     drawCount: number
     instanceCount: number
@@ -320,14 +321,15 @@ namespace Renderer {
             },
             get stats(): RendererStats {
                 return {
-                    programCount: ctx.programCache.count,
-                    shaderCount: ctx.shaderCache.count,
+                    programCount: ctx.stats.resourceCounts.program,
+                    shaderCount: ctx.stats.resourceCounts.shader,
 
-                    bufferCount: stats.bufferCount,
-                    framebufferCount: stats.framebufferCount,
-                    renderbufferCount: stats.renderbufferCount,
-                    textureCount: stats.textureCount,
-                    vaoCount: stats.vaoCount,
+                    attributeCount: ctx.stats.resourceCounts.attribute,
+                    elementsCount: ctx.stats.resourceCounts.elements,
+                    framebufferCount: ctx.stats.resourceCounts.framebuffer,
+                    renderbufferCount: ctx.stats.resourceCounts.renderbuffer,
+                    textureCount: ctx.stats.resourceCounts.texture,
+                    vertexArrayCount: ctx.stats.resourceCounts.vertexArray,
 
                     drawCount: stats.drawCount,
                     instanceCount: stats.instanceCount,

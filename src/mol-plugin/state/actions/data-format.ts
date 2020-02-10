@@ -12,7 +12,7 @@ import { PluginStateObject } from '../objects';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Ccp4Provider, Dsn6Provider, DscifProvider } from './volume';
 import { StateTransforms } from '../transforms';
-import { MmcifProvider, PdbProvider, GroProvider, Provider3dg } from './structure';
+import { MmcifProvider, PdbProvider, GroProvider, Provider3dg, DcdProvider, PsfProvider } from './structure';
 import msgpackDecode from '../../../mol-io/common/msgpack/decode'
 import { PlyProvider } from './shape';
 
@@ -57,12 +57,14 @@ export class DataFormatRegistry<D extends PluginStateObject.Data.Binary | Plugin
     constructor() {
         this.add('3dg', Provider3dg)
         this.add('ccp4', Ccp4Provider)
+        this.add('dcd', DcdProvider)
         this.add('dscif', DscifProvider)
         this.add('dsn6', Dsn6Provider)
         this.add('gro', GroProvider)
         this.add('mmcif', MmcifProvider)
         this.add('pdb', PdbProvider)
         this.add('ply', PlyProvider)
+        this.add('psf', PsfProvider)
     };
 
     private _clear() {
@@ -123,7 +125,7 @@ export const OpenFile = StateAction.build({
     params: (a, ctx: PluginContext) => {
         const { extensions, options } = ctx.dataFormat.registry
         return {
-            file: PD.File({ accept: Array.from(extensions).map(e => `.${e}`).join(',')}),
+            file: PD.File({ accept: Array.from(extensions.values()).map(e => `.${e}`).join(',') + ',.gz,.zip' }),
             format: PD.Select('auto', options),
             visuals: PD.Boolean(true, { description: 'Add default visuals' }),
         }
@@ -155,7 +157,7 @@ type cifVariants = 'dscif' | -1
 export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifVariants {
     if (info.ext === 'bcif') {
         try {
-            // TODO find a way to run msgpackDecode only once
+            // TODO: find a way to run msgpackDecode only once
             //      now it is run twice, here and during file parsing
             if (msgpackDecode(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif'
         } catch { }

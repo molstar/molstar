@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,6 +9,8 @@ import { Unit, StructureElement } from '../../structure'
 import Structure from '../structure';
 import { BondType } from '../../model/types';
 import { SortedArray, Iterator } from '../../../../mol-data/int';
+import { CentroidHelper } from '../../../../mol-math/geometry/centroid-helper';
+import { Sphere3D } from '../../../../mol-math/geometry';
 
 export * from './bonds/data'
 export * from './bonds/intra-compute'
@@ -218,6 +220,14 @@ namespace Bond {
         constructor() {
             this.hasNext = false
         }
+    }
+
+    export function getBoundingSphere(loci: Loci, boundingSphere: Sphere3D) {
+        return CentroidHelper.fromPairProvider(loci.bonds.length, (i, pA, pB) => {
+            const { aUnit, aIndex, bUnit, bIndex } = loci.bonds[i]
+            aUnit.conformation.position(aUnit.elements[aIndex], pA)
+            bUnit.conformation.position(bUnit.elements[bIndex], pB)
+        }, boundingSphere)
     }
 }
 

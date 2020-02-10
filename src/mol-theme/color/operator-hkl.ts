@@ -63,7 +63,7 @@ function getOperatorHklSerialMap(structure: Structure) {
         const k = hklKey(structure.units[i].conformation.operator.hkl)
         set.add(k)
     }
-    const arr = Array.from(set).sort()
+    const arr = Array.from(set.values()).sort()
     arr.forEach(k => map.set(k, map.size))
     const min = hklKeySplit(arr[0])
     const max = hklKeySplit(arr[arr.length - 1])

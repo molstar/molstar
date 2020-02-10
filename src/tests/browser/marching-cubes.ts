@@ -102,7 +102,7 @@ async function init() {
     console.timeEnd('gpu mc vert')
     console.timeEnd('gpu mc')
 
-    console.log({ ...webgl.stats, programCount: webgl.programCache.count, shaderCount: webgl.shaderCache.count })
+    console.log({ ...webgl.stats, programCount: webgl.stats.resourceCounts.program, shaderCount: webgl.stats.resourceCounts.shader })
 
     const mcBoundingSphere = Sphere3D.fromBox3D(Sphere3D(), densityTextureData.bbox)
     const mcIsosurface = TextureMesh.create(gv.vertexCount, 1, gv.vertexGroupTexture, gv.normalTexture, mcBoundingSphere)
@@ -133,7 +133,7 @@ async function init() {
     const surface = await computeMarchingCubesMesh(params).run()
     console.timeEnd('cpu mc')
     console.log('surface', surface)
-    Mesh.transformImmediate(surface, densityData.transform)
+    Mesh.transform(surface, densityData.transform)
     const meshProps = { doubleSided: true, flatShaded: false, alpha: 1.0 }
     const meshValues = Mesh.Utils.createValuesSimple(surface, meshProps, Color(0x995511), 1)
     const meshState = Mesh.Utils.createRenderableState(meshProps)

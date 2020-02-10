@@ -222,7 +222,7 @@ export namespace CifField {
     }
 
     export function ofColumn(column: Column<any>): CifField {
-        const { rowCount, valueKind, areValuesEqual } = column;
+        const { rowCount, valueKind, areValuesEqual, isDefined } = column;
 
         let str: CifField['str']
         let int: CifField['int']
@@ -253,7 +253,7 @@ export namespace CifField {
         return {
             __array: void 0,
             binaryEncoding: void 0,
-            isDefined: true,
+            isDefined,
             rowCount,
             str,
             int,
@@ -300,7 +300,7 @@ export function getTensor(category: CifCategory, field: string, space: Tensor.Sp
 }
 
 export function getCifFieldType(field: CifField): Column.Schema.Int | Column.Schema.Float | Column.Schema.Str {
-    let floatCount = 0, hasString = false, undefinedCount = 0;
+    let floatCount = 0, hasStringOrScientific = false, undefinedCount = 0;
     for (let i = 0, _i = field.rowCount; i < _i; i++) {
         const k = field.valueKind(i);
         if (k !== Column.ValueKind.Present) {
@@ -310,10 +310,11 @@ export function getCifFieldType(field: CifField): Column.Schema.Int | Column.Sch
         const type = getNumberType(field.str(i));
         if (type === NumberType.Int) continue;
         else if (type === NumberType.Float) floatCount++;
-        else { hasString = true; break; }
+        else { hasStringOrScientific = true; break; }
     }
 
-    if (hasString || undefinedCount === field.rowCount) return Column.Schema.str;
+    // numbers in scientific notation and plain text are not distinguishable
+    if (hasStringOrScientific || undefinedCount === field.rowCount) return Column.Schema.str;
     if (floatCount > 0) return Column.Schema.float;
     return Column.Schema.int;
 }

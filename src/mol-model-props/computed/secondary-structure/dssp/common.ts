@@ -17,7 +17,7 @@ export interface DSSPContext {
         oldOrdering: boolean
     },
     getResidueFlag: (f: DSSPType) => SecondaryStructureType,
-    getFlagName: (f: DSSPType) => String,
+    getFlagName: (f: DSSPType) => string,
 
     unit: Unit.Atomic
     proteinInfo: ProteinInfo
@@ -53,7 +53,7 @@ namespace DSSPType {
     }
 }
 
-export type DsspHbonds = IntAdjacencyGraph<{ readonly energies: ArrayLike<number> }>
+export type DsspHbonds = IntAdjacencyGraph<number, { readonly energies: ArrayLike<number> }>
 
 export interface Ladder {
     previousLadder: number,

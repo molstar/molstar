@@ -19,6 +19,7 @@ import { addOrientedBox } from '../../../mol-geo/geometry/mesh/builder/box';
 import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { Axes3D } from '../../../mol-math/geometry';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { MarkerActions } from '../../../mol-util/marker-action';
 
 export interface OrientationData {
     locis: Loci[]
@@ -153,5 +154,7 @@ function getEllipsoidShape(ctx: RuntimeContext, data: OrientationData, props: Or
 
 export type OrientationRepresentation = Representation<OrientationData, OrientationParams>
 export function OrientationRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<OrientationData, OrientationParams>): OrientationRepresentation {
-    return Representation.createMulti('Orientation', ctx, getParams, Representation.StateBuilder, OrientationVisuals as unknown as Representation.Def<OrientationData, OrientationParams>)
+    const repr = Representation.createMulti('Orientation', ctx, getParams, Representation.StateBuilder, OrientationVisuals as unknown as Representation.Def<OrientationData, OrientationParams>)
+    repr.setState({ markerActions: MarkerActions.Highlighting })
+    return repr
 }

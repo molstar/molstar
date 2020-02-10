@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,6 +10,7 @@ import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
 import { ValueOf } from '../../mol-util/type-helpers';
 import { GLRenderingContext } from './compat';
+import { WebGLExtensions } from './extensions';
 
 const getNextBufferId = idFactory()
 
@@ -29,8 +30,7 @@ export type DataTypeArrayType = {
 export type ArrayType = ValueOf<DataTypeArrayType>
 export type ArrayKind = keyof DataTypeArrayType
 
-export function getUsageHint(ctx: WebGLContext, usageHint: UsageHint) {
-    const { gl } = ctx
+export function getUsageHint(gl: GLRenderingContext, usageHint: UsageHint) {
     switch (usageHint) {
         case 'static': return gl.STATIC_DRAW
         case 'dynamic': return gl.DYNAMIC_DRAW
@@ -38,8 +38,7 @@ export function getUsageHint(ctx: WebGLContext, usageHint: UsageHint) {
     }
 }
 
-export function getDataType(ctx: WebGLContext, dataType: DataType) {
-    const { gl } = ctx
+export function getDataType(gl: GLRenderingContext, dataType: DataType) {
     switch (dataType) {
         case 'uint8': return gl.UNSIGNED_BYTE
         case 'int8': return gl.BYTE
@@ -51,8 +50,7 @@ export function getDataType(ctx: WebGLContext, dataType: DataType) {
     }
 }
 
-function dataTypeFromArray(ctx: WebGLContext, array: ArrayType) {
-    const { gl } = ctx
+function dataTypeFromArray(gl: GLRenderingContext, array: ArrayType) {
     if (array instanceof Uint8Array) {
         return gl.UNSIGNED_BYTE
     } else if (array instanceof Int8Array) {
@@ -72,8 +70,7 @@ function dataTypeFromArray(ctx: WebGLContext, array: ArrayType) {
     }
 }
 
-export function getBufferType(ctx: WebGLContext, bufferType: BufferType) {
-    const { gl } = ctx
+export function getBufferType(gl: GLRenderingContext, bufferType: BufferType) {
     switch (bufferType) {
         case 'attribute': return gl.ARRAY_BUFFER
         case 'elements': return gl.ELEMENT_ARRAY_BUFFER
@@ -84,7 +81,6 @@ export function getBufferType(ctx: WebGLContext, bufferType: BufferType) {
 export interface Buffer {
     readonly id: number
 
-    readonly _buffer: WebGLBuffer
     readonly _usageHint: number
     readonly _bufferType: number
     readonly _dataType: number
@@ -92,21 +88,28 @@ export interface Buffer {
 
     readonly length: number
 
+    getBuffer: () => WebGLBuffer
     updateData: (array: ArrayType) => void
     updateSubData: (array: ArrayType, offset: number, count: number) => void
+
+    reset: () => void
     destroy: () => void
 }
 
-export function createBuffer(ctx: WebGLContext, array: ArrayType, usageHint: UsageHint, bufferType: BufferType): Buffer {
-    const { gl, stats } = ctx
-    const _buffer = gl.createBuffer()
-    if (_buffer === null) {
+function getBuffer(gl: GLRenderingContext) {
+    const buffer = gl.createBuffer()
+    if (buffer === null) {
         throw new Error('Could not create WebGL buffer')
     }
+    return buffer
+}
 
-    const _usageHint = getUsageHint(ctx, usageHint)
-    const _bufferType = getBufferType(ctx, bufferType)
-    const _dataType = dataTypeFromArray(ctx, array)
+function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: UsageHint, bufferType: BufferType): Buffer {
+    let _buffer = getBuffer(gl)
+
+    const _usageHint = getUsageHint(gl, usageHint)
+    const _bufferType = getBufferType(gl, bufferType)
+    const _dataType = dataTypeFromArray(gl, array)
     const _bpe = array.BYTES_PER_ELEMENT
     const _length = array.length
 
@@ -117,18 +120,17 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, usageHint: Usa
     updateData(array)
 
     let destroyed = false
-    stats.bufferCount += 1
 
     return {
         id: getNextBufferId(),
 
-        _buffer,
         _usageHint,
         _bufferType,
         _dataType,
         _bpe,
 
         length: _length,
+        getBuffer: () => _buffer,
 
         updateData,
         updateSubData: (array: ArrayType, offset: number, count: number) => {
@@ -136,11 +138,14 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, usageHint: Usa
             gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count))
         },
 
+        reset: () => {
+            _buffer = getBuffer(gl)
+            updateData(array)
+        },
         destroy: () => {
             if (destroyed) return
             gl.deleteBuffer(_buffer)
             destroyed = true
-            stats.bufferCount -= 1
         }
     }
 }
@@ -183,17 +188,16 @@ export interface AttributeBuffer extends Buffer {
     bind: (location: number) => void
 }
 
-export function createAttributeBuffer<T extends ArrayType, S extends AttributeItemSize>(ctx: WebGLContext, array: T, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
-    const { gl } = ctx
-    const { instancedArrays } = ctx.extensions
+export function createAttributeBuffer<T extends ArrayType, S extends AttributeItemSize>(gl: GLRenderingContext, extensions: WebGLExtensions, array: T, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
+    const { instancedArrays } = extensions
 
-    const buffer = createBuffer(ctx, array, usageHint, 'attribute')
-    const { _buffer, _bufferType, _dataType, _bpe } = buffer
+    const buffer = createBuffer(gl, array, usageHint, 'attribute')
+    const { _bufferType, _dataType, _bpe } = buffer
 
     return {
         ...buffer,
         bind: (location: number) => {
-            gl.bindBuffer(_bufferType, _buffer)
+            gl.bindBuffer(_bufferType, buffer.getBuffer())
             if (itemSize === 16) {
                 for (let i = 0; i < 4; ++i) {
                     gl.enableVertexAttribArray(location + i)
@@ -214,7 +218,7 @@ export function createAttributeBuffers(ctx: WebGLContext, schema: RenderableSche
     Object.keys(schema).forEach(k => {
         const spec = schema[k]
         if (spec.type === 'attribute') {
-            buffers[buffers.length] = [k, createAttributeBuffer(ctx, values[k].ref.value, spec.itemSize, spec.divisor)]
+            buffers[buffers.length] = [k, ctx.resources.attribute(values[k].ref.value, spec.itemSize, spec.divisor)]
         }
     })
     return buffers
@@ -229,15 +233,13 @@ export interface ElementsBuffer extends Buffer {
     bind: () => void
 }
 
-export function createElementsBuffer(ctx: WebGLContext, array: ElementsType, usageHint: UsageHint = 'static'): ElementsBuffer {
-    const { gl } = ctx
-    const buffer = createBuffer(ctx, array, usageHint, 'elements')
-    const { _buffer } = buffer
+export function createElementsBuffer(gl: GLRenderingContext, array: ElementsType, usageHint: UsageHint = 'static'): ElementsBuffer {
+    const buffer = createBuffer(gl, array, usageHint, 'elements')
 
     return {
         ...buffer,
         bind: () => {
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _buffer);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer.getBuffer());
         }
     }
 }

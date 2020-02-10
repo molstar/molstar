@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -111,6 +111,7 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
         l.element = unit.elements[0]
 
         const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
+        const groupOffset = cumulativeUnitElementCount[i]
 
         let j = 0, jl = elements.length;
         while (j < jl) {
@@ -136,7 +137,7 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
             const compId = label_comp_id(l)
 
             const text = `${compId} ${authSeqId}`
-            builder.add(text, center[0], center[1], center[2], radius, residueScale, cumulativeUnitElementCount[i])
+            builder.add(text, center[0], center[1], center[2], radius, residueScale, groupOffset + start)
         }
     }
 
@@ -162,13 +163,15 @@ function createElementText(ctx: VisualContext, structure: Structure, theme: Them
         const { elements } = unit
         l.unit = unit
 
+        const groupOffset = cumulativeUnitElementCount[i]
+
         for (let j = 0, _j = elements.length; j < _j; j++) {
             l.element = elements[j];
             pos(l.element, tmpVec);
             const atomId = label_atom_id(l)
             const altId = label_alt_id(l)
             const text = altId ? `${atomId}%${altId}` : atomId
-            builder.add(text, tmpVec[0], tmpVec[1], tmpVec[2], sizeTheme.size(l), elementScale, cumulativeUnitElementCount[i])
+            builder.add(text, tmpVec[0], tmpVec[1], tmpVec[2], sizeTheme.size(l), elementScale, groupOffset + j)
         }
     }
 

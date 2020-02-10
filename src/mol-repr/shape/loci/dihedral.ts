@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,6 +21,8 @@ import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { arcLength, halfPI, radToDeg } from '../../../mol-math/misc';
 import { Circle } from '../../../mol-geo/primitive/circle';
 import { transformPrimitive } from '../../../mol-geo/primitive/primitive';
+import { MarkerActions, MarkerAction } from '../../../mol-util/marker-action';
+import { bundleLabel } from '../../../mol-theme/label';
 
 export interface DihedralData {
     quads: Loci.Bundle<4>[]
@@ -74,8 +76,8 @@ const DihedralVisuals = {
     'vectors': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, VectorsParams>) => ShapeRepresentation(getVectorsShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'extenders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ExtendersParams>) => ShapeRepresentation(getExtendersShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
     'arc': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, ArcParams>) => ShapeRepresentation(getArcShape, Lines.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
-    'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }) }),
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
+    'sector': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, SectorParams>) => ShapeRepresentation(getSectorShape, Mesh.Utils, { modifyProps: p => ({ ...p, alpha: p.sectorOpacity }), modifyState: s => ({ ...s, markerActions: MarkerActions.Highlighting }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, markerActions: MarkerAction.None }) }),
 }
 
 export const DihedralParams = {
@@ -206,10 +208,7 @@ function buildVectorsLines(data: DihedralData, props: DihedralProps, lines?: Lin
 function getVectorsShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
     const lines = buildVectorsLines(data, props, shape && shape.geometry);
     const name = getDihedralName(data)
-    const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId])
-    }
-    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, () => '')
 }
 
 //
@@ -227,10 +226,7 @@ function buildExtendersLines(data: DihedralData, props: DihedralProps, lines?: L
 function getExtendersShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
     const lines = buildExtendersLines(data, props, shape && shape.geometry);
     const name = getDihedralName(data)
-    const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId])
-    }
-    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, () => '')
 }
 
 //
@@ -260,10 +256,7 @@ function buildArcLines(data: DihedralData, props: DihedralProps, lines?: Lines):
 function getArcShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Lines>) {
     const lines = buildArcLines(data, props, shape && shape.geometry);
     const name = getDihedralName(data)
-    const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId])
-    }
-    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, getLabel)
+    return Shape.create(name, data, lines, () => props.color, () => props.linesSize, () => '')
 }
 
 //
@@ -284,7 +277,11 @@ function getSectorShape(ctx: RuntimeContext, data: DihedralData, props: Dihedral
     const mesh = buildSectorMesh(data, props, shape && shape.geometry);
     const name = getDihedralName(data)
     const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId])
+        const quad = data.quads[groupId]
+        return [
+            dihedralLabel(quad),
+            bundleLabel(quad)
+        ].join('</br>')
     }
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel)
 }
@@ -311,7 +308,11 @@ function getTextShape(ctx: RuntimeContext, data: DihedralData, props: DihedralPr
     const text = buildText(data, props, shape && shape.geometry);
     const name = getDihedralName(data)
     const getLabel = function (groupId: number ) {
-        return dihedralLabel(data.quads[groupId])
+        const quad = data.quads[groupId]
+        return [
+            dihedralLabel(quad),
+            bundleLabel(quad)
+        ].join('</br>')
     }
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel)
 }

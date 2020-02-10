@@ -109,7 +109,6 @@ end_header
 255 0 255
 `
 
-
 describe('ply reader', () => {
     it('basic', async () => {
         const parsed = await Ply(plyString).run();

@@ -31,9 +31,7 @@ export interface Cartesian extends Coord<Space.Cartesian> { }
 export interface Fractional extends Coord<Space.Fractional> { }
 export interface Grid<K> extends Coord<Space.Grid> { domain: GridDomain<K> }
 
-///////////////////////////////////////////
 // CONSTRUCTORS
-///////////////////////////////////////////
 
 export function domain<K>(kind: K, info: GridInfo): GridDomain<K> {
     const sc = info.sampleCount;
@@ -71,9 +69,7 @@ export function clone<C extends (Coord<Space> | Grid<any>)>(a: C): C {
     return withCoord(a, a[0], a[1], a[2]);
 }
 
-///////////////////////////////////////////
 // CONVERSIONS
-///////////////////////////////////////////
 
 export function cartesianToFractional(a: Cartesian, spacegroup: SpacegroupCell): Fractional {
     const coord = Helpers.transform(a, spacegroup.toFractional);
@@ -98,9 +94,7 @@ export function gridToFractional<K>(a: Grid<K>): Fractional {
     return coord;
 }
 
-///////////////////////////////////////////
 // MISC
-///////////////////////////////////////////
 
 export function clampGridToSamples<K>(a: Grid<K>): Grid<K> {
     const { sampleCount } = a.domain;

@@ -8,17 +8,17 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { Representation } from '../representation';
 import { Shape, ShapeGroup } from '../../mol-model/shape';
 import { Subject } from 'rxjs';
-import { getNextMaterialId, RenderObjectKindType, createRenderObject, RenderObjectValuesType } from '../../mol-gl/render-object';
+import { getNextMaterialId, createRenderObject, RenderObjectValues, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Theme } from '../../mol-theme/theme';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
 import { ShapeGroupColorTheme } from '../../mol-theme/color/shape-group';
 import { ShapeGroupSizeTheme } from '../../mol-theme/size/shape-group';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { MarkerAction } from '../../mol-util/marker-action';
+import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { ValueCell } from '../../mol-util';
 import { createColors } from '../../mol-geo/geometry/color-data';
-import { createSizes } from '../../mol-geo/geometry/size-data';
+import { createSizes, SizeData } from '../../mol-geo/geometry/size-data';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { PickingId } from '../../mol-geo/geometry/picking';
@@ -44,8 +44,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     const updated = new Subject<number>()
     const _state = Representation.createState()
     const materialId = getNextMaterialId()
-    const renderObjects: RenderObjectKindType[G['kind']][] = []
-    let _renderObject: RenderObjectKindType[G['kind']] | undefined
+    const renderObjects: GraphicsRenderObject<G['kind']>[] = []
+    let _renderObject: GraphicsRenderObject<G['kind']> | undefined
     let _shape: Shape<G>
     let _theme = Theme.createEmpty()
     let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P) // TODO avoid casting
@@ -136,7 +136,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 if (updateState.updateTransform || updateState.createGeometry) {
                     // console.log('updateBoundingSphere')
-                    geometryUtils.updateBoundingSphere(_renderObject.values as RenderObjectValuesType[G['kind']], _shape.geometry)
+                    geometryUtils.updateBoundingSphere(_renderObject.values as RenderObjectValues<G['kind']>, _shape.geometry)
                 }
 
                 if (updateState.updateColor) {
@@ -148,11 +148,11 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     // not all geometries have size data, so check here
                     if ('uSize' in _renderObject.values) {
                         // console.log('update size')
-                        createSizes(locationIt, _theme.size, _renderObject.values)
+                        createSizes(locationIt, _theme.size, _renderObject.values as SizeData)
                     }
                 }
 
-                geometryUtils.updateValues(_renderObject.values as RenderObjectValuesType[G['kind']], newProps)
+                geometryUtils.updateValues(_renderObject.values as RenderObjectValues<G['kind']>, newProps)
                 geometryUtils.updateRenderableState(_renderObject.state, newProps)
             }
 
@@ -184,11 +184,17 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             if (pickingId === undefined) return Shape.Loci(_shape)
             const { objectId, groupId, instanceId } = pickingId
             if (_renderObject && _renderObject.id === objectId) {
-                return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId) }], instanceId)
+                return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }])
             }
             return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
+            if (!MarkerActions.is(_state.markerActions, action)) return false
+            if (ShapeGroup.isLoci(loci) || Shape.isLoci(loci)) {
+                if (loci.shape !== _shape) return false
+            } else if (!isEveryLoci(loci)) {
+                return false
+            }
             return Visual.mark(_renderObject, loci, action, lociApply)
         },
         setState(state: Partial<Representation.State>) {
@@ -233,15 +239,15 @@ function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) =>
     if (loci.shape !== shape) return false
     let changed = false
     const { groupCount } = shape
-    const { instance, groups } = loci
-    for (const g of groups) {
-        if (Interval.is(g.ids)) {
-            const start = instance * groupCount + Interval.start(g.ids)
-            const end = instance * groupCount + Interval.end(g.ids)
+    const { groups } = loci
+    for (const { ids, instance } of groups) {
+        if (Interval.is(ids)) {
+            const start = instance * groupCount + Interval.start(ids)
+            const end = instance * groupCount + Interval.end(ids)
             if (apply(Interval.ofBounds(start, end))) changed = true
         } else {
-            for (let i = 0, _i = g.ids.length; i < _i; i++) {
-                const idx = instance * groupCount + g.ids[i];
+            for (let i = 0, _i = ids.length; i < _i; i++) {
+                const idx = instance * groupCount + ids[i];
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }
         }

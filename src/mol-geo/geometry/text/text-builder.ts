@@ -1,11 +1,10 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { ValueCell } from '../../../mol-util/value-cell'
 import { ChunkedArray } from '../../../mol-data/util';
 import { Text } from './text';
 import { getFontAtlas } from './font-atlas';
@@ -290,17 +289,7 @@ export namespace TextBuilder {
                 const ib = ChunkedArray.compact(indices, true) as Uint32Array
                 const gb = ChunkedArray.compact(groups, true) as Float32Array
                 const tb = ChunkedArray.compact(tcoords, true) as Float32Array
-                return {
-                    kind: 'text',
-                    charCount: indices.elementCount / 2,
-                    fontTexture: text ? ValueCell.update(text.fontTexture, ft) : ValueCell.create(ft),
-                    centerBuffer: text ? ValueCell.update(text.centerBuffer, cb) : ValueCell.create(cb),
-                    mappingBuffer: text ? ValueCell.update(text.mappingBuffer, mb) : ValueCell.create(mb),
-                    depthBuffer: text ? ValueCell.update(text.depthBuffer, db) : ValueCell.create(db),
-                    indexBuffer: text ? ValueCell.update(text.indexBuffer, ib) : ValueCell.create(ib),
-                    groupBuffer: text ? ValueCell.update(text.groupBuffer, gb) : ValueCell.create(gb),
-                    tcoordBuffer: text ? ValueCell.update(text.tcoordBuffer, tb) : ValueCell.create(tb),
-                }
+                return Text.create(ft, cb,mb, db, ib, gb, tb, indices.elementCount / 2, text)
             }
         }
     }

@@ -1,0 +1,65 @@
+{
+    "env": {
+        "browser": true,
+        "node": true
+    },
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "project": "tsconfig.json",
+        "sourceType": "module"
+    },
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "rules": {
+        "@typescript-eslint/ban-types": "warn",
+        "@typescript-eslint/class-name-casing": "off",
+        "@typescript-eslint/indent": [
+            "warn",
+            4
+        ],
+        "@typescript-eslint/member-delimiter-style": [
+            "off",
+            {
+                "multiline": {
+                    "delimiter": "none",
+                    "requireLast": true
+                },
+                "singleline": {
+                    "delimiter": "semi",
+                    "requireLast": false
+                }
+            }
+        ],
+        "@typescript-eslint/prefer-namespace-keyword": "warn",
+        "@typescript-eslint/quotes": [
+            "warn",
+            "single",
+            { 
+                "avoidEscape": true,
+                "allowTemplateLiterals": true
+            }
+        ],
+        "@typescript-eslint/semi": [
+            "off",
+            null
+        ],
+        "@typescript-eslint/type-annotation-spacing": "warn",
+        "arrow-parens": [
+            "off",
+            "as-needed"
+        ],
+        "comma-dangle": "off",
+        "eqeqeq": [
+            "warn",
+            "smart"
+        ],
+        "import/order": "off",
+        "no-eval": "warn",
+        "no-new-wrappers": "warn",
+        "no-trailing-spaces": "warn",
+        "no-unsafe-finally": "warn",
+        "no-var": "warn",
+        "spaced-comment": "warn"
+    }
+}

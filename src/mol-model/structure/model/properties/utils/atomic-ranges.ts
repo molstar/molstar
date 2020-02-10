@@ -70,7 +70,7 @@ export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, 
         const riEnd = hierarchy.residueAtomSegments.index[chainSegment.end - 1]
         const seqIdStart = label_seq_id.value(riStart)
         const seqIdEnd = label_seq_id.value(riEnd)
-        if (seqIdStart === 1 && seqIdEnd === maxSeqId && areBackboneConnected(riStart, riEnd, conformation, index, derived)) {
+        if (seqIdStart === 1 && seqIdEnd === maxSeqId && conformation.xyzDefined && areBackboneConnected(riStart, riEnd, conformation, index, derived)) {
             cyclicPolymerMap.set(riStart, riEnd)
             cyclicPolymerMap.set(riEnd, riStart)
         }
@@ -95,7 +95,7 @@ export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, 
                     } else {
                         const riStart = hierarchy.residueAtomSegments.index[residueSegment.start]
                         const riEnd = hierarchy.residueAtomSegments.index[prevEnd - 1]
-                        if (!areBackboneConnected(riStart, riEnd, conformation, hierarchy.index, derived)) {
+                        if (conformation.xyzDefined && !areBackboneConnected(riStart, riEnd, conformation, hierarchy.index, derived)) {
                             polymerRanges.push(startIndex, prevEnd - 1)
                             startIndex = residueSegment.start
                         }

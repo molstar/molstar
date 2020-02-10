@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -18,10 +18,12 @@ import { InitVolumeStreaming, BoxifyVolumeStreaming, CreateVolumeStreamingBehavi
 import { StructureRepresentationInteraction } from './behavior/dynamic/selection/structure-representation-interaction';
 import { TransformStructureConformation } from './state/actions/structure';
 import { VolumeStreamingCustomControls } from '../mol-plugin-ui/custom/volume';
+import { PluginConfig } from './config';
 
 export const DefaultPluginSpec: PluginSpec = {
     actions: [
         PluginSpec.Action(StateActions.Structure.DownloadStructure),
+        PluginSpec.Action(StateActions.Structure.AddTrajectory),
         PluginSpec.Action(StateActions.Volume.DownloadDensity),
         PluginSpec.Action(StateActions.DataFormat.OpenFile),
         PluginSpec.Action(StateActions.Structure.Create3DRepresentationPreset),
@@ -73,7 +75,8 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.ValenceModel),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true, showTooltip: true }),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry, { autoAttach: true }),
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry),
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBValidationReport),
         PluginSpec.Behavior(StructureRepresentationInteraction)
     ],
     customParamEditors: [
@@ -84,7 +87,10 @@ export const DefaultPluginSpec: PluginSpec = {
         AnimateAssemblyUnwind,
         AnimateUnitsExplode,
         AnimateStateInterpolation
-    ]
+    ],
+    config: new Map([
+        [PluginConfig.State.DefaultServer, 'https://webchem.ncbr.muni.cz/molstar-state']
+    ])
 }
 
 export function createPlugin(target: HTMLElement, spec?: PluginSpec): PluginContext {

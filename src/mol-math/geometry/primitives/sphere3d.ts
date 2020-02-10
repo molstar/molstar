@@ -107,13 +107,15 @@ namespace Sphere3D {
     }
 
     /** Expand sphere radius by another sphere */
-    export function expandBySphere(out: Sphere3D, sphere: Sphere3D) {
-        out.radius = Math.max(out.radius, Vec3.distance(out.center, sphere.center) + sphere.radius)
+    export function expandBySphere(out: Sphere3D, sphere: Sphere3D, by: Sphere3D) {
+        Vec3.copy(out.center, sphere.center)
+        out.radius = Math.max(sphere.radius, Vec3.distance(sphere.center, by.center) + by.radius)
         return out
     }
 
     /** Expand sphere radius by delta */
     export function expand(out: Sphere3D, sphere: Sphere3D, delta: number): Sphere3D {
+        Vec3.copy(out.center, sphere.center)
         out.radius = sphere.radius + delta
         return out
     }

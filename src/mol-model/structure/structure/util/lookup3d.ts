@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import Structure from '../structure'
@@ -13,12 +14,12 @@ import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
 import StructureElement from '../element';
 import Unit from '../unit';
 
-export interface StructureResult extends Result<number> {
+export interface StructureResult extends Result<StructureElement.UnitIndex> {
     units: Unit[]
 }
 
 export namespace StructureResult {
-    export function add(result: StructureResult, unit: Unit, index: number, distSq: number) {
+    export function add(result: StructureResult, unit: Unit, index: StructureElement.UnitIndex, distSq: number) {
         result.indices[result.count] = index;
         result.units[result.count] = unit;
         result.squaredDistances[result.count] = distSq;
@@ -27,6 +28,16 @@ export namespace StructureResult {
 
     export function create(): StructureResult {
         return { count: 0, indices: [], units: [], squaredDistances: [] };
+    }
+
+    export function copy(out: StructureResult, result: StructureResult) {
+        for (let i = 0; i < result.count; ++i) {
+            out.indices[i] = result.indices[i];
+            out.units[i] = result.units[i];
+            out.squaredDistances[i] = result.squaredDistances[i];
+        }
+        out.count = result.count
+        return out
     }
 }
 
@@ -38,7 +49,7 @@ export class StructureLookup3D {
         return this.unitLookup.find(x, y, z, radius);
     }
 
-    private result: StructureResult = StructureResult.create();
+    private result = StructureResult.create();
     find(x: number, y: number, z: number, radius: number): StructureResult {
         Result.reset(this.result);
         const { units } = this.structure;

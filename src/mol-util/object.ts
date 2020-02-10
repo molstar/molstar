@@ -66,11 +66,11 @@ export function deepClone<T>(source: T): T {
     if (null === source || 'object' !== typeof source) return source;
 
     if (source instanceof Array) {
-      const copy: any[] = [];
-      for (let i = 0, len = source.length; i < len; i++) {
-          copy[i] = deepClone(source[i]);
-      }
-      return copy as any as T;
+        const copy: any[] = [];
+        for (let i = 0, len = source.length; i < len; i++) {
+            copy[i] = deepClone(source[i]);
+        }
+        return copy as any as T;
     }
 
     if (source instanceof Object) {

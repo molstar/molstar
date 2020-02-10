@@ -7,7 +7,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { Model } from '../../../../mol-model/structure';
-import { StructureQualityReport } from '../../../../mol-model-props/pdbe/structure-quality-report';
+import { StructureQualityReportProvider, StructureQualityReport } from '../../../../mol-model-props/pdbe/structure-quality-report';
 import { fetchRetry } from '../../utils/fetch-retry';
 import { UUID } from '../../../../mol-util';
 import { PDBePreferredAssembly } from '../../../../mol-model-props/pdbe/preferred-assembly';
@@ -16,12 +16,12 @@ import { AttachModelProperty } from '../../property-provider';
 import { ConsoleLogger } from '../../../../mol-util/console-logger';
 import { getParam } from '../../../common/util';
 
-export const PDBe_structureQualityReport: AttachModelProperty = ({ model, params, cache }) => {
+export const PDBe_structureQualityReport: AttachModelProperty = async ({ model, params, cache }) => {
     const PDBe_apiSourceJson = useFileSource(params)
         ? residuewise_outlier_summary.getDataFromAggregateFile(getFilePrefix(params, 'residuewise_outlier_summary'))
-        : apiQueryProvider(getApiUrl(params, 'residuewise_outlier_summary', 'https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry'), cache);
-
-    return StructureQualityReport.attachFromCifOrApi(model, { PDBe_apiSourceJson });
+        : apiQueryProvider(getApiUrl(params, 'residuewise_outlier_summary', StructureQualityReport.DefaultServerUrl), cache);
+    const data = StructureQualityReport.fromJson(model, await PDBe_apiSourceJson(model))
+    return StructureQualityReportProvider.set(model, { serverUrl: StructureQualityReport.DefaultServerUrl }, data)
 }
 
 export const PDBe_preferredAssembly: AttachModelProperty = ({ model, params, cache }) => {

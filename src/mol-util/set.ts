@@ -1,33 +1,42 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// TODO remove Array.from workaround when targeting ES6
+// TODO use set@@iterator when targeting es6
 
 export namespace SetUtils {
     /** Test if set a contains all elements of set b. */
-    export function isSuperset<T>(setA: Set<T>, setB: Set<T>) {
-        for (const elm of Array.from(setB)) {
-            if (!setA.has(elm)) return false;
+    export function isSuperset<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>) {
+        let flag = true
+        setB.forEach(elem => {
+            if (!setA.has(elem)) flag = false;
+        })
+        return flag
+    }
+
+    /** Add all elements from `sets` to `out` */
+    export function add<T>(out: Set<T>, ...sets: ReadonlySet<T>[]): Set<T> {
+        for (let i = 0; i < sets.length; i++) {
+            sets[i].forEach(elem => out.add(elem))
         }
-        return true;
+        return out;
     }
 
     /** Create set containing elements of both set a and set b. */
-    export function union<T>(setA: Set<T>, setB: Set<T>): Set<T> {
+    export function union<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): Set<T> {
         const union = new Set(setA);
-        for (const elem of Array.from(setB)) union.add(elem);
+        setB.forEach(elem => union.add(elem))
         return union;
     }
 
-    export function unionMany<T>(...sets: Set<T>[]) {
+    export function unionMany<T>(...sets: ReadonlySet<T>[]) {
         if (sets.length === 0) return new Set<T>();
-        if (sets.length === 1) return sets[0];
+        if (sets.length === 1) new Set(sets[0]);
         const union = new Set(sets[0]);
-        for (let i = 1; i < sets.length; i++) {
-            for (const elem of Array.from(sets[i])) union.add(elem);
+        for (let i = 1, il = sets.length; i < il; i++) {
+            sets[i].forEach(elem => union.add(elem))
         }
         return union;
     }
@@ -42,34 +51,36 @@ export namespace SetUtils {
     }
 
     /** Create set containing elements of set a that are also in set b. */
-    export function intersection<T>(setA: Set<T>, setB: Set<T>): Set<T> {
+    export function intersection<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): Set<T> {
         const intersection = new Set<T>();
-        for (const elem of Array.from(setB)) {
+        setB.forEach(elem => {
             if (setA.has(elem)) intersection.add(elem);
-        }
+        })
         return intersection;
     }
 
-    export function areIntersecting<T>(setA: Set<T>, setB: Set<T>): boolean {
-        for (const elem of Array.from(setB)) {
-            if (setA.has(elem)) return true;
-        }
-        return false;
+    export function areIntersecting<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): boolean {
+        let flag = false
+        setB.forEach(elem => {
+            if (setA.has(elem)) flag = true;
+        })
+        return flag;
     }
 
     /** Create set containing elements of set a that are not in set b. */
-    export function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
+    export function difference<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): Set<T> {
         const difference = new Set(setA);
-        for (const elem of Array.from(setB)) difference.delete(elem);
+        setB.forEach(elem => difference.delete(elem))
         return difference;
     }
 
     /** Test if set a and b contain the same elements. */
-    export function areEqual<T>(setA: Set<T>, setB: Set<T>) {
+    export function areEqual<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>) {
         if (setA.size !== setB.size) return false
-        for (const elm of Array.from(setB)) {
-            if (!setA.has(elm)) return false;
-        }
-        return true;
+        let flag = true
+        setB.forEach(elem => {
+            if (!setA.has(elem)) flag = false;
+        })
+        return flag;
     }
 }

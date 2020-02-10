@@ -7,9 +7,10 @@
 import { StructureElement, Unit, Structure } from '../../../mol-model/structure/structure';
 import { ChunkedArray } from '../../../mol-data/util';
 import { GridLookup3D } from '../../../mol-math/geometry';
-import { OrderedSet } from '../../../mol-data/int';
+import { OrderedSet, SortedArray } from '../../../mol-data/int';
 import { FeatureGroup, FeatureType } from './common';
 import { ValenceModelProvider } from '../valence-model';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 export { Features }
 
@@ -29,14 +30,22 @@ interface Features {
     readonly members: ArrayLike<StructureElement.UnitIndex>
 
     /** lookup3d based on center coordinates, in invariant coordinate space */
-    readonly lookup3d: GridLookup3D
+    readonly lookup3d: GridLookup3D<Features.FeatureIndex>
     /** maps unit elements to features, range for unit element i is offsets[i] to offsets[i + 1] */
     readonly elementsIndex: Features.ElementsIndex
+
+    subset(types: ReadonlySet<FeatureType>): Features.Subset
 }
 
 namespace Features {
     /** Index into Features data arrays */
     export type FeatureIndex = { readonly '@type': 'feature-index' } & number
+
+    export function setPosition(out: Vec3, unit: Unit, index: FeatureIndex, features: Features) {
+        Vec3.set(out, features.x[index], features.y[index], features.z[index])
+        Vec3.transformMat4(out, out, unit.conformation.operator.matrix)
+        return out
+    }
 
     /** maps unit elements to features, range for unit element i is offsets[i] to offsets[i + 1] */
     export type ElementsIndex = {
@@ -57,12 +66,17 @@ namespace Features {
         members: ArrayLike<StructureElement.UnitIndex>
     }
 
+    export type Subset = {
+        readonly indices: OrderedSet<FeatureIndex>
+        readonly lookup3d: GridLookup3D
+    }
+
     export function createElementsIndex(data: Data, elementsCount: number): ElementsIndex {
         const offsets = new Int32Array(elementsCount + 1)
         const bucketFill = new Int32Array(elementsCount)
         const bucketSizes = new Int32Array(elementsCount)
         const { members, count, offsets: featureOffsets } = data
-        for (let i = 0; i < count; ++i) ++bucketSizes[members[i]]
+        for (let i = 0, il = featureOffsets[count]; i < il; ++i) ++bucketSizes[members[i]]
 
         let offset = 0
         for (let i = 0; i < elementsCount; i++) {
@@ -85,54 +99,100 @@ namespace Features {
     }
 
     export function create(elementsCount: number, data: Data): Features {
-        let lookup3d: GridLookup3D
+        let lookup3d: GridLookup3D<FeatureIndex>
         let elementsIndex: ElementsIndex
 
         return {
             ...data,
             get lookup3d() {
-                return lookup3d || (lookup3d = GridLookup3D({ x: data.x, y: data.y, z: data.z, indices: OrderedSet.ofBounds(0, data.count) }))
+                return lookup3d || (lookup3d = GridLookup3D({ x: data.x, y: data.y, z: data.z, indices: OrderedSet.ofBounds(0 as FeatureIndex, data.count as FeatureIndex) }))
             },
             get elementsIndex() {
                 return elementsIndex || (elementsIndex = createElementsIndex(data, elementsCount))
             },
+
+            subset: (types: Set<FeatureType>) => createSubset(data, types)
+        }
+    }
+
+    export function createSubset(data: Data, types: ReadonlySet<FeatureType>): Subset {
+        let lookup3d: GridLookup3D
+
+        const { count, types: _types } = data
+        const _indices = []
+        for (let i = 0; i < count; ++i) {
+            if (types.has(_types[i])) _indices.push(i)
+        }
+        const indices = SortedArray.ofSortedArray<FeatureIndex>(_indices)
+
+        return {
+            indices,
+            get lookup3d() {
+                return lookup3d || (lookup3d = GridLookup3D({ x: data.x, y: data.y, z: data.z, indices }))
+            }
         }
     }
 
     export interface Info {
         unit: Unit.Atomic,
         types: ArrayLike<FeatureType>,
-        feature: number,
+        feature: FeatureIndex,
+        x: ArrayLike<number>
+        y: ArrayLike<number>
+        z: ArrayLike<number>
         members: ArrayLike<StructureElement.UnitIndex>,
         offsets: ArrayLike<number>,
         idealGeometry: Int8Array
     }
-    export function Info(structure: Structure, unit: Unit.Atomic, features: Features) {
-        const valenceModel = ValenceModelProvider.getValue(structure).value
+    export function Info(structure: Structure, unit: Unit.Atomic, features: Features): Info {
+        const valenceModel = ValenceModelProvider.get(structure).value
         if (!valenceModel || !valenceModel.has(unit.id)) throw new Error('valence model required')
 
         return {
             unit,
             types: features.types,
+            feature: -1 as any,
+            x: features.x,
+            y: features.y,
+            z: features.z,
             members: features.members,
             offsets: features.offsets,
             idealGeometry: valenceModel.get(unit.id)!.idealGeometry
-        } as Info
+        }
+    }
+
+    export function position(out: Vec3, info: Info) {
+        Vec3.set(out, info.x[info.feature], info.y[info.feature], info.z[info.feature])
+        Vec3.transformMat4(out, out, info.unit.conformation.operator.matrix)
+        return out
+    }
+
+    const tmpVecA = Vec3()
+    const tmpVecB = Vec3()
+    export function distance(infoA: Info, infoB: Info) {
+        const elementA = infoA.members[infoA.offsets[infoA.feature]]
+        const elementB = infoB.members[infoB.offsets[infoB.feature]]
+        infoA.unit.conformation.position(infoA.unit.elements[elementA], tmpVecA)
+        infoB.unit.conformation.position(infoB.unit.elements[elementB], tmpVecB)
+        return Vec3.distance(tmpVecA, tmpVecB)
     }
 
     export interface Provider {
-        name: string
+        types: Set<FeatureType>
         add: (structure: Structure, unit: Unit.Atomic, featuresBuilder: FeaturesBuilder) => void
+    }
+    export function Provider(types: FeatureType[], add: Provider['add']): Provider {
+        return { types: new Set(types), add }
     }
 }
 
 export { FeaturesBuilder }
 
 interface FeaturesBuilder {
-    clearState: () => void
+    startState: () => void
     pushMember: (x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
-    addState: (type: FeatureType, group: FeatureGroup) => void
-    addOne: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
+    finishState: (type: FeatureType, group: FeatureGroup) => void
+    add: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => void
     getFeatures: (elementsCount: number) => Features
 }
 
@@ -151,14 +211,21 @@ namespace FeaturesBuilder {
         const state: State = { x: 0, y: 0, z: 0, offset: 0, count: 0 }
 
         return {
-            clearState: () => {
-                state.x = 0, state.y = 0, state.z = 0, state.offset = members.elementCount, state.count = 0
+            startState: () => {
+                state.x = 0
+                state.y = 0
+                state.z = 0
+                state.offset = members.elementCount
+                state.count = 0
             },
             pushMember: (x: number, y: number, z: number, member: StructureElement.UnitIndex) => {
                 ChunkedArray.add(members, member)
-                state.x += x, state.y += y, state.z += z
+                state.x += x
+                state.y += y
+                state.z += z
+                state.count += 1
             },
-            addState: (type: FeatureType, group: FeatureGroup) => {
+            finishState: (type: FeatureType, group: FeatureGroup) => {
                 const { count } = state
                 if (count === 0) return
                 ChunkedArray.add(types, type)
@@ -168,7 +235,7 @@ namespace FeaturesBuilder {
                 ChunkedArray.add(zCenters, state.z / count)
                 ChunkedArray.add(offsets, state.offset)
             },
-            addOne: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => {
+            add: (type: FeatureType, group: FeatureGroup, x: number, y: number, z: number, member: StructureElement.UnitIndex) => {
                 ChunkedArray.add(types, type)
                 ChunkedArray.add(groups, group)
                 ChunkedArray.add(xCenters, x)

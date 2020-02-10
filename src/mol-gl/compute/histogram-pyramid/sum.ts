@@ -8,7 +8,7 @@ import { createComputeRenderable, ComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
 import { Values, TextureSpec } from '../../renderable/schema';
-import { Texture, createTexture } from '../../../mol-gl/webgl/texture';
+import { Texture } from '../../../mol-gl/webgl/texture';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
 import { decodeFloatRGB } from '../../../mol-util/float-packing';
@@ -45,13 +45,10 @@ function getHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture) {
 let SumTexture: Texture
 function getSumTexture(ctx: WebGLContext) {
     if (SumTexture) return SumTexture
-    SumTexture = createTexture(ctx, 'image-uint8', 'rgba', 'ubyte', 'nearest')
+    SumTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest')
     SumTexture.define(1, 1)
     return SumTexture
 }
-
-/** name for shared framebuffer used for histogram-pyramid operations */
-const FramebufferName = 'histogram-pyramid-sum'
 
 function setRenderingDefaults(ctx: WebGLContext) {
     const { gl, state } = ctx
@@ -66,12 +63,12 @@ function setRenderingDefaults(ctx: WebGLContext) {
 
 const sumArray = new Uint8Array(4)
 export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture) {
-    const { gl, framebufferCache } = ctx
+    const { gl, resources } = ctx
 
     const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture)
     ctx.state.currentRenderItemId = -1
 
-    const framebuffer = framebufferCache.get(FramebufferName).value
+    const framebuffer = resources.framebuffer()
     const sumTexture = getSumTexture(ctx)
     sumTexture.attachFramebuffer(framebuffer, 0)
 

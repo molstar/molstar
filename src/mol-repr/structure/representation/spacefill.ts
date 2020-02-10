@@ -37,7 +37,7 @@ export const SpacefillRepresentationProvider: StructureRepresentationProvider<Sp
     factory: SpacefillRepresentation,
     getParams: getSpacefillParams,
     defaultValues: PD.getDefaultValues(SpacefillParams),
-    defaultColorTheme: 'element-symbol',
-    defaultSizeTheme: 'physical',
+    defaultColorTheme: { name: 'element-symbol' },
+    defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 }

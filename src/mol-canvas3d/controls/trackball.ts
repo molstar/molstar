@@ -208,8 +208,8 @@ namespace TrackballControls {
         function focusCamera() {
             const factor = (_focusEnd[1] - _focusStart[1]) * p.zoomSpeed
             if (factor !== 0.0) {
-                const radius = Math.max(1, camera.state.radius + 10 * factor)
-                camera.setState({ radius })
+                const radiusNear = Math.max(1, camera.state.radiusNear + 10 * factor)
+                camera.setState({ radiusNear })
             }
 
             if (p.staticMoving) {
@@ -343,7 +343,7 @@ namespace TrackballControls {
             if (dragFocus) Vec2.copy(_focusEnd, mouseOnScreenVec2)
             if (dragFocusZoom) {
                 const dist = Vec3.distance(camera.state.position, camera.state.target);
-                camera.setState({ radius: dist / 5 })
+                camera.setState({ radiusNear: dist / 5 })
             }
             if (dragPan) Vec2.copy(_panEnd, mouseOnScreenVec2)
         }

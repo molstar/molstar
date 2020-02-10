@@ -13,6 +13,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { RuntimeContext } from '../../../mol-task';
 import { isDebugMode } from '../../../mol-util/debug';
 import { SortedArray } from '../../../mol-data/int';
+import { BondType } from '../../../mol-model/structure/model/types';
 
 /**
  * TODO:
@@ -67,10 +68,15 @@ function isConjugated (structure: Structure, unit: Unit.Atomic, index: Structure
 export function explicitValence (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let v = 0
     // intra-unit bonds
-    const { offset, edgeProps } = unit.bonds
-    for (let i = offset[index], il = offset[index + 1]; i < il; ++i) v += edgeProps.order[i]
+    const { offset, edgeProps: { flags, order } } = unit.bonds
+    for (let i = offset[index], il = offset[index + 1]; i < il; ++i) {
+        if (BondType.isCovalent(flags[i])) v += order[i]
+    }
     // inter-unit bonds
-    structure.interUnitBonds.getEdgeIndices(index, unit).forEach(b => v += structure.interUnitBonds.edges[b].props.order)
+    structure.interUnitBonds.getEdgeIndices(index, unit).forEach(i => {
+        const b = structure.interUnitBonds.edges[i]
+        if (BondType.isCovalent(b.props.flag)) v += b.props.order
+    })
     return v
 }
 

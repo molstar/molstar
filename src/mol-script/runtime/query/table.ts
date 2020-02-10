@@ -169,7 +169,6 @@ const symbols = [
         return (tested & test) === test;
     }),
 
-    ////////////////////////////////////
     // Structure
 
     // ============= TYPES ================
@@ -239,7 +238,7 @@ const symbols = [
     D(MolScript.structureQuery.generator.all, function structureQuery_generator_all(ctx) { return Queries.generators.all(ctx) }),
     D(MolScript.structureQuery.generator.empty, function structureQuery_generator_empty(ctx) { return Queries.generators.none(ctx) }),
     D(MolScript.structureQuery.generator.bondedAtomicPairs, function structureQuery_generator_bondedAtomicPairs(ctx, xs) { return Queries.generators.bondedAtomicPairs(xs && xs[0])(ctx) }),
-    D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) { return Queries.generators.rings(getArray(ctx, xs))(ctx) }),
+    D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) { return Queries.generators.rings(xs?.['fingerprint']?.(ctx) as any, xs?.['only-aromatic']?.(ctx))(ctx) }),
 
     // ============= MODIFIERS ================
 
@@ -340,8 +339,6 @@ const symbols = [
     D(MolScript.structureQuery.bondProperty.atomB, (ctx, xs) => ctx.atomicBond.b),
     D(MolScript.structureQuery.bondProperty.length, (ctx, xs) => ctx.atomicBond.length),
 
-
-    ////////////////////////////////////
     // Internal
     D(MolScript.internal.generator.bundleElement, function internal_generator_bundleElement(ctx, xs) { return bundleElementImpl(xs.groupedUnits(ctx), xs.ranges(ctx), xs.set(ctx)) }),
     D(MolScript.internal.generator.bundle, function internal_generator_bundle(ctx, xs) { return bundleGenerator(xs.elements(ctx))(ctx) }),
@@ -353,16 +350,7 @@ function atomProp(p: (e: StructureElement.Location) => any): (ctx: QueryContext,
 }
 
 function bondFlag(current: BondType, f: string): BondType {
-    switch (f.toLowerCase()) {
-        case 'covalent': return current | BondType.Flag.Covalent;
-        case 'metallic': return current | BondType.Flag.MetallicCoordination;
-        case 'ionic': return current | BondType.Flag.Ionic;
-        case 'hydrogen': return current | BondType.Flag.Hydrogen;
-        case 'sulfide': return current | BondType.Flag.Sulfide;
-        case 'aromatic': return current | BondType.Flag.Aromatic;
-        case 'computed': return current | BondType.Flag.Computed;
-        default: return current;
-    }
+    return current | (BondType.isName(f) ? BondType.fromName(f) : BondType.Flag.None)
 }
 
 function secondaryStructureFlag(current: SecondaryStructureType, f: string): SecondaryStructureType {

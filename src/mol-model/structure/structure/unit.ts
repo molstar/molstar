@@ -128,7 +128,7 @@ namespace Unit {
         getChild(elements: StructureElement.Set): Unit,
         applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
 
-        readonly lookup3d: Lookup3D
+        readonly lookup3d: Lookup3D<StructureElement.UnitIndex>
         readonly polymerElements: SortedArray<ElementIndex>
         readonly gapElements: SortedArray<ElementIndex>
         /**
@@ -138,7 +138,7 @@ namespace Unit {
     }
 
     interface BaseProperties {
-        lookup3d: ValueRef<Lookup3D | undefined>,
+        lookup3d: ValueRef<Lookup3D<StructureElement.UnitIndex> | undefined>,
         principalAxes: ValueRef<PrincipalAxes | undefined>,
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>

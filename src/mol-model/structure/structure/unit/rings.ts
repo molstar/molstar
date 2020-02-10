@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { computeRings, getFingerprint, createIndex } from './rings/compute'
@@ -9,7 +10,11 @@ import Unit from '../unit';
 import StructureElement from '../element';
 import { SortedArray } from '../../../../mol-data/int';
 import { ResidueIndex } from '../../model';
-import { ElementSymbol } from '../../model/types';
+import { ElementSymbol, BondType } from '../../model/types';
+import { Elements } from '../../model/properties/atomic/types';
+import { getPositions } from '../../util';
+import { PrincipalAxes } from '../../../../mol-math/linear-algebra/matrix/principal-axes';
+import { Vec3 } from '../../../../mol-math/linear-algebra';
 
 type UnitRing = SortedArray<StructureElement.UnitIndex>
 
@@ -20,13 +25,15 @@ class UnitRings {
     private _byFingerprint?: ReadonlyMap<UnitRing.Fingerprint, ReadonlyArray<UnitRings.Index>>;
     private _index?: {
         readonly elementRingIndices: ReadonlyMap<StructureElement.UnitIndex, UnitRings.Index[]>,
+        readonly elementAromaticRingIndices: ReadonlyMap<StructureElement.UnitIndex, UnitRings.Index[]>,
         readonly ringComponentIndex: ReadonlyArray<UnitRings.ComponentIndex>,
         readonly ringComponents: ReadonlyArray<ReadonlyArray<UnitRings.Index>>
     };
+    private _aromaticRings?: ReadonlyArray<UnitRings.Index>
 
     private get index() {
         if (this._index) return this._index;
-        this._index = createIndex(this.all);
+        this._index = createIndex(this.all, this.aromaticRings);
         return this._index;
     }
 
@@ -36,9 +43,13 @@ class UnitRings {
         return this._byFingerprint;
     }
 
-    /** Maps atom index inside a Unit to the smallest ring index (an atom can be part of more than one ring) */
+    /** Maps atom index inside a Unit to ring indices (an atom can be part of more than one ring) */
     get elementRingIndices() {
         return this.index.elementRingIndices;
+    }
+
+    get elementAromaticRingIndices() {
+        return this.index.elementAromaticRingIndices;
     }
 
     /** Maps UnitRings.Index to index to ringComponents */
@@ -48,6 +59,12 @@ class UnitRings {
 
     get ringComponents() {
         return this.index.ringComponents;
+    }
+
+    get aromaticRings() {
+        if (this._aromaticRings) return this._aromaticRings;
+        this._aromaticRings = getAromaticRings(this.unit, this.all);
+        return this._aromaticRings;
     }
 
     constructor(all: ReadonlyArray<UnitRing>, public unit: Unit.Atomic) {
@@ -69,6 +86,47 @@ namespace UnitRing {
 
     export function elementFingerprint(elements: ArrayLike<ElementSymbol>) {
         return getFingerprint(elements as ArrayLike<string> as string[]) as Fingerprint;
+    }
+
+    const AromaticRingElements = new Set([
+        Elements.B, Elements.C, Elements.N, Elements.O,
+        Elements.SI, Elements.P, Elements.S,
+        Elements.GE, Elements.AS,
+        Elements.SN, Elements.SB,
+        Elements.BI
+    ] as ElementSymbol[])
+    const AromaticRingPlanarityThreshold = 0.05
+
+    export function isAromatic(unit: Unit.Atomic, ring: SortedArray<StructureElement.UnitIndex>): boolean {
+        const { elements, bonds: { b, offset, edgeProps: { flags } } } = unit;
+        const { type_symbol } = unit.model.atomicHierarchy.atoms;
+        const { label_comp_id } = unit.model.atomicHierarchy.residues;
+
+        // ignore Proline (can be flat because of bad geometry)
+        if (label_comp_id.value(unit.getResidueIndex(ring[0])) === 'PRO') return false
+
+        let aromaticBondCount = 0
+        let hasAromaticRingElement = false
+
+        for (let i = 0, il = ring.length; i < il; ++i) {
+            const aI = ring[i]
+            if (!hasAromaticRingElement && AromaticRingElements.has(type_symbol.value(elements[aI]))) {
+                hasAromaticRingElement = true
+            }
+
+            for (let j = offset[aI], jl = offset[aI + 1]; j < jl; ++j) {
+                // comes e.g. from `chem_comp_bond.pdbx_aromatic_flag`
+                if (BondType.is(BondType.Flag.Aromatic, flags[j])) {
+                    if (SortedArray.has(ring, b[j])) aromaticBondCount += 1
+
+                }
+            }
+        }
+        if (aromaticBondCount === 2 * ring.length) return true
+        if (!hasAromaticRingElement) return false
+
+        const ma = PrincipalAxes.calculateMomentsAxes(getPositions(unit, ring))
+        return Vec3.magnitude(ma.dirC) < AromaticRingPlanarityThreshold
     }
 }
 
@@ -126,5 +184,12 @@ function addSingleResidueRings(rings: UnitRings, fp: UnitRing.Fingerprint, map: 
     }
 }
 
+function getAromaticRings(unit: Unit.Atomic, rings: ReadonlyArray<UnitRing>): ReadonlyArray<UnitRings.Index> {
+    const aromaticRings: UnitRings.Index[] = []
+    for (let i = 0 as UnitRings.Index, il = rings.length; i < il; ++i) {
+        if (UnitRing.isAromatic(unit, rings[i])) aromaticRings.push(i)
+    }
+    return aromaticRings
+}
 
 export { UnitRing, UnitRings }

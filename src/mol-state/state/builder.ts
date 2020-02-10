@@ -86,8 +86,8 @@ namespace StateBuilder {
             const ref = typeof refOrCellOrSelector === 'string'
                 ? refOrCellOrSelector
                 : StateObjectCell.is(refOrCellOrSelector)
-                ? refOrCellOrSelector.transform.ref
-                : refOrCellOrSelector.ref;
+                    ? refOrCellOrSelector.transform.ref
+                    : refOrCellOrSelector.ref;
             return new To<StateObject, StateTransformer>(this.state, ref, this);
         }
         toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.root.ref, this); }

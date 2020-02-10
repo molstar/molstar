@@ -36,7 +36,7 @@ async function createMolecularSurfaceWireframe(ctx: VisualContext, unit: Unit, s
     }
     const wireframe = await computeMarchingCubesLines(params, lines).runAsChild(ctx.runtime)
 
-    Lines.transformImmediate(wireframe, transform)
+    Lines.transform(wireframe, transform)
 
     return wireframe
 }

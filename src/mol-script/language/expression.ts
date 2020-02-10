@@ -15,7 +15,7 @@ namespace Expression {
     export type Arguments = Expression[] | { [name: string]: Expression }
     export interface Apply { readonly head: Expression, readonly args?: Arguments }
 
-    export function Symbol(name: string): Symbol { return { name }; }
+    export function Symbol(name: string): Expression.Symbol { return { name }; }
     export function Apply(head: Expression, args?: Arguments): Apply { return args ? { head, args } : { head }; }
 
     export function isArgumentsArray(e?: Arguments): e is Expression[] { return !!e && Array.isArray(e); }

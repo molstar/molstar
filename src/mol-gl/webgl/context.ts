@@ -1,23 +1,25 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createProgramCache, ProgramCache } from './program'
-import { createShaderCache, ShaderCache } from './shader'
 import { GLRenderingContext, isWebGL2 } from './compat';
-import { createFramebufferCache, FramebufferCache, checkFramebufferStatus } from './framebuffer';
+import { checkFramebufferStatus } from './framebuffer';
 import { Scheduler } from '../../mol-task';
 import { isDebugMode } from '../../mol-util/debug';
 import { createExtensions, WebGLExtensions } from './extensions';
 import { WebGLState, createState } from './state';
 import { PixelData } from '../../mol-util/image';
+import { WebGLResources, createResources } from './resources';
+import { RenderTarget, createRenderTarget } from './render-target';
+import { BehaviorSubject } from 'rxjs';
+import { now } from '../../mol-util/now';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
         try {
-           return canvas.getContext(contextId, contextAttributes) as GLRenderingContext | null
+            return canvas.getContext(contextId, contextAttributes) as GLRenderingContext | null
         } catch (e) {
             return null
         }
@@ -44,7 +46,9 @@ function getErrorDescription(gl: GLRenderingContext, error: number) {
 
 export function checkError(gl: GLRenderingContext) {
     const error = gl.getError()
-    if (error) throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'`)
+    if (error !== gl.NO_ERROR) {
+        throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'`)
+    }
 }
 
 function unbindResources (gl: GLRenderingContext) {
@@ -123,7 +127,7 @@ function waitForGpuCommandsCompleteSync(gl: GLRenderingContext): void {
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
 }
 
-function readPixels(gl: GLRenderingContext, x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) {
+export function readPixels(gl: GLRenderingContext, x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) {
     if (isDebugMode) checkFramebufferStatus(gl)
     if (buffer instanceof Uint8Array) {
         gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
@@ -147,31 +151,26 @@ function getDrawingBufferPixelData(gl: GLRenderingContext) {
 
 //
 
-export type WebGLStats = {
-    bufferCount: number
-    framebufferCount: number
-    renderbufferCount: number
-    textureCount: number
-    vaoCount: number
-
-    drawCount: number
-    instanceCount: number
-    instancedDrawCount: number
-}
-
-function createStats(): WebGLStats {
+function createStats() {
     return {
-        bufferCount: 0,
-        framebufferCount: 0,
-        renderbufferCount: 0,
-        textureCount: 0,
-        vaoCount: 0,
+        resourceCounts: {
+            attribute: 0,
+            elements: 0,
+            framebuffer: 0,
+            program: 0,
+            renderbuffer: 0,
+            shader: 0,
+            texture: 0,
+            vertexArray: 0,
+        },
 
         drawCount: 0,
         instanceCount: 0,
         instancedDrawCount: 0,
     }
 }
+
+export type WebGLStats = ReturnType<typeof createStats>
 
 //
 
@@ -184,15 +183,18 @@ export interface WebGLContext {
     readonly extensions: WebGLExtensions
     readonly state: WebGLState
     readonly stats: WebGLStats
-
-    readonly shaderCache: ShaderCache
-    readonly programCache: ProgramCache
-    readonly framebufferCache: FramebufferCache
+    readonly resources: WebGLResources
 
     readonly maxTextureSize: number
     readonly maxRenderbufferSize: number
     readonly maxDrawBuffers: number
 
+    readonly isContextLost: boolean
+    readonly contextRestored: BehaviorSubject<now.Timestamp>
+    setContextLost: () => void
+    handleContextRestored: () => void
+
+    createRenderTarget: (width: number, height: number) => RenderTarget
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => void
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
@@ -206,10 +208,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
     const extensions = createExtensions(gl)
     const state = createState(gl)
     const stats = createStats()
-
-    const shaderCache: ShaderCache = createShaderCache(gl)
-    const programCache: ProgramCache = createProgramCache(gl, state, extensions, shaderCache)
-    const framebufferCache: FramebufferCache = createFramebufferCache(gl, stats)
+    const resources = createResources(gl, state, stats, extensions)
 
     const parameters = {
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
@@ -221,6 +220,9 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
     if (parameters.maxVertexTextureImageUnits < 8) {
         throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8')
     }
+
+    let isContextLost = false
+    let contextRestored = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp)
 
     let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     if (isWebGL2(gl)) {
@@ -259,6 +261,8 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         }
     }
 
+    const renderTargets = new Set<RenderTarget>()
+
     return {
         gl,
         isWebGL2: isWebGL2(gl),
@@ -270,15 +274,45 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         extensions,
         state,
         stats,
-
-        shaderCache,
-        programCache,
-        framebufferCache,
+        resources,
 
         get maxTextureSize () { return parameters.maxTextureSize },
         get maxRenderbufferSize () { return parameters.maxRenderbufferSize },
         get maxDrawBuffers () { return parameters.maxDrawBuffers },
 
+        get isContextLost () {
+            return isContextLost || gl.isContextLost()
+        },
+        contextRestored,
+        setContextLost: () => {
+            isContextLost = true
+        },
+        handleContextRestored: () => {
+            Object.assign(extensions, createExtensions(gl))
+
+            state.reset()
+            state.currentMaterialId = -1
+            state.currentProgramId = -1
+            state.currentRenderItemId = -1
+
+            resources.reset()
+            renderTargets.forEach(rt => rt.reset())
+
+            isContextLost = false
+            contextRestored.next(now())
+        },
+
+        createRenderTarget: (width: number, height: number) => {
+            const renderTarget = createRenderTarget(gl, resources, width, height)
+            renderTargets.add(renderTarget)
+            return {
+                ...renderTarget,
+                destroy: () => {
+                    renderTarget.destroy()
+                    renderTargets.delete(renderTarget)
+                }
+            }
+        },
         unbindFramebuffer: () => unbindFramebuffer(gl),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array) => {
             readPixels(gl, x, y, width, height, buffer)
@@ -289,11 +323,8 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         getDrawingBufferPixelData: () => getDrawingBufferPixelData(gl),
 
         destroy: () => {
+            resources.destroy()
             unbindResources(gl)
-            programCache.dispose()
-            shaderCache.dispose()
-            framebufferCache.dispose()
-            // TODO destroy buffers and textures
         }
     }
 }

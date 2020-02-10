@@ -25,7 +25,6 @@ export interface StructConn {
 
 export namespace StructConn {
     export const Descriptor: CustomPropertyDescriptor = {
-        isStatic: true,
         name: 'struct_conn',
         cifExport: {
             prefix: '',
@@ -117,7 +116,6 @@ export namespace StructConn {
             }
             return this._atomIndex;
         }
-
 
         getResidueEntries(residueAIndex: ResidueIndex, residueBIndex: ResidueIndex): ReadonlyArray<StructConn.Entry> {
             return this.getResiduePairIndex().get(_resKey(residueAIndex, residueBIndex)) || _emptyEntry;
@@ -235,9 +233,9 @@ export namespace StructConn {
                 case 'covale':
                     flags = BondType.Flag.Covalent;
                     break;
-                case 'disulf': flags = BondType.Flag.Covalent | BondType.Flag.Sulfide; break;
+                case 'disulf': flags = BondType.Flag.Covalent | BondType.Flag.Disulfide; break;
                 case 'hydrog':
-                    flags = BondType.Flag.Hydrogen;
+                    flags = BondType.Flag.HydrogenBond;
                     break;
                 case 'metalc': flags = BondType.Flag.MetallicCoordination; break;
             }

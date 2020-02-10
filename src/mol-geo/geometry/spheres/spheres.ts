@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,15 +13,16 @@ import { Theme } from '../../../mol-theme/theme';
 import { SpheresValues } from '../../../mol-gl/renderable/spheres';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
-import { calculateBoundingSphere } from '../../../mol-gl/renderable/util';
+import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { createSizes, getMaxSize } from '../size-data';
 import { Color } from '../../../mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
+import { hashFnv32a } from '../../../mol-data/util';
+import { GroupMapping, createGroupMapping } from '../../util';
 
-/** Spheres */
 export interface Spheres {
     readonly kind: 'spheres',
 
@@ -36,22 +37,78 @@ export interface Spheres {
     readonly indexBuffer: ValueCell<Uint32Array>,
     /** Group buffer as array of group ids for each vertex wrapped in a value cell */
     readonly groupBuffer: ValueCell<Float32Array>,
+
+    /** Bounding sphere of the spheres */
+    readonly boundingSphere: Sphere3D
+    /** Maps group ids to sphere indices */
+    readonly groupMapping: GroupMapping
 }
 
 export namespace Spheres {
+    export function create(centers: Float32Array, mappings: Float32Array, indices: Uint32Array, groups: Float32Array, sphereCount: number, spheres?: Spheres): Spheres {
+        return spheres ?
+            update(centers, mappings, indices, groups, sphereCount, spheres) :
+            fromArrays(centers, mappings, indices, groups, sphereCount)
+    }
+
     export function createEmpty(spheres?: Spheres): Spheres {
         const cb = spheres ? spheres.centerBuffer.ref.value : new Float32Array(0)
         const mb = spheres ? spheres.mappingBuffer.ref.value : new Float32Array(0)
         const ib = spheres ? spheres.indexBuffer.ref.value : new Uint32Array(0)
         const gb = spheres ? spheres.groupBuffer.ref.value : new Float32Array(0)
-        return {
-            kind: 'spheres',
-            sphereCount: 0,
-            centerBuffer: spheres ? ValueCell.update(spheres.centerBuffer, cb) : ValueCell.create(cb),
-            mappingBuffer: spheres ? ValueCell.update(spheres.mappingBuffer, mb) : ValueCell.create(mb),
-            indexBuffer: spheres ? ValueCell.update(spheres.indexBuffer, ib) : ValueCell.create(ib),
-            groupBuffer: spheres ? ValueCell.update(spheres.groupBuffer, gb) : ValueCell.create(gb)
+        return create(cb, mb, ib, gb, 0, spheres)
+    }
+
+    function hashCode(spheres: Spheres) {
+        return hashFnv32a([
+            spheres.sphereCount,
+            spheres.centerBuffer.ref.version, spheres.mappingBuffer.ref.version,
+            spheres.indexBuffer.ref.version, spheres.groupBuffer.ref.version
+        ])
+    }
+
+    function fromArrays(centers: Float32Array, mappings: Float32Array, indices: Uint32Array, groups: Float32Array, sphereCount: number): Spheres {
+
+        const boundingSphere = Sphere3D()
+        let groupMapping: GroupMapping
+
+        let currentHash = -1
+        let currentGroup = -1
+
+        const spheres = {
+            kind: 'spheres' as const,
+            sphereCount,
+            centerBuffer: ValueCell.create(centers),
+            mappingBuffer: ValueCell.create(mappings),
+            indexBuffer: ValueCell.create(indices),
+            groupBuffer: ValueCell.create(groups),
+            get boundingSphere() {
+                const newHash = hashCode(spheres)
+                if (newHash !== currentHash) {
+                    const b = calculateInvariantBoundingSphere(spheres.centerBuffer.ref.value, spheres.sphereCount * 4, 4)
+                    Sphere3D.copy(boundingSphere, b)
+                    currentHash = newHash
+                }
+                return boundingSphere
+            },
+            get groupMapping() {
+                if (spheres.groupBuffer.ref.version !== currentGroup) {
+                    groupMapping = createGroupMapping(spheres.groupBuffer.ref.value, spheres.sphereCount, 4)
+                    currentGroup = spheres.groupBuffer.ref.version
+                }
+                return groupMapping
+            }
         }
+        return spheres
+    }
+
+    function update(centers: Float32Array, mappings: Float32Array, indices: Uint32Array, groups: Float32Array, sphereCount: number, spheres: Spheres) {
+        spheres.sphereCount = sphereCount
+        ValueCell.update(spheres.centerBuffer, centers)
+        ValueCell.update(spheres.mappingBuffer, mappings)
+        ValueCell.update(spheres.indexBuffer, indices)
+        ValueCell.update(spheres.groupBuffer, groups)
+        return spheres
     }
 
     export const Params = {
@@ -88,10 +145,8 @@ export namespace Spheres {
         const counts = { drawCount: spheres.sphereCount * 2 * 3, groupCount, instanceCount }
 
         const padding = getMaxSize(size)
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            spheres.centerBuffer.ref.value, spheres.sphereCount * 4,
-            transform.aTransform.ref.value, instanceCount, padding, 4
-        )
+        const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), spheres.boundingSphere, padding)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount)
 
         return {
             aPosition: spheres.centerBuffer,
@@ -131,10 +186,9 @@ export namespace Spheres {
 
     function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {
         const padding = getMaxSize(values)
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            values.aPosition.ref.value, spheres.sphereCount * 4,
-            values.aTransform.ref.value, values.instanceCount.ref.value, padding, 4
-        )
+        const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), spheres.boundingSphere, padding)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value)
+
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }

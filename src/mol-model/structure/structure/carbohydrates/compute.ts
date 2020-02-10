@@ -61,10 +61,10 @@ function getAnomericCarbon(unit: Unit.Atomic, ringAtoms: ArrayLike<StructureElem
         }
     }
     return (indexHasTwoOxygen !== -1 ? indexHasTwoOxygen
-                : indexHasOxygenAndCarbon !== -1 ? indexHasOxygenAndCarbon
-                    : indexHasC1Name !== -1 ? indexHasC1Name
-                        : indexIsCarbon !== -1 ? indexIsCarbon
-                            : elements[ringAtoms[0]]) as ElementIndex
+        : indexHasOxygenAndCarbon !== -1 ? indexHasOxygenAndCarbon
+            : indexHasC1Name !== -1 ? indexHasC1Name
+                : indexIsCarbon !== -1 ? indexIsCarbon
+                    : elements[ringAtoms[0]]) as ElementIndex
 }
 
 /** Return first non-empty label_alt_id or an empty string */

@@ -182,8 +182,8 @@ class TransientTree implements StateTree {
         return true;
     }
 
-     /** Calls Transform.definition.params.areEqual if available, otherwise uses shallowEqual to check if the params changed */
-     setTags(ref: StateTransform.Ref, tags: string | string[] | undefined) {
+    /** Calls Transform.definition.params.areEqual if available, otherwise uses shallowEqual to check if the params changed */
+    setTags(ref: StateTransform.Ref, tags: string | string[] | undefined) {
         ensurePresent(this.transforms, ref);
 
         const transform = this.transforms.get(ref)!;

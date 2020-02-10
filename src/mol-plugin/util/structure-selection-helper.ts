@@ -68,7 +68,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
                     ])
                 ]),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': MS.core.set.has([MS.set(...Array.from(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
+                'atom-test': MS.core.set.has([MS.set(...Array.from(ProteinBackboneAtoms.values())), MS.ammp('label_atom_id')])
             })
         ]),
         MS.struct.modifier.union([
@@ -81,7 +81,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
                     ])
                 ]),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': MS.core.set.has([MS.set(...Array.from(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
+                'atom-test': MS.core.set.has([MS.set(...Array.from(NucleicBackboneAtoms.values())), MS.ammp('label_atom_id')])
             })
         ])
     ])
@@ -264,7 +264,7 @@ const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.
             MS.struct.generator.bondedAtomicPairs({
                 0: MS.core.flags.hasAny([
                     MS.struct.bondProperty.flags(),
-                    MS.core.type.bitflags([BondType.Flag.Sulfide])
+                    MS.core.type.bitflags([BondType.Flag.Disulfide])
                 ])
             })
         ])
@@ -292,6 +292,14 @@ const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.uni
             MS.set('sphere', 'gaussian'), MS.ammp('objectPrimitive')
         ])
     })
+]))
+
+const ring = StructureSelectionQuery('Rings in Residues', MS.struct.modifier.union([
+    MS.struct.generator.rings()
+]))
+
+const aromaticRing = StructureSelectionQuery('Aromatic Rings in Residues', MS.struct.modifier.union([
+    MS.struct.generator.rings({ 'only-aromatic': true })
 ]))
 
 const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B) of Selection', MS.struct.modifier.union([
@@ -340,6 +348,8 @@ export const StructureSelectionQueries = {
     modified,
     nonStandardPolymer,
     coarse,
+    ring,
+    aromaticRing,
     surroundings,
     complement,
     bonded,

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Schäfer, Marco <marco.schaefer@uni-tuebingen.de>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -18,6 +18,7 @@ import { Column } from '../../mol-data/db';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ColorNames } from '../../mol-util/color/names';
 import { deepClone } from '../../mol-util/object';
+import { stringToWords } from '../../mol-util/string';
 
 // TODO support 'edge' element, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
 // TODO support missing face element
@@ -166,25 +167,25 @@ async function getMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, gro
     }
 
     const m = MeshBuilder.getMesh(builderState);
-    m.normalsComputed = hasNormals
-    await Mesh.computeNormals(m).runInContext(ctx)
+    if (!hasNormals) Mesh.computeNormals(m)
 
     return m
 }
 
 const int = Column.Schema.int
 
-type Grouping = { ids: ArrayLike<number>, map: ArrayLike<number> }
+type Grouping = { ids: ArrayLike<number>, map: ArrayLike<number>, label: string }
 function getGrouping(vertex: PlyTable, props: PD.Values<PlyShapeParams>): Grouping {
     const { grouping } = props
     const { rowCount } = vertex
     const column = grouping.name === 'vertex' ? vertex.getProperty(grouping.params.group) : undefined
+    const label = grouping.name === 'vertex' ? stringToWords(grouping.params.group) : 'Vertex'
 
     const ids = column ? column.toArray({ array: Uint32Array }) : fillSerial(new Uint32Array(rowCount))
-    const maxId = arrayMax(ids) // assumes uint ids
+    const maxId = column ? arrayMax(ids) : rowCount - 1 // assumes uint ids
     const map = new Uint32Array(maxId + 1)
     for (let i = 0, il = ids.length; i < il; ++i) map[ids[i]] = i
-    return { ids, map }
+    return { ids, map, label  }
 }
 
 type Coloring = { kind: 'vertex' | 'material' | 'uniform', red: Column<number>, green: Column<number>, blue: Column<number> }
@@ -212,7 +213,7 @@ function getColoring(vertex: PlyTable, material: PlyTable | undefined, props: PD
 
 function createShape(plyFile: PlyFile, mesh: Mesh, coloring: Coloring, grouping: Grouping) {
     const { kind, red, green, blue } = coloring
-    const { ids, map } = grouping
+    const { ids, map, label } = grouping
     return Shape.create(
         'ply-mesh', plyFile, mesh,
         (groupId: number) => {
@@ -221,7 +222,7 @@ function createShape(plyFile: PlyFile, mesh: Mesh, coloring: Coloring, grouping:
         },
         () => 1, // size: constant
         (groupId: number) => {
-            return ids[groupId].toString()
+            return `${label} ${ids[groupId]}`
         }
     )
 }

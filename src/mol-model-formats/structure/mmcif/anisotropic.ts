@@ -43,7 +43,6 @@ export namespace AtomSiteAnisotrop {
     export type Schema = typeof Schema
 
     export const Descriptor: CustomPropertyDescriptor = {
-        isStatic: true,
         name: 'atom_site_anisotrop',
         cifExport: {
             prefix: '',

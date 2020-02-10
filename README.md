@@ -38,6 +38,7 @@ Moreover, the project contains the imlementation of `servers`, including
 
 - `servers/model` A tool for accessing coordinate and annotation data of molecular structures.
 - `servers/volume` A tool for accessing volumetric experimental data related to molecular structures.
+- `servers/plugin-state` A basic server to store Mol* Plugin states.
 
 The project also contains performance tests (`perf-tests`), `examples`, and basic proof of concept `apps` (CIF to BinaryCIF converter and JSON domain annotation to CIF converter).
 
@@ -93,7 +94,7 @@ Install CIFTools `npm install ciftools -g`
 
 **GraphQL schemas**
 
-    node data/rcsb-graphql/codegen.js
+    ./node_modules/.bin/graphql-codegen -c ./data/rcsb-graphql/codegen.yml
 
 ### Other scripts
 **Create chem comp bond table**

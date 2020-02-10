@@ -54,10 +54,10 @@ function getMapFileFn() {
     const map = new Function('type', 'id', 'interpolate', [
         'id = id.toLowerCase()',
         'switch (type.toLowerCase()) {',
-            ...ServerConfig.idMap.map(mapping => {
-                const [type, path] = mapping
-                return `    case '${type}': return interpolate('${path}', { id });`
-            }),
+        ...ServerConfig.idMap.map(mapping => {
+            const [type, path] = mapping
+            return `    case '${type}': return interpolate('${path}', { id });`
+        }),
         '    default: return void 0;',
         '}'
     ].join('\n'))

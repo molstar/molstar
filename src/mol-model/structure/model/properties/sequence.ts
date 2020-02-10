@@ -69,11 +69,10 @@ namespace StructureSequence {
             cI--;
 
             const rStart = residueAtomSegments.index[offsets[start]];
-            const rEnd = residueAtomSegments.index[offsets[cI + 1]];
+            const rEnd = residueAtomSegments.index[offsets[cI + 1] - 1] + 1;
 
             const compId = Column.window(label_comp_id, rStart, rEnd);
             const num = Column.window(label_seq_id, rStart, rEnd);
-
             byEntityKey[entityKey] = {
                 entityId: entities.data.id.value(entityKey),
                 sequence: Sequence.ofResidueNames(compId, num, modResMap)
@@ -115,7 +114,7 @@ namespace StructureSequence {
             cI--;
 
             const eStart = offsets[start];
-            const eEnd = offsets[cI + 1];
+            const eEnd = offsets[cI + 1] - 1;
 
             const seqIdBegin = Column.window(seq_id_begin, eStart, eEnd);
             const seqIdEnd = Column.window(seq_id_end, eStart, eEnd);

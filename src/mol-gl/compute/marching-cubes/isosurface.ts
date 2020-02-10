@@ -8,7 +8,7 @@ import { createComputeRenderable } from '../../renderable'
 import { WebGLContext } from '../../webgl/context';
 import { createComputeRenderItem } from '../../webgl/render-item';
 import { Values, TextureSpec, UniformSpec } from '../../renderable/schema';
-import { Texture, createTexture } from '../../../mol-gl/webgl/texture';
+import { Texture } from '../../../mol-gl/webgl/texture';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
 import { Vec3, Vec2, Mat4 } from '../../../mol-math/linear-algebra';
@@ -17,9 +17,6 @@ import { HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
 import quad_vert from '../../../mol-gl/shader/quad.vert'
 import isosurface_frag from '../../../mol-gl/shader/marching-cubes/isosurface.frag'
-
-/** name for shared framebuffer used for gpu marching cubes operations */
-const FramebufferName = 'marching-cubes-isosurface'
 
 const IsosurfaceSchema = {
     ...QuadSchema,
@@ -83,30 +80,30 @@ function setRenderingDefaults(ctx: WebGLContext) {
 }
 
 export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, vertexGroupTexture?: Texture, normalTexture?: Texture) {
-    const { gl, framebufferCache } = ctx
+    const { gl, resources } = ctx
     const { pyramidTex, height, levels, scale, count } = histogramPyramid
 
     // console.log('iso', 'gridDim', gridDim, 'scale', scale, 'gridTexDim', gridTexDim)
     // console.log('iso volumeData', volumeData)
 
-    const framebuffer = framebufferCache.get(FramebufferName).value
+    const framebuffer = resources.framebuffer()
 
     let needsClear = false
 
     if (!vertexGroupTexture) {
-        vertexGroupTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-        vertexGroupTexture.define(pyramidTex.width, pyramidTex.height)
-    } else if (vertexGroupTexture.width !== pyramidTex.width || vertexGroupTexture.height !== pyramidTex.height) {
-        vertexGroupTexture.define(pyramidTex.width, pyramidTex.height)
+        vertexGroupTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest')
+        vertexGroupTexture.define(pyramidTex.getWidth(), pyramidTex.getHeight())
+    } else if (vertexGroupTexture.getWidth() !== pyramidTex.getWidth() || vertexGroupTexture.getHeight() !== pyramidTex.getHeight()) {
+        vertexGroupTexture.define(pyramidTex.getWidth(), pyramidTex.getHeight())
     } else {
         needsClear = true
     }
 
     if (!normalTexture) {
-        normalTexture = createTexture(ctx, 'image-float32', 'rgba', 'float', 'nearest')
-        normalTexture.define(pyramidTex.width, pyramidTex.height)
-    } else if (normalTexture.width !== pyramidTex.width || normalTexture.height !== pyramidTex.height) {
-        normalTexture.define(pyramidTex.width, pyramidTex.height)
+        normalTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest')
+        normalTexture.define(pyramidTex.getWidth(), pyramidTex.getHeight())
+    } else if (normalTexture.getWidth() !== pyramidTex.getWidth() || normalTexture.getHeight() !== pyramidTex.getHeight()) {
+        normalTexture.define(pyramidTex.getWidth(), pyramidTex.getHeight())
     } else {
         needsClear = true
     }
@@ -150,7 +147,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     ])
 
     setRenderingDefaults(ctx)
-    gl.viewport(0, 0, pyramidTex.width, pyramidTex.height)
+    gl.viewport(0, 0, pyramidTex.getWidth(), pyramidTex.getHeight())
     if (needsClear) gl.clear(gl.COLOR_BUFFER_BIT)
     renderable.render()
 

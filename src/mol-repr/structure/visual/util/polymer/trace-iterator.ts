@@ -305,7 +305,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.value = createPolymerTraceElement(unit)
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
 
-        const secondaryStructure = SecondaryStructureProvider.getValue(structure).value?.get(unit.invariantId)
+        const secondaryStructure = SecondaryStructureProvider.get(structure).value?.get(unit.invariantId)
         if (!secondaryStructure) throw new Error('missing secondary structure')
         this.secondaryStructureType = secondaryStructure.type
         this.secondaryStructureGetIndex = secondaryStructure.getIndex

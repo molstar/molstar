@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,6 +20,8 @@ import { ButtonsType, ModifiersKeys } from '../../../../mol-util/input/input-obs
 import { Binding } from '../../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { isEmptyLoci, Loci, EmptyLoci } from '../../../../mol-model/loci';
+import { InteractionsRepresentationProvider } from '../../../../mol-model-props/computed/representations/interactions';
+import { InteractionTypeColorThemeProvider } from '../../../../mol-model-props/computed/themes/interaction-type';
 
 const B = ButtonsType
 const M = ModifiersKeys
@@ -38,25 +40,34 @@ enum Tags {
     ResidueSel = 'structure-interaction-residue-sel',
     ResidueRepr = 'structure-interaction-residue-repr',
     SurrSel = 'structure-interaction-surr-sel',
-    SurrRepr = 'structure-interaction-surr-repr'
+    SurrRepr = 'structure-interaction-surr-repr',
+    SurrNciRepr = 'structure-interaction-surr-nci-repr'
 }
 
-const TagSet: Set<Tags> = new Set([Tags.Group, Tags.ResidueSel, Tags.ResidueRepr, Tags.SurrSel, Tags.SurrRepr])
+const TagSet: Set<Tags> = new Set([Tags.Group, Tags.ResidueSel, Tags.ResidueRepr, Tags.SurrSel, Tags.SurrRepr, Tags.SurrNciRepr])
 
 export class StructureRepresentationInteractionBehavior extends PluginBehavior.WithSubscribers<StructureRepresentationInteractionProps> {
 
     private createResVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ sizeAspectRatio: 1 })],
-            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.6 } )]
+            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
+            size: [BuiltInSizeThemes.uniform, () => ({ })]
         });
     }
 
     private createSurVisualParams(s: Structure) {
         return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
-            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ sizeAspectRatio: 1 })],
-            color: [BuiltInColorThemes['element-symbol'], () => ({ saturation: -3, lightness: 0.6 })],
-            size: [BuiltInSizeThemes.uniform, () => ({ value: 0.3 } )]
+            repr: [BuiltInStructureRepresentations['ball-and-stick'], () => ({ })],
+            color: [BuiltInColorThemes['element-symbol'], () => ({ })],
+            size: [BuiltInSizeThemes.uniform, () => ({ })]
+        });
+    }
+
+    private createSurNciVisualParams(s: Structure) {
+        return StructureRepresentation3DHelpers.createParams(this.plugin, s, {
+            repr: [InteractionsRepresentationProvider, () => ({ })],
+            color: [InteractionTypeColorThemeProvider, () => ({ })],
+            size: [BuiltInSizeThemes.uniform, () => ({ })]
         });
     }
 
@@ -91,6 +102,11 @@ export class StructureRepresentationInteractionBehavior extends PluginBehavior.W
         if (!refs[Tags.SurrRepr]) {
             refs[Tags.SurrRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
                 this.createSurVisualParams(cell.obj!.data), { tags: Tags.SurrRepr }).ref;
+        }
+
+        if (!refs[Tags.SurrNciRepr]) {
+            refs[Tags.SurrNciRepr] = builder.to(refs['structure-interaction-surr-sel']!).apply(StateTransforms.Representation.StructureRepresentation3D,
+                this.createSurNciVisualParams(cell.obj!.data), { tags: Tags.SurrNciRepr }).ref;
         }
 
         return { state, builder, refs };

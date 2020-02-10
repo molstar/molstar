@@ -9,7 +9,7 @@ import { parsePDB } from '../../../mol-io/reader/pdb/parser';
 import { Vec3, Mat4, Quat } from '../../../mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../mol-model-formats/structure/pdb';
-import { Model, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureElement } from '../../../mol-model/structure';
+import { Model, Queries, QueryContext, Structure, StructureQuery, StructureSelection as Sel, StructureElement, Coordinates, Topology } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 import Expression from '../../../mol-script/language/expression';
@@ -28,7 +28,14 @@ import { trajectoryFrom3DG } from '../../../mol-model-formats/structure/3dg';
 import { StructureSelectionQueries } from '../../util/structure-selection-helper';
 import { StructureQueryHelper } from '../../util/structure-query';
 import { ModelStructureRepresentation } from '../representation/model';
+import { parseDcd } from '../../../mol-io/reader/dcd/parser';
+import { coordinatesFromDcd } from '../../../mol-model-formats/structure/dcd';
+import { topologyFromPsf } from '../../../mol-model-formats/structure/psf';
+import { deepEqual } from '../../../mol-util';
 
+export { CoordinatesFromDcd };
+export { TopologyFromPsf };
+export { TrajectoryFromModelAndCoordinates };
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
@@ -48,6 +55,70 @@ export { StructureComplexElement };
 export { CustomModelProperties };
 export { CustomStructureProperties };
 
+type CoordinatesFromDcd = typeof CoordinatesFromDcd
+const CoordinatesFromDcd = PluginStateTransform.BuiltIn({
+    name: 'coordinates-from-dcd',
+    display: { name: 'Parse DCD', description: 'Parse DCD binary data.' },
+    from: [SO.Data.Binary],
+    to: SO.Molecule.Coordinates
+})({
+    apply({ a }) {
+        return Task.create('Parse DCD', async ctx => {
+            const parsed = await parseDcd(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const coordinates = await coordinatesFromDcd(parsed.result).runInContext(ctx);
+            return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
+        });
+    }
+});
+
+type TopologyFromPsf = typeof TopologyFromPsf
+const TopologyFromPsf = PluginStateTransform.BuiltIn({
+    name: 'topology-from-psf',
+    display: { name: 'PSF Topology', description: 'Parse PSF string data.' },
+    from: [SO.Format.Psf],
+    to: SO.Molecule.Topology
+})({
+    apply({ a }) {
+        return Task.create('Create Topology', async ctx => {
+            const topology = await topologyFromPsf(a.data).runInContext(ctx);
+            return new SO.Molecule.Topology(topology, { label: topology.label || a.label, description: 'Topology' });
+        });
+    }
+});
+
+async function getTrajectory(ctx: RuntimeContext, obj: StateObject, coordinates: Coordinates) {
+    if (obj.type === SO.Molecule.Topology.type) {
+        const topology = obj.data as Topology
+        return await Model.trajectoryFromTopologyAndCoordinates(topology, coordinates).runInContext(ctx);
+    } else if (obj.type === SO.Molecule.Model.type) {
+        const model = obj.data as Model
+        return Model.trajectoryFromModelAndCoordinates(model, coordinates);
+    }
+    throw new Error('no model/topology found')
+}
+
+type TrajectoryFromModelAndCoordinates = typeof TrajectoryFromModelAndCoordinates
+const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-model-and-coordinates',
+    display: { name: 'Trajectory from Topology & Coordinates', description: 'Create a trajectory from existing model/topology and coordinates.' },
+    from: SO.Root,
+    to: SO.Molecule.Trajectory,
+    params: {
+        modelRef: PD.Text('', { isHidden: true }),
+        coordinatesRef: PD.Text('', { isHidden: true }),
+    }
+})({
+    apply({ params, dependencies }) {
+        return Task.create('Create trajectory from model/topology and coordinates', async ctx => {
+            const coordinates = dependencies![params.coordinatesRef].data as Coordinates
+            const trajectory = await getTrajectory(ctx, dependencies![params.modelRef], coordinates);
+            const props = { label: 'Trajectory', description: `${trajectory.length} model${trajectory.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(trajectory, props);
+        });
+    }
+});
+
 type TrajectoryFromBlob = typeof TrajectoryFromBlob
 const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-blob',
@@ -66,7 +137,7 @@ const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
                 for (const x of xs) models.push(x);
             }
 
-            const props = { label: `Trajectory`, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            const props = { label: 'Trajectory', description: `${models.length} model${models.length === 1 ? '' : 's'}` };
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -210,6 +281,11 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
         return Task.create('Build Structure', async ctx => {
             return ModelStructureRepresentation.create(plugin, ctx, a.data, params && params.type);
         })
+    },
+    update: ({ a, b, oldParams, newParams }) => {
+        if (!b.data.models.includes(a.data)) return StateTransformer.UpdateResult.Recreate;
+        if (!deepEqual(oldParams, newParams)) return StateTransformer.UpdateResult.Recreate;
+        return StateTransformer.UpdateResult.Unchanged;
     }
 });
 
@@ -239,7 +315,7 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     }
 });
 
-const _translation = Vec3.zero(), _m = Mat4.zero(), _n = Mat4.zero();
+const _translation = Vec3(), _m = Mat4(), _n = Mat4();
 type TransformStructureConformation = typeof TransformStructureConformation
 const TransformStructureConformation = PluginStateTransform.BuiltIn({
     name: 'transform-structure-conformation',
@@ -267,14 +343,14 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
         Mat4.mul3(m, _n, rot, _m);
 
         const s = Structure.transform(a.data, m);
-        const props = { label: `${a.label}`, description: `Transformed` };
+        const props = { label: `${a.label}`, description: 'Transformed' };
         return new SO.Molecule.Structure(s, props);
     },
     interpolate(src, tar, t) {
         // TODO: optimize
-        const u = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * src.angle, Vec3.normalize(Vec3.zero(), src.axis));
+        const u = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * src.angle, Vec3.normalize(Vec3(), src.axis));
         Mat4.setTranslation(u, src.translation);
-        const v = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * tar.angle, Vec3.normalize(Vec3.zero(), tar.axis));
+        const v = Mat4.fromRotation(Mat4.zero(), Math.PI / 180 * tar.angle, Vec3.normalize(Vec3(), tar.axis));
         Mat4.setTranslation(v, tar.translation);
         const m = SymmetryOperator.slerp(Mat4.zero(), u, v, t);
         const rot = Mat4.getRotation(Quat.zero(), m);
@@ -300,7 +376,7 @@ const TransformStructureConformationByMatrix = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         const s = Structure.transform(a.data, params.matrix);
-        const props = { label: `${a.label}`, description: `Transformed` };
+        const props = { label: `${a.label}`, description: 'Transformed' };
         return new SO.Molecule.Structure(s, props);
     }
 });
@@ -627,24 +703,29 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Model,
     to: SO.Molecule.Model,
     params: (a, ctx: PluginContext) => {
-        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of property descriptor ids.' }) };
-        return { properties: ctx.customModelProperties.getSelect(a.data) };
+        return ctx.customModelProperties.getParams(a?.data)
     }
 })({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
-            await attachModelProps(a.data, ctx, taskCtx, params.properties);
-            return new SO.Molecule.Model(a.data, { label: 'Model Props', description: `${params.properties.length} Selected` });
+            await attachModelProps(a.data, ctx, taskCtx, params);
+            return new SO.Molecule.Model(a.data, { label: 'Model Props' });
         });
     }
 });
-async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, names: string[]) {
-    for (const name of names) {
-        try {
-            const p = ctx.customModelProperties.get(name);
-            await p.attach(model).runInContext(taskCtx);
-        } catch (e) {
-            ctx.log.warn(`Error attaching model prop '${name}': ${e}`);
+async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: PD.Values<PD.Params>) {
+    const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch }
+    for (const name of Object.keys(params)) {
+        const property = ctx.customModelProperties.get(name)
+        const props = params[name as keyof typeof params]
+        if (props.autoAttach) {
+            try {
+                await property.attach(propertyCtx, model, props)
+            } catch (e) {
+                ctx.log.warn(`Error attaching model prop '${name}': ${e}`);
+            }
+        } else {
+            property.set(model, props)
         }
     }
 }
@@ -656,7 +737,7 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: (a, ctx: PluginContext) => {
-        return ctx.customStructureProperties.getParams(a?.data || Structure.Empty)
+        return ctx.customStructureProperties.getParams(a?.data)
     }
 })({
     apply({ a, params }, ctx: PluginContext) {
@@ -667,13 +748,18 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     }
 });
 async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: PD.Values<PD.Params>) {
+    const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch }
     for (const name of Object.keys(params)) {
         const property = ctx.customStructureProperties.get(name)
         const props = params[name as keyof typeof params]
         if (props.autoAttach) {
-            await property.attach(structure, props).runInContext(taskCtx)
+            try {
+                await property.attach(propertyCtx, structure, props)
+            } catch (e) {
+                ctx.log.warn(`Error attaching structure prop '${name}': ${e}`);
+            }
         } else {
-            property.setProps(structure, props)
+            property.set(structure, props)
         }
     }
 }

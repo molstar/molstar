@@ -1,22 +1,21 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, AttributeKind } from './buffer';
+import { createAttributeBuffers, ElementsBuffer, AttributeKind } from './buffer';
 import { createTextures, Texture } from './texture';
 import { WebGLContext, checkError } from './context';
 import { ShaderCode } from '../shader-code';
 import { Program } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
-import { deleteVertexArray, createVertexArray } from './vertex-array';
 import { ValueCell } from '../../mol-util';
-import { ReferenceItem } from '../../mol-util/reference-cache';
 import { TextureImage, TextureVolume } from '../../mol-gl/renderable/util';
 import { checkFramebufferStatus } from './framebuffer';
 import { isDebugMode } from '../../mol-util/debug';
+import { VertexArray } from './vertex-array';
 
 const getNextRenderItemId = idFactory()
 
@@ -65,8 +64,8 @@ type RenderVariantDefines = typeof GraphicsRenderVariantDefines | typeof Compute
 
 //
 
-type ProgramVariants = { [k: string]: ReferenceItem<Program> }
-type VertexArrayVariants = { [k: string]: WebGLVertexArrayObjectOES | null }
+type ProgramVariants = { [k: string]: Program }
+type VertexArrayVariants = { [k: string]: VertexArray | null }
 
 interface ValueChanges {
     attributes: boolean
@@ -108,7 +107,7 @@ export function createComputeRenderItem(ctx: WebGLContext, drawMode: DrawMode, s
  */
 export function createRenderItem<T extends RenderVariantDefines, S extends keyof T & string>(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, renderVariantDefines: T): RenderItem<S> {
     const id = getNextRenderItemId()
-    const { stats, state, programCache } = ctx
+    const { stats, state, resources } = ctx
     const { instancedArrays, vertexArrayObject } = ctx.extensions
 
     const { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues } = splitValues(schema, values)
@@ -124,11 +123,7 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
     const programs: ProgramVariants = {}
     Object.keys(renderVariantDefines).forEach(k => {
         const variantDefineValues: Values<RenderableSchema> = (renderVariantDefines as any)[k]
-        programs[k] = programCache.get({
-            defineValues: { ...defineValues, ...variantDefineValues },
-            shaderCode,
-            schema
-        })
+        programs[k] = resources.program({ ...defineValues, ...variantDefineValues }, shaderCode, schema)
     })
 
     const textures = createTextures(ctx, schema, textureValues)
@@ -137,12 +132,12 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
     let elementsBuffer: ElementsBuffer | undefined
     const elements = values.elements
     if (elements && elements.ref.value) {
-        elementsBuffer = createElementsBuffer(ctx, elements.ref.value)
+        elementsBuffer = resources.elements(elements.ref.value)
     }
 
     const vertexArrays: VertexArrayVariants = {}
     Object.keys(renderVariantDefines).forEach(k => {
-        vertexArrays[k] = createVertexArray(ctx, programs[k].value, attributeBuffers, elementsBuffer)
+        vertexArrays[k] = vertexArrayObject ? resources.vertexArray(programs[k], attributeBuffers, elementsBuffer) : null
     })
 
     let drawCount = values.drawCount.ref.value
@@ -160,11 +155,11 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
     return {
         id,
         materialId,
-        getProgram: (variant: S) => programs[variant].value,
+        getProgram: (variant: S) => programs[variant],
 
         render: (variant: S) => {
-            if (drawCount === 0 || instanceCount === 0) return
-            const program = programs[variant].value
+            if (drawCount === 0 || instanceCount === 0 || ctx.isContextLost) return
+            const program = programs[variant]
             if (program.id === currentProgramId && state.currentRenderItemId === id) {
                 program.setUniforms(uniformValueEntries)
                 program.bindTextures(textures)
@@ -181,8 +176,8 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
                 }
                 program.setUniforms(uniformValueEntries)
                 program.bindTextures(textures)
-                if (vertexArrayObject && vertexArray) {
-                    vertexArrayObject.bindVertexArray(vertexArray)
+                if (vertexArray) {
+                    vertexArray.bind()
                     // need to bind elements buffer explicitly since it is not always recorded in the VAO
                     if (elementsBuffer) elementsBuffer.bind()
                 } else {
@@ -226,12 +221,8 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
                 // console.log('some defines changed, need to rebuild programs')
                 Object.keys(renderVariantDefines).forEach(k => {
                     const variantDefineValues: Values<RenderableSchema> = (renderVariantDefines as any)[k]
-                    programs[k].free()
-                    programs[k] = programCache.get({
-                        defineValues: { ...defineValues, ...variantDefineValues },
-                        shaderCode,
-                        schema
-                    })
+                    programs[k].destroy()
+                    programs[k] = resources.program({ ...defineValues, ...variantDefineValues }, shaderCode, schema)
                 })
             }
 
@@ -261,7 +252,7 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
                         // console.log('attribute array to small, need to create new attribute', k, value.ref.id, value.ref.version)
                         buffer.destroy()
                         const { itemSize, divisor } = schema[k] as AttributeSpec<AttributeKind>
-                        attributeBuffers[i][1] = createAttributeBuffer(ctx, value.ref.value, itemSize, divisor)
+                        attributeBuffers[i][1] = resources.attribute(value.ref.value, itemSize, divisor)
                         valueChanges.attributes = true
                     }
                     versions[k] = value.ref.version
@@ -275,7 +266,7 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
                 } else {
                     // console.log('elements array to small, need to create new elements', values.elements.ref.id, values.elements.ref.version)
                     elementsBuffer.destroy()
-                    elementsBuffer = createElementsBuffer(ctx, values.elements.ref.value)
+                    elementsBuffer = resources.elements(values.elements.ref.value)
                     valueChanges.elements = true
                 }
                 versions.elements = values.elements.ref.version
@@ -283,19 +274,10 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
 
             if (valueChanges.attributes || valueChanges.defines || valueChanges.elements) {
                 // console.log('program/defines or buffers changed, update vaos')
-                const { vertexArrayObject } = ctx.extensions
-                if (vertexArrayObject) {
-                    Object.keys(renderVariantDefines).forEach(k => {
-                        vertexArrayObject.bindVertexArray(vertexArrays[k])
-                        if (elementsBuffer && (valueChanges.defines || valueChanges.elements)) {
-                            elementsBuffer.bind()
-                        }
-                        if (valueChanges.attributes || valueChanges.defines) {
-                            programs[k].value.bindAttributes(attributeBuffers)
-                        }
-                        vertexArrayObject.bindVertexArray(null)
-                    })
-                }
+                Object.keys(renderVariantDefines).forEach(k => {
+                    const vertexArray = vertexArrays[k]
+                    if (vertexArray) vertexArray.update()
+                })
             }
 
             for (let i = 0, il = textures.length; i < il; ++i) {
@@ -319,8 +301,9 @@ export function createRenderItem<T extends RenderVariantDefines, S extends keyof
         destroy: () => {
             if (!destroyed) {
                 Object.keys(renderVariantDefines).forEach(k => {
-                    programs[k].free()
-                    deleteVertexArray(ctx, vertexArrays[k])
+                    programs[k].destroy()
+                    const vertexArray = vertexArrays[k]
+                    if (vertexArray) vertexArray.destroy()
                 })
                 textures.forEach(([k, texture]) => {
                     // lifetime of textures with kind 'texture' is defined externally

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -10,8 +10,6 @@ import { Loci } from '../mol-model/loci';
 import { OrderedSet } from '../mol-data/int';
 import { capitalize, stripTags } from '../mol-util/string';
 import { Column } from '../mol-data/db';
-import { Interactions } from '../mol-model-props/computed/interactions/interactions';
-import { interactionTypeLabel } from '../mol-model-props/computed/interactions/common';
 
 export type LabelGranularity = 'element' | 'conformation' | 'residue' | 'chain' | 'structure'
 
@@ -31,21 +29,18 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
             return structureElementStatsLabel(StructureElement.Stats.ofLoci(loci), options)
         case 'bond-loci':
             const bond = loci.bonds[0]
-            return bond ? bondLabel(bond) : 'Unknown'
-        case 'interaction-loci':
-            const link = loci.links[0]
-            return link ? interactionLabel(Interactions.Location(loci.interactions, link.unitA, link.indexA, link.unitB, link.indexB)) : 'Unknown'
+            return bond ? bondLabel(bond) : ''
         case 'shape-loci':
             return loci.shape.name
         case 'group-loci':
             const g = loci.groups[0]
-            return g ? loci.shape.getLabel(OrderedSet.start(g.ids), loci.instance) : 'Unknown'
+            return g ? loci.shape.getLabel(OrderedSet.start(g.ids), g.instance) : ''
         case 'every-loci':
             return 'Everything'
         case 'empty-loci':
             return 'Nothing'
         case 'data-loci':
-            return ''
+            return loci.getLabel()
     }
 }
 
@@ -115,11 +110,12 @@ function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly =
     }
 }
 
-export function bondLabel(bond: Bond.Location): string {
+export function bondLabel(bond: Bond.Location, options: Partial<LabelOptions> = {}): string {
+    const o = { ...DefaultLabelOptions, ...options }
     const locA = StructureElement.Location.create(bond.aUnit, bond.aUnit.elements[bond.aIndex])
     const locB = StructureElement.Location.create(bond.bUnit, bond.bUnit.elements[bond.bIndex])
-    const labelA = _elementLabel(locA)
-    const labelB = _elementLabel(locB)
+    const labelA = _elementLabel(locA, o.granularity, o.hidePrefix)
+    const labelB = _elementLabel(locB, o.granularity, o.hidePrefix)
     let offset = 0
     for (let i = 0, il = Math.min(labelA.length, labelB.length); i < il; ++i) {
         if (labelA[i] === labelB[i]) offset += 1
@@ -128,15 +124,47 @@ export function bondLabel(bond: Bond.Location): string {
     return `${labelA.join(' | ')} \u2014 ${labelB.slice(offset).join(' | ')}`
 }
 
-export function interactionLabel(location: Interactions.Location): string {
-    const { interactions, unitA, indexA, unitB, indexB } = location
-    if (location.unitA === location.unitB) {
-        const links = interactions.unitsLinks.get(location.unitA.id)
-        const idx = links.getDirectedEdgeIndex(location.indexA, location.indexB)
-        return interactionTypeLabel(links.edgeProps.type[idx])
+export function bundleLabel(bundle: Loci.Bundle<any>, options: Partial<LabelOptions> = {}) {
+    let isSingleElements = true
+    for (const l of bundle.loci) {
+        if (!StructureElement.Loci.is(l) || StructureElement.Loci.size(l) !== 1) {
+            isSingleElements = false
+            break
+        }
+    }
+
+    if (isSingleElements) {
+        const o = { ...DefaultLabelOptions, ...options }
+        const locations = (bundle.loci as StructureElement.Loci[]).map(l => {
+            const { unit, indices } = l.elements[0]
+            return StructureElement.Location.create(unit, unit.elements[OrderedSet.start(indices)])
+        })
+        const labels = locations.map(l => _elementLabel(l, o.granularity, o.hidePrefix))
+
+        let offset = 0
+        for (let i = 0, il = Math.min(...labels.map(l => l.length)); i < il; ++i) {
+            let areIdentical = true
+            for (let j = 1, jl = labels.length; j < jl; ++j) {
+                if (labels[0][i] !== labels[j][i]) {
+                    areIdentical = false
+                    break
+                }
+            }
+            if (areIdentical) offset += 1
+            else break
+        }
+
+        if (offset > 0) {
+            const offsetLabels = [labels[0].join(' | ')]
+            for (let j = 1, jl = labels.length; j < jl; ++j) {
+                offsetLabels.push(labels[j].slice(offset).join(' | '))
+            }
+            return offsetLabels.join(' \u2014 ')
+        } else {
+            return labels.map(l => l.join(' | ')).join('</br>')
+        }
     } else {
-        const idx = interactions.links.getEdgeIndex(indexA, unitA, indexB, unitB)
-        return interactionTypeLabel(interactions.links.edges[idx].props.type)
+        return bundle.loci.map(l => lociLabel(l)).join('</br>')
     }
 }
 
@@ -179,6 +207,7 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
     const comp_id = Props.residue.label_comp_id(location)
     const atom_id = Props.atom.label_atom_id(location)
     const alt_id = Props.atom.label_alt_id(location)
+    const occupancy = Props.atom.occupancy(location);
 
     const microHetCompIds = Props.residue.microheterogeneityCompIds(location)
     const compId = granularity === 'residue' && microHetCompIds.length > 1 ?
@@ -205,6 +234,10 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
                     label.push(`<b>${label_asym_id}</b> <small>[auth</small> <b>${auth_asym_id}</b><small>]</small>`)
                 }
             }
+    }
+
+    if (label.length > 0 && occupancy !== 1) {
+        label[0] = `${label[0]} <small>[occupancy</small> <b>${Math.round(100 * occupancy) / 100}</b><small>]</small>`;
     }
 
     return label.reverse()

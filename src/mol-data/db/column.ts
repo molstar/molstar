@@ -92,7 +92,13 @@ namespace Column {
         return !!v && !!(v as Column<any>).schema && !!(v as Column<any>).value;
     }
 
-    export const enum ValueKind { Present = 0, NotPresent = 1, Unknown = 2 }
+    export const enum ValueKind {
+        Present = 0,
+        /** Expressed in CIF as `.` */
+        NotPresent = 1,
+        /** Expressed in CIF as `?` */
+        Unknown = 2
+    }
 
     export function Undefined<T extends Schema>(rowCount: number, schema: T): Column<T['T']> {
         return constColumn(schema['T'], rowCount, schema, ValueKind.NotPresent);
@@ -290,14 +296,14 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
                 return ret;
             }
             : isTyped
-            ? params => ColumnHelpers.typedArrayWindow(array, params) as any as ReadonlyArray<T>
-            : params => {
-                const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
-                if (start === 0 && end === array.length) return array as ReadonlyArray<T['T']>;
-                const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
-                for (let i = 0, _i = end - start; i < _i; i++) ret[i] = array[start + i];
-                return ret;
-            },
+                ? params => ColumnHelpers.typedArrayWindow(array, params) as any as ReadonlyArray<T>
+                : params => {
+                    const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
+                    if (start === 0 && end === array.length) return array as ReadonlyArray<T['T']>;
+                    const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
+                    for (let i = 0, _i = end - start; i < _i; i++) ret[i] = array[start + i];
+                    return ret;
+                },
         areValuesEqual: (rowA, rowB) => array[rowA] === array[rowB]
     }
 }

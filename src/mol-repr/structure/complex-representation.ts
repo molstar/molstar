@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -14,10 +14,9 @@ import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-obj
 import { Theme } from '../../mol-theme/theme';
 import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
-import { EmptyLoci, Loci, isEveryLoci } from '../../mol-model/loci';
-import { MarkerAction } from '../../mol-util/marker-action';
+import { EmptyLoci, Loci, isEveryLoci, isDataLoci } from '../../mol-model/loci';
+import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
-import { Interactions } from '../../mol-model-props/computed/interactions/interactions';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0
@@ -41,9 +40,17 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         _props = Object.assign({}, _props, props)
 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
-            if (!visual) visual = visualCtor(materialId)
+            let newVisual = false
+            if (!visual) {
+                visual = visualCtor(materialId)
+                newVisual = true
+            }
             const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, structure)
             if (promise) await promise
+            if (newVisual) {
+                // ensure state is current for new visual
+                setState(_state)
+            }
             // update list of renderObjects
             renderObjects.length = 0
             if (visual && visual.renderObject) renderObjects.push(visual.renderObject)
@@ -59,14 +66,15 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
     function mark(loci: Loci, action: MarkerAction) {
         if (!_structure) return false
-        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Bond.isLoci(loci) || Interactions.isLoci(loci)) {
+        if (!MarkerActions.is(_state.markerActions, action)) return false
+        if (Structure.isLoci(loci) || StructureElement.Loci.is(loci) || Bond.isLoci(loci)) {
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false
             // Remap `loci` from equivalent structure to the current `_structure`
             loci = Loci.remap(loci, _structure)
-            if (Loci.isEmpty(loci)) return false
-        } else if (!isEveryLoci(loci)) {
+        } else if (!isEveryLoci(loci) && !isDataLoci(loci)) {
             return false
         }
+        if (Loci.isEmpty(loci)) return false
         return visual ? visual.mark(loci, action) : false
     }
 

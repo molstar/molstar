@@ -134,8 +134,8 @@ class PluginStateSnapshotManager extends PluginComponent<{
         const current = snapshot.current
             ? snapshot.current
             : snapshot.entries.length > 0
-            ? snapshot.entries[0].snapshot.id
-            : void 0;
+                ? snapshot.entries[0].snapshot.id
+                : void 0;
         this.updateState({
             current,
             entries: entries.asImmutable(),

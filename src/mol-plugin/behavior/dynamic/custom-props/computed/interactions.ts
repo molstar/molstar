@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,6 +14,9 @@ import StructureElement from '../../../../../mol-model/structure/structure/eleme
 import { OrderedSet } from '../../../../../mol-data/int';
 import { featureGroupLabel, featureTypeLabel } from '../../../../../mol-model-props/computed/interactions/common';
 import { Loci } from '../../../../../mol-model/loci';
+import { arraySetAdd } from '../../../../../mol-util/array';
+import { InteractionTypeColorThemeProvider } from '../../../../../mol-model-props/computed/themes/interaction-type';
+import { InteractionsRepresentationProvider } from '../../../../../mol-model-props/computed/representations/interactions';
 
 export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'computed-interactions-prop',
@@ -29,7 +32,7 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
                 const state = this.ctx.state.dataState
                 const selections = state.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure, root.transform.ref));
                 for (const s of selections) {
-                    if (s.obj) structures.push(s.obj.data)
+                    if (s.obj) arraySetAdd(structures, s.obj.data)
                 }
             }
             return structures
@@ -46,7 +49,7 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
                     const structures = this.getStructures(loci.structure)
 
                     for (const s of structures) {
-                        const interactions = this.provider.getValue(s).value
+                        const interactions = this.provider.get(s).value
                         if (!interactions) continue;
 
                         const l = StructureElement.Loci.remap(loci, s)
@@ -96,12 +99,16 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
 
         register(): void {
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('interaction-type', InteractionTypeColorThemeProvider)
             this.ctx.lociLabels.addProvider(this.label);
+            this.ctx.structureRepresentation.registry.add('interactions', InteractionsRepresentationProvider)
         }
 
         unregister() {
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('interaction-type')
             this.ctx.lociLabels.removeProvider(this.label);
+            this.ctx.structureRepresentation.registry.remove('interactions')
         }
     },
     params: () => ({

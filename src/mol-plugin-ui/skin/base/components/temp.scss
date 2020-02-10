@@ -83,6 +83,7 @@
 
     > li {
         position: relative;
+        overflow: hidden;
 
         > button:first-child {
             border-left: $control-spacing solid color-increase-contrast($default-background, 12%) !important;

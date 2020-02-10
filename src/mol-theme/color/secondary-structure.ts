@@ -15,7 +15,7 @@ import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { SecondaryStructureProvider, SecondaryStructureValue } from '../../mol-model-props/computed/secondary-structure';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
-import { Task } from '../../mol-task';
+import { CustomProperty } from '../../mol-model-props/common/custom-property';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -84,7 +84,7 @@ export function secondaryStructureColor(colorMap: SecondaryStructureColors, unit
 
 export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Values<SecondaryStructureColorThemeParams>): ColorTheme<SecondaryStructureColorThemeParams> {
 
-    const computedSecondaryStructure = ctx.structure && SecondaryStructureProvider.getValue(ctx.structure)
+    const computedSecondaryStructure = ctx.structure && SecondaryStructureProvider.get(ctx.structure)
     const contextHash = computedSecondaryStructure && computedSecondaryStructure.version
 
     const colorMap = getAdjustedColorMap(SecondaryStructureColors, props.saturation, props.lightness)
@@ -117,7 +117,7 @@ export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<Secondary
     getParams: getSecondaryStructureColorThemeParams,
     defaultValues: PD.getDefaultValues(SecondaryStructureColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
-    ensureDependencies: (ctx: ThemeDataContext) => {
-        return ctx.structure ? SecondaryStructureProvider.attach(ctx.structure) : Task.empty()
+    ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
+        return data.structure ? SecondaryStructureProvider.attach(ctx, data.structure) : Promise.resolve()
     }
 }

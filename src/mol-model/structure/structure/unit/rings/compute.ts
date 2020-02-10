@@ -142,7 +142,11 @@ function addRing(state: State, a: number, b: number) {
         if (current < 0) break;
     }
 
-    const ring = new Int32Array(leftOffset + rightOffset);
+    const len = leftOffset + rightOffset
+    // rings must have at least three elements
+    if (len < 3) return
+
+    const ring = new Int32Array(len);
     let ringOffset = 0;
     for (let t = 0; t < leftOffset; t++) ring[ringOffset++] = state.startVertex + left[t];
     for (let t = rightOffset - 1; t >= 0; t--) ring[ringOffset++] = state.startVertex + right[t];
@@ -249,8 +253,9 @@ function buildFinderprint(elements: string[], offset: number) {
 type RingIndex = import('../rings').UnitRings.Index
 type RingComponentIndex = import('../rings').UnitRings.ComponentIndex
 
-export function createIndex(rings: ArrayLike<SortedArray<StructureElement.UnitIndex>>) {
+export function createIndex(rings: ArrayLike<SortedArray<StructureElement.UnitIndex>>, aromaticRings: ReadonlyArray<RingIndex>) {
     const elementRingIndices: Map<StructureElement.UnitIndex, RingIndex[]> = new Map();
+    const elementAromaticRingIndices: Map<StructureElement.UnitIndex, RingIndex[]> = new Map();
 
     // for each ring atom, assign all rings that it is present in
     for (let rI = 0 as RingIndex, _rI = rings.length; rI < _rI; rI++) {
@@ -259,6 +264,17 @@ export function createIndex(rings: ArrayLike<SortedArray<StructureElement.UnitIn
             const e = r[i];
             if (elementRingIndices.has(e)) elementRingIndices.get(e)!.push(rI);
             else elementRingIndices.set(e, [rI]);
+        }
+    }
+
+    // for each ring atom, assign all aromatic rings that it is present in
+    for (let aI = 0, _aI = aromaticRings.length; aI < _aI; aI++) {
+        const rI = aromaticRings[aI]
+        const r = rings[rI];
+        for (let i = 0, _i = r.length; i < _i; i++) {
+            const e = r[i];
+            if (elementAromaticRingIndices.has(e)) elementAromaticRingIndices.get(e)!.push(rI);
+            else elementAromaticRingIndices.set(e, [rI]);
         }
     }
 
@@ -292,5 +308,5 @@ export function createIndex(rings: ArrayLike<SortedArray<StructureElement.UnitIn
         ringComponents[ringComponentIndex[rI]].push(rI);
     }
 
-    return { elementRingIndices, ringComponentIndex, ringComponents };
+    return { elementRingIndices, elementAromaticRingIndices, ringComponentIndex, ringComponents };
 }

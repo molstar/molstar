@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,12 +10,12 @@ import { StateAction, StateBuilder, StateSelection, StateTransformer, State } fr
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
-import { Download } from '../transforms/data';
-import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties } from '../transforms/model';
+import { Download, ParsePsf } from '../transforms/data';
+import { CustomModelProperties, StructureSelectionFromExpression, CustomStructureProperties, CoordinatesFromDcd, TrajectoryFromModelAndCoordinates, TopologyFromPsf } from '../transforms/model';
 import { DataFormatProvider, guessCifVariant, DataFormatBuilderOptions } from './data-format';
 import { FileInfo } from '../../../mol-util/file-info';
 import { Task } from '../../../mol-task';
-import { StructureElement, Structure } from '../../../mol-model/structure';
+import { StructureElement } from '../../../mol-model/structure';
 import { createDefaultStructureComplex } from '../../util/structure-complex-helper';
 import { ModelStructureRepresentation } from '../representation/model';
 
@@ -86,6 +86,36 @@ export const Provider3dg: DataFormatProvider<any> = {
     }
 }
 
+export const PsfProvider: DataFormatProvider<any> = {
+    label: 'PSF',
+    description: 'PSF',
+    stringExtensions: ['psf'],
+    binaryExtensions: [],
+    isApplicable: (info: FileInfo, data: string) => {
+        return info.ext === 'psf'
+    },
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.String>, options: DataFormatBuilderOptions, state: State) => {
+        return Task.create('PSF default builder', async taskCtx => {
+            await state.updateTree(data.apply(ParsePsf, {}, { state: { isGhost: true } }).apply(TopologyFromPsf)).runInContext(taskCtx)
+        })
+    }
+}
+
+export const DcdProvider: DataFormatProvider<any> = {
+    label: 'DCD',
+    description: 'DCD',
+    stringExtensions: [],
+    binaryExtensions: ['dcd'],
+    isApplicable: (info: FileInfo, data: string) => {
+        return info.ext === 'dcd'
+    },
+    getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, options: DataFormatBuilderOptions, state: State) => {
+        return Task.create('DCD default builder', async taskCtx => {
+            await state.updateTree(data.apply(CoordinatesFromDcd)).runInContext(taskCtx)
+        })
+    }
+}
+
 type StructureFormat = 'pdb' | 'cif' | 'gro' | '3dg'
 
 //
@@ -143,15 +173,15 @@ const DownloadStructure = StateAction.build({
                 })
             }, { isFlat: true })
         }, {
-                options: [
-                    ['pdbe-updated', 'PDBe Updated'],
-                    ['rcsb', 'RCSB'],
-                    ['pdb-dev', 'PDBDEV'],
-                    ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
-                    ['swissmodel', 'SWISS-MODEL'],
-                    ['url', 'URL']
-                ]
-            })
+            options: [
+                ['pdbe-updated', 'PDBe Updated'],
+                ['rcsb', 'RCSB'],
+                ['pdb-dev', 'PDBDEV'],
+                ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
+                ['swissmodel', 'SWISS-MODEL'],
+                ['url', 'URL']
+            ]
+        })
     }
 })(({ params, state }, plugin: PluginContext) => Task.create('Download Structure', async ctx => {
     plugin.behaviors.layout.leftPanelTabName.next('data');
@@ -342,11 +372,10 @@ export const UpdateTrajectory = StateAction.build({
 });
 
 export const EnableModelCustomProps = StateAction.build({
-    display: { name: 'Custom Model Properties', description: 'Enable the addition of custom properties to the model.' },
+    display: { name: 'Custom Model Properties', description: 'Enable parameters for custom properties of the model.' },
     from: PluginStateObject.Molecule.Model,
     params(a, ctx: PluginContext) {
-        if (!a) return { properties: PD.MultiSelect([], [], { description: 'A list of model property descriptor ids.' }) };
-        return { properties: ctx.customModelProperties.getSelect(a.data) };
+        return ctx.customModelProperties.getParams(a?.data)
     },
     isApplicable(a, t, ctx: PluginContext) {
         return t.transformer !== CustomModelProperties;
@@ -360,7 +389,7 @@ export const EnableStructureCustomProps = StateAction.build({
     display: { name: 'Custom Structure Properties', description: 'Enable parameters for custom properties of the structure.' },
     from: PluginStateObject.Molecule.Structure,
     params(a, ctx: PluginContext) {
-        return ctx.customStructureProperties.getParams(a?.data || Structure.Empty)
+        return ctx.customStructureProperties.getParams(a?.data)
     },
     isApplicable(a, t, ctx: PluginContext) {
         return t.transformer !== CustomStructureProperties;
@@ -395,4 +424,32 @@ export const StructureFromSelection = StateAction.build({
     const expression = StructureElement.Loci.toExpression(sel);
     const root = state.build().to(ref).apply(StructureSelectionFromExpression, { expression, label: params.label });
     return state.updateTree(root);
+});
+
+export const AddTrajectory = StateAction.build({
+    display: { name: 'Add Trajectory', description: 'Add trajectory from existing model/topology and coordinates.' },
+    from: PluginStateObject.Root,
+    params(a, ctx: PluginContext) {
+        const state = ctx.state.dataState
+        const models = [
+            ...state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Model)),
+            ...state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Topology)),
+        ]
+        const modelOptions = models.map(t => [t.transform.ref, t.obj!.label]) as [string, string][]
+        const coords = state.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Coordinates))
+        const coordOptions = coords.map(c => [c.transform.ref, c.obj!.label]) as [string, string][]
+        return {
+            model: PD.Select(modelOptions.length ? modelOptions[0][0] : '', modelOptions),
+            coordinates: PD.Select(coordOptions.length ? coordOptions[0][0] : '', coordOptions)
+        }
+    }
+})(({ ref, params, state }, ctx: PluginContext) => {
+    const dependsOn = [params.model, params.coordinates];
+    const root = state.build().toRoot()
+        .apply(TrajectoryFromModelAndCoordinates, {
+            modelRef: params.model,
+            coordinatesRef: params.coordinates
+        }, { dependsOn })
+        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
+    return state.updateTree(createStructureAndVisuals(ctx, root, false));
 });

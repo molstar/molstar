@@ -18,7 +18,6 @@ export interface ComponentBond {
 
 export namespace ComponentBond {
     export const Descriptor: CustomPropertyDescriptor = {
-        isStatic: true,
         name: 'chem_comp_bond',
         cifExport: {
             prefix: '',

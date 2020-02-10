@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,13 +8,11 @@ import { StructureElement } from './structure'
 import { Bond } from './structure/structure/unit/bonds'
 import { Shape, ShapeGroup } from './shape';
 import { Sphere3D } from '../mol-math/geometry';
-import { CentroidHelper } from '../mol-math/geometry/centroid-helper';
 import { Vec3 } from '../mol-math/linear-algebra';
-import { OrderedSet } from '../mol-data/int';
 import { Structure } from './structure/structure';
 import { PrincipalAxes } from '../mol-math/linear-algebra/matrix/principal-axes';
 import { ParamDefinition } from '../mol-util/param-definition';
-import { Interactions } from '../mol-model-props/computed/interactions/interactions';
+import { shallowEqual } from '../mol-util';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -31,28 +29,36 @@ export function isEmptyLoci(x?: Loci): x is EmptyLoci {
 }
 
 /** A generic data loci */
-export interface DataLoci {
+export interface DataLoci<T = unknown, E = unknown> {
     readonly kind: 'data-loci',
-    readonly data: any,
     readonly tag: string
-    readonly indices: OrderedSet<number>
+    readonly data: T,
+    readonly elements: ReadonlyArray<E>
+
+    getBoundingSphere(boundingSphere: Sphere3D): Sphere3D
+    getLabel(): string
 }
 export function isDataLoci(x?: Loci): x is DataLoci {
     return !!x && x.kind === 'data-loci';
 }
 export function areDataLociEqual(a: DataLoci, b: DataLoci) {
-    return a.data === b.data && a.tag === b.tag && OrderedSet.areEqual(a.indices, b.indices)
+    if (a.data !== b.data || a.tag !== b.tag) return false
+    if (a.elements.length !== b.elements.length) return false
+    for (let i = 0, il = a.elements.length; i < il; ++i) {
+        if (!shallowEqual(a.elements[i], b.elements[i])) return false
+    }
+    return true
 }
 export function isDataLociEmpty(loci: DataLoci) {
-    return OrderedSet.size(loci.indices) === 0 ? true : false
+    return loci.elements.length === 0 ? true : false
 }
-export function createDataLoci(data: any, tag: string, indices: OrderedSet<number>): DataLoci {
-    return { kind: 'data-loci', data, tag, indices }
+export function DataLoci<T = unknown, E = unknown>(tag: string, data: T, elements: ReadonlyArray<E>, getBoundingSphere: DataLoci<T, E>['getBoundingSphere'], getLabel: DataLoci<T, E>['getLabel']): DataLoci<T, E> {
+    return { kind: 'data-loci', tag, data, elements, getBoundingSphere, getLabel }
 }
 
 export { Loci }
 
-type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | Interactions.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
+type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci
 
 namespace Loci {
     interface FiniteArray<T, L extends number = number> extends ReadonlyArray<T> { length: L };
@@ -72,9 +78,6 @@ namespace Loci {
         }
         if (Bond.isLoci(lociA) && Bond.isLoci(lociB)) {
             return Bond.areLociEqual(lociA, lociB)
-        }
-        if (Interactions.isLoci(lociA) && Interactions.isLoci(lociB)) {
-            return Interactions.areLociEqual(lociA, lociB)
         }
         if (Shape.isLoci(lociA) && Shape.isLoci(lociB)) {
             return Shape.areLociEqual(lociA, lociB)
@@ -96,7 +99,6 @@ namespace Loci {
         if (Structure.isLoci(loci)) return Structure.isLociEmpty(loci)
         if (StructureElement.Loci.is(loci)) return StructureElement.Loci.isEmpty(loci)
         if (Bond.isLoci(loci)) return Bond.isLociEmpty(loci)
-        if (Interactions.isLoci(loci)) return Interactions.isLociEmpty(loci)
         if (Shape.isLoci(loci)) return Shape.isLociEmpty(loci)
         if (ShapeGroup.isLoci(loci)) return ShapeGroup.isLociEmpty(loci)
         return false
@@ -110,63 +112,35 @@ namespace Loci {
                 loci = Structure.remapLoci(loci, data)
             } else if (Bond.isLoci(loci)) {
                 loci = Bond.remapLoci(loci, data)
-            } else if (Interactions.isLoci(loci)) {
-                // TODO might be too expensive
-                // loci = Interactions.remapLoci(loci, data)
             }
         }
         return loci
     }
 
-    const sphereHelper = new CentroidHelper(), tempPos = Vec3.zero();
-
     export function getBoundingSphere(loci: Loci, boundingSphere?: Sphere3D): Sphere3D | undefined {
         if (loci.kind === 'every-loci' || loci.kind === 'empty-loci') return void 0;
 
         if (!boundingSphere) boundingSphere = Sphere3D()
-        sphereHelper.reset();
 
         if (loci.kind === 'structure-loci') {
             return Sphere3D.copy(boundingSphere, loci.structure.boundary.sphere)
         } else if (loci.kind === 'element-loci') {
-            return StructureElement.Loci.getBoundary(loci).sphere;
+            return Sphere3D.copy(boundingSphere, StructureElement.Loci.getBoundary(loci).sphere);
         } else if (loci.kind === 'bond-loci') {
-            for (const e of loci.bonds) {
-                e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tempPos);
-                sphereHelper.includeStep(tempPos);
-                e.bUnit.conformation.position(e.bUnit.elements[e.bIndex], tempPos);
-                sphereHelper.includeStep(tempPos);
-            }
-            sphereHelper.finishedIncludeStep();
-            for (const e of loci.bonds) {
-                e.aUnit.conformation.position(e.aUnit.elements[e.aIndex], tempPos);
-                sphereHelper.radiusStep(tempPos);
-                e.aUnit.conformation.position(e.bUnit.elements[e.bIndex], tempPos);
-                sphereHelper.radiusStep(tempPos);
-            }
-        } else if (loci.kind === 'interaction-loci') {
-            // TODO
-            // return Interactions.Loci.getBoundary(loci).sphere;
+            return Bond.getBoundingSphere(loci, boundingSphere)
         } else if (loci.kind === 'shape-loci') {
-            // TODO
-            return void 0;
+            return Sphere3D.copy(boundingSphere, loci.shape.geometry.boundingSphere)
         } else if (loci.kind === 'group-loci') {
-            // TODO
-            return void 0;
+            return ShapeGroup.getBoundingSphere(loci, boundingSphere)
         } else if (loci.kind === 'data-loci') {
-            // TODO maybe add loci.getBoundingSphere()???
-            return void 0;
+            return loci.getBoundingSphere(boundingSphere)
         }
-
-        Vec3.copy(boundingSphere.center, sphereHelper.center)
-        boundingSphere.radius = Math.sqrt(sphereHelper.radiusSq)
-        return boundingSphere
     }
 
     const tmpSphere3D = Sphere3D.zero()
     export function getCenter(loci: Loci, center?: Vec3): Vec3 | undefined {
         const boundingSphere = getBoundingSphere(loci, tmpSphere3D)
-        return boundingSphere ? Vec3.copy(center || Vec3.zero(), boundingSphere.center) : undefined
+        return boundingSphere ? Vec3.copy(center || Vec3(), boundingSphere.center) : undefined
     }
 
     export function getPrincipalAxes(loci: Loci): PrincipalAxes | undefined {
@@ -177,9 +151,6 @@ namespace Loci {
         } else if (loci.kind === 'element-loci') {
             return StructureElement.Loci.getPrincipalAxes(loci)
         } else if (loci.kind === 'bond-loci') {
-            // TODO
-            return void 0;
-        } else if (loci.kind === 'interaction-loci') {
             // TODO
             return void 0;
         } else if (loci.kind === 'shape-loci') {
@@ -237,7 +208,12 @@ namespace Loci {
             return StructureElement.Loci.is(loci)
                 ? Structure.toStructureElementLoci(loci.structure)
                 : loci
-        }
+        },
+        'shape': (loci: Loci) => {
+            return ShapeGroup.isLoci(loci)
+                ? Shape.Loci(loci.shape)
+                : loci
+        },
     }
     export type Granularity = keyof typeof Granularity
     export const GranularityOptions = ParamDefinition.objectToOptions(Granularity);

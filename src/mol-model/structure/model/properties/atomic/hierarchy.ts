@@ -205,7 +205,7 @@ export interface AtomicIndex {
 
 export namespace AtomicIndex {
     export interface ChainLabelKey { label_entity_id: string, label_asym_id: string }
-    export interface ChainAuthKey { auth_asym_id: string }
+    export interface ChainAuthKey { auth_asym_id: string, auth_seq_id: number }
 
     export interface ResidueKey { label_entity_id: string, label_asym_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string }
     export function EmptyResidueKey(): ResidueKey { return { label_entity_id: '', label_asym_id: '', auth_seq_id: 0, pdbx_PDB_ins_code: void 0 }; }

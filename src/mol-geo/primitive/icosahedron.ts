@@ -11,8 +11,8 @@ const t = (1 + Math.sqrt(5)) / 2;
 
 const icosahedronVertices: ReadonlyArray<number> = [
     -1, t, 0,   1, t, 0,  -1, -t, 0,   1, -t, 0,
-     0, -1, t,  0, 1, t,   0, -1, -t,  0, 1, -t,
-     t, 0, -1,  t, 0, 1,  -t, 0, -1,  -t, 0, 1
+    0, -1, t,  0, 1, t,   0, -1, -t,  0, 1, -t,
+    t, 0, -1,  t, 0, 1,  -t, 0, -1,  -t, 0, 1
 ];
 
 const icosahedronIndices: ReadonlyArray<number> = [

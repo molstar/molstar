@@ -1,19 +1,20 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { WebGLContext } from './context'
 import { idFactory } from '../../mol-util/id-factory';
+import { GLRenderingContext } from './compat';
+import { Framebuffer, checkFramebufferStatus } from './framebuffer';
+import { isDebugMode } from '../../mol-util/debug';
 
 const getNextRenderbufferId = idFactory()
 
 export type RenderbufferFormat = 'depth16' | 'stencil8' | 'rgba4' | 'depth-stencil'
 export type RenderbufferAttachment = 'depth' | 'stencil' | 'depth-stencil' | 'color0'
 
-export function getFormat(ctx: WebGLContext, format: RenderbufferFormat) {
-    const { gl } = ctx
+export function getFormat(gl: GLRenderingContext, format: RenderbufferFormat) {
     switch (format) {
         case 'depth16': return gl.DEPTH_COMPONENT16
         case 'stencil8': return gl.STENCIL_INDEX8
@@ -22,8 +23,7 @@ export function getFormat(ctx: WebGLContext, format: RenderbufferFormat) {
     }
 }
 
-export function getAttachment(ctx: WebGLContext, attachment: RenderbufferAttachment) {
-    const { gl } = ctx
+export function getAttachment(gl: GLRenderingContext, attachment: RenderbufferAttachment) {
     switch (attachment) {
         case 'depth': return gl.DEPTH_ATTACHMENT
         case 'stencil': return gl.STENCIL_ATTACHMENT
@@ -36,43 +36,58 @@ export interface Renderbuffer {
     readonly id: number
 
     bind: () => void
+    attachFramebuffer: (framebuffer: Framebuffer) => void
     setSize: (width: number, height: number) => void
-
+    reset: () => void
     destroy: () => void
 }
 
-export function createRenderbuffer (ctx: WebGLContext, format: RenderbufferFormat, attachment: RenderbufferAttachment, _width: number, _height: number): Renderbuffer {
-    const { gl, stats } = ctx
-    const _renderbuffer = gl.createRenderbuffer()
-    if (_renderbuffer === null) {
+function getRenderbuffer(gl: GLRenderingContext) {
+    const renderbuffer = gl.createRenderbuffer()
+    if (renderbuffer === null) {
         throw new Error('Could not create WebGL renderbuffer')
     }
+    return renderbuffer
+}
+
+export function createRenderbuffer (gl: GLRenderingContext, format: RenderbufferFormat, attachment: RenderbufferAttachment, _width: number, _height: number): Renderbuffer {
+    let _renderbuffer = getRenderbuffer(gl)
 
     const bind = () => gl.bindRenderbuffer(gl.RENDERBUFFER, _renderbuffer)
-    const _format = getFormat(ctx, format)
-    const _attachment = getAttachment(ctx, attachment)
+    const _format = getFormat(gl, format)
+    const _attachment = getAttachment(gl, attachment)
 
-    bind()
-    gl.renderbufferStorage(gl.RENDERBUFFER, _format, _width, _height)
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, _attachment, gl.RENDERBUFFER, _renderbuffer)
+    function init() {
+        bind()
+        gl.renderbufferStorage(gl.RENDERBUFFER, _format, _width, _height)
+    }
+    init()
 
     let destroyed = false
-    stats.renderbufferCount += 1
 
     return {
         id: getNextRenderbufferId(),
 
         bind,
-        setSize: (_width: number, _height: number) => {
+        attachFramebuffer: (framebuffer: Framebuffer) => {
+            framebuffer.bind()
             bind()
-            gl.renderbufferStorage(gl.RENDERBUFFER, _format, _width, _height)
+            gl.framebufferRenderbuffer(gl.FRAMEBUFFER, _attachment, gl.RENDERBUFFER, _renderbuffer)
+            if (isDebugMode) checkFramebufferStatus(gl)
         },
-
+        setSize: (width: number, height: number) => {
+            _width = width
+            _height = height
+            init()
+        },
+        reset: () => {
+            _renderbuffer = getRenderbuffer(gl)
+            init()
+        },
         destroy: () => {
             if (destroyed) return
             gl.deleteRenderbuffer(_renderbuffer)
             destroyed = true
-            stats.framebufferCount -= 1
         }
     }
 }

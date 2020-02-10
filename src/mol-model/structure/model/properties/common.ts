@@ -24,10 +24,7 @@ export interface Entities {
 export type ChemicalComponent = Table.Row<mmCIF_Schema['chem_comp']>
 export type ChemicalComponentMap = ReadonlyMap<string, ChemicalComponent>
 
-export type MissingResidue = Table.Row<Pick<
-    mmCIF_Schema['pdbx_unobs_or_zero_occ_residues'],
-    'polymer_flag' | 'occupancy_flag'
->>
+export type MissingResidue = Table.Row<Pick<mmCIF_Schema['pdbx_unobs_or_zero_occ_residues'], 'polymer_flag' | 'occupancy_flag'>>
 export interface MissingResidues {
     has(model_num: number, asym_id: string, seq_id: number): boolean
     get(model_num: number, asym_id: string, seq_id: number): MissingResidue | undefined

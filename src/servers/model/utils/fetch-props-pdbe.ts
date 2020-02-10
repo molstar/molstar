@@ -71,13 +71,13 @@ async function process() {
         const data = Object.create(null);
 
         for (let ee of e.entries) {
-             const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${ee}`);
-             try {
+            const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${ee}`);
+            try {
                 if (query.status === 200) data[ee] = (await query.json())[ee] || { };
                 else console.error(ee, query.status);
-             } catch (e) {
+            } catch (e) {
                 console.error(ee, '' + e);
-             }
+            }
         }
         // const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry`, { method: 'POST', body });
         // console.log(query.status);

@@ -1,93 +1,84 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ElementIndex, Model, CustomPropertyDescriptor } from '../../mol-model/structure';
 import { StructureElement } from '../../mol-model/structure/structure';
 import { Location } from '../../mol-model/location';
-import { CustomPropertyRegistry } from './custom-property-registry';
-import { Task } from '../../mol-task';
-import { ThemeDataContext, ThemeProvider } from '../../mol-theme/theme';
+import { ThemeDataContext } from '../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../mol-theme/color';
 import { Color } from '../../mol-util/color';
-import { TableLegend } from '../../mol-util/legend';
 import { Loci } from '../../mol-model/loci';
 import { OrderedSet } from '../../mol-data/int';
+import { CustomModelProperty } from './custom-model-property';
+import { CustomProperty } from './custom-property';
+import { LociLabelProvider } from '../../mol-plugin/util/loci-label-manager';
 
 export { CustomElementProperty };
 
+interface CustomElementProperty<T> {
+    propertyProvider: CustomModelProperty.Provider<{}, CustomElementProperty.Value<T>>
+    colorThemeProvider?: ColorTheme.Provider<{}>
+    labelProvider?: LociLabelProvider
+}
+
 namespace CustomElementProperty {
-    export interface CreateParams<T> {
-        isStatic: boolean,
-        name: string,
-        autoAttach?: boolean,
-        display: string,
-        attachableTo?: (model: Model) => boolean,
-        getData(model: Model): Map<ElementIndex, T> | Promise<Map<ElementIndex, T>>,
-        format?(e: T): string | undefined,
+    export type Value<T> = Map<ElementIndex, T>
+
+    export interface Builder<T> {
+        label: string
+        name: string
+        getData(model: Model, ctx?: CustomProperty.Context): Value<T> | Promise<Value<T>>
         coloring?: {
-            getColor: (e: T) => Color,
+            getColor: (p: T) => Color
             defaultColor: Color
+        }
+        getLabel?: (p: T) => string | undefined
+        isApplicable?: (data: Model) => boolean,
+        type?: 'dynamic' | 'static',
+    }
+
+    export function create<T>(builder: Builder<T>): CustomElementProperty<T> {
+        const modelProperty = createModelProperty(builder)
+        return {
+            propertyProvider: modelProperty,
+            colorThemeProvider: builder.coloring?.getColor && createColorThemeProvider(modelProperty, builder.coloring.getColor, builder.coloring.defaultColor),
+            labelProvider: builder.getLabel && createLabelProvider(modelProperty, builder.getLabel)
         }
     }
 
-    export function create<T>(params: CreateParams<T>) {
-        const name = params.name;
+    function createModelProperty<T>(builder: Builder<T>) {
+        return CustomModelProperty.createProvider({
+            label: builder.label,
+            descriptor: CustomPropertyDescriptor({
+                name: builder.name,
+            }),
+            type: builder.type || 'dynamic',
+            defaultParams: {},
+            getParams: (data: Model) => ({}),
+            isApplicable: (data: Model) => !!builder.isApplicable?.(data),
+            obtain: async (ctx: CustomProperty.Context, data: Model) => {
+                return await builder.getData(data, ctx)
+            }
+        })
+    }
 
-        const Descriptor = CustomPropertyDescriptor({
-            isStatic: params.isStatic,
-            name: params.name,
-        });
-
-        function attach(model: Model) {
-            return Task.create(`Attach ${params.display}`, async () => {
-                try {
-                    if (model.customProperties.has(Descriptor)) return true;
-
-                    const data = await params.getData(model);
-
-                    if (params.isStatic) {
-                        model._staticPropertyData[name] = data;
-                    } else {
-                        model._dynamicPropertyData[name] = data;
-                    }
-
-                    model.customProperties.add(Descriptor);
-
-                    return true;
-                } catch (e) {
-                    console.warn('Attach Property', e);
-                    return false;
-                }
-            })
-        }
-
-        function getStatic(e: StructureElement.Location) { return e.unit.model._staticPropertyData[name].get(e.element); }
-        function getDynamic(e: StructureElement.Location) { return e.unit.model._staticPropertyData[name].get(e.element); }
-
-        const propertyProvider: CustomPropertyRegistry.ModelProvider = {
-            option: [name, params.display],
-            descriptor: Descriptor,
-            defaultSelected: !!params.autoAttach,
-            attachableTo: params.attachableTo || (() => true),
-            attach
-        };
-
-        const get = params.isStatic ? getStatic : getDynamic;
-
-        function has(model: Model) { return model.customProperties.has(Descriptor); }
+    function createColorThemeProvider<T>(modelProperty: CustomModelProperty.Provider<{}, Value<T>>, getColor: (p: T) => Color, defaultColor: Color) {
 
         function Coloring(ctx: ThemeDataContext, props: {}): ColorTheme<{}> {
             let color: LocationColor;
-            const getColor = params.coloring!.getColor;
-            const defaultColor = params.coloring!.defaultColor;
 
-            if (ctx.structure && !ctx.structure.isEmpty && has(ctx.structure.models[0])) {
+            const property = ctx.structure && modelProperty.get(ctx.structure.models[0])
+            const contextHash = property?.version
+
+            if (property?.value && ctx.structure) {
+                const data = property.value
                 color = (location: Location) => {
                     if (StructureElement.Location.is(location)) {
-                        const e = get(location);
+                        const e = data.get(location.element);
                         if (typeof e !== 'undefined') return getColor(e);
                     }
                     return defaultColor;
@@ -101,35 +92,32 @@ namespace CustomElementProperty {
                 granularity: 'group',
                 color: color,
                 props: props,
-                description: 'Assign element colors based on the provided data.',
-                legend: TableLegend([])
+                contextHash,
+                description: `Assign element colors based on '${modelProperty.label}' data.`
             };
         }
 
-        const colorTheme: ThemeProvider<ColorTheme<{}>, {}> = {
-            label: params.display,
+        return {
+            label: modelProperty.label,
             factory: Coloring,
             getParams: () => ({}),
             defaultValues: {},
-            isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !ctx.structure.isEmpty && has(ctx.structure.models[0])
+            isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !!modelProperty.get(ctx.structure.models[0]).value
         }
+    }
 
-        function LabelProvider(loci: Loci): string | undefined {
+    function createLabelProvider<T>(modelProperty: CustomModelProperty.Provider<{}, Value<T>>, getLabel: (p: T) => string | undefined) {
+        return function(loci: Loci): string | undefined {
             if (loci.kind === 'element-loci') {
                 const e = loci.elements[0];
-                if (!e || !has(e.unit.model)) return void 0;
-                return params.format!(get(StructureElement.Location.create(e.unit, e.unit.elements[OrderedSet.getAt(e.indices, 0)])));
+                if (!e) return
+                const data = modelProperty.get(e.unit.model).value
+                const element = e.unit.elements[OrderedSet.start(e.indices)]
+                const value = data?.get(element)
+                if (value === undefined) return
+                return getLabel(value);
             }
-            return void 0;
+            return
         }
-
-        return {
-            Descriptor,
-            attach,
-            get,
-            propertyProvider,
-            colorTheme: params.coloring ? colorTheme : void 0,
-            labelProvider: params.format ? LabelProvider : ((loci: Loci) => void 0)
-        };
     }
 }

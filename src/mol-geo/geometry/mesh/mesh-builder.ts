@@ -1,10 +1,9 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from '../../../mol-util/value-cell'
 import { Vec3, Mat4, Mat3 } from '../../../mol-math/linear-algebra';
 import { ChunkedArray } from '../../../mol-data/util';
 import { Mesh } from './mesh';
@@ -141,15 +140,6 @@ export namespace MeshBuilder {
         const ib = ChunkedArray.compact(indices, true) as Uint32Array
         const nb = ChunkedArray.compact(normals, true) as Float32Array
         const gb = ChunkedArray.compact(groups, true) as Float32Array
-        return {
-            kind: 'mesh',
-            vertexCount: state.vertices.elementCount,
-            triangleCount: state.indices.elementCount,
-            vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
-            indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
-            normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
-            groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, gb) : ValueCell.create(gb),
-            normalsComputed: true,
-        }
+        return Mesh.create(vb, ib, nb, gb, state.vertices.elementCount, state.indices.elementCount, mesh)
     }
 }

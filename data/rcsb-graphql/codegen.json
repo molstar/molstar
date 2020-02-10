@@ -1,6 +1,0 @@
-{
-    "flattenTypes": true,
-    "generatorConfig": {
-        "immutableTypes": true
-    }
-}

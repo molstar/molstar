@@ -1,12 +1,14 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ValueCell } from '../../../mol-util'
 import { Mat4 } from '../../../mol-math/linear-algebra'
-import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
+import { transformPositionArray,/* , transformDirectionArray, getNormalMatrix */
+GroupMapping,
+createGroupMapping} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
@@ -14,7 +16,7 @@ import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { calculateBoundingSphere } from '../../../mol-gl/renderable/util';
+import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Theme } from '../../../mol-theme/theme';
 import { PointsValues } from '../../../mol-gl/renderable/points';
@@ -23,37 +25,88 @@ import { Color } from '../../../mol-util/color';
 import { BaseGeometry } from '../base';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
+import { hashFnv32a } from '../../../mol-data/util';
 
 /** Point cloud */
 export interface Points {
     readonly kind: 'points',
+
     /** Number of vertices in the point cloud */
     pointCount: number,
+
     /** Center buffer as array of xyz values wrapped in a value cell */
     readonly centerBuffer: ValueCell<Float32Array>,
     /** Group buffer as array of group ids for each vertex wrapped in a value cell */
     readonly groupBuffer: ValueCell<Float32Array>,
+
+    /** Bounding sphere of the points */
+    readonly boundingSphere: Sphere3D
+    /** Maps group ids to point indices */
+    readonly groupMapping: GroupMapping
 }
 
 export namespace Points {
+    export function create(centers: Float32Array, groups: Float32Array, pointCount: number, points?: Points): Points {
+        return points ?
+            update(centers, groups, pointCount, points) :
+            fromArrays(centers, groups, pointCount)
+    }
+
     export function createEmpty(points?: Points): Points {
         const cb = points ? points.centerBuffer.ref.value : new Float32Array(0)
         const gb = points ? points.groupBuffer.ref.value : new Float32Array(0)
-        return {
-            kind: 'points',
-            pointCount: 0,
-            centerBuffer: points ? ValueCell.update(points.centerBuffer, cb) : ValueCell.create(cb),
-            groupBuffer: points ? ValueCell.update(points.groupBuffer, gb) : ValueCell.create(gb),
+        return create(cb, gb, 0, points)
+    }
+
+    function hashCode(points: Points) {
+        return hashFnv32a([
+            points.pointCount, points.centerBuffer.ref.version, points.groupBuffer.ref.version,
+        ])
+    }
+
+    function fromArrays(centers: Float32Array, groups: Float32Array, pointCount: number): Points {
+
+        const boundingSphere = Sphere3D()
+        let groupMapping: GroupMapping
+
+        let currentHash = -1
+        let currentGroup = -1
+
+        const points = {
+            kind: 'points' as const,
+            pointCount,
+            centerBuffer: ValueCell.create(centers),
+            groupBuffer: ValueCell.create(groups),
+            get boundingSphere() {
+                const newHash = hashCode(points)
+                if (newHash !== currentHash) {
+                    const b = calculateInvariantBoundingSphere(points.centerBuffer.ref.value, points.pointCount, 1)
+                    Sphere3D.copy(boundingSphere, b)
+                    currentHash = newHash
+                }
+                return boundingSphere
+            },
+            get groupMapping() {
+                if (points.groupBuffer.ref.version !== currentGroup) {
+                    groupMapping = createGroupMapping(points.groupBuffer.ref.value, points.pointCount)
+                    currentGroup = points.groupBuffer.ref.version
+                }
+                return groupMapping
+            }
         }
+        return points
     }
 
-    export function transformImmediate(points: Points, t: Mat4) {
-        transformRangeImmediate(points, t, 0, points.pointCount)
+    function update(centers: Float32Array, groups: Float32Array, pointCount: number, points: Points) {
+        points.pointCount = pointCount
+        ValueCell.update(points.centerBuffer, centers)
+        ValueCell.update(points.groupBuffer, groups)
+        return points
     }
 
-    export function transformRangeImmediate(points: Points, t: Mat4, offset: number, count: number) {
+    export function transform(points: Points, t: Mat4) {
         const c = points.centerBuffer.ref.value
-        transformPositionArray(t, c, offset, count)
+        transformPositionArray(t, c, 0, points.pointCount)
         ValueCell.update(points.centerBuffer, c);
     }
 
@@ -89,10 +142,8 @@ export namespace Points {
 
         const counts = { drawCount: points.pointCount, groupCount, instanceCount }
 
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            points.centerBuffer.ref.value, points.pointCount,
-            transform.aTransform.ref.value, transform.instanceCount.ref.value
-        )
+        const invariantBoundingSphere = Sphere3D.clone(points.boundingSphere)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount)
 
         return {
             aPosition: points.centerBuffer,
@@ -129,10 +180,9 @@ export namespace Points {
     }
 
     function updateBoundingSphere(values: PointsValues, points: Points) {
-        const { boundingSphere, invariantBoundingSphere } = calculateBoundingSphere(
-            values.aPosition.ref.value, points.pointCount,
-            values.aTransform.ref.value, values.instanceCount.ref.value
-        )
+        const invariantBoundingSphere = Sphere3D.clone(points.boundingSphere)
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value)
+
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }

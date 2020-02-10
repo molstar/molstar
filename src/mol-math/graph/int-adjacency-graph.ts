@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,6 +7,7 @@
 
 import { arrayPickIndices, cantorPairing } from '../../mol-data/util';
 import { LinkedIndex, SortedArray } from '../../mol-data/int';
+import { AssignableArrayLike } from '../../mol-util/type-helpers';
 
 /**
  * Represent a graph using vertex adjacency list.
@@ -16,10 +17,10 @@ import { LinkedIndex, SortedArray } from '../../mol-data/int';
  *
  * Edge properties are indexed same as in the arrays a and b.
  */
-export interface IntAdjacencyGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}> {
+export interface IntAdjacencyGraph<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase> {
     readonly offset: ArrayLike<number>,
-    readonly a: ArrayLike<number>,
-    readonly b: ArrayLike<number>,
+    readonly a: ArrayLike<VertexIndex>,
+    readonly b: ArrayLike<VertexIndex>,
     readonly vertexCount: number,
     readonly edgeCount: number,
     readonly edgeProps: Readonly<EdgeProps>
@@ -33,25 +34,25 @@ export interface IntAdjacencyGraph<EdgeProps extends IntAdjacencyGraph.EdgeProps
      *
      * `getEdgeIndex(i, j) === getEdgeIndex(j, i)`
      */
-    getEdgeIndex(i: number, j: number): number,
+    getEdgeIndex(i: VertexIndex, j: VertexIndex): number,
     /**
      * Get the edge index between i-th and j-th vertex.
      * -1 if the edge does not exist.
      *
      * `getEdgeIndex(i, j) !== getEdgeIndex(j, i)`
      */
-    getDirectedEdgeIndex(i: number, j: number): number,
-    getVertexEdgeCount(i: number): number
+    getDirectedEdgeIndex(i: VertexIndex, j: VertexIndex): number,
+    getVertexEdgeCount(i: VertexIndex): number
 }
 
 export namespace IntAdjacencyGraph {
     export type EdgePropsBase = { [name: string]: ArrayLike<any> }
 
-    class IntGraphImpl implements IntAdjacencyGraph<any> {
+    class IntGraphImpl<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase> implements IntAdjacencyGraph<VertexIndex, EdgeProps> {
         readonly vertexCount: number;
-        readonly edgeProps: object;
+        readonly edgeProps: EdgeProps;
 
-        getEdgeIndex(i: number, j: number): number {
+        getEdgeIndex(i: VertexIndex, j: VertexIndex): number {
             let a, b;
             if (i < j) { a = i; b = j; }
             else { a = j; b = i; }
@@ -61,28 +62,28 @@ export namespace IntAdjacencyGraph {
             return -1;
         }
 
-        getDirectedEdgeIndex(i: number, j: number): number {
+        getDirectedEdgeIndex(i: VertexIndex, j: VertexIndex): number {
             for (let t = this.offset[i], _t = this.offset[i + 1]; t < _t; t++) {
                 if (this.b[t] === j) return t;
             }
             return -1;
         }
 
-        getVertexEdgeCount(i: number): number {
+        getVertexEdgeCount(i: VertexIndex): number {
             return this.offset[i + 1] - this.offset[i];
         }
 
-        constructor(public offset: ArrayLike<number>, public a: ArrayLike<number>, public b: ArrayLike<number>, public edgeCount: number, edgeProps?: any) {
+        constructor(public offset: ArrayLike<number>, public a: ArrayLike<VertexIndex>, public b: ArrayLike<VertexIndex>, public edgeCount: number, edgeProps?: EdgeProps) {
             this.vertexCount = offset.length - 1;
-            this.edgeProps = edgeProps || {};
+            this.edgeProps = (edgeProps || {}) as EdgeProps;
         }
     }
 
-    export function create<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}>(offset: ArrayLike<number>, a: ArrayLike<number>, b: ArrayLike<number>, edgeCount: number, edgeProps?: EdgeProps): IntAdjacencyGraph<EdgeProps> {
-        return new IntGraphImpl(offset, a, b, edgeCount, edgeProps) as IntAdjacencyGraph<EdgeProps>;
+    export function create<VertexIndex extends number, EdgeProps extends IntAdjacencyGraph.EdgePropsBase>(offset: ArrayLike<number>, a: ArrayLike<VertexIndex>, b: ArrayLike<VertexIndex>, edgeCount: number, edgeProps?: EdgeProps): IntAdjacencyGraph<VertexIndex, EdgeProps> {
+        return new IntGraphImpl(offset, a, b, edgeCount, edgeProps) as IntAdjacencyGraph<VertexIndex, EdgeProps>;
     }
 
-    export class EdgeBuilder {
+    export class EdgeBuilder<VertexIndex extends number> {
         private bucketFill: Int32Array;
         private current = 0;
         private curA: number = 0;
@@ -92,11 +93,11 @@ export namespace IntAdjacencyGraph {
         edgeCount: number;
         /** the size of the A and B arrays */
         slotCount: number;
-        a: Int32Array;
-        b: Int32Array;
+        a: AssignableArrayLike<VertexIndex>;
+        b: AssignableArrayLike<VertexIndex>;
 
-        createGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}>(edgeProps?: EdgeProps) {
-            return create(this.offsets, this.a, this.b, this.edgeCount, edgeProps);
+        createGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase>(edgeProps: EdgeProps) {
+            return create<VertexIndex, EdgeProps>(this.offsets, this.a, this.b, this.edgeCount, edgeProps);
         }
 
         /**
@@ -139,7 +140,7 @@ export namespace IntAdjacencyGraph {
             prop[this.curB] = value;
         }
 
-        constructor(public vertexCount: number, public xs: ArrayLike<number>, public ys: ArrayLike<number>) {
+        constructor(public vertexCount: number, public xs: ArrayLike<VertexIndex>, public ys: ArrayLike<VertexIndex>) {
             this.edgeCount = xs.length;
             this.offsets = new Int32Array(this.vertexCount + 1);
             this.bucketFill = new Int32Array(this.vertexCount);
@@ -155,12 +156,12 @@ export namespace IntAdjacencyGraph {
             }
             this.offsets[this.vertexCount] = offset;
             this.slotCount = offset;
-            this.a = new Int32Array(offset);
-            this.b = new Int32Array(offset);
+            this.a = new Int32Array(offset) as unknown as AssignableArrayLike<VertexIndex>;
+            this.b = new Int32Array(offset) as unknown as AssignableArrayLike<VertexIndex>;
         }
     }
 
-    export class DirectedEdgeBuilder {
+    export class DirectedEdgeBuilder<VertexIndex extends number> {
         private bucketFill: Int32Array;
         private current = 0;
         private curA: number = 0;
@@ -172,7 +173,7 @@ export namespace IntAdjacencyGraph {
         a: Int32Array;
         b: Int32Array;
 
-        createGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}>(edgeProps?: EdgeProps) {
+        createGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase>(edgeProps: EdgeProps) {
             return create(this.offsets, this.a, this.b, this.edgeCount, edgeProps);
         }
 
@@ -209,7 +210,7 @@ export namespace IntAdjacencyGraph {
             prop[this.curA] = value;
         }
 
-        constructor(public vertexCount: number, public xs: ArrayLike<number>, public ys: ArrayLike<number>) {
+        constructor(public vertexCount: number, public xs: ArrayLike<VertexIndex>, public ys: ArrayLike<VertexIndex>) {
             this.edgeCount = xs.length;
             this.offsets = new Int32Array(this.vertexCount + 1);
             this.bucketFill = new Int32Array(this.vertexCount);
@@ -229,12 +230,12 @@ export namespace IntAdjacencyGraph {
         }
     }
 
-    export class UniqueEdgeBuilder {
-        private xs: number[] = [];
-        private ys: number[] = [];
+    export class UniqueEdgeBuilder<VertexIndex extends number> {
+        private xs: VertexIndex[] = [];
+        private ys: VertexIndex[] = [];
         private included = new Set<number>();
 
-        addEdge(i: number, j: number) {
+        addEdge(i: VertexIndex, j: VertexIndex) {
             let u = i, v = j;
             if (i > j) { u = j; v = i; }
             const id = cantorPairing(u, v);
@@ -245,7 +246,7 @@ export namespace IntAdjacencyGraph {
             return true;
         }
 
-        getGraph(): IntAdjacencyGraph {
+        getGraph(): IntAdjacencyGraph<VertexIndex, {}> {
             return fromVertexPairs(this.vertexCount, this.xs, this.ys);
         }
 
@@ -258,13 +259,13 @@ export namespace IntAdjacencyGraph {
         }
     }
 
-    export function fromVertexPairs(vertexCount: number, xs: number[], ys: number[]) {
+    export function fromVertexPairs<V extends number>(vertexCount: number, xs: V[], ys: V[]) {
         const graphBuilder = new IntAdjacencyGraph.EdgeBuilder(vertexCount, xs, ys);
         graphBuilder.addAllEdges();
-        return graphBuilder.createGraph();
+        return graphBuilder.createGraph({});
     }
 
-    export function induceByVertices<P extends IntAdjacencyGraph.EdgePropsBase>(graph: IntAdjacencyGraph<P>, vertexIndices: ArrayLike<number>): IntAdjacencyGraph<P> {
+    export function induceByVertices<V extends number, P extends IntAdjacencyGraph.EdgePropsBase>(graph: IntAdjacencyGraph<V, P>, vertexIndices: ArrayLike<number>): IntAdjacencyGraph<V, P> {
         const { b, offset, vertexCount, edgeProps } = graph;
         const vertexMap = new Int32Array(vertexCount);
         for (let i = 0, _i = vertexIndices.length; i < _i; i++) vertexMap[vertexIndices[i]] = i + 1;
@@ -279,8 +280,8 @@ export namespace IntAdjacencyGraph {
 
         const newOffsets = new Int32Array(vertexIndices.length + 1);
         const edgeIndices = new Int32Array(2 * newEdgeCount);
-        const newA = new Int32Array(2 * newEdgeCount);
-        const newB = new Int32Array(2 * newEdgeCount);
+        const newA = new Int32Array(2 * newEdgeCount) as unknown as AssignableArrayLike<V>;
+        const newB = new Int32Array(2 * newEdgeCount) as unknown as AssignableArrayLike<V>;
         let eo = 0, vo = 0;
         for (let i = 0; i < vertexCount; i++) {
             if (vertexMap[i] === 0) continue;
@@ -289,8 +290,8 @@ export namespace IntAdjacencyGraph {
                 const bb = vertexMap[b[j]];
                 if (bb === 0) continue;
 
-                newA[eo] = aa;
-                newB[eo] = bb - 1;
+                newA[eo] = aa as V;
+                newB[eo] = bb - 1 as V;
                 edgeIndices[eo] = j;
                 eo++;
             }
@@ -305,7 +306,7 @@ export namespace IntAdjacencyGraph {
         return create(newOffsets, newA, newB, newEdgeCount, newEdgeProps);
     }
 
-    export function connectedComponents(graph: IntAdjacencyGraph): { componentCount: number, componentIndex: Int32Array } {
+    export function connectedComponents(graph: IntAdjacencyGraph<any, any>): { componentCount: number, componentIndex: Int32Array } {
         const vCount = graph.vertexCount;
 
         if (vCount === 0) return { componentCount: 0, componentIndex: new Int32Array(0) };
@@ -357,7 +358,7 @@ export namespace IntAdjacencyGraph {
      *
      * Returns true if verticesA and verticesB are intersecting.
      */
-    export function areVertexSetsConnected(graph: IntAdjacencyGraph, verticesA: SortedArray<number>, verticesB: SortedArray<number>, maxDistance: number): boolean {
+    export function areVertexSetsConnected(graph: IntAdjacencyGraph<any, any>, verticesA: SortedArray<number>, verticesB: SortedArray<number>, maxDistance: number): boolean {
         // check if A and B are intersecting, this handles maxDistance = 0
         if (SortedArray.areIntersecting(verticesA, verticesB)) return true;
         if (maxDistance < 1) return false;
@@ -371,7 +372,7 @@ export namespace IntAdjacencyGraph {
     }
 }
 
-function areVertexSetsConnectedImpl(graph: IntAdjacencyGraph, frontier: ArrayLike<number>, target: SortedArray<number>, distance: number, visited: Set<number>): boolean {
+function areVertexSetsConnectedImpl(graph: IntAdjacencyGraph<any, any>, frontier: ArrayLike<number>, target: SortedArray<number>, distance: number, visited: Set<number>): boolean {
     const { b: neighbor, offset } = graph;
     const newFrontier: number[] = [];
 

@@ -1,8 +1,10 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * from https://github.com/dsehnal/CIFTools.js
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ *
+ * based in part on https://github.com/dsehnal/CIFTools.js
  */
 
 /**
@@ -78,6 +80,7 @@ export function parseFloat(str: string, start: number, end: number) {
 export const enum NumberType {
     Int,
     Float,
+    Scientific,
     NaN
 }
 
@@ -94,14 +97,20 @@ function isInt(str: string, start: number, end: number) {
 function getNumberTypeScientific(str: string, start: number, end: number) {
     // handle + in '1e+1' separately.
     if (str.charCodeAt(start) === 43 /* + */) start++;
-    return isInt(str, start, end) ? NumberType.Float : NumberType.NaN;
+    return isInt(str, start, end) ? NumberType.Scientific : NumberType.NaN;
 }
 
 /** The whole range must match, otherwise returns NaN */
 export function getNumberType(str: string): NumberType {
     let start = 0, end = str.length;
-    if (str.charCodeAt(start) === 45) {
+
+    if (str.charCodeAt(start) === 45) { // -
         ++start;
+    }
+
+    // string is . or -.
+    if (str.charCodeAt(start) === 46 && end - start === 1) {
+        return NumberType.NaN
     }
 
     while (start < end) {
@@ -124,6 +133,9 @@ export function getNumberType(str: string): NumberType {
             }
             return hasDigit ? NumberType.Float : NumberType.Int;
         } else if (c === 53 || c === 21) { // 'e'/'E'
+            if (start === 0 || start === 1 && str.charCodeAt(0) === 45) {
+                return NumberType.NaN; // string starts with e/E or -e/-E
+            }
             return getNumberTypeScientific(str, start + 1, end);
         }
         else break;

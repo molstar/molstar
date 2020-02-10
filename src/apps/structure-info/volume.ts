@@ -77,8 +77,8 @@ async function run(url: string, meshFilename: string) {
 }
 
 const parser = new argparse.ArgumentParser({
-addHelp: true,
-description: 'Info about VolumeData from mol-model module'
+    addHelp: true,
+    description: 'Info about VolumeData from mol-model module'
 });
 parser.addArgument([ '--emdb', '-e' ], {
     help: 'EMDB id, for example 8116',

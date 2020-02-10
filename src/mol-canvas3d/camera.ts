@@ -82,12 +82,12 @@ class Camera {
         return Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
     }
 
-    getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
+    getFocus(target: Vec3, radiusNear: number, radiusFar: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
         const fov = this.state.fov
         const { width, height } = this.viewport
         const aspect = width / height
         const aspectFactor = (height < width ? 1 : aspect)
-        const targetDistance = Math.abs((radius / aspectFactor) / Math.sin(fov / 2))
+        const targetDistance = Math.abs((radiusNear / aspectFactor) / Math.sin(fov / 2))
 
         Vec3.sub(this.deltaDirection, this.target, this.position)
         if (dir) Vec3.matchDirection(this.deltaDirection, dir, this.deltaDirection)
@@ -96,15 +96,18 @@ class Camera {
 
         const state = Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state)
         state.target = Vec3.clone(target)
-        state.radius = radius
+        state.radiusNear = radiusNear
+        state.radiusFar = radiusFar
         state.position = Vec3.clone(this.newPosition)
         if (up) Vec3.matchDirection(state.up, up, state.up)
 
         return state
     }
 
-    focus(target: Vec3, radius: number, durationMs?: number, up?: Vec3, dir?: Vec3) {
-        if (radius > 0) this.setState(this.getFocus(target, radius, up, dir), durationMs);
+    focus(target: Vec3, radiusNear: number, radiusFar: number, durationMs?: number, up?: Vec3, dir?: Vec3) {
+        if (radiusNear > 0 && radiusFar > 0) {
+            this.setState(this.getFocus(target, radiusNear, radiusFar, up, dir), durationMs);
+        }
     }
 
     project(out: Vec4, point: Vec3) {
@@ -158,8 +161,10 @@ namespace Camera {
             up: Vec3.create(0, 1, 0),
             target: Vec3.create(0, 0, 0),
 
-            radius: 10,
+            radiusNear: 10,
+            radiusFar: 10,
             fog: 50,
+            clipFar: true
         };
     }
 
@@ -171,8 +176,10 @@ namespace Camera {
         up: Vec3
         target: Vec3
 
-        radius: number
+        radiusNear: number
+        radiusFar: number
         fog: number
+        clipFar: boolean
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
@@ -185,8 +192,10 @@ namespace Camera {
         if (typeof source.up !== 'undefined') Vec3.copy(out.up, source.up);
         if (typeof source.target !== 'undefined') Vec3.copy(out.target, source.target);
 
-        if (typeof source.radius !== 'undefined') out.radius = source.radius;
+        if (typeof source.radiusNear !== 'undefined') out.radiusNear = source.radiusNear;
+        if (typeof source.radiusFar !== 'undefined') out.radiusFar = source.radiusFar;
         if (typeof source.fog !== 'undefined') out.fog = source.fog;
+        if (typeof source.clipFar !== 'undefined') out.clipFar = source.clipFar;
 
         return out;
     }
@@ -253,17 +262,15 @@ function updatePers(camera: Camera) {
 }
 
 function updateClip(camera: Camera) {
-    const { radius, mode, fog } = camera.state
+    const { radiusNear, radiusFar, mode, fog, clipFar } = camera.state
 
     const cDist = Vec3.distance(camera.position, camera.target)
-    const bRadius = Math.max(1, radius)
-
-    let near = cDist - bRadius
-    let far = cDist + bRadius
+    let near = cDist - radiusNear
+    let far = cDist + (clipFar ? radiusNear : radiusFar)
 
     const fogNearFactor = -(50 - fog) / 50
-    let fogNear = cDist - (bRadius * fogNearFactor)
-    let fogFar = cDist + bRadius
+    let fogNear = cDist - (radiusNear * fogNearFactor)
+    let fogFar = far
 
     if (mode === 'perspective') {
         // set at least to 5 to avoid slow sphere impostor rendering

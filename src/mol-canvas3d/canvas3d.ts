@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -26,17 +26,19 @@ import { SetUtils } from '../mol-util/set';
 import { Canvas3dInteractionHelper } from './helper/interaction-events';
 import { PostprocessingParams, PostprocessingPass } from './passes/postprocessing';
 import { MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
-import { GLRenderingContext } from '../mol-gl/webgl/compat';
 import { PixelData } from '../mol-util/image';
 import { readTexture } from '../mol-gl/compute/util';
 import { DrawPass } from './passes/draw';
 import { PickPass } from './passes/pick';
 import { Task } from '../mol-task';
 import { ImagePass, ImageProps } from './passes/image';
+import { Sphere3D } from '../mol-math/geometry';
+import { isDebugMode } from '../mol-util/debug';
 
 export const Canvas3DParams = {
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     cameraFog: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
+    cameraClipFar: PD.Boolean(true),
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     transparentBackground: PD.Boolean(false),
 
@@ -73,6 +75,7 @@ interface Canvas3D {
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
     resetCamera: () => void
     readonly camera: Camera
+    readonly boundingSphere: Readonly<Sphere3D>
     downloadScreenshot: () => void
     getPixelData: (variant: GraphicsRenderVariant) => PixelData
     setProps: (props: Partial<Canvas3DProps>) => void
@@ -104,10 +107,45 @@ namespace Canvas3D {
         })
         if (gl === null) throw new Error('Could not create a WebGL rendering context')
         const input = InputObserver.fromElement(canvas)
-        return Canvas3D.create(gl, input, props, runTask)
+        const webgl = createContext(gl)
+
+        if (isDebugMode) {
+            const loseContextExt = gl.getExtension('WEBGL_lose_context')
+            if (loseContextExt) {
+                canvas.addEventListener('mousedown', e => {
+                    if (webgl.isContextLost) return
+                    if (!e.shiftKey || !e.ctrlKey || !e.altKey) return
+
+                    console.log('lose context')
+                    loseContextExt.loseContext()
+
+                    setTimeout(() => {
+                        if (!webgl.isContextLost) return
+                        console.log('restore context')
+                        loseContextExt.restoreContext()
+                    }, 1000)
+                }, false)
+            }
+        }
+
+        // https://www.khronos.org/webgl/wiki/HandlingContextLost
+
+        canvas.addEventListener('webglcontextlost', e => {
+            webgl.setContextLost()
+            e.preventDefault()
+            if (isDebugMode) console.log('context lost')
+        }, false)
+
+        canvas.addEventListener('webglcontextrestored', () => {
+            if (!webgl.isContextLost) return
+            webgl.handleContextRestored()
+            if (isDebugMode) console.log('context restored')
+        }, false)
+
+        return Canvas3D.create(webgl, input, props, runTask)
     }
 
-    export function create(gl: GLRenderingContext, input: InputObserver, props: Partial<Canvas3DProps> = {}, runTask = DefaultRunTask): Canvas3D {
+    export function create(webgl: WebGLContext, input: InputObserver, props: Partial<Canvas3DProps> = {}, runTask = DefaultRunTask): Canvas3D {
         const p = { ...DefaultCanvas3DParams, ...props }
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>()
@@ -117,7 +155,7 @@ namespace Canvas3D {
         const startTime = now()
         const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp)
 
-        const webgl = createContext(gl)
+        const { gl, contextRestored } = webgl
 
         let width = gl.drawingBufferWidth
         let height = gl.drawingBufferHeight
@@ -127,7 +165,8 @@ namespace Canvas3D {
         const camera = new Camera({
             position: Vec3.create(0, 0, 100),
             mode: p.cameraMode,
-            fog: p.cameraFog
+            fog: p.cameraFog,
+            clipFar: p.cameraClipFar
         })
 
         const controls = TrackballControls.create(input, camera, p.trackball)
@@ -139,6 +178,11 @@ namespace Canvas3D {
         const pickPass = new PickPass(webgl, renderer, scene, camera, 0.5)
         const postprocessing = new PostprocessingPass(webgl, camera, drawPass, p.postprocessing)
         const multiSample = new MultiSamplePass(webgl, camera, drawPass, postprocessing, p.multiSample)
+
+        const contextRestoredSub = contextRestored.subscribe(() => {
+            pickPass.pickDirty = true
+            draw(true)
+        })
 
         let drawPending = false
         let cameraResetRequested = false
@@ -175,8 +219,8 @@ namespace Canvas3D {
             }
         }
 
-        function render(variant: 'pick' | 'draw', force: boolean) {
-            if (scene.isCommiting) return false
+        function render(force: boolean) {
+            if (scene.isCommiting || webgl.isContextLost) return false
 
             let didRender = false
             controls.update(currentTime)
@@ -185,21 +229,14 @@ namespace Canvas3D {
             multiSample.update(force || cameraChanged, currentTime)
 
             if (force || cameraChanged || multiSample.enabled) {
-                switch (variant) {
-                    case 'pick':
-                        pickPass.render()
-                        break;
-                    case 'draw':
-                        renderer.setViewport(0, 0, width, height)
-                        if (multiSample.enabled) {
-                            multiSample.render(true, p.transparentBackground)
-                        } else {
-                            drawPass.render(!postprocessing.enabled, p.transparentBackground)
-                            if (postprocessing.enabled) postprocessing.render(true)
-                        }
-                        pickPass.pickDirty = true
-                        break;
+                renderer.setViewport(0, 0, width, height)
+                if (multiSample.enabled) {
+                    multiSample.render(true, p.transparentBackground)
+                } else {
+                    drawPass.render(!postprocessing.enabled, p.transparentBackground)
+                    if (postprocessing.enabled) postprocessing.render(true)
                 }
+                pickPass.pickDirty = true
                 didRender = true
             }
 
@@ -210,7 +247,7 @@ namespace Canvas3D {
         let currentTime = 0;
 
         function draw(force?: boolean) {
-            if (render('draw', !!force || forceNextDraw)) {
+            if (render(!!force || forceNextDraw)) {
                 didDraw.next(now() - startTime as now.Timestamp)
             }
             forceNextDraw = false;
@@ -227,20 +264,23 @@ namespace Canvas3D {
             currentTime = now();
             camera.transition.tick(currentTime);
             draw(false);
-            if (!camera.transition.inTransition) interactionHelper.tick(currentTime);
+            if (!camera.transition.inTransition && !webgl.isContextLost) {
+                interactionHelper.tick(currentTime);
+            }
             requestAnimationFrame(animate)
         }
 
         function identify(x: number, y: number): PickingId | undefined {
-            return pickPass.identify(x, y)
+            return webgl.isContextLost ? undefined : pickPass.identify(x, y)
         }
 
-        function commit(renderObjects?: readonly GraphicsRenderObject[]) {
+        async function commit(renderObjects?: readonly GraphicsRenderObject[]) {
             scene.update(renderObjects, false)
 
             return runTask(scene.commit()).then(() => {
                 if (cameraResetRequested && !scene.isCommiting) {
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
+                    const { center, radius } = scene.boundingSphere
+                    camera.focus(center, radius, radius)
                     cameraResetRequested = false
                 }
                 if (debugHelper.isEnabled) debugHelper.update()
@@ -256,8 +296,8 @@ namespace Canvas3D {
 
             if (oldRO) {
                 if (!SetUtils.areEqual(newRO, oldRO)) {
-                    for (const o of Array.from(newRO)) { if (!oldRO.has(o)) scene.add(o) }
-                    for (const o of Array.from(oldRO)) { if (!newRO.has(o)) scene.remove(o) }
+                    newRO.forEach(o => { if (!oldRO.has(o)) scene.add(o) })
+                    oldRO.forEach(o => { if (!newRO.has(o)) scene.remove(o) })
                 }
             } else {
                 repr.renderObjects.forEach(o => scene.add(o))
@@ -320,11 +360,13 @@ namespace Canvas3D {
                 if (scene.isCommiting) {
                     cameraResetRequested = true
                 } else {
-                    camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius, p.cameraResetDurationMs)
+                    const { center, radius } = scene.boundingSphere
+                    camera.focus(center, radius, radius, p.cameraResetDurationMs)
                     requestDraw(true);
                 }
             },
             camera,
+            boundingSphere: scene.boundingSphere,
             downloadScreenshot: () => {
                 // TODO
             },
@@ -346,6 +388,9 @@ namespace Canvas3D {
                 if (props.cameraFog !== undefined && props.cameraFog !== camera.state.fog) {
                     camera.setState({ fog: props.cameraFog })
                 }
+                if (props.cameraClipFar !== undefined && props.cameraClipFar !== camera.state.clipFar) {
+                    camera.setState({ clipFar: props.cameraClipFar })
+                }
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground
 
@@ -364,6 +409,7 @@ namespace Canvas3D {
                 return {
                     cameraMode: camera.state.mode,
                     cameraFog: camera.state.fog,
+                    cameraClipFar: camera.state.clipFar,
                     cameraResetDurationMs: p.cameraResetDurationMs,
                     transparentBackground: p.transparentBackground,
 
@@ -384,6 +430,8 @@ namespace Canvas3D {
                 return interactionHelper.events
             },
             dispose: () => {
+                contextRestoredSub.unsubscribe()
+
                 scene.clear()
                 debugHelper.clear()
                 input.dispose()
