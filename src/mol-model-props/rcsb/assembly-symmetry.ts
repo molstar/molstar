@@ -9,26 +9,42 @@ import query from './graphql/symmetry.gql';
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { CustomPropertyDescriptor, Structure } from '../../mol-model/structure';
-import { Database as _Database } from '../../mol-data/db'
+import { Database as _Database, Column } from '../../mol-data/db'
 import { GraphQLClient } from '../../mol-util/graphql-client';
 import { CustomProperty } from '../common/custom-property';
 import { NonNullableArray } from '../../mol-util/type-helpers';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 
+const BiologicalAssemblyNames = new Set([
+    'author_and_software_defined_assembly',
+    'author_defined_assembly',
+    'complete icosahedral assembly',
+    'complete point assembly',
+    'representative helical assembly',
+    'software_defined_assembly'
+])
+
 export namespace AssemblySymmetry {
     export const DefaultServerUrl = 'http://data-beta.rcsb.org/graphql'
 
     export function isApplicable(structure?: Structure): boolean {
-        return (
-            !!structure &&
-            structure.models.length === 1 &&
-            structure.models[0].sourceData.kind === 'mmCIF' &&
-            (structure.models[0].sourceData.data.database_2.database_id.isDefined ||
-                structure.models[0].entryId.length === 4)
-        )
+        // check if structure is from pdb entry
+        if (!structure || structure.models.length !== 1 || structure.models[0].sourceData.kind !== 'mmCIF' || (!structure.models[0].sourceData.data.database_2.database_id.isDefined &&
+        structure.models[0].entryId.length !== 4)) return false
+
+        // check if assembly is 'biological'
+        const mmcif = structure.models[0].sourceData.data
+        if (!mmcif.pdbx_struct_assembly.details.isDefined) return false
+        const id = structure.units[0].conformation.operator.assembly.id
+        const indices = Column.indicesOf(mmcif.pdbx_struct_assembly.id, e => e === id)
+        if (indices.length !== 1) return false
+        const details = mmcif.pdbx_struct_assembly.details.value(indices[0])
+        return BiologicalAssemblyNames.has(details)
     }
 
     export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryProps): Promise<AssemblySymmetryValue> {
+        if (!isApplicable(structure)) return []
+
         const client = new GraphQLClient(props.serverUrl, ctx.fetch)
         const variables: AssemblySymmetryQueryVariables = {
             assembly_id: structure.units[0].conformation.operator.assembly.id,
