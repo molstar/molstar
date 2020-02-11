@@ -7,7 +7,7 @@
 import { PluginCommands } from '../../mol-plugin/command';
 import * as React from 'react';
 import { PluginUIComponent, PurePluginUIComponent } from '../base';
-import { shallowEqual } from '../../mol-util';
+import { shallowEqualObjects } from '../../mol-util';
 import { OrderedMap } from 'immutable';
 import { ParameterControls } from '../controls/parameters';
 import { ParamDefinition as PD} from '../../mol-util/param-definition';
@@ -81,7 +81,7 @@ class LocalStateSnapshots extends PluginUIComponent<
     }
 
     shouldComponentUpdate(nextProps: any, nextState: any) {
-        return !shallowEqual(this.props, nextProps) || !shallowEqual(this.state, nextState);
+        return !shallowEqualObjects(this.props, nextProps) || !shallowEqualObjects(this.state, nextState);
     }
 
     render() {
@@ -169,7 +169,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
         options: PD.Group({
             description: PD.Text(),
             playOnLoad: PD.Boolean(false),
-            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.PluginState.Server))
+            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.State.CurrentServer))
         })
     };
 
@@ -177,7 +177,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
     ListOnlyParams = {
         options: PD.Group({
-            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.PluginState.Server))
+            serverUrl: PD.Text(this.plugin.config.get(PluginConfig.State.CurrentServer))
         }, { isFlat: true })
     };
 
@@ -194,6 +194,8 @@ export class RemoteStateSnapshots extends PluginUIComponent<
     refresh = async () => {
         try {
             this.setState({ isBusy: true });
+            this.plugin.config.set(PluginConfig.State.CurrentServer, this.state.params.options.serverUrl);
+
             const json = (await this.plugin.runTask<RemoteEntry[]>(this.plugin.fetch({ url: this.serverUrl('list'), type: 'json'  }))) || [];
 
             json.sort((a, b) => {
@@ -219,6 +221,8 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
     upload = async () => {
         this.setState({ isBusy: true });
+        this.plugin.config.set(PluginConfig.State.CurrentServer, this.state.params.options.serverUrl);
+
         if (this.plugin.state.snapshots.state.entries.size === 0) {
             await PluginCommands.State.Snapshots.Add.dispatch(this.plugin, {
                 name: this.state.params.name,

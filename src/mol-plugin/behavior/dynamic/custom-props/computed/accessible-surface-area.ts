@@ -76,14 +76,14 @@ function accessibleSurfaceAreaLabel(loci: Loci): string | undefined {
             })
         }
         if (seen.size === 0) return
-        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues Sum' : 'Residue'})</small>`
+        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues sum' : 'Residue'})</small>`
 
-        return `Accessible Surface Area ${residueCount}: ${cummulativeArea.toFixed(2)} \u212B<sup>3</sup>`;
+        return `Accessible Surface Area ${residueCount}: ${cummulativeArea.toFixed(2)} \u212B<sup>2</sup>`;
 
     } else if(loci.kind === 'structure-loci') {
         const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(loci.structure).value
         if (!accessibleSurfaceArea) return;
 
-        return `Accessible Surface Area <small>(Whole Structure)</small>: ${arraySum(accessibleSurfaceArea.area).toFixed(2)} \u212B<sup>3</sup>`;
+        return `Accessible Surface Area <small>(Whole Structure)</small>: ${arraySum(accessibleSurfaceArea.area).toFixed(2)} \u212B<sup>2</sup>`;
     }
 }

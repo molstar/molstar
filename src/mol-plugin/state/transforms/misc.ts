@@ -5,7 +5,7 @@
  */
 
 import { StateTransformer } from '../../../mol-state';
-import { shallowEqual } from '../../../mol-util';
+import { shallowEqualObjects } from '../../../mol-util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 
@@ -25,7 +25,7 @@ const CreateGroup = PluginStateTransform.BuiltIn({
         return new SO.Group({}, params);
     },
     update({ oldParams, newParams, b }) {
-        if (shallowEqual(oldParams, newParams)) return StateTransformer.UpdateResult.Unchanged;
+        if (shallowEqualObjects(oldParams, newParams)) return StateTransformer.UpdateResult.Unchanged;
         b.label = newParams.label;
         b.description = newParams.description;
         return StateTransformer.UpdateResult.Updated;

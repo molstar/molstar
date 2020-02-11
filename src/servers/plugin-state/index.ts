@@ -8,29 +8,15 @@ import * as express from 'express'
 import * as compression from 'compression'
 import * as cors from 'cors'
 import * as bodyParser from 'body-parser'
-import * as argparse from 'argparse'
 import * as fs from 'fs'
 import * as path from 'path'
+import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from '../common/swagger-ui';
 import { makeDir } from '../../mol-util/make-dir'
+import { getConfig } from './config'
+import { UUID } from '../../mol-util'
+import { shortcutIconLink, getSchema } from './api-schema'
 
-interface Config {
-    working_folder: string,
-    port?: string | number,
-    app_prefix: string,
-    max_states: number
-}
-
-const cmdParser = new argparse.ArgumentParser({
-    addHelp: true
-});
-cmdParser.addArgument(['--working-folder'], { help: 'Working forlder path.', required: true });
-cmdParser.addArgument(['--port'], { help: 'Server port. Altenatively use ENV variable PORT.', type: 'int', required: false });
-cmdParser.addArgument(['--app-prefix'], { help: 'Server app prefix.', defaultValue: '', required: false });
-cmdParser.addArgument(['--max-states'], { help: 'Maxinum number of states that could be saved.', defaultValue: 40, type: 'int', required: false });
-
-const Config = cmdParser.parseArgs() as Config;
-
-if (!Config.port) Config.port = process.env.port || 1339;
+const Config = getConfig();
 
 const app = express();
 app.use(compression(<any>{ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: () => true }));
@@ -70,7 +56,7 @@ function validateIndex(index: Index) {
                 newIndex.push(e);
             }
         }
-        // index.slice(0, index.length - 30);
+
         for (const d of deletes) {
             try {
                 fs.unlinkSync(path.join(Config.working_folder, d.id + '.json'))
@@ -113,19 +99,9 @@ function clear() {
     writeIndex([]);
 }
 
-export function createv4() {
-    let d = (+new Date());
-    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = (d + Math.random()*16)%16 | 0;
-        d = Math.floor(d/16);
-        return (c==='x' ? r : (r&0x3|0x8)).toString(16);
-    });
-    return uuid.toLowerCase();
-}
-
 function mapPath(path: string) {
-    if (!Config.app_prefix) return path;
-    return `/${Config.app_prefix}/${path}`;
+    if (!Config.api_prefix) return path;
+    return `/${Config.api_prefix}/${path}`;
 }
 
 app.get(mapPath(`/get/:id`), (req, res) => {
@@ -164,30 +140,30 @@ app.get(mapPath(`/remove/:id`), (req, res) => {
     res.end();
 });
 
-app.get(mapPath(`/latest`), (req, res) => {
-    const index = readIndex();
-    const id: string = index.length > 0 ? index[index.length - 1].id : '';
-    console.log('Reading', id);
-    if (id.length === 0 || id.indexOf('.') >= 0 || id.indexOf('/') >= 0 || id.indexOf('\\') >= 0) {
-        res.status(404);
-        res.end();
-        return;
-    }
+// app.get(mapPath(`/latest`), (req, res) => {
+//     const index = readIndex();
+//     const id: string = index.length > 0 ? index[index.length - 1].id : '';
+//     console.log('Reading', id);
+//     if (id.length === 0 || id.indexOf('.') >= 0 || id.indexOf('/') >= 0 || id.indexOf('\\') >= 0) {
+//         res.status(404);
+//         res.end();
+//         return;
+//     }
 
-    fs.readFile(path.join(Config.working_folder, id + '.json'), 'utf-8', (err, data) => {
-        if (err) {
-            res.status(404);
-            res.end();
-            return;
-        }
+//     fs.readFile(path.join(Config.working_folder, id + '.json'), 'utf-8', (err, data) => {
+//         if (err) {
+//             res.status(404);
+//             res.end();
+//             return;
+//         }
 
-        res.writeHead(200, {
-            'Content-Type': 'application/json; charset=utf-8',
-        });
-        res.write(data);
-        res.end();
-    });
-});
+//         res.writeHead(200, {
+//             'Content-Type': 'application/json; charset=utf-8',
+//         });
+//         res.write(data);
+//         res.end();
+//     });
+// });
 
 app.get(mapPath(`/list`), (req, res) => {
     const index = readIndex();
@@ -206,7 +182,7 @@ app.post(mapPath(`/set`), (req, res) => {
     const name = (req.query.name as string || new Date().toUTCString()).substr(0, 50);
     const description = (req.query.description as string || '').substr(0, 100);
 
-    index.push({ timestamp: +new Date(), id: createv4(), name, description });
+    index.push({ timestamp: +new Date(), id: UUID.createv4(), name, description });
     const entry = index[index.length - 1];
 
     const data = JSON.stringify({
@@ -220,19 +196,24 @@ app.post(mapPath(`/set`), (req, res) => {
     writeIndex(index);
 });
 
-app.get(`*`, (req, res) => {
+const schema = getSchema(Config);
+app.get(mapPath('/openapi.json'), (req, res) => {
     res.writeHead(200, {
-        'Content-Type': 'text/plain; charset=utf-8'
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'X-Requested-With'
     });
-    res.write(`
-GET /list
-GET /get/:id
-GET /remove/:id
-GET /latest
-POST /set?name=...&description=... [JSON data]
-`);
-    res.end();
-})
+    res.end(JSON.stringify(schema));
+});
+
+app.use(mapPath('/'), swaggerUiAssetsHandler());
+app.get(mapPath('/'), swaggerUiIndexHandler({
+    openapiJsonUrl: mapPath('/openapi.json'),
+    apiPrefix: Config.api_prefix,
+    title: 'PluginState Server API',
+    shortcutIconLink
+}));
+
 
 createIndex();
 app.listen(Config.port);

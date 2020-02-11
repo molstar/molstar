@@ -14,7 +14,10 @@ function item<T>(key: string, defaultValue?: T) { return new PluginConfigItem(ke
 
 export const PluginConfig = {
     item,
-    PluginState: { Server: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state') }
+    State: { 
+        DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
+        CurrentServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state')
+    }
 }
 
 export class PluginConfigManager {    

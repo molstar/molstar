@@ -6,7 +6,6 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { CustomPropertyDescriptor, Structure, Unit } from '../../mol-model/structure';
-// import { Database as _Database } from '../../mol-data/db'
 import { CustomProperty } from '../common/custom-property';
 import { CustomModelProperty } from '../common/custom-model-property';
 import { Model, ElementIndex, ResidueIndex } from '../../mol-model/structure/model';
@@ -203,7 +202,7 @@ function createInterUnitClashes(structure: Structure, clashes: ValidationReport[
                     builder.add(indexA as UnitIndex, indexB as UnitIndex, {
                         id: id[i],
                         magnitude: magnitude[i],
-                        distance: distance[i]
+                        distance: distance[i],
                     })
                 }
             }
@@ -335,11 +334,12 @@ function ClashesBuilder(elementsCount: number) {
     const magnitudes: number[] = []
     const distances: number[] = []
 
-    const seen = new Map<number, ElementIndex>()
+    const seen = new Map<string, ElementIndex>()
 
     return {
-        add(element: ElementIndex, id: number, magnitude: number, distance: number) {
-            const other = seen.get(id)
+        add(element: ElementIndex, id: number, magnitude: number, distance: number, isSymop: boolean) {
+            const hash = `${id}|${isSymop ? 's' : ''}`
+            const other = seen.get(hash)
             if (other !== undefined) {
                 aIndices[aIndices.length] = element
                 bIndices[bIndices.length] = other
@@ -347,7 +347,7 @@ function ClashesBuilder(elementsCount: number) {
                 magnitudes[magnitudes.length] = magnitude
                 distances[distances.length] = distance
             } else {
-                seen.set(id, element)
+                seen.set(hash, element)
             }
         },
         get() {
@@ -513,7 +513,22 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
             const label_atom_id = getItem(ca, 'atom')
             const element = index.findAtomOnResidue(rI, label_atom_id, label_alt_id)
             if (element !== -1) {
-                clashesBuilder.add(element, id, magnitude, distance)
+                clashesBuilder.add(element, id, magnitude, distance, false)
+            }
+        }
+
+        const symmClashes = g.getElementsByTagName('symm-clash')
+        if (symmClashes.length) issues.add('symm-clash')
+
+        for (let j = 0, jl = symmClashes.length; j < jl; ++j) {
+            const sca = symmClashes[j].attributes
+            const id = parseInt(getItem(sca, 'scid'))
+            const magnitude = parseFloat(getItem(sca, 'clashmag'))
+            const distance = parseFloat(getItem(sca, 'dist'))
+            const label_atom_id = getItem(sca, 'atom')
+            const element = index.findAtomOnResidue(rI, label_atom_id, label_alt_id)
+            if (element !== -1) {
+                clashesBuilder.add(element, id, magnitude, distance, true)
             }
         }
 
@@ -527,7 +542,6 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
         bondOutliers, angleOutliers,
         clashes
     }
-    console.log(validationReport)
 
     return validationReport
 }

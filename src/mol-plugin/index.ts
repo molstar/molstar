@@ -89,7 +89,7 @@ export const DefaultPluginSpec: PluginSpec = {
         AnimateStateInterpolation
     ],
     config: new Map([
-        [PluginConfig.PluginState.Server, 'https://webchem.ncbr.muni.cz/molstar-state']
+        [PluginConfig.State.DefaultServer, 'https://webchem.ncbr.muni.cz/molstar-state']
     ])
 }
 
