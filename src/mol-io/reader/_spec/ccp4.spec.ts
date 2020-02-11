@@ -16,9 +16,14 @@ function createCcp4Data() {
     dv.setInt8(52 * 4 + 2, 'P'.charCodeAt(0))
     dv.setInt8(52 * 4 + 3, ' '.charCodeAt(0))
 
+    dv.setUint8(53 * 4, 17)
+    dv.setUint8(53 * 4 + 1, 17)
+
     dv.setInt32(0 * 4, 1) // NC
     dv.setInt32(1 * 4, 2) // NR
     dv.setInt32(2 * 4, 3) // NS
+
+    dv.setInt32(3 * 4, 0) // NC
 
     return data
 }

@@ -14,13 +14,13 @@ function item<T>(key: string, defaultValue?: T) { return new PluginConfigItem(ke
 
 export const PluginConfig = {
     item,
-    State: { 
+    State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
         CurrentServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state')
     }
 }
 
-export class PluginConfigManager {    
+export class PluginConfigManager {
     private _config = new Map<PluginConfigItem<any>, unknown>();
 
     get<T>(key: PluginConfigItem<T>) {
