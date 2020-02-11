@@ -67,18 +67,6 @@ function getAnomericCarbon(unit: Unit.Atomic, ringAtoms: ArrayLike<StructureElem
                     : elements[ringAtoms[0]]) as ElementIndex
 }
 
-/** Return first non-empty label_alt_id or an empty string */
-function getRingAltId(unit: Unit.Atomic, ringAtoms: SortedArray<StructureElement.UnitIndex>) {
-    const { elements } = unit
-    const { label_alt_id } = unit.model.atomicHierarchy.atoms
-    for (let i = 0, il = ringAtoms.length; i < il; ++i) {
-        const ei = elements[ringAtoms[i]]
-        const altId = label_alt_id.value(ei)
-        if (altId) return altId
-    }
-    return ''
-}
-
 function getAltId(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     const { elements } = unit
     const { label_alt_id } = unit.model.atomicHierarchy.atoms
@@ -106,6 +94,10 @@ function filterFusedRings(unitRings: UnitRings, rings: UnitRings.Index[] | undef
         const rc = ringCombinations[i];
         const r0 = unitRings.all[rings[rc[0]]], r1 = unitRings.all[rings[rc[1]]];
         if (SortedArray.areIntersecting(r0, r1)) {
+            // TODO: is this a correct check?
+            if (UnitRing.getAltId(unitRings.unit, r0) !== UnitRing.getAltId(unitRings.unit, r1)) {
+                continue;
+            }
             fusedRings.add(rings[rc[0]])
             fusedRings.add(rings[rc[1]])
         }
@@ -201,7 +193,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const direction = getDirection(Vec3.zero(), unit, anomericCarbon, center)
                     Vec3.orthogonalize(direction, normal, direction)
 
-                    const ringAltId = getRingAltId(unit, ringAtoms)
+                    const ringAltId = UnitRing.getAltId(unit, ringAtoms)
                     const elementIndex = elements.length
                     ringElements.push(elementIndex)
                     elementsWithRingMap.set(ringElementKey(residueIndex, unit.id, ringAltId), elementIndex)

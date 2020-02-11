@@ -97,7 +97,7 @@ namespace UnitRing {
     ] as ElementSymbol[])
     const AromaticRingPlanarityThreshold = 0.05
 
-    export function isAromatic(unit: Unit.Atomic, ring: SortedArray<StructureElement.UnitIndex>): boolean {
+    export function isAromatic(unit: Unit.Atomic, ring: UnitRing): boolean {
         const { elements, bonds: { b, offset, edgeProps: { flags } } } = unit;
         const { type_symbol } = unit.model.atomicHierarchy.atoms;
         const { label_comp_id } = unit.model.atomicHierarchy.residues;
@@ -128,6 +128,20 @@ namespace UnitRing {
         const ma = PrincipalAxes.calculateMomentsAxes(getPositions(unit, ring))
         return Vec3.magnitude(ma.dirC) < AromaticRingPlanarityThreshold
     }
+
+    /** Get the alternate location of the 1st non '' alt loc atom. */
+    export function getAltId(unit: Unit.Atomic, ring: UnitRing) {
+        const { label_alt_id } = unit.model.atomicHierarchy.atoms;
+        const { elements } = unit;
+
+        for (let i = 0, il = ring.length; i < il; ++i) {
+            const eI = elements[ring[i]];
+            const altId = label_alt_id.value(eI);
+            if (altId) return altId;
+        }
+
+        return '';
+    }
 }
 
 namespace UnitRings {
@@ -143,9 +157,11 @@ namespace UnitRings {
     /** Creates a mapping ResidueIndex -> list or rings that are on that residue and have one of the specified fingerprints. */
     export function byFingerprintAndResidue(rings: UnitRings, fingerprints: ReadonlyArray<UnitRing.Fingerprint>) {
         const map = new Map<ResidueIndex, Index[]>();
-        for (const fp of fingerprints) {
+    
+        for (let fI = 0, _fI = fingerprints.length; fI < _fI; fI++) {
+            const fp = fingerprints[fI];
             addSingleResidueRings(rings, fp, map);
-        }
+        }        
         return map;
     }
 }
@@ -153,7 +169,8 @@ namespace UnitRings {
 function createByFingerprint(unit: Unit.Atomic, rings: ReadonlyArray<UnitRing>) {
     const byFingerprint = new Map<UnitRing.Fingerprint, UnitRings.Index[]>();
     let idx = 0 as UnitRings.Index;
-    for (const r of rings) {
+    for (let rI = 0, _rI = rings.length; rI < _rI; rI++) {
+        const r = rings[rI];
         const fp = UnitRing.fingerprint(unit, r);
         if (byFingerprint.has(fp)) byFingerprint.get(fp)!.push(idx);
         else byFingerprint.set(fp, [idx]);
@@ -175,7 +192,8 @@ function ringResidueIdx(unit: Unit.Atomic, ring: ArrayLike<StructureElement.Unit
 function addSingleResidueRings(rings: UnitRings, fp: UnitRing.Fingerprint, map: Map<ResidueIndex, UnitRings.Index[]>) {
     const byFp = rings.byFingerprint.get(fp);
     if (!byFp) return;
-    for (const r of byFp) {
+    for (let rI = 0, _rI = byFp.length; rI < _rI; rI++) {
+        const r = byFp[rI];
         const idx = ringResidueIdx(rings.unit, rings.all[r]);
         if (idx >= 0) {
             if (map.has(idx)) map.get(idx)!.push(r);
