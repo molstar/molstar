@@ -62,6 +62,7 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
     });
 
     const residues = Table.view(atom_site, ResiduesSchema, offsets.residues);
+
     // Optimize the numeric columns
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
     Table.columnToArray(residues, 'auth_seq_id', Int32Array);

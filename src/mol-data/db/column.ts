@@ -317,7 +317,8 @@ function windowColumn<T>(column: Column<T>, start: number, end: number): Column<
 
 function windowTyped<T>(c: Column<T>, start: number, end: number): Column<T> {
     const array = ColumnHelpers.typedArrayWindow(c.__array, { start, end });
-    return arrayColumn({ array, schema: c.schema, valueKind: c.valueKind }) as any;
+    const vk = c.valueKind;
+    return arrayColumn({ array, schema: c.schema, valueKind: row => vk(start + row) }) as any;
 }
 
 function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
@@ -359,7 +360,8 @@ function arrayView<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
     const array = c.__array!;
     const ret = new (array as any).constructor(map.length);
     for (let i = 0, _i = map.length; i < _i; i++) ret[i] = array[map[i]];
-    return arrayColumn({ array: ret, schema: c.schema, valueKind: c.valueKind });
+    const vk = c.valueKind;
+    return arrayColumn({ array: ret, schema: c.schema, valueKind: row => vk(map[row]) });
 }
 
 function viewFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
