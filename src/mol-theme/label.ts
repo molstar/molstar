@@ -196,9 +196,11 @@ function _elementLabel(location: StructureElement.Location, granularity: LabelGr
 }
 
 function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, granularity: LabelGranularity): string[] {
+    const rI = StructureElement.Location.residueIndex(location);
+
     const label_asym_id = Props.chain.label_asym_id(location)
     const auth_asym_id = Props.chain.auth_asym_id(location)
-    const has_label_seq_id = location.unit.model.atomicHierarchy.residues.label_seq_id.valueKind(location.element) === Column.ValueKind.Present;
+    const has_label_seq_id = location.unit.model.atomicHierarchy.residues.label_seq_id.valueKind(rI) === Column.ValueKind.Present;
     const label_seq_id = Props.residue.label_seq_id(location)
     const auth_seq_id = Props.residue.auth_seq_id(location)
     const ins_code = Props.residue.pdbx_PDB_ins_code(location)

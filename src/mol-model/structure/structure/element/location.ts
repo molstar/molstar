@@ -49,4 +49,12 @@ namespace Location {
         b.unit.conformation.position(b.element, pB);
         return Vec3.distance(pA, pB);
     }
+
+    export function residueIndex(l: Location) {
+        return l.unit.model.atomicHierarchy.residueAtomSegments.index[l.element];
+    }
+
+    export function chainIndex(l: Location) {
+        return l.unit.model.atomicHierarchy.chainAtomSegments.index[l.element];
+    }
 }
