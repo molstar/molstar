@@ -7,7 +7,7 @@
 import { PluginCommands } from '../../mol-plugin/command';
 import * as React from 'react';
 import { PluginUIComponent, PurePluginUIComponent } from '../base';
-import { shallowEqual } from '../../mol-util';
+import { shallowEqualObjects } from '../../mol-util';
 import { OrderedMap } from 'immutable';
 import { ParameterControls } from '../controls/parameters';
 import { ParamDefinition as PD} from '../../mol-util/param-definition';
@@ -81,7 +81,7 @@ class LocalStateSnapshots extends PluginUIComponent<
     }
 
     shouldComponentUpdate(nextProps: any, nextState: any) {
-        return !shallowEqual(this.props, nextProps) || !shallowEqual(this.state, nextState);
+        return !shallowEqualObjects(this.props, nextProps) || !shallowEqualObjects(this.state, nextState);
     }
 
     render() {

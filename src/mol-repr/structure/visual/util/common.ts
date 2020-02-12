@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure, ElementIndex, StructureElement } from '../../../../mol-model/structure';
+import { Unit, Structure, ElementIndex, StructureElement, ResidueIndex } from '../../../../mol-model/structure';
 import { Mat4 } from '../../../../mol-math/linear-algebra';
 import { TransformData, createTransform } from '../../../../mol-geo/geometry/transform-data';
 import { OrderedSet, SortedArray } from '../../../../mol-data/int';
@@ -34,27 +34,35 @@ export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementI
  * Return a Loci for the elements of a whole residue the elementIndex belongs to but
  * restrict to elements that have the same label_alt_id or none
  */
-export function getAltResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
+export function getAltResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex) {
     const { elements, model } = unit
     const { label_alt_id } = model.atomicHierarchy.atoms
     const elementAltId = label_alt_id.value(elementIndex)
     if (OrderedSet.indexOf(elements, elementIndex) !== -1) {
-        const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+        const { index } = model.atomicHierarchy.residueAtomSegments
         const rI = index[elementIndex]
-        const _indices: number[] = []
-        for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
-            const unitIndex = OrderedSet.indexOf(elements, i)
-            if (unitIndex !== -1) {
-                const altId = label_alt_id.value(i)
-                if (elementAltId === altId || altId === '') {
-                    _indices.push(unitIndex)
-                }
+        return getAltResidueLociFromId(structure, unit, rI, elementAltId)
+    }
+    return StructureElement.Loci(structure, [])
+}
+
+export function getAltResidueLociFromId(structure: Structure, unit: Unit.Atomic, residueIndex: ResidueIndex, elementAltId: string) {
+    const { elements, model } = unit
+    const { label_alt_id } = model.atomicHierarchy.atoms
+    const { offsets } = model.atomicHierarchy.residueAtomSegments
+
+    const _indices: number[] = []
+    for (let i = offsets[residueIndex], il = offsets[residueIndex + 1]; i < il; ++i) {
+        const unitIndex = OrderedSet.indexOf(elements, i)
+        if (unitIndex !== -1) {
+            const altId = label_alt_id.value(i)
+            if (elementAltId === altId || altId === '') {
+                _indices.push(unitIndex)
             }
         }
-        const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices))
-        return StructureElement.Loci(structure, [{ unit, indices }])
     }
-    return EmptyLoci
+    const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices))
+    return StructureElement.Loci(structure, [{ unit, indices }])
 }
 
 //

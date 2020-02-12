@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,7 +10,7 @@ import { OctagonalPyramid, PerforatedOctagonalPyramid } from '../../../mol-geo/p
 import { Star } from '../../../mol-geo/primitive/star';
 import { Octahedron, PerforatedOctahedron } from '../../../mol-geo/primitive/octahedron';
 import { DiamondPrism, PentagonalPrism, ShiftedHexagonalPrism, HexagonalPrism, HeptagonalPrism } from '../../../mol-geo/primitive/prism';
-import { Structure, StructureElement } from '../../../mol-model/structure';
+import { Structure, StructureElement, Unit } from '../../../mol-model/structure';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { getSaccharideShape, SaccharideShape } from '../../../mol-model/structure/structure/carbohydrates/constants';
@@ -25,7 +25,7 @@ import { OrderedSet, Interval } from '../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { VisualContext } from '../../../mol-repr/visual';
 import { Theme } from '../../../mol-theme/theme';
-import { getAltResidueLoci } from './util/common';
+import { getAltResidueLociFromId } from './util/common';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -57,10 +57,11 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
 
     for (let i = 0; i < n; ++i) {
         const c = carbohydrates.elements[i];
-        const shapeType = getSaccharideShape(c.component.type, c.ringMemberCount)
+        const ring = c.unit.rings.all[c.ringIndex]
+        const shapeType = getSaccharideShape(c.component.type, ring.length)
 
         l.unit = c.unit
-        l.element = c.unit.elements[c.anomericCarbon]
+        l.element = c.unit.elements[ring[0]]
         const size = theme.size.size(l)
         const radius = size * sizeFactor
         const side = size * sizeFactor * SideFactor
@@ -189,8 +190,9 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     const location = StructureElement.Location.create()
     function getLocation (groupIndex: number, instanceIndex: number) {
         const carb = carbElements[Math.floor(groupIndex / 2)]
+        const ring = carb.unit.rings.all[carb.ringIndex]
         location.unit = carb.unit
-        location.element = carb.anomericCarbon
+        location.element = carb.unit.elements[ring[0]]
         return location
     }
     function isSecondary (elementIndex: number, instanceIndex: number) {
@@ -204,32 +206,26 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
     const { objectId, groupId } = pickingId
     if (id === objectId) {
         const carb = structure.carbohydrates.elements[Math.floor(groupId / 2)]
-        return getAltResidueLoci(structure, carb.unit, carb.anomericCarbon)
+        return getAltResidueLociFromId(structure, carb.unit, carb.residueIndex, carb.altId)
     }
     return EmptyLoci
 }
 
 /** For each carbohydrate (usually a monosaccharide) when all its residue's elements are in a loci. */
 function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
-    const { getElementIndex, getAnomericCarbons } = structure.carbohydrates
+    const { getElementIndices } = structure.carbohydrates
     let changed = false
     if (!StructureElement.Loci.is(loci)) return false
     if (!Structure.areEquivalent(loci.structure, structure)) return false
-    for (const e of loci.elements) {
-        // TODO make more efficient by handling/grouping `e.indices` by residue index
-        // TODO only call apply when the full alt-residue of the unit is part of `e`
-        OrderedSet.forEach(e.indices, v => {
-            const { model, elements } = e.unit
-            const { index } = model.atomicHierarchy.residueAtomSegments
-            const rI = index[elements[v]]
-            const eIndices = getAnomericCarbons(e.unit, rI)
-            for (let i = 0, il = eIndices.length; i < il; ++i) {
-                const eI = eIndices[i]
-                if (!OrderedSet.has(e.indices, OrderedSet.indexOf(elements, eI))) continue
-                const idx = getElementIndex(e.unit, eI)
-                if (idx !== undefined) {
-                    if (apply(Interval.ofBounds(idx * 2, idx * 2 + 2))) changed = true
-                }
+
+    for (const { unit, indices } of loci.elements) {
+        if (!Unit.isAtomic(unit)) continue
+
+        OrderedSet.forEach(indices, v => {
+            // TODO avoid duplicate calls to apply
+            const elementIndices = getElementIndices(unit, unit.elements[v])
+            for (let i = 0, il = elementIndices.length; i < il; ++i) {
+                if (apply(Interval.ofSingleton(elementIndices[i] * 2))) changed = true
             }
         })
     }

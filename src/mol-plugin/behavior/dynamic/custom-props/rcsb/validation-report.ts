@@ -191,12 +191,12 @@ function densityFitLabel(loci: Loci): string | undefined {
         const summary: string[] = []
 
         if (rsrzSeen.size) {
-            const rsrzCount = `<small>(${rsrzSeen.size} ${rsrzSeen.size > 1 ? 'Residues Avg.' : 'Residue'})</small>`
+            const rsrzCount = `<small>(${rsrzSeen.size} ${rsrzSeen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`
             const rsrzAvg = rsrzSum / rsrzSeen.size
             summary.push(`Real Space R ${rsrzCount}: ${rsrzAvg.toFixed(2)}`)
         }
         if (rsccSeen.size) {
-            const rsccCount = `<small>(${rsccSeen.size} ${rsccSeen.size > 1 ? 'Residues Avg.' : 'Residue'})</small>`
+            const rsccCount = `<small>(${rsccSeen.size} ${rsccSeen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`
             const rsccAvg = rsccSum / rsccSeen.size
             summary.push(`Real Space Correlation Coefficient ${rsccCount}: ${rsccAvg.toFixed(2)}`)
         }
@@ -239,7 +239,7 @@ function randomCoilIndexLabel(loci: Loci): string | undefined {
 
         if (seen.size === 0) return
 
-        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues Avg.' : 'Residue'})</small>`
+        const residueCount = `<small>(${seen.size} ${seen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`
         const rciAvg = sum / seen.size
 
         return `Random Coil Index ${residueCount}: ${rciAvg.toFixed(2)}`

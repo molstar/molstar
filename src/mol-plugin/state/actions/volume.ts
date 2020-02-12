@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -28,7 +28,7 @@ export const Ccp4Provider: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('CCP4/MRC/BRIX default builder', async taskCtx => {
-            let tree: StateBuilder.To<any> = data.apply(StateTransforms.Data.ParseCcp4)
+            let tree: StateBuilder.To<any> = data.apply(StateTransforms.Data.ParseCcp4, {}, { state: { isGhost: true } })
                 .apply(StateTransforms.Volume.VolumeFromCcp4)
             if (options.visuals) {
                 tree = tree.apply(StateTransforms.Representation.VolumeRepresentation3D)
@@ -48,7 +48,7 @@ export const Dsn6Provider: DataFormatProvider<any> = {
     },
     getDefaultBuilder: (ctx: PluginContext, data: StateBuilder.To<PluginStateObject.Data.Binary>, options: DataFormatBuilderOptions, state: State) => {
         return Task.create('DSN6/BRIX default builder', async taskCtx => {
-            let tree: StateBuilder.To<any> = data.apply(StateTransforms.Data.ParseDsn6)
+            let tree: StateBuilder.To<any> = data.apply(StateTransforms.Data.ParseDsn6, {}, { state: { isGhost: true } })
                 .apply(StateTransforms.Volume.VolumeFromDsn6)
             if (options.visuals) {
                 tree = tree.apply(StateTransforms.Representation.VolumeRepresentation3D)

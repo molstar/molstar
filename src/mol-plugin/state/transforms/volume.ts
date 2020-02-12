@@ -25,7 +25,8 @@ const VolumeFromCcp4 = PluginStateTransform.BuiltIn({
     to: SO.Volume.Data,
     params(a) {
         return {
-            voxelSize: PD.Vec3(Vec3.create(1, 1, 1))
+            voxelSize: PD.Vec3(Vec3.create(1, 1, 1)),
+            offset: PD.Vec3(Vec3.create(0, 0, 0))
         };
     }
 })({

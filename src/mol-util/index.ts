@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -79,19 +79,36 @@ export function deepEqual(a: any, b: any) {
     return false
 }
 
-export function shallowEqual<T>(a: T, b: T) {
-    if (!a) {
-        if (!b) return true;
-        return false;
+export function shallowEqual(a: any, b: any) {
+    if (a === b) return true;
+    const arrA = Array.isArray(a)
+    const arrB = Array.isArray(b)
+    if (arrA && arrB) return shallowEqualArrays(a, b)
+    if (arrA !== arrB) return false
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+        return shallowEqualObjects(a, b)
     }
-    if (!b) return false;
+    return false
+}
 
-    let keys = Object.keys(a);
+export function shallowEqualObjects(a: {}, b: {}) {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    const keys = Object.keys(a);
     if (Object.keys(b).length !== keys.length) return false;
-    for (let k of keys) {
+    for (const k of keys) {
         if (!hasOwnProperty.call(a, k) || (a as any)[k] !== (b as any)[k]) return false;
     }
+    return true;
+}
 
+export default function shallowEqualArrays(a: any[], b: any[]) {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0, il = a.length; i < il; ++i) {
+        if (a[i] !== b[i]) return false;
+    }
     return true;
 }
 

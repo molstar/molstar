@@ -90,7 +90,7 @@ export class PluginContext {
             selectionUpdated: this.ev()
         }
     } as const
-    
+
     readonly config = new PluginConfigManager(this.spec.config);
 
     readonly behaviors = {

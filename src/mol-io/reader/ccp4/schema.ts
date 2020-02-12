@@ -115,5 +115,5 @@ export interface Ccp4Header {
  */
 export interface Ccp4File {
     header: Ccp4Header
-    values: Float32Array | Int16Array | Int8Array
+    values: Float32Array | Int16Array | Int8Array | Uint16Array
 }

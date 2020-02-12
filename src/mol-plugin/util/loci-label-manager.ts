@@ -8,6 +8,7 @@
 import { PluginContext } from '../../mol-plugin/context';
 import { Loci } from '../../mol-model/loci';
 import { Representation } from '../../mol-repr/representation';
+import { MarkerAction } from '../../mol-util/marker-action';
 
 export type LociLabelEntry = JSX.Element | string
 export type LociLabelProvider = (info: Loci, repr?: Representation<any>) => LociLabelEntry | undefined
@@ -24,9 +25,9 @@ export class LociLabelManager {
         // Event.Interactivity.Highlight.dispatch(this.ctx, []);
     }
 
-    private empty: any[] = [];
-    private getInfo({ loci, repr }: Representation.Loci) {
-        if (!loci || loci.kind === 'empty-loci') return this.empty;
+    private empty: LociLabelEntry[] = [];
+    private getInfo({ loci, repr }: Representation.Loci, action: MarkerAction) {
+        if (Loci.isEmpty(loci) || action !== MarkerAction.Highlight) return this.empty;
         const info: LociLabelEntry[] = [];
         for (let p of this.providers) {
             const e = p(loci, repr);
@@ -36,6 +37,6 @@ export class LociLabelManager {
     }
 
     constructor(public ctx: PluginContext) {
-        ctx.interactivity.lociHighlights.addProvider((loci) => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(loci) }))
+        ctx.interactivity.lociHighlights.addProvider((loci, action) => ctx.behaviors.labels.highlight.next({ entries: this.getInfo(loci, action) }))
     }
 }

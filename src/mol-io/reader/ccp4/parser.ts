@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -27,10 +27,14 @@ export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4He
     // 54  MACHST      Machine stamp indicating machine type which wrote file
     //                 17 and 17 for big-endian or 68 and 65 for little-endian
     const MACHST = [ buffer.readUInt8(53 * 4), buffer.readUInt8(53 * 4 + 1) ]
-    let littleEndian = true
-    // found MRC files that don't have the MACHST stamp set and are big-endian
-    if (MACHST[0] !== 68 && MACHST[1] !== 65) {
+    let littleEndian = false
+    if (MACHST[0] === 68 && MACHST[1] === 65) {
+        littleEndian = true;
+    } else if (MACHST[0] === 17 && MACHST[1] === 17) {
         littleEndian = false;
+    } else {
+        const modeLE = buffer.readInt32LE(3 * 4)
+        if (modeLE <= 16) littleEndian = true;
     }
 
     const readInt = littleEndian ? (o: number) => buffer.readInt32LE(o * 4) : (o: number) => buffer.readInt32BE(o * 4)
@@ -117,11 +121,15 @@ export async function readCcp4Slices(header: Ccp4Header, buffer: TypedArrayBuffe
 
 function getCcp4DataType(mode: number) {
     switch (mode) {
-        case 2: return TypedArrayValueType.Float32
-        case 1: return TypedArrayValueType.Int16
         case 0: return TypedArrayValueType.Int8
+        case 1: return TypedArrayValueType.Int16
+        case 2: return TypedArrayValueType.Float32
+        case 3: throw new Error('mode 3 unsupported, complex 16-bit integers')
+        case 4: throw new Error('mode 4 unsupported, complex 32-bit reals')
+        case 6: TypedArrayValueType.Uint16
+        case 16: throw new Error('mode 16 unsupported, unsigned char * 3 (for rgb data, non-standard)')
     }
-    throw new Error(`ccp4 mode '${mode}' unsupported`);
+    throw new Error(`unknown mode '${mode}'`);
 }
 
 /** check if the file was converted by mapmode2to0, see https://github.com/uglymol/uglymol */

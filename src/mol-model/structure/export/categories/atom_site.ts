@@ -36,7 +36,10 @@ const atom_site_fields = CifWriter.fields<StructureElement.Location, Structure>(
     .float('Cartn_y', P.atom.y, { digitCount: 3, encoder: E.fixedPoint3 })
     .float('Cartn_z', P.atom.z, { digitCount: 3, encoder: E.fixedPoint3 })
     .float('occupancy', P.atom.occupancy, { digitCount: 2, encoder: E.fixedPoint2 })
-    .int('pdbx_formal_charge', P.atom.pdbx_formal_charge, { encoder: E.deltaRLE })
+    .int('pdbx_formal_charge', P.atom.pdbx_formal_charge, { 
+        encoder: E.deltaRLE,
+        valueKind: (k, d) =>  k.unit.model.atomicHierarchy.atoms.pdbx_formal_charge.valueKind(k.element)
+    })
 
     .str('auth_atom_id', P.atom.auth_atom_id)
     .str('auth_comp_id', P.residue.auth_comp_id)

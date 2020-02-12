@@ -67,15 +67,17 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
         }
 
         const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
+        const structConnAdded = new Set<StructureElement.UnitIndex>()
         if (structConnEntries) {
             for (const se of structConnEntries) {
                 for (const p of se.partners) {
                     const _bI = SortedArray.indexOf(unit.elements, p.atomIndex) as StructureElement.UnitIndex;
-                    if (_bI < 0) continue;
+                    if (_bI < 0 || _aI === _bI) continue;
                     atomA[atomA.length] = _aI;
                     atomB[atomB.length] = _bI;
                     flags[flags.length] = se.flags;
                     order[order.length] = se.order;
+                    structConnAdded.add(_bI)
                 }
             }
         }
@@ -104,6 +106,8 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
 
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni];
+            if (structConnAdded.has(_bI)) continue;
+
             const bI = atoms[_bI];
             if (bI <= aI) continue;
 

@@ -170,10 +170,7 @@ export function eachAtomicUnitTracedElement(offset: number, groupSize: number, e
 
 function selectPolymerElements(u: Unit) { return u.polymerElements; }
 
-/**
- * Mark a polymer element (e.g. part of a cartoon trace)
- * - for atomic units mark only when all its residue's elements are in a loci
- */
+/** Mark a polymer element (e.g. part of a cartoon trace) */
 export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!StructureElement.Loci.is(loci)) return false
