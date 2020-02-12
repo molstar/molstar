@@ -11,7 +11,7 @@ import { mmCIF_residueId_schema } from '../../mol-io/reader/cif/schema/mmcif-ext
 import { CifWriter } from '../../mol-io/writer/cif';
 import { Model, CustomPropertyDescriptor, ResidueIndex, Unit, IndexedCustomProperty } from '../../mol-model/structure';
 import { residueIdFields } from '../../mol-model/structure/export/categories/atom_site';
-import { StructureElement, CifExportContext } from '../../mol-model/structure/structure';
+import { StructureElement, CifExportContext, Structure } from '../../mol-model/structure/structure';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
 import Type from '../../mol-script/language/type';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/compiler';
@@ -19,10 +19,14 @@ import { PropertyWrapper } from '../common/wrapper';
 import { CustomModelProperty } from '../common/custom-model-property';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { CustomProperty } from '../common/custom-property';
+import { arraySetAdd } from '../../mol-util/array';
 
 export { StructureQualityReport }
 
-type StructureQualityReport = PropertyWrapper<IndexedCustomProperty.Residue<string[]> | undefined>
+type StructureQualityReport = PropertyWrapper<{
+    issues: IndexedCustomProperty.Residue<string[]>,
+    issueTypes: string[]
+}| undefined>
 
 namespace StructureQualityReport {
     export const DefaultServerUrl = 'https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/'
@@ -88,7 +92,14 @@ namespace StructureQualityReport {
         const prop = StructureQualityReportProvider.get(e.unit.model).value;
         if (!prop || !prop.data) return _emptyArray;
         const rI = e.unit.residueIndex[e.element];
-        return prop.data.has(rI) ? prop.data.get(rI)! : _emptyArray;
+        return prop.data.issues.has(rI) ? prop.data.issues.get(rI)! : _emptyArray;
+    }
+
+    export function getIssueTypes(structure?: Structure) {
+        if (!structure) return _emptyArray;
+        const prop = StructureQualityReportProvider.get(structure.models[0]).value;
+        if (!prop || !prop.data) return _emptyArray;
+        return prop.data.issueTypes;
     }
 
     function getCifData(model: Model) {
@@ -174,7 +185,7 @@ function createExportContext(ctx: CifExportContext): ReportExportContext {
         if (prop) info = prop.info;
         if (!prop || !prop.data) continue;
 
-        const { elements, property } = prop.data.getElements(s);
+        const { elements, property } = prop.data.issues.getElements(s);
         if (elements.length === 0) continue;
 
         const elementGroupId: number[] = [];
@@ -205,6 +216,8 @@ function createIssueMapFromJson(modelData: Model, data: any): StructureQualityRe
     const ret = new Map<ResidueIndex, string[]>();
     if (!data.molecules) return;
 
+    const issueTypes: string[] = [];
+
     for (const entity of data.molecules) {
         const entity_id = entity.entity_id.toString();
         for (const chain of entity.chains) {
@@ -217,12 +230,19 @@ function createIssueMapFromJson(modelData: Model, data: any): StructureQualityRe
                     const auth_seq_id = residue.author_residue_number, ins_code = residue.author_insertion_code || '';
                     const idx = modelData.atomicHierarchy.index.findResidue(entity_id, asym_id, auth_seq_id, ins_code);
                     ret.set(idx, residue.outlier_types);
+
+                    for (const t of residue.outlier_types) {
+                        arraySetAdd(issueTypes, t);
+                    }
                 }
             }
         }
     }
 
-    return IndexedCustomProperty.fromResidueMap(ret);
+    return {
+        issues: IndexedCustomProperty.fromResidueMap(ret),
+        issueTypes
+    };
 }
 
 function createIssueMapFromCif(modelData: Model,
@@ -240,7 +260,17 @@ function createIssueMapFromCif(modelData: Model,
         ret.set(idx, groups.get(issue_type_group_id.value(i))!);
     }
 
-    return IndexedCustomProperty.fromResidueMap(ret);
+    const issueTypes: string[] = [];
+    groups.forEach(issues => {
+        for (const t of issues) {
+            arraySetAdd(issueTypes, t);
+        }
+    })
+
+    return {
+        issues: IndexedCustomProperty.fromResidueMap(ret),
+        issueTypes
+    };
 }
 
 function parseIssueTypes(groupData: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issue_types>): Map<number, string[]> {
