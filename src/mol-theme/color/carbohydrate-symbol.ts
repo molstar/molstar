@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -26,16 +26,12 @@ export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: PD.Va
     let color: LocationColor
 
     if (ctx.structure) {
-        const { elements, getElementIndex, getAnomericCarbons } = ctx.structure.carbohydrates
+        const { elements, getElementIndices } = ctx.structure.carbohydrates
 
         const getColor = (unit: Unit, index: ElementIndex) => {
-            const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index[index]
-            const anomericCarbons = getAnomericCarbons(unit, residueIndex)
-            if (anomericCarbons.length > 0) {
-                const idx = getElementIndex(unit, anomericCarbons[0])
-                if (idx !== undefined) return elements[idx].component.color
-            }
-            return DefaultColor
+            if (!Unit.isAtomic(unit)) return DefaultColor
+            const carbs = getElementIndices(unit, index)
+            return carbs.length > 0 ? elements[carbs[0]].component.color : DefaultColor
         }
 
         color = (location: Location, isSecondary: boolean) => {

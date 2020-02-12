@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,6 +9,7 @@ import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { ResidueIndex, ElementIndex } from '../../model';
 import { SaccharideComponent } from './constants';
 import StructureElement from '../element';
+import { UnitRings } from '../unit/rings';
 
 export interface CarbohydrateLink {
     readonly carbohydrateIndexA: number
@@ -18,19 +19,18 @@ export interface CarbohydrateLink {
 export interface CarbohydrateTerminalLink {
     readonly carbohydrateIndex: number
     readonly elementIndex: StructureElement.UnitIndex
-    readonly elementUnit: Unit
+    readonly elementUnit: Unit.Atomic
     /** specifies direction of the link */
     readonly fromCarbohydrate: boolean
 }
 
 export interface CarbohydrateElement {
     readonly geometry: { readonly center: Vec3, readonly normal: Vec3, readonly direction: Vec3 },
-    readonly anomericCarbon: ElementIndex,
     readonly unit: Unit.Atomic,
     readonly residueIndex: ResidueIndex,
     readonly component: SaccharideComponent,
-    readonly ringAltId: string,
-    readonly ringMemberCount: number,
+    readonly ringIndex: UnitRings.Index,
+    readonly altId: string
 }
 
 /** partial carbohydrate with no ring present */
@@ -45,12 +45,10 @@ export interface Carbohydrates {
     terminalLinks: ReadonlyArray<CarbohydrateTerminalLink>
     elements: ReadonlyArray<CarbohydrateElement>
     partialElements: ReadonlyArray<PartialCarbohydrateElement>
-    getElementIndex: (unit: Unit, anomericCarbon: ElementIndex) => number | undefined
-    getLinkIndex: (unitA: Unit, anomericCarbonA: ElementIndex, unitB: Unit, anomericCarbonB: ElementIndex) => number | undefined
-    getLinkIndices: (unit: Unit, anomericCarbon: ElementIndex) => ReadonlyArray<number>
-    getTerminalLinkIndex: (unitA: Unit, elementA: ElementIndex, unitB: Unit, elementB: ElementIndex) => number | undefined
-    getTerminalLinkIndices: (unit: Unit, element: ElementIndex) => ReadonlyArray<number>
-    getAnomericCarbons: (unit: Unit, residueIndex: ResidueIndex) => ReadonlyArray<ElementIndex>
+
+    getElementIndices: (unit: Unit.Atomic, element: ElementIndex) => ReadonlyArray<number>
+    getLinkIndices: (unit: Unit.Atomic, element: ElementIndex) => ReadonlyArray<number>
+    getTerminalLinkIndices: (unit: Unit.Atomic, element: ElementIndex) => ReadonlyArray<number>
 }
 
 const EmptyArray: ReadonlyArray<any> = []
@@ -59,10 +57,8 @@ export const EmptyCarbohydrates: Carbohydrates = {
     terminalLinks: EmptyArray,
     elements: EmptyArray,
     partialElements: EmptyArray,
-    getElementIndex: () => undefined,
-    getLinkIndex: () => undefined,
+
+    getElementIndices: () => EmptyArray,
     getLinkIndices: () => EmptyArray,
-    getTerminalLinkIndex: () => undefined,
     getTerminalLinkIndices: () => EmptyArray,
-    getAnomericCarbons: () => [],
 }

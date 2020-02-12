@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VisualContext } from '../../visual';
-import { Structure, StructureElement, Bond } from '../../../mol-model/structure';
+import { Structure, StructureElement, Unit } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
@@ -19,6 +19,7 @@ import { OrderedSet, Interval } from '../../../mol-data/int';
 import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { getElementIdx, MetalsSet } from '../../../mol-model/structure/structure/unit/bonds/common';
+import { getAltResidueLociFromId, getAltResidueLoci } from './util/common';
 
 function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateTerminalLinkParams>, mesh?: Mesh) {
     const { terminalLinks, elements } = structure.carbohydrates
@@ -41,8 +42,10 @@ function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structur
         radius: (edgeIndex: number) => {
             const l = terminalLinks[edgeIndex]
             if (l.fromCarbohydrate) {
-                location.unit = elements[l.carbohydrateIndex].unit
-                location.element = elements[l.carbohydrateIndex].anomericCarbon
+                const carb = elements[l.carbohydrateIndex]
+                const ring = carb.unit.rings.all[carb.ringIndex]
+                location.unit = carb.unit
+                location.element = carb.unit.elements[ring[0]]
             } else {
                 location.unit = l.elementUnit
                 location.element = l.elementUnit.elements[l.elementIndex]
@@ -88,21 +91,17 @@ function CarbohydrateTerminalLinkIterator(structure: Structure): LocationIterato
     const { elements, terminalLinks } = structure.carbohydrates
     const groupCount = terminalLinks.length
     const instanceCount = 1
-    const location = Bond.Location()
+    const location = StructureElement.Location.create()
     const getLocation = (groupIndex: number) => {
         const terminalLink = terminalLinks[groupIndex]
-        const carb = elements[terminalLink.carbohydrateIndex]
-        const indexCarb = OrderedSet.indexOf(carb.unit.elements, carb.anomericCarbon)
         if (terminalLink.fromCarbohydrate) {
-            location.aUnit = carb.unit
-            location.aIndex = indexCarb as StructureElement.UnitIndex
-            location.bUnit = terminalLink.elementUnit
-            location.bIndex = terminalLink.elementIndex
+            const carb = elements[terminalLink.carbohydrateIndex]
+            const ring = carb.unit.rings.all[carb.ringIndex]
+            location.unit = carb.unit
+            location.element = carb.unit.elements[ring[0]]
         } else {
-            location.aUnit = terminalLink.elementUnit
-            location.aIndex = terminalLink.elementIndex
-            location.bUnit = carb.unit
-            location.bIndex = indexCarb as StructureElement.UnitIndex
+            location.unit = terminalLink.elementUnit
+            location.element = terminalLink.elementUnit.elements[terminalLink.elementIndex]
         }
         return location
     }
@@ -115,54 +114,31 @@ function getTerminalLinkLoci(pickingId: PickingId, structure: Structure, id: num
         const { terminalLinks, elements } = structure.carbohydrates
         const l = terminalLinks[groupId]
         const carb = elements[l.carbohydrateIndex]
-        const carbIndex = OrderedSet.indexOf(carb.unit.elements, carb.anomericCarbon)
 
-        return Bond.Loci(structure, [
-            Bond.Location(
-                carb.unit, carbIndex as StructureElement.UnitIndex,
-                l.elementUnit, l.elementIndex
-            ),
-            Bond.Location(
-                l.elementUnit, l.elementIndex,
-                carb.unit, carbIndex as StructureElement.UnitIndex
-            )
-        ])
+        return StructureElement.Loci.union(
+            getAltResidueLociFromId(structure, carb.unit, carb.residueIndex, carb.altId),
+            getAltResidueLoci(structure, l.elementUnit, l.elementUnit.elements[l.elementIndex])
+        )
     }
     return EmptyLoci
 }
 
 function eachTerminalLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
-    const { getTerminalLinkIndex } = structure.carbohydrates
     let changed = false
-    if (Bond.isLoci(loci)) {
-        if (!Structure.areEquivalent(loci.structure, structure)) return false
-        for (const l of loci.bonds) {
-            const idx = getTerminalLinkIndex(l.aUnit, l.aUnit.elements[l.aIndex], l.bUnit, l.bUnit.elements[l.bIndex])
-            if (idx !== undefined) {
-                if (apply(Interval.ofSingleton(idx))) changed = true
+    if (!StructureElement.Loci.is(loci)) return false
+    if (!Structure.areEquivalent(loci.structure, structure)) return false
+
+    const { getTerminalLinkIndices } = structure.carbohydrates
+    for (const { unit, indices } of loci.elements) {
+        if (!Unit.isAtomic(unit)) continue
+
+        OrderedSet.forEach(indices, v => {
+            // TODO avoid duplicate calls to apply
+            const linkIndices = getTerminalLinkIndices(unit, unit.elements[v])
+            for (let i = 0, il = linkIndices.length; i < il; ++i) {
+                if (apply(Interval.ofSingleton(linkIndices[i]))) changed = true
             }
-        }
-    } else if (StructureElement.Loci.is(loci)) {
-        if (!Structure.areEquivalent(loci.structure, structure)) return false
-        // TODO mark link only when both of the link elements are in a StructureElement.Loci
-        const { getElementIndex, getTerminalLinkIndices, elements } = structure.carbohydrates
-        for (const e of loci.elements) {
-            OrderedSet.forEach(e.indices, v => {
-                const carbI = getElementIndex(e.unit, e.unit.elements[v])
-                if (carbI !== undefined) {
-                    const carb = elements[carbI]
-                    const indices = getTerminalLinkIndices(carb.unit, carb.anomericCarbon)
-                    for (let i = 0, il = indices.length; i < il; ++i) {
-                        if (apply(Interval.ofSingleton(indices[i]))) changed = true
-                    }
-                } else {
-                    const indices = getTerminalLinkIndices(e.unit, e.unit.elements[v])
-                    for (let i = 0, il = indices.length; i < il; ++i) {
-                        if (apply(Interval.ofSingleton(indices[i]))) changed = true
-                    }
-                }
-            })
-        }
+        })
     }
     return changed
 }
