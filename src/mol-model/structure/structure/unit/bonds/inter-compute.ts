@@ -80,8 +80,10 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             let added = false;
             for (const se of structConnEntries) {
                 for (const p of se.partners) {
+                    if (aI === p.atomIndex) continue;
+
                     const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex) as StructureElement.UnitIndex;
-                    if (_bI < 0 || _aI === _bI) continue;
+                    if (_bI < 0) continue;
                     // check if the bond is within MAX_RADIUS for this pair of units
                     if (getDistance(unitA, aI, unitB, p.atomIndex) > MAX_RADIUS) continue;
                     builder.add(_aI, _bI, { order: se.order, flag: se.flags });

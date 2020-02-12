@@ -29,6 +29,8 @@ function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.U
     return builder.createGraph({ flags, order });
 }
 
+const __structConnAdded = new Set<StructureElement.UnitIndex>();
+
 function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBonds {
     const MAX_RADIUS = 4;
 
@@ -51,6 +53,8 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
     let lastResidue = -1;
     let componentMap: Map<string, Map<string, { flags: number, order: number }>> | undefined = void 0;
 
+    const structConnAdded = __structConnAdded;
+
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI =  atoms[_aI];
 
@@ -67,17 +71,22 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
         }
 
         const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
-        const structConnAdded = new Set<StructureElement.UnitIndex>()
+        let hasStructConn = false;
         if (structConnEntries) {
             for (const se of structConnEntries) {
                 for (const p of se.partners) {
+                    if (aI === p.atomIndex) continue;
+
                     const _bI = SortedArray.indexOf(unit.elements, p.atomIndex) as StructureElement.UnitIndex;
-                    if (_bI < 0 || _aI === _bI) continue;
+                    if (_bI < 0) continue;
                     atomA[atomA.length] = _aI;
                     atomB[atomB.length] = _bI;
                     flags[flags.length] = se.flags;
                     order[order.length] = se.order;
-                    structConnAdded.add(_bI)
+
+                    if (!hasStructConn) structConnAdded.clear();
+                    hasStructConn = true;
+                    structConnAdded.add(_bI);
                 }
             }
         }
@@ -106,7 +115,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
 
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni];
-            if (structConnAdded.has(_bI)) continue;
+            if (hasStructConn && structConnAdded.has(_bI)) continue;
 
             const bI = atoms[_bI];
             if (bI <= aI) continue;
