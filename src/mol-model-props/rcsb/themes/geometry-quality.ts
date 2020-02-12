@@ -14,6 +14,7 @@ import { CustomProperty } from '../../common/custom-property';
 import { ValidationReportProvider, ValidationReport } from '../validation-report';
 import { TableLegend } from '../../../mol-util/legend';
 import { PolymerType } from '../../../mol-model/structure/model/types';
+import { SetUtils } from '../../../mol-util/set';
 
 const DefaultColor = Color(0x909090)
 
@@ -23,13 +24,28 @@ const TwoIssuesColor = Color(0xf46d43)
 const ThreeOrMoreIssuesColor = Color(0xa50026)
 
 const ColorLegend = TableLegend([
+    ['Data unavailable', DefaultColor],
     ['No issues', NoIssuesColor],
     ['One issue', OneIssueColor],
     ['Two issues', TwoIssuesColor],
-    ['Three or more issues', ThreeOrMoreIssuesColor]
+    ['Three or more issues', ThreeOrMoreIssuesColor],
 ])
 
-export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: {}): ColorTheme<{}> {
+export function getGeometricQualityColorThemeParams(ctx: ThemeDataContext) {
+    const validationReport = ctx.structure && ValidationReportProvider.get(ctx.structure.models[0]).value
+    const options: [string, string][] = []
+    if (validationReport) {
+        const kinds = new Set<string>()
+        validationReport.geometryIssues.forEach(v => v.forEach(k => kinds.add(k)))
+        kinds.forEach(k => options.push([k, k]))
+    }
+    return {
+        ignore: PD.MultiSelect([] as string[], options)
+    }
+}
+export type GeometricQualityColorThemeParams = ReturnType<typeof getGeometricQualityColorThemeParams>
+
+export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: PD.Values<GeometricQualityColorThemeParams>): ColorTheme<GeometricQualityColorThemeParams> {
     let color: LocationColor = () => DefaultColor
 
     const validationReport = ctx.structure && ValidationReportProvider.get(ctx.structure.models[0])
@@ -42,19 +58,26 @@ export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: {}): Col
         const { geometryIssues, clashes, bondOutliers, angleOutliers } = value
         const residueIndex = model.atomicHierarchy.residueAtomSegments.index
         const { polymerType } = model.atomicHierarchy.derived.residue
+        const ignore = new Set(props.ignore)
+
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location) && location.unit.model === model) {
                 const { element } = location
                 const rI = residueIndex[element]
-                let value = geometryIssues.get(rI)?.size
-                if (value !== undefined && polymerType[rI] === PolymerType.NA) {
-                    value = 0
-                    if (clashes.getVertexEdgeCount(element) > 0) value += 1
-                    if (bondOutliers.index.has(element)) value += 1
-                    if (angleOutliers.index.has(element)) value += 1
+
+                const value = geometryIssues.get(rI)
+                if (value === undefined) return DefaultColor
+
+                let count = SetUtils.differenceSize(value, ignore)
+
+                if (count > 0 && polymerType[rI] === PolymerType.NA) {
+                    count = 0
+                    if (!ignore.has('clash') && clashes.getVertexEdgeCount(element) > 0) count += 1
+                    if (!ignore.has('mog-bond-outlier') && bondOutliers.index.has(element)) count += 1
+                    if (!ignore.has('mog-angle-outlier') && angleOutliers.index.has(element)) count += 1
                 }
 
-                switch (value) {
+                switch (count) {
                     case undefined: return DefaultColor
                     case 0: return NoIssuesColor
                     case 1: return OneIssueColor
@@ -72,16 +95,16 @@ export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: {}): Col
         color,
         props,
         contextHash,
-        description: 'Assigns residue colors according to the number of geometry issues.',
+        description: 'Assigns residue colors according to the number of (filtered) geometry issues.',
         legend: ColorLegend
     }
 }
 
-export const GeometryQualityColorThemeProvider: ColorTheme.Provider<{}> = {
+export const GeometryQualityColorThemeProvider: ColorTheme.Provider<GeometricQualityColorThemeParams> = {
     label: 'RCSB Geometry Quality',
     factory: GeometryQualityColorTheme,
-    getParams: () => ({}),
-    defaultValues: PD.getDefaultValues({}),
+    getParams: getGeometricQualityColorThemeParams,
+    defaultValues: PD.getDefaultValues(getGeometricQualityColorThemeParams({})),
     isApplicable: (ctx: ThemeDataContext) => ValidationReport.isApplicable(ctx.structure?.models[0]),
     ensureCustomProperties: (ctx: CustomProperty.Context, data: ThemeDataContext) => {
         return data.structure ? ValidationReportProvider.attach(ctx, data.structure.models[0]) : Promise.resolve()
