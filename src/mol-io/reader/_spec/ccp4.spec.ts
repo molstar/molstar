@@ -23,7 +23,7 @@ function createCcp4Data() {
     dv.setInt32(1 * 4, 2) // NR
     dv.setInt32(2 * 4, 3) // NS
 
-    dv.setInt32(3 * 4, 0) // NC
+    dv.setInt32(3 * 4, 0) // MODE
 
     return data
 }
