@@ -1,7 +1,7 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'BIRD' schema file. Dictionary versions: mmCIF 5.320, IHM 1.05, CARB draft.
+ * Code-generated 'BIRD' schema file. Dictionary versions: mmCIF 5.323, IHM 1.07, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -78,7 +78,7 @@ export const BIRD_Schema = {
         /**
          * Defines how this entity is represented in PDB data files.
          */
-        represent_as: Aliased<'polymer' | 'single molecule'>(str),
+        represent_as: Aliased<'polymer' | 'single molecule' | 'branched'>(str),
         /**
          * For entities represented as single molecules, the identifier
          * corresponding to the chemical definition for the molecule.
