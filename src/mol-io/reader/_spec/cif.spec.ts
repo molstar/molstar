@@ -8,6 +8,7 @@
 import * as Data from '../cif/data-model'
 import * as Schema from '../cif/schema'
 import { Column } from '../../../mol-data/db'
+import parse from '../cif/text/parser';
 
 const columnData = `123abc d,e,f '4 5 6'`;
 // 123abc d,e,f '4 5 6'
@@ -35,6 +36,24 @@ namespace TestSchema {
     }
     export const schema = { test }
 }
+
+test('cif triple quote', async () => {
+    const data = `data_test
+_test.field1 '''123 " '' 1'''
+_test.field2 ''' c glide reflection through the plane (x,1/4,z)
+chosen as one of the generators of the space group'''`;
+
+    const result = await parse(data).run();
+    if (result.isError) {
+        expect(false).toBe(true);
+        return;
+    }
+
+    const cat = result.result.blocks[0].categories['test'];
+    expect(cat.getField('field1')!.str(0)).toBe(`123 " '' 1`);
+    expect(cat.getField('field2')!.str(0)).toBe(` c glide reflection through the plane (x,1/4,z)
+chosen as one of the generators of the space group`);
+});
 
 describe('schema', () => {
     const db = Schema.toDatabase(TestSchema.schema, testBlock);

@@ -132,6 +132,28 @@ function eatEscaped(state: TokenizerState, esc: number) {
 }
 
 /**
+ * Eats an escaped value "triple quote" (''') value.
+ */
+function eatTripleQuote(state: TokenizerState) {
+    // skip the '''
+    state.position += 3;
+    while (state.position < state.length) {
+        if (state.data.charCodeAt(state.position) === 39 /* ' */ && isTripleQuoteAtPosition(state)) {
+            // get rid of the quotes.
+            state.tokenStart += 3;
+            state.tokenEnd = state.position;
+            state.isEscaped = true;
+            state.position += 3;
+            return;
+        }
+
+        ++state.position;
+    }
+
+    state.tokenEnd = state.position;
+}
+
+/**
  * Eats a multiline token of the form NL;....NL;
  */
 function eatMultiline(state: TokenizerState) {
@@ -233,6 +255,18 @@ function skipWhitespace(state: TokenizerState): number {
         }
     }
     return prev;
+}
+
+
+/**
+ * Returns true if there are two consecutive ' in +1 and +2 positions.
+ */
+function isTripleQuoteAtPosition(state: TokenizerState): boolean {
+    if (state.length - state.position < 2) return false;
+    if (state.data.charCodeAt(state.position + 1) !== 39) return false; // '
+    if (state.data.charCodeAt(state.position + 2) !== 39) return false; // '
+
+    return true;
 }
 
 function isData(state: TokenizerState): boolean {
@@ -393,8 +427,13 @@ function moveNextInternal(state: TokenizerState) {
             skipCommentLine(state);
             state.tokenType = CifTokenType.Comment;
             break;
-        case 34: // ", escaped value
         case 39: // ', escaped value
+            if (isTripleQuoteAtPosition(state)) {
+                eatTripleQuote(state);
+                state.tokenType = CifTokenType.Value;
+                break;
+            }
+        case 34: // ", escaped value
             eatEscaped(state, c);
             state.tokenType = CifTokenType.Value;
             break;
