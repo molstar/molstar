@@ -79,16 +79,16 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
         if (structConnEntries && structConnEntries.length) {
             let added = false;
             for (const se of structConnEntries) {
-                for (const p of se.partners) {
-                    if (aI === p.atomIndex) continue;
+                const { partnerA, partnerB } = se
+                const p = partnerA.atomIndex === aI ? partnerB : partnerA
+                const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex) as StructureElement.UnitIndex;
+                if (_bI < 0) continue;
 
-                    const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex) as StructureElement.UnitIndex;
-                    if (_bI < 0) continue;
-                    // check if the bond is within MAX_RADIUS for this pair of units
-                    if (getDistance(unitA, aI, unitB, p.atomIndex) > MAX_RADIUS) continue;
-                    builder.add(_aI, _bI, { order: se.order, flag: se.flags });
-                    added = true;
-                }
+                // check if the bond is within MAX_RADIUS for this pair of units
+                if (getDistance(unitA, aI, unitB, p.atomIndex) > MAX_RADIUS) continue;
+
+                builder.add(_aI, _bI, { order: se.order, flag: se.flags });
+                added = true;
             }
             // assume, for an atom, that if any inter unit bond is given
             // all are given and thus we don't need to compute any other

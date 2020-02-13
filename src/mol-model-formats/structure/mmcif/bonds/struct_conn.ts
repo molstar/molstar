@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -18,7 +18,6 @@ import { ElementIndex, ResidueIndex } from '../../../../mol-model/structure/mode
 import { getInterBondOrderFromTable } from '../../../../mol-model/structure/model/properties/atomic/bonds';
 
 export interface StructConn {
-    getResidueEntries(residueAIndex: ResidueIndex, residueBIndex: ResidueIndex): ReadonlyArray<StructConn.Entry>,
     getAtomEntries(atomIndex: ElementIndex): ReadonlyArray<StructConn.Entry>,
     readonly entries: ReadonlyArray<StructConn.Entry>
 }
@@ -38,23 +37,11 @@ export namespace StructConn {
                     const strConn = get(model);
                     if (!strConn || strConn.entries.length === 0) return CifWriter.Category.Empty;
 
-                    const foundAtoms = new Set<ElementIndex>();
                     const indices: number[] = [];
-                    for (const entry of strConn.entries) {
-                        const { partners } = entry;
-                        let hasAll = true;
-                        for (let i = 0, _i = partners.length; i < _i; i++) {
-                            const atom = partners[i].atomIndex;
-                            if (foundAtoms.has(atom)) continue;
-                            if (hasAtom(structure, atom)) {
-                                foundAtoms.add(atom);
-                            } else {
-                                hasAll = false;
-                                break;
-                            }
-                        }
-                        if (hasAll) {
-                            indices[indices.length] = entry.rowIndex;
+                    for (const e of strConn.entries) {
+                        if (hasAtom(structure, e.partnerA.atomIndex) &&
+                                hasAtom(structure, e.partnerB.atomIndex)) {
+                            indices[indices.length] = e.rowIndex;
                         }
                     }
 
@@ -71,54 +58,23 @@ export namespace StructConn {
         return false;
     }
 
-    function _resKey(rA: number, rB: number) {
-        if (rA < rB) return `${rA}-${rB}`;
-        return `${rB}-${rA}`;
-    }
     const _emptyEntry: Entry[] = [];
 
     class StructConnImpl implements StructConn {
-        private _residuePairIndex: Map<string, StructConn.Entry[]> | undefined = void 0;
         private _atomIndex: Map<number, StructConn.Entry[]> | undefined = void 0;
-
-        private getResiduePairIndex() {
-            if (this._residuePairIndex) return this._residuePairIndex;
-            this._residuePairIndex = new Map();
-            for (const e of this.entries) {
-                const ps = e.partners;
-                const l = ps.length;
-                for (let i = 0; i < l - 1; i++) {
-                    for (let j = i + i; j < l; j++) {
-                        const key = _resKey(ps[i].residueIndex, ps[j].residueIndex);
-                        if (this._residuePairIndex.has(key)) {
-                            this._residuePairIndex.get(key)!.push(e);
-                        } else {
-                            this._residuePairIndex.set(key, [e]);
-                        }
-                    }
-                }
-            }
-            return this._residuePairIndex;
-        }
 
         private getAtomIndex() {
             if (this._atomIndex) return this._atomIndex;
-            this._atomIndex = new Map();
+            const m = this._atomIndex = new Map();
             for (const e of this.entries) {
-                for (const p of e.partners) {
-                    const key = p.atomIndex;
-                    if (this._atomIndex.has(key)) {
-                        this._atomIndex.get(key)!.push(e);
-                    } else {
-                        this._atomIndex.set(key, [e]);
-                    }
-                }
+                const { partnerA: { atomIndex: iA }, partnerB: { atomIndex: iB } } = e;
+                if (m.has(iA)) m.get(iA)!.push(e);
+                else m.set(iA, [e]);
+
+                if (m.has(iB)) m.get(iB)!.push(e);
+                else m.set(iB, [e]);
             }
             return this._atomIndex;
-        }
-
-        getResidueEntries(residueAIndex: ResidueIndex, residueBIndex: ResidueIndex): ReadonlyArray<StructConn.Entry> {
-            return this.getResiduePairIndex().get(_resKey(residueAIndex, residueBIndex)) || _emptyEntry;
         }
 
         getAtomEntries(atomIndex: ElementIndex): ReadonlyArray<StructConn.Entry> {
@@ -134,7 +90,8 @@ export namespace StructConn {
         distance: number,
         order: number,
         flags: number,
-        partners: { residueIndex: ResidueIndex, atomIndex: ElementIndex, symmetry: string }[]
+        partnerA: { residueIndex: ResidueIndex, atomIndex: ElementIndex, symmetry: string },
+        partnerB: { residueIndex: ResidueIndex, atomIndex: ElementIndex, symmetry: string }
     }
 
     export function attachFromMmCif(model: Model): boolean {
@@ -193,22 +150,14 @@ export namespace StructConn {
             if (!atomName) return void 0;
             const atomIndex = findAtomIndexByLabelName(model, residueIndex, atomName, ps.label_alt_id.value(row));
             if (atomIndex < 0) return void 0;
-            return { residueIndex, atomIndex, symmetry: ps.symmetry.value(row) || '1_555' };
-        }
-
-        const _ps = (row: number) => {
-            const ret = [];
-            let p = _p(row, p1);
-            if (p) ret.push(p);
-            p = _p(row, p2);
-            if (p) ret.push(p);
-            return ret;
+            return { residueIndex, atomIndex, symmetry: ps.symmetry.value(row) };
         }
 
         const entries: StructConn.Entry[] = [];
         for (let i = 0; i < struct_conn._rowCount; i++) {
-            const partners = _ps(i);
-            if (partners.length < 2) continue;
+            const partnerA = _p(i, p1)
+            const partnerB = _p(i, p2)
+            if (partnerA === undefined || partnerB === undefined) continue;
 
             const type = conn_type_id.value(i)
             const orderType = (pdbx_value_order.value(i) || '').toLowerCase();
@@ -240,7 +189,9 @@ export namespace StructConn {
                 case 'metalc': flags = BondType.Flag.MetallicCoordination; break;
             }
 
-            entries.push({ rowIndex: i, flags, order, distance: pdbx_dist_value.value(i), partners });
+            entries.push({
+                rowIndex: i, flags, order, distance: pdbx_dist_value.value(i), partnerA, partnerB
+            });
         }
 
         const ret = new StructConnImpl(entries);

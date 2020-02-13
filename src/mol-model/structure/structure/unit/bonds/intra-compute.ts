@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -74,20 +74,22 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
         let hasStructConn = false;
         if (structConnEntries) {
             for (const se of structConnEntries) {
-                for (const p of se.partners) {
-                    if (aI === p.atomIndex) continue;
+                const { partnerA, partnerB } = se
+                // symmetry must be the same for intra-unit bonds
+                if (partnerA.symmetry !== partnerB.symmetry) continue
 
-                    const _bI = SortedArray.indexOf(unit.elements, p.atomIndex) as StructureElement.UnitIndex;
-                    if (_bI < 0) continue;
-                    atomA[atomA.length] = _aI;
-                    atomB[atomB.length] = _bI;
-                    flags[flags.length] = se.flags;
-                    order[order.length] = se.order;
+                const p = partnerA.atomIndex === aI ? partnerB : partnerA
+                const _bI = SortedArray.indexOf(unit.elements, p.atomIndex) as StructureElement.UnitIndex;
+                if (_bI < 0) continue;
 
-                    if (!hasStructConn) structConnAdded.clear();
-                    hasStructConn = true;
-                    structConnAdded.add(_bI);
-                }
+                atomA[atomA.length] = _aI;
+                atomB[atomB.length] = _bI;
+                flags[flags.length] = se.flags;
+                order[order.length] = se.order;
+
+                if (!hasStructConn) structConnAdded.clear();
+                hasStructConn = true;
+                structConnAdded.add(_bI);
             }
         }
 
