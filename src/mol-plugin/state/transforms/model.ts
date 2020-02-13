@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -713,12 +713,13 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
         });
     }
 });
-async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: PD.Values<PD.Params>) {
+async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomModelProperties['createDefaultParams']>) {
     const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch }
-    for (const name of Object.keys(params)) {
+    const { autoAttach, properties } = params
+    for (const name of Object.keys(properties)) {
         const property = ctx.customModelProperties.get(name)
         const props = params[name as keyof typeof params]
-        if (props.autoAttach) {
+        if (autoAttach.includes(name)) {
             try {
                 await property.attach(propertyCtx, model, props)
             } catch (e) {
@@ -747,12 +748,13 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
         });
     }
 });
-async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: PD.Values<PD.Params>) {
+async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomStructureProperties['createDefaultParams']>) {
     const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch }
-    for (const name of Object.keys(params)) {
+    const { autoAttach, properties } = params
+    for (const name of Object.keys(properties)) {
         const property = ctx.customStructureProperties.get(name)
         const props = params[name as keyof typeof params]
-        if (props.autoAttach) {
+        if (autoAttach.includes(name)) {
             try {
                 await property.attach(propertyCtx, structure, props)
             } catch (e) {

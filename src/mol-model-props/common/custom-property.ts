@@ -41,21 +41,32 @@ namespace CustomProperty {
 
         /** Get params for all applicable property providers */
         getParams(data?: Data) {
-            const params: PD.Params = {}
+            const propertiesParams: PD.Params = {}
+            const autoAttachOptions: [string, string][] = []
+            const autoAttachDefault: string[] = []
             if (data) {
-            const values = this.providers.values();
+                const values = this.providers.values();
                 while (true) {
                     const v = values.next()
                     if (v.done) break
+
                     const provider = v.value
                     if (!provider.isApplicable(data)) continue
-                    params[provider.descriptor.name] = PD.Group({
-                        autoAttach: PD.Boolean(this.defaultAutoAttachValues.get(provider.descriptor.name)!),
-                        ...provider.getParams(data),
-                    }, { label: v.value.label })
+
+                    autoAttachOptions.push([provider.descriptor.name, provider.label])
+                    if (this.defaultAutoAttachValues.get(provider.descriptor.name)) {
+                        autoAttachDefault.push(provider.descriptor.name)
+                    }
+
+                    propertiesParams[provider.descriptor.name] = PD.Group({
+                        ...provider.getParams(data)
+                    }, { label: provider.label })
                 }
             }
-            return params
+            return {
+                autoAttach: PD.MultiSelect(autoAttachDefault, autoAttachOptions),
+                properties: PD.Group(propertiesParams, { isFlat: true })
+            }
         }
 
         setDefaultAutoAttach(name: string, value: boolean) {
