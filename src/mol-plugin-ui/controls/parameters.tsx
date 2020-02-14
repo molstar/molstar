@@ -59,6 +59,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'color-list': return ColorListControl;
         case 'vec3': return Vec3Control;
         case 'file': return FileControl;
+        case 'file-list': return FileListControl;
         case 'select': return SelectControl;
         case 'text': return TextControl;
         case 'interval': return typeof param.min !== 'undefined' && typeof param.max !== 'undefined'
@@ -436,7 +437,6 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
     }
 }
 
-
 export class FileControl extends React.PureComponent<ParamProps<PD.FileParam>> {
     change(value: File) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -449,9 +449,36 @@ export class FileControl extends React.PureComponent<ParamProps<PD.FileParam>> {
     render() {
         const value = this.props.value;
 
-        // return <input disabled={this.props.isDisabled} value={void 0} type='file' multiple={false} />
         return <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
             {value ? value.name : 'Select a file...'} <input disabled={this.props.isDisabled} onChange={this.onChangeFile} type='file' multiple={false} accept={this.props.param.accept} />
+        </div>
+    }
+}
+
+export class FileListControl extends React.PureComponent<ParamProps<PD.FileListParam>> {
+    change(value: FileList) {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    onChangeFileList = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.change(e.target.files!);
+    }
+
+    render() {
+        const value = this.props.value;
+
+        const names: string[] = []
+        if (value) {
+            for (let i = 0, il = value.length; i < il; ++i) {
+                names.push(value[i].name)
+            }
+        }
+        const label = names.length === 0
+            ? 'Select files...' : names.length === 1
+                ? names[0] : `${names.length} files selected`
+
+        return <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
+            {label} <input disabled={this.props.isDisabled} onChange={this.onChangeFileList} type='file' multiple={true} accept={this.props.param.accept} />
         </div>
     }
 }

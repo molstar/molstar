@@ -22,6 +22,7 @@ function paramInfo(param: PD.Any, offset: number): string {
         case 'color-list': return `One of ${oToS(param.options)}`;
         case 'vec3': return `3D vector [x, y, z]`;
         case 'file': return `JavaScript File Handle`;
+        case 'file-list': return `JavaScript FileList Handle`;
         case 'select': return `One of ${oToS(param.options)}`;
         case 'text': return 'String';
         case 'interval': return `Interval [min, max]`;

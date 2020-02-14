@@ -119,11 +119,21 @@ export namespace ParamDefinition {
     }
 
     export interface FileParam extends Base<File> {
-        type: 'file',
+        type: 'file'
         accept?: string
     }
-    export function File(info?: Info & { accept?: string }): FileParam {
+    export function File(info?: Info & { accept?: string, multiple?: boolean }): FileParam {
         const ret = setInfo<FileParam>({ type: 'file', defaultValue: void 0 as any }, info);
+        if (info && info.accept) ret.accept = info.accept;
+        return ret;
+    }
+
+    export interface FileListParam extends Base<FileList> {
+        type: 'file-list'
+        accept?: string
+    }
+    export function FileList(info?: Info & { accept?: string, multiple?: boolean }): FileListParam {
+        const ret = setInfo<FileListParam>({ type: 'file-list', defaultValue: void 0 as any }, info);
         if (info && info.accept) ret.accept = info.accept;
         return ret;
     }
@@ -256,7 +266,7 @@ export namespace ParamDefinition {
     }
 
     export type Any =
-        | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph
+        | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Numeric | FileParam | FileListParam | Interval | LineGraph
         | ColorList<any> | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList
 
     export type Params = { [k: string]: Any }
