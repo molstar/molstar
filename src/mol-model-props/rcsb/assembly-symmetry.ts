@@ -25,7 +25,7 @@ const BiologicalAssemblyNames = new Set([
 ])
 
 export namespace AssemblySymmetry {
-    export const DefaultServerUrl = 'http://data-beta.rcsb.org/graphql'
+    export const DefaultServerUrl = 'https://data-beta.rcsb.org/graphql'
 
     export function isApplicable(structure?: Structure): boolean {
         // check if structure is from pdb entry
