@@ -51,7 +51,9 @@ interface Mapping {
     chain_index_label_seq_id: Map<ChainIndex, Map<string | number, ResidueIndex>>,
 
     auth_asym_id_auth_seq_id: Map<string, Map<number, ChainIndex>>,
-    chain_index_auth_seq_id: Map<ChainIndex, Map<string | number, ResidueIndex>>
+    chain_index_auth_seq_id: Map<ChainIndex, Map<string | number, ResidueIndex>>,
+
+    label_asym_id: Map<string, EntityIndex>,
 }
 
 function createMapping(entities: Entities, data: AtomicData, segments: AtomicSegments): Mapping {
@@ -67,6 +69,7 @@ function createMapping(entities: Entities, data: AtomicData, segments: AtomicSeg
         chain_index_label_seq_id: new Map(),
         auth_asym_id_auth_seq_id: new Map(),
         chain_index_auth_seq_id: new Map(),
+        label_asym_id: new Map(),
     };
 }
 
@@ -77,6 +80,11 @@ class Index implements AtomicIndex {
 
     getEntityFromChain(cI: ChainIndex): EntityIndex {
         return this.map.chain_index_entity_index[cI];
+    }
+
+    findEntity(label_asym_id: string): EntityIndex {
+        const entityIndex = this.map.label_asym_id.get(label_asym_id)
+        return entityIndex !== undefined ? entityIndex : -1 as EntityIndex
     }
 
     findChainLabel(key: AtomicIndex.ChainLabelKey): ChainIndex {
@@ -216,7 +224,9 @@ export function getAtomicIndex(data: AtomicData, entities: Entities, segments: A
             map.auth_asym_id_auth_seq_id.set(authAsymId, auth_asym_id_auth_seq_id)
         }
 
-        updateMapMapIndex(map.entity_index_label_asym_id, entityIndex, label_asym_id.value(chainIndex), chainIndex);
+        const labelAsymId = label_asym_id.value(chainIndex)
+        if (!map.label_asym_id.has(labelAsymId)) map.label_asym_id.set(labelAsymId, entityIndex);
+        updateMapMapIndex(map.entity_index_label_asym_id, entityIndex, labelAsymId, chainIndex);
 
         const chain_index_label_seq_id = new Map<string | number, ResidueIndex>();
         const chain_index_auth_seq_id = new Map<string | number, ResidueIndex>();

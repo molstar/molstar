@@ -139,6 +139,8 @@ export interface AtomicSegments {
 export interface AtomicIndex {
     /** @returns index or -1 if not present. */
     getEntityFromChain(cI: ChainIndex): EntityIndex,
+    /** @returns index or -1 if not present. */
+    findEntity(label_asym_id: string): EntityIndex
 
     /**
      * Find chain using label_ mmCIF properties
