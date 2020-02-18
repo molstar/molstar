@@ -21,7 +21,8 @@ namespace Table {
     export type Columns<S extends Schema> = { [C in keyof S]: Column<S[C]['T']> }
     export type Row<S extends Schema> = { [C in keyof S]: S[C]['T'] }
     export type Arrays<S extends Schema> = { [C in keyof S]: ArrayLike<S[C]['T']> }
-    export type PartialTable<S extends Table.Schema> = { readonly _rowCount: number, readonly _columns: ReadonlyArray<string> } & { [C in keyof S]?: Column<S[C]['T']> }
+    export type PartialColumns<S extends Schema> = { [C in keyof S]?: Column<S[C]['T']> }
+    export type PartialTable<S extends Table.Schema> = { readonly _rowCount: number, readonly _columns: ReadonlyArray<string> } & PartialColumns<S>
 
     export function is(t: any): t is Table<any> {
         return t && typeof t._rowCount === 'number' && !!t._columns && !!t._schema;
@@ -45,6 +46,19 @@ namespace Table {
         const _columns = Object.keys(columns);
         const _rowCount = columns[_columns[0]].rowCount;
         return { _rowCount, _columns, _schema: schema, ...(columns as any) };
+    }
+
+    export function ofPartialColumns<S extends Schema, R extends Table<S> = Table<S>>(schema: S, partialColumns: PartialColumns<S>, rowCount: number): R {
+        const ret = Object.create(null);
+        const columns = Object.keys(schema);
+        ret._rowCount = rowCount;
+        ret._columns = columns;
+        ret._schema = schema;
+        for (const k of columns) {
+            if (k in partialColumns) ret[k] = partialColumns[k]
+            else ret[k] = Column.Undefined(rowCount, schema[k])
+        }
+        return ret;
     }
 
     export function ofUndefinedColumns<S extends Schema, R extends Table<S> = Table<S>>(schema: S, rowCount: number): R {
