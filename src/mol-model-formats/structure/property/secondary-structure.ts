@@ -1,36 +1,51 @@
 
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { mmCIF_Database as mmCIF, mmCIF_Database } from '../../../mol-io/reader/cif/schema/mmcif'
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif'
 import { SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { AtomicHierarchy } from '../../../mol-model/structure/model/properties/atomic';
 import { SecondaryStructure } from '../../../mol-model/structure/model/properties/seconday-structure';
-import { Column } from '../../../mol-data/db';
+import { Column, Table } from '../../../mol-data/db';
 import { ChainIndex, ResidueIndex } from '../../../mol-model/structure/model/indexing';
+import { FormatPropertyProvider } from '../common/property';
+import { CustomPropertyDescriptor } from '../../../mol-model/structure';
 
-export function getSecondaryStructure(data: mmCIF_Database, hierarchy: AtomicHierarchy): SecondaryStructure {
-    const map: SecondaryStructureMap = new Map();
-    const elements: SecondaryStructure.Element[] = [{ kind: 'none' }];
-    addHelices(data.struct_conf, map, elements);
-    // must add Helices 1st because of 'key' value assignment.
-    addSheets(data.struct_sheet_range, map, data.struct_conf._rowCount, elements);
+export { ModelSecondaryStructure }
 
-    const n = hierarchy.residues._rowCount
-    const getIndex = (rI: ResidueIndex) => rI
+type StructConf = Table<mmCIF_Schema['struct_conf']>
+type StructSheetRange = Table<mmCIF_Schema['struct_sheet_range']>
 
-    const secStruct: SecondaryStructureData = {
-        type: new Int32Array(n) as any,
-        key: new Int32Array(n) as any,
-        elements
+namespace ModelSecondaryStructure {
+    export const Descriptor: CustomPropertyDescriptor = {
+        name: 'model_secondary_structure',
     };
 
-    if (map.size > 0) assignSecondaryStructureRanges(hierarchy, map, secStruct);
-    return SecondaryStructure(secStruct.type, secStruct.key, secStruct.elements, getIndex);
+    export const Provider = FormatPropertyProvider.create<SecondaryStructure>(Descriptor)
+
+    export function fromStruct(conf: StructConf, sheetRange: StructSheetRange, hierarchy: AtomicHierarchy): SecondaryStructure {
+        const map: SecondaryStructureMap = new Map();
+        const elements: SecondaryStructure.Element[] = [{ kind: 'none' }];
+        addHelices(conf, map, elements);
+        // must add Helices 1st because of 'key' value assignment.
+        addSheets(sheetRange, map, conf._rowCount, elements);
+
+        const n = hierarchy.residues._rowCount
+        const getIndex = (rI: ResidueIndex) => rI
+
+        const secStruct: SecondaryStructureData = {
+            type: new Int32Array(n) as any,
+            key: new Int32Array(n) as any,
+            elements
+        };
+
+        if (map.size > 0) assignSecondaryStructureRanges(hierarchy, map, secStruct);
+        return SecondaryStructure(secStruct.type, secStruct.key, secStruct.elements, getIndex);
+    }
 }
 
 type SecondaryStructureEntry = {
@@ -44,7 +59,7 @@ type SecondaryStructureEntry = {
 type SecondaryStructureMap = Map<string, Map<number, SecondaryStructureEntry[]>>
 type SecondaryStructureData = { type: SecondaryStructureType[], key: number[], elements: SecondaryStructure.Element[] }
 
-function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, elements: SecondaryStructure.Element[]) {
+function addHelices(cat: StructConf, map: SecondaryStructureMap, elements: SecondaryStructure.Element[]) {
     if (!cat._rowCount) return;
 
     const { beg_label_asym_id, beg_label_seq_id, pdbx_beg_PDB_ins_code } = cat;
@@ -90,7 +105,7 @@ function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, eleme
     }
 }
 
-function addSheets(cat: mmCIF['struct_sheet_range'], map: SecondaryStructureMap, sheetCount: number, elements: SecondaryStructure.Element[]) {
+function addSheets(cat: StructSheetRange, map: SecondaryStructureMap, sheetCount: number, elements: SecondaryStructure.Element[]) {
     if (!cat._rowCount) return;
 
     const { beg_label_asym_id, beg_label_seq_id, pdbx_beg_PDB_ins_code } = cat;

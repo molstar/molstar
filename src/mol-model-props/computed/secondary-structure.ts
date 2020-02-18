@@ -11,6 +11,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Unit } from '../../mol-model/structure/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
+import { ModelSecondaryStructure } from '../../mol-model-formats/structure/property/secondary-structure';
 
 function getSecondaryStructureParams(data?: Structure) {
     let defaultType = 'mmcif' as 'mmcif' | 'dssp'
@@ -83,7 +84,10 @@ async function computeMmcif(structure: Structure): Promise<SecondaryStructureVal
     for (let i = 0, il = structure.unitSymmetryGroups.length; i < il; ++i) {
         const u = structure.unitSymmetryGroups[i].units[0]
         if (Unit.isAtomic(u)) {
-            map.set(u.invariantId, u.model.properties.secondaryStructure)
+            const secondaryStructure = ModelSecondaryStructure.Provider.get(u.model)
+            if (secondaryStructure) {
+                map.set(u.invariantId, secondaryStructure)
+            }
         }
     }
     return map

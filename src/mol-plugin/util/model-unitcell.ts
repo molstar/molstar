@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model, ModelSymmetry } from '../../mol-model/structure';
+import { Model, Symmetry } from '../../mol-model/structure';
 import { ShapeRepresentation } from '../../mol-repr/shape/representation';
 import { Shape } from '../../mol-model/shape';
 import { ColorNames } from '../../mol-util/color/names';
@@ -16,6 +16,7 @@ import { BoxCage } from '../../mol-geo/primitive/box';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { transformCage, cloneCage } from '../../mol-geo/primitive/cage';
 import { radToDeg } from '../../mol-math/misc';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 const translate05 = Mat4.fromTranslation(Mat4(), Vec3.create(0.5, 0.5, 0.5))
 const unitCage = transformCage(cloneCage(BoxCage()), translate05)
@@ -24,7 +25,7 @@ const tmpRef = Vec3()
 const tmpTranslate = Mat4()
 
 interface UnitcellData {
-    symmetry: ModelSymmetry
+    symmetry: Symmetry
     ref: Vec3
 }
 
@@ -54,11 +55,14 @@ function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) 
 
 export async function getUnitcellRepresentation(ctx: RuntimeContext, model: Model, params: UnitcellProps, prev?: ShapeRepresentation<UnitcellData, Mesh, Mesh.Params>) {
     const repr = prev || ShapeRepresentation(getUnitcellShape, Mesh.Utils);
-    const data = {
-        symmetry: model.symmetry,
-        ref: Vec3.transformMat4(Vec3(), Model.getCenter(model), model.symmetry.spacegroup.cell.toFractional)
+    const symmetry = ModelSymmetry.Provider.get(model)
+    if (symmetry) {
+        const data = {
+            symmetry,
+            ref: Vec3.transformMat4(Vec3(), Model.getCenter(model), symmetry.spacegroup.cell.toFractional)
+        }
+        await repr.createOrUpdate(params, data).runInContext(ctx);
     }
-    await repr.createOrUpdate(params, data).runInContext(ctx);
     return repr;
 }
 

@@ -9,17 +9,20 @@ import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator'
 import { Assembly, OperatorGroup, OperatorGroups } from '../../../mol-model/structure/model/properties/symmetry'
 import { Queries as Q } from '../../../mol-model/structure'
 import { StructureProperties } from '../../../mol-model/structure';
-import { ModelFormat } from '../format';
-import mmCIF_Format = ModelFormat.mmCIF
+import { Table } from '../../../mol-data/db';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 
-export function createAssemblies(format: mmCIF_Format): ReadonlyArray<Assembly> {
-    const { pdbx_struct_assembly } = format.data;
+type StructAssembly = Table<mmCIF_Schema['pdbx_struct_assembly']>
+type StructAssemblyGen = Table<mmCIF_Schema['pdbx_struct_assembly_gen']>
+type StructOperList = Table<mmCIF_Schema['pdbx_struct_oper_list']>
+
+export function createAssemblies(pdbx_struct_assembly: StructAssembly, pdbx_struct_assembly_gen: StructAssemblyGen, pdbx_struct_oper_list: StructOperList): ReadonlyArray<Assembly> {
     if (!pdbx_struct_assembly._rowCount) return [];
 
-    const matrices = getMatrices(format);
+    const matrices = getMatrices(pdbx_struct_oper_list);
     const assemblies: Assembly[] = [];
     for (let i = 0; i < pdbx_struct_assembly._rowCount; i++) {
-        assemblies[assemblies.length] = createAssembly(format, i, matrices);
+        assemblies[assemblies.length] = createAssembly(pdbx_struct_assembly, pdbx_struct_assembly_gen, i, matrices);
     }
     return assemblies;
 }
@@ -27,9 +30,7 @@ export function createAssemblies(format: mmCIF_Format): ReadonlyArray<Assembly> 
 type Matrices = Map<string, Mat4>
 type Generator = { assemblyId: string, expression: string, asymIds: string[] }
 
-function createAssembly(format: mmCIF_Format, index: number, matrices: Matrices): Assembly {
-    const { pdbx_struct_assembly, pdbx_struct_assembly_gen } = format.data;
-
+function createAssembly(pdbx_struct_assembly: StructAssembly, pdbx_struct_assembly_gen: StructAssemblyGen, index: number, matrices: Matrices): Assembly {
     const id = pdbx_struct_assembly.id.value(index);
     const details = pdbx_struct_assembly.details.value(index);
     const generators: Generator[] = [];
@@ -70,8 +71,7 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
     }
 }
 
-function getMatrices({ data }: mmCIF_Format): Matrices {
-    const { pdbx_struct_oper_list } = data;
+function getMatrices(pdbx_struct_oper_list: StructOperList): Matrices {
     const { id, matrix, vector, _schema } = pdbx_struct_oper_list;
     const matrices = new Map<string, Mat4>();
 

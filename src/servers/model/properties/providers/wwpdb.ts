@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,15 +9,17 @@ import * as util from 'util'
 import { AttachModelProperty } from '../../property-provider';
 import { CIF } from '../../../../mol-io/reader/cif';
 import { getParam } from '../../../common/util';
-import { ComponentBond } from '../../../../mol-model-formats/structure/mmcif/bonds';
 import { mmCIF_Database, mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
+import { ComponentBond } from '../../../../mol-model-formats/structure/property/bonds/comp';
 
 require('util.promisify').shim()
 const readFile = util.promisify(fs.readFile)
 
 export const wwPDB_chemCompBond: AttachModelProperty = async ({ model, params }) => {
     const table = await getChemCompBondTable(getTablePath(params))
-    return ComponentBond.attachFromExternalData(model, table, true)
+    const data = ComponentBond.chemCompBondFromTable(model, table)
+    const entries = ComponentBond.getEntriesFromChemCompBond(data)
+    return ComponentBond.Provider.set(model, { entries, data })
 }
 
 async function read(path: string) {

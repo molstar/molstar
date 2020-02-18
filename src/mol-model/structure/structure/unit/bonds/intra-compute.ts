@@ -11,10 +11,11 @@ import Unit from '../../unit'
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import { BondComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold, DefaultBondComputationProps } from './common';
 import { SortedArray } from '../../../../../mol-data/int';
-import { StructConn, ComponentBond } from '../../../../../mol-model-formats/structure/mmcif/bonds';
 import { getIntraBondOrderFromTable } from '../../../model/properties/atomic/bonds';
 import StructureElement from '../../element';
-import { IndexPairBonds } from '../../../../../mol-model-formats/structure/mmcif/bonds/index-pair';
+import { IndexPairBonds } from '../../../../../mol-model-formats/structure/property/bonds/index-pair';
+import { ComponentBond } from '../../../../../mol-model-formats/structure/property/bonds/comp';
+import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
 
 function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.UnitIndex[], _order: number[], _flags: number[], atomCount: number): IntraUnitBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
@@ -41,9 +42,9 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
     const { label_comp_id } = unit.model.atomicHierarchy.residues;
     const query3d = unit.lookup3d;
 
-    const structConn = unit.model.sourceData.kind === 'mmCIF' ? StructConn.get(unit.model) : void 0;
-    const component = unit.model.sourceData.kind === 'mmCIF' ? ComponentBond.get(unit.model) : void 0;
-    const indexPairs = IndexPairBonds.get(unit.model)
+    const structConn = StructConn.Provider.get(unit.model)
+    const component = ComponentBond.Provider.get(unit.model)
+    const indexPairs = IndexPairBonds.Provider.get(unit.model)
 
     const atomA: StructureElement.UnitIndex[] = [];
     const atomB: StructureElement.UnitIndex[] = [];
@@ -70,7 +71,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
             continue // assume `indexPairs` supplies all bonds
         }
 
-        const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
+        const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.byAtomIndex.get(aI);
         let hasStructConn = false;
         if (structConnEntries) {
             for (const se of structConnEntries) {

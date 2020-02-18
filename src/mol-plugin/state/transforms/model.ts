@@ -32,6 +32,7 @@ import { parseDcd } from '../../../mol-io/reader/dcd/parser';
 import { coordinatesFromDcd } from '../../../mol-model-formats/structure/dcd';
 import { topologyFromPsf } from '../../../mol-model-formats/structure/psf';
 import { deepEqual } from '../../../mol-util';
+import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 
 export { CoordinatesFromDcd };
 export { TopologyFromPsf };
@@ -300,8 +301,8 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
         if (!a) {
             return { id: PD.Optional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. Value \'deposited\' can be used to specify deposited asymmetric unit.' })) };
         }
-        const model = a.data;
-        const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
+        const assemblies = ModelSymmetry.Provider.get(a.data)?.assemblies || []
+        const ids = assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
         ids.push(['deposited', 'Deposited']);
         return {
             id: PD.Optional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' }))

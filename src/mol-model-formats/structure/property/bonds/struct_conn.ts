@@ -8,17 +8,18 @@
 import { Model } from '../../../../mol-model/structure/model/model'
 import { Structure } from '../../../../mol-model/structure'
 import { BondType } from '../../../../mol-model/structure/model/types'
-import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'
-import { Column } from '../../../../mol-data/db'
+import { Column, Table } from '../../../../mol-data/db'
 import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
-import { mmCIF_Database } from '../../../../mol-io/reader/cif/schema/mmcif';
+import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from '../../../../mol-data/int';
 import { CifWriter } from '../../../../mol-io/writer/cif'
 import { ElementIndex, ResidueIndex } from '../../../../mol-model/structure/model/indexing';
 import { getInterBondOrderFromTable } from '../../../../mol-model/structure/model/properties/atomic/bonds';
+import { FormatPropertyProvider } from '../../common/property';
 
 export interface StructConn {
-    getAtomEntries(atomIndex: ElementIndex): ReadonlyArray<StructConn.Entry>,
+    readonly data: Table<mmCIF_Schema['struct_conn']>
+    readonly byAtomIndex: Map<ElementIndex, ReadonlyArray<StructConn.Entry>>
     readonly entries: ReadonlyArray<StructConn.Entry>
 }
 
@@ -30,26 +31,26 @@ export namespace StructConn {
             categories: [{
                 name: 'struct_conn',
                 instance(ctx) {
-                    const structure = ctx.structures[0], model = structure.model;
-                    const struct_conn = getStructConn(model);
-                    if (!struct_conn) return CifWriter.Category.Empty;
+                    const p = Provider.get(ctx.firstModel);
+                    if (!p || p.entries.length === 0) return CifWriter.Category.Empty;
 
-                    const strConn = get(model);
-                    if (!strConn || strConn.entries.length === 0) return CifWriter.Category.Empty;
+                    const structure = ctx.structures[0]
 
                     const indices: number[] = [];
-                    for (const e of strConn.entries) {
+                    for (const e of p.entries) {
                         if (hasAtom(structure, e.partnerA.atomIndex) &&
                                 hasAtom(structure, e.partnerB.atomIndex)) {
                             indices[indices.length] = e.rowIndex;
                         }
                     }
 
-                    return CifWriter.Category.ofTable(struct_conn, indices);
+                    return CifWriter.Category.ofTable(p.data, indices);
                 }
             }]
         }
     }
+
+    export const Provider = FormatPropertyProvider.create<StructConn>(Descriptor)
 
     function hasAtom({ units }: Structure, element: ElementIndex) {
         for (let i = 0, _i = units.length; i < _i; i++) {
@@ -58,31 +59,17 @@ export namespace StructConn {
         return false;
     }
 
-    const _emptyEntry: Entry[] = [];
+    export function getAtomIndexFromEntries(entries: StructConn['entries']) {
+        const m = new Map();
+        for (const e of entries) {
+            const { partnerA: { atomIndex: iA }, partnerB: { atomIndex: iB } } = e;
+            if (m.has(iA)) m.get(iA)!.push(e);
+            else m.set(iA, [e]);
 
-    class StructConnImpl implements StructConn {
-        private _atomIndex: Map<number, StructConn.Entry[]> | undefined = void 0;
-
-        private getAtomIndex() {
-            if (this._atomIndex) return this._atomIndex;
-            const m = this._atomIndex = new Map();
-            for (const e of this.entries) {
-                const { partnerA: { atomIndex: iA }, partnerB: { atomIndex: iB } } = e;
-                if (m.has(iA)) m.get(iA)!.push(e);
-                else m.set(iA, [e]);
-
-                if (m.has(iB)) m.get(iB)!.push(e);
-                else m.set(iB, [e]);
-            }
-            return this._atomIndex;
+            if (m.has(iB)) m.get(iB)!.push(e);
+            else m.set(iB, [e]);
         }
-
-        getAtomEntries(atomIndex: ElementIndex): ReadonlyArray<StructConn.Entry> {
-            return this.getAtomIndex().get(atomIndex) || _emptyEntry;
-        }
-
-        constructor(public entries: StructConn.Entry[]) {
-        }
+        return m;
     }
 
     export interface Entry {
@@ -94,27 +81,7 @@ export namespace StructConn {
         partnerB: { residueIndex: ResidueIndex, atomIndex: ElementIndex, symmetry: string }
     }
 
-    export function attachFromMmCif(model: Model): boolean {
-        if (model.customProperties.has(Descriptor)) return true;
-        if (model.sourceData.kind !== 'mmCIF') return false;
-        const { struct_conn } = model.sourceData.data;
-        if (struct_conn._rowCount === 0) return false;
-        model.customProperties.add(Descriptor);
-        model._staticPropertyData.__StructConnData__ = struct_conn;
-        return true;
-    }
-
-    function getStructConn(model: Model) {
-        return model._staticPropertyData.__StructConnData__ as mmCIF_Database['struct_conn'];
-    }
-
-    export const PropName = '__StructConn__';
-    export function get(model: Model): StructConn | undefined {
-        if (model._staticPropertyData[PropName]) return model._staticPropertyData[PropName];
-        if (!model.customProperties.has(Descriptor)) return void 0;
-
-        const struct_conn = getStructConn(model);
-
+    export function getEntriesFromStructConn(struct_conn: Table<mmCIF_Schema['struct_conn']>, model: Model): StructConn['entries'] {
         const { conn_type_id, pdbx_dist_value, pdbx_value_order } = struct_conn;
         const p1 = {
             label_asym_id: struct_conn.ptnr1_label_asym_id,
@@ -138,8 +105,10 @@ export namespace StructConn {
         const _p = (row: number, ps: typeof p1) => {
             if (ps.label_asym_id.valueKind(row) !== Column.ValueKind.Present) return void 0;
             const asymId = ps.label_asym_id.value(row);
+            const entityIndex = model.atomicHierarchy.index.findEntity(asymId);
+            if (entityIndex < 0) return void 0;
             const residueIndex = model.atomicHierarchy.index.findResidue(
-                findEntityIdByAsymId(model, asymId),
+                model.entities.data.id.value(entityIndex),
                 asymId,
                 ps.auth_seq_id.value(row),
                 ps.ins_code.value(row)
@@ -148,7 +117,7 @@ export namespace StructConn {
             const atomName = ps.label_atom_id.value(row);
             // turns out "mismat" records might not have atom name value
             if (!atomName) return void 0;
-            const atomIndex = findAtomIndexByLabelName(model, residueIndex, atomName, ps.label_alt_id.value(row));
+            const atomIndex = model.atomicHierarchy.index.findAtomOnResidue(residueIndex, atomName, ps.label_alt_id.value(row));
             if (atomIndex < 0) return void 0;
             return { residueIndex, atomIndex, symmetry: ps.symmetry.value(row) };
         }
@@ -194,8 +163,6 @@ export namespace StructConn {
             });
         }
 
-        const ret = new StructConnImpl(entries);
-        model._staticPropertyData[PropName] = ret;
-        return ret;
+        return entries;
     }
 }

@@ -13,6 +13,7 @@ import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import { Column } from '../../../../mol-data/db';
 import { residueIdFields } from './atom_site';
+import { ModelSecondaryStructure } from '../../../../mol-model-formats/structure/property/secondary-structure';
 
 export const _struct_conf: CifCategory<CifExportContext> = {
     name: 'struct_conf',
@@ -70,8 +71,10 @@ interface SSElement<T extends SecondaryStructure.Element> {
 
 function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContext, kind: SecondaryStructure.Element['kind']) {
     // TODO: encode secondary structure for different models?
-    const { key, elements } = ctx.structures[0].model.properties.secondaryStructure;
+    const secondaryStructure = ModelSecondaryStructure.Provider.get(ctx.firstModel)
+    if (!secondaryStructure) return [] as SSElement<T>[]
 
+    const { key, elements } = secondaryStructure;
     const ssElements: SSElement<any>[] = [];
 
     for (const unit of ctx.structures[0].units) {

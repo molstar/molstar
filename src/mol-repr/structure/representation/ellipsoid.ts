@@ -11,7 +11,7 @@ import { Structure } from '../../../mol-model/structure';
 import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
 import { EllipsoidMeshParams, EllipsoidMeshVisual } from '../visual/ellipsoid-mesh';
 import { UnitKind, UnitKindOptions } from '../../../mol-repr/structure/visual/util/common';
-import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/mmcif/anisotropic';
+import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property/anisotropic';
 import { IntraUnitBondParams, IntraUnitBondVisual } from '../visual/bond-intra-unit-cylinder';
 import { InterUnitBondParams, InterUnitBondVisual } from '../visual/bond-inter-unit-cylinder';
 

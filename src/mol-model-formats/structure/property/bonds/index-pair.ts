@@ -1,13 +1,13 @@
 /**
- * Copyright (c) 2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from '../../../../mol-model/structure/model/model'
 import { CustomPropertyDescriptor } from '../../../../mol-model/structure';
 import { IntAdjacencyGraph } from '../../../../mol-math/graph';
 import { Column } from '../../../../mol-data/db';
+import { FormatPropertyProvider } from '../../common/property';
 
 export type IndexPairBonds = IntAdjacencyGraph<number, { readonly order: ArrayLike<number> }>
 
@@ -27,6 +27,8 @@ export namespace IndexPairBonds {
         name: 'index_pair_bonds',
     }
 
+    export const Provider = FormatPropertyProvider.create<IndexPairBonds>(Descriptor)
+
     export type Data = {
         pairs: {
             indexA: Column<number>,
@@ -36,33 +38,11 @@ export namespace IndexPairBonds {
         count: number
     }
 
-    export function attachFromData(model: Model, data: Data): boolean {
-        if (model.customProperties.has(Descriptor)) return true;
-
-        model.customProperties.add(Descriptor);
-        model._staticPropertyData.__IndexPairBondsData__ = data;
-        return true;
-    }
-
-    function getIndexPairBonds(model: Model) {
-        return model._staticPropertyData.__IndexPairBondsData__ as Data;
-    }
-
-    export const PropName = '__IndexPairBonds__';
-    export function get(model: Model): IndexPairBonds | undefined {
-        if (model._staticPropertyData[PropName]) return model._staticPropertyData[PropName];
-        if (!model.customProperties.has(Descriptor)) return void 0;
-
-        const data = getIndexPairBonds(model);
-        if (!data) return void 0;
+    export function fromData(data: Data) {
         const { pairs, count } = data
-
         const indexA = pairs.indexA.toArray()
         const indexB = pairs.indexB.toArray()
         const order = pairs.order.toArray()
-
-        const indexPairBonds = getGraph(indexA, indexB, order, count);
-        model._staticPropertyData[PropName] = indexPairBonds;
-        return indexPairBonds;
+        return getGraph(indexA, indexB, order, count);
     }
 }

@@ -8,13 +8,14 @@ import { Column, Table } from '../../mol-data/db';
 import { toTable } from '../../mol-io/reader/cif/schema';
 import { CifWriter } from '../../mol-io/writer/cif';
 import { Model, CustomPropertyDescriptor } from '../../mol-model/structure';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 export namespace PDBePreferredAssembly {
     export type Property = string
 
     export function getFirstFromModel(model: Model): Property {
-        const asm = model.symmetry.assemblies;
-        return asm.length ? asm[0].id : '';
+        const symmetry = ModelSymmetry.Provider.get(model)
+        return symmetry?.assemblies.length ? symmetry.assemblies[0].id : '';
     }
 
     export function get(model: Model): Property {

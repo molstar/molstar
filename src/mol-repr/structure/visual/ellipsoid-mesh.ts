@@ -17,7 +17,7 @@ import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3, Mat3, Tensor, EPSILON } from '../../../mol-math/linear-algebra';
 import { isHydrogen } from '../../../mol-repr/structure/visual/util/common';
 import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
-import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/mmcif/anisotropic'
+import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property/anisotropic'
 import { equalEps } from '../../../mol-math/linear-algebra/3d/common';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 
@@ -62,7 +62,7 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
     const vertexCount = elementCount * sphereVertexCount(detail)
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh)
 
-    const atomSiteAnisotrop = AtomSiteAnisotrop.get(model)
+    const atomSiteAnisotrop = AtomSiteAnisotrop.Provider.get(model)
     if (!atomSiteAnisotrop) return Mesh.createEmpty(mesh)
 
     const v = Vec3()
