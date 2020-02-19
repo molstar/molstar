@@ -231,9 +231,13 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         if (transparency !== undefined && !Transparency.areEqual(transparency, _state.transparency)) {
             newState.transparency = transparency
         }
-        if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) { newState.transform = transform
+        if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
+            newState.transform = transform
         }
-        if (unitTransforms !== _state.unitTransforms) newState.unitTransforms = unitTransforms
+        if (unitTransforms !== _state.unitTransforms || unitTransforms?.version !== state.unitTransformsVersion) {
+            newState.unitTransforms = unitTransforms
+            _state.unitTransformsVersion = unitTransforms ? unitTransforms?.version : -1
+        }
         if (syncManually !== _state.syncManually) newState.syncManually = syncManually
         if (markerActions !== _state.markerActions) newState.markerActions = markerActions
 

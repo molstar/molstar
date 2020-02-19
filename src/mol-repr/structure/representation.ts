@@ -19,13 +19,15 @@ import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { Text } from '../../mol-geo/geometry/text/text';
 
 export interface StructureRepresentationState extends Representation.State {
-    unitTransforms: StructureUnitTransforms | null
+    unitTransforms: StructureUnitTransforms | null,
+    unitTransformsVersion: number
 }
 export const StructureRepresentationStateBuilder: Representation.StateBuilder<StructureRepresentationState> = {
     create: () => {
         return {
             ...Representation.createState(),
-            unitTransforms: null
+            unitTransforms: null,
+            unitTransformsVersion: -1
         }
     },
     update: (state: StructureRepresentationState, update: Partial<StructureRepresentationState>) => {
