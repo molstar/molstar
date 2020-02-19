@@ -294,14 +294,13 @@ namespace Canvas3D {
             cameraResetRequested = false;
         }
 
-        let isDirty = false;
+        const sceneCommitTimeoutMs = 250;
         function commitScene() {
-            if (!isDirty) return;
+            if (!scene.needsCommit) return;
 
-            scene.syncCommit();
+            const allCommited = scene.commit(sceneCommitTimeoutMs);
             if (debugHelper.isEnabled) debugHelper.update();
-            reprCount.next(reprRenderObjects.size);
-            isDirty = false;
+            if (allCommited) reprCount.next(reprRenderObjects.size);
         }
 
         function add(repr: Representation.Any) {
@@ -322,7 +321,6 @@ namespace Canvas3D {
             reprRenderObjects.set(repr, newRO)
 
             scene.update(repr.renderObjects, false)
-            isDirty = true;
         }
 
         function remove(repr: Representation.Any) {
@@ -333,7 +331,6 @@ namespace Canvas3D {
                 renderObjects.forEach(o => scene.remove(o))
                 reprRenderObjects.delete(repr)
                 scene.update(repr.renderObjects, false, true)
-                isDirty = true;
             }
         }
 

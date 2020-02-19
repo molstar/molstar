@@ -13,7 +13,9 @@ import { Object3D } from './object3d';
 import { Sphere3D } from '../mol-math/geometry';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
-import { arraySetAdd, arraySetRemove } from '../mol-util/array';
+import { CommitQueue } from './commit-queue';
+import { now } from '../mol-util/now';
+import { arraySetRemove } from '../mol-util/array';
 
 const boundaryHelper = new BoundaryHelper();
 function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D): Sphere3D {
@@ -56,13 +58,12 @@ interface Scene extends Object3D {
     readonly count: number
     readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
     readonly boundingSphere: Sphere3D
-    // readonly isCommiting: boolean
 
     update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean, isRemoving?: boolean) => void
     add: (o: GraphicsRenderObject) => void // Renderable<any>
     remove: (o: GraphicsRenderObject) => void
-    syncCommit: () => void
-    // commit: () => Task<void>
+    commit: (maxTimeMs?: number) => boolean
+    readonly needsCommit: boolean
     has: (o: GraphicsRenderObject) => boolean
     clear: () => void
     forEach: (callbackFn: (value: Renderable<RenderableValues & BaseValues>, key: GraphicsRenderObject) => void) => void
@@ -78,7 +79,7 @@ namespace Scene {
 
         const object3d = Object3D.create()
 
-        const add = (o: GraphicsRenderObject) => {
+        function add(o: GraphicsRenderObject) {
             if (!renderableMap.has(o)) {
                 const renderable = createRenderable(ctx, o)
                 renderables.push(renderable)
@@ -91,18 +92,43 @@ namespace Scene {
             }
         }
 
-        const remove = (o: GraphicsRenderObject) => {
+        function remove(o: GraphicsRenderObject) {
             const renderable = renderableMap.get(o)
             if (renderable) {
                 renderable.dispose()
-                renderables.splice(renderables.indexOf(renderable), 1)
+                arraySetRemove(renderables, renderable);
                 renderableMap.delete(o)
                 boundingSphereDirty = true
             }
         }
 
-        const toAdd: GraphicsRenderObject[] = []
-        const toRemove: GraphicsRenderObject[] = []
+        const commitBulkSize = 100;
+        function commit(maxTimeMs: number) {
+            const start = now();
+
+            let i = 0;
+
+            while (true) {
+                const o = commitQueue.tryGetRemove();
+                if (!o) break;
+                remove(o);
+                if (++i % commitBulkSize === 0 && now() - start > maxTimeMs) return false;
+            }
+
+            while (true) {
+                const o = commitQueue.tryGetAdd();
+                if (!o) break;
+                add(o);
+                if (++i % commitBulkSize === 0 && now() - start > maxTimeMs) return false;
+            }
+
+            renderables.sort(renderableSort)
+            return true;
+        }
+
+        // const toAdd: GraphicsRenderObject[] = []
+        // const toRemove: GraphicsRenderObject[] = []
+        const commitQueue = new CommitQueue();
 
         return {
             get view () { return object3d.view },
@@ -126,21 +152,10 @@ namespace Scene {
                 }
                 if (!keepBoundingSphere) boundingSphereDirty = true
             },
-            add: (o: GraphicsRenderObject) => {
-                arraySetAdd(toAdd, o);
-                arraySetRemove(toRemove, o);
-            },
-            remove: (o: GraphicsRenderObject) => {
-                arraySetAdd(toRemove, o);
-                arraySetRemove(toAdd, o);
-            },
-            syncCommit: () => {
-                for (let i = 0, il = toRemove.length; i < il; ++i) remove(toRemove[i])
-                toRemove.length = 0
-                for (let i = 0, il = toAdd.length; i < il; ++i) add(toAdd[i])
-                toAdd.length = 0
-                renderables.sort(renderableSort)
-            },
+            add: (o: GraphicsRenderObject) => commitQueue.add(o),
+            remove: (o: GraphicsRenderObject) => commitQueue.remove(o),
+            commit: (maxTime = Number.MAX_VALUE) => commit(maxTime),
+            get needsCommit() { return !commitQueue.isEmpty; },
             has: (o: GraphicsRenderObject) => {
                 return renderableMap.has(o)
             },
