@@ -20,7 +20,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
 
     ctx.events.canvas3d.initialized.subscribe(() => {
         ctx.canvas3d?.reprCount.subscribe(v => {
-            if (reprCount === 0) ctx.canvas3d?.resetCamera();
+            if (reprCount === 0) ctx.canvas3d?.requestCameraReset();
             reprCount = v;
         });
     })

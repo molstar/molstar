@@ -121,7 +121,7 @@ describe('renderer', () => {
         const points = createPoints()
 
         scene.add(points)
-        await scene.commit().run()
+        scene.syncCommit()
         expect(ctx.stats.resourceCounts.attribute).toBe(4);
         expect(ctx.stats.resourceCounts.texture).toBe(5);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(5);
@@ -129,7 +129,7 @@ describe('renderer', () => {
         expect(ctx.stats.resourceCounts.shader).toBe(10);
 
         scene.remove(points)
-        await scene.commit().run()
+        scene.syncCommit()
         expect(ctx.stats.resourceCounts.attribute).toBe(0);
         expect(ctx.stats.resourceCounts.texture).toBe(0);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(0);

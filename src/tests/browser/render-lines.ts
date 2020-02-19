@@ -41,4 +41,4 @@ function linesRepr() {
 }
 
 canvas3d.add(linesRepr())
-canvas3d.resetCamera()
+canvas3d.requestCameraReset()

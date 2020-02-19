@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Renderable } from './renderable'
@@ -12,8 +13,7 @@ import { Object3D } from './object3d';
 import { Sphere3D } from '../mol-math/geometry';
 import { Vec3 } from '../mol-math/linear-algebra';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
-import { RuntimeContext, Task } from '../mol-task';
-import { AsyncQueue } from '../mol-util/async-queue';
+import { arraySetAdd, arraySetRemove } from '../mol-util/array';
 
 const boundaryHelper = new BoundaryHelper();
 function calculateBoundingSphere(renderables: Renderable<RenderableValues & BaseValues>[], boundingSphere: Sphere3D): Sphere3D {
@@ -56,13 +56,13 @@ interface Scene extends Object3D {
     readonly count: number
     readonly renderables: ReadonlyArray<Renderable<RenderableValues & BaseValues>>
     readonly boundingSphere: Sphere3D
-    readonly isCommiting: boolean
+    // readonly isCommiting: boolean
 
-    update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void
+    update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean, isRemoving?: boolean) => void
     add: (o: GraphicsRenderObject) => void // Renderable<any>
     remove: (o: GraphicsRenderObject) => void
     syncCommit: () => void
-    commit: () => Task<void>
+    // commit: () => Task<void>
     has: (o: GraphicsRenderObject) => boolean
     clear: () => void
     forEach: (callbackFn: (value: Renderable<RenderableValues & BaseValues>, key: GraphicsRenderObject) => void) => void
@@ -101,37 +101,17 @@ namespace Scene {
             }
         }
 
-        const commitQueue = new AsyncQueue<any>();
         const toAdd: GraphicsRenderObject[] = []
         const toRemove: GraphicsRenderObject[] = []
-
-        type CommitParams = { toAdd: GraphicsRenderObject[], toRemove: GraphicsRenderObject[] }
-
-        const step = 100
-        const handle = async (ctx: RuntimeContext, arr: GraphicsRenderObject[], fn: (o: GraphicsRenderObject) => void, message: string) => {
-            for (let i = 0, il = arr.length; i < il; i += step) {
-                if (ctx.shouldUpdate) await ctx.update({ message, current: i, max: il })
-                for (let j = i, jl = Math.min(i + step, il); j < jl; ++j) {
-                    fn(arr[j])
-                }
-            }
-        }
-
-        const commit = async (ctx: RuntimeContext, p: CommitParams) => {
-            await handle(ctx, p.toRemove, remove, 'Removing GraphicsRenderObjects')
-            await handle(ctx, p.toAdd, add, 'Adding GraphicsRenderObjects')
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Sorting GraphicsRenderObjects' })
-            renderables.sort(renderableSort)
-        }
 
         return {
             get view () { return object3d.view },
             get position () { return object3d.position },
             get direction () { return object3d.direction },
             get up () { return object3d.up },
-            get isCommiting () { return commitQueue.length > 0 },
+            // get isCommiting () { return commitQueue.length > 0 },
 
-            update(objects, keepBoundingSphere) {
+            update(objects, keepBoundingSphere, isRemoving) {
                 Object3D.update(object3d)
                 if (objects) {
                     for (let i = 0, il = objects.length; i < il; ++i) {
@@ -139,7 +119,7 @@ namespace Scene {
                         if (!o) continue;
                         o.update();
                     }
-                } else {
+                } else if (!isRemoving) {
                     for (let i = 0, il = renderables.length; i < il; ++i) {
                         renderables[i].update()
                     }
@@ -147,10 +127,12 @@ namespace Scene {
                 if (!keepBoundingSphere) boundingSphereDirty = true
             },
             add: (o: GraphicsRenderObject) => {
-                toAdd.push(o)
+                arraySetAdd(toAdd, o);
+                arraySetRemove(toRemove, o);
             },
             remove: (o: GraphicsRenderObject) => {
-                toRemove.push(o)
+                arraySetAdd(toRemove, o);
+                arraySetRemove(toAdd, o);
             },
             syncCommit: () => {
                 for (let i = 0, il = toRemove.length; i < il; ++i) remove(toRemove[i])
@@ -158,24 +140,6 @@ namespace Scene {
                 for (let i = 0, il = toAdd.length; i < il; ++i) add(toAdd[i])
                 toAdd.length = 0
                 renderables.sort(renderableSort)
-            },
-            commit: () => {
-                const params = { toAdd: [ ...toAdd ], toRemove: [ ...toRemove ] }
-                toAdd.length = 0
-                toRemove.length = 0
-
-                return Task.create('Commiting GraphicsRenderObjects', async ctx => {
-                    const removed = await commitQueue.enqueue(params);
-                    if (!removed) return;
-
-                    try {
-                        await commit(ctx, params);
-                    } finally {
-                        commitQueue.handled(params);
-                    }
-                }, () => {
-                    commitQueue.remove(params);
-                })
             },
             has: (o: GraphicsRenderObject) => {
                 return renderableMap.has(o)

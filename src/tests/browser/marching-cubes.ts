@@ -114,7 +114,7 @@ async function init() {
     const mcIsoSurfaceRepr = Representation.fromRenderObject('texture-mesh', mcIsoSurfaceRenderObject)
 
     canvas3d.add(mcIsoSurfaceRepr)
-    canvas3d.resetCamera()
+    canvas3d.requestCameraReset()
 
     //
 
@@ -141,7 +141,7 @@ async function init() {
     const meshRepr = Representation.fromRenderObject('mesh', meshRenderObject)
 
     canvas3d.add(meshRepr)
-    canvas3d.resetCamera()
+    canvas3d.requestCameraReset()
 }
 
 init()
