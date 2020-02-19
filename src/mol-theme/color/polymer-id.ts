@@ -90,7 +90,7 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Poly
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const l = StructureElement.Location.create()
+        const l = StructureElement.Location.create(ctx.structure)
         const polymerAsymIdSerialMap = getPolymerAsymIdSerialMap(ctx.structure.root)
 
         const labelTable = Array.from(polymerAsymIdSerialMap.keys())

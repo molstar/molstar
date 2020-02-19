@@ -54,14 +54,14 @@ export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
         let residueCount = 0
         let elementCount = 0
         const counts: string[] = []
-        const l = StructureElement.Location.create()
+        const l = StructureElement.Location.create(data.structure)
 
         const unitIndices = new Map<number, Interval<StructureElement.UnitIndex>>()
         const lociElements: StructureElement.Loci['elements'][0][] = []
 
         for (let i = 0, il = data.units.length; i < il; ++i) {
             const unit = data.units[i]
-            StructureElement.Location.set(l, unit, unit.elements[0])
+            StructureElement.Location.set(l, data.structure, unit, unit.elements[0])
             const entitySeq = unit.model.sequence.byEntityKey[StructureProperties.entity.key(l)]
             if (entitySeq) residueCount += entitySeq.sequence.length
             elementCount += unit.elements.length

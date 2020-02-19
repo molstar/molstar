@@ -176,7 +176,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         return classList.join(' ')
     }
 
-    private location = StructureElement.Location.create();
+    private location = StructureElement.Location.create(void 0);
     private getSequenceNumber(seqIdx: number) {
         let seqNum = ''
         const loci = this.props.sequenceWrapper.getLoci(seqIdx)

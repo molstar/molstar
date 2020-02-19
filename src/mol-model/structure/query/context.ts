@@ -6,13 +6,12 @@
 
 import { Structure, StructureElement, Unit } from '../structure';
 import { now } from '../../../mol-util/now';
-import { ElementIndex } from '../model';
 import { BondType } from '../model/types';
 import { StructureSelection } from './selection';
 import { defaultBondTest } from './queries/internal';
 
 export interface QueryContextView {
-    readonly element: StructureElement.Location;
+    readonly element: Readonly<StructureElement.Location>;
     readonly currentStructure: Structure;
 }
 
@@ -28,7 +27,7 @@ export class QueryContext implements QueryContextView {
     readonly inputStructure: Structure;
 
     /** Current element */
-    readonly element = StructureElement.Location.create();
+    readonly element: StructureElement.Location = StructureElement.Location.create(void 0);
     currentStructure: Structure = void 0 as any;
 
     /** Current bond between atoms */
@@ -37,14 +36,9 @@ export class QueryContext implements QueryContextView {
     /** Supply this from the outside. Used by the internal.generator.current symbol */
     currentSelection: StructureSelection | undefined = void 0;
 
-    setElement(unit: Unit, e: ElementIndex) {
-        this.element.unit = unit;
-        this.element.element = e;
-    }
-
     pushCurrentElement(): StructureElement.Location {
         this.currentElementStack[this.currentElementStack.length] = this.element;
-        (this.element as StructureElement.Location) = StructureElement.Location.create();
+        (this.element as StructureElement.Location) = StructureElement.Location.create(void 0);
         return this.element;
     }
 
@@ -112,15 +106,20 @@ export interface QueryContextOptions {
 export interface QueryPredicate { (ctx: QueryContext): boolean }
 export interface QueryFn<T = any> { (ctx: QueryContext): T }
 
-export class QueryContextBondInfo<U extends Unit = Unit> {
-    a: StructureElement.Location<U> = StructureElement.Location.create();
+class QueryContextBondInfo<U extends Unit = Unit> {
+    a: StructureElement.Location<U> = StructureElement.Location.create(void 0);
     aIndex: StructureElement.UnitIndex = 0 as StructureElement.UnitIndex;
-    b: StructureElement.Location<U> = StructureElement.Location.create();
+    b: StructureElement.Location<U> = StructureElement.Location.create(void 0);
     bIndex: StructureElement.UnitIndex = 0 as StructureElement.UnitIndex;
     type: BondType = BondType.Flag.None;
     order: number = 0;
 
     private testFn: QueryPredicate = defaultBondTest;
+
+    setStructure(s: Structure) {
+        this.a.structure = s;
+        this.b.structure = s;
+    }
 
     setTestFn(fn?: QueryPredicate) {
         this.testFn = fn || defaultBondTest;
@@ -136,6 +135,10 @@ export class QueryContextBondInfo<U extends Unit = Unit> {
     }
 
     private swap() {
+        // const sA = this.a.structure;
+        // this.a.structure = this.b.structure;
+        // this.b.structure = sA;
+
         const idxA = this.aIndex;
         this.aIndex = this.bIndex;
         this.bIndex = idxA;

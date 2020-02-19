@@ -152,7 +152,7 @@ export function printRings(structure: Structure) {
 
 export function printUnits(structure: Structure) {
     console.log('\nUnits\n=============');
-    const l = StructureElement.Location.create();
+    const l = StructureElement.Location.create(structure);
 
     for (const unit of structure.units) {
         l.unit = unit;

@@ -66,7 +66,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     }
 
     constructor(data: StructureUnit) {
-        const l = StructureElement.Location.create(data.units[0], data.units[0].elements[0])
+        const l = StructureElement.Location.create(data.structure, data.units[0], data.units[0].elements[0])
         const entitySeq = data.units[0].model.sequence.byEntityKey[SP.entity.key(l)]
 
         const length = entitySeq.sequence.length

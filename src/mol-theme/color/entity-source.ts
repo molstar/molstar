@@ -126,7 +126,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const l = StructureElement.Location.create()
+        const l = StructureElement.Location.create(ctx.structure)
         const { models } = ctx.structure.root
         const { seqToSrcByModelEntity, srcKeySerialMap } = getMaps(models)
 

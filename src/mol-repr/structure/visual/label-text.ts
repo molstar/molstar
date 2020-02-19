@@ -67,8 +67,7 @@ const tmpVec = Vec3();
 const boundaryHelper = new BoundaryHelper();
 
 function createChainText(ctx: VisualContext, structure: Structure, theme: Theme, props: LabelTextProps, text?: Text): Text {
-
-    const l = StructureElement.Location.create();
+    const l = StructureElement.Location.create(structure);
     const { units, serialMapping } = structure;
     const { auth_asym_id, label_asym_id } = StructureProperties.chain;
     const { cumulativeUnitElementCount } = serialMapping
@@ -93,8 +92,7 @@ function createChainText(ctx: VisualContext, structure: Structure, theme: Theme,
 }
 
 function createResidueText(ctx: VisualContext, structure: Structure, theme: Theme, props: LabelTextProps, text?: Text): Text {
-
-    const l = StructureElement.Location.create();
+    const l = StructureElement.Location.create(structure);
     const { units, serialMapping } = structure;
     const { auth_seq_id, label_comp_id } = StructureProperties.residue;
     const { cumulativeUnitElementCount } = serialMapping
@@ -145,8 +143,7 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
 }
 
 function createElementText(ctx: VisualContext, structure: Structure, theme: Theme, props: LabelTextProps, text?: Text): Text {
-
-    const l = StructureElement.Location.create();
+    const l = StructureElement.Location.create(structure);
     const { units, serialMapping } = structure;
     const { label_atom_id, label_alt_id } = StructureProperties.atom;
     const { cumulativeUnitElementCount } = serialMapping

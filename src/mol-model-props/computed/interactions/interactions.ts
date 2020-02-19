@@ -39,6 +39,7 @@ interface Interactions {
 
 namespace Interactions {
     export interface Element {
+        structure: Structure,
         unitA: Unit
         /** Index into features of unitA */
         indexA: Features.FeatureIndex
@@ -48,8 +49,9 @@ namespace Interactions {
     }
     export interface Location extends DataLocation<Interactions, Element> {}
 
-    export function Location(interactions: Interactions, unitA?: Unit, indexA?: Features.FeatureIndex, unitB?: Unit, indexB?: Features.FeatureIndex): Location {
-        return DataLocation('interactions', interactions, { unitA: unitA as any, indexA: indexA as any, unitB: unitB as any, indexB: indexB as any });
+    export function Location(interactions: Interactions, structure: Structure, unitA?: Unit, indexA?: Features.FeatureIndex, unitB?: Unit, indexB?: Features.FeatureIndex): Location {
+        return DataLocation('interactions', interactions, 
+            { structure: structure as any, unitA: unitA as any, indexA: indexA as any, unitB: unitB as any, indexB: indexB as any });
     }
 
     export function isLocation(x: any): x is Location {
@@ -87,7 +89,9 @@ namespace Interactions {
     export interface Loci extends DataLoci<StructureInteractions, Element> { }
 
     export function Loci(structure: Structure, interactions: Interactions, elements: ReadonlyArray<Element>): Loci {
-        return DataLoci('interactions', { structure, interactions }, elements, (boundingSphere) => getBoundingSphere(interactions, elements, boundingSphere), () => getLabel(interactions, elements));
+        return DataLoci('interactions', { structure, interactions }, elements,
+            (boundingSphere) => getBoundingSphere(interactions, elements, boundingSphere),
+            () => getLabel(structure, interactions, elements));
     }
 
     export function isLoci(x: any): x is Loci {
@@ -103,7 +107,7 @@ namespace Interactions {
         }, boundingSphere)
     }
 
-    export function getLabel(interactions: Interactions, elements: ReadonlyArray<Element>) {
+    export function getLabel(structure: Structure, interactions: Interactions, elements: ReadonlyArray<Element>) {
         const element = elements[0]
         if (element === undefined) return ''
         const { unitA, indexA, unitB, indexB } = element
@@ -116,7 +120,7 @@ namespace Interactions {
         }
         return [
             _label(interactions, element),
-            bondLabel(Bond.Location(unitA, mA[oA[indexA]], unitB, mB[oB[indexB]]), options)
+            bondLabel(Bond.Location(structure, unitA, mA[oA[indexA]], structure, unitB, mB[oB[indexB]]), options)
         ].join('</br>')
     }
 }

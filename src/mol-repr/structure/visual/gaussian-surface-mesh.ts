@@ -38,7 +38,7 @@ export function getGaussianSurfaceVisual(webgl?: WebGLContext) {
 
 async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props
-    const { transform, field, idField } = await computeUnitGaussianDensity(unit, props, ctx.webgl).runInContext(ctx.runtime)
+    const { transform, field, idField } = await computeUnitGaussianDensity(structure, unit, props, ctx.webgl).runInContext(ctx.runtime)
 
     const params = {
         isoLevel: Math.exp(-smoothness),
@@ -119,7 +119,7 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     if (!ctx.webgl) throw new Error('webgl context required to create gaussian surface texture-mesh')
     const isoLevel = Math.exp(-props.smoothness)
 
-    const densityTextureData = await computeUnitGaussianDensityTexture2d(unit, props, ctx.webgl).runInContext(ctx.runtime)
+    const densityTextureData = await computeUnitGaussianDensityTexture2d(structure, unit, props, ctx.webgl).runInContext(ctx.runtime)
     // console.log(densityTextureData)
     // console.log('vertexGroupTexture', readTexture(ctx.webgl, densityTextureData.texture))
     // ctx.webgl.waitForGpuCommandsCompleteSync()

@@ -56,6 +56,7 @@ export function getCurrentStructureProperties(ctx: QueryContext, props: UnitType
     const { units } = ctx.currentStructure;
     const l = ctx.pushCurrentElement();
 
+    l.structure = ctx.currentStructure;
     for (const unit of units) {
         l.unit = unit;
         const elements = unit.elements;
@@ -239,6 +240,9 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
     const atomicBond = queryCtx.atomicBond;
 
     const interBonds = input.interUnitBonds;
+
+    atomicBond.setStructure(input);
+
     for (const unit of structure.units) {
         if (!Unit.isAtomic(unit)) continue;
 
@@ -247,8 +251,6 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
         const { offset, b, edgeProps: { flags, order } } = inputUnit.bonds;
         const bondedUnits = interBonds.getConnectedUnits(unit);
         const buCount = bondedUnits.length;
-
-        atomicBond.a.unit = inputUnit;
 
         const srcElements = unit.elements;
         const inputElements = inputUnit.elements;

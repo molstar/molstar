@@ -74,7 +74,7 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
     const { U } = data
     const space = data._schema.U.space
     const pos = unit.conformation.invariantPosition
-    const l = StructureElement.Location.create()
+    const l = StructureElement.Location.create(structure)
     l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {

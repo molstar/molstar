@@ -77,7 +77,8 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
     const { key, elements } = secondaryStructure;
     const ssElements: SSElement<any>[] = [];
 
-    for (const unit of ctx.structures[0].units) {
+    const structure = ctx.structures[0];
+    for (const unit of structure.units) {
         // currently can only support this for "identity" operators.
         if (!Unit.isAtomic(unit) || !unit.conformation.operator.isIdentity) continue;
 
@@ -103,8 +104,8 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
                 if (startIdx !== key[current.index]) {
                     move = false;
                     ssElements[ssElements.length] = {
-                        start: StructureElement.Location.create(unit, segs.offsets[start]),
-                        end: StructureElement.Location.create(unit, segs.offsets[prev]),
+                        start: StructureElement.Location.create(structure, unit, segs.offsets[start]),
+                        end: StructureElement.Location.create(structure, unit, segs.offsets[prev]),
                         length: prev - start + 1,
                         element
                     }

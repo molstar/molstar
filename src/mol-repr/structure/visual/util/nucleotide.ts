@@ -15,12 +15,12 @@ import { eachAtomicUnitTracedElement } from './polymer';
 
 export namespace NucleotideLocationIterator {
     export function fromGroup(structureGroup: StructureGroup): LocationIterator {
-        const { group } = structureGroup
+        const { group, structure } = structureGroup
         const u = group.units[0]
         const nucleotideElementIndices = Unit.isAtomic(u) ? u.nucleotideElements : []
         const groupCount = nucleotideElementIndices.length
         const instanceCount = group.units.length
-        const location = StructureElement.Location.create()
+        const location = StructureElement.Location.create(structure)
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit

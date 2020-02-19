@@ -30,7 +30,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
                     const u = e.unit;
                     if (!u.model.customProperties.has(StructureQualityReportProvider.descriptor)) return void 0;
 
-                    const se = StructureElement.Location.create(u, u.elements[OrderedSet.getAt(e.indices, 0)]);
+                    const se = StructureElement.Location.create(loci.structure, u, u.elements[OrderedSet.getAt(e.indices, 0)]);
                     const issues = StructureQualityReport.getIssues(se);
                     if (issues.length === 0) return 'PDBe Validation: No Issues';
                     return `PDBe Validation: ${issues.join(', ')}`;

@@ -53,7 +53,7 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
 
     const carbohydrates = structure.carbohydrates
     const n = carbohydrates.elements.length
-    const l = StructureElement.Location.create()
+    const l = StructureElement.Location.create(structure)
 
     for (let i = 0; i < n; ++i) {
         const c = carbohydrates.elements[i];
@@ -187,7 +187,7 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     const carbElements = structure.carbohydrates.elements
     const groupCount = carbElements.length * 2
     const instanceCount = 1
-    const location = StructureElement.Location.create()
+    const location = StructureElement.Location.create(structure)
     function getLocation (groupIndex: number, instanceIndex: number) {
         const carb = carbElements[Math.floor(groupIndex / 2)]
         const ring = carb.unit.rings.all[carb.ringIndex]

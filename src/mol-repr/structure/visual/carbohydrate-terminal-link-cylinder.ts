@@ -25,7 +25,7 @@ function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structur
     const { terminalLinks, elements } = structure.carbohydrates
     const { terminalLinkSizeFactor } = props
 
-    const location = StructureElement.Location.create()
+    const location = StructureElement.Location.create(structure)
 
     const builderProps = {
         linkCount: terminalLinks.length,
@@ -91,7 +91,7 @@ function CarbohydrateTerminalLinkIterator(structure: Structure): LocationIterato
     const { elements, terminalLinks } = structure.carbohydrates
     const groupCount = terminalLinks.length
     const instanceCount = 1
-    const location = StructureElement.Location.create()
+    const location = StructureElement.Location.create(structure)
     const getLocation = (groupIndex: number) => {
         const terminalLink = terminalLinks[groupIndex]
         if (terminalLink.fromCarbohydrate) {

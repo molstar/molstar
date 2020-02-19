@@ -35,7 +35,7 @@ function getModifiedResidues({ structures }: CifExportContext): StructureElement
 
     const ret = [];
     const prop = P.residue.label_comp_id;
-    const loc = StructureElement.Location.create();
+    const loc = StructureElement.Location.create(structure);
     for (const unit of structure.units) {
         if (!Unit.isAtomic(unit) || !unit.conformation.operator.isIdentity) continue;
         const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
@@ -45,7 +45,7 @@ function getModifiedResidues({ structures }: CifExportContext): StructureElement
             loc.element = unit.elements[seg.start];
             const name = prop(loc);
             if (map.has(name)) {
-                ret[ret.length] = StructureElement.Location.create(loc.unit, loc.element);
+                ret[ret.length] = StructureElement.Location.clone(loc);
             }
         }
     }

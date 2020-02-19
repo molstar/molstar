@@ -64,6 +64,7 @@ function atomGroupsLinear(atomTest: QueryPredicate): StructureQuery {
         const l = ctx.pushCurrentElement();
         const builder = inputStructure.subsetBuilder(true);
 
+        l.structure = inputStructure;
         for (const unit of units) {
             l.unit = unit;
             const elements = unit.elements;
@@ -89,6 +90,7 @@ function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, ato
         const l = ctx.pushCurrentElement();
         const builder = inputStructure.subsetBuilder(true);
 
+        l.structure = inputStructure;
         for (const unit of units) {
             l.unit = unit;
             if (!unitTest(ctx)) continue;
@@ -158,6 +160,7 @@ function atomGroupsGrouped({ unitTest, entityTest, chainTest, residueTest, atomT
         const l = ctx.pushCurrentElement();
         const builder = new LinearGroupingBuilder(inputStructure);
 
+        l.structure = inputStructure;
         for (const unit of units) {
             l.unit = unit;
             if (!unitTest(ctx)) continue;
@@ -294,6 +297,8 @@ export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {
         ctx.pushCurrentBond();
         const atomicBond = ctx.atomicBond;
         atomicBond.setTestFn(bondTest);
+
+        atomicBond.setStructure(structure);
 
         // Process intra unit bonds
         for (const unit of structure.units) {

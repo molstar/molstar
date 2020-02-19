@@ -21,7 +21,7 @@ import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { InteractionFlag } from '../interactions/common';
 
-const tmpLoc = StructureElement.Location.create()
+const tmpLoc = StructureElement.Location.create(void 0)
 
 function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InteractionsInterUnitParams>, mesh?: Mesh) {
     if (!structure.hasAtomic) return Mesh.createEmpty(mesh)
@@ -49,6 +49,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex]
             const fA = unitsFeatures.get(b.unitA.id)
+            tmpLoc.structure = structure;
             tmpLoc.unit = b.unitA
             tmpLoc.element = b.unitA.elements[fA.members[fA.offsets[b.indexA]]]
             const sizeA = theme.size.size(tmpLoc)
@@ -100,8 +101,8 @@ function getInteractionLoci(pickingId: PickingId, structure: Structure, id: numb
         const interactions = InteractionsProvider.get(structure).value!
         const c = interactions.contacts.edges[groupId]
         return Interactions.Loci(structure, interactions, [
-            { unitA: c.unitA, indexA: c.indexA, unitB: c.unitB, indexB: c.indexB },
-            { unitA: c.unitB, indexA: c.indexB, unitB: c.unitA, indexB: c.indexA },
+            { structure, unitA: c.unitA, indexA: c.indexA, unitB: c.unitB, indexB: c.indexB },
+            { structure, unitA: c.unitB, indexA: c.indexB, unitB: c.unitA, indexB: c.indexA },
         ])
     }
     return EmptyLoci
@@ -130,7 +131,7 @@ function createInteractionsIterator(structure: Structure): LocationIterator {
     const { contacts } = interactions
     const groupCount = contacts.edgeCount
     const instanceCount = 1
-    const location = Interactions.Location(interactions)
+    const location = Interactions.Location(interactions, structure)
     const { element } = location
     const getLocation = (groupIndex: number) => {
         const c = contacts.edges[groupIndex]

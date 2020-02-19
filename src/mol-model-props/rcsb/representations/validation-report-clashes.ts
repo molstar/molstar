@@ -91,7 +91,7 @@ function getIntraClashBoundingSphere(unit: Unit.Atomic, clashes: IntraUnitClashe
     }, boundingSphere)
 }
 
-function getIntraClashLabel(unit: Unit.Atomic, clashes: IntraUnitClashes, elements: number[]) {
+function getIntraClashLabel(structure: Structure, unit: Unit.Atomic, clashes: IntraUnitClashes, elements: number[]) {
     const idx = elements[0]
     if (idx === undefined) return ''
     const { edgeProps: { id, magnitude, distance } } = clashes
@@ -100,12 +100,14 @@ function getIntraClashLabel(unit: Unit.Atomic, clashes: IntraUnitClashes, elemen
 
     return [
         `Clash id: ${id[idx]} | Magnitude: ${mag} \u212B | Distance: ${dist} \u212B`,
-        bondLabel(Bond.Location(unit, clashes.a[idx], unit, clashes.b[idx]))
+        bondLabel(Bond.Location(structure, unit, clashes.a[idx], structure, unit, clashes.b[idx]))
     ].join('</br>')
 }
 
-function IntraClashLoci(unit: Unit.Atomic, clashes: IntraUnitClashes, elements: number[]) {
-    return DataLoci('intra-clashes', { unit, clashes }, elements, (boundingSphere: Sphere3D) =>  getIntraClashBoundingSphere(unit, clashes, elements, boundingSphere), () => getIntraClashLabel(unit, clashes, elements))
+function IntraClashLoci(structure: Structure, unit: Unit.Atomic, clashes: IntraUnitClashes, elements: number[]) {
+    return DataLoci('intra-clashes', { unit, clashes }, elements,
+        (boundingSphere: Sphere3D) =>  getIntraClashBoundingSphere(unit, clashes, elements, boundingSphere),
+        () => getIntraClashLabel(structure, unit, clashes, elements))
 }
 
 function getIntraClashLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
@@ -115,7 +117,7 @@ function getIntraClashLoci(pickingId: PickingId, structureGroup: StructureGroup,
         const unit = group.units[instanceId]
         if (Unit.isAtomic(unit)) {
             const clashes = ClashesProvider.get(structure).value!.intraUnit.get(unit.id)
-            return IntraClashLoci(unit, clashes, [groupId])
+            return IntraClashLoci(structure, unit, clashes, [groupId])
         }
     }
     return EmptyLoci
@@ -134,7 +136,7 @@ function createIntraClashIterator(structureGroup: StructureGroup): LocationItera
     const { a } = clashes
     const groupCount = clashes.edgeCount * 2
     const instanceCount = group.units.length
-    const location = StructureElement.Location.create()
+    const location = StructureElement.Location.create(structure)
     const getLocation = (groupIndex: number, instanceIndex: number) => {
         const unit = group.units[instanceIndex]
         location.unit = unit
@@ -203,7 +205,7 @@ function getInterClashBoundingSphere(clashes: InterUnitClashes, elements: number
     }, boundingSphere)
 }
 
-function getInterClashLabel(clashes: InterUnitClashes, elements: number[]) {
+function getInterClashLabel(structure: Structure, clashes: InterUnitClashes, elements: number[]) {
     const idx = elements[0]
     if (idx === undefined) return ''
     const c = clashes.edges[idx]
@@ -212,19 +214,21 @@ function getInterClashLabel(clashes: InterUnitClashes, elements: number[]) {
 
     return [
         `Clash id: ${c.props.id} | Magnitude: ${mag} \u212B | Distance: ${dist} \u212B`,
-        bondLabel(Bond.Location(c.unitA, c.indexA, c.unitB, c.indexB))
+        bondLabel(Bond.Location(structure, c.unitA, c.indexA, structure, c.unitB, c.indexB))
     ].join('</br>')
 }
 
-function InterClashLoci(clashes: InterUnitClashes, elements: number[]) {
-    return DataLoci('inter-clashes', clashes, elements, (boundingSphere: Sphere3D) =>  getInterClashBoundingSphere(clashes, elements, boundingSphere), () => getInterClashLabel(clashes, elements))
+function InterClashLoci(structure: Structure, clashes: InterUnitClashes, elements: number[]) {
+    return DataLoci('inter-clashes', clashes, elements,
+        (boundingSphere: Sphere3D) =>  getInterClashBoundingSphere(clashes, elements, boundingSphere),
+        () => getInterClashLabel(structure, clashes, elements))
 }
 
 function getInterClashLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId
     if (id === objectId) {
         const clashes = ClashesProvider.get(structure).value!.interUnit
-        return InterClashLoci(clashes, [groupId])
+        return InterClashLoci(structure, clashes, [groupId])
     }
     return EmptyLoci
 }
@@ -239,7 +243,7 @@ function createInterClashIterator(structure: Structure): LocationIterator {
     const clashes = ClashesProvider.get(structure).value!.interUnit
     const groupCount = clashes.edgeCount
     const instanceCount = 1
-    const location = StructureElement.Location.create()
+    const location = StructureElement.Location.create(structure)
     const getLocation = (groupIndex: number) => {
         const clash = clashes.edges[groupIndex]
         location.unit = clash.unitA
