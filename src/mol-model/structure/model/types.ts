@@ -221,6 +221,8 @@ export const WaterNames = new Set([
 export const AminoAcidNamesL = new Set([
     'HIS', 'ARG', 'LYS', 'ILE', 'PHE', 'LEU', 'TRP', 'ALA', 'MET', 'PRO', 'CYS',
     'ASN', 'VAL', 'GLY', 'SER', 'GLN', 'TYR', 'ASP', 'GLU', 'THR', 'SEC', 'PYL',
+
+    'UNK' // unknown amino acid from CCD
 ])
 export const AminoAcidNamesD = new Set([
     'DAL', // D-ALANINE
