@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { UUID } from '../../../mol-util';
 import { Column } from '../../../mol-data/db';
+import { BasicData } from '../../../mol-model-formats/structure/basic/schema';
 import { ModelFormat } from '../../../mol-model-formats/structure/format';
 
 export { Topology }
@@ -14,7 +15,8 @@ interface Topology {
     readonly id: UUID
     readonly label: string
 
-    readonly format: ModelFormat
+    readonly basic: BasicData
+    readonly sourceData: ModelFormat
 
     readonly bonds: {
         readonly indexA: Column<number>,
@@ -47,11 +49,12 @@ interface Topology {
 }
 
 namespace Topology {
-    export function create(label: string, format: ModelFormat, bonds: Topology['bonds']): Topology {
+    export function create(label: string, basic: BasicData, bonds: Topology['bonds'], format: ModelFormat): Topology {
         return {
             id: UUID.create22(),
             label,
-            format,
+            basic,
+            sourceData: format,
             bonds
         }
     }

@@ -16,7 +16,7 @@ import { Structure, Model, Queries as Q, StructureElement, StructureSelection, S
 
 import to_mmCIF from '../mol-model/structure/export/mmcif'
 import { Vec3 } from '../mol-math/linear-algebra';
-import { trajectoryFromMmCIF } from '../mol-model-formats/structure/mmcif';
+import { trajectoryFromMmCIF, MmcifFormat } from '../mol-model-formats/structure/mmcif';
 // import { printUnits } from '../apps/structure-info/model';
 // import { EquivalenceClasses } from '../mol-data/util';
 
@@ -106,8 +106,8 @@ export async function getBcif(pdbId: string) {
 
 export namespace PropertyAccess {
     function baseline(model: Model) {
-        if (model.sourceData.kind !== 'mmCIF') throw new Error('Model must be mmCIF');
-        const atom_site = model.sourceData.data.atom_site;
+        if (!MmcifFormat.is(model.sourceData)) throw new Error('Model must be mmCIF');
+        const atom_site = model.sourceData.data.db.atom_site;
         const id = atom_site.id.value;
         let s = 0;
         for (let i = 0, _i = atom_site._rowCount; i < _i; i++) {

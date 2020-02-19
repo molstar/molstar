@@ -20,6 +20,7 @@ import { CustomModelProperty } from '../common/custom-model-property';
 import { ParamDefinition as PD } from '../../mol-util/param-definition'
 import { CustomProperty } from '../common/custom-property';
 import { arraySetAdd } from '../../mol-util/array';
+import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 export { StructureQualityReport }
 
@@ -37,8 +38,8 @@ namespace StructureQualityReport {
     export function isApplicable(model?: Model): boolean {
         return (
             !!model &&
-            model.sourceData.kind === 'mmCIF' &&
-            (model.sourceData.data.database_2.database_id.isDefined ||
+            MmcifFormat.is(model.sourceData) &&
+            (model.sourceData.data.db.database_2.database_id.isDefined ||
                 model.entryId.length === 4)
         )
     }
@@ -103,10 +104,10 @@ namespace StructureQualityReport {
     }
 
     function getCifData(model: Model) {
-        if (model.sourceData.kind !== 'mmCIF') throw new Error('Data format must be mmCIF.');
+        if (!MmcifFormat.is(model.sourceData)) throw new Error('Data format must be mmCIF.');
         return {
-            residues: toTable(Schema.pdbe_structure_quality_report_issues, model.sourceData.frame.categories.pdbe_structure_quality_report_issues),
-            groups: toTable(Schema.pdbe_structure_quality_report_issue_types, model.sourceData.frame.categories.pdbe_structure_quality_report_issue_types),
+            residues: toTable(Schema.pdbe_structure_quality_report_issues, model.sourceData.data.frame.categories.pdbe_structure_quality_report_issues),
+            groups: toTable(Schema.pdbe_structure_quality_report_issue_types, model.sourceData.data.frame.categories.pdbe_structure_quality_report_issue_types),
         }
     }
 }

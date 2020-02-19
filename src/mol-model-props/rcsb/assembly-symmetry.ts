@@ -14,6 +14,7 @@ import { GraphQLClient } from '../../mol-util/graphql-client';
 import { CustomProperty } from '../common/custom-property';
 import { NonNullableArray } from '../../mol-util/type-helpers';
 import { CustomStructureProperty } from '../common/custom-structure-property';
+import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 const BiologicalAssemblyNames = new Set([
     'author_and_software_defined_assembly',
@@ -29,11 +30,11 @@ export namespace AssemblySymmetry {
 
     export function isApplicable(structure?: Structure): boolean {
         // check if structure is from pdb entry
-        if (!structure || structure.models.length !== 1 || structure.models[0].sourceData.kind !== 'mmCIF' || (!structure.models[0].sourceData.data.database_2.database_id.isDefined &&
+        if (!structure || structure.models.length !== 1 || !MmcifFormat.is(structure.models[0].sourceData) || (!structure.models[0].sourceData.data.db.database_2.database_id.isDefined &&
         structure.models[0].entryId.length !== 4)) return false
 
         // check if assembly is 'biological'
-        const mmcif = structure.models[0].sourceData.data
+        const mmcif = structure.models[0].sourceData.data.db
         if (!mmcif.pdbx_struct_assembly.details.isDefined) return false
         const id = structure.units[0].conformation.operator.assembly.id
         const indices = Column.indicesOf(mmcif.pdbx_struct_assembly.id, e => e === id)

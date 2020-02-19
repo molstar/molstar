@@ -1,20 +1,23 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CifCategory, CifField } from '../../../mol-io/reader/cif';
 import { MoleculeType, isPolymer } from '../../../mol-model/structure/model/types';
-import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
+import { Column, Table } from '../../../mol-data/db';
+import { BasicSchema } from '../basic/schema';
 
 export type EntityCompound = { chains: string[], description: string }
+
+// TODO add support for `branched`
+type EntityType = 'water' | 'polymer' | 'non-polymer'
 
 export class EntityBuilder {
     private count = 0
     private ids: string[] = []
-    private types: string[] = []
-    private descriptions: string[] = []
+    private types: EntityType[] = []
+    private descriptions: string[][] = []
 
     private compoundsMap = new Map<string, string>()
     private namesMap = new Map<string, string>()
@@ -22,11 +25,11 @@ export class EntityBuilder {
     private chainMap = new Map<string, string>()
     private waterId?: string
 
-    private set(type: string, description: string) {
+    private set(type: EntityType, description: string) {
         this.count += 1
         this.ids.push(`${this.count}`)
         this.types.push(type)
-        this.descriptions.push(description)
+        this.descriptions.push([description])
     }
 
     getEntityId(compId: string, moleculeType: MoleculeType, chainId: string): string {
@@ -55,13 +58,12 @@ export class EntityBuilder {
         }
     }
 
-    getEntityCategory() {
-        const entity: CifCategory.SomeFields<mmCIF_Schema['entity']> = {
-            id: CifField.ofStrings(this.ids),
-            type: CifField.ofStrings(this.types),
-            pdbx_description: CifField.ofStrings(this.descriptions),
-        }
-        return CifCategory.ofFields('entity', entity)
+    getEntityTable() {
+        return Table.ofPartialColumns(BasicSchema.entity, {
+            id: Column.ofStringArray(this.ids),
+            type: Column.ofStringAliasArray(this.types),
+            pdbx_description: Column.ofStringListArray(this.descriptions),
+        }, this.count)
     }
 
     setCompounds(compounds: EntityCompound[]) {

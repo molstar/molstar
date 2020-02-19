@@ -12,6 +12,7 @@ import { Unit } from '../../mol-model/structure/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';
 import { CustomProperty } from '../common/custom-property';
 import { ModelSecondaryStructure } from '../../mol-model-formats/structure/property/secondary-structure';
+import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 function getSecondaryStructureParams(data?: Structure) {
     let defaultType = 'mmcif' as 'mmcif' | 'dssp'
@@ -19,10 +20,10 @@ function getSecondaryStructureParams(data?: Structure) {
         defaultType = 'dssp'
         for (let i = 0, il = data.models.length; i < il; ++i) {
             const m = data.models[i]
-            if (m.sourceData.kind === 'mmCIF') {
-                if (data.model.sourceData.data.struct_conf.id.isDefined ||
-                    data.model.sourceData.data.struct_sheet_range.id.isDefined ||
-                    data.model.sourceData.data.database_2.database_id.isDefined
+            if (MmcifFormat.is(m.sourceData)) {
+                if (m.sourceData.data.db.struct_conf.id.isDefined ||
+                    m.sourceData.data.db.struct_sheet_range.id.isDefined ||
+                    m.sourceData.data.db.database_2.database_id.isDefined
                 ) {
                     // if there is any secondary structure definition given or if there is
                     // an archival model, don't calculate dssp by default

@@ -18,6 +18,7 @@ import { IntMap, SortedArray } from '../../mol-data/int';
 import { arrayMax } from '../../mol-util/array';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 export { ValidationReport }
 
@@ -90,8 +91,8 @@ namespace ValidationReport {
     export function isApplicable(model?: Model): boolean {
         return (
             !!model &&
-            model.sourceData.kind === 'mmCIF' &&
-            (model.sourceData.data.database_2.database_id.isDefined ||
+            MmcifFormat.is(model.sourceData) &&
+            (model.sourceData.data.db.database_2.database_id.isDefined ||
                 model.entryId.length === 4)
         )
     }

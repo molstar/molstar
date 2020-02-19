@@ -67,5 +67,5 @@ export const UncertaintyColorThemeProvider: ColorTheme.Provider<UncertaintyColor
     factory: UncertaintyColorTheme,
     getParams: getUncertaintyColorThemeParams,
     defaultValues: PD.getDefaultValues(UncertaintyColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => m.atomicConformation.B_iso_or_equiv.isDefined || m.sourceData.data.ihm_sphere_obj_site.rmsf.isDefined)
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => m.atomicConformation.B_iso_or_equiv.isDefined || m.coarseHierarchy.isDefined)
 }

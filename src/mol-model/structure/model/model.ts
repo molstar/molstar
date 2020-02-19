@@ -18,9 +18,9 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Mutable } from '../../../mol-util/type-helpers';
 import { Coordinates } from '../coordinates';
 import { Topology } from '../topology';
-import { _parse_mmCif } from '../../../mol-model-formats/structure/mmcif/parser';
 import { Task } from '../../../mol-task';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
+import { createModels } from '../../../mol-model-formats/structure/basic/parser';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -107,7 +107,7 @@ export namespace Model {
 
     export function trajectoryFromTopologyAndCoordinates(topology: Topology, coordinates: Coordinates): Task<Trajectory> {
         return Task.create('Create Trajectory', async ctx => {
-            const model = (await _parse_mmCif(topology.format, ctx))[0];
+            const model = (await createModels(topology.basic, topology.sourceData, ctx))[0];
             if (!model) throw new Error('found no model')
             const trajectory = trajectoryFromModelAndCoordinates(model, coordinates)
             const bondData = { pairs: topology.bonds, count: model.atomicHierarchy.atoms._rowCount }

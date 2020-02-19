@@ -7,6 +7,9 @@
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { Table } from '../../../mol-data/db';
 
+// TODO split into conformation and hierarchy parts
+// TODO extract `pdbx_struct_mod_residue` as property?
+
 export type Entry = Table<mmCIF_Schema['entry']>
 export type Struct = Table<mmCIF_Schema['struct']>
 export type StructAsym = Table<mmCIF_Schema['struct_asym']>
@@ -63,4 +66,16 @@ export interface BasicData {
     ihm_sphere_obj_site: IhmSphereObjSite
     ihm_gaussian_obj_site: IhmGaussianObjSite
     pdbx_unobs_or_zero_occ_residues: UnobsOrZeroOccResidues
+}
+
+export function createBasic(data: Partial<BasicData>): BasicData {
+    const basic = Object.create(null)
+    for (const name of Object.keys(BasicSchema)) {
+        if (name in data) {
+            basic[name] = data[name as keyof typeof BasicSchema]
+        } else {
+            basic[name] = Table.ofUndefinedColumns(BasicSchema[name as keyof typeof BasicSchema], 0)
+        }
+    }
+    return basic
 }

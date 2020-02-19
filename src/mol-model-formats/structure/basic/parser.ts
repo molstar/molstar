@@ -22,10 +22,11 @@ import { getProperties } from './properties';
 import { getEntities } from './entities';
 import { getModelGroupName } from './util';
 
-export async function _parse_basic(data: BasicData, format: ModelFormat, ctx: RuntimeContext) {
+export async function createModels(data: BasicData, format: ModelFormat, ctx: RuntimeContext) {
     const properties = getProperties(data)
-    const isIHM = data.ihm_model_list._rowCount > 0;
-    return isIHM ? await readIntegrative(ctx, data, properties, format) : await readStandard(ctx, data, properties, format);
+    return data.ihm_model_list._rowCount > 0
+        ? await readIntegrative(ctx, data, properties, format)
+        : await readStandard(ctx, data, properties, format);
 }
 
 /** Standard atomic model */
@@ -87,8 +88,8 @@ function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Mo
 
     const label: string[] = []
     if (entry) label.push(entry)
-    if (format.data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(format.data.struct.title.value(0))
-    if (ihm.model_group_name) label.push(ihm.model_name)
+    if (data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(data.struct.title.value(0))
+    if (ihm.model_name) label.push(ihm.model_name)
     if (ihm.model_group_name) label.push(ihm.model_group_name)
 
     return {

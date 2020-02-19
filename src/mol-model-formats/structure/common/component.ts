@@ -1,15 +1,14 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { _parse_mmCif } from '../mmcif/parser';
-import { CifCategory, CifField } from '../../../mol-io/reader/cif';
 import { Table, Column } from '../../../mol-data/db';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { WaterNames } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
+import { BasicSchema } from '../basic/schema';
 
 type Component = Table.Row<Pick<mmCIF_Schema['chem_comp'], 'id' | 'name' | 'type'>>
 
@@ -137,13 +136,12 @@ export class ComponentBuilder {
         return this.get(compId)!
     }
 
-    getChemCompCategory() {
-        const chemComp: CifCategory.SomeFields<mmCIF_Schema['chem_comp']> = {
-            id: CifField.ofStrings(this.ids),
-            name: CifField.ofStrings(this.names),
-            type: CifField.ofStrings(this.types),
-        }
-        return CifCategory.ofFields('chem_comp', chemComp)
+    getChemCompTable() {
+        return Table.ofPartialColumns(BasicSchema.chem_comp, {
+            id: Column.ofStringArray(this.ids),
+            name: Column.ofStringArray(this.names),
+            type: Column.ofStringAliasArray(this.types),
+        }, this.ids.length)
     }
 
     setNames(names: [string, string][]) {

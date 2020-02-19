@@ -16,6 +16,7 @@ import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { isInteger } from '../../mol-util/number';
 import { ColorLists } from '../../mol-util/color/lists';
+import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 const DefaultList = 'dark-2'
 const DefaultColor = Color(0xFAFAFA)
@@ -100,8 +101,8 @@ function getMaps(models: ReadonlyArray<Model>) {
 
     for (let i = 0, il = models.length; i <il; ++i) {
         const m = models[i]
-        if (m.sourceData.kind !== 'mmCIF') continue
-        const { entity_src_gen, entity_src_nat, pdbx_entity_src_syn } = m.sourceData.data
+        if (!MmcifFormat.is(m.sourceData)) continue
+        const { entity_src_gen, entity_src_nat, pdbx_entity_src_syn } = m.sourceData.data.db
         addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_gen, entity_src_gen.pdbx_gene_src_scientific_name, entity_src_gen.plasmid_name, entity_src_gen.pdbx_gene_src_gene)
         addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, entity_src_nat, entity_src_nat.pdbx_organism_scientific, entity_src_nat.pdbx_plasmid_name)
         addSrc(seqToSrcByModelEntity, srcKeySerialMap, i, m, pdbx_entity_src_syn, pdbx_entity_src_syn.organism_scientific)
