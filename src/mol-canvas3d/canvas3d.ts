@@ -62,7 +62,7 @@ interface Canvas3D {
     /**
      * This function must be called if animate() is not set up so that add/remove actions take place.
      */
-    commit(): void
+    commit(isSynchronous?: boolean): void
     update(repr?: Representation.Any, keepBoundingSphere?: boolean): void
     clear(): void
 
@@ -77,7 +77,7 @@ interface Canvas3D {
 
     handleResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
-    requestCameraReset(): void
+    requestCameraReset(durationMs?: number): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
     downloadScreenshot(): void
@@ -190,6 +190,7 @@ namespace Canvas3D {
 
         let drawPending = false
         let cameraResetRequested = false
+        let nextCameraResetDuration: number | undefined = void 0
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -282,25 +283,30 @@ namespace Canvas3D {
             return webgl.isContextLost ? undefined : pickPass.identify(x, y)
         }
 
-        function commit() {
-            commitScene();
-            resolveCameraReset();
+        function commit(isSynchronous: boolean = false) {
+            const allCommited = commitScene(isSynchronous);
+            // Only reset the camera after the full scene has been commited.
+            if (allCommited) resolveCameraReset();
         }
 
         function resolveCameraReset() {
             if (!cameraResetRequested) return;
             const { center, radius } = scene.boundingSphere;
-            camera.focus(center, radius, radius, p.cameraResetDurationMs);
+            camera.focus(center, radius, radius, 
+                typeof nextCameraResetDuration === 'undefined' ? p.cameraResetDurationMs : nextCameraResetDuration);
+            nextCameraResetDuration = void 0;
             cameraResetRequested = false;
         }
 
         const sceneCommitTimeoutMs = 250;
-        function commitScene() {
-            if (!scene.needsCommit) return;
+        function commitScene(isSynchronous: boolean) {
+            if (!scene.needsCommit) return true;
 
-            const allCommited = scene.commit(sceneCommitTimeoutMs);
+            if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
+
             if (debugHelper.isEnabled) debugHelper.update();
-            if (allCommited) reprCount.next(reprRenderObjects.size);
+            reprCount.next(reprRenderObjects.size);
+            return true;
         }
 
         function add(repr: Representation.Any) {
@@ -384,7 +390,8 @@ namespace Canvas3D {
             getLoci,
 
             handleResize,
-            requestCameraReset: () => {
+            requestCameraReset: (durationMs) => {
+                nextCameraResetDuration = durationMs;
                 cameraResetRequested = true;
             },
             camera,

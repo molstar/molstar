@@ -126,8 +126,6 @@ namespace Scene {
             return true;
         }
 
-        // const toAdd: GraphicsRenderObject[] = []
-        // const toRemove: GraphicsRenderObject[] = []
         const commitQueue = new CommitQueue();
 
         return {
