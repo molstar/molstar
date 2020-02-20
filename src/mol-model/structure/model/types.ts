@@ -221,7 +221,6 @@ export const WaterNames = new Set([
 export const AminoAcidNamesL = new Set([
     'HIS', 'ARG', 'LYS', 'ILE', 'PHE', 'LEU', 'TRP', 'ALA', 'MET', 'PRO', 'CYS',
     'ASN', 'VAL', 'GLY', 'SER', 'GLN', 'TYR', 'ASP', 'GLU', 'THR', 'SEC', 'PYL',
-
     'UNK' // unknown amino acid from CCD
 ])
 export const AminoAcidNamesD = new Set([
@@ -249,8 +248,14 @@ export const AminoAcidNamesD = new Set([
 ])
 export const AminoAcidNames = SetUtils.unionMany(AminoAcidNamesL, AminoAcidNamesD)
 
-export const RnaBaseNames = new Set([ 'A', 'C', 'T', 'G', 'I', 'U' ])
-export const DnaBaseNames = new Set([ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ])
+export const RnaBaseNames = new Set([
+    'A', 'C', 'T', 'G', 'I', 'U',
+    'N' // unknown RNA base from CCD
+])
+export const DnaBaseNames = new Set([
+    'DA', 'DC', 'DT', 'DG', 'DI', 'DU',
+    'DN' // unknown DNA base from CCD
+])
 export const PeptideBaseNames = new Set([ 'APN', 'CPN', 'TPN', 'GPN' ])
 export const PurineBaseNames = new Set([ 'A', 'G', 'DA', 'DG', 'DI', 'APN', 'GPN' ])
 export const PyrimidineBaseNames = new Set([ 'C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN' ])
