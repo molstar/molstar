@@ -9,7 +9,7 @@ import { sortArray } from '../util/sort'
 import { StringBuilder } from '../../mol-util';
 
 /** A collection of columns */
-type Table<Schema extends Table.Schema> = {
+type Table<Schema extends Table.Schema = any> = {
     readonly _rowCount: number,
     readonly _columns: ReadonlyArray<string>,
     readonly _schema: Schema
@@ -73,7 +73,7 @@ namespace Table {
         return ret;
     }
 
-    export function ofRows<S extends Schema, R extends Table<S> = Table<S>>(schema: Schema, rows: ArrayLike<Partial<Row<S>>>): R {
+    export function ofRows<S extends Schema, R extends Table<S> = Table<S>>(schema: S, rows: ArrayLike<Partial<Row<S>>>): R {
         const ret = Object.create(null);
         const rowCount = rows.length;
         const columns = Object.keys(schema);
@@ -91,14 +91,19 @@ namespace Table {
         return ret as R;
     }
 
-    export function ofArrays<S extends Schema, R extends Table<S> = Table<S>>(schema: Schema, arrays: Arrays<S>): R {
+    export function ofArrays<S extends Schema, R extends Table<S> = Table<S>>(schema: S, arrays: Partial<Arrays<S>>): R {
         const ret = Object.create(null);
         const columns = Object.keys(schema);
-        ret._rowCount = arrays[columns[0]].length;
+        ret._rowCount = 0;
         ret._columns = columns;
         ret._schema = schema;
         for (const k of columns) {
-            (ret as any)[k] = typeof arrays[k] !== 'undefined' ? Column.ofArray({ array: arrays[k], schema: schema[k] }) : Column.Undefined(ret._rowCount, schema[k]);
+            if (typeof arrays[k] !== 'undefined') {
+                (ret as any)[k] = Column.ofArray({ array: arrays[k]!, schema: schema[k] });
+                ret._rowCount = arrays[k]?.length;
+            } else {
+                (ret as any)[k] = Column.Undefined(ret._rowCount, schema[k]);
+            }
         }
         return ret as R;
     }
@@ -167,7 +172,7 @@ namespace Table {
     }
 
     /** Sort and return a new table */
-    export function sort<T extends Table<S>, S extends Schema>(table: T, cmp: (i: number, j: number) => number) {
+    export function sort<T extends Table>(table: T, cmp: (i: number, j: number) => number) {
         const indices = new Int32Array(table._rowCount);
         for (let i = 0, _i = indices.length; i < _i; i++) indices[i] = i;
         sortArray(indices, (_, i, j) => cmp(i, j));
@@ -191,7 +196,7 @@ namespace Table {
         return ret;
     }
 
-    export function areEqual<T extends Table<Schema>>(a: T, b: T) {
+    export function areEqual<T extends Table<any>>(a: T, b: T) {
         if (a._rowCount !== b._rowCount) return false;
         if (a._columns.length !== b._columns.length) return false;
         for (const c of a._columns) {

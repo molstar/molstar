@@ -144,9 +144,9 @@ async function createBonds() {
     const comp_id: string[] = []
     const atom_id_1: string[] = []
     const atom_id_2: string[] = []
-    const value_order: string[] = []
-    const pdbx_aromatic_flag: string[] = []
-    const pdbx_stereo_config: string[] = []
+    const value_order: typeof mmCIF_chemCompBond_schema['value_order']['T'][] = [] 
+    const pdbx_aromatic_flag: typeof mmCIF_chemCompBond_schema['pdbx_aromatic_flag']['T'][] = []
+    const pdbx_stereo_config: typeof mmCIF_chemCompBond_schema['pdbx_stereo_config']['T'][] = []
     const molstar_protonation_variant: string[] = []
 
     function addBonds(compId: string, ccb: CCB, protonationVariant: boolean) {

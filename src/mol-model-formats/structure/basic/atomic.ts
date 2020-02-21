@@ -90,9 +90,9 @@ function getConformation(atom_site: AtomSite): AtomicConformation {
 
 function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
     // TODO need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
-    return Table.areEqual(a.chains as Table<ChainsSchema>, b.chains as Table<ChainsSchema>)
-        && Table.areEqual(a.residues as Table<ResiduesSchema>, b.residues as Table<ResiduesSchema>)
-        && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
+    return Table.areEqual(a.chains, b.chains)
+        && Table.areEqual(a.residues, b.residues)
+        && Table.areEqual(a.atoms, b.atoms)
 }
 
 function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, chemicalComponentMap: Model['properties']['chemicalComponentMap'], previous?: Model) {
