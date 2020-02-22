@@ -264,12 +264,13 @@ function updatePers(camera: Camera) {
 function updateClip(camera: Camera) {
     const { radiusNear, radiusFar, mode, fog, clipFar } = camera.state
 
-    const cDist = Vec3.distance(camera.position, camera.target)
-    let near = cDist - radiusNear
-    let far = cDist + (clipFar ? radiusNear : radiusFar)
+    const normalizedFar = clipFar ? radiusNear : radiusFar
+    const cameraDistance = Vec3.distance(camera.position, camera.target)
+    let near = cameraDistance - radiusNear
+    let far = cameraDistance + normalizedFar
 
     const fogNearFactor = -(50 - fog) / 50
-    let fogNear = cDist - (radiusNear * fogNearFactor)
+    let fogNear = cameraDistance - (normalizedFar * fogNearFactor)
     let fogFar = far
 
     if (mode === 'perspective') {

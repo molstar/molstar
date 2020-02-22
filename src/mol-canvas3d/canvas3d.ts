@@ -38,7 +38,7 @@ import { isDebugMode } from '../mol-util/debug';
 
 export const Canvas3DParams = {
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
-    cameraFog: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
+    cameraFog: PD.Numeric(50, { min: 0, max: 100, step: 1 }),
     cameraClipFar: PD.Boolean(true),
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     transparentBackground: PD.Boolean(false),
@@ -267,9 +267,7 @@ namespace Canvas3D {
 
         function animate() {
             currentTime = now();
-            
             commit();
-
             camera.transition.tick(currentTime);
 
             draw(false);
@@ -292,8 +290,8 @@ namespace Canvas3D {
         function resolveCameraReset() {
             if (!cameraResetRequested) return;
             const { center, radius } = scene.boundingSphere;
-            camera.focus(center, radius, radius, 
-                typeof nextCameraResetDuration === 'undefined' ? p.cameraResetDurationMs : nextCameraResetDuration);
+            const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration
+            camera.focus(center, radius, radius, duration);
             nextCameraResetDuration = void 0;
             cameraResetRequested = false;
         }

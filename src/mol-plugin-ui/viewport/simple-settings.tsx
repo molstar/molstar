@@ -80,7 +80,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
             } });
         } else if (p.name === 'fog') {;
             PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
-                cameraFog: p.value ? 50 : 1,
+                cameraFog: p.value ? 50 : 0,
             } });
         } else if (p.name === 'clipFar') {;
             PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
