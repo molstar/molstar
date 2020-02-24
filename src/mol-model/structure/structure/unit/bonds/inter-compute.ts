@@ -13,11 +13,11 @@ import { InterUnitBonds, InterUnitEdgeProps } from './data';
 import { SortedArray } from '../../../../../mol-data/int';
 import { Vec3, Mat4 } from '../../../../../mol-math/linear-algebra';
 import StructureElement from '../../element';
-import { StructConn } from '../../../../../mol-model-formats/structure/mmcif/bonds';
 import { ElementIndex } from '../../../model/indexing';
 import { getInterBondOrderFromTable } from '../../../model/properties/atomic/bonds';
-import { IndexPairBonds } from '../../../../../mol-model-formats/structure/mmcif/bonds/index-pair';
+import { IndexPairBonds } from '../../../../../mol-model-formats/structure/property/bonds/index-pair';
 import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
+import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
 
 const MAX_RADIUS = 4;
 
@@ -46,8 +46,8 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const { occupancy: occupancyB } = unitB.model.atomicConformation;
 
     const { lookup3d } = unitB;
-    const structConn = unitA.model === unitB.model && unitA.model.sourceData.kind === 'mmCIF' ? StructConn.get(unitA.model) : void 0;
-    const indexPairs = unitA.model === unitB.model ? IndexPairBonds.get(unitA.model) : void 0;
+    const structConn = unitA.model === unitB.model && StructConn.Provider.get(unitA.model)
+    const indexPairs = unitA.model === unitB.model && IndexPairBonds.Provider.get(unitA.model)
 
     // the lookup queries need to happen in the "unitB space".
     // that means imageA = inverseOperB(operA(aI))
@@ -75,18 +75,20 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             continue // assume `indexPairs` supplies all bonds
         }
 
-        const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
+        const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.byAtomIndex.get(aI);
         if (structConnEntries && structConnEntries.length) {
             let added = false;
             for (const se of structConnEntries) {
-                for (const p of se.partners) {
-                    const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex) as StructureElement.UnitIndex;
-                    if (_bI < 0 || _aI === _bI) continue;
-                    // check if the bond is within MAX_RADIUS for this pair of units
-                    if (getDistance(unitA, aI, unitB, p.atomIndex) > MAX_RADIUS) continue;
-                    builder.add(_aI, _bI, { order: se.order, flag: se.flags });
-                    added = true;
-                }
+                const { partnerA, partnerB } = se
+                const p = partnerA.atomIndex === aI ? partnerB : partnerA
+                const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex) as StructureElement.UnitIndex;
+                if (_bI < 0) continue;
+
+                // check if the bond is within MAX_RADIUS for this pair of units
+                if (getDistance(unitA, aI, unitB, p.atomIndex) > MAX_RADIUS) continue;
+
+                builder.add(_aI, _bI, { order: se.order, flag: se.flags });
+                added = true;
             }
             // assume, for an atom, that if any inter unit bond is given
             // all are given and thus we don't need to compute any other

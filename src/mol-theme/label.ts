@@ -112,8 +112,8 @@ function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly =
 
 export function bondLabel(bond: Bond.Location, options: Partial<LabelOptions> = {}): string {
     const o = { ...DefaultLabelOptions, ...options }
-    const locA = StructureElement.Location.create(bond.aUnit, bond.aUnit.elements[bond.aIndex])
-    const locB = StructureElement.Location.create(bond.bUnit, bond.bUnit.elements[bond.bIndex])
+    const locA = StructureElement.Location.create(bond.aStructure, bond.aUnit, bond.aUnit.elements[bond.aIndex])
+    const locB = StructureElement.Location.create(bond.bStructure, bond.bUnit, bond.bUnit.elements[bond.bIndex])
     const labelA = _elementLabel(locA, o.granularity, o.hidePrefix)
     const labelB = _elementLabel(locB, o.granularity, o.hidePrefix)
     let offset = 0
@@ -137,7 +137,7 @@ export function bundleLabel(bundle: Loci.Bundle<any>, options: Partial<LabelOpti
         const o = { ...DefaultLabelOptions, ...options }
         const locations = (bundle.loci as StructureElement.Loci[]).map(l => {
             const { unit, indices } = l.elements[0]
-            return StructureElement.Location.create(unit, unit.elements[OrderedSet.start(indices)])
+            return StructureElement.Location.create(l.structure, unit, unit.elements[OrderedSet.start(indices)])
         })
         const labels = locations.map(l => _elementLabel(l, o.granularity, o.hidePrefix))
 

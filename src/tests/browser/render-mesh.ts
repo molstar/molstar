@@ -47,4 +47,4 @@ function meshRepr() {
 }
 
 canvas3d.add(meshRepr())
-canvas3d.resetCamera()
+canvas3d.requestCameraReset()

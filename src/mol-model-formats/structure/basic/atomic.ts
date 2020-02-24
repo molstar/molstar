@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,7 +7,6 @@
 
 import { Column, Table } from '../../../mol-data/db';
 import { Interval, Segmentation } from '../../../mol-data/int';
-import { mmCIF_Database } from '../../../mol-io/reader/cif/schema/mmcif';
 import UUID from '../../../mol-util/uuid';
 import { ElementIndex } from '../../../mol-model/structure';
 import { Model } from '../../../mol-model/structure/model/model';
@@ -16,9 +15,7 @@ import { getAtomicIndex } from '../../../mol-model/structure/model/properties/ut
 import { ElementSymbol } from '../../../mol-model/structure/model/types';
 import { Entities } from '../../../mol-model/structure/model/properties/common';
 import { getAtomicDerivedData } from '../../../mol-model/structure/model/properties/utils/atomic-derived';
-import { FormatData } from './parser';
-
-type AtomSite = mmCIF_Database['atom_site']
+import { AtomSite } from './schema';
 
 function findHierarchyOffsets(atom_site: AtomSite) {
     if (atom_site._rowCount === 0) return { residues: [], chains: [] };
@@ -93,12 +90,12 @@ function getConformation(atom_site: AtomSite): AtomicConformation {
 
 function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
     // TODO need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
-    return Table.areEqual(a.chains as Table<ChainsSchema>, b.chains as Table<ChainsSchema>)
-        && Table.areEqual(a.residues as Table<ResiduesSchema>, b.residues as Table<ResiduesSchema>)
-        && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
+    return Table.areEqual(a.chains, b.chains)
+        && Table.areEqual(a.residues, b.residues)
+        && Table.areEqual(a.atoms, b.atoms)
 }
 
-function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, formatData: FormatData, previous?: Model) {
+function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, chemicalComponentMap: Model['properties']['chemicalComponentMap'], previous?: Model) {
     const hierarchyOffsets = findHierarchyOffsets(atom_site);
     const hierarchyData = createHierarchyData(atom_site, sourceIndex, hierarchyOffsets);
 
@@ -115,13 +112,13 @@ function getAtomicHierarchy(atom_site: AtomSite, sourceIndex: Column<number>, en
     }
 
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
-    const derived = getAtomicDerivedData(hierarchyData, index, formatData.chemicalComponentMap);
+    const derived = getAtomicDerivedData(hierarchyData, index, chemicalComponentMap);
     const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, index, derived };
     return { sameAsPrevious: false, hierarchy };
 }
 
-export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, formatData: FormatData, previous?: Model) {
-    const { sameAsPrevious, hierarchy } = getAtomicHierarchy(atom_site, sourceIndex, entities, formatData, previous)
+export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, chemicalComponentMap: Model['properties']['chemicalComponentMap'], previous?: Model) {
+    const { sameAsPrevious, hierarchy } = getAtomicHierarchy(atom_site, sourceIndex, entities, chemicalComponentMap, previous)
     const conformation = getConformation(atom_site)
     return { sameAsPrevious, hierarchy, conformation };
 }

@@ -10,6 +10,7 @@ import Unit from '../unit';
 import { Loci } from './loci';
 import { Location } from './location';
 import { ChainIndex } from '../../model/indexing';
+import Structure from '../structure';
 
 export interface Stats {
     elementCount: number
@@ -37,12 +38,12 @@ export namespace Stats {
             unitCount: 0,
             structureCount: 0,
 
-            firstElementLoc: Location.create(),
-            firstConformationLoc: Location.create(),
-            firstResidueLoc: Location.create(),
-            firstChainLoc: Location.create(),
-            firstUnitLoc: Location.create(),
-            firstStructureLoc: Location.create(),
+            firstElementLoc: Location.create(void 0),
+            firstConformationLoc: Location.create(void 0),
+            firstResidueLoc: Location.create(void 0),
+            firstChainLoc: Location.create(void 0),
+            firstUnitLoc: Location.create(void 0),
+            firstStructureLoc: Location.create(void 0),
         }
     }
 
@@ -51,7 +52,7 @@ export namespace Stats {
         map.set(key, count + inc)
     }
 
-    function handleElement(stats: Stats, element: Loci['elements'][0]) {
+    function handleElement(stats: Stats, structure: Structure, element: Loci['elements'][0]) {
         const { indices, unit } = element
         const { elements } = unit
         const size = OrderedSet.size(indices)
@@ -60,19 +61,19 @@ export namespace Stats {
         const residueAltIdCounts = new Map<string, number>()
 
         if (size > 0) {
-            Location.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])
+            Location.set(stats.firstElementLoc, structure, unit, elements[OrderedSet.start(indices)])
         }
 
         // count single element unit as unit not element
         if (size === elements.length) {
             stats.unitCount += 1
             if (stats.unitCount === 1) {
-                Location.set(stats.firstUnitLoc, unit, elements[OrderedSet.start(indices)])
+                Location.set(stats.firstUnitLoc, structure, unit, elements[OrderedSet.start(indices)])
             }
         } else if (size === 1) {
             stats.elementCount += 1
             if (stats.elementCount === 1) {
-                Location.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])
+                Location.set(stats.firstElementLoc, structure, unit, elements[OrderedSet.start(indices)])
             }
         } else {
             if (Unit.isAtomic(unit)) {
@@ -99,7 +100,7 @@ export namespace Stats {
                         // full residue
                         stats.residueCount += 1
                         if (stats.residueCount === 1) {
-                            Location.set(stats.firstResidueLoc, unit, offsets[rI])
+                            Location.set(stats.firstResidueLoc, structure, unit, offsets[rI])
                         }
                     } else {
                         // partial residue
@@ -116,7 +117,7 @@ export namespace Stats {
                                     if (stats.conformationCount === 1) {
                                         for (let l = offsets[rI], _l = offsets[rI + 1]; l < _l; ++l) {
                                             if (k === label_alt_id.value(l)) {
-                                                Location.set(stats.firstConformationLoc, unit, l)
+                                                Location.set(stats.firstConformationLoc, structure, unit, l)
                                                 break
                                             }
                                         }
@@ -131,13 +132,13 @@ export namespace Stats {
             } else {
                 stats.elementCount += size
                 if (stats.elementCount === 1) {
-                    Location.set(stats.firstElementLoc, unit, elements[OrderedSet.start(indices)])
+                    Location.set(stats.firstElementLoc, structure, unit, elements[OrderedSet.start(indices)])
                 }
             }
         }
     }
 
-    function handleUnitChainsSimple(stats: Stats, element: Loci['elements'][0]) {
+    function handleUnitChainsSimple(stats: Stats, structure: Structure, element: Loci['elements'][0]) {
         const { indices, unit } = element;
         const size = OrderedSet.size(indices);
         if (size === 0) return;
@@ -148,7 +149,7 @@ export namespace Stats {
             if (size === elements.length) {
                 stats.chainCount += 1;
                 if (stats.chainCount === 1) {
-                    Location.set(stats.firstChainLoc, unit, elements[OrderedSet.start(indices)]);
+                    Location.set(stats.firstChainLoc, structure, unit, elements[OrderedSet.start(indices)]);
                 }
             }
             return;
@@ -186,13 +187,13 @@ export namespace Stats {
                 // full chain
                 stats.chainCount += 1;
                 if (stats.chainCount === 1) {
-                    Location.set(stats.firstChainLoc, unit, offsets[cI]);
+                    Location.set(stats.firstChainLoc, structure, unit, offsets[cI]);
                 }
             }
         }
     }
 
-    function handleUnitChainsPartitioned(stats: Stats, lociElements: Loci['elements'], start: number, end: number) {
+    function handleUnitChainsPartitioned(stats: Stats, structure: Structure, lociElements: Loci['elements'], start: number, end: number) {
         let element = lociElements[start];
 
         // all the elements have the same model since they are part of the same group so this is ok.
@@ -273,7 +274,7 @@ export namespace Stats {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 const cI = index[eI];
                 if (cI === firstCI) {
-                    Location.set(stats.firstChainLoc, unit, eI);
+                    Location.set(stats.firstChainLoc, structure, unit, eI);
                     return;
                 }
             }
@@ -289,13 +290,13 @@ export namespace Stats {
             stats.structureCount += 1
             if (stats.structureCount === 1) {
                 const { unit, indices } = loci.elements[0]
-                Location.set(stats.firstStructureLoc, unit, unit.elements[OrderedSet.min(indices)])
+                Location.set(stats.firstStructureLoc, loci.structure, unit, unit.elements[OrderedSet.min(indices)])
             }
         } else {
             for (const e of loci.elements) {
-                handleElement(stats, e)
+                handleElement(stats, loci.structure, e)
                 if (!Unit.Traits.is(e.unit.traits, Unit.Trait.Partitioned)) {
-                    handleUnitChainsSimple(stats, e);
+                    handleUnitChainsSimple(stats, loci.structure, e);
                 } else {
                     hasPartitions = true;
                 }
@@ -314,9 +315,9 @@ export namespace Stats {
                 const end = i;
                 i--;
                 if (end - start === 1) {
-                    handleUnitChainsSimple(stats, e);
+                    handleUnitChainsSimple(stats, loci.structure, e);
                 } else {
-                    handleUnitChainsPartitioned(stats, loci.elements, start, end);
+                    handleUnitChainsPartitioned(stats, loci.structure, loci.elements, start, end);
                 }
             }
         }

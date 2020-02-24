@@ -74,4 +74,4 @@ function spheresRepr() {
 
 canvas3d.add(textRepr())
 canvas3d.add(spheresRepr())
-canvas3d.resetCamera()
+canvas3d.requestCameraReset()

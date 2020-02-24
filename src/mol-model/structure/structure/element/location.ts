@@ -8,22 +8,34 @@
 import { ElementIndex } from '../../model';
 import Unit from '../unit';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
+import Structure from '../structure';
 
 export { Location }
 
 interface Location<U = Unit> {
     readonly kind: 'element-location',
+    structure: Structure,
     unit: U,
     /** Index into element (atomic/coarse) properties of unit.model */
     element: ElementIndex
 }
 
 namespace Location {
-    export function create<U extends Unit>(unit?: U, element?: ElementIndex): Location<U> {
-        return { kind: 'element-location', unit: unit!, element: element || (0 as ElementIndex) };
+    export function create<U extends Unit>(structure: Structure | undefined, unit?: U, element?: ElementIndex): Location<U> {
+        return {
+            kind: 'element-location', 
+            structure: structure as any,
+            unit: unit as any,
+            element: element || (0 as ElementIndex)
+        };
     }
 
-    export function set(a: Location, unit?: Unit, element?: ElementIndex): Location {
+    export function clone<U extends Unit>(l: Location<U>): Location<U> {
+        return create(l.structure, l.unit, l.element);
+    }
+
+    export function set(a: Location, structure?: Structure, unit?: Unit, element?: ElementIndex): Location {
+        if (structure) a.structure = structure;
         if (unit) a.unit = unit
         if (element !== undefined) a.element = element
         return a;

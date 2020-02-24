@@ -45,7 +45,7 @@ export const HighlightLoci = PluginBehavior.create({
         }
         register() {
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, buttons, modifiers }) => {
-                if (!this.ctx.canvas3d) return
+                if (!this.ctx.canvas3d || this.ctx.isBusy) return
                 let matched = false
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnly, buttons, modifiers)) {
@@ -132,7 +132,7 @@ export const SelectLoci = PluginBehavior.create({
             })
 
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
-                if (!this.ctx.canvas3d) return
+                if (!this.ctx.canvas3d || this.ctx.isBusy) return;
 
                 // only trigger the 1st action that matches
                 for (const [binding, action, condition] of actions) {

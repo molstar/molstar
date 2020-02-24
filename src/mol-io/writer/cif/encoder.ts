@@ -199,7 +199,7 @@ export namespace Category {
         getFormat(cat, field) { return void 0; }
     }
 
-    export function ofTable(table: Table<Table.Schema>, indices?: ArrayLike<number>): Category.Instance {
+    export function ofTable(table: Table, indices?: ArrayLike<number>): Category.Instance {
         if (indices) {
             return {
                 fields: cifFieldsFromTableSchema(table._schema),

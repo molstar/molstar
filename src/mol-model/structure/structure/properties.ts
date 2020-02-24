@@ -7,6 +7,8 @@
 import StructureElement from './element'
 import Unit from './unit'
 import { VdwRadius } from '../model/properties/atomic';
+import { ModelSecondaryStructure } from '../../../mol-model-formats/structure/property/secondary-structure';
+import { SecondaryStructureType } from '../model/types';
 
 function p<T>(p: StructureElement.Property<T>) { return p; }
 
@@ -60,7 +62,7 @@ function _compId(l: StructureElement.Location) {
 function compId(l: StructureElement.Location) {
     if (!Unit.isAtomic(l.unit)) notAtomic()
     if (!hasMicroheterogeneity(l)) return _compId(l)
-    return l.unit.model.sourceData.data.atom_site.label_comp_id.value(l.element)
+    return l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])
 }
 
 function seqId(l: StructureElement.Location) {
@@ -103,8 +105,20 @@ const residue = {
     isNonStandard: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.mon_nstd_flag[0] !== 'y'),
     hasMicroheterogeneity: p(hasMicroheterogeneity),
     microheterogeneityCompIds: p(microheterogeneityCompIds),
-    secondary_structure_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.type[l.unit.residueIndex[l.element]]),
-    secondary_structure_key: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.key[l.unit.residueIndex[l.element]]),
+    // TODO implement as symbol in SecondaryStructureProvider (not ModelSecondaryStructure.Provider)
+    secondary_structure_type: p(l => {
+        if (!Unit.isAtomic(l.unit)) notAtomic()
+        const secondaryStructure = ModelSecondaryStructure.Provider.get(l.unit.model)
+        if (secondaryStructure) return secondaryStructure.type[l.unit.residueIndex[l.element]]
+        else return SecondaryStructureType.Flag.NA
+    }),
+    // TODO implement as symbol in SecondaryStructureProvider (not ModelSecondaryStructure.Provider)
+    secondary_structure_key: p(l => {
+        if (!Unit.isAtomic(l.unit)) notAtomic()
+        const secondaryStructure = ModelSecondaryStructure.Provider.get(l.unit.model)
+        if (secondaryStructure) return secondaryStructure.key[l.unit.residueIndex[l.element]]
+        else return -1
+    }),
     chem_comp_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.type),
 }
 

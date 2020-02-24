@@ -57,5 +57,5 @@ export const UncertaintySizeThemeProvider: SizeTheme.Provider<UncertaintySizeThe
     factory: UncertaintySizeTheme,
     getParams: getUncertaintySizeThemeParams,
     defaultValues: PD.getDefaultValues(UncertaintySizeThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => m.atomicConformation.B_iso_or_equiv.isDefined || m.sourceData.data.ihm_sphere_obj_site.rmsf.isDefined)
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => m.atomicConformation.B_iso_or_equiv.isDefined || m.coarseHierarchy.isDefined)
 }

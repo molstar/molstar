@@ -13,10 +13,11 @@ import { UniqueArray } from '../../../../mol-data/generic';
 import { sortArray } from '../../../../mol-data/util';
 import { CifWriter } from '../../../../mol-io/writer/cif';
 import { CifExportContext } from '../mmcif';
+import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 
 export function getModelMmCifCategory<K extends keyof mmCIF_Schema>(model: Model, name: K): mmCIF_Database[K] | undefined {
-    if (model.sourceData.kind !== 'mmCIF') return;
-    return model.sourceData.data[name];
+    if (!MmcifFormat.is(model.sourceData)) return;
+    return model.sourceData.data.db[name];
 }
 
 export function getUniqueResidueNamesFromStructures(structures: Structure[]) {
@@ -50,9 +51,9 @@ export function copy_mmCif_category(name: keyof mmCIF_Schema, condition?: (struc
             if (condition && !condition(structures[0])) return CifWriter.Category.Empty;
 
             const model = structures[0].model;
-            if (model.sourceData.kind !== 'mmCIF') return CifWriter.Category.Empty;
+            if (!MmcifFormat.is(model.sourceData)) return CifWriter.Category.Empty;
 
-            const table = model.sourceData.data[name];
+            const table = model.sourceData.data.db[name];
             if (!table || !table._rowCount) return CifWriter.Category.Empty;
             return CifWriter.Category.ofTable(table);
         }

@@ -1,7 +1,7 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'cifCore' schema file. Dictionary versions: CifCore 3.0.11.
+ * Code-generated 'CifCore' schema file. Dictionary versions: CifCore 3.0.11.
  *
  * @author molstar/ciftools package
  */
@@ -14,7 +14,7 @@ const int = Schema.int;
 const float = Schema.float;
 const str = Schema.str;
 
-export const cifCore_Schema = {
+export const CifCore_Schema = {
     /**
      * The CATEGORY of data items used to describe the parameters of
      * the crystal unit cell and their measurement.
@@ -585,7 +585,7 @@ export const cifCore_Schema = {
     },
 }
 
-export const cifCore_Aliases = {
+export const CifCore_Aliases = {
     'space_group.name_H-M_full': [
         'symmetry_space_group_name_H-M',
     ],
@@ -633,5 +633,5 @@ export const cifCore_Aliases = {
     ],
 }
 
-export type cifCore_Schema = typeof cifCore_Schema;
-export interface cifCore_Database extends Database<cifCore_Schema> {}
+export type CifCore_Schema = typeof CifCore_Schema;
+export interface CifCore_Database extends Database<CifCore_Schema> {}

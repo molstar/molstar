@@ -16,6 +16,8 @@ import { openCif, downloadCif } from './helpers';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 import { Sequence } from '../../mol-model/sequence';
+import { ModelSecondaryStructure } from '../../mol-model-formats/structure/property/secondary-structure';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -50,8 +52,10 @@ export function residueLabel(model: Model, rI: number) {
 export function printSecStructure(model: Model) {
     console.log('\nSecondary Structure\n=============');
     const { residues } = model.atomicHierarchy;
-    const { key, elements } = model.properties.secondaryStructure;
+    const secondaryStructure = ModelSecondaryStructure.Provider.get(model);
+    if (!secondaryStructure) return
 
+    const { key, elements } = secondaryStructure
     const count = residues._rowCount;
     let rI = 0;
     while (rI < count) {
@@ -148,7 +152,7 @@ export function printRings(structure: Structure) {
 
 export function printUnits(structure: Structure) {
     console.log('\nUnits\n=============');
-    const l = StructureElement.Location.create();
+    const l = StructureElement.Location.create(structure);
 
     for (const unit of structure.units) {
         l.unit = unit;
@@ -179,7 +183,8 @@ export function printUnits(structure: Structure) {
 
 export function printSymmetryInfo(model: Model) {
     console.log('\nSymmetry Info\n=============');
-    const { symmetry } = model;
+    const symmetry = ModelSymmetry.Provider.get(model)
+    if (!symmetry) return
     const { size, anglesInRadians } = symmetry.spacegroup.cell;
     console.log(`Spacegroup: ${symmetry.spacegroup.name} size: ${Vec3.toString(size)} angles: ${Vec3.toString(anglesInRadians)}`);
     console.log(`Assembly names: ${symmetry.assemblies.map(a => a.id).join(', ')}`);

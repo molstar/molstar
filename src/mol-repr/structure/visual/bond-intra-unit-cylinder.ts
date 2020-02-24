@@ -25,7 +25,7 @@ import { ignoreBondType, BondCylinderParams, BondIterator } from './util/bond';
 function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
-    const location = StructureElement.Location.create(unit)
+    const location = StructureElement.Location.create(structure, unit)
 
     const elements = unit.elements;
     const bonds = unit.bonds
@@ -135,12 +135,12 @@ function getBondLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
         if (Unit.isAtomic(unit)) {
             return Bond.Loci(structure, [
                 Bond.Location(
-                    unit, unit.bonds.a[groupId] as StructureElement.UnitIndex,
-                    unit, unit.bonds.b[groupId] as StructureElement.UnitIndex
+                    structure, unit, unit.bonds.a[groupId] as StructureElement.UnitIndex,
+                    structure, unit, unit.bonds.b[groupId] as StructureElement.UnitIndex
                 ),
                 Bond.Location(
-                    unit, unit.bonds.b[groupId] as StructureElement.UnitIndex,
-                    unit, unit.bonds.a[groupId] as StructureElement.UnitIndex
+                    structure, unit, unit.bonds.b[groupId] as StructureElement.UnitIndex,
+                    structure, unit, unit.bonds.a[groupId] as StructureElement.UnitIndex
                 )
             ])
         }

@@ -1,26 +1,24 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PsfFile } from '../../mol-io/reader/psf/parser';
-import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
-import { Column } from '../../mol-data/db';
+import { Column, Table } from '../../mol-data/db';
 import { EntityBuilder } from './common/entity';
 import { ComponentBuilder } from './common/component';
-import { CifCategory, CifField } from '../../mol-io/reader/cif';
 import { guessElementSymbolString } from './util';
 import { MoleculeType, getMoleculeType } from '../../mol-model/structure/model/types';
 import { getChainId } from './common/util';
 import { Task } from '../../mol-task';
 import { ModelFormat } from './format';
 import { Topology } from '../../mol-model/structure/topology/topology';
+import { createBasic, BasicSchema } from './basic/schema';
 
-// TODO: shares most of the code with ./gro.ts#getCategories
-function getCategories(atoms: PsfFile['atoms']) {
-    const auth_atom_id = CifField.ofColumn(atoms.atomName)
-    const auth_comp_id = CifField.ofColumn(atoms.residueName)
+function getBasic(atoms: PsfFile['atoms']) {
+    const auth_atom_id = atoms.atomName
+    const auth_comp_id = atoms.residueName
 
     const entityIds = new Array<string>(atoms.count)
     const asymIds = new Array<string>(atoms.count)
@@ -62,57 +60,54 @@ function getCategories(atoms: PsfFile['atoms']) {
         ids[i] = i
     }
 
-    const auth_asym_id = CifField.ofColumn(Column.ofStringArray(asymIds))
+    const auth_asym_id = Column.ofStringArray(asymIds)
 
-    const atom_site: CifCategory.SomeFields<mmCIF_Schema['atom_site']> = {
+    const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
         auth_asym_id,
         auth_atom_id,
         auth_comp_id,
-        auth_seq_id: CifField.ofColumn(atoms.residueId),
-        B_iso_or_equiv: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.float)),
-        Cartn_x: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.float)),
-        Cartn_y: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.float)),
-        Cartn_z: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.float)),
-        group_PDB: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
-        id: CifField.ofColumn(Column.ofIntArray(ids)),
-
-        label_alt_id: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
+        auth_seq_id: atoms.residueId,
+        id: Column.ofIntArray(ids),
 
         label_asym_id: auth_asym_id,
         label_atom_id: auth_atom_id,
         label_comp_id: auth_comp_id,
-        label_seq_id: CifField.ofColumn(Column.ofIntArray(seqIds)),
-        label_entity_id: CifField.ofColumn(Column.ofStringArray(entityIds)),
+        label_seq_id: Column.ofIntArray(seqIds),
+        label_entity_id: Column.ofStringArray(entityIds),
 
-        occupancy: CifField.ofColumn(Column.ofConst(1, atoms.count, Column.Schema.float)),
-        type_symbol: CifField.ofStrings(Column.mapToArray(atoms.atomName, s => guessElementSymbolString(s))),
+        occupancy: Column.ofConst(1, atoms.count, Column.Schema.float),
+        type_symbol: Column.ofStringArray(Column.mapToArray(atoms.atomName, s => guessElementSymbolString(s))),
 
-        pdbx_PDB_ins_code: CifField.ofColumn(Column.Undefined(atoms.count, Column.Schema.str)),
-        pdbx_PDB_model_num: CifField.ofColumn(Column.ofConst('1', atoms.count, Column.Schema.str)),
-    }
+        pdbx_PDB_model_num: Column.ofConst(1, atoms.count, Column.Schema.int),
+    }, atoms.count)
 
-    return {
-        entity: entityBuilder.getEntityCategory(),
-        chem_comp: componentBuilder.getChemCompCategory(),
-        atom_site: CifCategory.ofFields('atom_site', atom_site)
-    }
+    return createBasic({
+        entity: entityBuilder.getEntityTable(),
+        chem_comp: componentBuilder.getChemCompTable(),
+        atom_site
+    })
 }
 
-function psfToMmCif(psf: PsfFile) {
-    const categories = getCategories(psf.atoms)
+//
 
-    return {
-        header: psf.id,
-        categoryNames: Object.keys(categories),
-        categories
-    };
+export { PsfFormat }
+
+type PsfFormat = ModelFormat<PsfFile>
+
+namespace PsfFormat {
+    export function is(x: ModelFormat): x is PsfFormat {
+        return x.kind === 'psf'
+    }
+
+    export function fromPsf(psf: PsfFile): PsfFormat {
+        return { kind: 'psf', name: psf.id, data: psf };
+    }
 }
 
 export function topologyFromPsf(psf: PsfFile): Task<Topology> {
     return Task.create('Parse PSF', async ctx => {
-        const label = psf.id
-        const cif = psfToMmCif(psf);
-        const format = ModelFormat.mmCIF(cif);
+        const format = PsfFormat.fromPsf(psf);
+        const basic = getBasic(psf.atoms)
 
         const { atomIdA, atomIdB } = psf.bonds
 
@@ -130,6 +125,6 @@ export function topologyFromPsf(psf: PsfFile): Task<Topology> {
             order: Column.ofConst(1, psf.bonds.count, Column.Schema.int)
         }
 
-        return Topology.create(label, format, bonds)
+        return Topology.create(psf.id, basic, bonds, format)
     })
 }

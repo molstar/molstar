@@ -401,7 +401,7 @@ function getModels(s: Structure) {
 function getUniqueResidueNames(s: Structure) {
     const prop = StructureProperties.residue.label_comp_id;
     const names = new Set<string>();
-    const loc = StructureElement.Location.create();
+    const loc = StructureElement.Location.create(s);
     for (const unit of s.units) {
         // TODO: support coarse unit?
         if (!Unit.isAtomic(unit)) continue;
@@ -418,7 +418,7 @@ function getUniqueResidueNames(s: Structure) {
 
 function getEntityIndices(structure: Structure): ReadonlyArray<EntityIndex> {
     const { units } = structure;
-    const l = StructureElement.Location.create();
+    const l = StructureElement.Location.create(structure);
     const keys = UniqueArray.create<number, EntityIndex>();
 
     for (const unit of units) {
@@ -871,7 +871,7 @@ namespace Structure {
     }
 
     export class ElementLocationIterator implements Iterator<StructureElement.Location> {
-        private current = StructureElement.Location.create();
+        private current: StructureElement.Location;
         private unitIndex = 0;
         private elements: StructureElement.Set;
         private maxIdx = 0;
@@ -905,6 +905,7 @@ namespace Structure {
         }
 
         constructor(private structure: Structure) {
+            this.current = StructureElement.Location.create(structure);
             this.hasNext = structure.elementCount > 0;
             if (this.hasNext) {
                 this.elements = structure.units[0].elements;

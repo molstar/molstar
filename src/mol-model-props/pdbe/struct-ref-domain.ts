@@ -9,6 +9,7 @@ import { toTable } from '../../mol-io/reader/cif/schema';
 import { CifWriter } from '../../mol-io/writer/cif';
 import { Model, CustomPropertyDescriptor } from '../../mol-model/structure';
 import { PropertyWrapper } from '../common/wrapper';
+import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 export namespace PDBeStructRefDomain {
     export type Property = PropertyWrapper<Table<Schema['pdbe_struct_ref_domain']> | undefined>
@@ -57,8 +58,8 @@ export namespace PDBeStructRefDomain {
     });
 
     function fromCifData(model: Model): Property['data'] {
-        if (model.sourceData.kind !== 'mmCIF') return void 0;
-        const cat = model.sourceData.frame.categories.pdbe_struct_ref_domain;
+        if (!MmcifFormat.is(model.sourceData)) return void 0;
+        const cat = model.sourceData.data.frame.categories.pdbe_struct_ref_domain;
         if (!cat) return void 0;
         return toTable(Schema.pdbe_struct_ref_domain, cat);
     }

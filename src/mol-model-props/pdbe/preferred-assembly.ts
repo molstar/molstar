@@ -8,13 +8,15 @@ import { Column, Table } from '../../mol-data/db';
 import { toTable } from '../../mol-io/reader/cif/schema';
 import { CifWriter } from '../../mol-io/writer/cif';
 import { Model, CustomPropertyDescriptor } from '../../mol-model/structure';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 export namespace PDBePreferredAssembly {
     export type Property = string
 
     export function getFirstFromModel(model: Model): Property {
-        const asm = model.symmetry.assemblies;
-        return asm.length ? asm[0].id : '';
+        const symmetry = ModelSymmetry.Provider.get(model)
+        return symmetry?.assemblies.length ? symmetry.assemblies[0].id : '';
     }
 
     export function get(model: Model): Property {
@@ -46,8 +48,8 @@ export namespace PDBePreferredAssembly {
     });
 
     function fromCifData(model: Model): string | undefined {
-        if (model.sourceData.kind !== 'mmCIF') return void 0;
-        const cat = model.sourceData.frame.categories.pdbe_preferred_assembly;
+        if (!MmcifFormat.is(model.sourceData)) return void 0;
+        const cat = model.sourceData.data.frame.categories.pdbe_preferred_assembly;
         if (!cat) return void 0;
         return toTable(Schema.pdbe_preferred_assembly, cat).assembly_id.value(0) || getFirstFromModel(model);
     }

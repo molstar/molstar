@@ -56,7 +56,7 @@ export class LinearGroupingBuilder {
 
     private singletonSelection(): StructureSelection {
         const builder = this.source.subsetBuilder(true);
-        const loc = StructureElement.Location.create();
+        const loc = StructureElement.Location.create(this.source);
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
             this.builders[i].setSingletonLocation(loc);
             builder.addToUnit(loc.unit.id, loc.element);

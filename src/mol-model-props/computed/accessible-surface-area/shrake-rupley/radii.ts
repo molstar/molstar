@@ -12,7 +12,7 @@ import { VdwRadius } from '../../../../mol-model/structure/model/properties/atom
 import { StructureElement, StructureProperties } from '../../../../mol-model/structure/structure';
 import { getElementMoleculeType } from '../../../../mol-model/structure/util';
 
-const l = StructureElement.Location.create()
+const l = StructureElement.Location.create(void 0)
 
 export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
     const { label_comp_id, key } = StructureProperties.residue
@@ -23,6 +23,7 @@ export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
     let residueIdx = 0
     let serialResidueIdx = -1
 
+    l.structure = structure;
     for (let i = 0, m = 0, il = structure.units.length; i < il; ++i) {
         const unit = structure.units[i]
         const { elements } = unit

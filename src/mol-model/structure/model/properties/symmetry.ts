@@ -10,6 +10,7 @@ import { StructureQuery } from '../../query'
 import { Model } from '../../model'
 import { Spacegroup } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
+import { ModelSymmetry } from '../../../../mol-model-formats/structure/property/symmetry';
 
 /** Determine an atom set and a list of operators that should be applied to that set  */
 export interface OperatorGroup {
@@ -42,7 +43,7 @@ export namespace Assembly {
     }
 }
 
-interface ModelSymmetry {
+interface Symmetry {
     readonly assemblies: ReadonlyArray<Assembly>,
     readonly spacegroup: Spacegroup,
     readonly isNonStandardCrytalFrame: boolean,
@@ -58,13 +59,14 @@ interface ModelSymmetry {
     }
 }
 
-namespace ModelSymmetry {
-    export const Default: ModelSymmetry = { assemblies: [], spacegroup: Spacegroup.ZeroP1, isNonStandardCrytalFrame: false };
+namespace Symmetry {
+    export const Default: Symmetry = { assemblies: [], spacegroup: Spacegroup.ZeroP1, isNonStandardCrytalFrame: false };
 
     export function findAssembly(model: Model, id: string): Assembly | undefined {
         const _id = id.toLocaleLowerCase();
-        return arrayFind(model.symmetry.assemblies, a => a.id.toLowerCase() === _id);
+        const symmetry = ModelSymmetry.Provider.get(model)
+        return symmetry ? arrayFind(symmetry.assemblies, a => a.id.toLowerCase() === _id) : undefined;
     }
 }
 
-export { ModelSymmetry }
+export { Symmetry }

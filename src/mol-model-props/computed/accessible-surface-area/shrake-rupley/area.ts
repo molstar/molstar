@@ -31,10 +31,11 @@ export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyCont
 const aPos = Vec3();
 const bPos = Vec3();
 const testPoint = Vec3();
-const aLoc = StructureElement.Location.create()
-const bLoc = StructureElement.Location.create()
+const aLoc = StructureElement.Location.create(void 0 as any)
+const bLoc = StructureElement.Location.create(void 0 as any)
 
 function setLocation(l: StructureElement.Location, structure: Structure, serialIndex: number) {
+    l.structure = structure;
     l.unit = structure.units[structure.serialMapping.unitIndices[serialIndex]]
     l.element = structure.serialMapping.elementIndices[serialIndex]
     return l
@@ -63,7 +64,7 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
         const neighbors = []; // TODO reuse
         for (let iI = 0; iI < count; ++iI) {
             const bUnit = units[iI]
-            StructureElement.Location.set(bLoc, bUnit, bUnit.elements[indices[iI]])
+            StructureElement.Location.set(bLoc, ctx.structure, bUnit, bUnit.elements[indices[iI]])
             const bI = cumulativeUnitElementCount[unitIndexMap.get(bUnit.id)] + indices[iI]
 
             const radius2 = VdWLookup[atomRadiusType[bI]];

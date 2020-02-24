@@ -81,7 +81,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
     let legend: ScaleLegend | TableLegend | undefined
 
     if (ctx.structure) {
-        const l = StructureElement.Location.create()
+        const l = StructureElement.Location.create(ctx.structure)
         const asymIdSerialMap = getAsymIdSerialMap(ctx.structure.root)
 
         const labelTable = Array.from(asymIdSerialMap.keys())

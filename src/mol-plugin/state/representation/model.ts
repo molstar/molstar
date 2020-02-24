@@ -11,13 +11,16 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../mol-task';
 import { PluginContext } from '../../context';
-import { Assembly, ModelSymmetry } from '../../../mol-model/structure/model/properties/symmetry';
+import { Assembly, Symmetry } from '../../../mol-model/structure/model/properties/symmetry';
 import { PluginStateObject as SO } from '../objects';
+import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 
 export namespace ModelStructureRepresentation {
     export function getParams(model?: Model, defaultValue?: 'deposited' | 'assembly' | 'symmetry' | 'symmetry-mates') {
-        const assemblyIds = model ? model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]) : [];
-        const showSymm = !model ? true : !SpacegroupCell.isZero(model.symmetry.spacegroup.cell);
+        const symmetry = model && ModelSymmetry.Provider.get(model)
+
+        const assemblyIds = symmetry ? symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]) : [];
+        const showSymm = !symmetry ? true : !SpacegroupCell.isZero(symmetry.spacegroup.cell);
 
         const modes = {
             deposited: PD.EmptyGroup(),
@@ -58,17 +61,19 @@ export namespace ModelStructureRepresentation {
     async function buildAssembly(plugin: PluginContext, ctx: RuntimeContext, model: Model, id?: string) {
         let asm: Assembly | undefined = void 0;
 
+        const symmetry = ModelSymmetry.Provider.get(model)
+
         // if no id is specified, use the 1st assembly.
-        if (!id && model.symmetry.assemblies.length !== 0) {
-            id = model.symmetry.assemblies[0].id;
+        if (!id && symmetry && symmetry.assemblies.length !== 0) {
+            id = symmetry.assemblies[0].id;
         }
 
-        if (model.symmetry.assemblies.length === 0) {
+        if (!symmetry || symmetry.assemblies.length === 0) {
             if (id !== 'deposited') {
                 plugin.log.warn(`Model '${model.entryId}' has no assembly, returning deposited structure.`);
             }
         } else {
-            asm = ModelSymmetry.findAssembly(model, id || '');
+            asm = Symmetry.findAssembly(model, id || '');
             if (!asm) {
                 plugin.log.warn(`Model '${model.entryId}' has no assembly called '${id}', returning deposited structure.`);
             }

@@ -48,7 +48,7 @@ function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure:
     }
 
     let i = 0
-    const polymerGapIt = PolymerGapIterator(unit)
+    const polymerGapIt = PolymerGapIterator(structure, unit)
     while (polymerGapIt.hasNext) {
         const { centerA, centerB } = polymerGapIt.move()
         if (centerA.element === centerB.element) {

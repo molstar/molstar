@@ -22,7 +22,7 @@ export function defaultBondTest(ctx: QueryContext) {
 export function atomicSequence(): StructureQuery {
     return function query_atomicSequence(ctx) {
         const { inputStructure } = ctx;
-        const l = StructureElement.Location.create();
+        const l = StructureElement.Location.create(inputStructure);
 
         const units: Unit[] = [];
         for (const unit of inputStructure.units) {
@@ -50,7 +50,7 @@ export function atomicSequence(): StructureQuery {
 export function water(): StructureQuery {
     return function query_water(ctx) {
         const { inputStructure } = ctx;
-        const l = StructureElement.Location.create();
+        const l = StructureElement.Location.create(inputStructure);
 
         const units: Unit[] = [];
         for (const unit of inputStructure.units) {
@@ -69,7 +69,7 @@ export function water(): StructureQuery {
 export function atomicHet(): StructureQuery {
     return function query_atomicHet(ctx) {
         const { inputStructure } = ctx;
-        const l = StructureElement.Location.create();
+        const l = StructureElement.Location.create(inputStructure);
 
         const units: Unit[] = [];
         for (const unit of inputStructure.units) {

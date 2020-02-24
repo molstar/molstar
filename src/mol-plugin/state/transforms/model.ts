@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -32,6 +32,7 @@ import { parseDcd } from '../../../mol-io/reader/dcd/parser';
 import { coordinatesFromDcd } from '../../../mol-model-formats/structure/dcd';
 import { topologyFromPsf } from '../../../mol-model-formats/structure/psf';
 import { deepEqual } from '../../../mol-util';
+import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 
 export { CoordinatesFromDcd };
 export { TopologyFromPsf };
@@ -300,8 +301,8 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
         if (!a) {
             return { id: PD.Optional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. Value \'deposited\' can be used to specify deposited asymmetric unit.' })) };
         }
-        const model = a.data;
-        const ids = model.symmetry.assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
+        const assemblies = ModelSymmetry.Provider.get(a.data)?.assemblies || []
+        const ids = assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
         ids.push(['deposited', 'Deposited']);
         return {
             id: PD.Optional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' }))
@@ -713,12 +714,13 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
         });
     }
 });
-async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: PD.Values<PD.Params>) {
+async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomModelProperties['createDefaultParams']>) {
     const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch }
-    for (const name of Object.keys(params)) {
+    const { autoAttach, properties } = params
+    for (const name of Object.keys(properties)) {
         const property = ctx.customModelProperties.get(name)
         const props = params[name as keyof typeof params]
-        if (props.autoAttach) {
+        if (autoAttach.includes(name)) {
             try {
                 await property.attach(propertyCtx, model, props)
             } catch (e) {
@@ -747,12 +749,13 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
         });
     }
 });
-async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: PD.Values<PD.Params>) {
+async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomStructureProperties['createDefaultParams']>) {
     const propertyCtx = { runtime: taskCtx, fetch: ctx.fetch }
-    for (const name of Object.keys(params)) {
+    const { autoAttach, properties } = params
+    for (const name of Object.keys(properties)) {
         const property = ctx.customStructureProperties.get(name)
         const props = params[name as keyof typeof params]
-        if (props.autoAttach) {
+        if (autoAttach.includes(name)) {
             try {
                 await property.attach(propertyCtx, structure, props)
             } catch (e) {

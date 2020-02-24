@@ -19,16 +19,28 @@ export * from './bonds/inter-compute'
 namespace Bond {
     export interface Location<U extends Unit = Unit> {
         readonly kind: 'bond-location',
+        
+        aStructure: Structure,
         aUnit: U,
         /** Index into aUnit.elements */
         aIndex: StructureElement.UnitIndex,
+
+        bStructure: Structure,
         bUnit: U,
         /** Index into bUnit.elements */
         bIndex: StructureElement.UnitIndex,
     }
 
-    export function Location(aUnit?: Unit, aIndex?: StructureElement.UnitIndex, bUnit?: Unit, bIndex?: StructureElement.UnitIndex): Location {
-        return { kind: 'bond-location', aUnit: aUnit as any, aIndex: aIndex as any, bUnit: bUnit as any, bIndex: bIndex as any };
+    export function Location(aStructure?: Structure, aUnit?: Unit, aIndex?: StructureElement.UnitIndex, bStructure?: Structure, bUnit?: Unit, bIndex?: StructureElement.UnitIndex): Location {
+        return {
+            kind: 'bond-location',
+            aStructure: aStructure as any,
+            aUnit: aUnit as any,
+            aIndex: aIndex as any,
+            bStructure: bStructure as any,
+            bUnit: bUnit as any,
+            bIndex: bIndex as any
+        };
     }
 
     export function isLocation(x: any): x is Location {
@@ -37,6 +49,7 @@ namespace Bond {
 
     export function areLocationsEqual(locA: Location, locB: Location) {
         return (
+            locA.aStructure.label === locB.aStructure.label && locA.bStructure.label === locB.bStructure.label &&
             locA.aIndex === locB.aIndex && locA.bIndex === locB.bIndex &&
             locA.aUnit.id === locB.aUnit.id && locA.bUnit.id === locB.bUnit.id
         )
@@ -86,7 +99,7 @@ namespace Bond {
             const indexB = SortedArray.indexOf(unitB.elements, elementB) as StructureElement.UnitIndex | -1
             if (indexB === -1) return
 
-            bonds.push(Location(unitA, indexA, unitB, indexB))
+            bonds.push(Location(loci.structure, unitA, indexA, loci.structure, unitB, indexB))
         });
 
         return Loci(structure, bonds);

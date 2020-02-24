@@ -18,10 +18,11 @@ import { Theme } from '../../mol-theme/theme';
 import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, EmptyLoci, isEmptyLoci, isEveryLoci, isDataLoci } from '../../mol-model/loci';
-import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
+import { MarkerAction, MarkerActions, applyMarkerAction } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
 import { Mat4, EPSILON } from '../../mol-math/linear-algebra';
+import { Interval } from '../../mol-data/int';
 
 export const UnitsParams = {
     ...StructureParams,
@@ -88,6 +89,13 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                         if (promise) await promise
                         visuals.set(group.hashCode, { visual, group })
                         oldVisuals.delete(group.hashCode)
+
+                        // Remove highlight 
+                        // TODO: remove selection too??
+                        if (visual.renderObject) {
+                            const arr = visual.renderObject.values.tMarker.ref.value.array;
+                            applyMarkerAction(arr, Interval.ofBounds(0, arr.length), MarkerAction.RemoveHighlight);
+                        }
                     } else {
                         // console.log(label, 'not found visualGroup to reuse, creating new')
                         // newGroups.push(group)
@@ -223,9 +231,13 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         if (transparency !== undefined && !Transparency.areEqual(transparency, _state.transparency)) {
             newState.transparency = transparency
         }
-        if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) { newState.transform = transform
+        if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
+            newState.transform = transform
         }
-        if (unitTransforms !== _state.unitTransforms) newState.unitTransforms = unitTransforms
+        if (unitTransforms !== _state.unitTransforms || unitTransforms?.version !== state.unitTransformsVersion) {
+            newState.unitTransforms = unitTransforms
+            _state.unitTransformsVersion = unitTransforms ? unitTransforms?.version : -1
+        }
         if (syncManually !== _state.syncManually) newState.syncManually = syncManually
         if (markerActions !== _state.markerActions) newState.markerActions = markerActions
 

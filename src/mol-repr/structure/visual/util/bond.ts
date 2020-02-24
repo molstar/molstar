@@ -25,11 +25,11 @@ export function ignoreBondType(include: BondType.Flag, exclude: BondType.Flag, f
 
 export namespace BondIterator {
     export function fromGroup(structureGroup: StructureGroup): LocationIterator {
-        const { group } = structureGroup
+        const { group, structure } = structureGroup
         const unit = group.units[0]
         const groupCount = Unit.isAtomic(unit) ? unit.bonds.edgeCount * 2 : 0
         const instanceCount = group.units.length
-        const location = StructureElement.Location.create()
+        const location = StructureElement.Location.create(structure)
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
@@ -42,7 +42,7 @@ export namespace BondIterator {
     export function fromStructure(structure: Structure): LocationIterator {
         const groupCount = structure.interUnitBonds.edgeCount
         const instanceCount = 1
-        const location = StructureElement.Location.create()
+        const location = StructureElement.Location.create(structure)
         const getLocation = (groupIndex: number) => {
             const bond = structure.interUnitBonds.edges[groupIndex]
             location.unit = bond.unitA

@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { BehaviorSubject, Subscription } from 'rxjs';
@@ -37,7 +38,7 @@ import { isDebugMode } from '../mol-util/debug';
 
 export const Canvas3DParams = {
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
-    cameraFog: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
+    cameraFog: PD.Numeric(50, { min: 0, max: 100, step: 1 }),
     cameraClipFar: PD.Boolean(true),
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     transparentBackground: PD.Boolean(false),
@@ -56,30 +57,33 @@ export { Canvas3D }
 interface Canvas3D {
     readonly webgl: WebGLContext,
 
-    add: (repr: Representation.Any) => Promise<void>
-    remove: (repr: Representation.Any) => Promise<void>
-    update: (repr?: Representation.Any, keepBoundingSphere?: boolean) => void
-    clear: () => void
+    add(repr: Representation.Any): void
+    remove(repr: Representation.Any): void
+    /**
+     * This function must be called if animate() is not set up so that add/remove actions take place.
+     */
+    commit(isSynchronous?: boolean): void
+    update(repr?: Representation.Any, keepBoundingSphere?: boolean): void
+    clear(): void
 
-    // draw: (force?: boolean) => void
-    requestDraw: (force?: boolean) => void
-    animate: () => void
-    identify: (x: number, y: number) => PickingId | undefined
-    mark: (loci: Representation.Loci, action: MarkerAction) => void
-    getLoci: (pickingId: PickingId) => Representation.Loci
+    requestDraw(force?: boolean): void
+    animate(): void
+    identify(x: number, y: number): PickingId | undefined
+    mark(loci: Representation.Loci, action: MarkerAction): void
+    getLoci(pickingId: PickingId): Representation.Loci
 
     readonly didDraw: BehaviorSubject<now.Timestamp>
     readonly reprCount: BehaviorSubject<number>
 
-    handleResize: () => void
+    handleResize(): void
     /** Focuses camera on scene's bounding sphere, centered and zoomed. */
-    resetCamera: () => void
+    requestCameraReset(durationMs?: number): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
-    downloadScreenshot: () => void
-    getPixelData: (variant: GraphicsRenderVariant) => PixelData
-    setProps: (props: Partial<Canvas3DProps>) => void
-    getImagePass: () => ImagePass
+    downloadScreenshot(): void
+    getPixelData(variant: GraphicsRenderVariant): PixelData
+    setProps(props: Partial<Canvas3DProps>): void
+    getImagePass(): ImagePass
 
     /** Returns a copy of the current Canvas3D instance props */
     readonly props: Readonly<Canvas3DProps>
@@ -87,7 +91,7 @@ interface Canvas3D {
     readonly stats: RendererStats
     readonly interaction: Canvas3dInteractionHelper['events']
 
-    dispose: () => void
+    dispose(): void
 }
 
 const requestAnimationFrame = typeof window !== 'undefined' ? window.requestAnimationFrame : (f: (time: number) => void) => setImmediate(()=>f(Date.now()))
@@ -186,6 +190,7 @@ namespace Canvas3D {
 
         let drawPending = false
         let cameraResetRequested = false
+        let nextCameraResetDuration: number | undefined = void 0
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -220,7 +225,7 @@ namespace Canvas3D {
         }
 
         function render(force: boolean) {
-            if (scene.isCommiting || webgl.isContextLost) return false
+            if (webgl.isContextLost) return false
 
             let didRender = false
             controls.update(currentTime)
@@ -262,7 +267,9 @@ namespace Canvas3D {
 
         function animate() {
             currentTime = now();
+            commit();
             camera.transition.tick(currentTime);
+
             draw(false);
             if (!camera.transition.inTransition && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
@@ -274,22 +281,35 @@ namespace Canvas3D {
             return webgl.isContextLost ? undefined : pickPass.identify(x, y)
         }
 
-        async function commit(renderObjects?: readonly GraphicsRenderObject[]) {
-            scene.update(renderObjects, false)
+        function commit(isSynchronous: boolean = false) {
+            const allCommited = commitScene(isSynchronous);
+            // Only reset the camera after the full scene has been commited.
+            if (allCommited) resolveCameraReset();
+        }
 
-            return runTask(scene.commit()).then(() => {
-                if (cameraResetRequested && !scene.isCommiting) {
-                    const { center, radius } = scene.boundingSphere
-                    camera.focus(center, radius, radius)
-                    cameraResetRequested = false
-                }
-                if (debugHelper.isEnabled) debugHelper.update()
-                requestDraw(true)
-                reprCount.next(reprRenderObjects.size)
-            })
+        function resolveCameraReset() {
+            if (!cameraResetRequested) return;
+            const { center, radius } = scene.boundingSphere;
+            const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration
+            camera.focus(center, radius, radius, duration);
+            nextCameraResetDuration = void 0;
+            cameraResetRequested = false;
+        }
+
+        const sceneCommitTimeoutMs = 250;
+        function commitScene(isSynchronous: boolean) {
+            if (!scene.needsCommit) return true;
+
+            if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
+
+            if (debugHelper.isEnabled) debugHelper.update();
+            reprCount.next(reprRenderObjects.size);
+            return true;
         }
 
         function add(repr: Representation.Any) {
+            registerAutoUpdate(repr);
+
             const oldRO = reprRenderObjects.get(repr)
             const newRO = new Set<GraphicsRenderObject>()
             repr.renderObjects.forEach(o => newRO.add(o))
@@ -303,7 +323,35 @@ namespace Canvas3D {
                 repr.renderObjects.forEach(o => scene.add(o))
             }
             reprRenderObjects.set(repr, newRO)
-            return commit(repr.renderObjects)
+
+            scene.update(repr.renderObjects, false)
+        }
+
+        function remove(repr: Representation.Any) {
+            unregisterAutoUpdate(repr);
+
+            const renderObjects = reprRenderObjects.get(repr)
+            if (renderObjects) {
+                renderObjects.forEach(o => scene.remove(o))
+                reprRenderObjects.delete(repr)
+                scene.update(repr.renderObjects, false, true)
+            }
+        }
+
+        function registerAutoUpdate(repr: Representation.Any) {
+            if (reprUpdatedSubscriptions.has(repr)) return;
+
+            reprUpdatedSubscriptions.set(repr, repr.updated.subscribe(_ => {
+                if (!repr.state.syncManually) add(repr);
+            }))
+        }
+
+        function unregisterAutoUpdate(repr: Representation.Any) {
+            const updatedSubscription = reprUpdatedSubscriptions.get(repr);
+            if (updatedSubscription) {
+                updatedSubscription.unsubscribe();
+                reprUpdatedSubscriptions.delete(repr);
+            }
         }
 
         handleResize()
@@ -311,25 +359,9 @@ namespace Canvas3D {
         return {
             webgl,
 
-            add: (repr: Representation.Any) => {
-                reprUpdatedSubscriptions.set(repr, repr.updated.subscribe(_ => {
-                    if (!repr.state.syncManually) add(repr)
-                }))
-                return add(repr)
-            },
-            remove: (repr: Representation.Any) => {
-                const updatedSubscription = reprUpdatedSubscriptions.get(repr)
-                if (updatedSubscription) {
-                    updatedSubscription.unsubscribe()
-                }
-                const renderObjects = reprRenderObjects.get(repr)
-                if (renderObjects) {
-                    renderObjects.forEach(o => scene.remove(o))
-                    reprRenderObjects.delete(repr)
-                    return commit()
-                }
-                return Promise.resolve()
-            },
+            add,
+            remove,
+            commit,
             update: (repr, keepSphere) => {
                 if (repr) {
                     if (!reprRenderObjects.has(repr)) return;
@@ -356,14 +388,9 @@ namespace Canvas3D {
             getLoci,
 
             handleResize,
-            resetCamera: () => {
-                if (scene.isCommiting) {
-                    cameraResetRequested = true
-                } else {
-                    const { center, radius } = scene.boundingSphere
-                    camera.focus(center, radius, radius, p.cameraResetDurationMs)
-                    requestDraw(true);
-                }
+            requestCameraReset: (durationMs) => {
+                nextCameraResetDuration = durationMs;
+                cameraResetRequested = true;
             },
             camera,
             boundingSphere: scene.boundingSphere,

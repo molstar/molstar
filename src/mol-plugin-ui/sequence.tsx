@@ -39,13 +39,13 @@ function splitModelEntityId(modelEntityId: string) {
 
 function getSequenceWrapper(state: SequenceViewState, structureSelection: StructureElementSelectionManager): SequenceWrapper.Any | string {
     const { structure, modelEntityId, chainGroupId, operatorKey } = state
-    const l = StructureElement.Location.create()
+    const l = StructureElement.Location.create(structure)
     const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
 
     const units: Unit[] = []
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, unit, unit.elements[0])
+        StructureElement.Location.set(l, structure, unit, unit.elements[0])
         if (structure.getModelIndex(unit.model) !== modelIdx) continue
         if (SP.entity.id(l) !== entityId) continue
         if (unit.chainGroupId !== chainGroupId) continue
@@ -60,7 +60,7 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
 
         let sw: SequenceWrapper<any>
         if (unit.polymerElements.length) {
-            const l = StructureElement.Location.create(unit, unit.elements[0])
+            const l = StructureElement.Location.create(structure, unit, unit.elements[0])
             const entitySeq = unit.model.sequence.byEntityKey[SP.entity.key(l)]
             // check if entity sequence is available
             if (entitySeq && entitySeq.sequence.length <= MaxDisplaySequenceLength) {
@@ -92,11 +92,11 @@ function getSequenceWrapper(state: SequenceViewState, structureSelection: Struct
 
 function getModelEntityOptions(structure: Structure) {
     const options: [string, string][] = []
-    const l = StructureElement.Location.create()
+    const l = StructureElement.Location.create(structure)
     const seen = new Set<string>()
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, unit, unit.elements[0])
+        StructureElement.Location.set(l, structure, unit, unit.elements[0])
         const id = SP.entity.id(l)
         const modelIdx = structure.getModelIndex(unit.model)
         const key = `${modelIdx}|${id}`
@@ -121,12 +121,12 @@ function getModelEntityOptions(structure: Structure) {
 
 function getChainOptions(structure: Structure, modelEntityId: string) {
     const options: [number, string][] = []
-    const l = StructureElement.Location.create()
+    const l = StructureElement.Location.create(structure)
     const seen = new Set<number>()
     const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, unit, unit.elements[0])
+        StructureElement.Location.set(l, structure, unit, unit.elements[0])
         if (structure.getModelIndex(unit.model) !== modelIdx) continue
         if (SP.entity.id(l) !== entityId) continue
 
@@ -147,12 +147,12 @@ function getChainOptions(structure: Structure, modelEntityId: string) {
 
 function getOperatorOptions(structure: Structure, modelEntityId: string, chainGroupId: number) {
     const options: [string, string][] = []
-    const l = StructureElement.Location.create()
+    const l = StructureElement.Location.create(structure)
     const seen = new Set<string>()
     const [ modelIdx, entityId ] = splitModelEntityId(modelEntityId)
 
     for (const unit of structure.units) {
-        StructureElement.Location.set(l, unit, unit.elements[0])
+        StructureElement.Location.set(l, structure, unit, unit.elements[0])
         if (structure.getModelIndex(unit.model) !== modelIdx) continue
         if (SP.entity.id(l) !== entityId) continue
         if (unit.chainGroupId !== chainGroupId) continue

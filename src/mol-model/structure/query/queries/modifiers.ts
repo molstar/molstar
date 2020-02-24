@@ -94,6 +94,7 @@ function getIncludeSurroundingsWithRadius(ctx: QueryContext, source: Structure, 
     const { elementRadius, elementRadiusClosure, sourceMaxRadius, radius } = params;
 
     ctx.pushCurrentElement();
+    ctx.element.structure = structure;
     for (const unit of structure.units) {
         ctx.element.unit = unit;
         const { x, y, z } = unit.conformation;
@@ -115,6 +116,7 @@ function getIncludeSurroundingsWithRadius(ctx: QueryContext, source: Structure, 
 
 function createElementRadiusFn(ctx: QueryContext, eRadius: QueryFn<number>): StructureElement.Property<number> {
     return e => {
+        ctx.element.structure = e.structure;
         ctx.element.unit = e.unit;
         ctx.element.element = e.element;
         return eRadius(ctx);
@@ -123,6 +125,7 @@ function createElementRadiusFn(ctx: QueryContext, eRadius: QueryFn<number>): Str
 
 function findStructureRadius(ctx: QueryContext, eRadius: QueryFn<number>) {
     let r = 0;
+    ctx.element.structure = ctx.inputStructure;
     for (const unit of ctx.inputStructure.units) {
         ctx.element.unit = unit;
         const elements = unit.elements;
@@ -252,6 +255,7 @@ export function expandProperty(query: StructureQuery, property: QueryFn): Struct
         const builders: StructureSubsetBuilder[] = [];
         ctx.pushCurrentElement();
         StructureSelection.forEach(src, (s, sI) => {
+            ctx.element.structure = s;
             for (const unit of s.units) {
                 ctx.element.unit = unit;
                 const elements = unit.elements;
@@ -272,6 +276,7 @@ export function expandProperty(query: StructureQuery, property: QueryFn): Struct
             if (sI % 10 === 0) ctx.throwIfTimedOut();
         });
 
+        ctx.element.structure = ctx.inputStructure;
         for (const unit of ctx.inputStructure.units) {
             ctx.element.unit = unit;
             const elements = unit.elements;
@@ -354,6 +359,8 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
 
         const inputUnitA = inputStructure.unitMap.get(unit.id) as Unit.Atomic;
         const { offset: intraBondOffset, b: intraBondB, edgeProps: { flags, order } } = inputUnitA.bonds;
+
+        atomicBond.setStructure(inputStructure);
 
         // Process intra unit bonds
         atomicBond.a.unit = inputUnitA;

@@ -67,11 +67,28 @@ export namespace SetUtils {
         return flag;
     }
 
+    export function intersectionSize<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): number {
+        let count = 0
+        setB.forEach(elem => {
+            if (setA.has(elem)) count += 1;
+        })
+        return count;
+    }
+
     /** Create set containing elements of set a that are not in set b. */
     export function difference<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): Set<T> {
         const difference = new Set(setA);
         setB.forEach(elem => difference.delete(elem))
         return difference;
+    }
+
+    /** Number of elements that are in set a but not in set b. */
+    export function differenceSize<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): number {
+        let count = setA.size;
+        setA.forEach(elem => {
+            if (setB.has(elem)) count -= 1
+        })
+        return count;
     }
 
     /** Test if set a and b contain the same elements. */

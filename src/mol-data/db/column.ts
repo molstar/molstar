@@ -37,7 +37,7 @@ namespace Column {
         export type Coordinate = { '@type': 'coord', T: number } & Base<'float'>
 
         export type Tensor = { '@type': 'tensor', T: Tensors.Data, space: Tensors.Space, baseType: Int | Float } & Base<'tensor'>
-        export type Aliased<T> = { '@type': 'aliased', T: T } & Base<'str' | 'int'>
+        export type Aliased<T> = { '@type': 'aliased', T: T } & Base<T extends string ? 'str' : 'int'>
         export type List<T extends number|string> = { '@type': 'list', T: T[], separator: string, itemParse: (x: string) => T } & Base<'list'>
 
         export const str: Str = { '@type': 'str', T: '', valueType: 'str' };
@@ -135,6 +135,14 @@ namespace Column {
 
     export function ofStringArray(array: ArrayLike<string>) {
         return arrayColumn({ array, schema: Schema.str });
+    }
+
+    export function ofStringAliasArray<T extends string>(array: ArrayLike<T>) {
+        return arrayColumn<Schema.Aliased<T>>({ array, schema: Schema.Aliased(Schema.str) });
+    }
+
+    export function ofStringListArray<T extends string>(array: ArrayLike<T[]>, separator = ',') {
+        return arrayColumn<Schema.List<T>>({ array, schema: Schema.List<T>(separator, x => x as T) });
     }
 
     export function ofIntTokens(tokens: Tokens) {

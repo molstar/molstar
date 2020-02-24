@@ -9,6 +9,7 @@ import { BuiltInStructureRepresentationsName } from '../../mol-repr/structure/re
 import { BuiltInColorThemeName } from '../../mol-theme/color';
 import { AminoAcidNames } from '../../mol-model/structure/model/types';
 import { PluginContext } from '../../mol-plugin/context';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 export interface ModelInfo {
     hetResidues: { name: string, indices: ResidueIndex[] }[],
@@ -72,10 +73,11 @@ export namespace ModelInfo {
         }
 
         const preferredAssemblyId = await pref;
+        const symmetry = ModelSymmetry.Provider.get(model)
 
         return {
             hetResidues: hetResidues,
-            assemblies: model.symmetry.assemblies.map(a => ({ id: a.id, details: a.details, isPreferred: a.id === preferredAssemblyId })),
+            assemblies: symmetry ? symmetry.assemblies.map(a => ({ id: a.id, details: a.details, isPreferred: a.id === preferredAssemblyId })) : [],
             preferredAssemblyId
         };
     }

@@ -10,10 +10,11 @@ import { EquivalenceClasses } from '../../../mol-data/util';
 import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext, Task } from '../../../mol-task';
-import { ModelSymmetry, Model } from '../model';
+import { Symmetry, Model } from '../model';
 import { QueryContext, StructureSelection } from '../query';
 import Structure from './structure';
 import Unit from './unit';
+import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 
 namespace StructureSymmetry {
     export function buildAssembly(structure: Structure, asmName: string) {
@@ -21,7 +22,7 @@ namespace StructureSymmetry {
             const models = structure.models;
             if (models.length !== 1) throw new Error('Can only build assemblies from structures based on 1 model.');
 
-            const assembly = ModelSymmetry.findAssembly(models[0], asmName);
+            const assembly = Symmetry.findAssembly(models[0], asmName);
             if (!assembly) throw new Error(`Assembly '${asmName}' is not defined.`);
 
             const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { id: assembly.id, operList: [] })
@@ -95,7 +96,7 @@ namespace StructureSymmetry {
     }
 }
 
-function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3, modelCenter: Vec3) {
+function getOperators(symmetry: Symmetry, ijkMin: Vec3, ijkMax: Vec3, modelCenter: Vec3) {
     const { spacegroup, ncsOperators } = symmetry;
     const ncsCount = (ncsOperators && ncsOperators.length) || 0
     const operators: SymmetryOperator[] = [];
@@ -135,7 +136,7 @@ function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3, model
     return operators;
 }
 
-function getOperatorsCached333(symmetry: ModelSymmetry, ref: Vec3) {
+function getOperatorsCached333(symmetry: Symmetry, ref: Vec3) {
     if (symmetry._operators_333 && Vec3.equals(ref, symmetry._operators_333.ref)) {
         return symmetry._operators_333.operators;
     }
@@ -161,7 +162,10 @@ async function _buildNCS(ctx: RuntimeContext, structure: Structure) {
     const models = structure.models;
     if (models.length !== 1) throw new Error('Can only build NCS from structures based on 1 model.');
 
-    const operators = models[0].symmetry.ncsOperators;
+    const symmetry = ModelSymmetry.Provider.get(models[0])
+    if (!symmetry) return structure
+
+    const operators = symmetry.ncsOperators;
     if (!operators || !operators.length) return structure;
     return assembleOperators(structure, operators);
 }
@@ -170,11 +174,14 @@ async function findSymmetryRange(ctx: RuntimeContext, structure: Structure, ijkM
     const models = structure.models;
     if (models.length !== 1) throw new Error('Can only build symmetries from structures based on 1 model.');
 
-    const { spacegroup } = models[0].symmetry;
+    const symmetry = ModelSymmetry.Provider.get(models[0])
+    if (!symmetry) return structure
+
+    const { spacegroup } = symmetry;
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 
     const modelCenter = Model.getCenter(models[0])
-    const operators = getOperators(models[0].symmetry, ijkMin, ijkMax, modelCenter);
+    const operators = getOperators(symmetry, ijkMin, ijkMax, modelCenter);
     return assembleOperators(structure, operators);
 }
 
@@ -182,7 +189,9 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
     const models = structure.models;
     if (models.length !== 1) throw new Error('Can only build symmetries from structures based on 1 model.');
 
-    const symmetry = models[0].symmetry;
+    const symmetry = ModelSymmetry.Provider.get(models[0])
+    if (!symmetry) return structure
+
     const { spacegroup } = symmetry;
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 

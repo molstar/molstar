@@ -119,36 +119,35 @@ export interface DataFormatProvider<D extends PluginStateObject.Data.Binary | Pl
 
 //
 
-export const OpenFile = StateAction.build({
-    display: { name: 'Open File', description: 'Load a file and optionally create its default visuals' },
+export const OpenFiles = StateAction.build({
+    display: { name: 'Open Files', description: 'Load one or more files and optionally create default visuals' },
     from: PluginStateObject.Root,
     params: (a, ctx: PluginContext) => {
         const { extensions, options } = ctx.dataFormat.registry
         return {
-            file: PD.File({ accept: Array.from(extensions.values()).map(e => `.${e}`).join(',') + ',.gz,.zip' }),
+            files: PD.FileList({ accept: Array.from(extensions.values()).map(e => `.${e}`).join(',') + ',.gz,.zip', multiple: true }),
             format: PD.Select('auto', options),
             visuals: PD.Boolean(true, { description: 'Add default visuals' }),
         }
     }
-})(({ params, state }, ctx: PluginContext) => Task.create('Open File', async taskCtx => {
-    const info = getFileInfo(params.file)
-    const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: ctx.dataFormat.registry.binaryExtensions.has(info.ext) });
-    const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
-
-    // Alternative for more complex states where the builder is not a simple StateBuilder.To<>:
-    /*
-    const dataRef = dataTree.ref;
-    await state.updateTree(dataTree).runInContext(taskCtx);
-    const dataCell = state.select(dataRef)[0];
-    */
-
-    // const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
-
-    const provider = params.format === 'auto' ? ctx.dataFormat.registry.auto(info, dataStateObject) : ctx.dataFormat.registry.get(params.format)
-    const b = state.build().to(data.ref);
-    const options = { visuals: params.visuals }
-    // need to await the 2nd update the so that the enclosing Task finishes after the update is done.
-    await provider.getDefaultBuilder(ctx, b, options, state).runInContext(taskCtx)
+})(({ params, state }, ctx: PluginContext) => Task.create('Open Files', async taskCtx => {
+    for (let i = 0, il = params.files.length; i < il; ++i) {
+        try {
+            const file = params.files[i]
+            const info = getFileInfo(file)
+            const isBinary = ctx.dataFormat.registry.binaryExtensions.has(info.ext)
+            const data = state.build().toRoot().apply(StateTransforms.Data.ReadFile, { file, isBinary });
+            const dataStateObject = await state.updateTree(data).runInContext(taskCtx);
+            const provider = params.format === 'auto'
+                ? ctx.dataFormat.registry.auto(info, dataStateObject)
+                : ctx.dataFormat.registry.get(params.format)
+            const b = state.build().to(data.ref);
+            // need to await so that the enclosing Task finishes after the update is done.
+            await provider.getDefaultBuilder(ctx, b, { visuals: params.visuals }, state).runInContext(taskCtx)
+        } catch (e) {
+            ctx.log.error(e)
+        }
+    }
 }));
 
 //

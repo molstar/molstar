@@ -33,7 +33,7 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
 }
 
 const tmpRef = Vec3()
-const tmpLoc = StructureElement.Location.create()
+const tmpLoc = StructureElement.Location.create(void 0)
 
 function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondParams>, mesh?: Mesh) {
     const bonds = structure.interUnitBonds
@@ -90,6 +90,7 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
         },
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex]
+            tmpLoc.structure = structure
             tmpLoc.unit = b.unitA
             tmpLoc.element = b.unitA.elements[b.indexA]
             const sizeA = theme.size.size(tmpLoc)
@@ -142,12 +143,12 @@ function getBondLoci(pickingId: PickingId, structure: Structure, id: number) {
         const bond = structure.interUnitBonds.edges[groupId]
         return Bond.Loci(structure, [
             Bond.Location(
-                bond.unitA, bond.indexA as StructureElement.UnitIndex,
-                bond.unitB, bond.indexB as StructureElement.UnitIndex
+                structure, bond.unitA, bond.indexA as StructureElement.UnitIndex,
+                structure, bond.unitB, bond.indexB as StructureElement.UnitIndex
             ),
             Bond.Location(
-                bond.unitB, bond.indexB as StructureElement.UnitIndex,
-                bond.unitA, bond.indexA as StructureElement.UnitIndex
+                structure, bond.unitB, bond.indexB as StructureElement.UnitIndex,
+                structure, bond.unitA, bond.indexA as StructureElement.UnitIndex
             )
         ])
     }

@@ -63,7 +63,7 @@ class BasicWrapper {
 
         return parsed
             .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
-            .apply(StateTransforms.Model.CustomModelProperties, { properties: [StripedResidues.propertyProvider.descriptor.name] }, { ref: 'props', state: { isGhost: false } })
+            .apply(StateTransforms.Model.CustomModelProperties, { autoAttach: [StripedResidues.propertyProvider.descriptor.name], properties: {} }, { ref: 'props', state: { isGhost: false } })
             .apply(StateTransforms.Model.StructureAssemblyFromModel, { id: assemblyId || 'deposited' }, { ref: 'asm' });
     }
 

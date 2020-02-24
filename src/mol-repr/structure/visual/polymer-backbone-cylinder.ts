@@ -42,7 +42,7 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
     const pB = Vec3.zero()
     const cylinderProps: CylinderProps = { radiusTop: 1, radiusBottom: 1, radialSegments }
 
-    const polymerBackboneIt = PolymerBackboneIterator(unit)
+    const polymerBackboneIt = PolymerBackboneIterator(structure, unit)
     while (polymerBackboneIt.hasNext) {
         const { centerA, centerB } = polymerBackboneIt.move()
         pos(centerA.element, pA)

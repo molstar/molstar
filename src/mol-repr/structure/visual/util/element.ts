@@ -38,7 +38,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
 
     const v = Vec3.zero()
     const pos = unit.conformation.invariantPosition
-    const l = StructureElement.Location.create()
+    const l = StructureElement.Location.create(structure)
     l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {
@@ -159,10 +159,10 @@ export function getSerialElementLoci(pickingId: PickingId, structure: Structure,
 
 export namespace ElementIterator {
     export function fromGroup(structureGroup: StructureGroup): LocationIterator {
-        const { group } = structureGroup
+        const { group, structure } = structureGroup
         const groupCount = group.elements.length
         const instanceCount = group.units.length
-        const location = StructureElement.Location.create()
+        const location = StructureElement.Location.create(structure)
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
@@ -177,7 +177,7 @@ export namespace ElementIterator {
         const groupCount = elementCount
         const instanceCount = 1
         const { unitIndices, elementIndices } = structure.serialMapping
-        const location = StructureElement.Location.create()
+        const location = StructureElement.Location.create(structure)
         const getLocation = (groupIndex: number) => {
             location.unit = units[unitIndices[groupIndex]]
             location.element = elementIndices[groupIndex]

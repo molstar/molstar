@@ -1,7 +1,7 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.320, IHM 1.05, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.323, IHM 1.08, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -1881,6 +1881,23 @@ export const mmCIF_Schema = {
         name: str,
     },
     /**
+     * PDBX_CHEM_COMP_SYNONYMS holds chemical name and synonym correspondences.
+     */
+    pdbx_chem_comp_synonyms: {
+        /**
+         * The synonym of this particular chemical component.
+         */
+        name: str,
+        /**
+         * The chemical component for which this synonym applies.
+         */
+        comp_id: str,
+        /**
+         * The provenance of this synonym.
+         */
+        provenance: Aliased<'AUTHOR' | 'DRUGBANK' | 'CHEBI' | 'CHEMBL' | 'PDB' | 'PUBCHEM'>(str),
+    },
+    /**
      * Data items in the CHEM_COMP_IDENTIFIER category provide
      * identifiers for chemical components.
      */
@@ -3665,7 +3682,7 @@ export const mmCIF_Schema = {
         /**
          * The type of crosslinker used.
          */
-        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'Other'>(str),
+        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'CYS' | 'Other'>(str),
         /**
          * Identifier to the crosslinking dataset.
          * This data item is a pointer to the _ihm_dataset_list.id in the
@@ -4583,23 +4600,6 @@ export const mmCIF_Schema = {
          * ATOM_SITE category.
          */
         auth_mon_id: str,
-    },
-    /**
-     * PDBX_CHEM_COMP_SYNONYMS holds chemical name and synonym correspondences.
-     */
-    pdbx_chem_comp_synonyms: {
-        /**
-         * The synonym of this particular chemical component.
-         */
-        name: str,
-        /**
-         * The chemical component for which this synonym applies.
-         */
-        comp_id: str,
-        /**
-         * The provenance of this synonym.
-         */
-        provenance: Aliased<'AUTHOR' | 'DRUGBANK' | 'CHEBI' | 'CHEMBL' | 'PDB' | 'PUBCHEM'>(str),
     },
     /**
      * PDBX_CHEM_COMP_RELATED describes the relationship between two chemical components.

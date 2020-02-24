@@ -34,22 +34,22 @@ export type GaussianDensityTextureProps = typeof DefaultGaussianDensityTexturePr
 
 //
 
-export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityProps, webgl?: WebGLContext) {
-    const { position, radius } = getUnitConformationAndRadius(unit, props.ignoreHydrogens)
+export function computeUnitGaussianDensity(structure: Structure, unit: Unit, props: GaussianDensityProps, webgl?: WebGLContext) {
+    const { position, radius } = getUnitConformationAndRadius(structure, unit, props.ignoreHydrogens)
     return Task.create('Gaussian Density', async ctx => {
         return await GaussianDensity(ctx, position, unit.lookup3d.boundary.box, radius, props, webgl);
     });
 }
 
-export function computeUnitGaussianDensityTexture(unit: Unit, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
-    const { position, radius } = getUnitConformationAndRadius(unit, props.ignoreHydrogens)
+export function computeUnitGaussianDensityTexture(structure: Structure, unit: Unit, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
+    const { position, radius } = getUnitConformationAndRadius(structure, unit, props.ignoreHydrogens)
     return Task.create('Gaussian Density', async ctx => {
         return GaussianDensityTexture(webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
     });
 }
 
-export function computeUnitGaussianDensityTexture2d(unit: Unit, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
-    const { position, radius } = getUnitConformationAndRadius(unit, props.ignoreHydrogens)
+export function computeUnitGaussianDensityTexture2d(structure: Structure, unit: Unit, props: GaussianDensityTextureProps, webgl: WebGLContext, texture?: Texture) {
+    const { position, radius } = getUnitConformationAndRadius(structure, unit, props.ignoreHydrogens)
     return Task.create('Gaussian Density', async ctx => {
         return GaussianDensityTexture2d(webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
     });

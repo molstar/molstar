@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,7 @@ import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { Ingredient, CellPacking, Cell } from './data';
 import { getFromPdb, getFromCellPackDB } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit } from '../../../../mol-model/structure';
-import { trajectoryFromMmCIF } from '../../../../mol-model-formats/structure/mmcif';
+import { trajectoryFromMmCIF, MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../../../mol-model-formats/structure/pdb';
 import { Mat4, Vec3, Quat } from '../../../../mol-math/linear-algebra';
 import { SymmetryOperator } from '../../../../mol-math/geometry';
@@ -28,11 +28,10 @@ import { compile } from '../../../../mol-script/runtime/query/compiler';
 import { UniformColorThemeProvider } from '../../../../mol-theme/color/uniform';
 import { ThemeRegistryContext } from '../../../../mol-theme/theme';
 import { ColorTheme } from '../../../../mol-theme/color';
-import { _parse_mmCif } from '../../../../mol-model-formats/structure/mmcif/parser';
-import { ModelFormat } from '../../../../mol-model-formats/structure/format';
 import { CifCategory, CifField } from '../../../../mol-io/reader/cif';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { Column } from '../../../../mol-data/db';
+import { createModels } from '../../../../mol-model-formats/structure/basic/parser';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`
@@ -124,7 +123,10 @@ function getAssembly(transforms: Mat4[], structure: Structure) {
 }
 
 function getCifCurve(name: string, transforms: Mat4[], model: Model) {
-    const d = model.sourceData.data.atom_site
+    if (!MmcifFormat.is(model.sourceData)) throw new Error('mmcif source data needed')
+
+    const { db } = model.sourceData.data
+    const d = db.atom_site
     const n = d._rowCount
     const rowCount = n * transforms.length
 
@@ -201,8 +203,8 @@ function getCifCurve(name: string, transforms: Mat4[], model: Model) {
     }
 
     const categories = {
-        entity: CifCategory.ofTable('entity', model.sourceData.data.entity),
-        chem_comp: CifCategory.ofTable('chem_comp', model.sourceData.data.chem_comp),
+        entity: CifCategory.ofTable('entity', db.entity),
+        chem_comp: CifCategory.ofTable('chem_comp', db.chem_comp),
         atom_site: CifCategory.ofFields('atom_site', _atom_site)
     }
 
@@ -217,8 +219,8 @@ async function getCurve(name: string, transforms: Mat4[], model: Model) {
     const cif = getCifCurve(name, transforms, model)
 
     const curveModelTask = Task.create('Curve Model', async ctx => {
-        const format = ModelFormat.mmCIF(cif)
-        const models = await _parse_mmCif(format, ctx)
+        const format = MmcifFormat.fromFrame(cif)
+        const models = await createModels(format.data.db, format, ctx)
         return models[0]
     })
 

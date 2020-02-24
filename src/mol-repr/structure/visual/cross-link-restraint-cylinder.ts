@@ -24,7 +24,7 @@ function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Str
     if (!crossLinks.count) return Mesh.createEmpty(mesh)
     const { sizeFactor } = props
 
-    const location = StructureElement.Location.create()
+    const location = StructureElement.Location.create(structure)
 
     const builderProps = {
         linkCount: crossLinks.count,
@@ -76,8 +76,10 @@ function CrossLinkRestraintIterator(structure: Structure): LocationIterator {
     const location = Bond.Location()
     const getLocation = (groupIndex: number) => {
         const pair = pairs[groupIndex]
+        location.aStructure = structure
         location.aUnit = pair.unitA
         location.aIndex = pair.indexA
+        location.bStructure = structure
         location.bUnit = pair.unitB
         location.bIndex = pair.indexB
         return location
@@ -91,8 +93,8 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
         const pair = structure.crossLinkRestraints.pairs[groupId]
         if (pair) {
             return Bond.Loci(structure, [
-                Bond.Location(pair.unitA, pair.indexA, pair.unitB, pair.indexB),
-                Bond.Location(pair.unitB, pair.indexB, pair.unitA, pair.indexA)
+                Bond.Location(structure, pair.unitA, pair.indexA, structure, pair.unitB, pair.indexB),
+                Bond.Location(structure, pair.unitB, pair.indexB, structure, pair.unitA, pair.indexA)
             ])
         }
     }

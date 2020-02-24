@@ -6,9 +6,9 @@
 
 import { Model } from './model/model'
 import * as Types from './model/types'
-import { ModelSymmetry } from './model/properties/symmetry'
+import { Symmetry } from './model/properties/symmetry'
 import StructureSequence from './model/properties/sequence'
 
 export * from './model/properties/custom/indexed'
 export * from './model/indexing'
-export { Model, Types, ModelSymmetry, StructureSequence }
+export { Model, Types, Symmetry, StructureSequence }

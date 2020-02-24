@@ -162,8 +162,8 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     }
 
     const categories = {
-        entity: entityBuilder.getEntityCategory(),
-        chem_comp: componentBuilder.getChemCompCategory(),
+        entity: entityBuilder.getEntityTable(),
+        chem_comp: componentBuilder.getChemCompTable(),
         atom_site: CifCategory.ofFields('atom_site', getAtomSite(atomSite)),
         atom_site_anisotrop: CifCategory.ofFields('atom_site_anisotrop', getAnisotropic(anisotropic))
     } as any;

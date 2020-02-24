@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from '../../../../mol-model/structure';
+import { Unit, Structure } from '../../../../mol-model/structure';
 import { Task, RuntimeContext } from '../../../../mol-task';
 import { getUnitConformationAndRadius } from './common';
 import { PositionData, DensityData } from '../../../../mol-math/geometry';
@@ -15,9 +15,9 @@ export type MolecularSurfaceProps = MolecularSurfaceCalculationProps & {
     ignoreHydrogens: boolean
 }
 
-function getPositionDataAndMaxRadius(unit: Unit, props: MolecularSurfaceProps) {
+function getPositionDataAndMaxRadius(structure: Structure, unit: Unit, props: MolecularSurfaceProps) {
     const { probeRadius, ignoreHydrogens } = props
-    const { position, radius } = getUnitConformationAndRadius(unit, ignoreHydrogens)
+    const { position, radius } = getUnitConformationAndRadius(structure, unit, ignoreHydrogens)
     const { indices } = position
     const n = OrderedSet.size(indices)
     const radii = new Float32Array(OrderedSet.end(indices))
@@ -33,8 +33,8 @@ function getPositionDataAndMaxRadius(unit: Unit, props: MolecularSurfaceProps) {
     return { position: { ...position, radius: radii }, maxRadius }
 }
 
-export function computeUnitMolecularSurface(unit: Unit, props: MolecularSurfaceProps) {
-    const { position, maxRadius } = getPositionDataAndMaxRadius(unit, props)
+export function computeUnitMolecularSurface(structure: Structure, unit: Unit, props: MolecularSurfaceProps) {
+    const { position, maxRadius } = getPositionDataAndMaxRadius(structure, unit, props)
     return Task.create('Molecular Surface', async ctx => {
         return await MolecularSurface(ctx, position, maxRadius, props);
     });

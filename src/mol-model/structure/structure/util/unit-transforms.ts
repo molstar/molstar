@@ -18,8 +18,10 @@ export class StructureUnitTransforms {
     private unitOffsetMap = IntMap.Mutable<number>();
     private groupIndexMap = IntMap.Mutable<number>();
     private size: number;
-
+    
     private _isIdentity: boolean | undefined = undefined;
+    
+    version = 0;
 
     constructor(readonly structure: Structure) {
         this.unitTransforms = new Float32Array(structure.units.length * 16)
@@ -39,6 +41,7 @@ export class StructureUnitTransforms {
     }
 
     reset() {
+        this.version = 0;
         fillIdentityTransform(this.unitTransforms, this.size);
         this._isIdentity = true
     }
@@ -58,6 +61,7 @@ export class StructureUnitTransforms {
     }
 
     setTransform(matrix: Mat4, unit: Unit) {
+        this.version = (this.version + 1) % 0x7fffffff;
         Mat4.toArray(matrix, this.unitTransforms, this.unitOffsetMap.get(unit.id))
         this._isIdentity = undefined
     }

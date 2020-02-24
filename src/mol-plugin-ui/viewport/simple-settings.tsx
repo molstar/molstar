@@ -21,7 +21,7 @@ const SimpleSettingsParams = {
         'transparent': PD.EmptyGroup(),
         'opaque': PD.Group({ color: PD.Color(Color(0xFCFBF9), { description: 'Custom background color' }) }, { isFlat: true })
     }, { description: 'Background of the 3D canvas' }),
-    renderStyle: PD.Select('glossy', [['toon', 'Toon'], ['matte', 'Matte'], ['glossy', 'Glossy'], ['metallic', 'Metallic']], { description: 'Style in which the 3D scene is rendered' }),
+    renderStyle: PD.Select('glossy', [['flat', 'Flat'], ['matte', 'Matte'], ['glossy', 'Glossy'], ['metallic', 'Metallic']], { description: 'Style in which the 3D scene is rendered' }),
     occlusion: PD.Boolean(false, { description: 'Darken occluded crevices with the ambient occlusion effect' }),
     outline: PD.Boolean(false, { description: 'Draw outline around 3D objects' }),
     fog: PD.Boolean(false, { description: 'Show fog in the distance' }),
@@ -49,7 +49,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
             if (!this.plugin.canvas3d) return;
 
             const renderer = this.plugin.canvas3d.props.renderer;
-            if (p.value === 'toon') {
+            if (p.value === 'flat') {
                 PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
                     renderer: { ...renderer, lightIntensity: 0, ambientIntensity: 1, roughness: 0.4, metalness: 0 }
                 } });
@@ -80,7 +80,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
             } });
         } else if (p.name === 'fog') {;
             PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
-                cameraFog: p.value ? 50 : 1,
+                cameraFog: p.value ? 50 : 0,
             } });
         } else if (p.name === 'clipFar') {;
             PluginCommands.Canvas3D.SetSettings.dispatch(this.plugin, { settings: {
@@ -97,7 +97,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
 
         if (renderer) {
             if (renderer.lightIntensity === 0 && renderer.ambientIntensity === 1 && renderer.roughness === 0.4 && renderer.metalness === 0) {
-                renderStyle = 'toon'
+                renderStyle = 'flat'
             } else if (renderer.lightIntensity === 0.6 && renderer.ambientIntensity === 0.4) {
                 if (renderer.roughness === 1 && renderer.metalness === 0) {
                     renderStyle = 'matte'

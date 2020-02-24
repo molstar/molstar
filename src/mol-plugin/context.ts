@@ -192,6 +192,11 @@ export class PluginContext {
      */
     readonly fetch = ajaxGet
 
+    /** return true is animating or updating */
+    get isBusy() {
+        return this.behaviors.state.isAnimating.value || this.behaviors.state.isUpdating.value;
+    }
+
     runTask<T>(task: Task<T>) {
         return this.tasks.run(task);
     }

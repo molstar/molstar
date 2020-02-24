@@ -43,11 +43,11 @@ export function getGapRanges(unit: Unit): SortedRanges<ElementIndex> {
 
 export namespace PolymerLocationIterator {
     export function fromGroup(structureGroup: StructureGroup): LocationIterator {
-        const { group } = structureGroup
+        const { group, structure } = structureGroup
         const polymerElements = group.units[0].polymerElements
         const groupCount = polymerElements.length
         const instanceCount = group.units.length
-        const location = StructureElement.Location.create()
+        const location = StructureElement.Location.create(structure)
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
@@ -60,11 +60,11 @@ export namespace PolymerLocationIterator {
 
 export namespace PolymerGapLocationIterator {
     export function fromGroup(structureGroup: StructureGroup): LocationIterator {
-        const { group } = structureGroup
+        const { group, structure } = structureGroup
         const gapElements = group.units[0].gapElements
         const groupCount = gapElements.length
         const instanceCount = group.units.length
-        const location = StructureElement.Location.create()
+        const location = StructureElement.Location.create(structure)
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
@@ -214,8 +214,8 @@ export function getPolymerGapElementLoci(pickingId: PickingId, structureGroup: S
         const unitIndexB = OrderedSet.indexOf(unit.elements, unit.gapElements[groupId % 2 ? groupId - 1 : groupId + 1]) as StructureElement.UnitIndex
         if (unitIndexA !== -1 && unitIndexB !== -1) {
             return Bond.Loci(structure, [
-                Bond.Location(unit, unitIndexA, unit, unitIndexB),
-                Bond.Location(unit, unitIndexB, unit, unitIndexA)
+                Bond.Location(structure, unit, unitIndexA, structure, unit, unitIndexB),
+                Bond.Location(structure, unit, unitIndexB, structure, unit, unitIndexA)
             ])
         }
     }

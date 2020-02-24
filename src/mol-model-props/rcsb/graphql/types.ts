@@ -1,7 +1,7 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
 
-// Generated in 2020-02-07T10:59:45-08:00
+// Generated in 2020-02-21T15:58:06-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -13,7 +13,6 @@ export type Scalars = {
   Date: any,
   UNREPRESENTABLE: any,
 };
-
 
 export type AuditAuthor = {
   readonly identifier_ORCID?: Maybe<Scalars['String']>,
@@ -1750,6 +1749,7 @@ export type RcsbEntryContainerIdentifiers = {
   readonly emdb_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly entry_id: Scalars['String'],
+  readonly model_ids?: Maybe<ReadonlyArray<Maybe<Scalars['Int']>>>,
   readonly non_polymer_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly polymer_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>,
   readonly pubmed_id?: Maybe<Scalars['Int']>,
@@ -1921,7 +1921,6 @@ export type RcsbNonpolymerInstanceAnnotationAnnotationLineage = {
 
 export type RcsbNonpolymerInstanceFeature = {
   readonly assignment_version?: Maybe<Scalars['String']>,
-  readonly auth_seq_id?: Maybe<Scalars['String']>,
   readonly comp_id?: Maybe<Scalars['String']>,
   readonly description?: Maybe<Scalars['String']>,
   readonly feature_id?: Maybe<Scalars['String']>,
@@ -1942,6 +1941,7 @@ export type RcsbNonpolymerInstanceFeatureFeatureValue = {
 };
 
 export type RcsbNonpolymerInstanceFeatureSummary = {
+  readonly comp_id?: Maybe<Scalars['String']>,
   readonly count?: Maybe<Scalars['Int']>,
   readonly maximum_length?: Maybe<Scalars['Int']>,
   readonly maximum_value?: Maybe<Scalars['Float']>,

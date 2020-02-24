@@ -4,12 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mmCIF_Database } from '../../../mol-io/reader/cif/schema/mmcif';
 import { createRangeArray, makeBuckets } from '../../../mol-data/util';
 import { Column, Table } from '../../../mol-data/db';
 import { RuntimeContext } from '../../../mol-task';
+import { AtomSite } from './schema';
 
-export type SortedAtomSite = mmCIF_Database['atom_site'] & { sourceIndex: Column<number> }
+export type SortedAtomSite = {
+    atom_site: AtomSite
+    sourceIndex: Column<number>
+}
 
 function isIdentity(xs: ArrayLike<number>) {
     for (let i = 0, _i = xs.length; i < _i; i++) {
@@ -18,7 +21,7 @@ function isIdentity(xs: ArrayLike<number>) {
     return true;
 }
 
-export async function sortAtomSite(ctx: RuntimeContext, atom_site: mmCIF_Database['atom_site'], start: number, end: number) {
+export async function sortAtomSite(ctx: RuntimeContext, atom_site: AtomSite, start: number, end: number): Promise<SortedAtomSite> {
     const indices = createRangeArray(start, end - 1);
 
     const { label_entity_id, label_asym_id, label_seq_id } = atom_site;
@@ -42,7 +45,7 @@ export async function sortAtomSite(ctx: RuntimeContext, atom_site: mmCIF_Databas
     }
 
     return {
-        atom_site: Table.view(atom_site, atom_site._schema, indices) as mmCIF_Database['atom_site'],
+        atom_site: Table.view(atom_site, atom_site._schema, indices) as AtomSite,
         sourceIndex: Column.ofIntArray(indices)
     };
 }

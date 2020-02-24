@@ -1,24 +1,24 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { mmCIF_Database as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
 import StructureSequence from '../../../mol-model/structure/model/properties/sequence'
 import { Column } from '../../../mol-data/db';
 import { AtomicHierarchy } from '../../../mol-model/structure/model/properties/atomic';
 import { Entities } from '../../../mol-model/structure/model/properties/common';
 import { Sequence } from '../../../mol-model/sequence';
 import { CoarseHierarchy } from '../../../mol-model/structure/model/properties/coarse';
+import { BasicData } from './schema';
 
-export function getSequence(cif: mmCIF, entities: Entities, atomicHierarchy: AtomicHierarchy, coarseHierarchy: CoarseHierarchy, modResMap: ReadonlyMap<string, string>): StructureSequence {
-    if (!cif.entity_poly_seq._rowCount) {
+export function getSequence(data: BasicData, entities: Entities, atomicHierarchy: AtomicHierarchy, coarseHierarchy: CoarseHierarchy, modResMap: ReadonlyMap<string, string>): StructureSequence {
+    if (!data.entity_poly_seq || !data.entity_poly_seq._rowCount) {
         return StructureSequence.fromHierarchy(entities, atomicHierarchy, coarseHierarchy, modResMap);
     }
 
-    const { entity_id, num, mon_id } = cif.entity_poly_seq;
+    const { entity_id, num, mon_id } = data.entity_poly_seq;
 
     const byEntityKey: StructureSequence['byEntityKey'] = {};
     const sequences: StructureSequence.Entity[] = [];

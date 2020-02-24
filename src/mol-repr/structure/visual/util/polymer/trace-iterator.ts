@@ -47,11 +47,11 @@ interface PolymerTraceElement {
 
 const SecStrucTypeNA = SecondaryStructureType.create(SecondaryStructureType.Flag.NA)
 
-function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
+function createPolymerTraceElement (structure: Structure, unit: Unit): PolymerTraceElement {
     return {
-        center: StructureElement.Location.create(unit),
-        centerPrev: StructureElement.Location.create(unit),
-        centerNext: StructureElement.Location.create(unit),
+        center: StructureElement.Location.create(structure, unit),
+        centerPrev: StructureElement.Location.create(structure, unit),
+        centerNext: StructureElement.Location.create(structure, unit),
         first: false, last: false,
         initial: false, final: false,
         secStrucFirst: false, secStrucLast: false,
@@ -302,7 +302,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.cyclicPolymerMap = unit.model.atomicRanges.cyclicPolymerMap
         this.polymerIt = SortedRanges.transientSegments(this.polymerRanges, unit.elements)
         this.residueIt = Segmentation.transientSegments(this.residueAtomSegments, unit.elements);
-        this.value = createPolymerTraceElement(unit)
+        this.value = createPolymerTraceElement(structure, unit)
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
 
         const secondaryStructure = SecondaryStructureProvider.get(structure).value?.get(unit.invariantId)
@@ -397,7 +397,7 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
 
     constructor(private unit: Unit.Spheres | Unit.Gaussians, structure: Structure) {
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements);
-        this.value = createPolymerTraceElement(unit)
+        this.value = createPolymerTraceElement(structure, unit)
         Vec3.set(this.value.d12, 1, 0, 0)
         Vec3.set(this.value.d23, 1, 0, 0)
         switch (unit.kind) {

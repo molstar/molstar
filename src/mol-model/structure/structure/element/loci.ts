@@ -90,11 +90,12 @@ export namespace Loci {
         const unit = loci.elements[0].unit;
         const element = unit.elements[OrderedSet.getAt(loci.elements[0].indices, 0)];
         if (e) {
+            e.structure = loci.structure;
             e.unit = loci.elements[0].unit;
             e.element = element;
             return e;
         }
-        return Location.create(unit, element);
+        return Location.create(loci.structure, unit, element);
     }
 
     export function toStructure(loci: Loci): Structure {
@@ -365,7 +366,7 @@ export namespace Loci {
 
     export function extendToWholeEntities(loci: Loci): Loci {
         const elements: Loci['elements'][0][] = []
-        const l = Location.create()
+        const l = Location.create(loci.structure)
         const entities = new Set<string>()
         const { units } = loci.structure
 

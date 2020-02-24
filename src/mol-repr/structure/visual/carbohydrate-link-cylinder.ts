@@ -24,7 +24,7 @@ function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Struc
     const { links, elements } = structure.carbohydrates
     const { linkSizeFactor } = props
 
-    const location = StructureElement.Location.create()
+    const location = StructureElement.Location.create(structure)
 
     const builderProps = {
         linkCount: links.length,
@@ -74,7 +74,7 @@ function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
     const { elements, links } = structure.carbohydrates
     const groupCount = links.length
     const instanceCount = 1
-    const location = StructureElement.Location.create()
+    const location = StructureElement.Location.create(structure)
     const getLocation = (groupIndex: number) => {
         const link = links[groupIndex]
         const carbA = elements[link.carbohydrateIndexA]

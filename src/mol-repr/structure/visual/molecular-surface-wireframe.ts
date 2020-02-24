@@ -28,7 +28,7 @@ export type MolecularSurfaceWireframeParams = typeof MolecularSurfaceWireframePa
 
 async function createMolecularSurfaceWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceProps, lines?: Lines): Promise<Lines> {
 
-    const { transform, field, idField } = await computeUnitMolecularSurface(unit, props).runInContext(ctx.runtime)
+    const { transform, field, idField } = await computeUnitMolecularSurface(structure, unit, props).runInContext(ctx.runtime)
     const params = {
         isoLevel: props.probeRadius,
         scalarField: field,

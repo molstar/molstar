@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,30 +9,31 @@ import { Structure, Model } from '../../../../mol-model/structure';
 import { VolumeServerInfo } from './model';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { RuntimeContext } from '../../../../mol-task';
+import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 
 export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.Kind = 'x-ray'): VolumeServerInfo.Kind {
     if (!s) return defaultKind;
 
     const model = s.models[0];
-    if (model.sourceData.kind !== 'mmCIF') return defaultKind;
+    if (!MmcifFormat.is(model.sourceData)) return defaultKind;
 
-    const { data } = model.sourceData;
+    const { db } = model.sourceData.data;
 
     // prefer EMDB entries over structure-factors (SF) e.g. for 'ELECTRON CRYSTALLOGRAPHY' entries
     // like 6axz or 6kj3 for which EMDB entries are available but map calculation from SF is hard
-    for (let i = 0, il = data.pdbx_database_related._rowCount; i < il; ++i) {
-        if (data.pdbx_database_related.db_name.value(i).toUpperCase() === 'EMDB') {
+    for (let i = 0, il = db.pdbx_database_related._rowCount; i < il; ++i) {
+        if (db.pdbx_database_related.db_name.value(i).toUpperCase() === 'EMDB') {
             return 'em'
         }
     }
 
-    if (data.pdbx_database_status.status_code_sf.isDefined && data.pdbx_database_status.status_code_sf.value(0) === 'REL') {
+    if (db.pdbx_database_status.status_code_sf.isDefined && db.pdbx_database_status.status_code_sf.value(0) === 'REL') {
         return 'x-ray'
     }
 
     // fallbacks
-    for (let i = 0; i < data.exptl.method.rowCount; i++) {
-        const v = data.exptl.method.value(i).toUpperCase();
+    for (let i = 0; i < db.exptl.method.rowCount; i++) {
+        const v = db.exptl.method.value(i).toUpperCase();
         if (v.indexOf('MICROSCOPY') >= 0) return 'em';
     }
     return defaultKind;
@@ -41,9 +42,9 @@ export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.
 /** Returns EMD ID when available, otherwise falls back to PDB ID */
 export function getEmIds(model: Model): string[] {
     const ids: string[] = []
-    if (model.sourceData.kind !== 'mmCIF') return [ model.entryId ]
+    if (!MmcifFormat.is(model.sourceData)) return [ model.entryId ]
 
-    const { db_id, db_name, content_type } = model.sourceData.data.pdbx_database_related
+    const { db_id, db_name, content_type } = model.sourceData.data.db.pdbx_database_related
     if (!db_name.isDefined) return [ model.entryId ]
 
     for (let i = 0, il = db_name.rowCount; i < il; ++i) {

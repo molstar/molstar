@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,11 +8,9 @@
 import UUID from '../../../mol-util/uuid';
 import StructureSequence from './properties/sequence';
 import { AtomicHierarchy, AtomicConformation, AtomicRanges } from './properties/atomic';
-import { ModelSymmetry } from './properties/symmetry';
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse';
 import { Entities, ChemicalComponentMap, MissingResidues } from './properties/common';
 import { CustomProperties } from '../common/custom-property';
-import { SecondaryStructure } from './properties/seconday-structure';
 import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from '../../../mol-model-formats/structure/format';
 import { calcModelCenter } from './util';
@@ -20,9 +18,9 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Mutable } from '../../../mol-util/type-helpers';
 import { Coordinates } from '../coordinates';
 import { Topology } from '../topology';
-import { _parse_mmCif } from '../../../mol-model-formats/structure/mmcif/parser';
 import { Task } from '../../../mol-task';
-import { IndexPairBonds } from '../../../mol-model-formats/structure/mmcif/bonds/index-pair';
+import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
+import { createModels } from '../../../mol-model-formats/structure/basic/parser';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -47,7 +45,6 @@ export interface Model extends Readonly<{
 
     sourceData: ModelFormat,
 
-    symmetry: ModelSymmetry,
     entities: Entities,
     sequence: StructureSequence,
 
@@ -56,8 +53,6 @@ export interface Model extends Readonly<{
     atomicRanges: AtomicRanges,
 
     properties: {
-        /** secondary structure provided by the input file */
-        readonly secondaryStructure: SecondaryStructure,
         /** maps modified residue name to its parent */
         readonly modifiedResidues: Readonly<{
             parentId: ReadonlyMap<string, string>,
@@ -87,7 +82,6 @@ export interface Model extends Readonly<{
 } { }
 
 export namespace Model {
-    // TODO: is this enough?
     export type Trajectory = ReadonlyArray<Model>
 
     export function trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates): Trajectory {
@@ -113,12 +107,13 @@ export namespace Model {
 
     export function trajectoryFromTopologyAndCoordinates(topology: Topology, coordinates: Coordinates): Task<Trajectory> {
         return Task.create('Create Trajectory', async ctx => {
-            const model = (await _parse_mmCif(topology.format, ctx))[0];
+            const model = (await createModels(topology.basic, topology.sourceData, ctx))[0];
             if (!model) throw new Error('found no model')
             const trajectory = trajectoryFromModelAndCoordinates(model, coordinates)
             const bondData = { pairs: topology.bonds, count: model.atomicHierarchy.atoms._rowCount }
+            const indexPairBonds = IndexPairBonds.fromData(bondData)
             for (const m of trajectory) {
-                IndexPairBonds.attachFromData(m, bondData)
+                IndexPairBonds.Provider.set(m, indexPairBonds)
             }
             return trajectory
         })

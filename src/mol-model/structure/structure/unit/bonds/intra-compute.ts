@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,10 +11,11 @@ import Unit from '../../unit'
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import { BondComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold, DefaultBondComputationProps } from './common';
 import { SortedArray } from '../../../../../mol-data/int';
-import { StructConn, ComponentBond } from '../../../../../mol-model-formats/structure/mmcif/bonds';
 import { getIntraBondOrderFromTable } from '../../../model/properties/atomic/bonds';
 import StructureElement from '../../element';
-import { IndexPairBonds } from '../../../../../mol-model-formats/structure/mmcif/bonds/index-pair';
+import { IndexPairBonds } from '../../../../../mol-model-formats/structure/property/bonds/index-pair';
+import { ComponentBond } from '../../../../../mol-model-formats/structure/property/bonds/comp';
+import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
 
 function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.UnitIndex[], _order: number[], _flags: number[], atomCount: number): IntraUnitBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
@@ -29,6 +30,8 @@ function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.U
     return builder.createGraph({ flags, order });
 }
 
+const __structConnAdded = new Set<StructureElement.UnitIndex>();
+
 function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBonds {
     const MAX_RADIUS = 4;
 
@@ -39,9 +42,9 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
     const { label_comp_id } = unit.model.atomicHierarchy.residues;
     const query3d = unit.lookup3d;
 
-    const structConn = unit.model.sourceData.kind === 'mmCIF' ? StructConn.get(unit.model) : void 0;
-    const component = unit.model.sourceData.kind === 'mmCIF' ? ComponentBond.get(unit.model) : void 0;
-    const indexPairs = IndexPairBonds.get(unit.model)
+    const structConn = StructConn.Provider.get(unit.model)
+    const component = ComponentBond.Provider.get(unit.model)
+    const indexPairs = IndexPairBonds.Provider.get(unit.model)
 
     const atomA: StructureElement.UnitIndex[] = [];
     const atomB: StructureElement.UnitIndex[] = [];
@@ -50,6 +53,8 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
 
     let lastResidue = -1;
     let componentMap: Map<string, Map<string, { flags: number, order: number }>> | undefined = void 0;
+
+    const structConnAdded = __structConnAdded;
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI =  atoms[_aI];
@@ -66,19 +71,26 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
             continue // assume `indexPairs` supplies all bonds
         }
 
-        const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
-        const structConnAdded = new Set<StructureElement.UnitIndex>()
+        const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.byAtomIndex.get(aI);
+        let hasStructConn = false;
         if (structConnEntries) {
             for (const se of structConnEntries) {
-                for (const p of se.partners) {
-                    const _bI = SortedArray.indexOf(unit.elements, p.atomIndex) as StructureElement.UnitIndex;
-                    if (_bI < 0 || _aI === _bI) continue;
-                    atomA[atomA.length] = _aI;
-                    atomB[atomB.length] = _bI;
-                    flags[flags.length] = se.flags;
-                    order[order.length] = se.order;
-                    structConnAdded.add(_bI)
-                }
+                const { partnerA, partnerB } = se
+                // symmetry must be the same for intra-unit bonds
+                if (partnerA.symmetry !== partnerB.symmetry) continue
+
+                const p = partnerA.atomIndex === aI ? partnerB : partnerA
+                const _bI = SortedArray.indexOf(unit.elements, p.atomIndex) as StructureElement.UnitIndex;
+                if (_bI < 0) continue;
+
+                atomA[atomA.length] = _aI;
+                atomB[atomB.length] = _bI;
+                flags[flags.length] = se.flags;
+                order[order.length] = se.order;
+
+                if (!hasStructConn) structConnAdded.clear();
+                hasStructConn = true;
+                structConnAdded.add(_bI);
             }
         }
 
@@ -106,7 +118,7 @@ function _computeBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUni
 
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni];
-            if (structConnAdded.has(_bI)) continue;
+            if (hasStructConn && structConnAdded.has(_bI)) continue;
 
             const bI = atoms[_bI];
             if (bI <= aI) continue;

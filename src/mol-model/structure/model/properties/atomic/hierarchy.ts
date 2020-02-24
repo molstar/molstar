@@ -50,7 +50,7 @@ export const AtomsSchema = {
 };
 
 export type AtomsSchema = typeof AtomsSchema
-export interface Atoms extends Table<AtomsSchema> { }
+export type Atoms = Table<AtomsSchema>
 
 export const ResiduesSchema = {
     /**
@@ -83,7 +83,7 @@ export const ResiduesSchema = {
     pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code,
 };
 export type ResiduesSchema = typeof ResiduesSchema
-export interface Residues extends Table<ResiduesSchema> { }
+export type Residues = Table<ResiduesSchema>
 
 export const ChainsSchema = {
     /**
@@ -102,7 +102,7 @@ export const ChainsSchema = {
     label_entity_id: mmCIF.atom_site.label_entity_id
 }
 export type ChainsSchema = typeof ChainsSchema
-export interface Chains extends Table<ChainsSchema> { }
+export type Chains = Table<ChainsSchema>
 
 export interface AtomicData {
     atoms: Atoms,
@@ -139,6 +139,8 @@ export interface AtomicSegments {
 export interface AtomicIndex {
     /** @returns index or -1 if not present. */
     getEntityFromChain(cI: ChainIndex): EntityIndex,
+    /** @returns index or -1 if not present. */
+    findEntity(label_asym_id: string): EntityIndex
 
     /**
      * Find chain using label_ mmCIF properties

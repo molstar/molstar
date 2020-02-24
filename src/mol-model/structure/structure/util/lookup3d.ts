@@ -100,7 +100,7 @@ export class StructureLookup3D {
         const closeUnits = this.unitLookup.find(x, y, z, radius);
         if (closeUnits.count === 0) return;
 
-        const se = StructureElement.Location.create();
+        const se = StructureElement.Location.create(this.structure);
         const queryRadius = pivotR + maxRadius + radius;
 
         for (let t = 0, _t = closeUnits.count; t < _t; t++) {

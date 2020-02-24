@@ -24,7 +24,7 @@ import { InteractionFlag } from '../interactions/common';
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
-    const location = StructureElement.Location.create(unit)
+    const location = StructureElement.Location.create(structure, unit)
 
     const interactions = InteractionsProvider.get(structure).value!
     const features = interactions.unitsFeatures.get(unit.id)
@@ -97,8 +97,8 @@ function getInteractionLoci(pickingId: PickingId, structureGroup: StructureGroup
         const interactions = InteractionsProvider.get(structure).value!
         const { a, b } = interactions.unitsContacts.get(unit.id)
         return Interactions.Loci(structure, interactions, [
-            { unitA: unit, indexA: a[groupId], unitB: unit, indexB: b[groupId] },
-            { unitA: unit, indexA: b[groupId], unitB: unit, indexB: a[groupId] },
+            { structure, unitA: unit, indexA: a[groupId], unitB: unit, indexB: b[groupId] },
+            { structure, unitA: unit, indexA: b[groupId], unitB: unit, indexB: a[groupId] },
         ])
     }
     return EmptyLoci
@@ -134,7 +134,7 @@ function createInteractionsIterator(structureGroup: StructureGroup): LocationIte
     const contacts = interactions.unitsContacts.get(unit.id)
     const groupCount = contacts.edgeCount * 2
     const instanceCount = group.units.length
-    const location = Interactions.Location(interactions)
+    const location = Interactions.Location(interactions, structure)
     const { element } = location
     const getLocation = (groupIndex: number, instanceIndex: number) => {
         const instanceUnit = group.units[instanceIndex]

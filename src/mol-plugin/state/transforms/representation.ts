@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -13,7 +13,7 @@ import { BuiltInStructureRepresentationsName } from '../../../mol-repr/structure
 import { StructureParams } from '../../../mol-repr/structure/representation';
 import { BuiltInVolumeRepresentationsName } from '../../../mol-repr/volume/registry';
 import { VolumeParams } from '../../../mol-repr/volume/representation';
-import { StateTransformer } from '../../../mol-state';
+import { StateTransformer, StateObject } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { BuiltInColorThemeName, ColorTheme, BuiltInColorThemes } from '../../../mol-theme/color';
 import { BuiltInSizeThemeName, SizeTheme } from '../../../mol-theme/size';
@@ -36,6 +36,7 @@ import { LabelParams, LabelRepresentation } from '../../../mol-repr/shape/loci/l
 import { OrientationRepresentation, OrientationParams } from '../../../mol-repr/shape/loci/orientation';
 import { AngleParams, AngleRepresentation } from '../../../mol-repr/shape/loci/angle';
 import { DihedralParams, DihedralRepresentation } from '../../../mol-repr/shape/loci/dihedral';
+import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 
 export { StructureRepresentation3D }
 export { StructureRepresentation3DHelpers }
@@ -649,13 +650,16 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
         ...UnitcellParams,
     }
 })({
+    isApplicable: a => !!ModelSymmetry.Provider.get(a.data),
     canAutoUpdate({ oldParams, newParams }) {
         return true;
     },
     apply({ a, params }) {
         return Task.create('Model Unitcell', async ctx => {
+            const symmetry = ModelSymmetry.Provider.get(a.data)
+            if (!symmetry) return StateObject.Null
             const repr = await getUnitcellRepresentation(ctx, a.data, params);
-            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Unitcell`, description: a.data.symmetry.spacegroup.name });
+            return new SO.Shape.Representation3D({ repr, source: a }, { label: `Unitcell`, description: symmetry.spacegroup.name });
         });
     },
     update({ a, b, newParams }) {

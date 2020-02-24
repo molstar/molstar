@@ -4,19 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureElement, ElementIndex, ResidueIndex } from '../../../../../mol-model/structure';
+import { Unit, Structure, StructureElement, ElementIndex, ResidueIndex } from '../../../../../mol-model/structure';
 import { Segmentation } from '../../../../../mol-data/int';
 import Iterator from '../../../../../mol-data/iterator';
 import SortedRanges from '../../../../../mol-data/int/sorted-ranges';
 import { getPolymerRanges } from '../polymer';
 
 /** Iterates over consecutive pairs of residues/coarse elements in polymers */
-export function PolymerBackboneIterator(unit: Unit): Iterator<PolymerBackbonePair> {
+export function PolymerBackboneIterator(structure: Structure, unit: Unit): Iterator<PolymerBackbonePair> {
     switch (unit.kind) {
-        case Unit.Kind.Atomic: return new AtomicPolymerBackboneIterator(unit)
+        case Unit.Kind.Atomic: return new AtomicPolymerBackboneIterator(structure, unit)
         case Unit.Kind.Spheres:
         case Unit.Kind.Gaussians:
-            return new CoarsePolymerBackboneIterator(unit)
+            return new CoarsePolymerBackboneIterator(structure, unit)
     }
 }
 
@@ -25,10 +25,10 @@ interface PolymerBackbonePair {
     centerB: StructureElement.Location
 }
 
-function createPolymerBackbonePair (unit: Unit) {
+function createPolymerBackbonePair (structure: Structure, unit: Unit) {
     return {
-        centerA: StructureElement.Location.create(unit),
-        centerB: StructureElement.Location.create(unit),
+        centerA: StructureElement.Location.create(structure, unit),
+        centerB: StructureElement.Location.create(structure, unit),
     }
 }
 
@@ -80,11 +80,11 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
         return this.value;
     }
 
-    constructor(private unit: Unit.Atomic) {
+    constructor(structure: Structure, private unit: Unit.Atomic) {
         this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex as ArrayLike<ElementIndex> // can assume it won't be -1 for polymer residues
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)
         this.residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements)
-        this.value = createPolymerBackbonePair(unit)
+        this.value = createPolymerBackbonePair(structure, unit)
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
     }
 }
@@ -126,9 +126,9 @@ export class CoarsePolymerBackboneIterator implements Iterator<PolymerBackbonePa
         return this.value;
     }
 
-    constructor(private unit: Unit.Spheres | Unit.Gaussians) {
+    constructor(structure: Structure, private unit: Unit.Spheres | Unit.Gaussians) {
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements);
-        this.value = createPolymerBackbonePair(unit)
+        this.value = createPolymerBackbonePair(structure, unit)
         this.hasNext = this.polymerIt.hasNext
     }
 }
