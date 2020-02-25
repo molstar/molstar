@@ -16,7 +16,6 @@ import Expression from '../../../mol-script/language/expression';
 import { StateObject, StateTransformer } from '../../../mol-state';
 import { RuntimeContext, Task } from '../../../mol-task';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { stringToWords } from '../../../mol-util/string';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { trajectoryFromGRO } from '../../../mol-model-formats/structure/gro';
 import { parseGRO } from '../../../mol-io/reader/gro/parser';
@@ -32,7 +31,6 @@ import { parseDcd } from '../../../mol-io/reader/dcd/parser';
 import { coordinatesFromDcd } from '../../../mol-model-formats/structure/dcd';
 import { topologyFromPsf } from '../../../mol-model-formats/structure/psf';
 import { deepEqual } from '../../../mol-util';
-import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 
 export { CoordinatesFromDcd };
 export { TopologyFromPsf };
@@ -45,7 +43,6 @@ export { TrajectoryFrom3DG };
 export { ModelFromTrajectory };
 export { StructureFromTrajectory };
 export { StructureFromModel };
-export { StructureAssemblyFromModel };
 export { TransformStructureConformation };
 export { TransformStructureConformationByMatrix };
 export { StructureSelectionFromExpression };
@@ -287,32 +284,6 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
         if (!b.data.models.includes(a.data)) return StateTransformer.UpdateResult.Recreate;
         if (!deepEqual(oldParams, newParams)) return StateTransformer.UpdateResult.Recreate;
         return StateTransformer.UpdateResult.Unchanged;
-    }
-});
-
-// TODO: deprecate this in favor of StructureFromModel
-type StructureAssemblyFromModel = typeof StructureAssemblyFromModel
-const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
-    name: 'structure-assembly-from-model',
-    display: { name: 'Structure Assembly', description: 'Create a molecular structure assembly.' },
-    from: SO.Molecule.Model,
-    to: SO.Molecule.Structure,
-    params(a) {
-        if (!a) {
-            return { id: PD.Optional(PD.Text('', { label: 'Assembly Id', description: 'Assembly Id. Value \'deposited\' can be used to specify deposited asymmetric unit.' })) };
-        }
-        const assemblies = ModelSymmetry.Provider.get(a.data)?.assemblies || []
-        const ids = assemblies.map(a => [a.id, `${a.id}: ${stringToWords(a.details)}`] as [string, string]);
-        ids.push(['deposited', 'Deposited']);
-        return {
-            id: PD.Optional(PD.Select(ids[0][0], ids, { label: 'Asm Id', description: 'Assembly Id' }))
-        };
-    }
-})({
-    apply({ a, params }, plugin: PluginContext) {
-        return Task.create('Build Assembly', async ctx => {
-            return ModelStructureRepresentation.create(plugin, ctx, a.data, { name: 'assembly', params });
-        })
     }
 });
 
