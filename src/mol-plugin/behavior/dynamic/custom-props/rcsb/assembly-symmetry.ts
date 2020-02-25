@@ -61,6 +61,8 @@ const InitAssemblySymmetry3D = StateAction.build({
     await state.updateTree(tree).runInContext(ctx);
 }));
 
+export { AssemblySymmetry3D }
+
 type AssemblySymmetry3D = typeof AssemblySymmetry3D
 const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
     name: 'rcsb-assembly-symmetry-3d',
