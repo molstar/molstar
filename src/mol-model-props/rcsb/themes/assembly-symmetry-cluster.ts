@@ -59,11 +59,13 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
             for (let j = 0, jl = members.length; j < jl; ++j) {
                 const asymId = members[j]!.asym_id
                 const operList = [...members[j]!.pdbx_struct_oper_list_ids || []] as string[]
-                if (operList.length === 0) operList.push('1') // TODO hack assuming '1' is the id of the identity operator
                 clusterByMember.set(clusterMemberKey(asymId, operList), i)
+                if (operList.length === 0) {
+                    operList.push('1') // TODO hack assuming '1' is the id of the identity operator
+                    clusterByMember.set(clusterMemberKey(asymId, operList), i)
+                }
             }
         }
-
         const palette = getPalette(clusters.length, props)
         legend = palette.legend
 
