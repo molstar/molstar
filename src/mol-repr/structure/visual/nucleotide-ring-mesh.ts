@@ -72,7 +72,6 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh)
 
     const { elements, model } = unit
-    const { modifiedResidues } = model.properties
     const { chainAtomSegments, residueAtomSegments, residues, index: atomicIndex } = model.atomicHierarchy
     const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue
     const { label_comp_id } = residues
@@ -93,9 +92,7 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
             const { index: residueIndex } = residueIt.move();
 
             if (isNucleic(moleculeType[residueIndex])) {
-                let compId = label_comp_id.value(residueIndex)
-                const parentId = modifiedResidues.parentId.get(compId)
-                if (parentId !== undefined) compId = parentId
+                const compId = label_comp_id.value(residueIndex)
 
                 let idxTrace: ElementIndex | -1 = -1, idxN1: ElementIndex | -1 = -1, idxC2: ElementIndex | -1 = -1, idxN3: ElementIndex | -1 = -1, idxC4: ElementIndex | -1 = -1, idxC5: ElementIndex | -1 = -1, idxC6: ElementIndex | -1 = -1, idxN7: ElementIndex | -1 = -1, idxC8: ElementIndex | -1 = -1, idxN9: ElementIndex | -1 = -1
 

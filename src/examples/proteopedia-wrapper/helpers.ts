@@ -7,7 +7,7 @@
 import { ResidueIndex, Model } from '../../mol-model/structure';
 import { BuiltInStructureRepresentationsName } from '../../mol-repr/structure/registry';
 import { BuiltInColorThemeName } from '../../mol-theme/color';
-import { AminoAcidNames } from '../../mol-model/structure/model/types';
+import { PolymerType } from '../../mol-model/structure/model/types';
 import { PluginContext } from '../../mol-plugin/context';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
@@ -54,14 +54,13 @@ export namespace ModelInfo {
         const hetMap = new Map<string, ModelInfo['hetResidues'][0]>();
 
         for (let rI = 0 as ResidueIndex; rI < residueCount; rI++) {
-            const comp_id = model.atomicHierarchy.residues.label_comp_id.value(rI);
-            if (AminoAcidNames.has(comp_id)) continue;
-            const mod_parent = model.properties.modifiedResidues.parentId.get(comp_id);
-            if (mod_parent && AminoAcidNames.has(mod_parent)) continue;
+            if (model.atomicHierarchy.derived.residue.polymerType[rI] !== PolymerType.NA) continue;
 
             const cI = chainIndex[residueOffsets[rI]];
             const eI = model.atomicHierarchy.index.getEntityFromChain(cI);
             if (model.entities.data.type.value(eI) === 'water') continue;
+
+            const comp_id = model.atomicHierarchy.residues.label_comp_id.value(rI);
 
             let lig = hetMap.get(comp_id);
             if (!lig) {

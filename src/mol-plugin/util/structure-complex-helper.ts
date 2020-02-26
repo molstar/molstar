@@ -22,7 +22,7 @@ export function createDefaultStructureComplex(
         .apply(StateTransforms.Representation.StructureRepresentation3D,
             StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick'));
 
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'modified' }, { tags: StructureComplexElementTypes.modified })
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'non-standard' }, { tags: StructureComplexElementTypes['non-standard'] })
         .apply(StateTransforms.Representation.StructureRepresentation3D,
             StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', void 0, 'polymer-id'));
 

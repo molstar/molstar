@@ -123,18 +123,6 @@ export function printSequence(model: Model) {
     console.log();
 }
 
-export function printModRes(model: Model) {
-    console.log('\nModified Residues\n=============');
-    const map = model.properties.modifiedResidues.parentId;
-    const { label_comp_id, _rowCount } = model.atomicHierarchy.residues;
-    for (let i = 0; i < _rowCount; i++) {
-        const comp_id = label_comp_id.value(i);
-        if (!map.has(comp_id)) continue;
-        console.log(`[${i}] ${map.get(comp_id)} -> ${comp_id}`);
-    }
-    console.log();
-}
-
 export function printRings(structure: Structure) {
     console.log('\nRings\n=============');
     for (const unit of structure.units) {
@@ -221,7 +209,6 @@ async function run(frame: CifFrame, args: Args) {
     if (args.rings) printRings(structure);
     if (args.intraBonds) printBonds(structure, true, false);
     if (args.interBonds) printBonds(structure, false, true);
-    if (args.mod) printModRes(models[0]);
     if (args.sec) printSecStructure(models[0]);
 }
 

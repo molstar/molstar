@@ -53,7 +53,6 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh)
 
     const { elements, model } = unit
-    const { modifiedResidues } = model.properties
     const { chainAtomSegments, residueAtomSegments, residues, index: atomicIndex } = model.atomicHierarchy
     const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue
     const { label_comp_id } = residues
@@ -72,9 +71,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
             const { index: residueIndex } = residueIt.move();
 
             if (isNucleic(moleculeType[residueIndex])) {
-                let compId = label_comp_id.value(residueIndex)
-                const parentId = modifiedResidues.parentId.get(compId)
-                if (parentId !== undefined) compId = parentId
+                const compId = label_comp_id.value(residueIndex)
                 let idx1: ElementIndex | -1 = -1, idx2: ElementIndex | -1 = -1, idx3: ElementIndex | -1 = -1, idx4: ElementIndex | -1 = -1, idx5: ElementIndex | -1 = -1, idx6: ElementIndex | -1 = -1
                 let width = 4.5, height = 4.5, depth = 2.5 * sizeFactor
 

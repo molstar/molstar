@@ -614,7 +614,7 @@ export const StructureComplexElementTypes = {
 
     'branched': 'branched', // = carbs
     'ligand': 'ligand',
-    'modified': 'modified',
+    'non-standard': 'non-standard',
 
     'coarse': 'coarse',
 
@@ -649,7 +649,7 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
             case 'branched': query = StructureSelectionQueries.branchedPlusConnected.query; label = 'Branched'; break;
             case 'ligand': query = StructureSelectionQueries.ligandPlusConnected.query; label = 'Ligand'; break;
 
-            case 'modified': query = StructureSelectionQueries.modified.query; label = 'Modified'; break;
+            case 'non-standard': query = StructureSelectionQueries.nonStandardPolymer.query; label = 'Non-standard'; break;
 
             case 'coarse': query = StructureSelectionQueries.coarse.query; label = 'Coarse'; break;
 

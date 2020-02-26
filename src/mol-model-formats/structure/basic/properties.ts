@@ -13,23 +13,6 @@ import { memoize1 } from '../../../mol-util/memoize';
 import { BasicData } from './schema';
 import { Table } from '../../../mol-data/db';
 
-function getModifiedResidueNameMap(data: BasicData): Model['properties']['modifiedResidues'] {
-    const parentId = new Map<string, string>();
-    const details = new Map<string, string>();
-
-    const c = data.pdbx_struct_mod_residue;
-    const comp_id = c.label_comp_id.isDefined ? c.label_comp_id : c.auth_comp_id;
-    const parent_id = c.parent_comp_id, details_data = c.details;
-
-    for (let i = 0; i < c._rowCount; i++) {
-        const id = comp_id.value(i);
-        parentId.set(id, parent_id.value(i));
-        details.set(id, details_data.value(i));
-    }
-
-    return { parentId, details };
-}
-
 function getMissingResidues(data: BasicData): Model['properties']['missingResidues'] {
     const map = new Map<string, MissingResidue>();
     const getKey = (model_num: number, asym_id: string, seq_id: number) => {
@@ -126,7 +109,6 @@ const getUniqueComponentNames = memoize1((data: BasicData) => {
 
 export function getProperties(data: BasicData): Model['properties'] {
     return {
-        modifiedResidues: getModifiedResidueNameMap(data),
         missingResidues: getMissingResidues(data),
         chemicalComponentMap: getChemicalComponentMap(data),
         saccharideComponentMap: getSaccharideComponentMap(data)

@@ -32,22 +32,16 @@ export function hydrophobicity(compId: string, scaleIndex: number): number {
 }
 
 function getAtomicCompId(unit: Unit.Atomic, element: ElementIndex) {
-    const { modifiedResidues } = unit.model.properties
-    const compId = unit.model.atomicHierarchy.residues.label_comp_id.value(unit.residueIndex[element])
-    const parentId = modifiedResidues.parentId.get(compId)
-    return parentId === undefined ? compId : parentId
+    return unit.model.atomicHierarchy.residues.label_comp_id.value(unit.residueIndex[element])
 }
 
 function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIndex) {
     const seqIdBegin = unit.coarseElements.seq_id_begin.value(element)
     const seqIdEnd = unit.coarseElements.seq_id_end.value(element)
     if (seqIdBegin === seqIdEnd) {
-        const { modifiedResidues } = unit.model.properties
         const entityKey = unit.coarseElements.entityKey[element]
         const seq = unit.model.sequence.byEntityKey[entityKey].sequence
-        let compId = seq.compId.value(seqIdBegin - 1) // 1-indexed
-        const parentId = modifiedResidues.parentId.get(compId)
-        return parentId === undefined ? compId : parentId
+        return seq.compId.value(seqIdBegin - 1) // 1-indexed
     }
 }
 

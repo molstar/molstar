@@ -53,11 +53,6 @@ export interface Model extends Readonly<{
     atomicRanges: AtomicRanges,
 
     properties: {
-        /** maps modified residue name to its parent */
-        readonly modifiedResidues: Readonly<{
-            parentId: ReadonlyMap<string, string>,
-            details: ReadonlyMap<string, string>
-        }>,
         /** map that holds details about unobserved or zero occurrence residues */
         readonly missingResidues: MissingResidues,
         /** maps residue name to `ChemicalComponent` data */

@@ -325,8 +325,6 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.macromolecular.entitySubtype, atomProp(StructureProperties.entity.subtype)),
     D(MolScript.structureQuery.atomProperty.macromolecular.objectPrimitive, atomProp(StructureProperties.unit.object_primitive)),
 
-    D(MolScript.structureQuery.atomProperty.macromolecular.isModified, atomProp(StructureProperties.residue.isModified)),
-    D(MolScript.structureQuery.atomProperty.macromolecular.modifiedParentName, atomProp(StructureProperties.residue.modifiedParentName)),
     D(MolScript.structureQuery.atomProperty.macromolecular.isNonStandard, atomProp(StructureProperties.residue.isNonStandard)),
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureKey, atomProp(StructureProperties.residue.secondary_structure_key)),
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureFlags, atomProp(StructureProperties.residue.secondary_structure_type)),

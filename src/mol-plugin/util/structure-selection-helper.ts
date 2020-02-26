@@ -271,13 +271,6 @@ const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.
     ])
 ]))
 
-const modified = StructureSelectionQuery('Modified Residues', MS.struct.modifier.union([
-    MS.struct.generator.atomGroups({
-        'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-        'residue-test': MS.ammp('isModified')
-    })
-]))
-
 const nonStandardPolymer = StructureSelectionQuery('Non-standard Residues in Polymers', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
@@ -345,7 +338,6 @@ export const StructureSelectionQueries = {
     ligandConnectedOnly,
     connectedOnly,
     disulfideBridges,
-    modified,
     nonStandardPolymer,
     coarse,
     ring,

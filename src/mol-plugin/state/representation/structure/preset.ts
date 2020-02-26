@@ -52,7 +52,7 @@ const defaultPreset = StructureRepresentationProvider({
         const ligandRepr = ligand.applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
             StructureRepresentation3DHelpers.getDefaultParams(plugin, 'ball-and-stick', structure));
 
-        applyComplex(root, 'modified')
+        applyComplex(root, 'non-standard')
             .applyOrUpdateTagged(reprTags, StateTransforms.Representation.StructureRepresentation3D,
                 StructureRepresentation3DHelpers.getDefaultParamsWithTheme(plugin, 'ball-and-stick', 'polymer-id', structure, void 0));
 
