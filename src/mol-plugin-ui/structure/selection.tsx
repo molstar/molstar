@@ -7,13 +7,14 @@
 import * as React from 'react';
 import { CollapsableControls, CollapsableState } from '../base';
 import { StructureSelectionQueries, SelectionModifier } from '../../mol-plugin/util/structure-selection-helper';
-import { ButtonSelect, Options } from '../controls/common';
 import { PluginCommands } from '../../mol-plugin/command';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Interactivity } from '../../mol-plugin/util/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../mol-util/string';
 import { StructureElement } from '../../mol-model/structure';
+import { ActionMenu } from '../controls/action-menu';
+import { Subject } from 'rxjs';
 
 const SSQ = StructureSelectionQueries
 const DefaultQueries: (keyof typeof SSQ)[] = [
@@ -124,28 +125,19 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     remove = (value: string) => this.set('remove', value)
     only = (value: string) => this.set('only', value)
 
-    queries = Options(Object.keys(StructureSelectionQueries)
-            .map(name => [name, SSQ[name as keyof typeof SSQ].label] as [string, string])
-            .filter(pair => DefaultQueries.includes(pair[0] as keyof typeof SSQ)));
+    queries = Object.keys(StructureSelectionQueries)
+        .map(name => ActionMenu.Item(SSQ[name as keyof typeof SSQ].label, name))
+        .filter(item => DefaultQueries.includes(item.value as keyof typeof SSQ)) as ActionMenu.Spec;
 
-    controls = <div className='msp-control-row'>
-        <div className='msp-select-row'>
-            <ButtonSelect label='Select' onChange={this.add} disabled={this.state.isDisabled}>
-                <optgroup label='Select'>
-                    {this.queries}
-                </optgroup>
-            </ButtonSelect>
-            <ButtonSelect label='Deselect' onChange={this.remove} disabled={this.state.isDisabled}>
-                <optgroup label='Deselect'>
-                    {this.queries}
-                </optgroup>
-            </ButtonSelect>
-            <ButtonSelect label='Only' onChange={this.only} disabled={this.state.isDisabled}>
-                <optgroup label='Only'>
-                    {this.queries}
-                </optgroup>
-            </ButtonSelect>
+    actionMenu = new Subject<ActionMenu.OptionsParams | undefined>();
+
+    controls = <div>
+        <div className='msp-control-row msp-button-row' style={{ marginBottom: '1px' }}>
+            <button onClick={() => this.actionMenu.next({ items: this.queries, header: 'Select', onSelect: this.add }) } disabled={this.state.isDisabled}>Select</button>
+            <button onClick={() => this.actionMenu.next({ items: this.queries, header: 'Deselect', onSelect: this.remove }) } disabled={this.state.isDisabled}>Deselect</button>
+            <button onClick={() => this.actionMenu.next({ items: this.queries, header: 'Only', onSelect: this.only }) } disabled={this.state.isDisabled}>Only</button>
         </div>
+        <ActionMenu.Options toggle={this.actionMenu} hide={this.plugin.state.dataState.events.isUpdating} />
     </div>
 
     defaultState() {

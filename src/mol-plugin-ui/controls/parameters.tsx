@@ -326,6 +326,7 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
             this.update(e.target.value);
         }
     }
+
     renderControl() {
         const isInvalid = this.props.value !== void 0 && !this.props.param.options.some(e => e[0] === this.props.value);
         return <select value={this.props.value !== void 0 ? this.props.value : this.props.param.defaultValue} onChange={this.onChange} disabled={this.props.isDisabled}>
