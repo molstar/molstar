@@ -38,8 +38,9 @@ interface Interactions {
 }
 
 namespace Interactions {
+    type StructureInteractions = { readonly structure: Structure, readonly interactions: Interactions }
+
     export interface Element {
-        structure: Structure,
         unitA: Unit
         /** Index into features of unitA */
         indexA: Features.FeatureIndex
@@ -47,11 +48,12 @@ namespace Interactions {
         /** Index into features of unitB */
         indexB: Features.FeatureIndex
     }
-    export interface Location extends DataLocation<Interactions, Element> {}
+
+    export interface Location extends DataLocation<StructureInteractions, Element> {}
 
     export function Location(interactions: Interactions, structure: Structure, unitA?: Unit, indexA?: Features.FeatureIndex, unitB?: Unit, indexB?: Features.FeatureIndex): Location {
-        return DataLocation('interactions', interactions, 
-            { structure: structure as any, unitA: unitA as any, indexA: indexA as any, unitB: unitB as any, indexB: indexB as any });
+        return DataLocation('interactions', { structure, interactions },
+            { unitA: unitA as any, indexA: indexA as any, unitB: unitB as any, indexB: indexB as any });
     }
 
     export function isLocation(x: any): x is Location {
@@ -60,7 +62,8 @@ namespace Interactions {
 
     export function areLocationsEqual(locA: Location, locB: Location) {
         return (
-            locA.data === locB.data &&
+            locA.data.structure === locB.data.structure &&
+            locA.data.interactions === locB.data.interactions &&
             locA.element.indexA === locB.element.indexA &&
             locA.element.indexB === locB.element.indexB &&
             locA.element.unitA === locB.element.unitA &&
@@ -82,10 +85,9 @@ namespace Interactions {
     }
 
     export function locationLabel(location: Location): string {
-        return _label(location.data, location.element)
+        return _label(location.data.interactions, location.element)
     }
 
-    type StructureInteractions = { readonly structure: Structure, readonly interactions: Interactions }
     export interface Loci extends DataLoci<StructureInteractions, Element> { }
 
     export function Loci(structure: Structure, interactions: Interactions, elements: ReadonlyArray<Element>): Loci {

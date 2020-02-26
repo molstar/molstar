@@ -101,8 +101,8 @@ function getInteractionLoci(pickingId: PickingId, structure: Structure, id: numb
         const interactions = InteractionsProvider.get(structure).value!
         const c = interactions.contacts.edges[groupId]
         return Interactions.Loci(structure, interactions, [
-            { structure, unitA: c.unitA, indexA: c.indexA, unitB: c.unitB, indexB: c.indexB },
-            { structure, unitA: c.unitB, indexA: c.indexB, unitB: c.unitA, indexB: c.indexA },
+            { unitA: c.unitA, indexA: c.indexA, unitB: c.unitB, indexB: c.indexB },
+            { unitA: c.unitB, indexA: c.indexB, unitB: c.unitA, indexB: c.indexA },
         ])
     }
     return EmptyLoci

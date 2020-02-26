@@ -78,7 +78,7 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
     if (interactions && interactions.value) {
         color = (location: Location) => {
             if (Interactions.isLocation(location)) {
-                const { unitsContacts, contacts } = location.data
+                const { unitsContacts, contacts } = location.data.interactions
                 const { unitA, unitB, indexA, indexB } = location.element
                 if (unitA === unitB) {
                     const links = unitsContacts.get(unitA.id)
