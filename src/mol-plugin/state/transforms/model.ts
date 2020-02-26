@@ -690,7 +690,7 @@ async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: Runti
     const { autoAttach, properties } = params
     for (const name of Object.keys(properties)) {
         const property = ctx.customModelProperties.get(name)
-        const props = params[name as keyof typeof params]
+        const props = properties[name]
         if (autoAttach.includes(name)) {
             try {
                 await property.attach(propertyCtx, model, props)
@@ -725,7 +725,7 @@ async function attachStructureProps(structure: Structure, ctx: PluginContext, ta
     const { autoAttach, properties } = params
     for (const name of Object.keys(properties)) {
         const property = ctx.customStructureProperties.get(name)
-        const props = params[name as keyof typeof params]
+        const props = properties[name]
         if (autoAttach.includes(name)) {
             try {
                 await property.attach(propertyCtx, structure, props)
