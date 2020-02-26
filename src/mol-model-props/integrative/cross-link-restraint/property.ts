@@ -5,10 +5,16 @@
  */
 
 import { ModelCrossLinkRestraint } from './format';
-import { Unit, StructureElement, Structure, CustomPropertyDescriptor} from '../../../mol-model/structure';
+import { Unit, StructureElement, Structure, CustomPropertyDescriptor, Bond} from '../../../mol-model/structure';
 import { PairRestraints, PairRestraint } from '../pair-restraints';
 import { CustomStructureProperty } from '../../common/custom-structure-property';
 import { CustomProperty } from '../../common/custom-property';
+import { DataLocation } from '../../../mol-model/location';
+import { DataLoci } from '../../../mol-model/loci';
+import { Sphere3D } from '../../../mol-math/geometry';
+import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
+import { bondLabel } from '../../../mol-theme/label';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 export type CrossLinkRestraintValue = PairRestraints<CrossLinkRestraint>
 
@@ -45,8 +51,74 @@ namespace CrossLinkRestraint {
     export function isApplicable(structure: Structure) {
         return structure.models.some(m => !!ModelCrossLinkRestraint.Provider.get(m))
     }
-}
 
+    const distVecA = Vec3(), distVecB = Vec3()
+    export function distance(pair: CrossLinkRestraint) {
+        pair.unitA.conformation.position(pair.unitA.elements[pair.indexA], distVecA)
+        pair.unitB.conformation.position(pair.unitB.elements[pair.indexB], distVecB)
+        return Vec3.distance(distVecA, distVecB)
+    }
+
+    type StructureCrossLinkRestraints = { readonly structure: Structure, readonly crossLinkRestraints: CrossLinkRestraintValue }
+
+    export type Element = number
+    export interface Location extends DataLocation<StructureCrossLinkRestraints, Element> {}
+
+    export function Location(crossLinkRestraints: CrossLinkRestraintValue, structure: Structure, index?: number): Location {
+        return DataLocation('cross-link-restraints', { structure, crossLinkRestraints }, index as any);
+    }
+
+    export function isLocation(x: any): x is Location {
+        return !!x && x.kind === 'data-location' && x.tag === 'cross-link-restraints';
+    }
+
+    export function areLocationsEqual(locA: Location, locB: Location) {
+        return (
+            locA.data.structure === locB.data.structure &&
+            locA.data.crossLinkRestraints === locB.data.crossLinkRestraints &&
+            locA.element === locB.element
+        )
+    }
+
+    function _label(crossLinkRestraints: CrossLinkRestraintValue, element: Element): string {
+        const p = crossLinkRestraints.pairs[element]
+        return `Cross Link Restraint | Type: ${p.restraintType} | Threshold: ${p.distanceThreshold} \u212B | Psi: ${p.psi} | Sigma 1: ${p.sigma1} | Sigma 2: ${p.sigma2} | Distance: ${distance(p).toFixed(2)} \u212B`
+    }
+
+    export function locationLabel(location: Location): string {
+        return _label(location.data.crossLinkRestraints, location.element)
+    }
+
+    export interface Loci extends DataLoci<StructureCrossLinkRestraints, Element> { }
+
+    export function Loci(structure: Structure, crossLinkRestraints: CrossLinkRestraintValue, elements: ReadonlyArray<Element>): Loci {
+        return DataLoci('cross-link-restraints', { structure, crossLinkRestraints }, elements,
+            (boundingSphere) => getBoundingSphere(crossLinkRestraints, elements, boundingSphere),
+            () => getLabel(structure, crossLinkRestraints, elements));
+    }
+
+    export function isLoci(x: any): x is Loci {
+        return !!x && x.kind === 'data-loci' && x.tag === 'interactions';
+    }
+
+    export function getBoundingSphere(crossLinkRestraints: CrossLinkRestraintValue, elements: ReadonlyArray<Element>, boundingSphere: Sphere3D) {
+        return CentroidHelper.fromPairProvider(elements.length, (i, pA, pB) => {
+            const p = crossLinkRestraints.pairs[elements[i]]
+            p.unitA.conformation.position(p.unitA.elements[p.indexA], pA)
+            p.unitB.conformation.position(p.unitB.elements[p.indexB], pB)
+        }, boundingSphere)
+    }
+
+    export function getLabel(structure: Structure, crossLinkRestraints: CrossLinkRestraintValue, elements: ReadonlyArray<Element>) {
+        const element = elements[0]
+        if (element === undefined) return ''
+        const p = crossLinkRestraints.pairs[element]
+        return [
+            _label(crossLinkRestraints, element),
+            bondLabel(Bond.Location(structure, p.unitA, p.indexA, structure, p.unitB, p.indexB))
+        ].join('</br>')
+    }
+}
 
 //
 

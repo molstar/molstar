@@ -14,7 +14,7 @@ import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { Interval } from '../../../mol-data/int';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Structure, StructureElement, Bond } from '../../../mol-model/structure';
+import { Structure, StructureElement } from '../../../mol-model/structure';
 import { VisualContext } from '../../../mol-repr/visual';
 import { createLinkCylinderMesh, LinkCylinderParams } from '../../../mol-repr/structure/visual/util/link';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual } from '../../../mol-repr/structure/complex-visual';
@@ -54,7 +54,7 @@ function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Str
 export const CrossLinkRestraintCylinderParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
-    sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
+    sizeFactor: PD.Numeric(0.5, { min: 0, max: 10, step: 0.1 }),
 }
 export type CrossLinkRestraintCylinderParams = typeof CrossLinkRestraintCylinderParams
 
@@ -62,7 +62,7 @@ export function CrossLinkRestraintVisual(materialId: number): ComplexVisual<Cros
     return ComplexMeshVisual<CrossLinkRestraintCylinderParams>({
         defaultProps: PD.getDefaultValues(CrossLinkRestraintCylinderParams),
         createGeometry: createCrossLinkRestraintCylinderMesh,
-        createLocationIterator: CrossLinkRestraintIterator,
+        createLocationIterator: createCrossLinkRestraintIterator,
         getLoci: getLinkLoci,
         eachLocation: eachCrossLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CrossLinkRestraintCylinderParams>, currentProps: PD.Values<CrossLinkRestraintCylinderParams>) => {
@@ -75,19 +75,14 @@ export function CrossLinkRestraintVisual(materialId: number): ComplexVisual<Cros
     }, materialId)
 }
 
-function CrossLinkRestraintIterator(structure: Structure): LocationIterator {
-    const { pairs } = CrossLinkRestraintProvider.get(structure).value!
+function createCrossLinkRestraintIterator(structure: Structure): LocationIterator {
+    const crossLinkRestraints = CrossLinkRestraintProvider.get(structure).value!
+    const { pairs } = crossLinkRestraints
     const groupCount = pairs.length
     const instanceCount = 1
-    const location = Bond.Location()
+    const location = CrossLinkRestraint.Location(crossLinkRestraints, structure)
     const getLocation = (groupIndex: number) => {
-        const pair = pairs[groupIndex]
-        location.aStructure = structure
-        location.aUnit = pair.unitA
-        location.aIndex = pair.indexA
-        location.bStructure = structure
-        location.bUnit = pair.unitB
-        location.bIndex = pair.indexB
+        location.element = groupIndex
         return location
     }
     return LocationIterator(groupCount, instanceCount, getLocation, true)
@@ -96,29 +91,24 @@ function CrossLinkRestraintIterator(structure: Structure): LocationIterator {
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId
     if (id === objectId) {
-        const pair = CrossLinkRestraintProvider.get(structure).value!.pairs[groupId]
+        const crossLinkRestraints = CrossLinkRestraintProvider.get(structure).value!
+        const pair = crossLinkRestraints.pairs[groupId]
         if (pair) {
-            return Bond.Loci(structure, [
-                Bond.Location(structure, pair.unitA, pair.indexA, structure, pair.unitB, pair.indexB),
-                Bond.Location(structure, pair.unitB, pair.indexB, structure, pair.unitA, pair.indexA)
-            ])
+            return CrossLinkRestraint.Loci(structure, crossLinkRestraints, [groupId])
         }
     }
     return EmptyLoci
 }
 
 function eachCrossLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
-    const crossLinks = CrossLinkRestraintProvider.get(structure).value!
     let changed = false
-    if (Bond.isLoci(loci)) {
-        if (!Structure.areEquivalent(loci.structure, structure)) return false
-        for (const b of loci.bonds) {
-            const indices = crossLinks.getPairIndices(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
-            if (indices) {
-                for (let i = 0, il = indices.length; i < il; ++i) {
-                    if (apply(Interval.ofSingleton(indices[i]))) changed = true
-                }
-            }
+    if (CrossLinkRestraint.isLoci(loci)) {
+        if (!Structure.areEquivalent(loci.data.structure, structure)) return false
+        const crossLinkRestraints = CrossLinkRestraintProvider.get(structure).value!
+        if (loci.data.crossLinkRestraints !== crossLinkRestraints) return false
+
+        for (const e of loci.elements) {
+            if (apply(Interval.ofSingleton(e))) changed = true
         }
     }
     return changed

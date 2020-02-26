@@ -26,13 +26,12 @@ export class PairRestraints<T extends PairRestraint> {
     /** Indices into this.pairs */
     getPairIndices(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): ReadonlyArray<number> {
         const key = getPairKey(indexA, unitA, indexB, unitB)
-        const indices = this.pairKeyIndices.get(key)
-        return indices !== undefined ? indices : emptyArray
+        return this.pairKeyIndices.get(key) || emptyArray
     }
 
-    getPairs(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): T[] | undefined {
+    getPairs(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): T[] {
         const indices = this.getPairIndices(indexA, unitA, indexB, unitB)
-        return indices.length ? indices.map(idx => this.pairs[idx]) : undefined
+        return indices.map(idx => this.pairs[idx])
     }
 
     constructor(public pairs: ReadonlyArray<T>) {
