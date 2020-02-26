@@ -6,7 +6,7 @@
 
 import { Table, Column } from '../../../mol-data/db';
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
-import { WaterNames } from '../../../mol-model/structure/model/types';
+import { WaterNames, PolymerNames } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
 import { BasicSchema } from '../basic/schema';
 
@@ -77,12 +77,14 @@ export class ComponentBuilder {
     private ids: string[] = []
     private names: string[] = []
     private types: mmCIF_Schema['chem_comp']['type']['T'][] = []
+    private mon_nstd_flags: mmCIF_Schema['chem_comp']['mon_nstd_flag']['T'][] = []
 
     private set(c: Component) {
         this.comps.set(c.id, c)
         this.ids.push(c.id)
         this.names.push(c.name)
         this.types.push(c.type)
+        this.mon_nstd_flags.push(PolymerNames.has(c.id) ? 'y' : 'n')
     }
 
     private getAtomIds(index: number) {
@@ -141,6 +143,7 @@ export class ComponentBuilder {
             id: Column.ofStringArray(this.ids),
             name: Column.ofStringArray(this.names),
             type: Column.ofStringAliasArray(this.types),
+            mon_nstd_flag: Column.ofStringAliasArray(this.mon_nstd_flags),
         }, this.ids.length)
     }
 

@@ -342,7 +342,7 @@ export function getDefaultChemicalComponent(compId: string): ChemicalComponent {
         formula_weight: 0,
         id: compId,
         name: compId,
-        mon_nstd_flag: 'n',
+        mon_nstd_flag: PolymerNames.has(compId) ? 'y' : 'n',
         pdbx_synonyms: [],
         type: getComponentType(compId)
     };
