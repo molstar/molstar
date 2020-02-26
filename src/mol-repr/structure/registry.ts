@@ -11,7 +11,6 @@ import { BallAndStickRepresentationProvider } from './representation/ball-and-st
 import { GaussianSurfaceRepresentationProvider } from './representation/gaussian-surface';
 import { CarbohydrateRepresentationProvider } from './representation/carbohydrate';
 import { SpacefillRepresentationProvider } from './representation/spacefill';
-import { DistanceRestraintRepresentationProvider } from './representation/distance-restraint';
 import { PointRepresentationProvider } from './representation/point';
 import { StructureRepresentationState } from './representation';
 import { PuttyRepresentationProvider } from './representation/putty';
@@ -34,7 +33,6 @@ export const BuiltInStructureRepresentations = {
     'cartoon': CartoonRepresentationProvider,
     'ball-and-stick': BallAndStickRepresentationProvider,
     'carbohydrate': CarbohydrateRepresentationProvider,
-    'distance-restraint': DistanceRestraintRepresentationProvider,
     'ellipsoid': EllipsoidRepresentationProvider,
     'gaussian-surface': GaussianSurfaceRepresentationProvider,
     // 'gaussian-volume': GaussianVolumeRepresentationProvider, // TODO disabled for now, needs more work

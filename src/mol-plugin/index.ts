@@ -70,14 +70,17 @@ export const DefaultPluginSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
         PluginSpec.Behavior(PluginBehaviors.Camera.FocusLoci),
+        PluginSpec.Behavior(StructureRepresentationInteraction),
+
         PluginSpec.Behavior(PluginBehaviors.CustomProps.AccessibleSurfaceArea),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.ValenceModel),
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.CrossLinkRestraint),
+
         PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true, showTooltip: true }),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBValidationReport),
-        PluginSpec.Behavior(StructureRepresentationInteraction)
     ],
     customParamEditors: [
         [CreateVolumeStreamingBehavior, VolumeStreamingCustomControls]

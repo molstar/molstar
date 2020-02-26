@@ -13,7 +13,6 @@ import { deepEqual } from '../mol-util';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { ThemeDataContext, ThemeRegistry, ThemeProvider } from './theme';
 import { ChainIdColorThemeProvider } from './color/chain-id';
-import { CrossLinkColorThemeProvider } from './color/cross-link';
 import { ElementIndexColorThemeProvider } from './color/element-index';
 import { ElementSymbolColorThemeProvider } from './color/element-symbol';
 import { MoleculeTypeColorThemeProvider } from './color/molecule-type';
@@ -76,7 +75,6 @@ namespace ColorTheme {
 export const BuiltInColorThemes = {
     'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,
     'chain-id': ChainIdColorThemeProvider,
-    'cross-link': CrossLinkColorThemeProvider,
     'element-index': ElementIndexColorThemeProvider,
     'element-symbol': ElementSymbolColorThemeProvider,
     'entity-source': EntitySourceColorThemeProvider,

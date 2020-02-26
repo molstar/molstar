@@ -1,15 +1,14 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Unit from '../../unit';
-import { StructureElement } from '../../../structure';
+import { StructureElement, Unit } from '../../mol-model/structure';
 
 const emptyArray: number[] = []
 
-interface PairRestraint {
+export interface PairRestraint {
     readonly unitA: Unit,
     readonly unitB: Unit,
     readonly indexA: StructureElement.UnitIndex,
@@ -48,30 +47,4 @@ export class PairRestraints<T extends PairRestraint> {
         this.count = pairs.length
         this.pairKeyIndices = pairKeyIndices
     }
-}
-
-export interface CrossLinkRestraint extends PairRestraint {
-    readonly restraintType: 'harmonic' | 'upper bound' | 'lower bound'
-    readonly distanceThreshold: number
-    readonly psi: number
-    readonly sigma1: number
-    readonly sigma2: number
-}
-
-export interface PredictedContactRestraint extends PairRestraint {
-    readonly distance_lower_limit: number
-    readonly distance_upper_limit: number
-    readonly probability: number
-    readonly restraint_type: 'lower bound' | 'upper bound' | 'lower and upper bound'
-    readonly model_granularity: 'by-residue' | 'by-feature' | 'by-atom'
-}
-
-export interface DistanceRestraint extends PairRestraint {
-    readonly upper_limit: number
-    readonly upper_limit_esd: number
-    readonly lower_limit: number
-    readonly lower_limit_esd: number
-    readonly probability: number
-    readonly restraint_type: 'lower bound' | 'upper bound' | 'lower and upper bound'
-    readonly granularity: 'by-residue' | 'by-atom'
 }

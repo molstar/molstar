@@ -1,14 +1,54 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Unit from '../../unit';
-import Structure from '../../structure';
-import { PairRestraints, CrossLinkRestraint } from './data';
-import { StructureElement } from '../../../structure';
-import { ModelCrossLinkRestraint } from '../../../../../mol-model-formats/structure/property/pair-restraints/cross-links';
+import { ModelCrossLinkRestraint } from './format';
+import { Unit, StructureElement, Structure, CustomPropertyDescriptor} from '../../../mol-model/structure';
+import { PairRestraints, PairRestraint } from '../pair-restraints';
+import { CustomStructureProperty } from '../../common/custom-structure-property';
+import { CustomProperty } from '../../common/custom-property';
+
+export type CrossLinkRestraintValue = PairRestraints<CrossLinkRestraint>
+
+export const CrossLinkRestraintProvider: CustomStructureProperty.Provider<{}, CrossLinkRestraintValue> = CustomStructureProperty.createProvider({
+    label: 'Cross Link Restraint',
+    descriptor: CustomPropertyDescriptor({
+        name: 'integrative-cross-link-restraint',
+        // TODO `cifExport` and `symbol`
+    }),
+    type: 'local',
+    defaultParams: {},
+    getParams: (data: Structure) => ({}),
+    isApplicable: (data: Structure) => data.models.some(m => !!ModelCrossLinkRestraint.Provider.get(m)),
+    obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<{}>) => {
+        return extractCrossLinkRestraints(data)
+    }
+})
+
+export { CrossLinkRestraint }
+
+interface CrossLinkRestraint extends PairRestraint {
+    readonly restraintType: 'harmonic' | 'upper bound' | 'lower bound'
+    readonly distanceThreshold: number
+    readonly psi: number
+    readonly sigma1: number
+    readonly sigma2: number
+}
+
+namespace CrossLinkRestraint {
+    export enum Tag {
+        CrossLinkRestraint = 'cross-link-restraint'
+    }
+
+    export function isApplicable(structure: Structure) {
+        return structure.models.some(m => !!ModelCrossLinkRestraint.Provider.get(m))
+    }
+}
+
+
+//
 
 function _addRestraints(map: Map<number, number>, unit: Unit, restraints: ModelCrossLinkRestraint) {
     const { elements } = unit;
@@ -107,5 +147,3 @@ function extractCrossLinkRestraints(structure: Structure): PairRestraints<CrossL
 
     return new PairRestraints(pairs)
 }
-
-export { extractCrossLinkRestraints };
