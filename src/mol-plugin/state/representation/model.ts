@@ -15,7 +15,6 @@ import { PluginContext } from '../../context';
 import { Assembly, Symmetry } from '../../../mol-model/structure/model/properties/symmetry';
 import { PluginStateObject as SO } from '../objects';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
-import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 
 export namespace ModelStructureRepresentation {
     export function getParams(model?: Model, defaultValue?: 'deposited' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly') {
@@ -33,13 +32,11 @@ export namespace ModelStructureRepresentation {
         }
 
         const asymIdsOptions: [string, string][] = []
-        if (model && MmcifFormat.is(model?.sourceData)) {
-            // TODO make generally available for models, also include auth_asym_id
-            const { struct_asym } = model.sourceData.data.db
-            for (let i = 0, il = struct_asym._rowCount; i < il; ++i) {
-                const id = struct_asym.id.value(i)
-                asymIdsOptions.push([id, id])
-            }
+        if (model) {
+            model.properties.structAsymMap.forEach(v => {
+                const label = v.id === v.auth_id ? v.id : `${v.id} [auth ${v.auth_id}]`
+                asymIdsOptions.push([v.id, label])
+            })
         }
 
         const modes = {

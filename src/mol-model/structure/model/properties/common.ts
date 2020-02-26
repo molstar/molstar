@@ -30,3 +30,6 @@ export interface MissingResidues {
     get(model_num: number, asym_id: string, seq_id: number): MissingResidue | undefined
     readonly size: number
 }
+
+export type StructAsym = Table.Row<Pick<mmCIF_Schema['struct_asym'], 'id' | 'entity_id'> & { auth_id: Column.Schema.Str }>
+export type StructAsymMap = ReadonlyMap<string, StructAsym>
