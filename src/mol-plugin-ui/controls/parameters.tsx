@@ -15,21 +15,25 @@ import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
 import { NumericInput, IconButton, ControlGroup } from './common';
-import { _Props, _State } from '../base';
+import { _Props, _State, PluginUIComponent } from '../base';
 import { legendFor } from './legend';
 import { Legend as LegendData } from '../../mol-util/legend';
 import { CombinedColorControl, ColorValueOption, ColorOptions } from './color';
 import { getPrecision } from '../../mol-util/number';
+import { ParamMapping } from '../../mol-util/param-mapping';
+import { PluginContext } from '../../mol-plugin/context';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
     values: any,
-    onChange: ParamOnChange,
+    onChange: ParamsOnChange<PD.Values<P>>,
     isDisabled?: boolean,
     onEnter?: () => void
 }
 
 export class ParameterControls<P extends PD.Params> extends React.PureComponent<ParameterControlsProps<P>, {}> {
+    onChange: ParamOnChange = (params) => this.props.onChange(params, this.props.values);
+
     render() {
         const params = this.props.params;
         const values = this.props.values;
@@ -41,11 +45,31 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
                 if (param.isHidden) return null;
                 const Control = controlFor(param);
                 if (!Control) return null;
-                return <Control param={param} key={key} onChange={this.props.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} />
+                return <Control param={param} key={key} onChange={this.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} />
             })}
         </>;
     }
 }
+
+export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: ParamMapping<S, T, PluginContext> }> {
+    setSettings = (p: { param: PD.Base<any>, name: string, value: any }, old: any) => {
+        const values = { ...old, [p.name]: p.value };
+        const t = this.props.mapping.update(values, this.plugin);
+        this.props.mapping.apply(t, this.plugin);
+    }
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
+    }
+
+    render() {
+        const t = this.props.mapping.getTarget(this.plugin);
+        const values = this.props.mapping.getValues(t, this.plugin);
+        const params = this.props.mapping.params(this.plugin) as any as PD.Params;
+        return <ParameterControls params={params} values={values} onChange={this.setSettings} />
+    }
+}
+
 
 function controlFor(param: PD.Any): ParamControl | undefined {
     switch (param.type) {
@@ -91,6 +115,7 @@ export class ParamHelp<L extends LegendData> extends React.PureComponent<{ legen
     }
 }
 
+export type ParamsOnChange<P> = (params: { param: PD.Base<any>, name: string, value: any }, values: Readonly<P>) => void
 export type ParamOnChange = (params: { param: PD.Base<any>, name: string, value: any }) => void
 export interface ParamProps<P extends PD.Base<any> = PD.Base<any>> {
     name: string,

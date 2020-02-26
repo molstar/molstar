@@ -116,6 +116,7 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "graphql": "^14.6.0",
+    "immer": "^5.3.6",
     "immutable": "^3.8.2",
     "node-fetch": "^2.6.0",
     "react": "^16.12.0",
