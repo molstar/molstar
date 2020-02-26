@@ -66,6 +66,7 @@
         text-align-last: center;
         background: none;
         padding: 0 $control-spacing;
+        overflow: hidden;
 
         > option[value = _] {
             display: none;
