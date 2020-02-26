@@ -53,14 +53,14 @@ export namespace ModelStructureRepresentation {
                 radius: PD.Numeric(5)
             }, { isFlat: true }),
             'symmetry': PD.Group({
-                ijkMin: PD.Vec3(Vec3.create(-1, -1, -1), { label: 'Min IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } }),
-                ijkMax: PD.Vec3(Vec3.create(1, 1, 1), { label: 'Max IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
+                ijkMin: PD.Vec3(Vec3.create(-1, -1, -1), { step: 1 }, { label: 'Min IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } }),
+                ijkMax: PD.Vec3(Vec3.create(1, 1, 1), { step: 1 }, { label: 'Max IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
             }, { isFlat: true }),
             'symmetry-assembly': PD.Group({
                 generators: PD.ObjectList({
                     operators: PD.ObjectList({
                         index: PD.Select(0, operatorOptions),
-                        shift: PD.Vec3(Vec3(), { label: 'IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
+                        shift: PD.Vec3(Vec3(), { step: 1 }, { label: 'IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
                     }, e => `${e.index + 1}_${e.shift.map(a => a + 5).join('')}`, {
                         defaultValue: [] as { index: number, shift: Vec3 }[]
                     }),

@@ -93,8 +93,8 @@ export namespace VolumeStreaming {
                 }, { description: 'Static box defined by cartesian coords.', isFlat: true }),
                 'selection-box': PD.Group({
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
-                    bottomLeft: PD.Vec3(Vec3.create(0, 0, 0), { isHidden: true }),
-                    topRight: PD.Vec3(Vec3.create(0, 0, 0), { isHidden: true }),
+                    bottomLeft: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
+                    topRight: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                 }, { description: 'Box around last-interacted element.', isFlat: true }),
                 'cell': PD.Group({}),
                 // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.

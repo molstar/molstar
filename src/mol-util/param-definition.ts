@@ -111,11 +111,11 @@ export namespace ParamDefinition {
         return setInfo<Color>({ type: 'color', defaultValue }, info)
     }
 
-    export interface Vec3 extends Base<Vec3Data> {
+    export interface Vec3 extends Base<Vec3Data>, Range {
         type: 'vec3'
     }
-    export function Vec3(defaultValue: Vec3Data, info?: Info): Vec3 {
-        return setInfo<Vec3>({ type: 'vec3', defaultValue }, info)
+    export function Vec3(defaultValue: Vec3Data, range?: { min?: number, max?: number, step?: number }, info?: Info): Vec3 {
+        return setInfo<Vec3>(setRange({ type: 'vec3', defaultValue }, range), info)
     }
 
     export interface FileParam extends Base<File> {
@@ -149,7 +149,7 @@ export namespace ParamDefinition {
          */
         step?: number
     }
-    function setRange<T extends Numeric | Interval>(p: T, range?: { min?: number, max?: number, step?: number }) {
+    function setRange<T extends Numeric | Interval | Vec3>(p: T, range?: { min?: number, max?: number, step?: number }) {
         if (!range) return p;
         if (typeof range.min !== 'undefined') p.min = range.min;
         if (typeof range.max !== 'undefined') p.max = range.max;

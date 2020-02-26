@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,6 +19,7 @@ import { _Props, _State } from '../base';
 import { legendFor } from './legend';
 import { Legend as LegendData } from '../../mol-util/legend';
 import { CombinedColorControl, ColorValueOption, ColorOptions } from './color';
+import { getPrecision } from '../../mol-util/number';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -214,17 +215,20 @@ export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeri
     state = { value: '0' };
 
     update = (value: number) => {
+        const p = getPrecision(this.props.param.step || 0.01)
+        value = parseFloat(value.toFixed(p))
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
     }
 
     render() {
         const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
         const label = this.props.param.label || camelCaseToWords(this.props.name);
+        const p = getPrecision(this.props.param.step || 0.01)
         return <div className='msp-control-row'>
             <span title={this.props.param.description}>{label}</span>
             <div>
                 <NumericInput
-                    value={this.props.value} onEnter={this.props.onEnter} placeholder={placeholder}
+                    value={parseFloat(this.props.value.toFixed(p))} onEnter={this.props.onEnter} placeholder={placeholder}
                     isDisabled={this.props.isDisabled} onChange={this.update} />
             </div>
         </div>;
@@ -306,10 +310,45 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
     }
 }
 
-export class IntervalControl extends SimpleParam<PD.Interval> {
-    onChange = (v: [number, number]) => { this.update(v); }
-    renderControl() {
-        return <span>interval TODO</span>;
+export class IntervalControl extends React.PureComponent<ParamProps<PD.Interval>, { isExpanded: boolean }> {
+    state = { isExpanded: false }
+
+    components = {
+        0: PD.Numeric(0, { step: this.props.param.step }, { label: 'Min' }),
+        1: PD.Numeric(0, { step: this.props.param.step }, { label: 'Max' })
+    }
+
+    change(value: PD.MultiSelect<any>['defaultValue']) {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    componentChange: ParamOnChange = ({ name, value }) => {
+        const v = [...this.props.value];
+        v[+name] = value;
+        this.change(v);
+    }
+
+    toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ isExpanded: !this.state.isExpanded });
+        e.currentTarget.blur();
+    }
+
+    render() {
+        const v = this.props.value;
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
+        const p = getPrecision(this.props.param.step || 0.01)
+        const value = `[${v[0].toFixed(p)}, ${v[1].toFixed(p)}]`;
+        return <>
+            <div className='msp-control-row'>
+                <span>{label}</span>
+                <div>
+                    <button onClick={this.toggleExpanded}>{value}</button>
+                </div>
+            </div>
+            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+                <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
+            </div>
+        </>;
     }
 }
 
@@ -399,9 +438,9 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
     state = { isExpanded: false }
 
     components = {
-        0: PD.Numeric(0, void 0, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.x) || 'X' }),
-        1: PD.Numeric(0, void 0, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.y) || 'Y' }),
-        2: PD.Numeric(0, void 0, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.z) || 'Z' })
+        0: PD.Numeric(0, { step: this.props.param.step }, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.x) || 'X' }),
+        1: PD.Numeric(0, { step: this.props.param.step }, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.y) || 'Y' }),
+        2: PD.Numeric(0, { step: this.props.param.step }, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.z) || 'Z' })
     }
 
     change(value: PD.MultiSelect<any>['defaultValue']) {
@@ -422,7 +461,8 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
     render() {
         const v = this.props.value;
         const label = this.props.param.label || camelCaseToWords(this.props.name);
-        const value = `[${v[0].toFixed(2)}, ${v[1].toFixed(2)}, ${v[2].toFixed(2)}]`;
+        const p = getPrecision(this.props.param.step || 0.01)
+        const value = `[${v[0].toFixed(p)}, ${v[1].toFixed(p)}, ${v[2].toFixed(p)}]`;
         return <>
             <div className='msp-control-row'>
                 <span>{label}</span>
