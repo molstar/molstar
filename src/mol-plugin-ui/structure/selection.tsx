@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import * as React from 'react';
@@ -11,19 +12,97 @@ import { PluginCommands } from '../../mol-plugin/command';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Interactivity } from '../../mol-plugin/util/interactivity';
 import { ParameterControls } from '../controls/parameters';
-import { stripTags } from '../../mol-util/string';
-import { StructureElement } from '../../mol-model/structure';
+import { stripTags, stringToWords } from '../../mol-util/string';
+import { StructureElement, StructureQuery, StructureSelection } from '../../mol-model/structure';
 import { ActionMenu } from '../controls/action-menu';
 import { Subject } from 'rxjs';
+import { compile } from '../../mol-script/runtime/query/compiler';
+import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 
 const SSQ = StructureSelectionQueries
-const DefaultQueries: (keyof typeof SSQ)[] = [
-    'all', 'polymer', 'trace', 'backbone', 'protein', 'nucleic',
-    'helix', 'beta',
-    'water', 'branched', 'ligand', 'nonStandardPolymer',
-    'ring', 'aromaticRing',
-    'surroundings', 'complement', 'bonded'
-]
+
+function SSQItem(name: keyof typeof SSQ) {
+    return ActionMenu.Item(SSQ[name].label, SSQ[name].query)
+}
+
+const StandardAminoAcids = [
+    [['HIS'], 'HISTIDINE'],
+    [['ARG'], 'ARGININE'],
+    [['LYS'], 'LYSINE'],
+    [['ILE'], 'ISOLEUCINE'],
+    [['PHE'], 'PHENYLALANINE'],
+    [['LEU'], 'LEUCINE'],
+    [['TRP'], 'TRYPTOPHAN'],
+    [['ALA'], 'ALANINE'],
+    [['MET'], 'METHIONINE'],
+    [['CYS'], 'CYSTEINE'],
+    [['ASN'], 'ASPARAGINE'],
+    [['VAL'], 'VALINE'],
+    [['GLY'], 'GLYCINE'],
+    [['SER'], 'SERINE'],
+    [['GLN'], 'GLUTAMINE'],
+    [['TYR'], 'TYROSINE'],
+    [['ASP'], 'ASPARTIC ACID'],
+    [['GLU'], 'GLUTAMIC ACID'],
+    [['THR'], 'THREONINE'],
+    [['SEC'], 'SELENOCYSTEINE'],
+    [['PYL'], 'PYRROLYSINE'],
+] as [string[], string][]
+
+const StandardNucleicBases = [
+    [['A', 'DA'], 'ADENOSINE'],
+    [['C', 'DC'], 'CYTIDINE'],
+    [['T', 'DT'], 'THYMIDINE'],
+    [['G', 'DG'], 'GUANOSINE'],
+    [['I', 'DI'], 'INOSINE'],
+    [['U', 'DU'], 'URIDINE'],
+] as [string[], string][]
+
+function ResidueItem([names, label]: [string[], string]) {
+    const query = compile<StructureSelection>(MS.struct.modifier.union([
+        MS.struct.generator.atomGroups({
+            'residue-test': MS.core.set.has([MS.set(...names), MS.ammp('auth_comp_id')])
+        })
+    ]))
+    return ActionMenu.Item(stringToWords(label), query)
+}
+
+const DefaultQueries = [
+    SSQItem('all'),
+    [
+        'Type',
+        SSQItem('polymer'),
+        SSQItem('protein'),
+        SSQItem('nucleic'),
+        SSQItem('branched'),
+        SSQItem('ligand'),
+        SSQItem('water'),
+    ],
+    [
+        'Structure',
+        SSQItem('trace'),
+        SSQItem('backbone'),
+        SSQItem('helix'),
+        SSQItem('beta'),
+        SSQItem('ring'),
+        SSQItem('aromaticRing'),
+        SSQItem('nonStandardPolymer'),
+    ],
+    [
+        'Amino Acids',
+        ...StandardAminoAcids.map(v => ResidueItem(v)),
+    ],
+    [
+        'Nucleic Bases',
+        ...StandardNucleicBases.map(v => ResidueItem(v)),
+    ],
+    [
+        'Manipulate',
+        SSQItem('surroundings'),
+        SSQItem('complement'),
+        SSQItem('bonded'),
+    ]
+] as unknown as ActionMenu.Spec
 
 const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,
@@ -116,18 +195,15 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         }
     }
 
-    set = (modifier: SelectionModifier, value: string) => {
-        const query = SSQ[value as keyof typeof SSQ]
-        this.plugin.helpers.structureSelection.set(modifier, query.query, false)
+    set = (modifier: SelectionModifier, query: StructureQuery) => {
+        this.plugin.helpers.structureSelection.set(modifier, query, false)
     }
 
-    add = (value: string) => this.set('add', value)
-    remove = (value: string) => this.set('remove', value)
-    only = (value: string) => this.set('only', value)
+    add = (value: StructureQuery) => this.set('add', value)
+    remove = (value: StructureQuery) => this.set('remove', value)
+    only = (value: StructureQuery) => this.set('only', value)
 
-    queries = Object.keys(StructureSelectionQueries)
-        .map(name => ActionMenu.Item(SSQ[name as keyof typeof SSQ].label, name))
-        .filter(item => DefaultQueries.includes(item.value as keyof typeof SSQ)) as ActionMenu.Spec;
+    queries = DefaultQueries
 
     actionMenu = new Subject<ActionMenu.OptionsParams | undefined>();
 
