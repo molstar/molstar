@@ -71,7 +71,6 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
     }
 }
 
-
 function controlFor(param: PD.Any): ParamControl | undefined {
     switch (param.type) {
         case 'value': return void 0;
@@ -128,6 +127,43 @@ export interface ParamProps<P extends PD.Base<any> = PD.Base<any>> {
 }
 export type ParamControl = React.ComponentClass<ParamProps<any>>
 
+function renderSimple(options: { props: ParamProps<any>, state: { isExpanded: boolean }, control: JSX.Element, addOn: JSX.Element | null, toggleHelp: () => void }) {
+    const { props, state, control, toggleHelp, addOn } = options;
+
+    const _className = ['msp-control-row'];
+    if (props.param.shortLabel) _className.push('msp-control-label-short')
+    if (props.param.twoColumns) _className.push('msp-control-col-2')
+    const className = _className.join(' ');
+
+    const label = props.param.label || camelCaseToWords(props.name);
+    const help = props.param.help
+        ? props.param.help(props.value)
+        : { description: props.param.description, legend: props.param.legend }
+    const desc = props.param.description;
+    const hasHelp = help.description || help.legend
+    return <>
+        <div className={className}>
+            <span title={desc}>
+                {label}
+                {hasHelp &&
+                    <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={toggleHelp}
+                        title={desc || `${state.isExpanded ? 'Hide' : 'Show'} help`}
+                        style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
+                        <span className={`msp-icon msp-icon-help-circle-${state.isExpanded ? 'collapse' : 'expand'}`} />
+                    </button>
+                }
+            </span>
+            <div>
+                {control}
+            </div>
+        </div>
+        {hasHelp && state.isExpanded && <div className='msp-control-offset'>
+            <ParamHelp legend={help.legend} description={help.description} />
+        </div>}
+        {addOn}
+    </>;
+}
+
 export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<ParamProps<P>, { isExpanded: boolean }> {
     state = { isExpanded: false };
 
@@ -138,44 +174,16 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
     abstract renderControl(): JSX.Element;
     renderAddOn(): JSX.Element | null { return null; }
     
-    private get className() {
-        const className = ['msp-control-row'];
-        if (this.props.param.shortLabel) className.push('msp-control-label-short')
-        if (this.props.param.twoColumns) className.push('msp-control-col-2')
-        return className.join(' ')
-    }
-
-
-    toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
+    toggleHelp = () => this.setState({ isExpanded: !this.state.isExpanded });
 
     render() {
-        const label = this.props.param.label || camelCaseToWords(this.props.name);
-        const help = this.props.param.help
-            ? this.props.param.help(this.props.value)
-            : { description: this.props.param.description, legend: this.props.param.legend }
-        const desc = this.props.param.description;
-        const hasHelp = help.description || help.legend
-        return <>
-            <div className={this.className}>
-                <span title={desc}>
-                    {label}
-                    {hasHelp &&
-                        <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={this.toggleExpanded}
-                            title={desc || `${this.state.isExpanded ? 'Hide' : 'Show'} help`}
-                            style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                            <span className={`msp-icon msp-icon-help-circle-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
-                        </button>
-                    }
-                </span>
-                <div>
-                    {this.renderControl()}
-                </div>
-            </div>
-            {hasHelp && this.state.isExpanded && <div className='msp-control-offset'>
-                <ParamHelp legend={help.legend} description={help.description} />
-            </div>}
-            {this.renderAddOn()}
-        </>;
+        return renderSimple({
+            props: this.props,
+            state: this.state,
+            control: this.renderControl(),
+            toggleHelp: this.toggleHelp,
+            addOn: this.renderAddOn()
+        });
     }
 }
 
@@ -340,7 +348,10 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
     }
 
     renderAddOn() {
-        return <ActionMenu.Options menu={this.menu} />;
+        const items = this.items(this.props.param);
+        const current = ActionMenu.findCurrent(items, this.props.value);
+
+        return <ActionMenu.Options menu={this.menu} items={items} current={current} />;
     }
 }
 

@@ -48,14 +48,16 @@ export namespace ActionMenu {
         items: ActionMenu.Spec,
         header?: string,
         label?: string,
-        current?: ActionMenu.Item,
+        current?: Item,
         onSelect: (value: any) => void
     }
 
-    export class Toggle extends React.PureComponent<ToggleProps, { isSelected: boolean }> {
+    type ToggleState = { current?: Item, isSelected: boolean }
+
+    export class Toggle extends React.PureComponent<ToggleProps, ToggleState> {
         private sub: Subscription | undefined = void 0;
 
-        state = { isSelected: false };
+        state = { isSelected: false, current: this.props.current };
 
         componentDidMount() {
             this.sub = this.props.menu.commands.subscribe(command => {
@@ -85,6 +87,11 @@ export namespace ActionMenu {
             this.props.menu.toggle(this.props);
         }
 
+        static getDerivedStateFromProps(props: ToggleProps, state: ToggleState) {
+            if (props.current === state.current) return null;
+            return { isSelected: false, current: props.current };
+        }
+
         render() {
             const props = this.props;
             const label = props.label || props.header;
@@ -95,7 +102,9 @@ export namespace ActionMenu {
         }
     }
 
-    export class Options extends React.PureComponent<{ menu: ActionMenu }, { command: Command, isVisible: boolean }> {
+    type  OptionsProps = { menu: ActionMenu, header?: string, items?: Spec, current?: Item | undefined }
+
+    export class Options extends React.PureComponent<OptionsProps, { command: Command, isVisible: boolean }> {
         private sub: Subscription | undefined = void 0;
 
         state = { isVisible: false, command: HideCmd };
@@ -127,15 +136,21 @@ export namespace ActionMenu {
         }
 
         render() {
-            if (!this.state.isVisible || this.state.command.type !== 'toggle') return null;
+            const cmd = this.state.command;
+            if (!this.state.isVisible || cmd.type !== 'toggle') return null;
+
+            if (this.props.items) {
+                if (cmd.items !== this.props.items || cmd.current !== this.props.current) return null;
+            }
+
             return <div className='msp-action-menu-options' style={{ marginTop: '1px' }}>
-                {this.state.command.header && <div className='msp-control-group-header' style={{ position: 'relative' }}>
+                {cmd.header && <div className='msp-control-group-header' style={{ position: 'relative' }}>
                     <button className='msp-btn msp-btn-block' onClick={this.hide}>
                         <Icon name='off' style={{ position: 'absolute', right: '2px', top: 0 }} />
-                        <b>{this.state.command.header}</b>
+                        <b>{cmd.header}</b>
                     </button>
                 </div>}
-                <Section menu={this.props.menu} items={this.state.command.items} onSelect={this.onSelect} current={this.state.command.current} />
+                <Section menu={this.props.menu} items={cmd.items} onSelect={this.onSelect} current={cmd.current} />
             </div>
         }
     }
