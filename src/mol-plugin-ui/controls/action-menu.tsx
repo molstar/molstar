@@ -9,7 +9,7 @@ import { Icon } from './common';
 import { Observable, Subscription } from 'rxjs';
 
 export namespace ActionMenu {
-    export class Options extends React.PureComponent<{ toggle: Observable<OptionsParams | undefined>, hide?: Observable<any> }, { options: OptionsParams | undefined, isVisible: boolean }> { 
+    export class Options extends React.PureComponent<{ toggle: Observable<OptionsParams | undefined>, hide?: Observable<any> }, { options: OptionsParams | undefined, isVisible: boolean }> {
         private subs: Subscription[] = [];
 
         state = { isVisible: false, options: void 0 as OptionsParams | undefined }
@@ -54,7 +54,7 @@ export namespace ActionMenu {
         }
     }
 
-    class Section extends React.PureComponent<{ header?: string, items: Spec, onSelect: OnSelect }, { isExpanded: boolean }> { 
+    class Section extends React.PureComponent<{ header?: string, items: Spec, onSelect: OnSelect }, { isExpanded: boolean }> {
         state = { isExpanded: false }
 
         toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -66,18 +66,20 @@ export namespace ActionMenu {
             const { header, items, onSelect } = this.props;
             if (typeof items === 'string') return null;
             if (isItem(items)) return <Action item={items} onSelect={onSelect} />
-            return <div className='msp-control-offset'>
+            return <div>
                 {header && <div className='msp-control-group-header'>
                     <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
-                        <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} /> 
+                        <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
                         {header}
                     </button>
                 </div>}
-                {(!header || this.state.isExpanded) && items.map((x, i) => {
-                    if (typeof x === 'string') return null;
-                    if (isItem(x)) return <Action key={i} item={x} onSelect={onSelect} />
-                    return <Section key={i} header={typeof x[0] === 'string' ? x[0] : void 0} items={x} onSelect={onSelect} />
-                })}
+                <div className='msp-control-offset'>
+                    {(!header || this.state.isExpanded) && items.map((x, i) => {
+                        if (typeof x === 'string') return null;
+                        if (isItem(x)) return <Action key={i} item={x} onSelect={onSelect} />
+                        return <Section key={i} header={typeof x[0] === 'string' ? x[0] : void 0} items={x} onSelect={onSelect} />
+                    })}
+                </div>
             </div>;
         }
     }
