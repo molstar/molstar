@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -15,6 +15,7 @@ import { PluginContext } from '../context';
 import Expression from '../../mol-script/language/expression';
 import { BondType, ProteinBackboneAtoms, NucleicBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
 import { StateTransforms } from '../state/transforms';
+import { SetUtils } from '../../mol-util/set';
 
 export interface StructureSelectionQuery {
     label: string
@@ -68,7 +69,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
                     ])
                 ]),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': MS.core.set.has([MS.set(...Array.from(ProteinBackboneAtoms.values())), MS.ammp('label_atom_id')])
+                'atom-test': MS.core.set.has([MS.set(...SetUtils.toArray(ProteinBackboneAtoms)), MS.ammp('label_atom_id')])
             })
         ]),
         MS.struct.modifier.union([
@@ -81,7 +82,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
                     ])
                 ]),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'atom-test': MS.core.set.has([MS.set(...Array.from(NucleicBackboneAtoms.values())), MS.ammp('label_atom_id')])
+                'atom-test': MS.core.set.has([MS.set(...SetUtils.toArray(NucleicBackboneAtoms)), MS.ammp('label_atom_id')])
             })
         ])
     ])
