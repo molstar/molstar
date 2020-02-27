@@ -61,6 +61,7 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
 
 export const ModelIndexColorThemeProvider: ColorTheme.Provider<ModelIndexColorThemeParams> = {
     label: 'Model Index',
+    category: ColorTheme.Category.Basic,
     factory: ModelIndexColorTheme,
     getParams: getModelIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(ModelIndexColorThemeParams),

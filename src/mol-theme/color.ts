@@ -46,6 +46,13 @@ interface ColorTheme<P extends PD.Params> {
     readonly legend?: Readonly<ScaleLegend | TableLegend>
 }
 namespace ColorTheme {
+    export const enum Category {
+        Basic = 'Basic',
+        Advanced = 'Advanced',
+        Computed = 'Computed',
+        Misc = 'Miscellaneous'
+    }
+
     export type Props = { [k: string]: any }
     export type Factory<P extends PD.Params> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
     export const EmptyFactory = () => Empty
@@ -62,7 +69,7 @@ namespace ColorTheme {
     }
 
     export interface Provider<P extends PD.Params> extends ThemeProvider<ColorTheme<P>, P> { }
-    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
+    export const EmptyProvider: Provider<{}> = { label: '', category: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true }
 
     export type Registry = ThemeRegistry<ColorTheme<any>>
     export function createRegistry() {

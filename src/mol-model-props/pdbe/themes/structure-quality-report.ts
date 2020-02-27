@@ -79,6 +79,7 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
 
 export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Params> =  {
     label: 'PDBe Structure Quality Report',
+    category: 'PDBe',
     factory: StructureQualityReportColorTheme,
     getParams: ctx => {
         const issueTypes = StructureQualityReport.getIssueTypes(ctx.structure);

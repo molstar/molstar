@@ -53,6 +53,7 @@ export function RandomCoilIndexColorTheme(ctx: ThemeDataContext, props: {}): Col
 
 export const RandomCoilIndexColorThemeProvider: ColorTheme.Provider<{}> = {
     label: 'RCSB Random Coil Index',
+    category: 'RCSB',
     factory: RandomCoilIndexColorTheme,
     getParams: () => ({}),
     defaultValues: PD.getDefaultValues({}),

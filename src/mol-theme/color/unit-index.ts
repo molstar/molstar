@@ -73,6 +73,7 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Unit
 
 export const UnitIndexColorThemeProvider: ColorTheme.Provider<UnitIndexColorThemeParams> = {
     label: 'Unit Index',
+    category: ColorTheme.Category.Advanced,
     factory: UnitIndexColorTheme,
     getParams: getUnitIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(UnitIndexColorThemeParams),

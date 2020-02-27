@@ -76,6 +76,7 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
 
 export const IllustrativeColorThemeProvider: ColorTheme.Provider<IllustrativeColorThemeParams> = {
     label: 'Illustrative',
+    category: ColorTheme.Category.Misc,
     factory: IllustrativeColorTheme,
     getParams: getIllustrativeColorThemeParams,
     defaultValues: PD.getDefaultValues(IllustrativeColorThemeParams),

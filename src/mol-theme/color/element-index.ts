@@ -73,6 +73,7 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<E
 
 export const ElementIndexColorThemeProvider: ColorTheme.Provider<ElementIndexColorThemeParams> = {
     label: 'Element Index',
+    category: ColorTheme.Category.Basic,
     factory: ElementIndexColorTheme,
     getParams: getElementIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(ElementIndexColorThemeParams),

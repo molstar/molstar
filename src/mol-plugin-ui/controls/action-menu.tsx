@@ -7,6 +7,7 @@
 import * as React from 'react'
 import { Icon } from './common';
 import { Subscription, BehaviorSubject, Observable } from 'rxjs';
+import { ParamDefinition } from '../../mol-util/param-definition';
 
 export class ActionMenu {
     private _command: BehaviorSubject<ActionMenu.Command>;
@@ -139,16 +140,29 @@ export namespace ActionMenu {
         }
     }
 
-    class Section extends React.PureComponent<{ menu: ActionMenu, header?: string, items: Spec, onSelect: OnSelect, current: Item | undefined  }, { isExpanded: boolean }> {
-        state = { isExpanded: false }
+    type SectionProps = { menu: ActionMenu, header?: string, items: Spec, onSelect: OnSelect, current: Item | undefined }
+    type SectionState = { items: Spec, current: Item | undefined, isExpanded: boolean }
+
+    class Section extends React.PureComponent<SectionProps, SectionState> {
+        state = {
+            items: this.props.items,
+            current: this.props.current,
+            isExpanded: !!this.props.current && !!findCurrent(this.props.items, this.props.current.value)
+        }
 
         toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
             this.setState({ isExpanded: !this.state.isExpanded });
             e.currentTarget.blur();
         }
 
+        static getDerivedStateFromProps(props: SectionProps, state: SectionState) {
+            if (props.items === state.items && props.current === state.current) return null;
+            return { items: props.items, current: props.current, isExpanded: props.current && !!findCurrent(props.items, props.current.value) }
+        }
+
         render() {
             const { header, items, onSelect, current, menu } = this.props;
+
             if (typeof items === 'string') return null;
             if (isItem(items)) return <Action menu={menu} item={items} onSelect={onSelect} current={current} />
             return <div>
@@ -195,5 +209,48 @@ export namespace ActionMenu {
     export function Item(name: string, iconOrValue: any, value?: unknown): Item {
         if (value) return { name, icon: iconOrValue, value };
         return { name, value: iconOrValue };
+    }
+
+    function createSpecFromSelectParamSimple(param: ParamDefinition.Select<any>) {
+        const spec: Item[] = [];
+        for (const [v, l] of param.options) {
+            spec.push(ActionMenu.Item(l, v));
+        }
+        return spec as Spec;
+    }
+
+    function createSpecFromSelectParamCategories(param: ParamDefinition.Select<any>) {
+        const cats = new Map<string, (Item | string)[]>();
+        const spec: (Item | (Item | string)[] | string)[] = [];
+        for (const [v, l, c] of param.options) {
+            if (!!c) {
+                let cat = cats.get(c);
+                if (!cat) {
+                    cat = [c];
+                    cats.set(c, cat);
+                    spec.push(cat);
+                }
+                cat.push(ActionMenu.Item(l, v));
+            } else {
+                spec.push(ActionMenu.Item(l, v));
+            }
+        }
+        return spec as Spec;
+    }
+
+    export function createSpecFromSelectParam(param: ParamDefinition.Select<any>) {
+        for (const o of param.options) {
+            if (!!o[2]) return createSpecFromSelectParamCategories(param);
+        }
+        return createSpecFromSelectParamSimple(param);
+    }
+
+    export function findCurrent(spec: Spec, value: any): Item | undefined {
+        if (typeof spec === 'string') return;
+        if (isItem(spec)) return spec.value === value ? spec : void 0;
+        for (const s of spec) {
+            const found = findCurrent(s, value);
+            if (found) return found;
+        }
     }
 }

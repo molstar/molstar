@@ -8,7 +8,7 @@
 import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { Color } from '../../mol-util/color';
 import { ColorListName, getColorListFromName } from '../../mol-util/color/lists';
-import { memoize1 } from '../../mol-util/memoize';
+import { memoize1, memoizeLatest } from '../../mol-util/memoize';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { camelCaseToWords } from '../../mol-util/string';
 import * as React from 'react';
@@ -328,22 +328,14 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
         this.update(value);
     }
 
+    items = memoizeLatest((param: PD.Select<any>) => ActionMenu.createSpecFromSelectParam(param));
+
     renderControl() {
-        const isInvalid = this.props.value !== void 0 && !this.props.param.options.some(e => e[0] === this.props.value);
-        const items: ActionMenu.Item[] = [];
-        let current: ActionMenu.Item | undefined = void 0;
-        if (isInvalid) {
-            current = ActionMenu.Item(`[Invalid] ${this.props.value}`, this.props.value);
-            items.push(current);
-        }
-        for (const [value, label] of this.props.param.options) {
-            const item = ActionMenu.Item(label, value);
-            items.push(item);
-            if (value === this.props.value) current = item;
-        }
+        const items = this.items(this.props.param);
+        const current = ActionMenu.findCurrent(items, this.props.value);
 
         return <ActionMenu.Toggle menu={this.menu} disabled={this.props.isDisabled} 
-            onSelect={this.onSelect} items={items as ActionMenu.Spec} label={current?.name}
+            onSelect={this.onSelect} items={items as ActionMenu.Spec} label={current?.name || `[Invalid] ${this.props.value}`}
             current={current} />;
     }
 

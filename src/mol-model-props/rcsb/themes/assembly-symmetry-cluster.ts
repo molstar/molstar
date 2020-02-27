@@ -93,6 +93,7 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
 
 export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<AssemblySymmetryClusterColorThemeParams> = {
     label: 'RCSB Assembly Symmetry Cluster',
+    category: 'RCSB',
     factory: AssemblySymmetryClusterColorTheme,
     getParams: getAssemblySymmetryClusterColorThemeParams,
     defaultValues: PD.getDefaultValues(AssemblySymmetryClusterColorThemeParams),

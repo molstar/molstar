@@ -60,6 +60,7 @@ export function OccupancyColorTheme(ctx: ThemeDataContext, props: PD.Values<Occu
 
 export const OccupancyColorThemeProvider: ColorTheme.Provider<OccupancyColorThemeParams> = {
     label: 'Occupancy',
+    category: ColorTheme.Category.Advanced,
     factory: OccupancyColorTheme,
     getParams: getOccupancyColorThemeParams,
     defaultValues: PD.getDefaultValues(OccupancyColorThemeParams),

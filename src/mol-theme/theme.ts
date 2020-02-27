@@ -60,7 +60,8 @@ namespace Theme {
 //
 
 export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends PD.Params> {
-    readonly label: string
+    readonly label: string    
+    readonly category: string
     readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => T
     readonly getParams: (ctx: ThemeDataContext) => P
     readonly defaultValues: PD.Values<P>
@@ -69,7 +70,7 @@ export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends
 }
 
 function getTypes(list: { name: string, provider: ThemeProvider<any, any> }[]) {
-    return list.map(e => [e.name, e.provider.label] as [string, string]);
+    return list.map(e => [e.name, e.provider.label, e.provider.category] as [string, string, string]);
 }
 
 export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
@@ -79,16 +80,26 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
 
     get default() { return this._list[0] }
     get list() { return this._list }
-    get types(): [string, string][] { return getTypes(this._list) }
+    get types(): [string, string, string][] { return getTypes(this._list) }
 
     constructor(builtInThemes: { [k: string]: ThemeProvider<T, any> }, private emptyProvider: ThemeProvider<T, any>) {
         Object.keys(builtInThemes).forEach(name => this.add(name, builtInThemes[name]))
+    }
+
+    private sort() {
+        this._list.sort((a, b) => {
+            if (a.provider.category === b.provider.category) {
+                return a.provider.label < b.provider.label ? -1 : a.provider.label > b.provider.label ? 1 : 0;
+            }
+            return a.provider.category < b.provider.label ? -1 : 1;
+        });
     }
 
     add<P extends PD.Params>(name: string, provider: ThemeProvider<T, P>) {
         this._list.push({ name, provider })
         this._map.set(name, provider)
         this._name.set(provider, name)
+        this.sort();
     }
 
     remove(name: string) {

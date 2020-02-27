@@ -102,6 +102,7 @@ export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: PD.Value
 
 export const GeometryQualityColorThemeProvider: ColorTheme.Provider<GeometricQualityColorThemeParams> = {
     label: 'RCSB Geometry Quality',
+    category: 'RCSB',
     factory: GeometryQualityColorTheme,
     getParams: getGeometricQualityColorThemeParams,
     defaultValues: PD.getDefaultValues(getGeometricQualityColorThemeParams({})),

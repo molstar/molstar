@@ -108,6 +108,7 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
 
 export const InteractionTypeColorThemeProvider: ColorTheme.Provider<InteractionTypeColorThemeParams> = {
     label: 'Interaction Type',
+    category: ColorTheme.Category.Computed,
     factory: InteractionTypeColorTheme,
     getParams: getInteractionTypeColorThemeParams,
     defaultValues: PD.getDefaultValues(InteractionTypeColorThemeParams),

@@ -94,6 +94,7 @@ export function HydrophobicityColorTheme(ctx: ThemeDataContext, props: PD.Values
 
 export const HydrophobicityColorThemeProvider: ColorTheme.Provider<HydrophobicityColorThemeParams> = {
     label: 'Hydrophobicity',
+    category: ColorTheme.Category.Advanced,
     factory: HydrophobicityColorTheme,
     getParams: getHydrophobicityColorThemeParams,
     defaultValues: PD.getDefaultValues(HydrophobicityColorThemeParams),
