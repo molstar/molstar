@@ -210,7 +210,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
     actionMenu = new ActionMenu();
 
     controls = <div>
-        <div className='msp-control-row msp-button-row' style={{ marginBottom: '1px' }}>
+        <div className='msp-control-row msp-button-row'>
             <ActionMenu.Toggle menu={this.actionMenu} items={this.queries} header='Select' onSelect={this.add} disabled={this.state.isDisabled} />
             <ActionMenu.Toggle menu={this.actionMenu} items={this.queries} header='Deselect' onSelect={this.remove} disabled={this.state.isDisabled} />
             <ActionMenu.Toggle menu={this.actionMenu} items={this.queries} header='Only' onSelect={this.only} disabled={this.state.isDisabled} />

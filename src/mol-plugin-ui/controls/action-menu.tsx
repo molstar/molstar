@@ -45,7 +45,8 @@ export namespace ActionMenu {
         menu: ActionMenu,
         disabled?: boolean,
         items: ActionMenu.Spec,
-        header: string,
+        header?: string,
+        label?: string,
         current?: ActionMenu.Item,
         onSelect: (value: any) => void
     }
@@ -78,11 +79,17 @@ export namespace ActionMenu {
 
         hide = () => this.setState({ isSelected: false });
 
+        onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.currentTarget.blur();
+            this.props.menu.toggle(this.props);
+        }
+
         render() {
             const props = this.props;
-            return <button onClick={() => props.menu.toggle(props)} 
+            const label = props.label || props.header;
+            return <button onClick={this.onClick} 
                 disabled={props.disabled} style={props.style} className={props.className}>
-                    {this.state.isSelected ? <b>{props.header}</b> : props.header}
+                    {this.state.isSelected ? <b>{label}</b> : label}
             </button>;
         }
     }
@@ -120,19 +127,19 @@ export namespace ActionMenu {
 
         render() {
             if (!this.state.isVisible || this.state.command.type !== 'toggle') return null;
-            return <div className='msp-action-menu-options'>
+            return <div className='msp-action-menu-options' style={{ marginTop: '1px' }}>
                 {this.state.command.header && <div className='msp-control-group-header' style={{ position: 'relative' }}>
                     <button className='msp-btn msp-btn-block' onClick={this.hide}>
                         <Icon name='off' style={{ position: 'absolute', right: '2px', top: 0 }} />
                         <b>{this.state.command.header}</b>
                     </button>
                 </div>}
-                <Section items={this.state.command.items} onSelect={this.onSelect} />
+                <Section menu={this.props.menu} items={this.state.command.items} onSelect={this.onSelect} current={this.state.command.current} />
             </div>
         }
     }
 
-    class Section extends React.PureComponent<{ header?: string, items: Spec, onSelect: OnSelect }, { isExpanded: boolean }> {
+    class Section extends React.PureComponent<{ menu: ActionMenu, header?: string, items: Spec, onSelect: OnSelect, current: Item | undefined  }, { isExpanded: boolean }> {
         state = { isExpanded: false }
 
         toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -141,9 +148,9 @@ export namespace ActionMenu {
         }
 
         render() {
-            const { header, items, onSelect } = this.props;
+            const { header, items, onSelect, current, menu } = this.props;
             if (typeof items === 'string') return null;
-            if (isItem(items)) return <Action item={items} onSelect={onSelect} />
+            if (isItem(items)) return <Action menu={menu} item={items} onSelect={onSelect} current={current} />
             return <div>
                 {header && <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
                     <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
@@ -154,19 +161,20 @@ export namespace ActionMenu {
                 <div className='msp-control-offset'>
                     {(!header || this.state.isExpanded) && items.map((x, i) => {
                         if (typeof x === 'string') return null;
-                        if (isItem(x)) return <Action key={i} item={x} onSelect={onSelect} />
-                        return <Section key={i} header={typeof x[0] === 'string' ? x[0] : void 0} items={x} onSelect={onSelect} />
+                        if (isItem(x)) return <Action menu={menu} key={i} item={x} onSelect={onSelect} current={current} />
+                        return <Section menu={menu} key={i} header={typeof x[0] === 'string' ? x[0] : void 0} items={x} onSelect={onSelect} current={current} />
                     })}
                 </div>
             </div>;
         }
     }
 
-    const Action: React.FC<{ item: Item, onSelect: OnSelect }> = ({ item, onSelect }) => {
+    const Action: React.FC<{ menu: ActionMenu, item: Item, onSelect: OnSelect, current: Item | undefined }> = ({ menu, item, onSelect, current }) => {
+        const isCurrent = current === item;
         return <div className='msp-control-row'>
-            <button onClick={() => onSelect(item)}>
+            <button onClick={isCurrent ? () => menu.hide() : () => onSelect(item)}>
                 {item.icon && <Icon name={item.icon} />}
-                {item.name}
+                {isCurrent ? <b>{item.name}</b> : item.name}
             </button>
         </div>;
     }

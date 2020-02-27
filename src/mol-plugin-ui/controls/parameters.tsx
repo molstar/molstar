@@ -22,6 +22,7 @@ import { CombinedColorControl, ColorValueOption, ColorOptions } from './color';
 import { getPrecision } from '../../mol-util/number';
 import { ParamMapping } from '../../mol-util/param-mapping';
 import { PluginContext } from '../../mol-plugin/context';
+import { ActionMenu } from './action-menu';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -135,13 +136,15 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
     }
 
     abstract renderControl(): JSX.Element;
-
+    renderAddOn(): JSX.Element | null { return null; }
+    
     private get className() {
         const className = ['msp-control-row'];
         if (this.props.param.shortLabel) className.push('msp-control-label-short')
         if (this.props.param.twoColumns) className.push('msp-control-col-2')
         return className.join(' ')
     }
+
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
 
@@ -171,6 +174,7 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
             {hasHelp && this.state.isExpanded && <div className='msp-control-offset'>
                 <ParamHelp legend={help.legend} description={help.description} />
             </div>}
+            {this.renderAddOn()}
         </>;
     }
 }
@@ -319,20 +323,32 @@ export class PureSelectControl extends  React.PureComponent<ParamProps<PD.Select
 }
 
 export class SelectControl extends SimpleParam<PD.Select<string | number>> {
-    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        if (typeof this.props.param.defaultValue === 'number') {
-            this.update(parseInt(e.target.value, 10));
-        } else {
-            this.update(e.target.value);
-        }
+    menu = new ActionMenu();
+    onSelect = (value: string) => {
+        this.update(value);
     }
 
     renderControl() {
         const isInvalid = this.props.value !== void 0 && !this.props.param.options.some(e => e[0] === this.props.value);
-        return <select value={this.props.value !== void 0 ? this.props.value : this.props.param.defaultValue} onChange={this.onChange} disabled={this.props.isDisabled}>
-            {isInvalid && <option key={this.props.value} value={this.props.value}>{`[Invalid] ${this.props.value}`}</option>}
-            {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>;
+        const items: ActionMenu.Item[] = [];
+        let current: ActionMenu.Item | undefined = void 0;
+        if (isInvalid) {
+            current = ActionMenu.Item(`[Invalid] ${this.props.value}`, this.props.value);
+            items.push(current);
+        }
+        for (const [value, label] of this.props.param.options) {
+            const item = ActionMenu.Item(label, value);
+            items.push(item);
+            if (value === this.props.value) current = item;
+        }
+
+        return <ActionMenu.Toggle menu={this.menu} disabled={this.props.isDisabled} 
+            onSelect={this.onSelect} items={items as ActionMenu.Spec} label={current?.name}
+            current={current} />;
+    }
+
+    renderAddOn() {
+        return <ActionMenu.Options menu={this.menu} />;
     }
 }
 
