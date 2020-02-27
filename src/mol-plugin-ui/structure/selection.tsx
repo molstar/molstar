@@ -15,7 +15,6 @@ import { ParameterControls } from '../controls/parameters';
 import { stripTags, stringToWords } from '../../mol-util/string';
 import { StructureElement, StructureQuery, StructureSelection } from '../../mol-model/structure';
 import { ActionMenu } from '../controls/action-menu';
-import { Subject } from 'rxjs';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 
@@ -126,7 +125,10 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             this.forceUpdate()
         });
 
-        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => this.setState({ isDisabled: v }))
+        this.subscribe(this.plugin.state.dataState.events.isUpdating, v => {
+            this.actionMenu.hide();
+            this.setState({ isDisabled: v })
+        })
     }
 
     get stats() {
@@ -205,15 +207,15 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
 
     queries = DefaultQueries
 
-    actionMenu = new Subject<ActionMenu.OptionsParams | undefined>();
+    actionMenu = new ActionMenu();
 
     controls = <div>
         <div className='msp-control-row msp-button-row' style={{ marginBottom: '1px' }}>
-            <button onClick={() => this.actionMenu.next({ items: this.queries, header: 'Select', onSelect: this.add }) } disabled={this.state.isDisabled}>Select</button>
-            <button onClick={() => this.actionMenu.next({ items: this.queries, header: 'Deselect', onSelect: this.remove }) } disabled={this.state.isDisabled}>Deselect</button>
-            <button onClick={() => this.actionMenu.next({ items: this.queries, header: 'Only', onSelect: this.only }) } disabled={this.state.isDisabled}>Only</button>
+            <ActionMenu.Toggle menu={this.actionMenu} items={this.queries} header='Select' onSelect={this.add} disabled={this.state.isDisabled} />
+            <ActionMenu.Toggle menu={this.actionMenu} items={this.queries} header='Deselect' onSelect={this.remove} disabled={this.state.isDisabled} />
+            <ActionMenu.Toggle menu={this.actionMenu} items={this.queries} header='Only' onSelect={this.only} disabled={this.state.isDisabled} />
         </div>
-        <ActionMenu.Options toggle={this.actionMenu} hide={this.plugin.state.dataState.events.isUpdating} />
+        <ActionMenu.Options menu={this.actionMenu} />
     </div>
 
     defaultState() {

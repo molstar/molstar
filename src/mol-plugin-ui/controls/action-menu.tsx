@@ -6,50 +6,128 @@
 
 import * as React from 'react'
 import { Icon } from './common';
-import { Observable, Subscription } from 'rxjs';
+import { Subscription, BehaviorSubject, Observable } from 'rxjs';
+
+export class ActionMenu {
+    private _command: BehaviorSubject<ActionMenu.Command>;
+
+    get commands(): Observable<ActionMenu.Command> { return this._command; }
+
+    hide() {
+        this._command.next(HideCmd)
+    }
+
+    toggle(params: { items: ActionMenu.Spec, header?: string, current?: ActionMenu.Item, onSelect: (value: any) => void }) {
+        this._command.next({ type: 'toggle', ...params });
+    }
+
+    constructor(defaultCommand?: ActionMenu.Command) {
+        this._command = new BehaviorSubject<ActionMenu.Command>(defaultCommand || { type: 'hide' });
+    }
+}
+
+const HideCmd: ActionMenu.Command = { type: 'hide' };
 
 export namespace ActionMenu {
-    export class Options extends React.PureComponent<{ toggle: Observable<OptionsParams | undefined>, hide?: Observable<any> }, { options: OptionsParams | undefined, isVisible: boolean }> {
-        private subs: Subscription[] = [];
+    export type Command = 
+        | { type: 'toggle', items: Spec, header?: string, current?: Item, onSelect: (value: any) => void }
+        | { type: 'hide' }
 
-        state = { isVisible: false, options: void 0 as OptionsParams | undefined }
+    function isToggleOff(a: Command, b: Command) {
+        if (a.type === 'hide' || b.type === 'hide') return false;
+        return a.onSelect === b.onSelect && a.items === b.items;
+    }
+
+
+    export type ToggleProps = {
+        style?: React.HTMLAttributes<HTMLButtonElement>,
+        className?: string,
+        menu: ActionMenu,
+        disabled?: boolean,
+        items: ActionMenu.Spec,
+        header: string,
+        current?: ActionMenu.Item,
+        onSelect: (value: any) => void
+    }
+
+    export class Toggle extends React.PureComponent<ToggleProps, { isSelected: boolean }> {
+        private sub: Subscription | undefined = void 0;
+
+        state = { isSelected: false };
 
         componentDidMount() {
-            this.subs.push(this.props.toggle.subscribe(options => {
-                if (options && this.state.options?.items === options.items && this.state.options?.onSelect === options.onSelect) {
-                    this.setState({ isVisible: !this.state.isVisible});
-                } else {
-                    this.setState({ isVisible: !!options, options: options })
+            this.sub = this.props.menu.commands.subscribe(command => {
+                if (command.type === 'hide') {
+                    this.hide();
+                } else if (command.type === 'toggle') {
+                    const cmd = this.props;
+                    if (command.items === cmd.items && command.onSelect === cmd.onSelect) {
+                        this.setState({ isSelected: !this.state.isSelected });
+                    } else {
+                        this.hide();
+                    }
                 }
-            }));
-
-            if (this.props.hide) {
-                this.subs.push(this.props.hide.subscribe(() => this.hide()));
-            }
+            });
         }
 
         componentWillUnmount() {
-            if (!this.subs) return;
-            for (const s of this.subs) s.unsubscribe();
-            this.subs = [];
+            if (!this.sub) return;
+            this.sub.unsubscribe();
+            this.sub = void 0;
+        }
+
+        hide = () => this.setState({ isSelected: false });
+
+        render() {
+            const props = this.props;
+            return <button onClick={() => props.menu.toggle(props)} 
+                disabled={props.disabled} style={props.style} className={props.className}>
+                    {this.state.isSelected ? <b>{props.header}</b> : props.header}
+            </button>;
+        }
+    }
+
+    export class Options extends React.PureComponent<{ menu: ActionMenu }, { command: Command, isVisible: boolean }> {
+        private sub: Subscription | undefined = void 0;
+
+        state = { isVisible: false, command: HideCmd };
+
+        componentDidMount() {
+            this.sub = this.props.menu.commands.subscribe(command => {
+                if (command.type === 'hide' || isToggleOff(command, this.state.command)) {
+                    this.setState({ isVisible: false, command: HideCmd });
+                } else {
+                    this.setState({ isVisible: true, command })
+                }
+            });
+        }
+
+        componentWillUnmount() {
+            if (!this.sub) return;
+            this.sub.unsubscribe();
+            this.sub = void 0;
         }
 
         onSelect: OnSelect = item => {
-            this.setState({ isVisible: false, options: void 0 });
-            this.state.options?.onSelect(item.value);
+            const cmd = this.state.command;
+            this.hide();
+            if (cmd.type === 'toggle') cmd.onSelect(item.value);
         }
 
-        hide = () => this.setState({ isVisible: false, options: void 0 });
+        hide = () => {
+            this.props.menu.hide();
+        }
 
         render() {
-            if (!this.state.isVisible || !this.state.options) return null;
+            if (!this.state.isVisible || this.state.command.type !== 'toggle') return null;
             return <div className='msp-action-menu-options'>
-                {this.state.options.header && <div className='msp-control-group-header'>
+                {this.state.command.header && <div className='msp-control-group-header' style={{ position: 'relative' }}>
                     <button className='msp-btn msp-btn-block' onClick={this.hide}>
-                        {this.state.options.header}
+                        <Icon name='off' style={{ position: 'absolute', right: '2px', top: 0 }} />
+                        <b>{this.state.command.header}</b>
                     </button>
                 </div>}
-                <Section items={this.state.options!.items} onSelect={this.onSelect} />
+                <Section items={this.state.command.items} onSelect={this.onSelect} />
             </div>
         }
     }
@@ -67,7 +145,7 @@ export namespace ActionMenu {
             if (typeof items === 'string') return null;
             if (isItem(items)) return <Action item={items} onSelect={onSelect} />
             return <div>
-                {header && <div className='msp-control-group-header'>
+                {header && <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
                     <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
                         <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
                         {header}
