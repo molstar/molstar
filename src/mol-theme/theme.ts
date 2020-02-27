@@ -91,7 +91,7 @@ export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
             if (a.provider.category === b.provider.category) {
                 return a.provider.label < b.provider.label ? -1 : a.provider.label > b.provider.label ? 1 : 0;
             }
-            return a.provider.category < b.provider.label ? -1 : 1;
+            return a.provider.category < b.provider.category ? -1 : 1;
         });
     }
 
