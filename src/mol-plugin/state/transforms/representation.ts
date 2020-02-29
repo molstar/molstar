@@ -63,37 +63,40 @@ namespace StructureRepresentation3DHelpers {
         })
     }
 
+    export type Props<R extends RepresentationProvider<Structure, any, any> = any, C extends ColorTheme.Provider<any> = any, S extends SizeTheme.Provider<any> = any> = {
+        repr?: R | [R, (r: R, ctx: ThemeRegistryContext, s: Structure) => Partial<RepresentationProvider.ParamValues<R>>],
+        color?: C | [C, (c: C, ctx: ThemeRegistryContext) => Partial<ColorTheme.ParamValues<C>>],
+        size?: S | [S, (c: S, ctx: ThemeRegistryContext) => Partial<SizeTheme.ParamValues<S>>]
+    }
+
     export function createParams<R extends RepresentationProvider<Structure, any, any>, C extends ColorTheme.Provider<any>, S extends SizeTheme.Provider<any>>(
-        ctx: PluginContext, structure: Structure, params: {
-            repr?: R | [R, (r: R, ctx: ThemeRegistryContext, s: Structure) => Partial<RepresentationProvider.ParamValues<R>>],
-            color?: C | [C, (c: C, ctx: ThemeRegistryContext) => Partial<ColorTheme.ParamValues<C>>],
-            size?: S | [S, (c: S, ctx: ThemeRegistryContext) => Partial<SizeTheme.ParamValues<S>>]
-        }): StateTransformer.Params<StructureRepresentation3D> {
+        ctx: PluginContext, structure: Structure, props: Props<R, C, S> = {}): StateTransformer.Params<StructureRepresentation3D> {
 
-        const themeCtx = ctx.structureRepresentation.themeCtx
+        const { themeCtx } = ctx.structureRepresentation
+        const themeDataCtx = { structure }
 
-        const repr = params.repr
-            ? params.repr instanceof Array ? params.repr[0] : params.repr
+        const repr = props.repr
+            ? props.repr instanceof Array ? props.repr[0] : props.repr
             : ctx.structureRepresentation.registry.default.provider;
         const reprDefaultParams = PD.getDefaultValues(repr.getParams(themeCtx, structure));
-        const reprParams = params.repr instanceof Array
-            ? { ...reprDefaultParams, ...params.repr[1](repr as R, themeCtx, structure) }
+        const reprParams = props.repr instanceof Array
+            ? { ...reprDefaultParams, ...props.repr[1](repr as R, themeCtx, structure) }
             : reprDefaultParams;
 
-        const color = params.color
-            ? params.color instanceof Array ? params.color[0] : params.color
+        const color = props.color
+            ? props.color instanceof Array ? props.color[0] : props.color
             : themeCtx.colorThemeRegistry.get(repr.defaultColorTheme.name);
-        const colorDefaultParams = { ...PD.getDefaultValues(color.getParams(themeCtx)), ...repr.defaultColorTheme.props }
-        const colorParams = params.color instanceof Array
-            ? { ...colorDefaultParams, ...params.color[1](color as C, themeCtx) }
+        const colorDefaultParams = { ...PD.getDefaultValues(color.getParams(themeDataCtx)), ...repr.defaultColorTheme.props }
+        const colorParams = props.color instanceof Array
+            ? { ...colorDefaultParams, ...props.color[1](color as C, themeCtx) }
             : colorDefaultParams;
 
-        const size = params.size
-            ? params.size instanceof Array ? params.size[0] : params.size
+        const size = props.size
+            ? props.size instanceof Array ? props.size[0] : props.size
             : themeCtx.sizeThemeRegistry.get(repr.defaultSizeTheme.name);
-        const sizeDefaultParams = { ...PD.getDefaultValues(size.getParams(themeCtx)), ...repr.defaultSizeTheme.props }
-        const sizeParams = params.size instanceof Array
-            ? { ...sizeDefaultParams, ...params.size[1](size as S, themeCtx) }
+        const sizeDefaultParams = { ...PD.getDefaultValues(size.getParams(themeDataCtx)), ...repr.defaultSizeTheme.props }
+        const sizeParams = props.size instanceof Array
+            ? { ...sizeDefaultParams, ...props.size[1](size as S, themeCtx) }
             : sizeDefaultParams;
 
         return ({
