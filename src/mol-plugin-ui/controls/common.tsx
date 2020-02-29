@@ -308,16 +308,28 @@ export function SectionHeader(props: { icon?: string, title: string | JSX.Elemen
     </div>
 }
 
-// export const ToggleButton = (props: {
-//     onChange: (v: boolean) => void,
-//     value: boolean,
-//     label: string,
-//     title?: string
-// }) => <div className='lm-control-row lm-toggle-button' title={props.title}>
-//         <span>{props.label}</span>
-//         <div>
-//             <button onClick={e => { props.onChange.call(null, !props.value); (e.target as HTMLElement).blur(); }}>
-//                     <span className={ `lm-icon lm-icon-${props.value ? 'ok' : 'off'}` }></span> {props.value ? 'On' : 'Off'}
-//             </button>
-//         </div>
-//     </div>
+export type ToggleButtonProps = {
+    style?: React.CSSProperties,
+    className?: string,
+    disabled?: boolean,
+    label: string | JSX.Element,
+    title?: string,
+    isSelected?: boolean,
+    toggle: () => void
+}
+
+export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
+    onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.blur();
+        this.props.toggle();
+    }
+
+    render() {
+        const props = this.props;
+        const label = props.label;
+        return <button onClick={this.onClick} title={this.props.title}
+            disabled={props.disabled} style={props.style} className={props.className}>
+            {this.props.isSelected ? <b>{label}</b> : label}
+        </button>;
+    }
+}

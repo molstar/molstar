@@ -13,10 +13,10 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Interactivity } from '../../mol-plugin/util/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { stripTags, stringToWords } from '../../mol-util/string';
-import { StructureElement, StructureSelection } from '../../mol-model/structure';
+import { StructureElement } from '../../mol-model/structure';
 import { ActionMenu } from '../controls/action-menu';
-import { compile } from '../../mol-script/runtime/query/compiler';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
+import { ToggleButton } from '../controls/common';
 
 const SSQ = StructureSelectionQueries
 
@@ -46,7 +46,7 @@ const StandardAminoAcids = [
     [['THR'], 'THREONINE'],
     [['SEC'], 'SELENOCYSTEINE'],
     [['PYL'], 'PYRROLYSINE'],
-] as [string[], string][]
+].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][]
 
 const StandardNucleicBases = [
     [['A', 'DA'], 'ADENOSINE'],
@@ -55,15 +55,15 @@ const StandardNucleicBases = [
     [['G', 'DG'], 'GUANOSINE'],
     [['I', 'DI'], 'INOSINE'],
     [['U', 'DU'], 'URIDINE'],
-] as [string[], string][]
+].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][]
 
 function ResidueItem([names, label]: [string[], string]) {
-    const query = compile<StructureSelection>(MS.struct.modifier.union([
+    const query = StructureSelectionQuery(names.join(', '), MS.struct.modifier.union([
         MS.struct.generator.atomGroups({
             'residue-test': MS.core.set.has([MS.set(...names), MS.ammp('auth_comp_id')])
         })
     ]))
-    return ActionMenu.Item(stringToWords(label), query)
+    return ActionMenu.Item(`${names.join(', ')} (${stringToWords(label)})`, query)
 }
 
 const DefaultQueries = [
@@ -107,7 +107,7 @@ const DefaultQueries = [
         'Validation',
         SSQItem('hasClash'),
     ]
-] as unknown as ActionMenu.Spec
+] as unknown as ActionMenu.Items
 
 const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,
@@ -118,7 +118,9 @@ interface StructureSelectionControlsState extends CollapsableState {
     extraRadius: number,
     durationMs: number,
 
-    isDisabled: boolean
+    isDisabled: boolean,
+
+    queryAction?: SelectionModifier
 }
 
 export class StructureSelectionControls<P, S extends StructureSelectionControlsState> extends CollapsableControls<P, S> {
@@ -132,8 +134,7 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         });
 
         this.subscribe(this.plugin.state.dataState.events.isUpdating, v => {
-            this.actionMenu.hide();
-            this.setState({ isDisabled: v })
+            this.setState({ isDisabled: v, queryAction: void 0 })
         })
     }
 
@@ -207,22 +208,37 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         this.plugin.helpers.structureSelection.set(modifier, selectionQuery, false)
     }
 
-    add = (value: StructureSelectionQuery) => this.set('add', value)
-    remove = (value: StructureSelectionQuery) => this.set('remove', value)
-    only = (value: StructureSelectionQuery) => this.set('only', value)
+    selectQuery: ActionMenu.OnSelect = item => {
+        if (!item || !this.state.queryAction) {
+            this.setState({ queryAction: void 0 });
+            return;
+        }
+        const q = this.state.queryAction!;
+        this.setState({ queryAction: void 0 }, () => {
+            this.set(q, item.value as StructureSelectionQuery);
+        })
+    }
 
     queries = DefaultQueries
 
-    actionMenu = new ActionMenu();
+    private showQueries(q: SelectionModifier) {
+        return () => this.setState({ queryAction: this.state.queryAction === q ? void 0 : q });
+    }
 
-    controls = <div>
-        <div className='msp-control-row msp-button-row'>
-            <ActionMenu.Toggle menu={this.actionMenu} items={this.queries} header='Select' onSelect={this.add} disabled={this.state.isDisabled} />
-            <ActionMenu.Toggle menu={this.actionMenu} items={this.queries} header='Deselect' onSelect={this.remove} disabled={this.state.isDisabled} />
-            <ActionMenu.Toggle menu={this.actionMenu} items={this.queries} header='Only' onSelect={this.only} disabled={this.state.isDisabled} />
+    toggleAdd = this.showQueries('add')
+    toggleRemove = this.showQueries('remove')
+    toggleOnly = this.showQueries('only')
+
+    get controls() {
+        return <div>
+            <div className='msp-control-row msp-button-row'>
+                <ToggleButton label='Select' toggle={this.toggleAdd} isSelected={this.state.queryAction === 'add'} disabled={this.state.isDisabled} />
+                <ToggleButton label='Deselect' toggle={this.toggleRemove} isSelected={this.state.queryAction === 'remove'} disabled={this.state.isDisabled} />
+                <ToggleButton label='Only' toggle={this.toggleOnly} isSelected={this.state.queryAction === 'only'} disabled={this.state.isDisabled} />
+            </div>
+            {this.state.queryAction && <ActionMenu items={this.queries} onSelect={this.selectQuery} />}
         </div>
-        <ActionMenu.Options menu={this.actionMenu} />
-    </div>
+    }
 
     defaultState() {
         return {
@@ -232,6 +248,8 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
             minRadius: 8,
             extraRadius: 4,
             durationMs: 250,
+
+            queryAction: void 0,
 
             isDisabled: false
         } as S

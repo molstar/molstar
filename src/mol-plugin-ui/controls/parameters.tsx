@@ -14,7 +14,7 @@ import { camelCaseToWords } from '../../mol-util/string';
 import * as React from 'react';
 import LineGraphComponent from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
-import { NumericInput, IconButton, ControlGroup } from './common';
+import { NumericInput, IconButton, ControlGroup, ToggleButton } from './common';
 import { _Props, _State, PluginUIComponent } from '../base';
 import { legendFor } from './legend';
 import { Legend as LegendData } from '../../mol-util/legend';
@@ -127,7 +127,7 @@ export interface ParamProps<P extends PD.Base<any> = PD.Base<any>> {
 }
 export type ParamControl = React.ComponentClass<ParamProps<any>>
 
-function renderSimple(options: { props: ParamProps<any>, state: { isExpanded: boolean }, control: JSX.Element, addOn: JSX.Element | null, toggleHelp: () => void }) {
+function renderSimple(options: { props: ParamProps<any>, state: { showHelp: boolean }, control: JSX.Element, addOn: JSX.Element | null, toggleHelp: () => void }) {
     const { props, state, control, toggleHelp, addOn } = options;
 
     const _className = ['msp-control-row'];
@@ -147,9 +147,9 @@ function renderSimple(options: { props: ParamProps<any>, state: { isExpanded: bo
                 {label}
                 {hasHelp &&
                     <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={toggleHelp}
-                        title={desc || `${state.isExpanded ? 'Hide' : 'Show'} help`}
+                        title={desc || `${state.showHelp ? 'Hide' : 'Show'} help`}
                         style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                        <span className={`msp-icon msp-icon-help-circle-${state.isExpanded ? 'collapse' : 'expand'}`} />
+                        <span className={`msp-icon msp-icon-help-circle-${state.showHelp ? 'collapse' : 'expand'}`} />
                     </button>
                 }
             </span>
@@ -157,15 +157,15 @@ function renderSimple(options: { props: ParamProps<any>, state: { isExpanded: bo
                 {control}
             </div>
         </div>
-        {hasHelp && state.isExpanded && <div className='msp-control-offset'>
+        {hasHelp && state.showHelp && <div className='msp-control-offset'>
             <ParamHelp legend={help.legend} description={help.description} />
         </div>}
         {addOn}
     </>;
 }
 
-export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<ParamProps<P>, { isExpanded: boolean }> {
-    state = { isExpanded: false };
+export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<ParamProps<P>, { showHelp: boolean }> {
+    state = { showHelp: false };
 
     protected update(value: P['defaultValue']) {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
@@ -174,7 +174,7 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
     abstract renderControl(): JSX.Element;
     renderAddOn(): JSX.Element | null { return null; }
 
-    toggleHelp = () => this.setState({ isExpanded: !this.state.isExpanded });
+    toggleHelp = () => this.setState({ showHelp: !this.state.showHelp });
 
     render() {
         return renderSimple({
@@ -330,11 +330,20 @@ export class PureSelectControl extends  React.PureComponent<ParamProps<PD.Select
     }
 }
 
-export class SelectControl extends SimpleParam<PD.Select<string | number>> {
-    menu = new ActionMenu();
-    onSelect = (value: string) => {
-        this.update(value);
+export class SelectControl extends React.PureComponent<ParamProps<PD.Select<string | number>>, { showHelp: boolean, showOptions: boolean }> {
+    state = { showHelp: false, showOptions: false };
+
+    onSelect: ActionMenu.OnSelect = item => {
+        if (!item || item.value === this.props.value) {
+            this.setState({ showOptions: false });
+        } else {
+            this.setState({ showOptions: false }, () => {
+                this.props.onChange({ param: this.props.param, name: this.props.name, value: item.value });
+            });
+        }
     }
+
+    toggle = () => this.setState({ showOptions: !this.state.showOptions });
 
     items = memoizeLatest((param: PD.Select<any>) => ActionMenu.createSpecFromSelectParam(param));
 
@@ -342,20 +351,33 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
         const items = this.items(this.props.param);
         const current = this.props.value ? ActionMenu.findCurrent(items, this.props.value) : void 0;
         const label = current
-            ? current.name
+            ? current.label
             : typeof this.props.value === 'undefined'
-            ? `${ActionMenu.getFirstItem(items)?.name || ''} [Default]`
+            ? `${ActionMenu.getFirstItem(items)?.label || ''} [Default]`
             : `[Invalid] ${this.props.value}`
-        return <ActionMenu.Toggle menu={this.menu} disabled={this.props.isDisabled} style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
-            onSelect={this.onSelect} items={items as ActionMenu.Spec} label={label} title={label}
-            current={current} />;
+        return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
+            label={label} title={label as string} toggle={this.toggle} isSelected={this.state.showOptions} />;
     }
 
     renderAddOn() {
+        if (!this.state.showOptions) return null;
+
         const items = this.items(this.props.param);
         const current = ActionMenu.findCurrent(items, this.props.value);
 
-        return <ActionMenu.Options menu={this.menu} items={items} current={current} />;
+        return <ActionMenu items={items} current={current} onSelect={this.onSelect} />;
+    }
+
+    toggleHelp = () => this.setState({ showHelp: !this.state.showHelp });
+
+    render() {
+        return renderSimple({
+            props: this.props,
+            state: this.state,
+            control: this.renderControl(),
+            toggleHelp: this.toggleHelp,
+            addOn: this.renderAddOn()
+        });
     }
 }
 
