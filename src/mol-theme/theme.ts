@@ -60,7 +60,7 @@ namespace Theme {
 //
 
 export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends PD.Params> {
-    readonly label: string    
+    readonly label: string
     readonly category: string
     readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => T
     readonly getParams: (ctx: ThemeDataContext) => P

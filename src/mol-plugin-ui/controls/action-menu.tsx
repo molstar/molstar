@@ -30,7 +30,7 @@ export class ActionMenu {
 const HideCmd: ActionMenu.Command = { type: 'hide' };
 
 export namespace ActionMenu {
-    export type Command = 
+    export type Command =
         | { type: 'toggle', items: Spec, header?: string, current?: Item, onSelect: (value: any) => void }
         | { type: 'hide' }
 
@@ -95,9 +95,9 @@ export namespace ActionMenu {
         render() {
             const props = this.props;
             const label = props.label || props.header;
-            return <button onClick={this.onClick} 
+            return <button onClick={this.onClick}
                 disabled={props.disabled} style={props.style} className={props.className}>
-                    {this.state.isSelected ? <b>{label}</b> : label}
+                {this.state.isSelected ? <b>{label}</b> : label}
             </button>;
         }
     }

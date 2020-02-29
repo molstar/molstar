@@ -173,7 +173,7 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
 
     abstract renderControl(): JSX.Element;
     renderAddOn(): JSX.Element | null { return null; }
-    
+
     toggleHelp = () => this.setState({ isExpanded: !this.state.isExpanded });
 
     render() {
@@ -342,7 +342,7 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
         const items = this.items(this.props.param);
         const current = ActionMenu.findCurrent(items, this.props.value);
 
-        return <ActionMenu.Toggle menu={this.menu} disabled={this.props.isDisabled} 
+        return <ActionMenu.Toggle menu={this.menu} disabled={this.props.isDisabled}
             onSelect={this.onSelect} items={items as ActionMenu.Spec} label={current?.name || `[Invalid] ${this.props.value}`}
             current={current} />;
     }
