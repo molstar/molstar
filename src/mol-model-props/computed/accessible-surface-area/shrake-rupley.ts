@@ -9,7 +9,7 @@ import { Task, RuntimeContext } from '../../../mol-task';
 // import { BitFlags } from '../../../mol-util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition'
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { Structure } from '../../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { assignRadiusForHeavyAtoms } from './shrake-rupley/radii';
 import { ShrakeRupleyContext, VdWLookup, MaxAsa, DefaultMaxAsa } from './shrake-rupley/common';
 import { computeArea } from './shrake-rupley/area';
@@ -86,19 +86,35 @@ namespace AccessibleSurfaceArea {
         return points;
     }
 
-    // export namespace SolventAccessibility {
-    //     export const is: (t: number, f: Flag) => boolean = BitFlags.has
-    //     export const create: (f: Flag) => number = BitFlags.create
-    //     export const enum Flag {
-    //         _ = 0x0,
-    //         BURIED = 0x1,
-    //         ACCESSIBLE = 0x2
-    //     }
-    // }
+    export const enum Flag {
+        NA = 0x0,
+        Buried = 0x1,
+        Accessible = 0x2
+    }
 
     /** Get relative area for a given component id */
     export function normalize(compId: string, asa: number) {
         const maxAsa = MaxAsa[compId] || DefaultMaxAsa;
         return asa / maxAsa
+    }
+
+    export function getValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
+        const { getSerialIndex } = location.structure.root.serialMapping
+        const { area, serialResidueIndex } = accessibleSurfaceArea
+        const rSI = serialResidueIndex[getSerialIndex(location.unit, location.element)]
+        if (rSI === -1) return -1
+        return area[rSI]
+    }
+
+    export function getNormalizedValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
+        const value = getValue(location, accessibleSurfaceArea)
+        return value === -1 ? -1 : normalize(StructureProperties.residue.label_comp_id(location), value)
+    }
+
+    export function getFlag(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
+        const value = getNormalizedValue(location, accessibleSurfaceArea)
+        return value === -1 ? Flag.NA :
+            value < 0.16 ? Flag.Buried :
+                Flag.Accessible
     }
 }

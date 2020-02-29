@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,7 +10,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition'
 import { Color, ColorScale } from '../../../mol-util/color'
 import { ThemeDataContext } from '../../../mol-theme/theme'
 import { ColorTheme, LocationColor } from '../../../mol-theme/color'
-import { StructureProperties, StructureElement, Unit } from '../../../mol-model/structure'
+import { StructureElement, Unit } from '../../../mol-model/structure'
 import { AccessibleSurfaceAreaProvider } from '../accessible-surface-area'
 import { AccessibleSurfaceArea } from '../accessible-surface-area/shrake-rupley'
 import { CustomProperty } from '../../common/custom-property'
@@ -36,18 +36,16 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
         domain: [0.0, 1.0]
     })
 
-    const { label_comp_id } = StructureProperties.residue
     const accessibleSurfaceArea = ctx.structure && AccessibleSurfaceAreaProvider.get(ctx.structure)
     const contextHash = accessibleSurfaceArea?.version
 
     if (accessibleSurfaceArea?.value && ctx.structure) {
-        const { getSerialIndex } = ctx.structure.root.serialMapping
-        const { area, serialResidueIndex } = accessibleSurfaceArea.value
+        const asa = accessibleSurfaceArea.value
 
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location) && Unit.isAtomic(location.unit)) {
-                const rSI = serialResidueIndex[getSerialIndex(location.unit, location.element)]
-                return rSI === -1 ? DefaultColor : scale.color(AccessibleSurfaceArea.normalize(label_comp_id(location), area[rSI]))
+                const value = AccessibleSurfaceArea.getNormalizedValue(location, asa)
+                return value === -1 ? DefaultColor : scale.color(value)
             }
             return DefaultColor
         }
