@@ -14,6 +14,7 @@ import { OrderedSet } from '../../../../../mol-data/int';
 import { ClashesRepresentationProvider } from '../../../../../mol-model-props/rcsb/representations/validation-report-clashes';
 import { DensityFitColorThemeProvider } from '../../../../../mol-model-props/rcsb/themes/density-fit';
 import { cantorPairing } from '../../../../../mol-data/util';
+import { DefaultQueryRuntimeTable } from '../../../../../mol-script/runtime/query/compiler';
 
 const Tag = ValidationReport.Tag
 
@@ -34,6 +35,8 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
         }
 
         register(): void {
+            DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
+
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
 
             this.ctx.lociLabels.addProvider(this.label);
@@ -54,6 +57,9 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
         }
 
         unregister() {
+            // TODO
+            // DefaultQueryRuntimeTable.removeCustomProp(this.provider.descriptor);
+
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
 
             this.ctx.lociLabels.removeProvider(this.label);
