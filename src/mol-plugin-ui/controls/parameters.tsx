@@ -341,8 +341,7 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
     renderControl() {
         const items = this.items(this.props.param);
         const current = ActionMenu.findCurrent(items, this.props.value);
-
-        return <ActionMenu.Toggle menu={this.menu} disabled={this.props.isDisabled}
+        return <ActionMenu.Toggle menu={this.menu} disabled={this.props.isDisabled} style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
             onSelect={this.onSelect} items={items as ActionMenu.Spec} label={current?.name || `[Invalid] ${this.props.value}`}
             current={current} />;
     }
@@ -614,7 +613,7 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
     }
 }
 
-export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>, { isExpanded: boolean }> {
+export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> & { inMapped?: boolean }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.param.isExpanded }
 
     change(value: any) {
@@ -637,6 +636,10 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
 
         const controls = <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />;
 
+        if (this.props.inMapped) {
+            return <div className='msp-control-offset'>{controls}</div>;
+        }
+
         if (this.props.param.isFlat) {
             return controls;
         }
@@ -655,7 +658,9 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
     }
 }
 
-export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>>> {
+export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>>, { isExpanded: boolean }> {
+    state = { isExpanded: false }
+
     private valuesCache: { [name: string]: PD.Values<any> } = {}
     private setValues(name: string, values: PD.Values<any>) {
         this.valuesCache[name] = values
@@ -681,6 +686,8 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
         this.change({ name: this.props.value.name, params: e.value });
     }
 
+    toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
+
     render() {
         const value: PD.Mapped<any>['defaultValue'] = this.props.value;
         const param = this.props.param.map(value.name);
@@ -701,6 +708,14 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
 
         if (!Mapped) {
             return Select;
+        }
+
+        if (param.type === 'group' && !param.isFlat && Object.keys(param.params).length > 0) {
+            return <div className='msp-mapped-parameter-group'>
+                {Select}
+                <IconButton icon='log' onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`${label} Properties`} />
+                {this.state.isExpanded && <GroupControl inMapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />}
+            </div>
         }
 
         return <>

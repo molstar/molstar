@@ -46,7 +46,8 @@ const sharedConfig = {
             'node_modules',
             path.resolve(__dirname, 'lib/')
         ],
-    }
+    },
+    devtool: ''
 }
 
 

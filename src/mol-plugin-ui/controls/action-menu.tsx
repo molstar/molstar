@@ -41,7 +41,7 @@ export namespace ActionMenu {
 
 
     export type ToggleProps = {
-        style?: React.HTMLAttributes<HTMLButtonElement>,
+        style?: React.CSSProperties,
         className?: string,
         menu: ActionMenu,
         disabled?: boolean,
@@ -180,11 +180,14 @@ export namespace ActionMenu {
 
             if (typeof items === 'string') return null;
             if (isItem(items)) return <Action menu={menu} item={items} onSelect={onSelect} current={current} />
+
+            const hasCurrent = header && current && !!findCurrent(items, current.value)
+
             return <div>
                 {header && <div className='msp-control-group-header' style={{ marginTop: '1px' }}>
                     <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
                         <span className={`msp-icon msp-icon-${this.state.isExpanded ? 'collapse' : 'expand'}`} />
-                        {header}
+                        {hasCurrent ? <b>{header}</b> : header}
                     </button>
                 </div>}
                 <div className='msp-control-offset'>
