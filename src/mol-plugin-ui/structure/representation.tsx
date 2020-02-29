@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,8 +13,6 @@ import { Color } from '../../mol-util/color';
 import { ButtonSelect, Options } from '../controls/common'
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { VisualQuality, VisualQualityOptions } from '../../mol-geo/geometry/base';
-import { StructureRepresentationPresets as P } from '../../mol-plugin/util/structure-representation-helper';
-import { camelCaseToWords } from '../../mol-util/string';
 import { CollapsableControls } from '../base';
 import { StateSelection, StateObject } from '../../mol-state';
 import { PluginStateObject } from '../../mol-plugin/state/objects';
@@ -133,13 +131,6 @@ export class StructureRepresentationControls extends CollapsableControls<Collaps
         this.subscribe(this.plugin.state.dataState.events.isUpdating, v => this.setState({ isDisabled: v }))
     }
 
-    preset = async (value: string) => {
-        const presetFn = P[value as keyof typeof P]
-        if (presetFn) {
-            await presetFn(this.plugin.helpers.structureRepresentation)
-        }
-    }
-
     onChange = async (p: { param: PD.Base<any>, name: string, value: any }) => {
         if (p.name === 'options') {
             await this.plugin.helpers.structureRepresentation.setIgnoreHydrogens(!p.value.showHydrogens)
@@ -178,15 +169,7 @@ export class StructureRepresentationControls extends CollapsableControls<Collaps
     }
 
     renderControls() {
-        const presets = PD.objectToOptions(P, camelCaseToWords);
         return <div>
-            <div className='msp-control-row'>
-                <div className='msp-select-row'>
-                    <ButtonSelect label='Preset' onChange={this.preset}>
-                        <optgroup label='Preset'>{Options(presets)}</optgroup>
-                    </ButtonSelect>
-                </div>
-            </div>
             <EverythingStructureRepresentationControls />
             <SelectionStructureRepresentationControls />
 
