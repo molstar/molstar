@@ -279,8 +279,8 @@ export function ClashesRepresentation(ctx: RepresentationContext, getParams: Rep
 }
 
 export const ClashesRepresentationProvider: StructureRepresentationProvider<ClashesParams> = {
-    label: 'RCSB Clashes',
-    description: 'Displays clashes between atoms as disks.',
+    label: 'Validation Clashes',
+    description: 'Displays clashes between atoms as disks. Data from wwPDB Validation Report, obtained via RCSB PDB.',
     factory: ClashesRepresentation,
     getParams: getClashesParams,
     defaultValues: PD.getDefaultValues(ClashesParams),

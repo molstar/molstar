@@ -86,13 +86,13 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
         color,
         props,
         contextHash,
-        description: 'Assigns chain colors according to assembly symmetry cluster membership.',
+        description: 'Assigns chain colors according to assembly symmetry cluster membership calculated with BioJava and obtained via RCSB PDB.',
         legend
     }
 }
 
 export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<AssemblySymmetryClusterColorThemeParams> = {
-    label: 'RCSB Assembly Symmetry Cluster',
+    label: 'Assembly Symmetry Cluster',
     category: 'RCSB',
     factory: AssemblySymmetryClusterColorTheme,
     getParams: getAssemblySymmetryClusterColorThemeParams,

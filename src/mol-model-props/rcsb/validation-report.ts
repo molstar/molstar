@@ -162,7 +162,7 @@ export type ValidationReportParams = typeof ValidationReportParams
 export type ValidationReportProps = PD.Values<ValidationReportParams>
 
 export const ValidationReportProvider: CustomModelProperty.Provider<ValidationReportParams, ValidationReport> = CustomModelProperty.createProvider({
-    label: 'RCSB Validation Report',
+    label: 'Validation Report',
     descriptor: CustomPropertyDescriptor({
         name: 'rcsb_validation_report',
         symbols: ValidationReport.symbols

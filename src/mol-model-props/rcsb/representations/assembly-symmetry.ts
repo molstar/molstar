@@ -329,5 +329,5 @@ function getCageShape(ctx: RuntimeContext, data: Structure, props: AssemblySymme
 
 export type AssemblySymmetryRepresentation = Representation<Structure, AssemblySymmetryParams>
 export function AssemblySymmetryRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, AssemblySymmetryParams>): AssemblySymmetryRepresentation {
-    return Representation.createMulti('Symmetry', ctx, getParams, Representation.StateBuilder, AssemblySymmetryVisuals as unknown as Representation.Def<Structure, AssemblySymmetryParams>)
+    return Representation.createMulti('Assembly Symmetry', ctx, getParams, Representation.StateBuilder, AssemblySymmetryVisuals as unknown as Representation.Def<Structure, AssemblySymmetryParams>)
 }

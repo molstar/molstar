@@ -21,7 +21,10 @@ const Tag = ValidationReport.Tag
 export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'rcsb-validation-report-prop',
     category: 'custom-props',
-    display: { name: 'RCSB Validation Report' },
+    display: {
+        name: 'Validation Report',
+        description: 'Data from wwPDB Validation Report, obtained via RCSB PDB.'
+    },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         private provider = ValidationReportProvider
 
@@ -99,7 +102,7 @@ function geometryQualityLabel(loci: Loci): string | undefined {
             if (angles) angles.forEach(a => issues.add(angleOutliers.data[a].tag))
 
             if (issues.size === 0) {
-                return `RCSB Geometry Quality <small>(1 Atom)</small>: no issues`;
+                return `Geometry Quality <small>(1 Atom)</small>: no issues`;
             }
 
             const summary: string[] = []

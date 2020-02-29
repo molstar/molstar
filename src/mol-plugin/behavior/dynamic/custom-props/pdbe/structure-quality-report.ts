@@ -15,7 +15,10 @@ import { PluginBehavior } from '../../../behavior';
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'pdbe-structure-quality-report-prop',
     category: 'custom-props',
-    display: { name: 'PDBe Structure Quality Report' },
+    display: {
+        name: 'Structure Quality Report',
+        description: 'Data from wwPDB Validation Report, obtained via PDBe.'
+    },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
 
         private provider = StructureQualityReportProvider
@@ -32,8 +35,8 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
 
                     const se = StructureElement.Location.create(loci.structure, u, u.elements[OrderedSet.getAt(e.indices, 0)]);
                     const issues = StructureQualityReport.getIssues(se);
-                    if (issues.length === 0) return 'PDBe Validation: No Issues';
-                    return `PDBe Validation: ${issues.join(', ')}`;
+                    if (issues.length === 0) return 'Validation: No Issues';
+                    return `Validation: ${issues.join(', ')}`;
 
                 default: return void 0;
             }
