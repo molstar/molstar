@@ -130,7 +130,7 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<Re
 
 export const ResidueNameColorThemeProvider: ColorTheme.Provider<ResidueNameColorThemeParams> = {
     label: 'Residue Name',
-    category: ColorTheme.Category.Basic,
+    category: ColorTheme.Category.Residue,
     factory: ResidueNameColorTheme,
     getParams: getResidueNameColorThemeParams,
     defaultValues: PD.getDefaultValues(ResidueNameColorThemeParams),

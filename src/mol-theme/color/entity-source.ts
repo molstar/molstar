@@ -175,7 +175,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
 
 export const EntitySourceColorThemeProvider: ColorTheme.Provider<EntitySourceColorThemeParams> = {
     label: 'Entity Source',
-    category: ColorTheme.Category.Advanced,
+    category: ColorTheme.Category.Chain,
     factory: EntitySourceColorTheme,
     getParams: getEntitySourceColorThemeParams,
     defaultValues: PD.getDefaultValues(EntitySourceColorThemeParams),

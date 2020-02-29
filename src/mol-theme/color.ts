@@ -47,10 +47,12 @@ interface ColorTheme<P extends PD.Params> {
 }
 namespace ColorTheme {
     export const enum Category {
-        Basic = 'Basic',
-        Advanced = 'Advanced',
-        Computed = 'Computed',
-        Misc = 'Miscellaneous'
+        Atom = 'Atom Property',
+        Chain = 'Chain Property',
+        Residue = 'Residue Property',
+        Symmetry = 'Symmetry',
+        Validation = 'Validation',
+        Misc = 'Miscellaneous',
     }
 
     export type Props = { [k: string]: any }

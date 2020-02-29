@@ -127,8 +127,8 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Poly
 }
 
 export const PolymerIdColorThemeProvider: ColorTheme.Provider<PolymerIdColorThemeParams> = {
-    label: 'Polymer Id',
-    category: ColorTheme.Category.Basic,
+    label: 'Polymer Chain Id',
+    category: ColorTheme.Category.Chain,
     factory: PolymerIdColorTheme,
     getParams: getPolymerIdColorThemeParams,
     defaultValues: PD.getDefaultValues(PolymerIdColorThemeParams),

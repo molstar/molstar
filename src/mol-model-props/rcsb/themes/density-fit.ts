@@ -62,7 +62,7 @@ export function DensityFitColorTheme(ctx: ThemeDataContext, props: {}): ColorThe
 
 export const DensityFitColorThemeProvider: ColorTheme.Provider<{}> = {
     label: 'Density Fit',
-    category: 'RCSB',
+    category: ColorTheme.Category.Validation,
     factory: DensityFitColorTheme,
     getParams: () => ({}),
     defaultValues: PD.getDefaultValues({}),

@@ -16,7 +16,7 @@ import { ColorLists } from '../../mol-util/color/lists';
 
 const DefaultList = 'dark-2'
 const DefaultColor = Color(0xCCCCCC)
-const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
+const Description = 'Gives every chain instance (single chain or collection of single elements) a unique color based on the position (index) of the chain in the list of chains in the structure.'
 
 export const UnitIndexColorThemeParams = {
     ...getPaletteParams({ type: 'set', setList: DefaultList }),
@@ -72,8 +72,8 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Unit
 }
 
 export const UnitIndexColorThemeProvider: ColorTheme.Provider<UnitIndexColorThemeParams> = {
-    label: 'Unit Index',
-    category: ColorTheme.Category.Advanced,
+    label: 'Chain Instance',
+    category: ColorTheme.Category.Chain,
     factory: UnitIndexColorTheme,
     getParams: getUnitIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(UnitIndexColorThemeParams),

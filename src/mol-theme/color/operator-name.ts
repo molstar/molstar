@@ -85,7 +85,7 @@ export function OperatorNameColorTheme(ctx: ThemeDataContext, props: PD.Values<O
 
 export const OperatorNameColorThemeProvider: ColorTheme.Provider<OperatorNameColorThemeParams> = {
     label: 'Operator Name',
-    category: ColorTheme.Category.Advanced,
+    category: ColorTheme.Category.Symmetry,
     factory: OperatorNameColorTheme,
     getParams: getOperatorNameColorThemeParams,
     defaultValues: PD.getDefaultValues(OperatorNameColorThemeParams),
