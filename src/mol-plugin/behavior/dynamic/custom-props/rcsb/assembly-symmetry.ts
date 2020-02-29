@@ -14,6 +14,8 @@ import { Task } from '../../../../../mol-task';
 import { PluginContext } from '../../../../context';
 import { StateTransformer, StateAction, StateObject } from '../../../../../mol-state';
 
+const Tag = AssemblySymmetry.Tag
+
 export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'rcsb-assembly-symmetry-prop',
     category: 'custom-props',
@@ -24,7 +26,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         register(): void {
             this.ctx.state.dataState.actions.add(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.register(this.provider, this.params.autoAttach);
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('rcsb-assembly-symmetry-cluster', AssemblySymmetryClusterColorThemeProvider)
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add(Tag.Cluster, AssemblySymmetryClusterColorThemeProvider)
         }
 
         update(p: { autoAttach: boolean }) {
@@ -37,7 +39,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         unregister() {
             this.ctx.state.dataState.actions.remove(InitAssemblySymmetry3D)
             this.ctx.customStructureProperties.unregister(this.provider.descriptor.name);
-            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('rcsb-assembly-symmetry-cluster')
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove(Tag.Cluster)
         }
     },
     params: () => ({
@@ -65,7 +67,7 @@ export { AssemblySymmetry3D }
 
 type AssemblySymmetry3D = typeof AssemblySymmetry3D
 const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
-    name: 'rcsb-assembly-symmetry-3d',
+    name: Tag.Representation,
     display: 'RCSB Assembly Symmetry',
     from: PluginStateObject.Molecule.Structure,
     to: PluginStateObject.Shape.Representation3D,

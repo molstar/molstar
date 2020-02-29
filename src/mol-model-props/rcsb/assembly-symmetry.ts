@@ -26,6 +26,11 @@ const BiologicalAssemblyNames = new Set([
 ])
 
 export namespace AssemblySymmetry {
+    export enum Tag {
+        Cluster = 'rcsb-assembly-symmetry-cluster',
+        Representation = 'rcsb-assembly-symmetry-3d'
+    }
+
     export const DefaultServerUrl = 'https://data-beta.rcsb.org/graphql'
 
     export function isApplicable(structure?: Structure): boolean {
@@ -55,7 +60,8 @@ export namespace AssemblySymmetry {
         const result = await client.request<AssemblySymmetryQuery>(ctx.runtime, query, variables)
 
         if (!result.assembly?.rcsb_struct_symmetry) {
-            throw new Error('missing fields')
+            console.error('expected `rcsb_struct_symmetry` field')
+            return []
         }
         const symmetry = result.assembly.rcsb_struct_symmetry as AssemblySymmetryValue
         return symmetry.filter(s => s.symbol !== 'C1')
