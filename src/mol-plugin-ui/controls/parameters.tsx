@@ -340,9 +340,14 @@ export class SelectControl extends SimpleParam<PD.Select<string | number>> {
 
     renderControl() {
         const items = this.items(this.props.param);
-        const current = ActionMenu.findCurrent(items, this.props.value);
+        const current = this.props.value ? ActionMenu.findCurrent(items, this.props.value) : void 0;
+        const label = current
+            ? current.name
+            : typeof this.props.value === 'undefined'
+            ? `${ActionMenu.getFirstItem(items)?.name || ''} [Default]`
+            : `[Invalid] ${this.props.value}`
         return <ActionMenu.Toggle menu={this.menu} disabled={this.props.isDisabled} style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
-            onSelect={this.onSelect} items={items as ActionMenu.Spec} label={current?.name || `[Invalid] ${this.props.value}`}
+            onSelect={this.onSelect} items={items as ActionMenu.Spec} label={label} title={label}
             current={current} />;
     }
 

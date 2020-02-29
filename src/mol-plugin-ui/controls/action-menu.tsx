@@ -49,6 +49,7 @@ export namespace ActionMenu {
         header?: string,
         label?: string,
         current?: Item,
+        title?: string,
         onSelect: (value: any) => void
     }
 
@@ -95,7 +96,7 @@ export namespace ActionMenu {
         render() {
             const props = this.props;
             const label = props.label || props.header;
-            return <button onClick={this.onClick}
+            return <button onClick={this.onClick} title={this.props.title}
                 disabled={props.disabled} style={props.style} className={props.className}>
                 {this.state.isSelected ? <b>{label}</b> : label}
             </button>;
@@ -268,6 +269,15 @@ export namespace ActionMenu {
         if (isItem(spec)) return spec.value === value ? spec : void 0;
         for (const s of spec) {
             const found = findCurrent(s, value);
+            if (found) return found;
+        }
+    }
+
+    export function getFirstItem(spec: Spec): Item | undefined {
+        if (typeof spec === 'string') return;
+        if (isItem(spec)) return spec;
+        for (const s of spec) {
+            const found = getFirstItem(s);
             if (found) return found;
         }
     }
