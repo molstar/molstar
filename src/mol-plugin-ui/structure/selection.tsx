@@ -7,13 +7,13 @@
 
 import * as React from 'react';
 import { CollapsableControls, CollapsableState } from '../base';
-import { StructureSelectionQueries, SelectionModifier } from '../../mol-plugin/util/structure-selection-helper';
+import { StructureSelectionQueries, StructureSelectionQuery, SelectionModifier } from '../../mol-plugin/util/structure-selection-helper';
 import { PluginCommands } from '../../mol-plugin/command';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Interactivity } from '../../mol-plugin/util/interactivity';
 import { ParameterControls } from '../controls/parameters';
 import { stripTags, stringToWords } from '../../mol-util/string';
-import { StructureElement, StructureQuery, StructureSelection } from '../../mol-model/structure';
+import { StructureElement, StructureSelection } from '../../mol-model/structure';
 import { ActionMenu } from '../controls/action-menu';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
@@ -21,7 +21,7 @@ import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 const SSQ = StructureSelectionQueries
 
 function SSQItem(name: keyof typeof SSQ) {
-    return ActionMenu.Item(SSQ[name].label, SSQ[name].query)
+    return ActionMenu.Item(SSQ[name].label, SSQ[name])
 }
 
 const StandardAminoAcids = [
@@ -89,6 +89,8 @@ const DefaultQueries = [
     ],
     [
         'Amino Acids',
+        SSQItem('isBuried'),
+        SSQItem('isAccessible'),
         ...StandardAminoAcids.map(v => ResidueItem(v)),
     ],
     [
@@ -100,6 +102,10 @@ const DefaultQueries = [
         SSQItem('surroundings'),
         SSQItem('complement'),
         SSQItem('bonded'),
+    ],
+    [
+        'Validation',
+        SSQItem('hasClash'),
     ]
 ] as unknown as ActionMenu.Spec
 
@@ -197,13 +203,13 @@ export class StructureSelectionControls<P, S extends StructureSelectionControlsS
         }
     }
 
-    set = (modifier: SelectionModifier, query: StructureQuery) => {
-        this.plugin.helpers.structureSelection.set(modifier, query, false)
+    set = (modifier: SelectionModifier, selectionQuery: StructureSelectionQuery) => {
+        this.plugin.helpers.structureSelection.set(modifier, selectionQuery, false)
     }
 
-    add = (value: StructureQuery) => this.set('add', value)
-    remove = (value: StructureQuery) => this.set('remove', value)
-    only = (value: StructureQuery) => this.set('only', value)
+    add = (value: StructureSelectionQuery) => this.set('add', value)
+    remove = (value: StructureSelectionQuery) => this.set('remove', value)
+    only = (value: StructureSelectionQuery) => this.set('only', value)
 
     queries = DefaultQueries
 

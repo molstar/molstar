@@ -8,7 +8,7 @@
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { StateSelection, StateBuilder } from '../../mol-state';
 import { PluginStateObject } from '../state/objects';
-import { QueryContext, StructureSelection, StructureQuery, StructureElement } from '../../mol-model/structure';
+import { QueryContext, StructureSelection, StructureQuery, StructureElement, Structure } from '../../mol-model/structure';
 import { compile } from '../../mol-script/runtime/query/compiler';
 import { Loci } from '../../mol-model/loci';
 import { PluginContext } from '../context';
@@ -16,16 +16,31 @@ import Expression from '../../mol-script/language/expression';
 import { BondType, ProteinBackboneAtoms, NucleicBackboneAtoms, SecondaryStructureType } from '../../mol-model/structure/model/types';
 import { StateTransforms } from '../state/transforms';
 import { SetUtils } from '../../mol-util/set';
+import { ValidationReport, ValidationReportProvider } from '../../mol-model-props/rcsb/validation-report';
+import { CustomProperty } from '../../mol-model-props/common/custom-property';
+import { Task } from '../../mol-task';
+import { AccessibleSurfaceAreaSymbols, AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 
 export interface StructureSelectionQuery {
-    label: string
-    query: StructureQuery
-    expression: Expression
-    description: string
+    readonly label: string
+    readonly expression: Expression
+    readonly description: string
+    readonly query: StructureQuery
+    readonly ensureCustomProperties?: (ctx: CustomProperty.Context, structure: Structure) => Promise<void>
 }
 
-export function StructureSelectionQuery(label: string, expression: Expression, description = ''): StructureSelectionQuery {
-    return { label, expression, query: compile<StructureSelection>(expression), description }
+export function StructureSelectionQuery(label: string, expression: Expression, description = '', ensureCustomProperties?: (ctx: CustomProperty.Context, structure: Structure) => Promise<void>): StructureSelectionQuery {
+    let _query: StructureQuery
+    return {
+        label,
+        expression,
+        description,
+        get query() {
+            if (!_query) _query = compile<StructureSelection>(expression)
+            return _query
+        },
+        ensureCustomProperties
+    }
 }
 
 const all = StructureSelectionQuery('All', MS.struct.generator.all())
@@ -320,6 +335,45 @@ const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct
     })
 ]), 'Select residues covalently bonded to current selection.')
 
+const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modifier.union([
+    MS.struct.modifier.wholeResidues([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'atom-test': ValidationReport.symbols.hasClash.symbol(),
+            })
+        ])
+    ])
+]), 'Select residues with clashes in the wwPDB validation report.', (ctx, structure) => {
+    return ValidationReportProvider.attach(ctx, structure.models[0])
+})
+
+const isBuried = StructureSelectionQuery('Buried Protein Residues', MS.struct.modifier.union([
+    MS.struct.modifier.wholeResidues([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': AccessibleSurfaceAreaSymbols.isBuried.symbol(),
+            })
+        ])
+    ])
+]), 'Select buried protein residues.', (ctx, structure) => {
+    return AccessibleSurfaceAreaProvider.attach(ctx, structure)
+})
+
+const isAccessible = StructureSelectionQuery('Accessible Protein Residues', MS.struct.modifier.union([
+    MS.struct.modifier.wholeResidues([
+        MS.struct.modifier.union([
+            MS.struct.generator.atomGroups({
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': AccessibleSurfaceAreaSymbols.isAccessible.symbol(),
+            })
+        ])
+    ])
+]), 'Select accessible protein residues.', (ctx, structure) => {
+    return AccessibleSurfaceAreaProvider.attach(ctx, structure)
+})
+
 export const StructureSelectionQueries = {
     all,
     polymer,
@@ -346,6 +400,10 @@ export const StructureSelectionQueries = {
     surroundings,
     complement,
     bonded,
+
+    hasClash,
+    isBuried,
+    isAccessible
 }
 
 export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof StructureSelectionQueries, customTag?: string) {
@@ -377,17 +435,24 @@ export class StructureSelectionHelper {
         }
     }
 
-    set(modifier: SelectionModifier, query: StructureQuery, applyGranularity = true) {
-        for (const s of this.structures) {
-            const current = this.plugin.helpers.structureSelectionManager.get(s)
-            const currentSelection = Loci.isEmpty(current)
-                ? StructureSelection.Empty(s)
-                : StructureSelection.Singletons(s, StructureElement.Loci.toStructure(current))
+    async set(modifier: SelectionModifier, selectionQuery: StructureSelectionQuery, applyGranularity = true) {
+        this.plugin.runTask(Task.create('Structure Selection', async runtime => {
+            const ctx = { fetch: this.plugin.fetch, runtime }
+            for (const s of this.structures) {
+                const current = this.plugin.helpers.structureSelectionManager.get(s)
+                const currentSelection = Loci.isEmpty(current)
+                    ? StructureSelection.Empty(s)
+                    : StructureSelection.Singletons(s, StructureElement.Loci.toStructure(current))
 
-            const result = query(new QueryContext(s, { currentSelection }))
-            const loci = StructureSelection.toLociWithSourceUnits(result)
-            this._set(modifier, loci, applyGranularity)
-        }
+                if (selectionQuery.ensureCustomProperties) {
+                    await selectionQuery.ensureCustomProperties(ctx, s)
+                }
+
+                const result = selectionQuery.query(new QueryContext(s, { currentSelection }))
+                const loci = StructureSelection.toLociWithSourceUnits(result)
+                this._set(modifier, loci, applyGranularity)
+            }
+        }))
     }
 
     constructor(private plugin: PluginContext) {
