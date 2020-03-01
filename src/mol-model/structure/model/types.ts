@@ -137,7 +137,7 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
 export const ProteinBackboneAtoms = new Set([
     'CA', 'C', 'N', 'O',
     'O1', 'O2', 'OC1', 'OC2', 'OX1', 'OXT',
-    'H', 'H1', 'H2', 'H3', 'HA', 'HN',
+    'H', 'H1', 'H2', 'H3', 'HA', 'HN', 'HXT',
     'BB'
 ])
 
@@ -257,7 +257,7 @@ export const DnaBaseNames = new Set([
     'DN' // unknown DNA base from CCD
 ])
 export const PeptideBaseNames = new Set([ 'APN', 'CPN', 'TPN', 'GPN' ])
-export const PurineBaseNames = new Set([ 'A', 'G', 'DA', 'DG', 'DI', 'APN', 'GPN' ])
+export const PurineBaseNames = new Set([ 'A', 'G', 'I', 'DA', 'DG', 'DI', 'APN', 'GPN' ])
 export const PyrimidineBaseNames = new Set([ 'C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN' ])
 export const BaseNames = SetUtils.unionMany(RnaBaseNames, DnaBaseNames, PeptideBaseNames)
 
