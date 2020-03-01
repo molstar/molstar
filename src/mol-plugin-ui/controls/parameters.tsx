@@ -349,12 +349,12 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
 
     renderControl() {
         const items = this.items(this.props.param);
-        const current = this.props.value ? ActionMenu.findCurrent(items, this.props.value) : void 0;
+        const current = this.props.value !== undefined ? ActionMenu.findCurrent(items, this.props.value) : void 0;
         const label = current
             ? current.label
             : typeof this.props.value === 'undefined'
-            ? `${ActionMenu.getFirstItem(items)?.label || ''} [Default]`
-            : `[Invalid] ${this.props.value}`
+                ? `${ActionMenu.getFirstItem(items)?.label || ''} [Default]`
+                : `[Invalid] ${this.props.value}`
         return <ToggleButton disabled={this.props.isDisabled} style={{ textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
             label={label} title={label as string} toggle={this.toggle} isSelected={this.state.showOptions} />;
     }
