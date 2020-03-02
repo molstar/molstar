@@ -291,7 +291,7 @@ namespace Canvas3D {
         function resolveCameraReset() {
             if (!cameraResetRequested) return;
             const { center, radius } = scene.boundingSphere;
-            if (radius >= 0) {
+            if (radius > 0) {
                 const duration = nextCameraResetDuration === undefined ? p.cameraResetDurationMs : nextCameraResetDuration
                 const focus = camera.getFocus(center, radius, radius);
                 const snapshot = nextCameraResetSnapshot ? { ...focus, ...nextCameraResetSnapshot } : focus;
