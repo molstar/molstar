@@ -7,107 +7,36 @@
 
 import * as React from 'react';
 import { CollapsableControls, CollapsableState } from '../base';
-import { StructureSelectionQueries, StructureSelectionQuery, SelectionModifier } from '../../mol-plugin/util/structure-selection-helper';
+import { StructureSelectionQuery, SelectionModifier, StructureSelectionQueryList } from '../../mol-plugin/util/structure-selection-helper';
 import { PluginCommands } from '../../mol-plugin/command';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Interactivity } from '../../mol-plugin/util/interactivity';
 import { ParameterControls } from '../controls/parameters';
-import { stripTags, stringToWords } from '../../mol-util/string';
+import { stripTags } from '../../mol-util/string';
 import { StructureElement } from '../../mol-model/structure';
 import { ActionMenu } from '../controls/action-menu';
-import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { ToggleButton } from '../controls/common';
 
-const SSQ = StructureSelectionQueries
-
-function SSQItem(name: keyof typeof SSQ) {
-    return ActionMenu.Item(SSQ[name].label, SSQ[name])
+function createDefaultQueries() {
+    const cats = new Map<string, (ActionMenu.Item | string)[]>();
+    const items: (ActionMenu.Item | (ActionMenu.Item | string)[] | string)[] = [];
+    for (const q of StructureSelectionQueryList) {
+        if (!!q.category) {
+            let cat = cats.get(q.category);
+            if (!cat) {
+                cat = [q.category];
+                cats.set(q.category, cat);
+                items.push(cat);
+            }
+            cat.push(ActionMenu.Item(q.label, q));
+        } else {
+            items.push(ActionMenu.Item(q.label, q));
+        }
+    }
+    return items as ActionMenu.Items;
 }
 
-const StandardAminoAcids = [
-    [['HIS'], 'HISTIDINE'],
-    [['ARG'], 'ARGININE'],
-    [['LYS'], 'LYSINE'],
-    [['ILE'], 'ISOLEUCINE'],
-    [['PHE'], 'PHENYLALANINE'],
-    [['LEU'], 'LEUCINE'],
-    [['TRP'], 'TRYPTOPHAN'],
-    [['ALA'], 'ALANINE'],
-    [['MET'], 'METHIONINE'],
-    [['CYS'], 'CYSTEINE'],
-    [['ASN'], 'ASPARAGINE'],
-    [['VAL'], 'VALINE'],
-    [['GLY'], 'GLYCINE'],
-    [['SER'], 'SERINE'],
-    [['GLN'], 'GLUTAMINE'],
-    [['TYR'], 'TYROSINE'],
-    [['ASP'], 'ASPARTIC ACID'],
-    [['GLU'], 'GLUTAMIC ACID'],
-    [['THR'], 'THREONINE'],
-    [['SEC'], 'SELENOCYSTEINE'],
-    [['PYL'], 'PYRROLYSINE'],
-].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][]
-
-const StandardNucleicBases = [
-    [['A', 'DA'], 'ADENOSINE'],
-    [['C', 'DC'], 'CYTIDINE'],
-    [['T', 'DT'], 'THYMIDINE'],
-    [['G', 'DG'], 'GUANOSINE'],
-    [['I', 'DI'], 'INOSINE'],
-    [['U', 'DU'], 'URIDINE'],
-].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][]
-
-function ResidueItem([names, label]: [string[], string]) {
-    const query = StructureSelectionQuery(names.join(', '), MS.struct.modifier.union([
-        MS.struct.generator.atomGroups({
-            'residue-test': MS.core.set.has([MS.set(...names), MS.ammp('auth_comp_id')])
-        })
-    ]))
-    return ActionMenu.Item(`${names.join(', ')} (${stringToWords(label)})`, query)
-}
-
-const DefaultQueries = [
-    SSQItem('all'),
-    [
-        'Type',
-        SSQItem('polymer'),
-        SSQItem('protein'),
-        SSQItem('nucleic'),
-        SSQItem('branched'),
-        SSQItem('ligand'),
-        SSQItem('water'),
-    ],
-    [
-        'Structure',
-        SSQItem('trace'),
-        SSQItem('backbone'),
-        SSQItem('helix'),
-        SSQItem('beta'),
-        SSQItem('ring'),
-        SSQItem('aromaticRing'),
-        SSQItem('nonStandardPolymer'),
-    ],
-    [
-        'Amino Acids',
-        SSQItem('isBuried'),
-        SSQItem('isAccessible'),
-        ...StandardAminoAcids.map(v => ResidueItem(v)),
-    ],
-    [
-        'Nucleic Bases',
-        ...StandardNucleicBases.map(v => ResidueItem(v)),
-    ],
-    [
-        'Manipulate',
-        SSQItem('surroundings'),
-        SSQItem('complement'),
-        SSQItem('bonded'),
-    ],
-    [
-        'Validation',
-        SSQItem('hasClash'),
-    ]
-] as unknown as ActionMenu.Items
+export const DefaultQueries = createDefaultQueries()
 
 const StructureSelectionParams = {
     granularity: Interactivity.Params.granularity,

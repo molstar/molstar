@@ -20,36 +20,64 @@ import { ValidationReport, ValidationReportProvider } from '../../mol-model-prop
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { Task } from '../../mol-task';
 import { AccessibleSurfaceAreaSymbols, AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
+import { stringToWords } from '../../mol-util/string';
 
-export interface StructureSelectionQuery {
+export enum StructureSelectionCategory {
+    Type = 'Type',
+    Structure = 'Structure Property',
+    Atom = 'Atom Property',
+    Bond = 'Bond Property',
+    Residue = 'Residue Property',
+    AminoAcid = 'Amino Acid',
+    NucleicBase = 'Nucleic Base',
+    Manipulate = 'Manipulate Selection',
+    Validation = 'Validation',
+    Misc = 'Miscellaneous',
+    Internal = 'Internal',
+}
+
+export { StructureSelectionQuery }
+
+interface StructureSelectionQuery {
     readonly label: string
     readonly expression: Expression
     readonly description: string
+    readonly category: string
+    readonly isHidden: boolean
     readonly query: StructureQuery
     readonly ensureCustomProperties?: (ctx: CustomProperty.Context, structure: Structure) => Promise<void>
 }
 
-export function StructureSelectionQuery(label: string, expression: Expression, description = '', ensureCustomProperties?: (ctx: CustomProperty.Context, structure: Structure) => Promise<void>): StructureSelectionQuery {
+interface StructureSelectionQueryProps {
+    description?: string,
+    category?: string
+    isHidden?: boolean
+    ensureCustomProperties?: (ctx: CustomProperty.Context, structure: Structure) => Promise<void>
+}
+
+function StructureSelectionQuery(label: string, expression: Expression, props: StructureSelectionQueryProps = {}): StructureSelectionQuery {
     let _query: StructureQuery
     return {
         label,
         expression,
-        description,
+        description: props.description || '',
+        category: props.category ?? StructureSelectionCategory.Misc,
+        isHidden: !!props.isHidden,
         get query() {
             if (!_query) _query = compile<StructureSelection>(expression)
             return _query
         },
-        ensureCustomProperties
+        ensureCustomProperties: props.ensureCustomProperties
     }
 }
 
-const all = StructureSelectionQuery('All', MS.struct.generator.all())
+const all = StructureSelectionQuery('All', MS.struct.generator.all(), { category: '' })
 
 const polymer = StructureSelectionQuery('Polymer', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
     })
-]))
+]), { category: StructureSelectionCategory.Type })
 
 const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
     MS.struct.combinator.merge([
@@ -69,7 +97,7 @@ const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
             })
         ])
     ])
-]))
+]), { category: StructureSelectionCategory.Structure })
 
 // TODO maybe pre-calculate atom properties like backbone/sidechain
 const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
@@ -101,7 +129,7 @@ const backbone = StructureSelectionQuery('Backbone', MS.struct.modifier.union([
             })
         ])
     ])
-]))
+]), { category: StructureSelectionCategory.Structure })
 
 const protein = StructureSelectionQuery('Protein', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -113,7 +141,7 @@ const protein = StructureSelectionQuery('Protein', MS.struct.modifier.union([
             ])
         ])
     })
-]))
+]), { category: StructureSelectionCategory.Type })
 
 const nucleic = StructureSelectionQuery('Nucleic', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -125,7 +153,7 @@ const nucleic = StructureSelectionQuery('Nucleic', MS.struct.modifier.union([
             ])
         ])
     })
-]))
+]), { category: StructureSelectionCategory.Type })
 
 const proteinOrNucleic = StructureSelectionQuery('Protein or Nucleic', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -137,7 +165,7 @@ const proteinOrNucleic = StructureSelectionQuery('Protein or Nucleic', MS.struct
             ])
         ])
     })
-]))
+]), { category: StructureSelectionCategory.Type })
 
 const helix = StructureSelectionQuery('Helix', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -153,7 +181,7 @@ const helix = StructureSelectionQuery('Helix', MS.struct.modifier.union([
             MS.core.type.bitflags([SecondaryStructureType.Flag.Helix])
         ])
     })
-]))
+]), { category: StructureSelectionCategory.Residue })
 
 const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -169,13 +197,13 @@ const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.uni
             MS.core.type.bitflags([SecondaryStructureType.Flag.Beta])
         ])
     })
-]))
+]), { category: StructureSelectionCategory.Residue })
 
 const water = StructureSelectionQuery('Water', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'water'])
     })
-]))
+]), { category: StructureSelectionCategory.Type })
 
 const branched = StructureSelectionQuery('Carbohydrate', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -190,20 +218,20 @@ const branched = StructureSelectionQuery('Carbohydrate', MS.struct.modifier.unio
             ])
         ])
     })
-]))
+]), { category: StructureSelectionCategory.Type })
 
 const branchedPlusConnected = StructureSelectionQuery('Carbohydrate with Connected', MS.struct.modifier.union([
     MS.struct.modifier.includeConnected({
         0: branched.expression, 'layer-count': 1, 'as-whole-residues': true
     })
-]))
+]), { category: StructureSelectionCategory.Internal })
 
 const branchedConnectedOnly = StructureSelectionQuery('Connected to Carbohydrate', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: branchedPlusConnected.expression,
         by: branched.expression
     })
-]))
+]), { category: StructureSelectionCategory.Internal })
 
 const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
     MS.struct.combinator.merge([
@@ -237,7 +265,7 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
             })
         ])
     ]),
-]))
+]), { category: StructureSelectionCategory.Residue })
 
 // don't include branched entities as they have their own link representation
 const ligandPlusConnected = StructureSelectionQuery('Ligand with Connected', MS.struct.modifier.union([
@@ -257,14 +285,14 @@ const ligandPlusConnected = StructureSelectionQuery('Ligand with Connected', MS.
         ]),
         by: branched.expression
     })
-]))
+]), { category: StructureSelectionCategory.Internal })
 
 const ligandConnectedOnly = StructureSelectionQuery('Connected to Ligand', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: ligandPlusConnected.expression,
         by: ligand.expression
     })
-]))
+]), { category: StructureSelectionCategory.Internal })
 
 // residues connected to ligands or branched entities
 const connectedOnly = StructureSelectionQuery('Connected to Ligand or Carbohydrate', MS.struct.modifier.union([
@@ -272,7 +300,7 @@ const connectedOnly = StructureSelectionQuery('Connected to Ligand or Carbohydra
         branchedConnectedOnly.expression,
         ligandConnectedOnly.expression
     ]),
-]))
+]), { category: StructureSelectionCategory.Internal })
 
 const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.modifier.union([
     MS.struct.modifier.wholeResidues([
@@ -285,7 +313,7 @@ const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.
             })
         ])
     ])
-]))
+]), { category: StructureSelectionCategory.Bond })
 
 const nonStandardPolymer = StructureSelectionQuery('Non-standard Residues in Polymers', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -293,7 +321,7 @@ const nonStandardPolymer = StructureSelectionQuery('Non-standard Residues in Pol
         'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
         'residue-test': MS.ammp('isNonStandard')
     })
-]))
+]), { category: StructureSelectionCategory.Residue })
 
 const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -301,15 +329,15 @@ const coarse = StructureSelectionQuery('Coarse Elements', MS.struct.modifier.uni
             MS.set('sphere', 'gaussian'), MS.ammp('objectPrimitive')
         ])
     })
-]))
+]), { category: StructureSelectionCategory.Residue })
 
 const ring = StructureSelectionQuery('Rings in Residues', MS.struct.modifier.union([
     MS.struct.generator.rings()
-]))
+]), { category: StructureSelectionCategory.Residue })
 
 const aromaticRing = StructureSelectionQuery('Aromatic Rings in Residues', MS.struct.modifier.union([
     MS.struct.generator.rings({ 'only-aromatic': true })
-]))
+]), { category: StructureSelectionCategory.Residue })
 
 const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B) of Selection', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
@@ -320,20 +348,29 @@ const surroundings = StructureSelectionQuery('Surrounding Residues (5 \u212B) of
         }),
         by: MS.internal.generator.current()
     })
-]), 'Select residues within 5 \u212B of the current selection.')
+]), {
+    description: 'Select residues within 5 \u212B of the current selection.',
+    category: StructureSelectionCategory.Manipulate
+})
 
 const complement = StructureSelectionQuery('Inverse / Complement of Selection', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.generator.all(),
         by: MS.internal.generator.current()
     })
-]), 'Select everything not in the current selection.')
+]), {
+    description: 'Select everything not in the current selection.',
+    category: StructureSelectionCategory.Manipulate
+})
 
 const bonded = StructureSelectionQuery('Residues Bonded to Selection', MS.struct.modifier.union([
     MS.struct.modifier.includeConnected({
         0: MS.internal.generator.current(), 'layer-count': 1, 'as-whole-residues': true
     })
-]), 'Select residues covalently bonded to current selection.')
+]), {
+    description: 'Select residues covalently bonded to current selection.',
+    category: StructureSelectionCategory.Manipulate
+})
 
 const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modifier.union([
     MS.struct.modifier.wholeResidues([
@@ -344,8 +381,12 @@ const hasClash = StructureSelectionQuery('Residues with Clashes', MS.struct.modi
             })
         ])
     ])
-]), 'Select residues with clashes in the wwPDB validation report.', (ctx, structure) => {
-    return ValidationReportProvider.attach(ctx, structure.models[0])
+]), {
+    description: 'Select residues with clashes in the wwPDB validation report.',
+    category: StructureSelectionCategory.Residue,
+    ensureCustomProperties: (ctx, structure) => {
+        return ValidationReportProvider.attach(ctx, structure.models[0])
+    }
 })
 
 const isBuried = StructureSelectionQuery('Buried Protein Residues', MS.struct.modifier.union([
@@ -357,8 +398,12 @@ const isBuried = StructureSelectionQuery('Buried Protein Residues', MS.struct.mo
             })
         ])
     ])
-]), 'Select buried protein residues.', (ctx, structure) => {
-    return AccessibleSurfaceAreaProvider.attach(ctx, structure)
+]), {
+    description: 'Select buried protein residues.',
+    category: StructureSelectionCategory.Residue,
+    ensureCustomProperties: (ctx, structure) => {
+        return AccessibleSurfaceAreaProvider.attach(ctx, structure)
+    }
 })
 
 const isAccessible = StructureSelectionQuery('Accessible Protein Residues', MS.struct.modifier.union([
@@ -370,9 +415,54 @@ const isAccessible = StructureSelectionQuery('Accessible Protein Residues', MS.s
             })
         ])
     ])
-]), 'Select accessible protein residues.', (ctx, structure) => {
-    return AccessibleSurfaceAreaProvider.attach(ctx, structure)
+]), {
+    description: 'Select accessible protein residues.',
+    category: StructureSelectionCategory.Residue,
+    ensureCustomProperties: (ctx, structure) => {
+        return AccessibleSurfaceAreaProvider.attach(ctx, structure)
+    }
 })
+
+const StandardAminoAcids = [
+    [['HIS'], 'HISTIDINE'],
+    [['ARG'], 'ARGININE'],
+    [['LYS'], 'LYSINE'],
+    [['ILE'], 'ISOLEUCINE'],
+    [['PHE'], 'PHENYLALANINE'],
+    [['LEU'], 'LEUCINE'],
+    [['TRP'], 'TRYPTOPHAN'],
+    [['ALA'], 'ALANINE'],
+    [['MET'], 'METHIONINE'],
+    [['CYS'], 'CYSTEINE'],
+    [['ASN'], 'ASPARAGINE'],
+    [['VAL'], 'VALINE'],
+    [['GLY'], 'GLYCINE'],
+    [['SER'], 'SERINE'],
+    [['GLN'], 'GLUTAMINE'],
+    [['TYR'], 'TYROSINE'],
+    [['ASP'], 'ASPARTIC ACID'],
+    [['GLU'], 'GLUTAMIC ACID'],
+    [['THR'], 'THREONINE'],
+    [['SEC'], 'SELENOCYSTEINE'],
+    [['PYL'], 'PYRROLYSINE'],
+].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][]
+
+const StandardNucleicBases = [
+    [['A', 'DA'], 'ADENOSINE'],
+    [['C', 'DC'], 'CYTIDINE'],
+    [['T', 'DT'], 'THYMIDINE'],
+    [['G', 'DG'], 'GUANOSINE'],
+    [['I', 'DI'], 'INOSINE'],
+    [['U', 'DU'], 'URIDINE'],
+].sort((a, b) => a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) as [string[], string][]
+
+function ResidueQuery([names, label]: [string[], string], category: string) {
+    return StructureSelectionQuery(`${stringToWords(label)} (${names.join(', ')})`, MS.struct.modifier.union([
+        MS.struct.generator.atomGroups({
+            'residue-test': MS.core.set.has([MS.set(...names), MS.ammp('auth_comp_id')])
+        })
+    ]), { category })
+}
 
 export const StructureSelectionQueries = {
     all,
@@ -405,6 +495,12 @@ export const StructureSelectionQueries = {
     isBuried,
     isAccessible
 }
+
+export const StructureSelectionQueryList = [
+    ...Object.values(StructureSelectionQueries),
+    ...StandardAminoAcids.map(v => ResidueQuery(v, StructureSelectionCategory.AminoAcid)),
+    ...StandardNucleicBases.map(v => ResidueQuery(v, StructureSelectionCategory.NucleicBase)),
+]
 
 export function applyBuiltInSelection(to: StateBuilder.To<PluginStateObject.Molecule.Structure>, query: keyof typeof StructureSelectionQueries, customTag?: string) {
     return to.apply(StateTransforms.Model.StructureSelectionFromExpression,
