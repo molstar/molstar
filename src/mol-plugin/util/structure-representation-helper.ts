@@ -72,7 +72,7 @@ export class StructureRepresentationHelper {
             const colorType = props.color instanceof Array ? props.color[0] : props.color
             const colorTheme = themeCtx.colorThemeRegistry.get(colorType)
             const colorProps = {
-                ...(repr?.params && repr.params.values.colorTheme.params),
+                ...(repr?.params && repr.params.values.colorTheme.name === colorType && repr.params.values.colorTheme.params),
                 ...(props.color instanceof Array ? props.color[1] : {})
             }
             p.color = [colorTheme, () => colorProps]
@@ -81,7 +81,7 @@ export class StructureRepresentationHelper {
             const sizeType = props.size instanceof Array ? props.size[0] : props.size
             const sizeTheme = themeCtx.sizeThemeRegistry.get(sizeType)
             const sizeProps = {
-                ...(repr?.params && repr.params.values.sizeTheme.params),
+                ...(repr?.params && repr.params.values.sizeTheme.name === sizeType && repr.params.values.sizeTheme.params),
                 ...(props.size instanceof Array ? props.size[1] : {})
             }
             p.size = [sizeTheme, () => sizeProps]
@@ -98,7 +98,7 @@ export class StructureRepresentationHelper {
 
         const repr = this.getRepresentation(structure.transform.ref, type)
         const reprStructure = this.getRepresentationStructure(structure.transform.ref, type)
-        const reprParams = this.getRepresentationParams(s, type, repr, props)
+        const reprParams = this.getRepresentationParams(s.root, type, repr, props)
 
         if (reprStructure) {
             const currentLoci = StructureElement.Bundle.toLoci(reprStructure.params!.values.bundle, s)
@@ -196,7 +196,7 @@ export class StructureRepresentationHelper {
 
         for (const structure of structures) {
             const s = structure.obj!.data
-            const reprParams = this.getRepresentationParams(s, type, repr, props)
+            const reprParams = this.getRepresentationParams(s.root, type, repr, props)
             update.to(repr).update(reprParams)
         }
     }
