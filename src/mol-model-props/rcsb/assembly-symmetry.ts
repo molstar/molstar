@@ -63,20 +63,21 @@ export namespace AssemblySymmetry {
             console.error('expected `rcsb_struct_symmetry` field')
             return []
         }
-        const symmetry = result.assembly.rcsb_struct_symmetry as AssemblySymmetryValue
-        return symmetry.filter(s => s.symbol !== 'C1')
+        return result.assembly.rcsb_struct_symmetry as AssemblySymmetryValue
     }
 }
 
 export function getSymmetrySelectParam(structure?: Structure) {
-    const param = PD.Select<number>(0, [[0, 'No Symmetries']])
+    const param = PD.Select<number>(-1, [[-1, 'No Symmetries']])
     if (structure) {
         const assemblySymmetry = AssemblySymmetryProvider.get(structure).value
         if (assemblySymmetry) {
             const options: [number, string][] = []
             for (let i = 0, il = assemblySymmetry.length; i < il; ++i) {
                 const { symbol, kind } = assemblySymmetry[i]
-                options.push([ i, `${i + 1}: ${symbol} ${kind}` ])
+                if (symbol !== 'C1') {
+                    options.push([ i, `${i + 1}: ${symbol} ${kind}` ])
+                }
             }
             if (options.length) {
                 param.options = options
